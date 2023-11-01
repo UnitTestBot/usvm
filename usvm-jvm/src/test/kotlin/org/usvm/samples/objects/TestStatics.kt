@@ -25,7 +25,7 @@ class TestStatics : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Investigate! How static fields setups in model?")
+    @Disabled("TODO we need to get mocks for static fields")
     fun `Test mutable primitive static field`() {
         checkDiscoveredProperties(
             ObjectWithStatics::useMutablePrimitiveStaticField,

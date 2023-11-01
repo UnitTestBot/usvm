@@ -1,17 +1,23 @@
 package org.usvm.instrumentation.mock
 
-import org.jacodb.api.*
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcMethod
+import org.jacodb.api.TypeName
 import org.jacodb.api.cfg.*
 import org.jacodb.api.ext.*
+import org.jacodb.impl.cfg.JcInstListImpl
+import org.jacodb.impl.cfg.JcRawBool
+import org.jacodb.impl.cfg.JcRawString
+import org.jacodb.impl.cfg.MethodNodeBuilder
 import org.jacodb.impl.cfg.util.isPrimitive
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.instrumentation.TraceHelper
-import org.usvm.instrumentation.collector.trace.MockCollector
-import org.jacodb.impl.cfg.*
 import org.usvm.instrumentation.util.*
 
 class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoader) {
@@ -40,7 +46,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         isGlobalMock: Boolean
     ): List<JcRawInst> {
         val newInstList = mutableListOf<JcRawInst>()
-        val mockBeginLabel = JcRawLabelInst(jcMethod, "#mockBeginGenerated0")
+        val mockBeginLabel = JcRawLabelInst(jcMethod, MOCK_BEGIN)
         val mockTypeName = jcMethod.returnType
         newInstList.add(mockBeginLabel)
         val mockEndLabel = jcMethod.rawInstList
@@ -49,10 +55,10 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
                 if (firstInstruction is JcRawLabelInst) {
                     firstInstruction
                 } else {
-                    JcRawLabelInst(jcMethod, "#mockEndGenerated0")
+                    JcRawLabelInst(jcMethod, MOCK_END)
                 }
-            } ?: JcRawLabelInst(jcMethod, "#mockEndGenerated0")
-        val isMockedLocalVar = JcRawLocalVar("%isMockedGenerated0", jcClasspath.boolean.getTypename())
+            } ?: JcRawLabelInst(jcMethod, MOCK_END)
+        val isMockedLocalVar = JcRawLocalVar(IS_MOCKED, jcClasspath.boolean.getTypename())
         val jcThisReference =
             if (jcMethod.isStatic || isGlobalMock) {
                 JcRawNullConstant(jcClass.typename)
@@ -63,18 +69,18 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
             if (isGlobalMock) {
                 traceHelper.createMockCollectorIsInExecutionCall()
             } else {
-                traceHelper.createMockCollectorCall("isMocked", mockedMethodId, jcThisReference)
+                traceHelper.createMockCollectorCall(IS_MOCKED_FUN_NAME, mockedMethodId, jcThisReference)
             }
         val isMockedAssignInst = JcRawAssignInst(jcMethod, isMockedLocalVar, isMockedStaticCallExpr)
 
         val ifCondition = JcRawEqExpr(jcClasspath.boolean.getTypename(), isMockedLocalVar, JcRawBool(false))
-        val returnMockValueLabel = JcRawLabelInst(jcMethod, "#returnMockValueGenerated0")
+        val returnMockValueLabel = JcRawLabelInst(jcMethod, RETURN_MOCK_LABEL)
         val ifInst = JcRawIfInst(jcMethod, ifCondition, mockEndLabel.ref, returnMockValueLabel.ref)
 
         val mockRetValueLocalVar = if (mockTypeName.isPrimitive) {
-            JcRawLocalVar("%mockReturnValueGenerated0", mockTypeName)
+            JcRawLocalVar(MOCK_RETURN_VALUE_0, mockTypeName)
         } else {
-            JcRawLocalVar("%mockReturnValueGenerated0", jcClasspath.objectType.getTypename())
+            JcRawLocalVar(MOCK_RETURN_VALUE_0, jcClasspath.objectType.getTypename())
         }
         val mockRetValueVirtualCall = traceHelper.createMockCollectorCall(
             createGetMockValueMethodName(mockTypeName), mockedMethodId, jcThisReference
@@ -86,7 +92,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
                 listOf(isMockedAssignInst, ifInst, returnMockValueLabel, mockRetValueAssignInst, returnMock)
             )
         } else {
-            val localVar = JcRawLocalVar("%mockReturnValueGenerated1", mockTypeName)
+            val localVar = JcRawLocalVar(MOCK_RETURN_VALUE_1, mockTypeName)
             val assignAndCastInst =
                 JcRawAssignInst(jcMethod, localVar, JcRawCastExpr(mockTypeName, mockRetValueLocalVar))
             val returnMock = JcRawReturnInst(jcMethod, localVar)
@@ -101,13 +107,13 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
                 )
             )
         }
-        if (mockEndLabel.name == "#mockEndGenerated0") newInstList.add(mockEndLabel)
+        if (mockEndLabel.name == MOCK_END) newInstList.add(mockEndLabel)
         return newInstList
     }
 
     private fun throwExceptionInJcdbInstructions(jcMethod: JcMethod): List<JcRawInst> {
         val jcExceptionClass = jcClasspath.findClass<java.lang.IllegalStateException>()
-        val localVar = JcRawLocalVar("%notMockedException0", jcExceptionClass.typename)
+        val localVar = JcRawLocalVar(NOT_MOCKED, jcExceptionClass.typename)
         val newExceptionInst = JcRawNewExpr(jcExceptionClass.typename)
         val assignInst = JcRawAssignInst(jcMethod, localVar, newExceptionInst)
         val specialCall = JcRawSpecialCallExpr(
@@ -128,11 +134,19 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         mockedMethodId: Long,
         classRebuilder: MockClassRebuilder
     ): MethodNode {
-        val newJcMethod = classRebuilder.createNewVirtualMethod(jcMethod, true)
+        val newJcMethod = classRebuilder.createNewVirtualMethod(jcMethod = jcMethod, makeNotAbstract = true)
         val mockInstructions =
-            addMockInvocationInJcdbInstructions(classRebuilder.mockedJcVirtualClass, newJcMethod, mockedMethodId, false)
+            addMockInvocationInJcdbInstructions(
+                jcClass = classRebuilder.mockedJcVirtualClass,
+                jcMethod = newJcMethod,
+                mockedMethodId = mockedMethodId,
+                isGlobalMock = false
+            )
         val throwExceptionInstructions = throwExceptionInJcdbInstructions(newJcMethod)
-        return MethodNodeBuilder(newJcMethod, JcInstListImpl(mockInstructions + throwExceptionInstructions)).build()
+        return MethodNodeBuilder(
+            method = newJcMethod,
+            instList = JcInstListImpl(mockInstructions + throwExceptionInstructions)
+        ).build()
     }
 
     private fun addMockToMethod(
@@ -143,7 +157,10 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
     ): MethodNode {
         val mockInstructions = addMockInvocationInJcdbInstructions(jcClass, jcMethod, mockedMethodId, isGlobalMock)
         val oldInstructions = jcMethod.rawInstList.toMutableList()
-        return MethodNodeBuilder(jcMethod, JcInstListImpl(mockInstructions + oldInstructions)).build()
+        return MethodNodeBuilder(
+            method = jcMethod,
+            instList = JcInstListImpl(mockInstructions + oldInstructions)
+        ).build()
     }
 
     private fun addMockInfoAndRedefineClass(
@@ -219,7 +236,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
 
         val mockedClassNode = ClassNode()
         classNode.accept(mockedClassNode)
-        mockedClassNode.fields.removeAll { true }
+        mockedClassNode.fields.clear()
         val asmMethods = mockedClassNode.methods
 
         mockedClassNode.name = mockedClassJVMName
@@ -288,6 +305,18 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         mockCache.getOrPut(jcMethod) {
             JcInstructionTracer.encode(jcMethod)
         }
+
+    companion object {
+        private const val MOCK_BEGIN = "#mockBeginGenerated0"
+        private const val MOCK_END = "#mockEndGenerated0"
+        private const val IS_MOCKED = "%isMockedGenerated0"
+        private const val IS_MOCKED_FUN_NAME = "isMocked"
+        private const val RETURN_MOCK_LABEL = "#returnMockValueGenerated0"
+        private const val MOCK_RETURN_VALUE_0 = "%mockReturnValueGenerated0"
+        private const val MOCK_RETURN_VALUE_1 = "%mockReturnValueGenerated1"
+        private const val NOT_MOCKED = "%notMockedException0"
+    }
+
 
 }
 

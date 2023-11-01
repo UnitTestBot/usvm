@@ -108,7 +108,7 @@ class UsvmClassWriter(private val loader: ClassLoader, flags: Flags) : ClassWrit
         when {
             class1.isAssignableFrom(class2) -> type1
             class2.isAssignableFrom(class1) -> type2
-            class1.isInterface || class2.isInterface -> "java/lang/Object"
+            class1.isInterface || class2.isInterface -> OBJECT_TYPE
             else -> {
                 do {
                     class1 = class1.superclass
@@ -117,7 +117,11 @@ class UsvmClassWriter(private val loader: ClassLoader, flags: Flags) : ClassWrit
             }
         }
     } catch (e: Throwable) {
-        "java/lang/Object"
+        OBJECT_TYPE
+    }
+
+    companion object {
+        private const val OBJECT_TYPE = "java/lang/Object"
     }
 }
 

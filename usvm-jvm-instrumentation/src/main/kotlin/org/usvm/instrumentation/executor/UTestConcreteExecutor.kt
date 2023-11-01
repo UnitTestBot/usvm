@@ -2,22 +2,14 @@ package org.usvm.instrumentation.executor
 
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
-import com.jetbrains.rd.util.reactive.RdFault
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
-import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
-import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
+import org.usvm.instrumentation.testcase.descriptor.UTestUnexpectedExecutionBuilder
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.UTestExecutorInitException
-import java.util.concurrent.CancellationException
-import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -39,6 +31,7 @@ class UTestConcreteExecutor(
 
     private val instrumentationProcessRunner =
         InstrumentationProcessRunner(testingProjectClasspath, jcClasspath, instrumentationClassFactory)
+    private val uTestUnexpectedExecutionBuilder = UTestUnexpectedExecutionBuilder(jcClasspath)
 
     suspend fun ensureRunnerAlive() {
         check(lifetime.isAlive) { "Executor already closed" }
@@ -49,8 +42,7 @@ class UTestConcreteExecutor(
             try {
                 instrumentationProcessRunner.init(lifetime)
             } catch (e: Throwable) {
-                //TODO replace to logger
-                println("Cant init rdProcess:(")
+                println("Cant init rdProcess")
             }
         }
         if (!instrumentationProcessRunner.isAlive()) {
@@ -61,24 +53,8 @@ class UTestConcreteExecutor(
     fun executeSync(uTest: UTest): UTestExecutionResult {
         return try {
             instrumentationProcessRunner.executeUTestSync(uTest, timeout)
-        } catch (e: TimeoutException) {
-            instrumentationProcessRunner.destroy()
-            val descriptor = UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = e.message ?: "timeout",
-                stackTrace = listOf(),
-                raisedByUserCode = false
-            )
-            UTestExecutionTimedOutResult(descriptor)
-        } catch (e: RdFault) {
-            instrumentationProcessRunner.destroy()
-            val descriptor = UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = e.reasonAsText,
-                stackTrace = listOf(),
-                raisedByUserCode = false
-            )
-            UTestExecutionFailedResult(descriptor)
+        } catch (e: Exception) {
+            uTestUnexpectedExecutionBuilder.build(e)
         }
     }
 
@@ -88,30 +64,8 @@ class UTestConcreteExecutor(
             withTimeout(timeout) {
                 instrumentationProcessRunner.executeUTestAsync(uTest)
             }
-        } catch (e: TimeoutCancellationException) {
-            val descriptor = UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = e.message ?: "timeout",
-                stackTrace = listOf(),
-                raisedByUserCode = false
-            )
-            UTestExecutionTimedOutResult(descriptor)
-        } catch (e: RdFault) {
-            val descriptor = UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = e.reasonAsText,
-                stackTrace = listOf(),
-                raisedByUserCode = false
-            )
-            UTestExecutionFailedResult(descriptor)
-        } catch (e: CancellationException) {
-            val descriptor = UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = "CancellationException",
-                stackTrace = listOf(),
-                raisedByUserCode = false
-            )
-            UTestExecutionFailedResult(descriptor)
+        } catch (e: Exception) {
+            uTestUnexpectedExecutionBuilder.build(e)
         }
     }
 

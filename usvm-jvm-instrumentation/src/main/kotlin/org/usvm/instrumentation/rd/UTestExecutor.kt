@@ -25,9 +25,18 @@ class UTestExecutor(
 ) {
 
     private var workerClassLoader = createWorkerClassLoader()
-    private var initStateDescriptorBuilder = Value2DescriptorConverter(workerClassLoader, null)
-    private var staticDescriptorsBuilder = StaticDescriptorsBuilder(workerClassLoader, initStateDescriptorBuilder)
-    private var mockHelper = MockHelper(jcClasspath, workerClassLoader)
+    private var initStateDescriptorBuilder = Value2DescriptorConverter(
+        workerClassLoader = workerClassLoader,
+        previousState = null
+    )
+    private var staticDescriptorsBuilder = StaticDescriptorsBuilder(
+        workerClassLoader = workerClassLoader,
+        initialValue2DescriptorConverter = initStateDescriptorBuilder
+    )
+    private var mockHelper = MockHelper(
+        jcClasspath = jcClasspath,
+        classLoader = workerClassLoader
+    )
 
     init {
         workerClassLoader.setStaticDescriptorsBuilder(staticDescriptorsBuilder)
@@ -43,8 +52,14 @@ class UTestExecutor(
         )
 
     private fun reset() {
-        initStateDescriptorBuilder = Value2DescriptorConverter(workerClassLoader, null)
-        staticDescriptorsBuilder = StaticDescriptorsBuilder(workerClassLoader, initStateDescriptorBuilder)
+        initStateDescriptorBuilder = Value2DescriptorConverter(
+            workerClassLoader = workerClassLoader,
+            previousState = null
+        )
+        staticDescriptorsBuilder = StaticDescriptorsBuilder(
+            workerClassLoader = workerClassLoader,
+            initialValue2DescriptorConverter = initStateDescriptorBuilder
+        )
         JcInstructionTracer.reset()
         MockCollector.mocks.clear()
     }
@@ -55,7 +70,6 @@ class UTestExecutor(
             else -> {}
         }
         reset()
-
         val accessedStatics = mutableSetOf<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
 
@@ -94,9 +108,11 @@ class UTestExecutor(
                 methodInvocationResult.isFailure -> methodInvocationResult.exceptionOrNull()
                 else -> methodInvocationResult.getOrNull()
             }
+
+        val trace = JcInstructionTracer.getTrace()
+        accessedStatics.addAll(trace.statics.toSet())
+
         if (unpackedInvocationResult is Throwable) {
-            val trace = JcInstructionTracer.getTrace()
-            accessedStatics.addAll(trace.statics.toSet())
             val resultExecutionState =
                 buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
             return UTestExecutionExceptionResult(
@@ -110,10 +126,10 @@ class UTestExecutor(
                 resultState = resultExecutionState
             )
         }
+
         val methodInvocationResultDescriptor =
-            resultStateDescriptorBuilder.buildDescriptorResultFromAny(unpackedInvocationResult, callMethodExpr.type).getOrNull()
-        val trace = JcInstructionTracer.getTrace()
-        accessedStatics.addAll(trace.statics.toSet())
+            resultStateDescriptorBuilder.buildDescriptorResultFromAny(unpackedInvocationResult, callMethodExpr.type)
+                .getOrNull()
         val resultExecutionState =
             buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
 

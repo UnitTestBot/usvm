@@ -180,7 +180,7 @@ class InstrumentedProcess private constructor() {
                 resultState = serializeExecutionState(uTestExecutionResult.resultState),
                 cause = null
             )
-
+            //TODO Return initial state with timeouts
             is UTestExecutionTimedOutResult -> ExecutionResult(
                 type = ExecutionResultType.UTestExecutionTimedOutResult,
                 classes = classesToId,
@@ -212,10 +212,9 @@ class InstrumentedProcess private constructor() {
         }
     }
 
-    fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) {
+    private fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) {
         set { request ->
             try {
-//                serializationCtx.reset()
                 measureExecutionForTermination<R> {
                     block(request)
                 }

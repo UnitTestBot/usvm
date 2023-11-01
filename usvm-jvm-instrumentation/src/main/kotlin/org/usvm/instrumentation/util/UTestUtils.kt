@@ -7,8 +7,7 @@ import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 
 fun UTestObjectDescriptor.getAllFields(): Set<Pair<JcField, UTestValueDescriptor>> {
     val res = mutableSetOf<Pair<JcField, UTestValueDescriptor>>()
-    val deque = ArrayDeque<Pair<JcField, UTestValueDescriptor>>()
-    deque.addAll(fields.entries.map { it.key to it.value })
+    val deque = dequeOf(fields.entries.map { it.key to it.value })
     while (deque.isNotEmpty()) {
         val (field, value) = deque.removeFirst()
         res.add(field to value)

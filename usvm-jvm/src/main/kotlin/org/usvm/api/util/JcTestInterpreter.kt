@@ -65,11 +65,11 @@ import org.usvm.types.firstOrNull
  */
 class JcTestInterpreter(
     private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
-) {
+): JcTestResolver {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    fun resolve(method: JcTypedMethod, state: JcState): JcTest {
+    override fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
         val memory = state.memory
 

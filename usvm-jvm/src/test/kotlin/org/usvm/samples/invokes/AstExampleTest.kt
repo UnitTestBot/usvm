@@ -9,7 +9,6 @@ import org.usvm.test.util.checkers.ge
 
 class AstExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Jacodb Method Builder issue with instanceOf")
     fun testSubstituteAndEvaluate() {
         checkDiscoveredPropertiesWithExceptions(
             AstExample::replaceLeafAndCheck,

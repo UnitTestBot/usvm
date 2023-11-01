@@ -18,16 +18,16 @@ class MockClassRebuilder(
 ) : JcRawInstVisitor<JcRawInst>, JcRawExprVisitor<JcRawExpr> {
 
     val mockedJcVirtualClass = JcVirtualClassImpl(
-        mockedClassName,
-        jcClass.access,
-        jcClass.declaredFields.map { JcVirtualFieldImpl(it.name, it.access, it.type) },
-        jcClass.methods.map {
+        name = mockedClassName,
+        access = jcClass.access,
+        initialFields = jcClass.declaredFields.map { JcVirtualFieldImpl(it.name, it.access, it.type) },
+        initialMethods = jcClass.methods.map {
             JcVirtualMethodImpl(
-                it.name,
-                it.access,
-                it.returnType,
-                it.parameters.map { JcVirtualParameter(it.index, it.type) },
-                it.description
+                name = it.name,
+                access = it.access,
+                returnType = it.returnType,
+                parameters = it.parameters.map { JcVirtualParameter(it.index, it.type) },
+                description = it.description
             )
         }
     )
@@ -36,75 +36,82 @@ class MockClassRebuilder(
 
     fun createNewVirtualMethod(jcMethod: JcMethod, makeNotAbstract: Boolean): JcVirtualMethodImpl =
         JcVirtualMethodImpl(
-            jcMethod.name,
-            jcMethod.access.let { if (makeNotAbstract) it and Opcodes.ACC_ABSTRACT.inv() else it },
-            jcMethod.returnType,
-            jcMethod.parameters.map { JcVirtualParameter(it.index, it.type) },
-            jcMethod.description
+            name = jcMethod.name,
+            access = jcMethod.access.let { if (makeNotAbstract) it and Opcodes.ACC_ABSTRACT.inv() else it },
+            returnType = jcMethod.returnType,
+            parameters = jcMethod.parameters.map { JcVirtualParameter(it.index, it.type) },
+            description = jcMethod.description
         ).apply { bind(mockedJcVirtualClass) }
 
 
-    fun rebuildInstructions(jcMethod: JcMethod, makeNotAbstract: Boolean): Pair<JcMethod, JcMutableInstList<JcRawInst>> {
+    fun rebuildInstructions(
+        jcMethod: JcMethod,
+        makeNotAbstract: Boolean
+    ): Pair<JcMethod, JcMutableInstList<JcRawInst>> {
         newMethod = createNewVirtualMethod(jcMethod, makeNotAbstract)
         return newMethod to jcMethod.rawInstList.map(this).toMutableList()
     }
 
-    private fun convertJcRawValue(jcRawValue: JcRawValue): JcRawValue =
-        when (jcRawValue) {
-            is JcRawArrayAccess -> JcRawArrayAccess(jcRawValue.array, jcRawValue.index, jcRawValue.typeName)
+    private fun convertJcRawValue(jcRawValue: JcRawValue): JcRawValue = with(jcRawValue) {
+        when (this) {
+            is JcRawArrayAccess -> JcRawArrayAccess(array, index, typeName)
             is JcRawFieldRef -> JcRawFieldRef(
-                jcRawValue.instance?.let { convertJcRawValue(it) },
-                mockedJcVirtualClass.typename,
-                jcRawValue.fieldName,
-                jcRawValue.typeName
+                instance = instance?.let { convertJcRawValue(it) },
+                declaringClass = mockedJcVirtualClass.typename,
+                fieldName = fieldName,
+                typeName = typeName
             )
-            is JcRawBool -> JcRawBool(jcRawValue.value, jcRawValue.typeName)
-            is JcRawByte -> JcRawByte(jcRawValue.value, jcRawValue.typeName)
-            is JcRawChar -> JcRawChar(jcRawValue.value, jcRawValue.typeName)
-            is JcRawClassConstant -> JcRawClassConstant(jcRawValue.className, jcRawValue.typeName)
-            is JcRawDouble -> JcRawDouble(jcRawValue.value, jcRawValue.typeName)
-            is JcRawFloat -> JcRawFloat(jcRawValue.value, jcRawValue.typeName)
-            is JcRawInt -> JcRawInt(jcRawValue.value, jcRawValue.typeName)
-            is JcRawLong -> JcRawLong(jcRawValue.value, jcRawValue.typeName)
+
+            is JcRawBool -> JcRawBool(value, typeName)
+            is JcRawByte -> JcRawByte(value, typeName)
+            is JcRawChar -> JcRawChar(value, typeName)
+            is JcRawClassConstant -> JcRawClassConstant(className, typeName)
+            is JcRawDouble -> JcRawDouble(value, typeName)
+            is JcRawFloat -> JcRawFloat(value, typeName)
+            is JcRawInt -> JcRawInt(value, typeName)
+            is JcRawLong -> JcRawLong(value, typeName)
             is JcRawMethodConstant -> JcRawMethodConstant(
-                mockedJcVirtualClass.typename,
-                jcRawValue.name,
-                jcRawValue.argumentTypes,
-                jcRawValue.returnType,
-                jcRawValue.typeName
+                declaringClass = mockedJcVirtualClass.typename,
+                name = name,
+                argumentTypes = argumentTypes,
+                returnType = returnType,
+                typeName = typeName
             )
-            is JcRawMethodType -> JcRawMethodType(jcRawValue.argumentTypes, jcRawValue.returnType, jcRawValue.typeName)
-            is JcRawNullConstant -> JcRawNullConstant(jcRawValue.typeName)
-            is JcRawShort -> JcRawShort(jcRawValue.value, jcRawValue.typeName)
-            is JcRawStringConstant -> JcRawStringConstant(jcRawValue.value, jcRawValue.typeName)
-            is JcRawArgument -> JcRawArgument(jcRawValue.index, jcRawValue.name, jcRawValue.typeName)
-            is JcRawLocalVar -> JcRawLocalVar(jcRawValue.name, jcRawValue.typeName)
+
+            is JcRawMethodType -> JcRawMethodType(argumentTypes, returnType, typeName)
+            is JcRawNullConstant -> JcRawNullConstant(typeName)
+            is JcRawShort -> JcRawShort(value, typeName)
+            is JcRawStringConstant -> JcRawStringConstant(value, typeName)
+            is JcRawArgument -> JcRawArgument(index, name, typeName)
+            is JcRawLocalVar -> JcRawLocalVar(name, typeName)
             is JcRawThis -> JcRawThis(mockedJcVirtualClass.typename)
         }
+    }
 
 
     private fun convertBsm(bsmHandle: BsmHandle): BsmHandle {
         return BsmHandle(
-            bsmHandle.tag,
-            mockedJcVirtualClass.typename,
-            bsmHandle.name,
-            bsmHandle.argTypes,
-            bsmHandle.returnType,
-            bsmHandle.isInterface
+            tag = bsmHandle.tag,
+            declaringClass = mockedJcVirtualClass.typename,
+            name = bsmHandle.name,
+            argTypes = bsmHandle.argTypes,
+            returnType = bsmHandle.returnType,
+            isInterface = bsmHandle.isInterface
         )
     }
 
-    private fun convertBsmArg(bsmArg: BsmArg): BsmArg =
-        when (bsmArg) {
-            is BsmDoubleArg -> BsmDoubleArg(bsmArg.value)
-            is BsmFloatArg -> BsmFloatArg(bsmArg.value)
-            is BsmHandle -> convertBsm(bsmArg)
-            is BsmIntArg -> BsmIntArg(bsmArg.value)
-            is BsmLongArg -> BsmLongArg(bsmArg.value)
-            is BsmMethodTypeArg -> BsmMethodTypeArg(bsmArg.argumentTypes, bsmArg.returnType)
-            is BsmStringArg -> BsmStringArg(bsmArg.value)
-            is BsmTypeArg -> BsmTypeArg(bsmArg.typeName)
+    private fun convertBsmArg(bsmArg: BsmArg): BsmArg = with(bsmArg) {
+        when (this) {
+            is BsmDoubleArg -> BsmDoubleArg(value)
+            is BsmFloatArg -> BsmFloatArg(value)
+            is BsmHandle -> convertBsm(this)
+            is BsmIntArg -> BsmIntArg(value)
+            is BsmLongArg -> BsmLongArg(value)
+            is BsmMethodTypeArg -> BsmMethodTypeArg(argumentTypes, returnType)
+            is BsmStringArg -> BsmStringArg(value)
+            is BsmTypeArg -> BsmTypeArg(typeName)
         }
+    }
 
 
     override fun visitJcRawAssignInst(inst: JcRawAssignInst): JcRawInst {
@@ -117,14 +124,14 @@ class MockClassRebuilder(
 
     override fun visitJcRawCatchInst(inst: JcRawCatchInst): JcRawInst {
         return JcRawCatchInst(
-            newMethod,
-            convertJcRawValue(inst.throwable),
-            JcRawLabelRef(inst.handler.name),
-            inst.entries.map {
+            owner = newMethod,
+            throwable = convertJcRawValue(inst.throwable),
+            handler = JcRawLabelRef(inst.handler.name),
+            entries = inst.entries.map {
                 JcRawCatchEntry(
-                    it.acceptedThrowable,
-                    JcRawLabelRef(it.startInclusive.name),
-                    JcRawLabelRef(it.endExclusive.name)
+                    acceptedThrowable = it.acceptedThrowable,
+                    startInclusive = JcRawLabelRef(it.startInclusive.name),
+                    endExclusive = JcRawLabelRef(it.endExclusive.name)
                 )
             })
     }
@@ -143,10 +150,10 @@ class MockClassRebuilder(
 
     override fun visitJcRawIfInst(inst: JcRawIfInst): JcRawInst {
         return JcRawIfInst(
-            newMethod,
-            inst.condition.accept(this) as JcRawConditionExpr,
-            JcRawLabelRef(inst.trueBranch.name),
-            JcRawLabelRef(inst.falseBranch.name)
+            owner = newMethod,
+            condition = inst.condition.accept(this) as JcRawConditionExpr,
+            trueBranch = JcRawLabelRef(inst.trueBranch.name),
+            falseBranch = JcRawLabelRef(inst.falseBranch.name)
         )
     }
 
@@ -164,10 +171,10 @@ class MockClassRebuilder(
 
     override fun visitJcRawSwitchInst(inst: JcRawSwitchInst): JcRawInst {
         return JcRawSwitchInst(
-            newMethod,
-            convertJcRawValue(inst.key),
-            inst.branches.map { convertJcRawValue(it.key) to JcRawLabelRef(it.value.name) }.toMap(),
-            JcRawLabelRef(inst.default.name)
+            owner = newMethod,
+            key = convertJcRawValue(inst.key),
+            branches = inst.branches.map { convertJcRawValue(it.key) to JcRawLabelRef(it.value.name) }.toMap(),
+            default = JcRawLabelRef(inst.default.name)
         )
     }
 
@@ -231,14 +238,14 @@ class MockClassRebuilder(
         return JcRawDouble(value.value)
     }
 
-    override fun visitJcRawDynamicCallExpr(expr: JcRawDynamicCallExpr): JcRawExpr {
-        return JcRawDynamicCallExpr(
-            convertBsm(expr.bsm),
-            expr.bsmArgs.map { convertBsmArg(it) },
-            expr.callSiteMethodName,
-            expr.callSiteArgTypes,
-            expr.callSiteReturnType,
-            expr.callSiteArgs.map { convertJcRawValue(it) }
+    override fun visitJcRawDynamicCallExpr(expr: JcRawDynamicCallExpr): JcRawExpr = with(expr) {
+        JcRawDynamicCallExpr(
+            bsm = convertBsm(bsm),
+            bsmArgs = bsmArgs.map { convertBsmArg(it) },
+            callSiteMethodName = callSiteMethodName,
+            callSiteArgTypes = callSiteArgTypes,
+            callSiteReturnType = callSiteReturnType,
+            callSiteArgs = callSiteArgs.map { convertJcRawValue(it) }
         )
     }
 
@@ -248,10 +255,10 @@ class MockClassRebuilder(
 
     override fun visitJcRawFieldRef(value: JcRawFieldRef): JcRawExpr {
         return JcRawFieldRef(
-            value.instance?.let { JcRawThis(mockedJcVirtualClass.typename) },
-            mockedJcVirtualClass.typename,
-            value.fieldName,
-            value.typeName
+            instance = value.instance?.let { JcRawThis(mockedJcVirtualClass.typename) },
+            declaringClass = mockedJcVirtualClass.typename,
+            fieldName = value.fieldName,
+            typeName = value.typeName
         )
     }
 
@@ -275,14 +282,14 @@ class MockClassRebuilder(
         return JcRawInt(value.value)
     }
 
-    override fun visitJcRawInterfaceCallExpr(expr: JcRawInterfaceCallExpr): JcRawExpr {
-        return JcRawInterfaceCallExpr(
-            mockedJcVirtualClass.typename,
-            expr.methodName,
-            expr.argumentTypes,
-            expr.returnType,
-            convertJcRawValue(expr.instance),
-            expr.args.map { convertJcRawValue(it) }
+    override fun visitJcRawInterfaceCallExpr(expr: JcRawInterfaceCallExpr): JcRawExpr = with(expr) {
+        JcRawInterfaceCallExpr(
+            declaringClass = mockedJcVirtualClass.typename,
+            methodName = methodName,
+            argumentTypes = argumentTypes,
+            returnType = returnType,
+            instance = convertJcRawValue(instance),
+            args = args.map { convertJcRawValue(it) }
         )
     }
 
@@ -306,13 +313,13 @@ class MockClassRebuilder(
         return JcRawLtExpr(expr.typeName, convertJcRawValue(expr.lhv), convertJcRawValue(expr.rhv))
     }
 
-    override fun visitJcRawMethodConstant(value: JcRawMethodConstant): JcRawExpr {
-        return JcRawMethodConstant(
-            mockedJcVirtualClass.typename,
-            value.name,
-            value.argumentTypes,
-            value.returnType,
-            value.typeName
+    override fun visitJcRawMethodConstant(value: JcRawMethodConstant): JcRawExpr = with(value) {
+        JcRawMethodConstant(
+            declaringClass = mockedJcVirtualClass.typename,
+            name = name,
+            argumentTypes = argumentTypes,
+            returnType = returnType,
+            typeName = typeName
         )
     }
 
@@ -364,23 +371,23 @@ class MockClassRebuilder(
         return JcRawShrExpr(expr.typeName, convertJcRawValue(expr.lhv), convertJcRawValue(expr.rhv))
     }
 
-    override fun visitJcRawSpecialCallExpr(expr: JcRawSpecialCallExpr): JcRawExpr {
-        return JcRawSpecialCallExpr(
-            mockedJcVirtualClass.typename,
-            expr.methodName,
-            expr.argumentTypes,
-            expr.returnType,
-            convertJcRawValue(expr.instance),
-            expr.args.map { convertJcRawValue(it) })
+    override fun visitJcRawSpecialCallExpr(expr: JcRawSpecialCallExpr): JcRawExpr = with(expr) {
+        JcRawSpecialCallExpr(
+            declaringClass = mockedJcVirtualClass.typename,
+            methodName = methodName,
+            argumentTypes = argumentTypes,
+            returnType = returnType,
+            instance = convertJcRawValue(instance),
+            args = args.map { convertJcRawValue(it) })
     }
 
-    override fun visitJcRawStaticCallExpr(expr: JcRawStaticCallExpr): JcRawExpr {
-        return JcRawStaticCallExpr(
-            mockedJcVirtualClass.typename,
-            expr.methodName,
-            expr.argumentTypes,
-            expr.returnType,
-            expr.args.map { convertJcRawValue(it) })
+    override fun visitJcRawStaticCallExpr(expr: JcRawStaticCallExpr): JcRawExpr = with(expr) {
+        JcRawStaticCallExpr(
+            declaringClass = mockedJcVirtualClass.typename,
+            methodName = methodName,
+            argumentTypes = argumentTypes,
+            returnType = returnType,
+            args = args.map { convertJcRawValue(it) })
     }
 
     override fun visitJcRawStringConstant(value: JcRawStringConstant): JcRawExpr {
@@ -399,14 +406,14 @@ class MockClassRebuilder(
         return JcRawUshrExpr(expr.typeName, convertJcRawValue(expr.lhv), convertJcRawValue(expr.rhv))
     }
 
-    override fun visitJcRawVirtualCallExpr(expr: JcRawVirtualCallExpr): JcRawExpr {
-        return JcRawVirtualCallExpr(
-            mockedJcVirtualClass.typename,
-            expr.methodName,
-            expr.argumentTypes,
-            expr.returnType,
-            convertJcRawValue(expr.instance),
-            expr.args.map { convertJcRawValue(it) })
+    override fun visitJcRawVirtualCallExpr(expr: JcRawVirtualCallExpr): JcRawExpr = with(expr) {
+        JcRawVirtualCallExpr(
+            declaringClass = mockedJcVirtualClass.typename,
+            methodName = methodName,
+            argumentTypes = argumentTypes,
+            returnType = returnType,
+            instance = convertJcRawValue(instance),
+            args = args.map { convertJcRawValue(it) })
     }
 
     override fun visitJcRawXorExpr(expr: JcRawXorExpr): JcRawExpr {

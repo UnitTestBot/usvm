@@ -158,6 +158,9 @@ class UTestExpressionExecutor(
         return ReflectionUtils.UNSAFE.allocateInstance(jClass)
     }
 
+    /**
+     * This method does not comply with the jvm specification
+     */
     private fun executeUTestArithmeticExpression(uTestArithmeticExpression: UTestArithmeticExpression): Any? {
         val lhv = exec(uTestArithmeticExpression.lhv)?.let { if (it is Char) it.code else it } ?: return null
         val rhv = exec(uTestArithmeticExpression.rhv)?.let { if (it is Char) it.code else it } ?: return null

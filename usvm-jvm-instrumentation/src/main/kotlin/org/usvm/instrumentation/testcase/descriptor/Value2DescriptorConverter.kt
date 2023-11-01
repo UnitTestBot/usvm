@@ -36,13 +36,11 @@ open class Value2DescriptorConverter(
         testExecutor: UTestExpressionExecutor,
     ): Result<UTestValueDescriptor>? {
         testExecutor.executeUTestInst(uTestExpression)
-            .onSuccess {
-                buildDescriptorResultFromAny(it, uTestExpression.type)
-                    .onSuccess { return Result.success(it) }
-                    .onFailure { return Result.failure(it) }
+            .onSuccess { uTestExprExecRes ->
+                return buildDescriptorResultFromAny(uTestExprExecRes, uTestExpression.type)
             }
-            .onFailure { return Result.failure(it) }
-        return null
+            .onFailure { exception -> return Result.failure(exception) }
+        error("Unexpected situation in process of descriptor building")
     }
 
     fun buildDescriptorResultFromAny(any: Any?, type: JcType?, depth: Int = 0): Result<UTestValueDescriptor> =

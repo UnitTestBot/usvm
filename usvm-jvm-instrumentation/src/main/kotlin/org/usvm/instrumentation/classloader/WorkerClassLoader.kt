@@ -5,6 +5,7 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.jacodb.api.ext.findClass
 import org.objectweb.asm.tree.ClassNode
+import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenter
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
 import org.usvm.instrumentation.util.*
 import java.lang.instrument.ClassDefinition
@@ -42,8 +43,8 @@ class WorkerClassLoader(
     }
 
     //Invoking clinit method for loaded classes for statics reset between executions
-    fun reset(accessedStatic: List<JcField>) {
-        val jcClassesToReinit = accessedStatic.map { it.enclosingClass }.toSet()
+    fun reset(accessedStatics: List<JcField>) {
+        val jcClassesToReinit = accessedStatics.map { it.enclosingClass }.toSet()
         val classesToReinit = foundClasses.values
             .filter { it.second in jcClassesToReinit }
             .map { it.first }
@@ -61,7 +62,9 @@ class WorkerClassLoader(
         }
         classesToReinit.forEach { cl ->
             try {
-                cl.declaredMethods.find { it.name == "generatedClinit0" }?.invokeWithAccessibility(null, listOf())
+                cl.declaredMethods
+                    .find { it.name == JcRuntimeTraceInstrumenter.GENERATED_CLINIT_NAME }
+                    ?.invokeWithAccessibility(null, listOf())
             } catch (e: Throwable) {
                 //cannot access some classes, for example, enums
             }

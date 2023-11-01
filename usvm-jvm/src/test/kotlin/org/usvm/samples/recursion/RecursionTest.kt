@@ -90,7 +90,7 @@ internal class RecursionTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Investigate. Probably bug in Test Executor")
+    @Disabled("We need proper \"big\" exception descriptor builder in the process executor")
     fun recursionWithExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Recursion::recursionWithException,

@@ -22,16 +22,20 @@ class TraceHelper(
 ) {
 
     private val jcVirtualGlobalObjectClass =
-        JcVirtualClassImpl(globalObjectJClass.name,
-            globalObjectJClass.modifiers,
-            listOf(),
-            globalObjectJClass.declaredMethods.map { createJcVirtualMethod(it) }).also {
-            it.classpath = jcClasspath
-        }
+        JcVirtualClassImpl(
+            name = globalObjectJClass.name,
+            access = globalObjectJClass.modifiers,
+            initialFields = listOf(),
+            initialMethods = globalObjectJClass.declaredMethods.map { createJcVirtualMethod(it) }
+        ).also { it.classpath = jcClasspath }
 
     //We need virtual method to insert it invocation in instrumented instruction list
     private fun createJcVirtualMethod(jMethod: Method): JcVirtualMethod = JcVirtualMethodImpl(
-        jMethod.name, jMethod.modifiers, TypeNameImpl(jMethod.returnType.name), createJcVirtualMethodParams(jMethod), ""
+        name = jMethod.name,
+        access = jMethod.modifiers,
+        returnType = TypeNameImpl(jMethod.returnType.name),
+        parameters = createJcVirtualMethodParams(jMethod),
+        description = ""
     )
 
     private fun createJcVirtualMethodParams(jMethod: Method): List<JcVirtualParameter> =
@@ -51,33 +55,33 @@ class TraceHelper(
         val jcTraceMethod = jcVirtualGlobalObjectClass.declaredMethods.find { it.name == traceMethodName }!!
         val jcRawLong = JcRawLong(id)
         return JcRawStaticCallExpr(
-            jcVirtualGlobalObjectClass.typename,
-            jcTraceMethod.name,
-            listOf(jcClasspath.long.getTypename(), jcClasspath.objectType.getTypename()),
-            jcTraceMethod.returnType,
-            listOf(jcRawLong, jcThisReference)
+            declaringClass = jcVirtualGlobalObjectClass.typename,
+            methodName = jcTraceMethod.name,
+            argumentTypes = listOf(jcClasspath.long.getTypename(), jcClasspath.objectType.getTypename()),
+            returnType = jcTraceMethod.returnType,
+            args = listOf(jcRawLong, jcThisReference)
         )
     }
 
     fun createMockCollectorIsInExecutionCall(): JcRawStaticCallExpr {
         val jcTraceMethod = jcVirtualGlobalObjectClass.declaredMethods.find { it.name == "isInExecution" }!!
         return JcRawStaticCallExpr(
-            jcVirtualGlobalObjectClass.typename,
-            jcTraceMethod.name,
-            listOf(),
-            jcTraceMethod.returnType,
-            listOf()
+            declaringClass = jcVirtualGlobalObjectClass.typename,
+            methodName = jcTraceMethod.name,
+            argumentTypes = listOf(),
+            returnType = jcTraceMethod.returnType,
+            args = listOf()
         )
     }
 
     fun createStaticExprWithLongArg(arg: Long, jcTraceMethod: JcVirtualMethod): JcRawStaticCallExpr {
         val argAsJcConst = JcRawLong(arg)
         return JcRawStaticCallExpr(
-            jcVirtualGlobalObjectClass.typename,
-            jcTraceMethod.name,
-            listOf(jcClasspath.long.getTypename()),
-            jcTraceMethod.returnType,
-            listOf(argAsJcConst)
+            declaringClass = jcVirtualGlobalObjectClass.typename,
+            methodName = jcTraceMethod.name,
+            argumentTypes = listOf(jcClasspath.long.getTypename()),
+            returnType = jcTraceMethod.returnType,
+            args = listOf(argAsJcConst)
         )
     }
 

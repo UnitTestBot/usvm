@@ -50,8 +50,7 @@ fun AbstractBuffer.readJcField(jcClasspath: JcClasspath): JcField {
 }
 
 fun AbstractBuffer.readJcType(jcClasspath: JcClasspath): JcType? {
-    //Remove info about generics
-    var typeName = readString().replace(Regex("""<\s*[A-Za-z*?]+\s*(\s*,\s*[A-Za-z*?]+)*>"""), "")
+    var typeName = readString()
     if (typeName == "type_is_null") return null
     jcClasspath.findTypeOrNull(typeName)?.let { return it }
     //We need this because of jacodb peculiarity with typenames...

@@ -39,19 +39,13 @@ abstract class UTestConcreteExecutorTest {
         }
     }
 
-//    private fun initExecutor() {
-//        uTestConcreteExecutor = createUTestConcreteExecutor()
-//    }
 
     fun executeTest(body: suspend () -> Unit) {
         try {
-//            initExecutor()
             runBlocking {
                 body.invoke()
             }
-
         } finally {
-            //uTestConcreteExecutor.close()
         }
     }
 

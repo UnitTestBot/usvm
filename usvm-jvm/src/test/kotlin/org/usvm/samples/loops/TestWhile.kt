@@ -18,7 +18,6 @@ class TestWhile : JavaMethodTestRunner() {
     )
 
     @Test
-    @Disabled("Jacodb issue")
     fun `Test singleLoop`() {
         checkDiscoveredProperties(
             While::singleLoop,

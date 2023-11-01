@@ -24,7 +24,7 @@ fun <T> Collection<T>.lastOrElse(predicate: (T) -> Boolean, action: () -> T): T 
 
 fun <T> MutableList<T>.replace(replace: T, replacement: T): Boolean {
     with(indexOf(replace)) {
-        return if (this == -1)  {
+        return if (this == -1) {
             false
         } else {
             removeAt(this)
@@ -483,10 +483,12 @@ inline fun <A, B, R, C : MutableCollection<R>> Iterable<A>.zipTo(that: Iterable<
 
 fun <T, R : Comparable<R>> List<T>.filterDuplicatesBy(f: (T) -> R): List<T> {
     val list1 = this.zip(this.map(f))
-    val res = mutableListOf<Pair<T, R>>()
-    for (i in 0 until size) {
-        val item = list1[i].second
-        if (res.all { it.second != item }) res.add(list1[i])
+    val res = mutableListOf<T>()
+    val conditionElements = mutableSetOf<R>()
+    for ((orig, cond) in list1) {
+        if (conditionElements.add(cond)) {
+            res.add(orig)
+        }
     }
-    return res.map { it.first }
+    return res
 }

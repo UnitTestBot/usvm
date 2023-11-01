@@ -16,8 +16,6 @@ class SerializationContext(
     fun reset() {
         serializedUTestInstructions.clear()
         serializedDescriptors.clear()
-        //It will be overwritten by execution
-//        deserializedUTestInstructions.clear()
         deserializedDescriptors.clear()
     }
 }

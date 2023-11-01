@@ -66,13 +66,13 @@ inline fun <T> `try`(body: () -> T): Try<T> = try {
 }
 
 inline fun <T> asserted(condition: Boolean, action: () -> T): T {
-    ktassert(condition)
+    assert(condition)
     return action()
 }
 
 
 @Suppress("ControlFlowWithEmptyBody")
-fun ktassert(cond: Boolean) = if (!cond) throw AssertionException() else {}
+fun assert(cond: Boolean) = if (!cond) throw AssertionException() else {}
 
 class AssertionException(message: String) : KtException(message) {
     constructor() : this("")

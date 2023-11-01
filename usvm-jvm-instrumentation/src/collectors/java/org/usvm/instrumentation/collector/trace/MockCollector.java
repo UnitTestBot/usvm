@@ -2,8 +2,8 @@ package org.usvm.instrumentation.collector.trace;
 
 public class MockCollector {
 
+    private static final int DEFAULT_MOCKINFO_ARRAY_CAPACITY = 10;
     public static MockInfoArrayWrapper mocks = new MockInfoArrayWrapper();
-
     public static boolean inExecution;
 
     public static boolean isInExecution() {
@@ -14,29 +14,30 @@ public class MockCollector {
         return mocks.find(mockedId, mockedObject).getMockValue();
     }
     public static boolean getBooleanMockValue(long mockedId, Object mockedObject) {
-        return (boolean) mocks.find(mockedId, mockedObject).getMockValue();
+        return (boolean) getMockValue(mockedId, mockedObject);
     }
     public static byte getByteMockValue(long mockedId, Object mockedObject) {
-        return (byte) mocks.find(mockedId, mockedObject).getMockValue();
+        return (byte) getMockValue(mockedId, mockedObject);
     }
     public static short getShortMockValue(long mockedId, Object mockedObject) {
-        return (short) mocks.find(mockedId, mockedObject).getMockValue();
+        return (short) getMockValue(mockedId, mockedObject);
     }
     public static char getCharMockValue(long mockedId, Object mockedObject) {
-        return (char) mocks.find(mockedId, mockedObject).getMockValue();
+        return (char) getMockValue(mockedId, mockedObject);
     }
     public static int getIntMockValue(long mockedId, Object mockedObject) {
-        return (int) mocks.find(mockedId, mockedObject).getMockValue();
+        return (int) getMockValue(mockedId, mockedObject);
     }
     public static float getFloatMockValue(long mockedId, Object mockedObject) {
-        return (float) mocks.find(mockedId, mockedObject).getMockValue();
+        return (float) getMockValue(mockedId, mockedObject);
     }
     public static double getDoubleMockValue(long mockedId, Object mockedObject) {
-        return (double) mocks.find(mockedId, mockedObject).getMockValue();
+        return (double) getMockValue(mockedId, mockedObject);
     }
     public static long getLongMockValue(long mockedId, Object mockedObject) {
-        return (long) mocks.find(mockedId, mockedObject).getMockValue();
+        return (long) getMockValue(mockedId, mockedObject);
     }
+
 
     public static boolean isMocked(long mockedId, Object mockedObject) {
         return mocks.find(mockedId, mockedObject) != null;
@@ -73,7 +74,7 @@ public class MockCollector {
         public int size;
 
         MockInfoArrayWrapper() {
-            arr = new MockInfo[10];
+            arr = new MockInfo[DEFAULT_MOCKINFO_ARRAY_CAPACITY];
         }
 
         public MockInfo find(long mockId, Object mockedObject) {
@@ -104,8 +105,8 @@ public class MockCollector {
         }
 
         public void removeLast() {
-            arr[size] = null;
             if (size == 0) return;
+            arr[size] = null;
             size--;
         }
 
@@ -131,7 +132,7 @@ public class MockCollector {
         public int size;
 
         public MockValueArrayWrapper() {
-            arr = new Object[10];
+            arr = new Object[DEFAULT_MOCKINFO_ARRAY_CAPACITY];
         }
 
         public MockValueArrayWrapper(int size) {
@@ -147,8 +148,8 @@ public class MockCollector {
         }
 
         public void removeLast() {
-            arr[size] = 0;
             if (size == 0) return;
+            arr[size] = 0;
             size--;
         }
 

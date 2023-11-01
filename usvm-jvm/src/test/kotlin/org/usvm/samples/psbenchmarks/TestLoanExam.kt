@@ -26,7 +26,7 @@ class TestLoanExam : JavaMethodTestRunner() {
             )
         ]
     )
-    @Disabled("For investigation")
+
     fun `Test getCreditPercent`(options: UMachineOptions) {
         withOptions(options) {
             checkDiscoveredPropertiesWithExceptions(

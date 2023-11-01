@@ -26,18 +26,6 @@ fun JcClasspath.findFieldByFullNameOrNull(fieldFullName: String): JcField? {
 
 operator fun JcClasspath.get(klass: Class<*>) = this.findClassOrNull(klass.name)
 
-fun JcClassOrInterface.write(
-    path: Path
-): File? =
-    try {
-        path.toFile().apply {
-            mkdirs()
-            File("$path/${this@write.simpleName}.class").writeBytes(this@write.bytecode())
-        }
-    } catch (e: Throwable) {
-        null
-    }
-
 val JcClassOrInterface.typename
     get() = TypeNameImpl(this.name)
 
@@ -55,7 +43,6 @@ val JcInst.enclosingClass
 val JcInst.enclosingMethod
     get() = this.location.method
 
-//TODO!! Test with arrays
 fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
     when (this) {
         is JcPrimitiveType -> toJavaClass()
@@ -111,32 +98,6 @@ fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
 fun JcField.toJavaField(classLoader: ClassLoader): Field? =
     enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
 
-fun JcClassOrInterface.isAllStaticsAreEasyToRollback(): Boolean {
-    val statics = declaredFields.filter { it.isStatic }
-    for (s in statics) {
-        val typeName = s.type
-        val isPrimitive = typeName.isPrimitive || typeName.isPrimitiveWrapper() || this.classpath.stringType()
-            .getTypename() == typeName
-        val isArrayOfPrimitive =
-            typeName.isArray && (typeName.elementType().isPrimitive || typeName.elementType().isPrimitiveWrapper())
-        if (!isPrimitive && !isArrayOfPrimitive) return false
-    }
-    return true
-}
-
-val JcClassOrInterface.allFields
-    get(): List<JcField> {
-        val result = HashMap<String, JcField>()
-        var current: JcClassOrInterface? = this
-        do {
-            current!!.fields.forEach {
-                result.putIfAbsent(it.name, it)
-            }
-            current = current.superClass
-        } while (current != null)
-        return result.values.toList()
-    }
-
 val JcClassOrInterface.allDeclaredFields
     get(): List<JcField> {
         val result = HashMap<String, JcField>()
@@ -150,34 +111,8 @@ val JcClassOrInterface.allDeclaredFields
         return result.values.toList()
     }
 
-private fun String.typeName(): TypeName = TypeNameImpl(this.jcdbName())
-private fun TypeName.elementType() = elementTypeOrNull() ?: this
-
-private val NULL = "null".typeName()
-private fun TypeName.elementTypeOrNull() = when {
-    this == NULL -> NULL
-    typeName.endsWith("[]") -> typeName.removeSuffix("[]").typeName()
-    else -> null
-}
-
 fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
 fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? = jcClasspath.findClassOrNull(typeName)
-
-fun TypeName.isPrimitiveWrapper() =
-    when (this.typeName) {
-        Boolean::class.javaObjectType.name -> true
-        Byte::class.javaObjectType.name -> true
-        Short::class.javaObjectType.name -> true
-        Int::class.javaObjectType.name -> true
-        Long::class.javaObjectType.name -> true
-        Float::class.javaObjectType.name -> true
-        Double::class.javaObjectType.name -> true
-        Char::class.javaObjectType.name -> true
-        else -> false
-    }
-
-fun TypeName.isPrimitiveArray() =
-    isArray && PredefinedPrimitives.matches(typeName.substringBefore('['))
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
@@ -207,12 +142,6 @@ fun Constructor<*>.toJcdbSignature(): String {
 private fun Array<Class<*>>.toJcdbFormat(): String =
     if (isEmpty()) ""
     else joinToString(";", postfix = ";") { it.typeName }
-
-fun JcMethod.isSameSignatures(method: Method) =
-    jcdbSignature == method.toJcdbSignature()
-
-fun JcMethod.isSameSignatures(constructor: Constructor<*>) =
-    jcdbSignature == constructor.toJcdbSignature()
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
     toJcdbSignature() == jcMethod.jcdbSignature
