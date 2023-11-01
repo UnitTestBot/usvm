@@ -3,8 +3,12 @@ package org.usvm.types.single
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.INFINITE
 
 object SingleTypeSystem : UTypeSystem<SingleTypeSystem.SingleType> {
+    override val typeOperationsTimeout: Duration = INFINITE
+
     object SingleType
 
     override fun isSupertype(supertype: SingleType, type: SingleType): Boolean = true

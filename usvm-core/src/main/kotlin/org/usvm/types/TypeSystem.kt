@@ -1,10 +1,17 @@
 package org.usvm.types
 
+import kotlin.time.Duration
+
 /**
  * A base interface, instantiated in target machines. Provides type information and [topTypeStream],
  * representing all possible types in the system.
  */
 interface UTypeSystem<Type> {
+    /**
+     * A timeout used for heavy operations with types.
+     */
+    // TODO this timeout must not exceed time budget for the MUT
+    val typeOperationsTimeout: Duration
 
     /**
      * @return true if [type] <: [supertype].

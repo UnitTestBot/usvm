@@ -1,10 +1,11 @@
 package org.usvm.algorithms
 
 abstract class GraphIterator<T> : Iterator<T> {
-    protected sealed class IteratorState {
-        object Unknown : IteratorState()
-        object NoElements : IteratorState()
-        class Element<T>(val element: T) : IteratorState()
+    protected sealed interface IteratorState {
+        object Unknown : IteratorState
+        object NoElements : IteratorState
+        @JvmInline
+        value class Element<T>(val element: T) : IteratorState
     }
 
     private var iteratorState: IteratorState = IteratorState.Unknown
@@ -44,7 +45,9 @@ class DfsIterator<T>(
 ) : GraphIterator<T>() {
     private val queue = ArrayDeque<Node<T>>().apply { add(Node(top, itemToChildren(top))) }
     private val used = hashSetOf<T>()
+
     private data class Node<T>(val item: T, val children: Iterator<T>)
+
     override fun calcNext(): IteratorState {
         while (queue.isNotEmpty()) {
             val (item, children) = queue.last()

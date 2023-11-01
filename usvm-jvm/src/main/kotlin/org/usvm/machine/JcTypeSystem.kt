@@ -14,9 +14,11 @@ import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration
 
 class JcTypeSystem(
     private val cp: JcClasspath,
+    override val typeOperationsTimeout: Duration
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
 
@@ -91,7 +93,7 @@ class JcTypeSystem(
                     // since we use DFS iterator, the array of objects should come last
                     // here we return only the direct successors, so (2,3,...)-dimensional arrays isn't returned here
                     // such arrays are subtypes of `Object[]`
-                    flatMap { listOf(it, cp.arrayTypeOf(it)) } + sequenceOf(cp.arrayTypeOf(type))
+                    this + map { cp.arrayTypeOf(it) } + cp.arrayTypeOf(type)
                 } else {
                     this
                 }

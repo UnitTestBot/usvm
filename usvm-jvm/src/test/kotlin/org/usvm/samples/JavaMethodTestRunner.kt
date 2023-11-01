@@ -23,6 +23,7 @@ import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
+import kotlin.time.Duration
 
 
 @ExtendWith(UTestRunnerController::class)
@@ -754,6 +755,8 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         exceptionsPropagation = true,
         timeoutMs = 60_000,
         stepsFromLastCovered = 3500L,
+        solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
+        typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->

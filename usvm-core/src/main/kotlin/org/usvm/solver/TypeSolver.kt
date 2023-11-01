@@ -109,7 +109,8 @@ class UTypeSolver<Type>(
         val allConcreteRefToType = concreteToRegionWithCluster.mapValues { (_, regionToCluster) ->
             val (region, cluster) = regionToCluster
             val typeStream = region.typeStream
-            if (typeStream.isEmpty) {
+            val isEmpty = typeStream.isEmpty ?: return UUnknownResult() // Timeout here may lead to an inconsistent model - avoid it
+            if (isEmpty) {
                 // the only way to reach here is when some of the clusters consists of a single reference
                 // because if the cluster is bigger, then we called region.isEmpty previously at least once
                 check(cluster.size == 1)

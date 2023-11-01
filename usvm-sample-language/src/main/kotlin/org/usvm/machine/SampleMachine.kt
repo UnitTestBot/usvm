@@ -30,8 +30,8 @@ class SampleMachine(
     private val options: UMachineOptions
 ) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
-    private val typeSystem = SampleTypeSystem()
-    private val components = SampleLanguageComponents(typeSystem, options.solverType, options.useSolverForForks)
+    private val typeSystem = SampleTypeSystem(options.typeOperationsTimeout)
+    private val components = SampleLanguageComponents(typeSystem, options)
     private val ctx = UContext(components)
     private val solver = ctx.solver<SampleType>()
 

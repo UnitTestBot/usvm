@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class JcCallGraphStatisticsTests : JavaMethodTestRunner() {
 
     private val appGraph = JcApplicationGraph(cp)
-    private val typeStream = JcTypeSystem(cp).topTypeStream()
+    private val typeStream = JcTypeSystem(cp, options.typeOperationsTimeout).topTypeStream()
     private val statistics = JcCallGraphStatistics(5u, appGraph, typeStream, 100)
 
     @Test
