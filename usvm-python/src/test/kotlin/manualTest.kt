@@ -5,22 +5,23 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
 import org.usvm.machine.saving.Fail
 import org.usvm.machine.saving.Success
+import org.usvm.machine.saving.createDictSaver
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.machine.saving.createReprSaver
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.usvm.machine.utils.withAdditionalPaths
-import org.utbot.python.newtyping.PythonCallableTypeDescription
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
+import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.buildMypyInfo
 import org.utbot.python.newtyping.mypy.readMypyInfoBuild
-import org.utbot.python.newtyping.pythonDescription
-import org.utbot.python.newtyping.pythonTypeRepresentation
 import java.io.File
 
 fun main() {
@@ -49,12 +50,55 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
-        "many_branches",
-        "SimpleExample"
+        listOf(typeSystem.pythonFloat),
+        "inf_comparison",
+        "Floats"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
+}
+
+private val ignoreFunctions = listOf<String>()
+private val ignoreModules = listOf<String>(
+    "odd_even_transposition_parallel"
+)
+
+private fun getFunctionInfo(
+    type: UtType,
+    name: String,
+    module: String,
+    typeSystem: PythonTypeSystemWithMypyInfo,
+    program: StructuredPythonProgram
+): PythonUnpinnedCallable? {
+    val description = type.pythonDescription()
+    if (description !is PythonCallableTypeDescription)
+        return null
+    if (ignoreFunctions.contains(name))
+        return null
+    // if (functionName != "bead_sort")
+    //    return null
+    if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
+        return null
+    runCatching {
+        withAdditionalPaths(program.roots, typeSystem) {
+            val namespace = program.getNamespaceOfModule(module)!!
+            val func = ConcretePythonInterpreter.eval(namespace, name)
+            if (ConcretePythonInterpreter.getPythonObjectTypeName(func) != "function") {
+                null
+            } else {
+                func
+            }
+        }
+    }.getOrNull() ?: return null
+    println("$module.$name: ${type.pythonTypeRepresentation()}")
+    val callableType = type as FunctionType
+    return PythonUnpinnedCallable.constructCallableFromName(
+        callableType.arguments.map {
+            SupportsTypeHint(it, typeSystem)
+        },
+        name,
+        module
+    )
 }
 
 /*
@@ -64,7 +108,7 @@ private fun buildSampleRunConfig(): RunConfig {
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\dynamic_programming"
+    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -78,10 +122,6 @@ private fun buildProjectRunConfig(): RunConfig {
     val mypyBuild = readMypyInfoBuild(mypyDir)
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    val ignoreFunctions = listOf<String>()
-    val ignoreModules = listOf<String>(
-        "odd_even_transposition_parallel"
-    )
     val functions = modules.flatMap { module ->
         if (module in ignoreModules)
             return@flatMap emptyList()
@@ -90,29 +130,26 @@ private fun buildProjectRunConfig(): RunConfig {
                 program.getNamespaceOfModule(module)
             }
         }.getOrNull() ?: return@flatMap emptyList()  // skip bad modules
-        mypyBuild.definitions[module]!!.mapNotNull { (functionName, def) ->
+        mypyBuild.definitions[module]!!.flatMap { (defName, def) ->
             val type = def.getUtBotType()
             val description = type.pythonDescription()
-            if (description !is PythonCallableTypeDescription)
-                return@mapNotNull null
-            if (ignoreFunctions.contains(functionName))
-                return@mapNotNull null
-            // if (functionName != "bead_sort")
-            //    return@mapNotNull null
-            if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
-                return@mapNotNull null
-            println("$module.$functionName: ${type.pythonTypeRepresentation()}")
-            val callableType = type as FunctionType
-            PythonUnpinnedCallable.constructCallableFromName(
-                callableType.arguments.map {
-                    SupportsTypeHint(it, typeSystem)
-                },
-                functionName,
-                module
-            )
+            if (defName.startsWith("__")) {
+                emptyList()
+            } else if (description is PythonConcreteCompositeTypeDescription) {
+                val members = description.getNamedMembers(type)
+                members.mapNotNull { memberDef ->
+                    if (memberDef.meta.name.startsWith("__"))
+                        return@mapNotNull null
+                    memberDef.type
+                    val name = "$defName.${memberDef.meta.name}"
+                    getFunctionInfo(memberDef.type, name, module, typeSystem, program)
+                }
+            } else {
+                getFunctionInfo(type, defName, module, typeSystem, program)?.let { listOf(it) } ?: emptyList()
+            }
         }
     }
-    return RunConfig(program, typeSystem, functions.take(100))
+    return RunConfig(program, typeSystem, functions)
 }
 
 private fun checkConcolicAndConcrete(runConfig: RunConfig) {
@@ -150,15 +187,15 @@ private fun analyze(runConfig: RunConfig) {
             println("Started analysing function ${f.tag}")
             try {
                 val start = System.currentTimeMillis()
-                val saver = createReprSaver()
+                val saver = createDictSaver()
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 70,
+                    maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,
-                    timeoutMs = 40_000
+                    timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

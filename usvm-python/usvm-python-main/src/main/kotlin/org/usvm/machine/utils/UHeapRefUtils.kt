@@ -25,9 +25,9 @@ fun getLeafHeapRef(ref: UHeapRef, model: PyModelWrapper): UHeapRef =
 
 fun getTypeStreamForDelayedFork(obj: UninterpretedSymbolicPythonObject, ctx: ConcolicRunContext): UTypeStream<PythonType> {
     require(ctx.curState != null)
-    val interpreted = interpretSymbolicPythonObject(obj, ctx.modelHolder)
+    val interpreted = interpretSymbolicPythonObject(ctx, obj)
     if (interpreted.address.address != 0)
-        return interpreted.getTypeStream(ctx)!!
+        return interpreted.getTypeStream()!!
     val leaf = getLeafHeapRef(obj.address, ctx.curState!!.pyModel)
     return ctx.curState!!.memory.typeStreamOf(leaf)
 }

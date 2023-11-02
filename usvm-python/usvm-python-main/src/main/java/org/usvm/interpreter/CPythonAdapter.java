@@ -87,6 +87,8 @@ public class CPythonAdapter {
     public native int typeHasTpIter(long type);
     public native int typeHasStandardNew(long type);
     public native long callStandardNew(long type);
+    public native int typeHasStandardTpGetattro(long type);
+    public native int typeHasStandardTpSetattro(long type);
     public native Throwable extractException(long exception);
     public native void decref(long object);
     public native void incref(long object);

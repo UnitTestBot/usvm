@@ -453,6 +453,16 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_callStandardNew
     return (jlong) result;
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasStandardTpGetattro(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_getattro == PyObject_GenericGetAttr && (type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasStandardTpSetattro(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_setattro == PyObject_GenericSetAttr && (type->tp_flags & Py_TPFLAGS_MANAGED_DICT);
+}
+
 JNIEXPORT jthrowable JNICALL Java_org_usvm_interpreter_CPythonAdapter_extractException(JNIEnv *env, jobject _, jlong exception) {
     PyObject *wrapped = PyObject_GetAttrString((PyObject *) exception, "java_exception");
     if (!is_wrapped_java_object(wrapped)) {

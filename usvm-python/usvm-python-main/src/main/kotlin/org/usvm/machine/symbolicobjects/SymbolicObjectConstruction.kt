@@ -42,6 +42,18 @@ fun constructEmptyObject(
     }
 }
 
+fun constructEmptyStaticObject(
+    ctx: UPythonContext,
+    memory: UMemory<PythonType, PythonCallable>,
+    typeSystem: PythonTypeSystem,
+    type: ConcretePythonType
+): UninterpretedSymbolicPythonObject {
+    val address = memory.allocStatic(type)
+    return UninterpretedSymbolicPythonObject(address, typeSystem).also {
+        it.setMinimalTimeOfCreation(ctx, memory)
+    }
+}
+
 fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
