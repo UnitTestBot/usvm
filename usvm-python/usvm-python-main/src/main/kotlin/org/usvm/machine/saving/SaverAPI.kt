@@ -6,5 +6,8 @@ fun createStandardSaver(): PythonRepresentationSaver<PythonObjectInfo> =
 fun createReprSaver(): PythonRepresentationSaver<String> =
     PythonRepresentationSaver(ReprObjectSerializer)
 
+fun createDictSaver(): PythonRepresentationSaver<String> =
+    PythonRepresentationSaver(ObjectWithDictSerializer)
+
 fun createPickleSaver(): PythonRepresentationSaver<String?> =
     PythonRepresentationSaver(PickleObjectSerializer)

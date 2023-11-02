@@ -1,13 +1,12 @@
 package org.usvm.machine.model
 
 import io.ksmt.sort.KIntSort
-import org.usvm.UAddressSort
-import org.usvm.UConcreteHeapRef
-import org.usvm.UExpr
-import org.usvm.USort
+import org.usvm.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.array.USymbolicArrayIndex
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ArrayType
 import org.usvm.language.types.PythonType
@@ -17,7 +16,6 @@ import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
-import org.usvm.uctx
 
 
 class PyModel(
@@ -52,6 +50,18 @@ class PyModel(
         }
 
     }
+
+    /* private inner class WrappedSetRegion<SetType>(
+        val region: UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>,
+        val ps: UPathConstraints<SetType>
+    ): UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>{
+
+        val realRegion by lazy { TODO() }
+        override fun read(key: URefSetEntryLValue<SetType>): UExpr<UBoolSort> {
+            return key.setRef.uctx.mkBool(key in realRegion)
+        }
+
+    } */
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {

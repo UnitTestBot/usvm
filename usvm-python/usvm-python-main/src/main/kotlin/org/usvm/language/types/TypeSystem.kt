@@ -21,6 +21,8 @@ import org.utbot.python.newtyping.pythonName
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
+        if (type is ObjectDictType || supertype == ObjectDictType)
+            return type == supertype
         if (supertype is VirtualPythonType)
             return supertype.accepts(type)
         return supertype == type
@@ -40,6 +42,9 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         val containsMock = types.any { it is MockType }
         require((concrete == null) || !containsMock) { "Error in Python's hasCommonSubtype implementation" }
         return when (type) {
+            is ObjectDictType -> {
+                types.all { it == ObjectDictType }
+            }
             is ConcretePythonType -> {
                 if (concrete != null) {
                     concrete == type
@@ -60,6 +65,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     private fun addType(type: ConcretePythonType, address: PythonObject) {
         addressToConcreteType[address] = type
         concreteTypeToAddress[type] = address
+        ConcretePythonInterpreter.incref(address)
     }
     protected fun addPrimitiveType(isHidden: Boolean, getter: () -> PythonObject): ConcretePythonType {
         val address = getter()
@@ -133,6 +139,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
             val newAddress = type.addressGetter()
             concreteTypeToAddress[type] = newAddress
             addressToConcreteType[newAddress] = type
+            ConcretePythonInterpreter.incref(newAddress)
         }
     }
 }

@@ -47,3 +47,12 @@ def iterable_of_matmul(x):
     for elem in x:
         y += elem @ 1
     assert len(x) >= 3
+
+
+class ClassWithField:
+    def __init__(self, value):
+        self.field = value
+
+
+def use_int_field(obj):
+    assert obj.field == 123456

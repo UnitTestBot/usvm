@@ -6,18 +6,61 @@ import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
 import org.usvm.*
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.writeField
+import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
 import org.usvm.language.types.ArrayType
+import org.usvm.language.types.ObjectDictType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
 
+/** standard fields **/
+
+fun UninterpretedSymbolicPythonObject.getFieldValue(
+    ctx: ConcolicRunContext,
+    name: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject {
+    require(ctx.curState != null)
+    name.addSupertype(ctx, typeSystem.pythonStr)
+    val addr = ctx.curState!!.symbolicObjectMapGet(address, name.address, ObjectDictType, ctx.ctx.addressSort)
+    return UninterpretedSymbolicPythonObject(addr, typeSystem)
+}
+
+fun UninterpretedSymbolicPythonObject.containsField(
+    ctx: ConcolicRunContext,
+    name: UninterpretedSymbolicPythonObject
+): UBoolExpr {
+    require(ctx.curState != null)
+    name.addSupertype(ctx, typeSystem.pythonStr)
+    return ctx.curState!!.symbolicObjectMapContains(address, name.address, ObjectDictType)
+}
+
+fun InterpretedInputSymbolicPythonObject.containsField(
+    name: InterpretedSymbolicPythonObject
+): Boolean {
+    require(!isAllocatedConcreteHeapRef(name.address))
+    val result = modelHolder.model.uModel.read(URefSetEntryLValue(address, name.address, ObjectDictType))
+    return result.isTrue
+}
+
+fun InterpretedInputSymbolicPythonObject.getFieldValue(
+    ctx: UPythonContext,
+    name: InterpretedSymbolicPythonObject
+): InterpretedInputSymbolicPythonObject {
+    require(!isAllocatedConcreteHeapRef(name.address))
+    val result = modelHolder.model.uModel.read(URefMapEntryLValue(ctx.addressSort, address, name.address, ObjectDictType))
+    require((result as UConcreteHeapRef).address <= 0)
+    return InterpretedInputSymbolicPythonObject(result, modelHolder, typeSystem)
+}
 
 /** int **/
 
@@ -51,7 +94,7 @@ fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): KInt
         is InterpretedInputSymbolicPythonObject -> {
             getIntContent(ctx.ctx)
         }
-        is InterpretedAllocatedSymbolicPythonObject -> {
+        is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
             require(ctx.curState != null)
             ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
         }
@@ -183,7 +226,7 @@ fun InterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): KIn
         is InterpretedInputSymbolicPythonObject -> {
             getBoolContent(ctx.ctx)
         }
-        is InterpretedAllocatedSymbolicPythonObject -> {
+        is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
             require(ctx.curState != null)
             ctx.curState!!.memory.readField(address, BoolContents.content, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
         }

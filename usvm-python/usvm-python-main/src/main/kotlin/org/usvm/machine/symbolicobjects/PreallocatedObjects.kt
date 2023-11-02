@@ -6,6 +6,8 @@ import org.usvm.language.PythonCallable
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.PythonObject
 import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
@@ -13,22 +15,31 @@ class PreallocatedObjects(
     val trueObject: UninterpretedSymbolicPythonObject,
     val falseObject: UninterpretedSymbolicPythonObject,
     private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>,
-    private val symbolToConcreteStr: MutableMap<UninterpretedSymbolicPythonObject, String>
+    private val symbolToConcreteStr: MutableMap<UninterpretedSymbolicPythonObject, String>,
+    private val refOfString: MutableMap<String, PythonObject>
 ) {
 
-    fun allocateStr(ctx: ConcolicRunContext, string: String): UninterpretedSymbolicPythonObject {
+    fun allocateStr(ctx: ConcolicRunContext, string: String, ref: PythonObject): UninterpretedSymbolicPythonObject {
         require(ctx.curState != null)
         val cached = concreteStrToSymbol[string]
         if (cached != null)
             return cached
-        val result = constructEmptyObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
+        val result = constructEmptyStaticObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
         symbolToConcreteStr[result] = string
+        refOfString[string] = ref
+        ConcretePythonInterpreter.incref(ref)
         return result
     }
 
     fun concreteString(symbol: UninterpretedSymbolicPythonObject): String? =
         symbolToConcreteStr[symbol]
+
+    fun refOfString(string: String): PythonObject? =
+        refOfString[string]
+
+    fun listAllocatedStrs(): List<UninterpretedSymbolicPythonObject> =
+        symbolToConcreteStr.keys.toList()
 
     fun clone(): PreallocatedObjects =
         PreallocatedObjects(
@@ -36,7 +47,8 @@ class PreallocatedObjects(
             trueObject,
             falseObject,
             concreteStrToSymbol.toMutableMap(),
-            symbolToConcreteStr.toMutableMap()
+            symbolToConcreteStr.toMutableMap(),
+            refOfString.toMutableMap()
         )
 
     companion object {
@@ -51,7 +63,8 @@ class PreallocatedObjects(
                 trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
                 falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
                 concreteStrToSymbol = mutableMapOf(),
-                symbolToConcreteStr = mutableMapOf()
+                symbolToConcreteStr = mutableMapOf(),
+                refOfString = mutableMapOf()
             )
     }
 }

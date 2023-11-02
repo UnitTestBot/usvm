@@ -15,11 +15,11 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
     private val typeSystem = concolicRunContext.typeSystem
     fun check(symbol: UninterpretedSymbolicPythonObject) {
         val modelHolder = concolicRunContext.modelHolder
-        val concrete = interpretSymbolicPythonObject(symbol, modelHolder)
+        val concrete = interpretSymbolicPythonObject(concolicRunContext, symbol)
         if (checked.contains(concrete.address))
             return
         checked.add(concrete.address)
-        when (concrete.getConcreteType(concolicRunContext)) {
+        when (concrete.getConcreteType()) {
             typeSystem.pythonList -> checkList(symbol, modelHolder)
             typeSystem.pythonTuple -> checkTuple(symbol, modelHolder)
             else -> Unit
@@ -52,8 +52,8 @@ class ObjectValidator(private val concolicRunContext: ConcolicRunContext) {
         for (index in 0 until size.value) {
             val element = concolicRunContext.curState!!.memory.readArrayIndex(symbolic.address, mkSizeExpr(index), ArrayType, addressSort)
             val elemObj = UninterpretedSymbolicPythonObject(element, typeSystem)
-            val interpretedElem = interpretSymbolicPythonObject(elemObj, modelHolder)
-            if (interpretedElem.getFirstType(concolicRunContext) !is MockType) {
+            val interpretedElem = interpretSymbolicPythonObject(concolicRunContext, elemObj)
+            if (interpretedElem.getFirstType() !is MockType) {
                 val elemTime = elemObj.getTimeOfCreation(concolicRunContext)
                 val concreteTime = modelHolder.model.eval(time).toString().toInt()
                 val concreteElemTime = modelHolder.model.eval(elemTime).toString().toInt()

@@ -37,7 +37,7 @@ class USVMPythonInterpreter<InputRepr>(
         concolicRunContext: ConcolicRunContext,
         symbols: List<UninterpretedSymbolicPythonObject>
     ): List<InterpretedInputSymbolicPythonObject> =
-        symbols.map { interpretSymbolicPythonObject(it, concolicRunContext.modelHolder) as InterpretedInputSymbolicPythonObject }
+        symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) as InterpretedInputSymbolicPythonObject }
 
     private fun getConcrete(
         converter: ConverterToPythonObject,

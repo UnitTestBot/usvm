@@ -26,8 +26,8 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
     if (type == typeSystem.pythonObjectType)
         return constructBool(ctx, ctx.ctx.trueExpr)
 
-    val interpreted = interpretSymbolicPythonObject(obj, ctx.modelHolder)
-    val concreteType = interpreted.getConcreteType(ctx)
+    val interpreted = interpretSymbolicPythonObject(ctx, obj)
+    val concreteType = interpreted.getConcreteType()
     return if (concreteType == null) {
         if (type == typeSystem.pythonInt) {  //  this is a common case, TODO: better solution
             val cond =
@@ -36,7 +36,7 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
         } else {
             myFork(ctx, obj.evalIs(ctx, type))
         }
-        require(interpreted.getConcreteType(ctx) == null)
+        require(interpreted.getConcreteType() == null)
         constructBool(ctx, falseExpr)
     } else {
         if (type == typeSystem.pythonInt) {  //  this is a common case
@@ -50,8 +50,8 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
 
 fun fixateTypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject) {
     ctx.curState ?: return
-    val interpreted = interpretSymbolicPythonObject(obj, ctx.modelHolder)
-    val type = interpreted.getConcreteType(ctx) ?: return
+    val interpreted = interpretSymbolicPythonObject(ctx, obj)
+    val type = interpreted.getConcreteType() ?: return
     obj.addSupertype(ctx, type)
 }
 
@@ -125,9 +125,18 @@ fun handlerStandardTpGetattroKt(
         return null
     val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
-    val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) ?: return null
-    val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
-    return memberDescriptor.getMember(ctx, obj)
+    val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
+    if (concreteDescriptor != null) {
+        val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
+        return memberDescriptor.getMember(ctx, obj)
+    }
+    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
+        return null
+    val containsFieldCond = obj.containsField(ctx, name)
+    myFork(ctx, containsFieldCond)
+    if (ctx.modelHolder.model.eval(containsFieldCond).isFalse)
+        return null
+    return SymbolForCPython(obj.getFieldValue(ctx, name), 0)
 }
 
 fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
