@@ -5,6 +5,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.isStaticHeapRef
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
@@ -18,7 +20,8 @@ import org.usvm.mkSizeExpr
 class ConverterToPythonObject(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
-    val modelHolder: PyModelHolder
+    val modelHolder: PyModelHolder,
+    private val preallocatedObjects: PreallocatedObjects
 ) {
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
@@ -60,7 +63,7 @@ class ConverterToPythonObject(
             typeSystem.pythonFloat -> convertFloat(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
-                    constructFromDefaultConstructor(type)
+                    constructFromDefaultConstructor(obj, type)
                 else
                     error("Could not construct instance of type $type")
             }
@@ -108,9 +111,36 @@ class ConverterToPythonObject(
         }
     }
 
-    private fun constructFromDefaultConstructor(type: ConcretePythonType): PythonObject {
+    private fun constructFromDefaultConstructor(obj: InterpretedInputSymbolicPythonObject, type: ConcretePythonType): PythonObject {
         require(type.owner == typeSystem)
-        return ConcretePythonInterpreter.callStandardNew(type.asObject)
+        val result = ConcretePythonInterpreter.callStandardNew(type.asObject)
+        constructedObjects[obj.address] = result
+        if (ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
+            preallocatedObjects.listAllocatedStrs().forEach {
+                val nameAddress = modelHolder.model.eval(it.address)
+                require(isStaticHeapRef(nameAddress)) { "Symbolic string object must be static" }
+                val nameSymbol = InterpretedAllocatedOrStaticSymbolicPythonObject(nameAddress, typeSystem.pythonStr, typeSystem)
+                if (obj.containsField(nameSymbol)) {
+                    val str = preallocatedObjects.concreteString(it)!!
+                    if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
+                        val symbolicValue = obj.getFieldValue(ctx, nameSymbol)
+                        val value = convert(symbolicValue)
+                        val ref = preallocatedObjects.refOfString(str)!!
+                        val namespace = ConcretePythonInterpreter.getNewNamespace()
+                        ConcretePythonInterpreter.addObjectToNamespace(namespace, ref, "field")
+                        ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "obj")
+                        ConcretePythonInterpreter.addObjectToNamespace(namespace, value, "value")
+                        ConcretePythonInterpreter.concreteRun(
+                            namespace,
+                            "setattr(obj, field, value)",
+                            printErrorMsg = true
+                        )
+                        ConcretePythonInterpreter.decref(namespace)
+                    }
+                }
+            }
+        }
+        return result
     }
 
     private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {

@@ -224,9 +224,15 @@ object ConcretePythonInterpreter {
     val typeHasTpGetattro = createTypeQuery { pythonAdapter.typeHasTpGetattro(it) }
     val typeHasTpIter = createTypeQuery { pythonAdapter.typeHasTpIter(it) }
     val typeHasStandardNew = createTypeQuery { pythonAdapter.typeHasStandardNew(it) }
+    val typeHasStandardTpGetattro = createTypeQuery { pythonAdapter.typeHasStandardTpGetattro(it) }
+    val typeHasStandardTpSetattro = createTypeQuery { pythonAdapter.typeHasStandardTpSetattro(it) }
 
     fun callStandardNew(type: PythonObject): PythonObject  {
         return PythonObject(pythonAdapter.callStandardNew(type.address))
+    }
+
+    fun typeHasStandardDict(type: PythonObject): Boolean {
+        return typeHasStandardTpGetattro(type) && typeHasStandardTpSetattro(type) && typeHasStandardNew(type)
     }
 
     fun restart() {

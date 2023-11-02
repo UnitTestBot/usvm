@@ -24,6 +24,23 @@ object ReprObjectSerializer: PythonObjectSerializer<String>() {
     }
 }
 
+object ObjectWithDictSerializer: PythonObjectSerializer<String>() {
+    override fun serialize(obj: PythonObject): String {
+        val objRepr = ReprObjectSerializer.serialize(obj)
+        val namespace = ConcretePythonInterpreter.getNewNamespace()
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, obj, "obj")
+        return runCatching {
+            val dict = ConcretePythonInterpreter.eval(namespace, "obj.__dict__")
+            if (ConcretePythonInterpreter.getPythonObjectTypeName(dict) == "dict") {
+                val dictRepr = ReprObjectSerializer.serialize(dict)
+                "$objRepr with dict $dictRepr"
+            } else {
+                objRepr
+            }
+        }.getOrDefault(objRepr)
+    }
+}
+
 object PickleObjectSerializer: PythonObjectSerializer<String?>() {
     override fun serialize(obj: PythonObject): String? {
         return runCatching {
