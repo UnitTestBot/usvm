@@ -98,6 +98,7 @@ public class CPythonAdapter {
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
     public native long constructPartiallyAppliedSymbolicMethod(SymbolForCPython self, long methodRef);
     public native long constructApproximation(SymbolForCPython self, long approximationRef);
+    public native long constructPartiallyAppliedPythonMethod(SymbolForCPython self);
     static {
         System.loadLibrary("cpythonadapter");
     }
@@ -994,4 +995,6 @@ public class CPythonAdapter {
 
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "step")
     public MemberDescriptor sliceStepDescriptor = SliceStepDescriptor.INSTANCE;
+
+    public MemberDescriptor pythonMethodDescriptor = PythonMethodDescriptor.INSTANCE;
 }

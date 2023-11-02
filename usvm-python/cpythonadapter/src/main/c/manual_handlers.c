@@ -35,7 +35,7 @@ handler_approximate_pycfunction_call(void *ctx_raw, int *approximated, PyObject 
 }
 
 PyObject *
-handler_extract_symbolic_self_from_pycfunction(void *ctx_raw, PyObject *callable) {
+handler_extract_self_from_method(void *ctx_raw, PyObject *callable) {
     ConcolicContext *ctx = (ConcolicContext *) ctx_raw;
     SymbolicMethod *method = extract_symbolic_method(ctx, callable);
     if (!method || !method->self_reference)

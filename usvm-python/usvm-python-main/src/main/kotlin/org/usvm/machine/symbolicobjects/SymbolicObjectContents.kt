@@ -15,11 +15,9 @@ import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
-import org.usvm.language.types.ArrayType
-import org.usvm.language.types.ObjectDictType
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
 
@@ -60,6 +58,21 @@ fun InterpretedInputSymbolicPythonObject.getFieldValue(
     val result = modelHolder.model.uModel.read(URefMapEntryLValue(ctx.addressSort, address, name.address, ObjectDictType))
     require((result as UConcreteHeapRef).address <= 0)
     return InterpretedInputSymbolicPythonObject(result, modelHolder, typeSystem)
+}
+
+/** arrays (list, tuple) **/
+
+fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): UExpr<KIntSort> {
+    val type = getTypeIfDefined(ctx)
+    require(type != null && type is ArrayLikeConcretePythonType)
+    val result = ctx.curState!!.memory.readArrayLength(address, ArrayType, ctx.ctx.intSort)
+    myAssert(ctx, ctx.ctx.mkArithGe(result, ctx.ctx.mkIntNum(0)))
+    return result
+}
+
+fun InterpretedInputSymbolicPythonObject.readArrayLength(ctx: UPythonContext): UExpr<KIntSort> {
+    require(getConcreteType() != null && getConcreteType() is ArrayLikeConcretePythonType)
+    return modelHolder.model.uModel.readArrayLength(address, ArrayType, ctx.intSort)
 }
 
 /** int **/

@@ -22,6 +22,7 @@ typedef struct {
 void clean_methods();
 SymbolicMethod *construct_symbolic_method_with_self(JNIEnv *env, jobject symbolic_self, call_type call);
 SymbolicMethod *construct_approximation(JNIEnv *env, jobject symbolic_self, PyObject *approximation_ref);
+SymbolicMethod *construct_python_method_with_self(JNIEnv *env, jobject symbolic_self);
 PyObject *call_symbolic_method(SymbolicMethod *method, ConcolicContext *ctx, PyObject *args, PyObject *kwargs);
 PyObject *approximate_symbolic_method(SymbolicMethod *method, ConcolicContext *ctx, int *approximated, PyObject *wrapped_self, PyObject *args, PyObject *kwargs);
 
