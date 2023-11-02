@@ -3,15 +3,11 @@ package org.usvm.instrumentation.util
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.*
-import org.jacodb.impl.cfg.util.isArray
-import org.jacodb.impl.cfg.util.isPrimitive
 import org.jacodb.impl.types.TypeNameImpl
 import org.usvm.instrumentation.testcase.executor.TestExecutorException
-import java.io.File
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
-import java.nio.file.Path
 
 fun JcClasspath.stringType(): JcType {
     return findClassOrNull("java.lang.String")!!.toType()
@@ -61,6 +57,7 @@ private fun JcPrimitiveType.toJavaClass(): Class<*> {
         cp.float -> Float::class.java
         cp.double -> Double::class.java
         cp.char -> Char::class.java
+        cp.void -> Void::class.java
         else -> error("Not primitive type")
 
     }
