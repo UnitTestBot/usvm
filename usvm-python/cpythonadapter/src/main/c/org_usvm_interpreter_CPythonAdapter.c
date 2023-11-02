@@ -223,7 +223,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     adapter->symbolic_tp_call = handler_symbolic_tp_call;
     adapter->is_pycfunction_with_approximation = handler_is_pycfunction_with_approximation;
     adapter->approximate_pycfunction_call = handler_approximate_pycfunction_call;
-    adapter->extract_symbolic_self_from_pycfunction = handler_extract_symbolic_self_from_pycfunction;
+    adapter->extract_symbolic_self_from_pycfunction = handler_extract_self_from_method;
+    adapter->extract_self_from_method = handler_extract_self_from_method;
     register_approximations(adapter);
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);
@@ -510,4 +511,8 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartia
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation(JNIEnv *env, jobject _, jobject self, jlong approximation_ref) {
     assert(approximation_ref);
     return (jlong) construct_approximation(env, self, (PyObject *) approximation_ref);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedPythonMethod(JNIEnv *env, jobject _, jobject self) {
+    return (jlong) construct_python_method_with_self(env, self);
 }

@@ -34,6 +34,18 @@ construct_symbolic_method_with_self(JNIEnv *env, jobject symbolic_self, call_typ
 }
 
 SymbolicMethod *
+construct_python_method_with_self(JNIEnv *env, jobject symbolic_self) {
+    assert(methods_holder);
+    SymbolicMethod *result = malloc(sizeof(SymbolicMethod));
+    result->self_reference = create_global_ref(env, symbolic_self);
+    result->call = 0;
+    result->approximation_check_ref = 0;
+    result->approximation_run_ref = 0;
+    add_ref_to_list(&methods_holder, result);
+    return result;
+}
+
+SymbolicMethod *
 construct_approximation(JNIEnv *env, jobject symbolic_self, PyObject *approximation_ref) {
     assert(PyType_Check(approximation_ref));
     PyObject *check_ref = PyObject_GetAttrString(approximation_ref, "accept");
