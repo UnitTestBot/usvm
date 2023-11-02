@@ -203,6 +203,12 @@ object ConcretePythonInterpreter {
         return SymbolForCPython(null, ref)
     }
 
+    fun constructPartiallyAppliedPythonMethod(self: SymbolForCPython): SymbolForCPython {
+        val ref = pythonAdapter.constructPartiallyAppliedPythonMethod(self)
+        require(ref != 0L)
+        return SymbolForCPython(null, ref)
+    }
+
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)

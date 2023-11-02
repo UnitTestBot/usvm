@@ -4,8 +4,6 @@ import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.api.readArrayIndex
-import org.usvm.api.readArrayLength
-import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.isStaticHeapRef
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
@@ -95,7 +93,7 @@ class ConverterToPythonObject(
     private fun constructArrayContents(
         obj: InterpretedInputSymbolicPythonObject,
     ): List<PythonObject> {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType, ctx.intSort) as KInt32NumExpr
+        val size = obj.readArrayLength(ctx) as KInt32NumExpr
         return List(size.value) { index ->
             val indexExpr = ctx.mkSizeExpr(index)
             val element = obj.modelHolder.model.uModel.readArrayIndex(
@@ -180,7 +178,7 @@ class ConverterToPythonObject(
     }
 
     private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val size = obj.modelHolder.model.uModel.readArrayLength(obj.address, ArrayType, ctx.intSort) as KInt32NumExpr
+        val size = obj.readArrayLength(ctx) as KInt32NumExpr
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
         val listOfPythonObjects = constructArrayContents(obj)

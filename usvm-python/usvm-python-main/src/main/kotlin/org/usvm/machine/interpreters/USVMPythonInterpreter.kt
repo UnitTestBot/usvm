@@ -66,6 +66,7 @@ class USVMPythonInterpreter<InputRepr>(
                 state.meta.lastConverter!!.modelHolder
             else
                 PyModelHolder(state.pyModel)
+        require(modelHolder.model == state.pyModel) { "Bad model inside modelHolder!" }
         val start = System.currentTimeMillis()
         val concolicRunContext =
             ConcolicRunContext(
@@ -88,11 +89,10 @@ class USVMPythonInterpreter<InputRepr>(
             require(state.pyModel.uModel is PyModel) {
                 "Did not call .toPyModel on model from solver"
             }
-            val validator = ObjectValidator(concolicRunContext)
             val symbols = state.inputSymbols
-            symbols.forEach { validator.check(it) }
             val seeds = getSeeds(concolicRunContext, symbols)
             val converter = concolicRunContext.converter
+            state.meta.lastConverter = null
             val concrete = getConcrete(converter, seeds, symbols)
             val virtualObjects = converter.getPythonVirtualObjects()
             val madeInputSerialization: Boolean = runCatching {
