@@ -7,6 +7,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.refSetContainsElement
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.map.ref.refMapMerge
@@ -75,7 +76,7 @@ object ObjectMapCollectionApi {
         mapRef: UHeapRef,
         key: UHeapRef,
         mapType: MapType,
-    ): UBoolExpr = memory.read(URefSetEntryLValue(mapRef, key, mapType))
+    ): UBoolExpr = memory.refSetContainsElement(mapRef, key, mapType)
 
     fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapPut(
         mapRef: UHeapRef,

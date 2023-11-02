@@ -18,13 +18,18 @@ import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
+import org.usvm.api.refSetContainsElement
+import org.usvm.api.setContainsElement
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.set.primitive.setEntries
+import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.URegistersStack
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverBase
@@ -32,6 +37,7 @@ import org.usvm.solver.UTypeSolver
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 private typealias Type = SingleTypeSystem.SingleType
 
@@ -230,5 +236,46 @@ class ModelDecodingTest {
         val ref = assertIs<UConcreteHeapRef>(model.read(URegisterStackLValue(addressSort, 0)))
         val expr = model.read(UArrayIndexLValue(bv32Sort, ref, concreteIdx, array))
         assertEquals(mkBv(42), expr)
+    }
+
+    @Test
+    fun testSetModelEntries() = with(ctx) {
+        val setType = mockk<Type>()
+        val setRef = mkRegisterReading(0, addressSort)
+
+        pc += heap.setContainsElement(setRef, mkBv(1), setType, USizeExprKeyInfo())
+        pc += heap.setContainsElement(setRef, mkBv(2), setType, USizeExprKeyInfo())
+        pc += heap.setContainsElement(setRef, mkBv(3), setType, USizeExprKeyInfo()).not()
+
+        val status = solver.check(pc)
+        val model = assertIs<USatResult<UModelBase<Type>>>(status).model
+
+        val modelSetEntries = model.setEntries(model.eval(setRef), setType, bv32Sort, USizeExprKeyInfo())
+        val modelSetElements = modelSetEntries.entries.mapTo(hashSetOf()) { it.setElement }
+        assertTrue(
+            modelSetEntries.input || (mkBv(1) in modelSetElements && mkBv(2) in modelSetElements)
+        )
+    }
+
+    @Test
+    fun testRefSetModelEntries() = with(ctx) {
+        val setType = mockk<Type>()
+        val setRef = mkRegisterReading(0, addressSort)
+
+        val elements = (1..3).map { mkRegisterReading(it, addressSort) }
+
+        pc += heap.refSetContainsElement(setRef, elements[0], setType)
+        pc += heap.refSetContainsElement(setRef, elements[1], setType)
+        pc += heap.refSetContainsElement(setRef, elements[2], setType).not()
+
+        val status = solver.check(pc)
+        val model = assertIs<USatResult<UModelBase<Type>>>(status).model
+
+        val modelSetEntries = model.refSetEntries(model.eval(setRef), setType)
+        val modelSetElements = modelSetEntries.entries.mapTo(hashSetOf()) { it.setElement }
+        val elementValues = elements.map { model.eval(it) }
+        assertTrue(
+            modelSetEntries.input || (elementValues[0] in modelSetElements && elementValues[1] in modelSetElements)
+        )
     }
 }
