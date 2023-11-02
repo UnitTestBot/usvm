@@ -11,7 +11,7 @@ import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
+    val interpretedArg = interpretSymbolicPythonObject(context, context.curOperation!!.args.first())
     if(context.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
         throw UnregisteredVirtualOperation  // path diversion
 
@@ -43,7 +43,7 @@ fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boole
 fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
     context.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = context.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(context.curOperation!!.args.first(), context.modelHolder)
+    val interpretedArg = interpretSymbolicPythonObject(context, context.curOperation!!.args.first())
     require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
     val (interpretedObj, symbolic) = internalVirtualCallKt(context)
     symbolic.addSupertypeSoft(context, typeSystem.pythonInt)
@@ -86,7 +86,7 @@ private fun internalVirtualCallKt(
 
         substituteModel(context.curState!!, newModel, constraint, context)
     }
-    val concrete = interpretSymbolicPythonObject(symbolic, context.modelHolder)
+    val concrete = interpretSymbolicPythonObject(context, symbolic)
     return concrete to symbolic
 }
 
@@ -99,4 +99,6 @@ fun virtualCallKt(context: ConcolicRunContext): PythonObject {
 
 fun virtualCallSymbolKt(context: ConcolicRunContext): UninterpretedSymbolicPythonObject = internalVirtualCallKt(context).second
 
-object UnregisteredVirtualOperation: Exception()
+object UnregisteredVirtualOperation: Exception() {
+    private fun readResolve(): Any = UnregisteredVirtualOperation
+}

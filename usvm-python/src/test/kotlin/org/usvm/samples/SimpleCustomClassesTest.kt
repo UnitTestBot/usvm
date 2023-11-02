@@ -68,4 +68,19 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
             )
         )
     }
+
+    @Test
+    fun testUseIntField() {
+        check1WithConcreteRun(
+            constructFunction("use_int_field", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AttributeError" },
+                { x, res -> res.selfTypeName == "AssertionError" && x.typeName == "ClassWithField" },
+                { x, res -> res.repr == "None" && x.typeName == "ClassWithField" }
+            )
+        )
+    }
 }

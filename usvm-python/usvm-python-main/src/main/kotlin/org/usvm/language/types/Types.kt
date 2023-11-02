@@ -6,6 +6,8 @@ sealed class PythonType
 
 object MockType: PythonType()
 
+object ObjectDictType: PythonType()
+
 abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean
 }

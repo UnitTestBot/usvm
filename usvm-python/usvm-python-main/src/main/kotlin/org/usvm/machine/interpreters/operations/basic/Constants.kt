@@ -26,7 +26,7 @@ fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PythonObject): Uni
     if (context.curState == null)
         return null
     val str = ConcretePythonInterpreter.getPythonObjectStr(value)
-    return context.curState!!.preAllocatedObjects.allocateStr(context, str)
+    return context.curState!!.preAllocatedObjects.allocateStr(context, str, value)
 }
 
 fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
