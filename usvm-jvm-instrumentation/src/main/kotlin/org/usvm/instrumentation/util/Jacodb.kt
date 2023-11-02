@@ -86,7 +86,7 @@ fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
         elementType.classpath.float -> strBuilder.append("F")
         elementType.classpath.double -> strBuilder.append("D")
         elementType.classpath.char -> strBuilder.append("C")
-        else -> strBuilder.append("L${elementType.typeName};")
+        else -> strBuilder.append("L${elementType.toStringType()};")
     }
     return strBuilder.toString()
 }

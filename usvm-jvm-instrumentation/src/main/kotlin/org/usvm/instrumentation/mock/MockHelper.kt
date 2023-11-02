@@ -220,7 +220,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         jcClass: JcClassOrInterface, methods: List<JcMethod>
     ): Class<*> {
         val classNode = jcClass.asmNode()
-        val mockedClassJVMName = "${classNode.name}Mocked0"
+        val mockedClassJVMName = "${classNode.name}${MOCKED_CLASS_POSTFIX}"
         val mockedClassName = mockedClassJVMName.replace('/', '.')
         val mockedClass =
             try {
@@ -315,6 +315,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         private const val MOCK_RETURN_VALUE_0 = "%mockReturnValueGenerated0"
         private const val MOCK_RETURN_VALUE_1 = "%mockReturnValueGenerated1"
         private const val NOT_MOCKED = "%notMockedException0"
+        const val MOCKED_CLASS_POSTFIX = "Mocked0"
     }
 
 

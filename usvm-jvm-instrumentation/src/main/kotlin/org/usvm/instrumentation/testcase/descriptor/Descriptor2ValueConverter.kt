@@ -42,7 +42,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
                 descriptorToObject
                     .toList()
                     .filter { it.first is UTestRefDescriptor }
-                    .find { (it.first as UTestRefDescriptor).refId == descriptor.refId }?.second ?: error("Can't find descriptor in cache")
+                    .find { (it.first as UTestRefDescriptor).refId == descriptor.refId }?.second
             }
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)

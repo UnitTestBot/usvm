@@ -4,6 +4,7 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
+import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestInst
@@ -169,7 +170,8 @@ open class Value2DescriptorConverter(
         val originUTestInst = uTestExecutorCache.find { it.first === value }?.second
         val jcClass =
             if (originUTestInst is UTestMock) {
-                originUTestInst.type.toJcClass() ?: jcClasspath.findClass(value::class.java.name.substringBefore("Mocked0"))
+                originUTestInst.type.toJcClass() ?:
+                jcClasspath.findClass(value::class.java.name.substringBefore(MockHelper.MOCKED_CLASS_POSTFIX))
             } else {
                 jcClasspath.findClass(value::class.java.name)
             }
@@ -179,7 +181,6 @@ open class Value2DescriptorConverter(
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
                 //TODO! Decide for which fields descriptors should be build
-                .filterNot { it.isTransient }
                 .forEach { jcField ->
                     val jField = jcField.toJavaField(classLoader) ?: return@forEach
                     val fieldValue = jField.getFieldValue(value)
