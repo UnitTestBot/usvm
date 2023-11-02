@@ -39,6 +39,7 @@ import org.usvm.api.collection.ListCollectionApi.symbolicListSet
 import org.usvm.api.collection.ListCollectionApi.symbolicListSize
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
@@ -748,6 +749,13 @@ class JcMethodApproximationResolver(
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
                 scope.calcOnState {
                     symbolicObjectMapContains(mapRef, keyRef, symbolicMapType)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicMap<*, *>::anyKey) {
+                val mapRef = it.arguments.single().asExpr(ctx.addressSort)
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapAnyKey(mapRef, symbolicMapType)
                 }
             }
             dispatchUsvmApiMethod(SymbolicMap<*, *>::merge) {
