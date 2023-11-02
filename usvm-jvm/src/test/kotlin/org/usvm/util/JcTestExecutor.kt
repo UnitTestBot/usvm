@@ -72,6 +72,7 @@ class JcTestExecutor(
         val execResult = runBlocking {
             runner.executeAsync(uTest)
         }
+        descriptor2ValueConverter.clear()
         val result =
             when (execResult) {
                 is UTestExecutionSuccessResult -> {

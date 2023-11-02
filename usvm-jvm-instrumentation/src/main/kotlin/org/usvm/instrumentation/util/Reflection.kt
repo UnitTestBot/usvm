@@ -1,4 +1,5 @@
 @file:Suppress("DEPRECATION")
+
 package org.usvm.instrumentation.util
 
 import sun.misc.Unsafe
@@ -71,7 +72,7 @@ fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils
 }
 
 fun Field.getInstanceAndOffset(instance: Any?) = with(ReflectionUtils.UNSAFE) {
-    if (isStatic()) {
+    if (isStatic) {
         staticFieldBase(this@getInstanceAndOffset) to staticFieldOffset(this@getInstanceAndOffset)
     } else {
         instance to objectFieldOffset(this@getInstanceAndOffset)
@@ -123,7 +124,8 @@ inline fun <reified R> Constructor<*>.withAccessibility(block: () -> R): R {
     }
 }
 
-fun Field.isStatic() = modifiers.and(Modifier.STATIC) > 0
+val Field.isStatic: Boolean
+    get() = modifiers.and(Modifier.STATIC) > 0
 
 val Field.isFinal: Boolean
     get() = (this.modifiers and Modifier.FINAL) == Modifier.FINAL

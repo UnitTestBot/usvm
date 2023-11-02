@@ -54,7 +54,7 @@ class WorkerClassLoader(
         classesToReinit.forEach { cl ->
             cl.declaredFields
                 .filter {
-                    it.isStatic() && ((it.isFinal && !it.type.isPrimitive) || !it.isFinal)
+                    it.isStatic && ((it.isFinal && !it.type.isPrimitive) || !it.isFinal)
                 }
                 .forEach {
                     it.setFieldValue(null, null)

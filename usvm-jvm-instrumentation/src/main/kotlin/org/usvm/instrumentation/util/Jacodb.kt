@@ -31,6 +31,14 @@ val JcMethod.typename
 val JcTypedMethod.typename
     get() = TypeNameImpl(this.name)
 
+fun JcType.toStringType(): String =
+    when (this) {
+        is JcClassType -> jcClass.name
+        is JcTypeVariable -> jcClass.name
+        is JcArrayType -> "${elementType.toStringType()}[]"
+        else -> typeName
+    }
+
 fun JcType.getTypename() = TypeNameImpl(this.typeName)
 
 val JcInst.enclosingClass

@@ -6,7 +6,7 @@ import java.util.*
 
 class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
-    private val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any>()
+    private val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any?>()
 
     fun clear() {
         descriptorToObject.clear()
