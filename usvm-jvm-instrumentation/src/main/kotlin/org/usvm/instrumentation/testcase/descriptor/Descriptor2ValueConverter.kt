@@ -8,6 +8,9 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
     private val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any>()
 
+    fun clear() {
+        descriptorToObject.clear()
+    }
 
     fun buildObjectFromDescriptor(descriptor: UTestValueDescriptor): Any? =
         descriptorToObject.getOrPut(descriptor) {
@@ -60,6 +63,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
         val elementType = jcElementType.toJavaClass(workerClassLoader)
         val length = descriptor.value.size
         val arr = java.lang.reflect.Array.newInstance(elementType, length)
+        descriptorToObject[descriptor] = arr
         for ((i, desc) in descriptor.value.withIndex()) {
             val descValue = buildObjectFromDescriptor(desc)
             when (jcElementType) {
