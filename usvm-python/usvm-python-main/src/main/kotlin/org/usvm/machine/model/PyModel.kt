@@ -4,9 +4,9 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegionId
-import org.usvm.collection.array.USymbolicArrayIndex
-import org.usvm.collection.set.ref.URefSetEntryLValue
-import org.usvm.constraints.UPathConstraints
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.array.length.UArrayLengthsRegion
+import org.usvm.collection.array.length.UArrayLengthsRegionId
 import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ArrayType
 import org.usvm.language.types.PythonType
@@ -30,7 +30,7 @@ class PyModel(
     underlyingModel.regions,
     underlyingModel.nullRef
 ) {
-    private inner class WrappedRegion<ArrayType, Sort: USort>(
+    private inner class WrappedArrayIndexRegion<ArrayType, Sort: USort>(
         val region: UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort>,
         val model: PyModel,
         val ctx: UPythonContext
@@ -48,7 +48,19 @@ class PyModel(
             }
             return nullRef
         }
+    }
 
+    private inner class WrappedArrayLengthRegion(
+        val ctx: UPythonContext,
+        val region: UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
+    ): UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort> {
+        override fun read(key: UArrayLengthLValue<ArrayType, KIntSort>): UExpr<KIntSort> {
+            val underlyingResult = region.read(key)
+            if (ctx.mkArithLt(underlyingResult, ctx.mkIntNum(0)).isTrue) {
+                return ctx.mkIntNum(0)
+            }
+            return underlyingResult
+        }
     }
 
     /* private inner class WrappedSetRegion<SetType>(
@@ -70,7 +82,11 @@ class PyModel(
             regionId.arrayType == ArrayType
         ) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>
-            return WrappedRegion(region, this, ctx) as UReadOnlyMemoryRegion<Key, Sort>
+            return WrappedArrayIndexRegion(region, this, ctx) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is UArrayLengthsRegionId<*, *> && regionId.sort == ctx.intSort && regionId.arrayType == ArrayType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
+            return WrappedArrayLengthRegion(ctx, region) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)
     }

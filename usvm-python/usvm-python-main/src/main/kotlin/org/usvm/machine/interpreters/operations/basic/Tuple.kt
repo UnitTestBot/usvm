@@ -1,9 +1,7 @@
 package org.usvm.machine.interpreters.operations.basic
 
 import org.usvm.*
-import org.usvm.api.readArrayLength
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.ArrayType
 import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
@@ -27,7 +25,7 @@ fun handlerTupleIteratorNextKt(
         return null
     val typeSystem = ctx.typeSystem
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
-    val tupleSize = ctx.curState!!.memory.readArrayLength(tuple, ArrayType, ctx.ctx.intSort)
+    val tupleSize = UninterpretedSymbolicPythonObject(tuple, ctx.typeSystem).readArrayLength(ctx)
     val indexCond = index lt tupleSize
     myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
@@ -45,7 +43,7 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
         myFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
         return
     }
-    val tupleSize = ctx.curState!!.memory.readArrayLength(iterable.address, ArrayType, ctx.ctx.intSort)
+    val tupleSize = iterable.readArrayLength(ctx)
     myFork(ctx, tupleSize eq mkIntNum(count))
 }
 

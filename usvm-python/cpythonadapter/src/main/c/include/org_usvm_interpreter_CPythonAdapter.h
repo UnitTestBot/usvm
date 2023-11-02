@@ -391,6 +391,14 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartia
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation
   (JNIEnv *, jobject, jobject, jlong);
 
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    constructPartiallyAppliedPythonMethod
+ * Signature: (Lorg/usvm/language/SymbolForCPython;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedPythonMethod
+  (JNIEnv *, jobject, jobject);
+
 #ifdef __cplusplus
 }
 #endif

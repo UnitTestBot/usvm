@@ -40,8 +40,8 @@ private fun listConcat(
     dst.extendConstraints(ctx, left)
     dst.extendConstraints(ctx, right)
     with (ctx.ctx) {
-        val leftSize = ctx.curState!!.memory.readArrayLength(left.address, ArrayType, intSort)
-        val rightSize = ctx.curState!!.memory.readArrayLength(right.address, ArrayType, intSort)
+        val leftSize = left.readArrayLength(ctx)
+        val rightSize = right.readArrayLength(ctx)
         ctx.curState!!.memory.writeArrayLength(dst.address, mkArithAdd(leftSize, rightSize), ArrayType, intSort)
         ctx.curState!!.memory.memcpy(left.address, dst.address, ArrayType, addressSort, mkIntNum(0), mkIntNum(0), leftSize)
         ctx.curState!!.memory.memcpy(right.address, dst.address, ArrayType, addressSort, mkIntNum(0), leftSize, rightSize)
@@ -89,7 +89,7 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     if (list.getTypeIfDefined(ctx) != typeSystem.pythonList)
         return null
     with (ctx.ctx) {
-        val currentSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
+        val currentSize = list.readArrayLength(ctx)
         list.writeElement(ctx, currentSize, elem)
         ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
         return list
@@ -110,7 +110,7 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
 
     val typeSystem = ctx.typeSystem
     val (listAddress, index) = iterator.getListIteratorContent(ctx)
-    val listSize = ctx.curState!!.memory.readArrayLength(listAddress, ArrayType, intSort)
+    val listSize = UninterpretedSymbolicPythonObject(listAddress, ctx.typeSystem).readArrayLength(ctx)
     val indexCond = index lt listSize
     myFork(ctx, indexCond)
     if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
@@ -127,7 +127,7 @@ private fun listPop(
     ind: UExpr<KIntSort>? = null,
 ): UninterpretedSymbolicPythonObject? {
     with(ctx.ctx) {
-        val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
+        val listSize = list.readArrayLength(ctx)
         val sizeCond = listSize gt (ind ?: mkIntNum(0))
         myFork(ctx, sizeCond)
         if (ctx.modelHolder.model.eval(sizeCond).isFalse)
@@ -167,7 +167,7 @@ fun handlerListInsertKt(
     ind.addSupertype(ctx, ctx.typeSystem.pythonInt)
 
     with(ctx.ctx) {
-        val listSize = ctx.curState!!.memory.readArrayLength(list.address, ArrayType, intSort)
+        val listSize = list.readArrayLength(ctx)
         val indValueRaw = ind.getIntContent(ctx)
         val indValue = mkIte(
             indValueRaw lt listSize,

@@ -4,7 +4,6 @@ import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
-import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
@@ -133,9 +132,12 @@ fun handlerStandardTpGetattroKt(
     if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
         return null
     val containsFieldCond = obj.containsField(ctx, name)
-    myFork(ctx, containsFieldCond)
-    if (ctx.modelHolder.model.eval(containsFieldCond).isFalse)
+    if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
+        myFork(ctx, containsFieldCond)
         return null
+    } else {
+        myAssert(ctx, containsFieldCond)
+    }
     return SymbolForCPython(obj.getFieldValue(ctx, name), 0)
 }
 
@@ -144,7 +146,7 @@ fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPython
         return null
     if (array.getTypeIfDefined(context) != type)
         return null
-    val listSize = context.curState!!.memory.readArrayLength(array.address, ArrayType, context.ctx.intSort)
+    val listSize = array.readArrayLength(context)
     return constructInt(context, listSize)
 }
 
@@ -162,7 +164,7 @@ fun resolveSequenceIndex(
         index.addSupertypeSoft(ctx, typeSystem.pythonInt)
         seq.addSupertypeSoft(ctx, type)
 
-        val listSize = ctx.curState!!.memory.readArrayLength(seq.address, ArrayType, intSort)
+        val listSize = seq.readArrayLength(ctx)
         val indexValue = index.getIntContent(ctx)
 
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
@@ -190,7 +192,7 @@ fun addPossibleSupertypes(
     possibleTypes: List<ConcretePythonType>
 ) = with(ctx.ctx) {
     val cond = objs.fold(trueExpr as UBoolExpr) { outerAcc, obj ->
-        val curCond = possibleTypes.fold(trueExpr as UBoolExpr) { acc, type -> acc or obj.evalIsSoft(ctx, type) }
+        val curCond = possibleTypes.fold(trueExpr as UBoolExpr) { acc, type -> acc or obj.evalIs(ctx, type) }
         outerAcc and curCond
     }
     myAssert(ctx, cond)

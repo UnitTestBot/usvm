@@ -10,7 +10,7 @@ extern "C" {
 PyObject *handler_symbolic_tp_call(void *ctx_raw, PyObject *self, PyObject *args, PyObject *kwargs);
 int handler_is_pycfunction_with_approximation(void *ctx_raw, PyObject *self);
 PyObject *handler_approximate_pycfunction_call(void *ctx_raw, int *approximated, PyObject *callable, PyObject *self, PyObject *args, PyObject *kwargs);
-PyObject *handler_extract_symbolic_self_from_pycfunction(void *ctx_raw, PyObject *callable);
+PyObject *handler_extract_self_from_method(void *ctx_raw, PyObject *callable);
 
 #ifdef __cplusplus
 }

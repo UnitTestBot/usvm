@@ -15,10 +15,10 @@ fun main() {
     )
     val runConfig = USVMPythonRunConfig(
         USVMPythonFunctionConfig(
-            "SimpleTypeInference",
-            "range_loop"
+            "Methods",
+            "external_function"
         ),
-        20_000,
+        10_000,
         3_000
     )
     /*val debugRunner = DebugRunner(config)
@@ -29,6 +29,6 @@ fun main() {
     val runner = PythonSymbolicAnalysisRunnerImpl(config)
     runner.use {
         val start = System.currentTimeMillis()
-        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 5_000 }
+        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 20_000 }
     }
 }
