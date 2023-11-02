@@ -34,7 +34,7 @@ open class Value2DescriptorConverter(
     fun buildDescriptorFromUTestExpr(
         uTestExpression: UTestExpression,
         testExecutor: UTestExpressionExecutor,
-    ): Result<UTestValueDescriptor>? {
+    ): Result<UTestValueDescriptor> {
         testExecutor.executeUTestInst(uTestExpression)
             .onSuccess { uTestExprExecRes ->
                 return buildDescriptorResultFromAny(uTestExprExecRes, uTestExpression.type)
@@ -192,7 +192,10 @@ open class Value2DescriptorConverter(
     private fun `exception`(exception: Throwable, depth: Int): UTestExceptionDescriptor {
         val jcClass = jcClasspath.findClass(exception::class.java.name)
         val jcType = jcClass.toType()
-        val stackTraceElementDescriptors = exception.stackTrace.map { buildDescriptorFromAny(it, jcType, depth) }
+        val stackTraceElementDescriptors =
+            exception.stackTrace
+                .take(InstrumentationModuleConstants.maxStackTraceElements)
+                .map { buildDescriptorFromAny(it, jcType, depth) }
         return UTestExceptionDescriptor(
             jcType,
             exception.message ?: "",

@@ -16,6 +16,8 @@ object InstrumentationModuleConstants {
     val testExecutorStaticsRollbackStrategy = StaticsRollbackStrategy.REINIT
     //Max depth of descriptor construction
     val maxDepthOfDescriptorConstruction = 5
+    //Number of stacktrace elements for exception construction
+    val maxStackTraceElements = 10
 
     const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 
