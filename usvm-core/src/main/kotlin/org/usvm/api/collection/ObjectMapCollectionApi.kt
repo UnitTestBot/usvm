@@ -7,13 +7,17 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.refSetContainsElement
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.map.ref.refMapMerge
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
+import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.collection.set.ref.refSetUnion
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
@@ -77,6 +81,36 @@ object ObjectMapCollectionApi {
         key: UHeapRef,
         mapType: MapType,
     ): UBoolExpr = memory.refSetContainsElement(mapRef, key, mapType)
+
+    fun <MapType> UState<MapType, *, *, *, *, *>.symbolicObjectMapAnyKey(
+        mapRef: UHeapRef,
+        mapType: MapType,
+    ): UHeapRef {
+        val allKeys = memory.refSetEntries(mapRef, mapType)
+        val symbolicKeys = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
+        for (entry in allKeys.entries) {
+            val key = entry.setElement
+            val contains = memory.read(entry)
+            when {
+                contains.isTrue -> return key
+                contains.isFalse -> continue
+                else -> symbolicKeys += key to contains
+            }
+        }
+
+        val defaultKey = if (allKeys.input) {
+            // New symbolic key
+            makeSymbolicRefUntyped()
+        } else {
+            // All map keys are known -> defaultKey should be unreachable.
+            // Create fresh key, which is definitely not in map.
+            ctx.mkConcreteHeapRef(ctx.addressCounter.freshAllocatedAddress())
+        }
+
+        return symbolicKeys.fold(defaultKey) { result, (key, contains) ->
+            ctx.mkIte(contains, key, result)
+        }
+    }
 
     fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapPut(
         mapRef: UHeapRef,
