@@ -7,7 +7,6 @@ import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 
 abstract class UFieldsModelRegion<Field, Sort : USort>(

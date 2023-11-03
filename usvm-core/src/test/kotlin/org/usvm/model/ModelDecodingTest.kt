@@ -1,7 +1,6 @@
 package org.usvm.model
 
 import io.ksmt.solver.z3.KZ3Solver
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.usvm.Field
 import org.usvm.Method
 import org.usvm.UBv32SizeExprProvider
-import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
@@ -36,6 +34,8 @@ import kotlin.test.assertIs
 private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
+    private val typeSystem = SingleTypeSystem
+
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var solver: USolverBase<Type>
 
@@ -46,17 +46,13 @@ class ModelDecodingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
-
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         val translator = UExprTranslator<Type, USizeSort>(ctx)
-        val decoder = ULazyModelDecoder(translator)
+        val decoder = ULazyModelDecoder(typeSystem, translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
 
-        pc = UPathConstraints(ctx)
+        pc = UPathConstraints.empty(ctx, typeSystem)
 
         stack = URegistersStack()
         stack.push(10)

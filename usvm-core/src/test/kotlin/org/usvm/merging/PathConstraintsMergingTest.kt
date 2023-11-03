@@ -2,12 +2,9 @@ package org.usvm.merging
 
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.z3.KZ3Solver
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.constraints.UPathConstraints
 import org.usvm.sizeSort
@@ -20,23 +17,22 @@ import kotlin.test.assertFails
 import kotlin.test.assertNotNull
 
 class PathConstraintsMergingTest {
+    private val typeSystem = SingleTypeSystem
+
     private lateinit var ctx: UContext<UBv32Sort>
     private lateinit var translator: UExprTranslator<SingleType, *>
     private lateinit var smtSolver: KZ3Solver
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<SingleType, UBv32Sort> = mockk()
-        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)
     }
 
     @Test
     fun `Empty path constraints`() = with(ctx) {
-        val pcLeft = UPathConstraints<SingleType>(this)
+        val pcLeft = UPathConstraints.empty(ctx, typeSystem)
         val pcRight = pcLeft.clone()
         checkMergedEqualsOriginals(pcLeft, pcRight)
     }
@@ -84,7 +80,7 @@ class PathConstraintsMergingTest {
     }
 
     private fun buildCommonPrefix(): Pair<UPathConstraints<SingleType>, UPathConstraints<SingleType>> = with(ctx) {
-        val pcLeft = UPathConstraints<SingleType>(this)
+        val pcLeft = UPathConstraints.empty(ctx, typeSystem)
 
         // logical constraints
         pcLeft += (mkRegisterReading(0, sizeSort) eq mkRegisterReading(1, sizeSort)) or

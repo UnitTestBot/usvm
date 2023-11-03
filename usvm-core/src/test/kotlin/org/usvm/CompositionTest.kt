@@ -59,11 +59,7 @@ internal class CompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         stackEvaluator = mockk()
         typeEvaluator = mockk()

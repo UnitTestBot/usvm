@@ -3,14 +3,11 @@ package org.usvm.merging
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.utils.uncheckedCast
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.Method
 import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
@@ -28,16 +25,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
 class MemoryMergingTest {
+    private val typeSystem = SingleTypeSystem
+
     private lateinit var ctx: UContext<UBv32Sort>
     private lateinit var translator: UExprTranslator<SingleType, *>
     private lateinit var smtSolver: KZ3Solver
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<SingleType, UBv32Sort> = mockk()
-        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)
     }
@@ -45,7 +41,7 @@ class MemoryMergingTest {
     @Test
     fun `Empty memory`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
+        val pathConstraints = UPathConstraints.empty(this, typeSystem)
         val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
         val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints)
 
@@ -62,7 +58,7 @@ class MemoryMergingTest {
     @Test
     fun `Distinct stack`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
+        val pathConstraints = UPathConstraints.empty(ctx, typeSystem)
 
         val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
         memoryLeft.stack.push(3)
@@ -87,7 +83,7 @@ class MemoryMergingTest {
     fun `Distinct regions`(): Unit = with(ctx) {
         assertFails { // TODO: improve memory regions constraints merging
             val byCondition = mkConst("cond", boolSort)
-            val pathConstraints = UPathConstraints<SingleType>(this)
+            val pathConstraints = UPathConstraints.empty(ctx, typeSystem)
 
             val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
 

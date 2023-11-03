@@ -3,21 +3,17 @@ package org.usvm.api.collections
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.z3.KZ3Solver
-import io.ksmt.utils.uncheckedCast
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.PathNode
-import org.usvm.WithSolverStateForker
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UCallStack
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeSort
 import org.usvm.UState
+import org.usvm.WithSolverStateForker
 import org.usvm.constraints.UPathConstraints
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
@@ -31,6 +27,8 @@ import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
 
 abstract class SymbolicCollectionTestBase {
+    private val typeSystem = SingleTypeSystem
+
     lateinit var ctx: UContext<USizeSort>
     lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType>
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
@@ -40,23 +38,22 @@ abstract class SymbolicCollectionTestBase {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<SingleTypeSystem.SingleType, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
 
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
-        val decoder = ULazyModelDecoder(translator)
+        val decoder = ULazyModelDecoder(typeSystem, translator)
         this.translator = translator
-        val typeSolver = UTypeSolver(SingleTypeSystem)
+        val typeSolver = UTypeSolver(typeSystem)
         uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 
 
-        pathConstraints = UPathConstraints(ctx)
+        pathConstraints = UPathConstraints.empty(ctx, typeSystem)
         memory = UMemory(ctx, pathConstraints.typeConstraints)
-        scope = StepScope(StateStub(ctx, pathConstraints, memory), UForkBlackList.createDefault())
+        scope = StepScope(
+            StateStub(ctx, pathConstraints, memory),
+            UForkBlackList.createDefault(),
+            WithSolverStateForker(uSolver)
+        )
     }
 
     class TargetStub : UTarget<Any?, TargetStub>()

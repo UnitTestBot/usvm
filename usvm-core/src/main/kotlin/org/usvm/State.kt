@@ -1,16 +1,11 @@
 package org.usvm
 
-import io.ksmt.expr.KInterpretedValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.merging.UMergeable
 import org.usvm.model.UModelBase
-import org.usvm.solver.USatResult
-import org.usvm.solver.USolverResult
-import org.usvm.solver.UUnknownResult
-import org.usvm.solver.UUnsatResult
-import org.usvm.targets.UTargetsSet
 import org.usvm.targets.UTarget
+import org.usvm.targets.UTargetsSet
 
 typealias StateId = UInt
 

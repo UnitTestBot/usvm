@@ -14,11 +14,11 @@ import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.key.USizeRegion
 import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
 import org.usvm.sampleUValue
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 

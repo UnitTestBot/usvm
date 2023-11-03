@@ -1,6 +1,5 @@
 package org.usvm.model
 
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.collections.immutable.persistentMapOf
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -10,26 +9,25 @@ import org.usvm.Field
 import org.usvm.NULL_ADDRESS
 import org.usvm.Type
 import org.usvm.UBv32SizeExprProvider
-import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
-import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.UAllocatedArrayId
-import org.usvm.collection.array.UInputArrayId
-import org.usvm.collection.array.length.UInputArrayLengthId
-import org.usvm.collection.field.UInputFieldId
-import org.usvm.collection.array.length.UArrayLengthsRegionId
-import org.usvm.collection.array.UArrayRegionId
-import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.array.UArrayEagerModelRegion
+import org.usvm.collection.array.UArrayRegionId
+import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.length.UArrayLengthEagerModelRegion
+import org.usvm.collection.array.length.UArrayLengthsRegionId
+import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UFieldsEagerModelRegion
+import org.usvm.collection.field.UFieldsRegionId
+import org.usvm.collection.field.UInputFieldId
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.sizeSort
 import kotlin.test.assertSame
 
@@ -39,10 +37,7 @@ class ModelCompositionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
 

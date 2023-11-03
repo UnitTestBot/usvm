@@ -11,7 +11,6 @@ import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import io.ksmt.utils.uncheckedCast
 import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArray
@@ -45,24 +44,13 @@ import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.splitUHeapRef
 import org.usvm.regions.Region
-import org.usvm.solver.USoftConstraintsProvider
-import org.usvm.solver.USolverBase
-import org.usvm.types.UTypeSystem
 
-@Suppress("LeakingThis")
 open class UContext<USizeSort : USort>(
-    components: UComponents<*, USizeSort>,
+    val sizeExprProvider: USizeExprProvider<USizeSort>,
     operationMode: OperationMode = OperationMode.CONCURRENT,
     astManagementMode: AstManagementMode = AstManagementMode.GC,
     simplificationMode: SimplificationMode = SimplificationMode.SIMPLIFY,
 ) : KContext(operationMode, astManagementMode, simplificationMode) {
-
-    private val solver by lazy { components.mkSolver(this) }
-    private val typeSystem by lazy { components.mkTypeSystem(this) }
-    private val softConstraintsProvider by lazy { USoftConstraintsProvider<Nothing, USizeSort>(this) }
-
-    val sizeExprs by lazy { components.mkSizeExprProvider(this) }
-    val statesForkProvider by lazy { components.mkStatesForkProvider() }
 
     private var currentStateId = 0u
 
@@ -72,14 +60,6 @@ open class UContext<USizeSort : USort>(
     fun getNextStateId(): StateId {
         return currentStateId++
     }
-
-    fun <Type> solver(): USolverBase<Type> = this.solver.uncheckedCast()
-
-    @Suppress("UNCHECKED_CAST")
-    fun <Type> typeSystem(): UTypeSystem<Type> =
-        this.typeSystem as UTypeSystem<Type>
-
-    fun <Type> softConstraintsProvider(): USoftConstraintsProvider<Type, USizeSort> = softConstraintsProvider.cast()
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val nullRef: UNullRef = UNullRef(this)
@@ -400,25 +380,25 @@ open class UContext<USizeSort : USort>(
         }
 }
 
-val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
+val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprProvider.getSizeSort(this)
 
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeExpr(size: Int): UExpr<USizeSort> =
-    sizeExprs.mkSizeExpr(size)
+    sizeExprProvider.mkSizeExpr(this, size)
 fun <USizeSort : USort> UContext<USizeSort>.getIntValue(expr: UExpr<USizeSort>): Int? =
-    sizeExprs.getIntValue(expr)
+    sizeExprProvider.getIntValue(expr)
 
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-    sizeExprs.mkSizeSubExpr(lhs, rhs)
+    sizeExprProvider.mkSizeSubExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-    sizeExprs.mkSizeLeExpr(lhs, rhs)
+    sizeExprProvider.mkSizeLeExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
-    sizeExprs.mkSizeAddExpr(lhs, rhs)
+    sizeExprProvider.mkSizeAddExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-    sizeExprs.mkSizeGtExpr(lhs, rhs)
+    sizeExprProvider.mkSizeGtExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-    sizeExprs.mkSizeGeExpr(lhs, rhs)
+    sizeExprProvider.mkSizeGeExpr(lhs, rhs)
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
-    sizeExprs.mkSizeLtExpr(lhs, rhs)
+    sizeExprProvider.mkSizeLtExpr(lhs, rhs)
 
 fun <T : KSort> T.sampleUValue(): KExpr<T> =
     accept(uctx.uValueSampler).asExpr(this)

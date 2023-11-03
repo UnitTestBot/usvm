@@ -60,7 +60,7 @@ import org.usvm.regions.Region
 import org.usvm.uctx
 
 class USoftConstraintsProvider<Type, USizeSort : USort>(
-    override val ctx: UContext<USizeSort>
+    override val ctx: UContext<USizeSort>,
 ) : UTransformer<Type, USizeSort> {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
@@ -72,9 +72,7 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
 
         val softConstraintSources = pathConstraints.softConstraintsSourceSequence
         softConstraintSources.flatMapTo(softConstraints) {
-            ctx.softConstraintsProvider<Type>()
-                .provide(it)
-                .filterNot(UBoolExpr::isFalse)
+            provide(it).filterNot(UBoolExpr::isFalse)
         }
 
         return softConstraints
@@ -145,27 +143,27 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     }
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>
+        expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>,
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.key)
 
     override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> transform(
-        expr: UInputMapReading<Type, KeySort, Sort, Reg>
+        expr: UInputMapReading<Type, KeySort, Sort, Reg>,
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.key, expr.address)
 
     override fun <Sort : USort> transform(
-        expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>
+        expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>,
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.keyRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>
+        expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>,
     ): UExpr<Sort> = readingWithSingleArgumentTransform(expr, expr.mapRef)
 
     override fun <Sort : USort> transform(
-        expr: UInputRefMapWithInputKeysReading<Type, Sort>
+        expr: UInputRefMapWithInputKeysReading<Type, Sort>,
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.mapRef, expr.keyRef)
 
     override fun transform(
-        expr: UInputMapLengthReading<Type, USizeSort>
+        expr: UInputMapLengthReading<Type, USizeSort>,
     ): UExpr<USizeSort> = computeSideEffect(expr) {
         with(ctx) {
             val addressConstraints = provide(expr.address)
@@ -176,11 +174,11 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
     }
 
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(
-        expr: UAllocatedSetReading<Type, ElemSort, Reg>
+        expr: UAllocatedSetReading<Type, ElemSort, Reg>,
     ): UBoolExpr = readingWithSingleArgumentTransform(expr, expr.element)
 
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(
-        expr: UInputSetReading<Type, ElemSort, Reg>
+        expr: UInputSetReading<Type, ElemSort, Reg>,
     ): UBoolExpr = readingWithTwoArgumentsTransform(expr, expr.address, expr.element)
 
     override fun transform(expr: UAllocatedRefSetWithInputElementsReading<Type>): UBoolExpr =

@@ -5,13 +5,13 @@ import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.withSizeSort
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
 interface USymbolicArrayLengthId<Key, ArrayType, Id, USizeSort : USort> : USymbolicCollectionId<Key, USizeSort, Id>
         where Id : USymbolicArrayLengthId<Key, ArrayType, Id, USizeSort> {

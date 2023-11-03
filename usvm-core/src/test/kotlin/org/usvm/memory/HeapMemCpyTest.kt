@@ -1,15 +1,21 @@
 package org.usvm.memory
 
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
-import org.usvm.*
+import org.usvm.Type
+import org.usvm.UBv32SizeExprProvider
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.api.allocateArray
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
+import org.usvm.mkSizeExpr
+import org.usvm.sizeSort
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,12 +27,9 @@ class HeapMemCpyTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         val eqConstraints = UEqualityConstraints(ctx)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        val typeConstraints = UTypeConstraints<Type>(mockk(), eqConstraints)
         heap = UMemory(ctx, typeConstraints)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.sizeSort

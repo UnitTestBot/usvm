@@ -15,18 +15,15 @@ import org.usvm.collection.field.UInputFields
 import kotlin.test.assertTrue
 
 class UContextInterningTest {
-    private lateinit var context: UContext<USizeSort>
+    private lateinit var ctx: UContext<USizeSort>
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        context = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(context) }
+        ctx = UContext(UBv32SizeExprProvider)
     }
 
     @Test
-    fun testConcreteHeapRefInterning() = with(context) {
+    fun testConcreteHeapRefInterning() = with(ctx) {
         val firstAddress = 1
         val secondAddress = 2
 
@@ -43,7 +40,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testRegisterReadingInterning() = with(context) {
+    fun testRegisterReadingInterning() = with(ctx) {
         val fstSort = bv16Sort
         val sndSort = bv32Sort
 
@@ -52,7 +49,7 @@ class UContextInterningTest {
 
         val equal = List(10) { mkRegisterReading(fstIndex, fstSort) }
 
-        val createdWithoutContest = URegisterReading(context, fstIndex, fstSort)
+        val createdWithoutContest = URegisterReading(ctx, fstIndex, fstSort)
         val distinct = listOf(
             mkRegisterReading(fstIndex, fstSort),
             mkRegisterReading(fstIndex, sndSort),
@@ -65,7 +62,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testFieldReadingInterning() = with(context) {
+    fun testFieldReadingInterning() = with(ctx) {
         val fstRegion = mockk<UInputFields<Field, UBv32Sort>>()
         val sndRegion = mockk<UInputFields<Field, UBoolSort>>()
 
@@ -90,7 +87,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testAllocatedArrayReadingInterning() = with(context) {
+    fun testAllocatedArrayReadingInterning() = with(ctx) {
         val fstRegion = mockk<UAllocatedArray<Type, UBv32Sort, USizeSort>>()
         val sndRegion = mockk<UAllocatedArray<Type, UBoolSort, USizeSort>>()
 
@@ -116,7 +113,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testInputArrayReadingInterning() = with(context) {
+    fun testInputArrayReadingInterning() = with(ctx) {
         val fstRegion = mockk<UInputArray<Type, UBv32Sort, USizeSort>>()
         val sndRegion = mockk<UInputArray<Type, UBoolSort, USizeSort>>()
 
@@ -147,7 +144,7 @@ class UContextInterningTest {
 
 
     @Test
-    fun testArrayLengthInterning() = with(context) {
+    fun testArrayLengthInterning() = with(ctx) {
         val fstRegion = mockk<UInputArrayLengths<Type, USizeSort>>()
         val sndRegion = mockk<UInputArrayLengths<Type, USizeSort>>()
 
@@ -172,7 +169,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testIndexedMethodReturnValueInterning() = with(context) {
+    fun testIndexedMethodReturnValueInterning() = with(ctx) {
         val fstMethod = mockk<java.lang.reflect.Method>()
         val sndMethod = mockk<java.lang.reflect.Method>()
 
@@ -198,7 +195,7 @@ class UContextInterningTest {
     }
 
     @Test
-    fun testIsExprInterning() = with(context) {
+    fun testIsExprInterning() = with(ctx) {
         val fstRef = mkConcreteHeapRef(address = 1)
         val sndRef = mkConcreteHeapRef(address = 2)
 
@@ -221,7 +218,7 @@ class UContextInterningTest {
 
     private fun compare(
         equals: List<UExpr<out USort>>,
-        distinct: List<UExpr<out USort>>
+        distinct: List<UExpr<out USort>>,
     ): Boolean {
         val internedCorrectly = equals.all { it === equals.first() }
         val distinctWorkCorrectly = distinct.distinct().size == distinct.size

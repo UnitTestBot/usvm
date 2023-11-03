@@ -1,12 +1,11 @@
 package org.usvm.memory
 
 import io.ksmt.utils.getValue
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Type
-import org.usvm.UComponents
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
@@ -18,9 +17,7 @@ class HeapRefEqTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
         heap = UMemory(ctx, mockk())
     }
 

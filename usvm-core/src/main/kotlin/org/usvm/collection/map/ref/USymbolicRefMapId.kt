@@ -24,9 +24,9 @@ import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.memory.key.UHeapRefRegion
+import org.usvm.regions.emptyRegionTree
 import org.usvm.sampleUValue
 import org.usvm.uctx
-import org.usvm.regions.emptyRegionTree
 
 interface USymbolicRefMapId<
         MapType,

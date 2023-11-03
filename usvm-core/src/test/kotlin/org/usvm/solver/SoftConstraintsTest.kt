@@ -9,11 +9,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UBv32SizeExprProvider
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
-import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.constraints.UPathConstraints
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
@@ -22,6 +21,8 @@ import kotlin.test.assertSame
 private typealias Type = SingleTypeSystem.SingleType
 
 open class SoftConstraintsTest {
+    private val typeSystem = SingleTypeSystem
+
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type, *>
     private lateinit var translator: UExprTranslator<Type, *>
@@ -30,15 +31,11 @@ open class SoftConstraintsTest {
 
     @BeforeEach
     fun initialize() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns SingleTypeSystem
-
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
         translator = UExprTranslator(ctx)
-        decoder = ULazyModelDecoder(translator)
+        decoder = ULazyModelDecoder(typeSystem, translator)
 
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
@@ -50,7 +47,7 @@ open class SoftConstraintsTest {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints.empty(ctx, typeSystem)
         pc += expr
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
@@ -78,7 +75,7 @@ open class SoftConstraintsTest {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints.empty(ctx, typeSystem)
         pc += fstExpr
         pc += sndExpr
         pc += sameAsFirstExpr
@@ -127,7 +124,7 @@ open class SoftConstraintsTest {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints.empty(ctx, typeSystem)
         pc += reading eq size.toBv()
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
@@ -149,7 +146,7 @@ open class SoftConstraintsTest {
             .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints.empty(ctx, typeSystem)
         pc += (inputRef eq nullRef).not()
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
@@ -167,7 +164,7 @@ open class SoftConstraintsTest {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints.empty(ctx, typeSystem)
         pc += expression
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)

@@ -1,7 +1,6 @@
 package org.usvm.memory
 
 import io.ksmt.utils.mkConst
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -10,7 +9,6 @@ import org.usvm.TestKeyInfo
 import org.usvm.Type
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
@@ -29,10 +27,7 @@ class MemoryRegionTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
     }
 
     @Test

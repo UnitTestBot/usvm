@@ -16,29 +16,26 @@ import org.usvm.isSymbolicHeapRef
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UMergeable
 import org.usvm.solver.UExprTranslator
+import org.usvm.types.UTypeSystem
 import org.usvm.uctx
 
 /**
  * Mutable representation of path constraints.
  */
 open class UPathConstraints<Type> private constructor(
-    private val ctx: UContext<*>,
-    private val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
+    private val logicalConstraints: ULogicalConstraints,
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
      */
-    private val equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx),
+    private val equalityConstraints: UEqualityConstraints,
     /**
      * Constraints solved by type solver.
      */
-    val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(
-        ctx.typeSystem(),
-        equalityConstraints
-    ),
+    val typeConstraints: UTypeConstraints<Type>,
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    private val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
+    private val numericConstraints: UNumericConstraints<UBv32Sort>,
 ) : UMergeable<UPathConstraints<Type>, MutableMergeGuard> {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -51,8 +48,6 @@ open class UPathConstraints<Type> private constructor(
     val softConstraintsSourceSequence: Sequence<UBoolExpr>
         get() = logicalConstraints.asSequence() + numericConstraints.constraints()
 
-    constructor(ctx: UContext<*>) : this(ctx, ULogicalConstraints.empty())
-
     val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
             typeConstraints.isContradicting ||
@@ -62,7 +57,7 @@ open class UPathConstraints<Type> private constructor(
     // TODO: refactor
     fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
         if (isFalse) {
-            return sequenceOf(ctx.falseExpr)
+            return sequenceOf(translator.ctx.falseExpr)
         }
         return logicalConstraints.asSequence().map(translator::translate) +
             equalityConstraints.constraints(translator) +
@@ -146,15 +141,15 @@ open class UPathConstraints<Type> private constructor(
                         numericConstraints.isNumericConstraint(notConstraint) ->
                             numericConstraints.addNegatedNumericConstraint(notConstraint)
 
-                        notConstraint in logicalConstraints -> contradiction(ctx)
+                        notConstraint in logicalConstraints -> contradiction(constraint.uctx)
 
-                        notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
+                        notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(it.ctx.mkNot(it)) }
 
                         else -> logicalConstraints += constraint
                     }
                 }
 
-                logicalConstraints.contains(constraint.not()) -> contradiction(ctx)
+                logicalConstraints.contains(constraint.not()) -> contradiction(constraint.uctx)
 
                 else -> logicalConstraints += constraint
             }
@@ -166,7 +161,6 @@ open class UPathConstraints<Type> private constructor(
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
         val clonedNumericConstraints = numericConstraints.clone()
         return UPathConstraints(
-            ctx = ctx,
             logicalConstraints = clonedLogicalConstraints,
             equalityConstraints = clonedEqualityConstraints,
             typeConstraints = clonedTypeConstraints,
@@ -202,11 +196,20 @@ open class UPathConstraints<Type> private constructor(
         val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by)
 
         return UPathConstraints(
-            ctx,
             mergedLogicalConstraints,
             mergedEqualityConstraints,
             mergedTypeConstraints,
             mergedNumericConstraints
         )
+    }
+
+    companion object {
+        fun <Type> empty(ctx: UContext<*>, typeSystem: UTypeSystem<Type>): UPathConstraints<Type> {
+            val logicalConstraints = ULogicalConstraints.empty()
+            val equalityConstraints = UEqualityConstraints(ctx)
+            val typeConstraints = UTypeConstraints(typeSystem, equalityConstraints)
+            val numericConstraints = UNumericConstraints(ctx, ctx.bv32Sort)
+            return UPathConstraints(logicalConstraints, equalityConstraints, typeConstraints, numericConstraints)
+        }
     }
 }

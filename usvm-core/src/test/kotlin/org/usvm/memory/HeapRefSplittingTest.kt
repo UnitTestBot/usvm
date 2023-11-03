@@ -2,7 +2,6 @@ package org.usvm.memory
 
 import io.ksmt.expr.rewrite.simplify.KExprSimplifier
 import io.ksmt.utils.getValue
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -11,9 +10,7 @@ import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
@@ -21,6 +18,7 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
+import org.usvm.collection.field.UInputFieldReading
 import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -37,10 +35,7 @@ class HeapRefSplittingTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = UContext(UBv32SizeExprProvider)
         heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort

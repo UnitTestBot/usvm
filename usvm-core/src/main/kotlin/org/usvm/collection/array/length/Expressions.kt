@@ -6,9 +6,9 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import org.usvm.UCollectionReading
 import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
-import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer

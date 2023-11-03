@@ -1,14 +1,12 @@
 package org.usvm.memory
 
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.TestKeyInfo
 import org.usvm.UBoolExpr
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.USort
@@ -20,9 +18,7 @@ class UpdatesIteratorTest {
     private lateinit var ctx: UContext<USizeSort>
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
     }
 
     @Test

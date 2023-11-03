@@ -8,7 +8,6 @@ import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 
 abstract class URefMapModelRegion<MapType, ValueSort : USort>(

@@ -14,6 +14,7 @@ import org.usvm.UMockEvaluator
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.solver.UExprTranslator
+import org.usvm.types.UTypeSystem
 
 interface UModelDecoder<Model> {
     fun decode(model: KModel): Model
@@ -29,6 +30,7 @@ typealias AddressesMapping = Map<UExpr<UAddressSort>, UConcreteHeapRef>
  * @param translator an expression translator used for encoding constraints.
  */
 open class ULazyModelDecoder<Type>(
+    private val typeSystem: UTypeSystem<Type>,
     protected val translator: UExprTranslator<Type, *>,
 ) : UModelDecoder<UModelBase<Type>> {
     private val ctx: UContext<*> = translator.ctx
@@ -81,7 +83,7 @@ open class ULazyModelDecoder<Type>(
 
         val stack = decodeStack(model, addressesMapping)
         val regions = decodeHeap(model, addressesMapping)
-        val types = UTypeModel<Type>(ctx.typeSystem(), typeStreamByAddr = emptyMap())
+        val types = UTypeModel(typeSystem, typeStreamByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
         return UModelBase(ctx, stack, types, mocks, regions, nullRef)

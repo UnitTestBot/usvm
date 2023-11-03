@@ -6,7 +6,6 @@ import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KSort
 import io.ksmt.utils.mkConst
-import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -15,7 +14,6 @@ import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -33,8 +31,8 @@ import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.memory.UMemory
-import org.usvm.mkSizeExpr
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -49,14 +47,14 @@ class TranslationTest {
     private lateinit var valueArrayDescr: Type
     private lateinit var addressArrayDescr: Type
 
-    class RecordingCtx(components: UComponents<Type, USizeSort>) : UContext<USizeSort>(components) {
+    class RecordingCtx : UContext<USizeSort>(UBv32SizeExprProvider) {
         var storeCallCounter = 0
             private set
 
         override fun <D : KSort, R : KSort> mkArrayStore(
             array: KExpr<KArraySort<D, R>>,
             index: KExpr<D>,
-            value: KExpr<R>
+            value: KExpr<R>,
         ): KExpr<KArraySort<D, R>> {
             storeCallCounter++
             return super.mkArrayStore(array, index, value)
@@ -65,11 +63,7 @@ class TranslationTest {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<Type, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-
-        ctx = RecordingCtx(components)
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        ctx = RecordingCtx()
         heap = UMemory(ctx, mockk())
         translator = UExprTranslator(ctx)
 

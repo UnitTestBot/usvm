@@ -21,8 +21,8 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.uctx
 import org.usvm.regions.Region
+import org.usvm.uctx
 
 sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymbolicSetId<MapType, *, SrcKey, *, *, SetId>>(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,

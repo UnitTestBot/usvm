@@ -5,7 +5,6 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.util.bracket
 import org.usvm.util.debug
-import org.usvm.utils.isSat
 
 val logger = object : KLogging() {}.logger
 
@@ -32,7 +31,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
         pathSelector: UPathSelector<State>,
         observer: UMachineObserver<State>,
         isStateTerminated: (State) -> Boolean,
-        stopStrategy: StopStrategy = StopStrategy { false }
+        stopStrategy: StopStrategy = StopStrategy { false },
     ) {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
@@ -41,7 +40,6 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
 
                 observer.onState(state, forkedStates)
 
-                val originalStateAlive = stateAlive && !isStateTerminated(state)
                 val aliveForkedStates = mutableListOf<State>()
                 for (forkedState in forkedStates) {
                     if (!isStateTerminated(forkedState)) {
@@ -49,19 +47,16 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     } else {
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
-                        if (forkedState.isSat()) {
-                            observer.onStateTerminated(forkedState, stateReachable = true)
-                        }
+                        observer.onStateTerminated(forkedState, stateReachable = true)
                     }
                 }
 
+                val originalStateAlive = stateAlive && !isStateTerminated(state)
                 if (originalStateAlive) {
                     pathSelector.update(state)
                 } else {
                     pathSelector.remove(state)
-                    if (state.isSat()) {
-                        observer.onStateTerminated(state, stateReachable = stateAlive)
-                    }
+                    observer.onStateTerminated(state, stateReachable = stateAlive)
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {

@@ -19,8 +19,8 @@ import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.uctx
 import org.usvm.regions.Region
+import org.usvm.uctx
 
 sealed class USymbolicRefMapMergeAdapter<
     MapType, SrcKey, DstKey,

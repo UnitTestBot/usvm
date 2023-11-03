@@ -9,7 +9,6 @@ import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.Method
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBv32SizeExprProvider
-import org.usvm.UComponents
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.USizeSort
@@ -55,24 +54,19 @@ import kotlin.test.assertTrue
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
-    private val components = mockk<UComponents<TestType, USizeSort>>()
-    private val ctx = UContext(components)
+    private val ctx = UContext(UBv32SizeExprProvider)
     private val solver: USolverBase<TestType>
     private val typeSolver: UTypeSolver<TestType>
 
     init {
         val translator = UExprTranslator<TestType, USizeSort>(ctx)
-        val decoder = ULazyModelDecoder(translator)
+        val decoder = ULazyModelDecoder(typeSystem, translator)
 
         typeSolver = UTypeSolver(typeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
-
-        every { components.mkSolver(ctx) } returns solver
-        every { components.mkTypeSystem(ctx) } returns typeSystem
-        every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
     }
 
-    private val pc = UPathConstraints<TestType>(ctx)
+    private val pc = UPathConstraints.empty(ctx, typeSystem)
     private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
 
     @Test

@@ -144,9 +144,6 @@ open class USolverBase<Type>(
         pop()
     }
 
-    fun emptyModel(): UModelBase<Type> =
-        (check(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
-
     override fun close() {
         smtSolver.close()
     }

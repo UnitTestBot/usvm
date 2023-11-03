@@ -6,13 +6,11 @@ import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.utils.getValue
 import io.ksmt.utils.powerOfTwo
-import io.mockk.every
-import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.UBoolExpr
+import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBvSort
-import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UNotExpr
@@ -33,9 +31,7 @@ class NumericConstraintsTests {
 
     @BeforeEach
     fun initializeContext() {
-        val components: UComponents<*, USizeSort> = mockk()
-        every { components.mkTypeSystem(any()) } returns mockk()
-        ctx = UContext(components)
+        ctx = UContext(UBv32SizeExprProvider)
         bvSort = ctx.mkBvSort(sizeBits = 8u)
 
         resetConstraints()

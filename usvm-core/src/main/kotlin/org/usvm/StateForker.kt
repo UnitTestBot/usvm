@@ -2,6 +2,7 @@ package org.usvm
 
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
+import org.usvm.solver.USolverBase
 import org.usvm.solver.UUnknownResult
 import org.usvm.solver.UUnsatResult
 
@@ -39,7 +40,9 @@ sealed interface StateForker {
     ): List<T?>
 }
 
-object WithSolverStateForker : StateForker {
+class WithSolverStateForker(
+    val solver: USolverBase<*>
+) : StateForker {
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         state: T,
         condition: UBoolExpr,
@@ -151,7 +154,8 @@ object WithSolverStateForker : StateForker {
         } else {
             newConstraintToOriginalState
         }
-        val solver = state.ctx.solver<Type>()
+        @Suppress("UNCHECKED_CAST")
+        val solver = solver as USolverBase<Type>
         val satResult = solver.check(constraintsToCheck)
 
         return when (satResult) {
