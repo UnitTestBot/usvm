@@ -2,25 +2,29 @@ package org.usvm.stopstrategies
 
 import org.usvm.UMachineOptions
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.TimeStatistics
 import org.usvm.targets.UTarget
+import kotlin.time.Duration
 
 fun createStopStrategy(
     options: UMachineOptions,
     targets: Collection<UTarget<*, *>>,
-    coverageStatistics: () -> CoverageStatistics<*, *, *>? = { null },
+    timeStatisticsFactory: () -> TimeStatistics<*, *>? = { null },
+    coverageStatisticsFactory: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null,
 ) : StopStrategy {
     val stopStrategies = mutableListOf<StopStrategy>()
 
     val stepLimit = options.stepLimit
     if (stepLimit != null) {
-        stopStrategies.add(StepLimitStopStrategy(stepLimit))
+        val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on step count" }
+        stopStrategies.add(StepLimitStopStrategy(stepLimit, timeStatistics))
     }
     if (options.stopOnCoverage in 1..100) {
-        val coverageStatisticsValue = requireNotNull(coverageStatistics()) {
+        val coverageStatistics = requireNotNull(coverageStatisticsFactory()) {
             "Coverage statistics is required for stopping on expected coverage achieved"
         }
-        val coverageStopStrategy = StopStrategy { coverageStatisticsValue.getTotalCoverage() >= options.stopOnCoverage }
+        val coverageStopStrategy = StopStrategy { coverageStatistics.getTotalCoverage() >= options.stopOnCoverage }
         stopStrategies.add(coverageStopStrategy)
     }
     val collectedStatesLimit = options.collectedStatesLimit
@@ -31,16 +35,19 @@ fun createStopStrategy(
         val collectedStatesCountStopStrategy = StopStrategy { getCollectedStatesCount() >= collectedStatesLimit }
         stopStrategies.add(collectedStatesCountStopStrategy)
     }
-    val timeoutMs = options.timeoutMs
-    if (timeoutMs != null) {
-        stopStrategies.add(TimeoutStopStrategy(timeoutMs, System::currentTimeMillis))
+
+    if (options.timeout < Duration.INFINITE) {
+        val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on timeout" }
+        stopStrategies.add(TimeoutStopStrategy(options.timeout, timeStatistics))
     }
 
     val stepsFromLastCovered = options.stepsFromLastCovered
     if (stepsFromLastCovered != null && getCollectedStatesCount != null) {
+        val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on step count" }
         val stepsFromLastCoveredStopStrategy = StepsFromLastCoveredStopStrategy(
             stepsFromLastCovered.toULong(),
-            getCollectedStatesCount
+            getCollectedStatesCount,
+            timeStatistics
         )
         stopStrategies.add(stepsFromLastCoveredStopStrategy)
     }

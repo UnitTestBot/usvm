@@ -8,7 +8,6 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.PathNode
-import org.usvm.WithSolverStateForker
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
@@ -18,6 +17,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeSort
 import org.usvm.UState
+import org.usvm.WithSolverStateForker
 import org.usvm.constraints.UPathConstraints
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
@@ -30,6 +30,7 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.INFINITE
+import kotlin.time.Duration
 
 abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext<USizeSort>
@@ -77,6 +78,8 @@ abstract class SymbolicCollectionTestBase {
 
         override val isExceptional: Boolean
             get() = false
+
+        override val entrypoint: Any? = null
     }
 
     fun checkNoConcreteHeapRefs(expr: UExpr<*>) {

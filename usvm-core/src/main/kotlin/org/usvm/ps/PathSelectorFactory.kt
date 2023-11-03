@@ -26,7 +26,6 @@ import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 private fun <Method, Statement, Target, State> createPathSelector(
     initialStates: Collection<State>,
@@ -51,7 +50,7 @@ private fun <Method, Statement, Target, State> createPathSelector(
 
             PathSelectionStrategy.RANDOM_PATH -> {
                 val initialState = initialStates.singleOrNull()
-                requireNotNull(initialState) { "Random tree path selector doesn't support multiple initial states yet" }
+                requireNotNull(initialState) { "Random tree path selector doesn't support multiple initial states" }
 
                 RandomTreePathSelector.fromRoot(
                     initialState.pathNode,
@@ -109,7 +108,9 @@ private fun <Method, Statement, Target, State> createPathSelector(
 
     selectors.singleOrNull()?.let { selector ->
         val resultSelector = selector.wrapIfRequired(propagateExceptions)
-        val mergingSelector = createMergingPathSelector(initialState, resultSelector, options, cfgStatistics)
+        val initialState = initialStates.singleOrNull()
+        requireNotNull(initialState) { "Merging path selector doesn't support multiple initial states" }
+        val mergingSelector = createMergingPathSelector(initialState, resultSelector, options, cfgStatisticsFactory)
         mergingSelector.add(initialStates.toList())
         return mergingSelector
     }
@@ -154,20 +155,19 @@ fun <Method, Statement, Target, State> createPathSelector(
     initialStates: Map<Method, State>,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
-    timeStatistics: TimeStatistics,
+    timeStatistics: TimeStatistics<Method, State>,
     coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
-    val timeoutMs = options.timeoutMs
-    if (timeoutMs == null || initialStates.count() == 1) {
+    if (options.timeout == Duration.INFINITE || initialStates.count() == 1) {
         return createPathSelector(
             initialStates.values, options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory
         )
     }
 
     fun getRemainingTimeMs(): Duration {
-        val diff = timeoutMs.milliseconds - timeStatistics.runningTime
+        val diff = options.timeout - timeStatistics.runningTime
         return if (diff < Duration.ZERO) Duration.ZERO else diff
     }
 
@@ -191,13 +191,6 @@ fun <Method, Statement, Target, State> createPathSelector(
 
     val initialStateToEntrypoint = mutableMapOf<State, Method>()
     initialStates.forEach { (m, s) -> initialStateToEntrypoint[s] = m }
-    fun getEntrypointMethod(state: State): Method {
-        if (state.callStack.isNotEmpty()) {
-            return state.callStack.first().method
-        }
-        // Workaround for initial states having empty callstack
-        return initialStateToEntrypoint.getValue(state)
-    }
 
     return when (options.pathSelectorFairnessStrategy) {
         PathSelectorFairnessStrategy.CONSTANT_TIME -> {
@@ -205,7 +198,7 @@ fun <Method, Statement, Target, State> createPathSelector(
                 initialStates.keys.asSequence(),
                 JvmStopwatch(),
                 ::getRemainingTimeMs,
-                ::getEntrypointMethod,
+                { it.entrypoint },
                 getMethodCoverage,
                 ::createBasePathSelector
             )
@@ -221,7 +214,7 @@ fun <Method, Statement, Target, State> createPathSelector(
             val pathSelector = CompletelyFairPathSelector(
                 initialStates.keys.asSequence(),
                 JvmStopwatch(),
-                ::getEntrypointMethod,
+                { it.entrypoint },
                 getMethodCoverage,
                 ::createBasePathSelector
             )

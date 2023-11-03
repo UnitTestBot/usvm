@@ -4,6 +4,7 @@ import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
@@ -19,7 +20,6 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
@@ -34,6 +34,7 @@ import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.originalInst
+import kotlin.math.roundToInt
 
 val logger = object : KLogging() {}.logger
 
@@ -52,21 +53,20 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(methods: List<Pair<JcMethod, List<JcTarget>>>): List<JcState> {
+    fun analyze(methods: List<JcMethod>, targets: List<JcTarget> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({})", this, methods)
         val initialStates = mutableMapOf<JcMethod, JcState>()
-        methods.forEach { (method, target) ->
-            initialStates[method] = interpreter.getInitialState(method, target)
+        methods.forEach {
+            initialStates[it] = interpreter.getInitialState(it, targets)
         }
-        val targets = methods.flatMap { it.second }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD,
-                CoverageZone.TRANSITIVE -> methods.unzip().first.toSet()
+                CoverageZone.TRANSITIVE -> methods.toSet()
                 // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
-                CoverageZone.CLASS -> methods.flatMap {
-                    (method, _) -> method.enclosingClass.methods.filter {
+                CoverageZone.CLASS -> methods.flatMap { method ->
+                    method.enclosingClass.methods.filter {
                         it.enclosingClass == method.enclosingClass && !it.isConstructor
                     }
                 }.toSet()
@@ -90,7 +90,8 @@ class JcMachine(
 
         val transparentCfgStatistics = transparentCfgStatistics()
 
-        val timeStatistics = TimeStatistics()
+        val timeStatistics = TimeStatistics<JcMethod, JcState>()
+        TimeStatistics.configureTimeStatisticsForSolver(timeStatistics)
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -114,11 +115,13 @@ class JcMachine(
         val stopStrategy = createStopStrategy(
             options,
             targets,
-            coverageStatistics = { coverageStatistics },
+            timeStatisticsFactory = { timeStatistics },
+            coverageStatisticsFactory = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
+        observers.add(timeStatistics)
 
         if (interpreterObserver is UMachineObserver<*>) {
             @Suppress("UNCHECKED_CAST")
@@ -128,7 +131,7 @@ class JcMachine(
         if (options.coverageZone == CoverageZone.TRANSITIVE) {
             observers.add(
                 TransitiveCoverageZoneObserver(
-                    initialMethods = methods.unzip().first,
+                    initialMethods = methods,
                     methodExtractor = { state -> state.lastStmt.location.method },
                     addCoverageZone = { coverageStatistics.addCoverageZone(it) },
                     ignoreMethod = { false } // TODO replace with a configurable setting
@@ -156,23 +159,42 @@ class JcMachine(
             observers.add(SoftConstraintsObserver())
         }
         
-        try {
-            timeStatistics.onMachineStarted()
-            run(
-                interpreter,
-                pathSelector,
-                observer = CompositeUMachineObserver(observers),
-                isStateTerminated = ::isStateTerminated,
-                stopStrategy = stopStrategy,
-            )
-        } finally {
-            timeStatistics.onMachineStopped()
+        run(
+            interpreter,
+            pathSelector,
+            observer = CompositeUMachineObserver(observers),
+            isStateTerminated = ::isStateTerminated,
+            stopStrategy = stopStrategy,
+        )
+
+        if (logger.isInfoEnabled) {
+            val statsStrings = mutableListOf(Statistics("Method", "Coverage, %", "Time spent (total & solver), ms", "Steps"))
+            methods.forEach {
+                val name = it.humanReadableSignature
+                val coverage = coverageStatistics.getMethodCoverage(it).roundToInt().toString()
+                val time = timeStatistics.getTimeSpentOnMethod(it).inWholeMilliseconds.toString()
+                val solverTime = timeStatistics.getSolverTimeSpentOnMethod(it).inWholeMilliseconds.toString()
+                val stepsCount = timeStatistics.getMethodSteps(it).toString()
+                statsStrings.add(Statistics(name, coverage, "$time ($solverTime)", stepsCount))
+            }
+            val totalCoverage = coverageStatistics.getTotalCoverage().roundToInt().toString()
+            val totalTime = timeStatistics.runningTime.inWholeMilliseconds.toString()
+            val totalSolverTime = timeStatistics.solverTime.inWholeMilliseconds.toString()
+            val totalSteps = timeStatistics.totalSteps.toString()
+            statsStrings.add(Statistics("TOTAL", totalCoverage, "$totalTime ($totalSolverTime)", totalSteps))
+            val timeColumnWidth = statsStrings.maxOf { it.time.length }
+            val stepsColumnWidth = statsStrings.maxOf { it.stepsCount.length }
+            val statisticsSb = StringBuilder("\n")
+            statsStrings.forEach { (name, coverage, time, steps) ->
+                statisticsSb.appendLine(" %-12s | %-${timeColumnWidth}s | %-${stepsColumnWidth}s | %s ".format(coverage, time, steps, name))
+            }
+            logger.info { statisticsSb.toString() }
         }
 
         return statesCollector.collectedStates
     }
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> = analyze(listOf(method to targets))
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> = analyze(listOf(method), targets)
 
     /**
      * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.
@@ -196,4 +218,6 @@ class JcMachine(
     override fun close() {
         components.close()
     }
+
+    private data class Statistics(val methodName: String, val coverage: String, val time: String, val stepsCount: String)
 }

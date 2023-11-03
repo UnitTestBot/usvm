@@ -186,7 +186,6 @@ class ConstantTimeFairPathSelectorTests {
             remainingTime -= time
         }
 
-        // TODO: do we want such behaviour?
         assertEquals(12, times["s1"])
         assertEquals(40, times["s2"])
         assertEquals(7, times["s3"])

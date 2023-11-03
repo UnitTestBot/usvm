@@ -35,10 +35,12 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
         stopStrategy: StopStrategy = StopStrategy { false }
     ) {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+            observer.onMachineStarted()
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
                 val state = pathSelector.peek()
-                val (forkedStates, stateAlive) = interpreter.step(state)
+                observer.onStatePeeked(state)
 
+                val (forkedStates, stateAlive) = interpreter.step(state)
                 observer.onState(state, forkedStates)
 
                 val originalStateAlive = stateAlive && !isStateTerminated(state)
@@ -68,6 +70,8 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     pathSelector.add(aliveForkedStates)
                 }
             }
+
+            observer.onMachineStopped()
 
             if (!pathSelector.isEmpty()) {
                 logger.debug { stopStrategy.stopReason() }

@@ -8,6 +8,7 @@ import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
+import kotlin.time.Duration
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,

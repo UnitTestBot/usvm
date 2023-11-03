@@ -20,6 +20,7 @@ import org.usvm.targets.UTargetsSet
 
 class SampleState(
     ctx: UContext<USizeSort>,
+    override val entrypoint: Method<*>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
@@ -41,6 +42,7 @@ class SampleState(
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return SampleState(
             ctx,
+            entrypoint,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
@@ -58,6 +60,8 @@ class SampleState(
      * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
      */
     override fun mergeWith(other: SampleState, by: Unit): SampleState? {
+        require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
+
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
@@ -82,6 +86,7 @@ class SampleState(
 
         return SampleState(
             ctx,
+            entrypoint,
             mergedCallStack,
             mergedPathConstraints,
             mergedMemory,
