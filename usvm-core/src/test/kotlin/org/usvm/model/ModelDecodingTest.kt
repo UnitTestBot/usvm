@@ -253,7 +253,7 @@ class ModelDecodingTest {
         val modelSetEntries = model.setEntries(model.eval(setRef), setType, bv32Sort, USizeExprKeyInfo())
         val modelSetElements = modelSetEntries.entries.mapTo(hashSetOf()) { it.setElement }
         assertTrue(
-            modelSetEntries.input || (mkBv(1) in modelSetElements && mkBv(2) in modelSetElements)
+            modelSetEntries.isInput || (mkBv(1) in modelSetElements && mkBv(2) in modelSetElements)
         )
     }
 
@@ -275,7 +275,7 @@ class ModelDecodingTest {
         val modelSetElements = modelSetEntries.entries.mapTo(hashSetOf()) { it.setElement }
         val elementValues = elements.map { model.eval(it) }
         assertTrue(
-            modelSetEntries.input || (elementValues[0] in modelSetElements && elementValues[1] in modelSetElements)
+            modelSetEntries.isInput || (elementValues[0] in modelSetElements && elementValues[1] in modelSetElements)
         )
     }
 }

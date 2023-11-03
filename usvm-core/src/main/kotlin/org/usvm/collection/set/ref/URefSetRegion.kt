@@ -7,7 +7,9 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UHeapRef
+import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -56,22 +58,7 @@ typealias UInputRefSetWithAllocatedElements<SetType> =
 typealias UInputRefSetWithInputElements<SetType> =
         USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>
 
-class URefSetEntries<SetType> {
-    private val _entries: MutableSet<URefSetEntryLValue<SetType>> = hashSetOf()
-    val entries: Set<URefSetEntryLValue<SetType>>
-        get() = _entries
-
-    var input: Boolean = false
-        private set
-
-    fun add(entry: URefSetEntryLValue<SetType>) {
-        _entries.add(entry)
-    }
-
-    fun markAsInput() {
-        input = true
-    }
-}
+typealias URefSetEntries<SetType> = USymbolicSetEntries<URefSetEntryLValue<SetType>>
 
 interface URefSetReadOnlyRegion<SetType> :
     UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
@@ -409,13 +396,14 @@ internal class URefSetMemoryRegion<SetType>(
                 }
 
                 val elementsId = allocatedSetWithInputElementsId(concreteRef.address)
-                val elements = getAllocatedSetWithInputElements(elementsId).updates
-                    .accept(URefSetElementsCollector(), hashMapOf())
+                val elements = USymbolicSetElementsCollector.collect(
+                    getAllocatedSetWithInputElements(elementsId).updates
+                )
                 elements.elements.forEach { elem ->
                     entries.add(URefSetEntryLValue(concreteRef, elem, setType))
                 }
 
-                if (elements.input) {
+                if (elements.isInput) {
                     entries.markAsInput()
                 }
 
@@ -427,8 +415,7 @@ internal class URefSetMemoryRegion<SetType>(
                     entries.add(URefSetEntryLValue(symbolicRef, elem, setType))
                 }
 
-                val elements = inputSetWithInputElements().updates
-                    .accept(URefSetElementsCollector(), hashMapOf())
+                val elements = USymbolicSetElementsCollector.collect(inputSetWithInputElements().updates)
                 elements.elements.forEach { entry ->
                     entries.add(URefSetEntryLValue(symbolicRef, entry.second, setType))
                 }

@@ -6,8 +6,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UHeapRef
 import org.usvm.collection.set.USymbolicSetElement
-import org.usvm.collection.set.primitive.USetEntries
-import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping

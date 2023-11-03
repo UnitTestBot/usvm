@@ -33,7 +33,7 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.se
     type: SetType,
     keySort: KeySort,
     keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
-): USetEntries<SetType, KeySort, Reg> {
+): UPrimitiveSetEntries<SetType, KeySort, Reg> {
     val regionId = USetRegionId(keySort, type, keyInfo)
     val region = getRegion(regionId)
 

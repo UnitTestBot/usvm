@@ -26,13 +26,13 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
         return inputSet.read(setRef to key.setElement)
     }
 
-    override fun setEntries(ref: UHeapRef): USetEntries<SetType, ElementSort, Reg> {
+    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> {
         val setRef = modelEnsureConcreteInputRef(ref)
 
         // todo: remove this cast
         val inputSetUpdates = inputSet as UMemory2DArray<UAddressSort, ElementSort, UBoolSort>
 
-        val result = USetEntries<SetType, ElementSort, Reg>()
+        val result = UPrimitiveSetEntries<SetType, ElementSort, Reg>()
         if (!inputSetUpdates.constValue.isFalse) {
             result.markAsInput()
         }

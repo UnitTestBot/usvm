@@ -59,7 +59,7 @@ class SetEntriesTest {
         heap.setUnion(setRef2, setRef1, setType, bv32Sort, USizeExprKeyInfo(), guard = trueExpr)
 
         val setEntries = heap.setEntries(setRef1, setType, bv32Sort, USizeExprKeyInfo())
-        assertTrue(setEntries.input)
+        assertTrue(setEntries.isInput)
 
         val expectedElements: Set<UExpr<USizeSort>> = (0..4).mapTo(hashSetOf()) { mkBv(it) }
         val actualElements = setEntries.entries.mapTo(hashSetOf()) { it.setElement }
@@ -90,7 +90,7 @@ class SetEntriesTest {
         heap.refSetUnion(setRef2, setRef1, setType, guard = trueExpr)
 
         val setEntries = heap.refSetEntries(setRef1, setType)
-        assertTrue(setEntries.input)
+        assertTrue(setEntries.isInput)
 
         val actualElements = setEntries.entries.mapTo(hashSetOf()) { it.setElement }
         assertEquals(refs.toSet() as Set<UHeapRef>, actualElements)

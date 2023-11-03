@@ -90,7 +90,7 @@ object ObjectMapCollectionApi {
         val symbolicKeys = mutableListOf<Pair<UHeapRef, UBoolExpr>>()
         for (entry in allKeys.entries) {
             val key = entry.setElement
-            val contains = memory.read(entry)
+            val contains = symbolicObjectMapContains(mapRef, key, mapType)
             when {
                 contains.isTrue -> return key
                 contains.isFalse -> continue
@@ -98,7 +98,7 @@ object ObjectMapCollectionApi {
             }
         }
 
-        val defaultKey = if (allKeys.input) {
+        val defaultKey = if (allKeys.isInput) {
             // New symbolic key
             makeSymbolicRefUntyped()
         } else {
