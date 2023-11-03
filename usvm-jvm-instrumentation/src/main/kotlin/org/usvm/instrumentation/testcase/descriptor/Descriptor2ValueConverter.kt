@@ -12,6 +12,8 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
         descriptorToObject.clear()
     }
 
+    fun readCache(): IdentityHashMap<UTestValueDescriptor, Any?> = descriptorToObject
+
     fun buildObjectFromDescriptor(descriptor: UTestValueDescriptor): Any? =
         descriptorToObject.getOrPut(descriptor) {
             build(descriptor)
