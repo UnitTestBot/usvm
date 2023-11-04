@@ -50,8 +50,8 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "external_function",
+        listOf(PythonAnyType, typeSystem.pythonInt),
+        "set_attribute",
         "Methods"
     )
     val functions = listOf(function)

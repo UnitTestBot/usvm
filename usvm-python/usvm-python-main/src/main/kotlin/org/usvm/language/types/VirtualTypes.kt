@@ -125,6 +125,11 @@ object HasTpGetattro: TypeProtocol() {
         ConcretePythonInterpreter.typeHasTpGetattro(type.asObject)
 }
 
+object HasTpSetattro: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasTpSetattro(type.asObject)
+}
+
 object HasTpIter: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpIter(type.asObject)
