@@ -228,6 +228,7 @@ object ConcretePythonInterpreter {
     val typeHasMpAssSubscript = createTypeQuery { pythonAdapter.typeHasMpAssSubscript(it) }
     val typeHasTpRichcmp = createTypeQuery { pythonAdapter.typeHasTpRichcmp(it) }
     val typeHasTpGetattro = createTypeQuery { pythonAdapter.typeHasTpGetattro(it) }
+    val typeHasTpSetattro = createTypeQuery { pythonAdapter.typeHasTpSetattro(it) }
     val typeHasTpIter = createTypeQuery { pythonAdapter.typeHasTpIter(it) }
     val typeHasStandardNew = createTypeQuery { pythonAdapter.typeHasStandardNew(it) }
     val typeHasStandardTpGetattro = createTypeQuery { pythonAdapter.typeHasStandardTpGetattro(it) }

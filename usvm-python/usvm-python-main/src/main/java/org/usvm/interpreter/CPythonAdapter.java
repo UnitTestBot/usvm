@@ -84,6 +84,7 @@ public class CPythonAdapter {
     public native int typeHasMpAssSubscript(long type);
     public native int typeHasTpRichcmp(long type);
     public native int typeHasTpGetattro(long type);
+    public native int typeHasTpSetattro(long type);
     public native int typeHasTpIter(long type);
     public native int typeHasStandardNew(long type);
     public native long callStandardNew(long type);
@@ -875,6 +876,18 @@ public class CPythonAdapter {
             return;
         context.curOperation = new MockHeader(TpGetattro.INSTANCE, Arrays.asList(on.obj, name.obj), on.obj);
         tpGetattroKt(context, on.obj, name.obj);
+    }
+
+    @CPythonAdapterJavaMethod(cName = "tp_setattro")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpSetattro(ConcolicRunContext context, SymbolForCPython on, SymbolForCPython name, SymbolForCPython value) {
+        if (on.obj == null || name.obj == null)
+            return;
+        context.curOperation = new MockHeader(TpSetattro.INSTANCE, Arrays.asList(on.obj, name.obj, value.obj), on.obj);
+        tpSetattroKt(context, on.obj, name.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "tp_iter")
