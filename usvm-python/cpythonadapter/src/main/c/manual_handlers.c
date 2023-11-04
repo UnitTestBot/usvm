@@ -1,6 +1,8 @@
 #include "manual_handlers.h"
 #include "symbolic_methods.h"
 
+#include "approximation_defs.h"
+
 static SymbolicMethod *
 extract_symbolic_method(ConcolicContext *ctx, PyObject *py_symbol) {
     if (!is_wrapped_java_object(py_symbol))

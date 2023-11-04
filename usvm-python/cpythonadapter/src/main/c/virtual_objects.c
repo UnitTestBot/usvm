@@ -149,6 +149,13 @@ mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
 }
 PyType_Slot Virtual_mp_ass_subscript = {Py_mp_ass_subscript, mp_ass_subscript};
 
+static int
+tp_setattro(PyObject *self, PyObject *attr, PyObject *value) {
+    assert(is_virtual_object(self));
+    MAKE_USVM_VIRUAL_CALL_NO_RETURN((VirtualPythonObject *) self, 0)
+}
+PyType_Slot Virtual_tp_setattro = {Py_tp_setattro, tp_setattro};
+
 
 PyTypeObject *VirtualPythonObject_Type = 0;
 
@@ -158,6 +165,7 @@ initialize_virtual_object_type() {
         Virtual_tp_dealloc,
         Virtual_tp_richcompare,
         Virtual_tp_getattro,
+        Virtual_tp_setattro,
         Virtual_tp_iter,
         Virtual_nb_bool,
         Virtual_nb_add,
