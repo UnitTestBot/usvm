@@ -60,6 +60,12 @@ fun tpGetattroKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObj
     myAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))
 }
 
+fun tpSetattroKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIsSoft(context, HasTpSetattro))
+    myAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))
+}
+
 fun tpIterKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     myAssert(context, on.evalIsSoft(context, HasTpIter))
