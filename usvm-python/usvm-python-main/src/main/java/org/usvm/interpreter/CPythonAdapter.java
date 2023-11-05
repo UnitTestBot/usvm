@@ -788,7 +788,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
     )
     public static void notifyNbSubtract(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        if (left.obj == null)
+        if (left.obj == null || right.obj == null)
             return;
         context.curOperation = new MockHeader(NbSubtractMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
         nbSubtractKt(context, left.obj);
@@ -812,7 +812,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
     )
     public static void notifyNbMatrixMultiply(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        if (left.obj == null)
+        if (left.obj == null || right.obj == null)
             return;
         context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
         nbMatrixMultiplyKt(context, left.obj);
@@ -836,7 +836,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
     )
     public static void notifyMpSubscript(ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item) {
-        if (storage.obj == null)
+        if (storage.obj == null || item.obj == null)
             return;
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj), storage.obj);
         mpSubscriptKt(context, storage.obj);
@@ -848,7 +848,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
     )
     public static void notifyMpAssSubscript(ConcolicRunContext context, SymbolForCPython storage, SymbolForCPython item, SymbolForCPython value) {
-        if (storage.obj == null)
+        if (storage.obj == null || item.obj == null || value.obj == null)
             return;
         context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj, value.obj), storage.obj);
         mpAssSubscriptKt(context, storage.obj);
@@ -860,7 +860,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.IntConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
     )
     public static void notifyTpRichcmp(ConcolicRunContext context, int op, SymbolForCPython left, SymbolForCPython right) {
-        if (left.obj == null)
+        if (left.obj == null || right.obj == null)
             return;
         context.curOperation = new MockHeader(new TpRichcmpMethod(op), Arrays.asList(left.obj, right.obj), left.obj);
         tpRichcmpKt(context, left.obj);

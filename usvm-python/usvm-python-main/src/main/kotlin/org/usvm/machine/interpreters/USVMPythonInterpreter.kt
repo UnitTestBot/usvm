@@ -93,7 +93,13 @@ class USVMPythonInterpreter<InputRepr>(
             val seeds = getSeeds(concolicRunContext, symbols)
             val converter = concolicRunContext.converter
             state.meta.lastConverter = null
-            val concrete = getConcrete(converter, seeds, symbols)
+            val concrete = try {
+                getConcrete(converter, seeds, symbols)
+            } catch (_: LengthOverflowException) {
+                logger.warn("Step result: length overflow")
+                state.meta.modelDied = true
+                return@runBlocking StepResult(emptySequence(), false)
+            }
             val virtualObjects = converter.getPythonVirtualObjects()
             val madeInputSerialization: Boolean = runCatching {
                 getInputs(converter, concrete, seeds)

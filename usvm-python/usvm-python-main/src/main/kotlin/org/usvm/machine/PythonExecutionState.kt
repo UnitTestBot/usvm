@@ -80,6 +80,7 @@ class PythonExecutionState(
         val cached = mocks[what]
         if (cached != null)
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
+        // println("what.args: ${what.args}")
         val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
