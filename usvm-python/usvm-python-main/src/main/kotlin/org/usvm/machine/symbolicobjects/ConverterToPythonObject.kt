@@ -12,6 +12,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.utils.DefaultValueProvider
+import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.mkSizeExpr
 
@@ -93,7 +94,9 @@ class ConverterToPythonObject(
     private fun constructArrayContents(
         obj: InterpretedInputSymbolicPythonObject,
     ): List<PythonObject> {
-        val size = obj.readArrayLength(ctx) as KInt32NumExpr
+        val size = obj.readArrayLength(ctx) as? KInt32NumExpr ?: throw LengthOverflowException
+        if (size.value > MAX_INPUT_ARRAY_LENGTH)
+            throw LengthOverflowException
         return List(size.value) { index ->
             val indexExpr = ctx.mkSizeExpr(index)
             val element = obj.modelHolder.model.uModel.readArrayIndex(
@@ -126,13 +129,20 @@ class ConverterToPythonObject(
                         val ref = preallocatedObjects.refOfString(str)!!
                         val namespace = ConcretePythonInterpreter.getNewNamespace()
                         ConcretePythonInterpreter.addObjectToNamespace(namespace, ref, "field")
-                        ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "obj")
-                        ConcretePythonInterpreter.addObjectToNamespace(namespace, value, "value")
-                        ConcretePythonInterpreter.concreteRun(
+                        ConcretePythonInterpreter.concreteRun(namespace, "import keyword")
+                        val isValidName = ConcretePythonInterpreter.eval(
                             namespace,
-                            "setattr(obj, field, value)",
-                            printErrorMsg = true
+                            "field.isidentifier() and not keyword.iskeyword(field)"
                         )
+                        if (ConcretePythonInterpreter.getPythonObjectRepr(isValidName) == "True") {
+                            ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "obj")
+                            ConcretePythonInterpreter.addObjectToNamespace(namespace, value, "value")
+                            ConcretePythonInterpreter.concreteRun(
+                                namespace,
+                                "setattr(obj, field, value)",
+                                printErrorMsg = true
+                            )
+                        }
                         ConcretePythonInterpreter.decref(namespace)
                     }
                 }
@@ -178,7 +188,7 @@ class ConverterToPythonObject(
     }
 
     private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val size = obj.readArrayLength(ctx) as KInt32NumExpr
+        val size = obj.readArrayLength(ctx) as? KInt32NumExpr ?: throw LengthOverflowException
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
         val listOfPythonObjects = constructArrayContents(obj)
@@ -195,4 +205,8 @@ class ConverterToPythonObject(
         val stepStr = step?.toString() ?: "None"
         return ConcretePythonInterpreter.eval(emptyNamespace, "slice($startStr, $stopStr, $stepStr)")
     }
+}
+
+object LengthOverflowException: Exception() {
+    private fun readResolve(): Any = LengthOverflowException
 }

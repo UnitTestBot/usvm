@@ -26,8 +26,8 @@ import java.io.File
 
 fun main() {
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -75,7 +75,9 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    // if (functionName != "bead_sort")
+    //if (module != "segment_tree_other")
+    //    return null
+    //if (name != "SegmentTree.update")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
@@ -194,8 +196,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 50,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    // timeoutPerRunMs = 4_000,
-                    // timeoutMs = 30_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")
