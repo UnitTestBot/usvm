@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
@@ -215,6 +216,17 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
             ArrayStoreExceptionExamples::arrayStoreExceptionWithEmptyArrayAndUpcast,
             eq(1),
             { _, r -> r.isException<ArrayStoreException>() },
+        )
+    }
+
+    @Test
+    fun testDeduceElementTypeFromArrayType() {
+        checkDiscoveredProperties(
+            ArrayStoreExceptionExamples::deduceElementTypeFromArrayType,
+            ignoreNumberOfAnalysisResults,
+            { _, arr, r -> arr == null || arr.isEmpty() || arr[0] == null && r == -1 },
+            { _, arr, r -> arr != null && arr.isNotEmpty() && arr[0] != null && r == 1 },
+            invariants = arrayOf({ _, _, r -> r != 42 })
         )
     }
 }

@@ -79,7 +79,6 @@ import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
-import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectType
@@ -88,7 +87,6 @@ import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
-import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -98,7 +96,6 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
@@ -149,8 +146,9 @@ class JcExprResolver(
      * @return a symbolic expression, with the sort corresponding to the [type].
      */
     fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? {
-        val resolvedExpr = if (expr.type != type) {
-            resolveCast(expr, type)
+        val resolvedExpr = if (expr.type != type && type is JcPrimitiveType) {
+            // Only primitive casts may appear here because reference casts are handled with cast instruction
+            resolvePrimitiveCastWithResolvingExpr(expr, type)
         } else {
             expr.accept(this)
         } ?: return null
@@ -158,6 +156,18 @@ class JcExprResolver(
         ensureExprCorrectness(resolvedExpr, type) ?: return null
 
         return resolvedExpr
+    }
+
+    private fun resolvePrimitiveCastWithResolvingExpr(
+        expr: JcExpr,
+        type: JcPrimitiveType
+    ): UExpr<out USort>? = resolveAfterResolved(expr) {
+        val exprType = expr.type
+        check(exprType is JcPrimitiveType) {
+            "Trying cast not primitive type $exprType to primitive type $type"
+        }
+
+        resolvePrimitiveCast(it, exprType, type)
     }
 
     fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
@@ -314,7 +324,9 @@ class JcExprResolver(
     ): UExpr<out USort> = simpleValueResolver.visitJcClassConstant(value)
     // endregion
 
-    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
+    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? =
+        // Note that primitive types may appear in JcCastExpr
+        resolveCast(expr.operand, expr.type)
 
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
@@ -337,7 +349,7 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val size = resolvePrimitiveCastWithResolvingExpr(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
 
@@ -725,22 +737,9 @@ class JcExprResolver(
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
-        // It is possible that the array was upcasted, so we need to find a real type in this case
-        val isTypeUpcast = scope.calcOnState {
-            memory.types.evalIsSupertype(arrayRef, array.type)
-        }.isFalse
+        val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
-        val arrayType = if (isTypeUpcast) {
-            val realTypesStream = scope.calcOnState { memory.types.getTypeStream(arrayRef) }
-            val realTopType = realTypesStream.superType ?: error("Cannot find type for the $arrayRef")
-            realTopType
-        } else {
-            array.type
-        } as JcArrayType
-
-        val arrayDescriptor = arrayDescriptorOf(arrayType)
-
-        val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val idx = resolvePrimitiveCastWithResolvingExpr(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
@@ -875,18 +874,12 @@ class JcExprResolver(
         typeBefore: JcRefType,
         type: JcRefType,
     ): UHeapRef? {
-        return if (!typeBefore.isAssignable(type)) {
-            val isExpr = scope.calcOnState {
-                if (type !is JcTypeVariable) {
-                    return@calcOnState memory.types.evalIsSubtype(expr, type)
-                }
+        check(type !is JcTypeVariable) {
+            "Unexpected type variable $type"
+        }
 
-                // For type variable we need to ensure that type satisfies all bound of this type variable
-                val bounds = type.bounds.ifEmpty { listOf(ctx.classType) }
-                bounds.fold(ctx.trueExpr as UBoolExpr) { acc, bound ->
-                    ctx.mkAnd(acc, memory.types.evalIsSubtype(expr, bound))
-                }
-            }
+        return if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
+            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
 
             scope.fork(
                 isExpr,

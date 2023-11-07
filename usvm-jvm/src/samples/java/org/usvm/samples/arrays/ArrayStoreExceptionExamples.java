@@ -170,4 +170,20 @@ public class ArrayStoreExceptionExamples {
         if (data == null || data.length == 0) return;
         data[0] = element;
     }
+
+    public static class A {}
+
+    @SuppressWarnings("ConstantValue")
+    public int deduceElementTypeFromArrayType(A[] arr) {
+        if (arr == null || arr.length == 0 || arr[0] == null) {
+            return -1;
+        }
+
+        if (arr[0] instanceof A) {
+            return 1;
+        } else {
+            // Unreachable branch
+            return 42;
+        }
+    }
 }
