@@ -42,6 +42,7 @@ import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.USort
 import org.usvm.api.allocateStaticRef
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.forkblacklists.UForkBlackList
@@ -100,7 +101,7 @@ class JcInterpreter(
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
                 val thisType = typedMethod.enclosingType
-                state.pathConstraints += mkIsSubtypeExpr(ref, thisType)
+                state.pathConstraints += state.memory.types.evalTypeEquals(ref, thisType)
 
                 entrypointArguments += thisType to ref
             }
