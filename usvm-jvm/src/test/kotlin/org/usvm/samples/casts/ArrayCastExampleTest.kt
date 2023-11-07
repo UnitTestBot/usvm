@@ -100,7 +100,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support assumptions")
     fun testCastFromObjectToPrimitivesArray() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromObjectToPrimitivesArray,
@@ -127,7 +126,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromCollections() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromCollections,
@@ -139,7 +137,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromIterable() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
@@ -151,7 +148,6 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ClassNotFoundException: sun.rmi.rmic.BatchEnvironment\$Path. Fix types priority")
     fun testCastFromIterableToCollection() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterableToCollection,
