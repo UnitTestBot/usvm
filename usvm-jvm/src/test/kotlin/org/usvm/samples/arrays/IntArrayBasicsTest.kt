@@ -2,6 +2,7 @@ package org.usvm.samples.arrays
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
@@ -205,13 +206,15 @@ internal class IntArrayBasicsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: class constant")
+    @Disabled("TODO uses the native call jdk.internal.misc.Unsafe.getLong(java.lang.Object, long) in java.util.Arrays.equals(int[], int[])")
     fun testArraysEqualsExample() {
-        checkDiscoveredProperties(
-            IntArrayBasics::arrayEqualsExample,
-            eq(2),
-            { _, a, r -> a.size == 3 && a contentEquals intArrayOf(1, 2, 3) && r == 1 },
-            { _, a, r -> !(a contentEquals intArrayOf(1, 2, 3)) && r == 2 }
-        )
+        withOptions(options.copy(coverageZone = CoverageZone.METHOD)) {
+            checkDiscoveredProperties(
+                IntArrayBasics::arrayEqualsExample,
+                eq(2),
+                { _, a, r -> a.size == 3 && a contentEquals intArrayOf(1, 2, 3) && r == 1 },
+                { _, a, r -> !(a contentEquals intArrayOf(1, 2, 3)) && r == 2 }
+            )
+        }
     }
 }
