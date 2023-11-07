@@ -1,10 +1,13 @@
 package org.usvm.runner
 
+import org.usvm.runner.venv.VenvConfig
+
 data class USVMPythonConfig(
     val distributionLayout: DistributionLayout,
     val javaCmd: String,
     val mypyBuildDir: String,
-    val roots: Set<String>
+    val roots: Set<String>,
+    val venvConfig: VenvConfig?
 )
 
 sealed class USVMPythonCallableConfig
@@ -12,6 +15,12 @@ sealed class USVMPythonCallableConfig
 data class USVMPythonFunctionConfig(
     val module: String,
     val name: String
+): USVMPythonCallableConfig()
+
+data class USVMPythonMethodConfig(
+    val module: String,
+    val name: String,
+    val cls: String
 ): USVMPythonCallableConfig()
 
 data class USVMPythonRunConfig(

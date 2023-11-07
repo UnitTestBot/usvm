@@ -70,7 +70,7 @@ class PythonSymbolicAnalysisRunnerImpl(
                 if (isCancelled()) {
                     readingThread.interrupt()
                 }
-                TimeUnit.MILLISECONDS.sleep(200)
+                TimeUnit.MILLISECONDS.sleep(100)
             }
             readingThread.interrupt()
         }

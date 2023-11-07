@@ -36,24 +36,6 @@ class ConcreteTypeNegation(private val concreteType: ConcretePythonType): Virtua
     }
 }
 
-class SupportsTypeHint(
-    private val typeHint: UtType,
-    private val typeSystem: PythonTypeSystemWithMypyInfo
-): VirtualPythonType() {
-    override fun accepts(type: PythonType): Boolean {
-        if (typeHint.pythonDescription() is PythonAnyTypeDescription || type == this)
-            return true
-        if (type !is ConcretePythonType)
-            return false
-        val correspondingTypeHint = typeSystem.typeHintOfConcreteType(type) ?: return false
-        return PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(
-            typeHint,
-            correspondingTypeHint,
-            typeSystem.typeHintsStorage
-        )
-    }
-}
-
 sealed class TypeProtocol: VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {

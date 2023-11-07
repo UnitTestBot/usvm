@@ -7,12 +7,12 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.IllegalOperationException
+import org.usvm.machine.interpreters.venv.VenvConfig
 import org.usvm.machine.saving.Fail
 import org.usvm.machine.saving.Success
 import org.usvm.machine.saving.createDictSaver
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
-import org.usvm.machine.saving.createReprSaver
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.usvm.machine.utils.withAdditionalPaths
@@ -25,9 +25,15 @@ import org.utbot.python.newtyping.mypy.readMypyInfoBuild
 import java.io.File
 
 fun main() {
+    /*val venvConfig = VenvConfig(
+        basePath = File("/home/tochilinak/sample_venv/"),
+        libPath = File("/home/tochilinak/sample_venv/lib/python3.11/site-packages/"),
+        binPath = File("/home/tochilinak/sample_venv/bin")
+    )
+    ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -96,7 +102,7 @@ private fun getFunctionInfo(
     val callableType = type as FunctionType
     return PythonUnpinnedCallable.constructCallableFromName(
         callableType.arguments.map {
-            SupportsTypeHint(it, typeSystem)
+            getTypeFromTypeHint(it, typeSystem)
         },
         name,
         module
@@ -110,7 +116,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\graphs"
+    val projectPath = "D:\\projects\\Python\\sorts"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
