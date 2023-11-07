@@ -152,6 +152,8 @@ char *white_list[] = {
     "marshal.dumps",
     "sys._getframe",
     "code.__new__",
+    "os.putenv",
+    "os.unsetenv",
     NULL
 };
 
