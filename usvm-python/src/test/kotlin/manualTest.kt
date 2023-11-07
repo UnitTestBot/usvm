@@ -77,7 +77,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "segment_tree_other")
     //    return null
-    //if (name != "SegmentTree.update")
+    //if (name != "MyQueue.push")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
@@ -110,7 +110,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
+    val projectPath = "D:\\projects\\Python\\graphs"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
