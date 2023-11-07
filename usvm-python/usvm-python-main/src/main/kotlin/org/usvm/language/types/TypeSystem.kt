@@ -9,14 +9,11 @@ import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.machine.utils.withAdditionalPaths
-import org.utbot.python.newtyping.PythonTypeHintsStorage
+import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.pythonModuleName
-import org.utbot.python.newtyping.pythonName
 
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
 
@@ -164,8 +161,13 @@ class PythonTypeSystemWithMypyInfo(
     }
 
     private val utTypeOfConcretePythonType = mutableMapOf<ConcretePythonType, UtType>()
+    private val concreteTypeOfUtType = mutableMapOf<PythonTypeWrapperForEqualityCheck, ConcretePythonType>()
 
     fun typeHintOfConcreteType(type: ConcretePythonType): UtType? = utTypeOfConcretePythonType[type]
+    fun concreteTypeFromTypeHint(type: UtType): ConcretePythonType? {
+        val wrappedType = PythonTypeWrapperForEqualityCheck(type)
+        return concreteTypeOfUtType[wrappedType]
+    }
 
     init {
         withAdditionalPaths(program.additionalPaths, null) {
@@ -194,6 +196,7 @@ class PythonTypeSystemWithMypyInfo(
 
                 addPrimitiveType(isHidden = false, refGetter).also { concreteType ->
                     utTypeOfConcretePythonType[concreteType] = utType
+                    concreteTypeOfUtType[PythonTypeWrapperForEqualityCheck(utType)] = concreteType
                 }
             }
         }

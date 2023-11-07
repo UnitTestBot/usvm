@@ -1,5 +1,6 @@
 package org.usvm.runner
 
+import org.usvm.runner.venv.extractVenvConfig
 import java.io.File
 
 fun main() {
@@ -7,16 +8,19 @@ fun main() {
     val layout = TestingLayout(basePath) // StandardLayout(File(basePath, "build/distributions/usvm-python"))
     val mypyDir = File(basePath, "build/samples_build")
     val root = File(basePath, "src/test/resources/samples")
+    val venvConfig = extractVenvConfig("/home/tochilinak/sample_venv/bin/python")
     val config = USVMPythonConfig(
         layout,
         "java",
         mypyDir.canonicalPath,
-        setOf(root.canonicalPath)
+        setOf(root.canonicalPath),
+        venvConfig
     )
     val runConfig = USVMPythonRunConfig(
-        USVMPythonFunctionConfig(
+        USVMPythonMethodConfig(
             "Methods",
-            "external_function"
+            "get_info",
+            "Point"
         ),
         10_000,
         3_000

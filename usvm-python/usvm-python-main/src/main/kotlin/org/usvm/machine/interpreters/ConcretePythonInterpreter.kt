@@ -7,6 +7,8 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
+import org.usvm.machine.interpreters.venv.VenvConfig
+import org.usvm.machine.interpreters.venv.activateThisScript
 import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 
@@ -246,6 +248,13 @@ object ConcretePythonInterpreter {
         pythonAdapter.finalizePython()
         initialize()
         SymbolicClonesOfGlobals.restart()
+        if (venvConfig != null)
+            activateVenv(venvConfig!!)
+    }
+
+    fun setVenv(config: VenvConfig) {
+        venvConfig = config
+        activateVenv(config)
     }
 
     private val approximationsPath = System.getProperty("approximations.path") ?: error("approximations.path not specified")
@@ -275,27 +284,41 @@ object ConcretePythonInterpreter {
         pyGE = pythonAdapter.pyGE
         pyNoneRef = pythonAdapter.pyNoneRef
         val namespace = pythonAdapter.newNamespace
-        val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
-        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
         pythonAdapter.concreteRun(
             namespace,
             """
+                import sys
                 sys.setrecursionlimit(1000)
             """.trimIndent(),
             true,
             false
         )
+        initializeSysPath(namespace)
+        pythonAdapter.decref(namespace)
+        emptyNamespace = getNewNamespace()
+        initializeMethodApproximations()
+    }
+
+    private fun initializeSysPath(namespace: Long) {
+        val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
+        pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
         initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true, false))
         if (initialSysPath.address == 0L)
             throw CPythonExecutionException()
         initialSysModulesKeys = PythonObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true, false))
         if (initialSysModulesKeys.address == 0L)
             throw CPythonExecutionException()
-        pythonAdapter.decref(namespace)
-        emptyNamespace = getNewNamespace()
-        initializeMethodApproximations()
     }
 
+    private fun activateVenv(config: VenvConfig) {
+        val script = activateThisScript(config)
+        val namespace = getNewNamespace()
+        concreteRun(namespace, script, printErrorMsg = true)
+        initializeSysPath(namespace.address)
+        decref(namespace)
+    }
+
+    private var venvConfig: VenvConfig? = null
     lateinit var initialSysPath: PythonObject
     lateinit var  initialSysModulesKeys: PythonObject
     var pyEQ: Int = 0

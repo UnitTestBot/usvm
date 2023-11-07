@@ -22,8 +22,18 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
 
     protected fun setupEnvironment(runConfig: USVMPythonRunConfig): ProcessBuilder {
         val layout = config.distributionLayout
-        val functionConfig = when (runConfig.callableConfig) {
-            is USVMPythonFunctionConfig -> runConfig.callableConfig
+        val venvArgs = if (config.venvConfig == null) {
+            listOf("<no_venv>")
+        } else {
+            listOf(
+                config.venvConfig.basePath.canonicalPath,
+                config.venvConfig.libPath.canonicalPath,
+                config.venvConfig.binPath.canonicalPath
+            )
+        }
+        val functionConfigArgs = when (val funcConfig = runConfig.callableConfig) {
+            is USVMPythonFunctionConfig -> listOf(funcConfig.module, funcConfig.name, "<no_class>")
+            is USVMPythonMethodConfig -> listOf(funcConfig.module, funcConfig.name, funcConfig.cls)
         }
         val args = listOf(
             config.javaCmd,
@@ -35,14 +45,14 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
             layout.jarPath.canonicalPath,
             config.mypyBuildDir,
             port.port.toString(),
-            functionConfig.module,
-            functionConfig.name,
+            *functionConfigArgs.toTypedArray(),
             runConfig.timeoutPerRunMs.toString(),
-            runConfig.timeoutMs.toString()
-        ) + config.roots.toList()
+            runConfig.timeoutMs.toString(),
+            *venvArgs.toTypedArray(),
+            *config.roots.toList().toTypedArray()
+        )
 
         val processBuilder = ProcessBuilder(args)
-
         val env = processBuilder.environment()
         env["LD_LIBRARY_PATH"] = "${File(layout.cpythonPath, "lib").canonicalPath}:${layout.cpythonPath.canonicalPath}"
         env["LD_PRELOAD"] = File(layout.cpythonPath, "lib/libpython3.so").canonicalPath
