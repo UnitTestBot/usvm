@@ -7,10 +7,13 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UHeapRef
+import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
@@ -55,8 +58,17 @@ typealias UInputRefSetWithAllocatedElements<SetType> =
 typealias UInputRefSetWithInputElements<SetType> =
         USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>
 
+typealias URefSetEntries<SetType> = USymbolicSetEntries<URefSetEntryLValue<SetType>>
+
+interface URefSetReadOnlyRegion<SetType> :
+    UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
+    fun setEntries(ref: UHeapRef): URefSetEntries<SetType>
+}
+
 interface URefSetRegion<SetType> :
+    URefSetReadOnlyRegion<SetType>,
     UMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
+
     fun allocatedSetWithInputElements(setRef: UConcreteHeapAddress): UAllocatedRefSetWithInputElements<SetType>
     fun inputSetWithInputElements(): UInputRefSetWithInputElements<SetType>
 
@@ -369,4 +381,48 @@ internal class URefSetMemoryRegion<SetType>(
 
         write(result, mkDstKeyId(srcKeyId), guard.uctx.trueExpr, mergedGuard)
     }
+
+    override fun setEntries(ref: UHeapRef): URefSetEntries<SetType> =
+        foldHeapRefWithStaticAsSymbolic(
+            ref = ref,
+            initial = URefSetEntries(),
+            initialGuard = ref.uctx.trueExpr,
+            blockOnConcrete = { entries, (concreteRef, _) ->
+                allocatedSetWithAllocatedElements.keys.forEach { entry ->
+                    if (entry.setAddress == concreteRef.address) {
+                        val elem = ref.uctx.mkConcreteHeapRef(entry.elementAddress)
+                        entries.add(URefSetEntryLValue(concreteRef, elem, setType))
+                    }
+                }
+
+                val elementsId = allocatedSetWithInputElementsId(concreteRef.address)
+                val elements = USymbolicSetElementsCollector.collect(
+                    getAllocatedSetWithInputElements(elementsId).updates
+                )
+                elements.elements.forEach { elem ->
+                    entries.add(URefSetEntryLValue(concreteRef, elem, setType))
+                }
+
+                if (elements.isInput) {
+                    entries.markAsInput()
+                }
+
+                entries
+            },
+            blockOnSymbolic = { entries, (symbolicRef, _) ->
+                inputSetWithAllocatedElements.keys.forEach { entry ->
+                    val elem = ref.uctx.mkConcreteHeapRef(entry.elementAddress)
+                    entries.add(URefSetEntryLValue(symbolicRef, elem, setType))
+                }
+
+                val elements = USymbolicSetElementsCollector.collect(inputSetWithInputElements().updates)
+                elements.elements.forEach { entry ->
+                    entries.add(URefSetEntryLValue(symbolicRef, entry.second, setType))
+                }
+
+                entries.markAsInput()
+
+                entries
+            }
+        )
 }

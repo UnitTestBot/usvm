@@ -7,7 +7,9 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.collection.set.USymbolicSetKeyInfo
+import org.usvm.collection.set.USymbolicSetUnionElements
 import org.usvm.compose
 import org.usvm.isTrue
 import org.usvm.memory.USymbolicCollection
@@ -25,7 +27,8 @@ sealed class USymbolicSetUnionAdapter<
     out SetId : USymbolicSetId<SetType, *, SrcKey, *, *, SetId>,
     >(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
-) : USymbolicCollectionAdapter<SrcKey, DstKey> {
+) : USymbolicCollectionAdapter<SrcKey, DstKey>,
+    USymbolicSetUnionElements<DstKey> {
 
     abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
@@ -44,6 +47,8 @@ sealed class USymbolicSetUnionAdapter<
 
     override fun toString(collection: USymbolicCollection<*, SrcKey, *>): String =
         "(union $collection)"
+
+    abstract override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<DstKey>)
 }
 
 class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
@@ -55,6 +60,14 @@ class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
         setOfKeys.collectionId.region(setOfKeys, setOfKeys.collectionId.keyInfo()) as DstReg
+
+    override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<UExpr<ElemSort>>) {
+        val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
+        if (setElements.isInput) {
+            elements.isInput = true
+        }
+        elements.elements += setElements.elements
+    }
 
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
@@ -100,6 +113,14 @@ class UAllocatedToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         )
         val refRegion = UHeapRefKeyInfo.keyToRegion(dstSetRef)
         return USymbolicSetKeyInfo.addSetRefRegion(elementRegion, refRegion) as ResReg
+    }
+
+    override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<USymbolicSetElement<ElemSort>>) {
+        val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
+        if (setElements.isInput) {
+            elements.isInput = true
+        }
+        setElements.elements.mapTo(elements.elements) { dstSetRef to it }
     }
 
     override fun <Type> applyTo(
@@ -150,6 +171,12 @@ class UInputToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         return USymbolicSetKeyInfo.removeSetRefRegion(srcKeysRegion, elementInfo) as ResReg
     }
 
+    override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<UExpr<ElemSort>>) {
+        val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
+        elements.isInput = true
+        setElements.elements.mapTo(elements.elements) { it.second }
+    }
+
     override fun <Type> applyTo(
         memory: UWritableMemory<Type>,
         srcCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
@@ -197,6 +224,12 @@ class UInputToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         )
         val dstRefReg = UHeapRefKeyInfo.keyToRegion(dstSetRef)
         return USymbolicSetKeyInfo.changeSetRefRegion(srcKeysReg, dstRefReg, elementInfo) as ResReg
+    }
+
+    override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<USymbolicSetElement<ElemSort>>) {
+        val setElements = USymbolicSetElementsCollector.collect(setOfKeys.updates)
+        elements.isInput = true
+        setElements.elements.mapTo(elements.elements) { dstSetRef to it.second }
     }
 
     override fun <Type> applyTo(

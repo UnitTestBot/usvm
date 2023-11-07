@@ -27,6 +27,7 @@ import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
 import org.usvm.api.Engine
+import org.usvm.api.SymbolicIdentityMap
 import org.usvm.api.SymbolicList
 import org.usvm.api.SymbolicMap
 import org.usvm.api.collection.ListCollectionApi.ensureListSizeCorrect
@@ -39,6 +40,7 @@ import org.usvm.api.collection.ListCollectionApi.symbolicListSet
 import org.usvm.api.collection.ListCollectionApi.symbolicListSize
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
@@ -85,6 +87,7 @@ class JcMethodApproximationResolver(
     private val usvmApiEngine by lazy { ctx.cp.findClassOrNull<Engine>() }
     private val usvmApiSymbolicList by lazy { ctx.cp.findClassOrNull<SymbolicList<*>>() }
     private val usvmApiSymbolicMap by lazy { ctx.cp.findClassOrNull<SymbolicMap<*, *>>() }
+    private val usvmApiSymbolicIdentityMap by lazy { ctx.cp.findClassOrNull<SymbolicIdentityMap<*, *>>() }
 
     fun approximate(scope: JcStepScope, exprResolver: JcExprResolver, callJcInst: JcMethodCall): Boolean = try {
         this.currentScope = scope
@@ -115,6 +118,11 @@ class JcMethodApproximationResolver(
 
         if (method.enclosingClass == usvmApiSymbolicMap) {
             approximateUsvmSymbolicMapMethod(methodCall)
+            return true
+        }
+
+        if (method.enclosingClass == usvmApiSymbolicIdentityMap) {
+            approximateUsvmSymbolicIdMapMethod(methodCall)
             return true
         }
 
@@ -537,6 +545,10 @@ class JcMethodApproximationResolver(
         checkNotNull(usvmApiSymbolicMap).toType()
     }
 
+    private val symbolicIdentityMapType: JcType by lazy {
+        checkNotNull(usvmApiSymbolicIdentityMap).toType()
+    }
+
     private val usvmApiEngineMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
         buildMap {
             dispatchUsvmApiMethod(Engine::assume) {
@@ -623,6 +635,9 @@ class JcMethodApproximationResolver(
             dispatchMkMap(Engine::makeSymbolicMap) {
                 scope.calcOnState { mkSymbolicObjectMap(symbolicMapType) }
             }
+            dispatchMkIdMap(Engine::makeSymbolicIdentityMap) {
+                scope.calcOnState { mkSymbolicObjectMap(symbolicIdentityMapType) }
+            }
         }
     }
 
@@ -707,16 +722,16 @@ class JcMethodApproximationResolver(
         }
     }
 
-    private val usvmApiMapMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+    private fun bindUsvmApiIdMapMethods(symbolicMapType: JcType): Map<String, (JcMethodCall) -> UExpr<*>?> =
         buildMap {
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::size) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::size) {
                 val mapRef = it.arguments.single().asExpr(ctx.addressSort)
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
                 scope.calcOnState {
                     symbolicObjectMapSize(mapRef, symbolicMapType)
                 }
             }
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::get) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::get) {
                 val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
 
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
@@ -724,7 +739,7 @@ class JcMethodApproximationResolver(
                     symbolicObjectMapGet(mapRef, keyRef, symbolicMapType, ctx.addressSort)
                 }
             }
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::set) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::set) {
                 val (mapRef, keyRef, valueRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
 
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
@@ -733,7 +748,7 @@ class JcMethodApproximationResolver(
                     ctx.voidValue
                 }
             }
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::remove) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::remove) {
                 val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
 
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
@@ -742,7 +757,7 @@ class JcMethodApproximationResolver(
                     ctx.voidValue
                 }
             }
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::containsKey) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::containsKey) {
                 val (mapRef, keyRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
 
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
@@ -750,7 +765,14 @@ class JcMethodApproximationResolver(
                     symbolicObjectMapContains(mapRef, keyRef, symbolicMapType)
                 }
             }
-            dispatchUsvmApiMethod(SymbolicMap<*, *>::merge) {
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::anyKey) {
+                val mapRef = it.arguments.single().asExpr(ctx.addressSort)
+                scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
+                scope.calcOnState {
+                    symbolicObjectMapAnyKey(mapRef, symbolicMapType)
+                }
+            }
+            dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::merge) {
                 val (dstMapRef, srcMapRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
 
                 scope.ensureObjectMapSizeCorrect(dstMapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
@@ -762,6 +784,14 @@ class JcMethodApproximationResolver(
                 }
             }
         }
+
+    private val usvmApiIdMapMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+        bindUsvmApiIdMapMethods(symbolicIdentityMapType)
+    }
+
+    private val usvmApiMapMethods: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
+        // TODO: use map with `equals` instead of identity
+        bindUsvmApiIdMapMethods(symbolicMapType)
     }
 
     private fun approximateUsvmApiEngineStaticMethod(methodCall: JcMethodCall) {
@@ -781,6 +811,13 @@ class JcMethodApproximationResolver(
     private fun approximateUsvmSymbolicMapMethod(methodCall: JcMethodCall) {
         val methodApproximation = usvmApiMapMethods[methodCall.method.name]
             ?: error("Unexpected map api method: ${methodCall.method.name}")
+        val result = methodApproximation(methodCall) ?: return
+        scope.doWithState { skipMethodInvocationWithValue(methodCall, result) }
+    }
+
+    private fun approximateUsvmSymbolicIdMapMethod(methodCall: JcMethodCall) {
+        val methodApproximation = usvmApiIdMapMethods[methodCall.method.name]
+            ?: error("Unexpected identity map api method: ${methodCall.method.name}")
         val result = methodApproximation(methodCall) ?: return
         scope.doWithState { skipMethodInvocationWithValue(methodCall, result) }
     }
@@ -811,6 +848,11 @@ class JcMethodApproximationResolver(
 
     private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkMap(
         apiMethod: KFunction0<SymbolicMap<Any, Any>>,
+        body: (JcMethodCall) -> UExpr<*>?,
+    ) = dispatchUsvmApiMethod(apiMethod, body)
+
+    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMkIdMap(
+        apiMethod: KFunction0<SymbolicIdentityMap<Any, Any>>,
         body: (JcMethodCall) -> UExpr<*>?,
     ) = dispatchUsvmApiMethod(apiMethod, body)
 

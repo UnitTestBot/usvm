@@ -12,9 +12,13 @@ import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.set.primitive.USetEntryLValue
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeSubExpr
+import org.usvm.regions.Region
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
@@ -97,3 +101,46 @@ fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
 fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
     type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence<UExpr<Sort>>
 ): UConcreteHeapRef = allocateArrayInitializedInternal(type, sort, sizeSort, contents)
+
+fun <SetType, ElemSort : USort, Reg : Region<Reg>> UWritableMemory<SetType>.setAddElement(
+    ref: UHeapRef,
+    element: UExpr<ElemSort>,
+    setType: SetType,
+    elementInfo: USymbolicCollectionKeyInfo<UExpr<ElemSort>, Reg>,
+    guard: UBoolExpr,
+) = write(USetEntryLValue(element.sort, ref, element, setType, elementInfo), ref.uctx.trueExpr, guard)
+
+fun <SetType, ElemSort : USort, Reg : Region<Reg>> UWritableMemory<SetType>.setRemoveElement(
+    ref: UHeapRef,
+    element: UExpr<ElemSort>,
+    setType: SetType,
+    elementInfo: USymbolicCollectionKeyInfo<UExpr<ElemSort>, Reg>,
+    guard: UBoolExpr,
+) = write(USetEntryLValue(element.sort, ref, element, setType, elementInfo), ref.uctx.falseExpr, guard)
+
+fun <SetType, ElemSort : USort, Reg : Region<Reg>> UReadOnlyMemory<SetType>.setContainsElement(
+    ref: UHeapRef,
+    element: UExpr<ElemSort>,
+    setType: SetType,
+    elementInfo: USymbolicCollectionKeyInfo<UExpr<ElemSort>, Reg>,
+): UBoolExpr = read(USetEntryLValue(element.sort, ref, element, setType, elementInfo))
+
+fun <SetType> UWritableMemory<SetType>.refSetAddElement(
+    ref: UHeapRef,
+    element: UHeapRef,
+    setType: SetType,
+    guard: UBoolExpr,
+) = write(URefSetEntryLValue(ref, element, setType), ref.uctx.trueExpr, guard)
+
+fun <SetType> UWritableMemory<SetType>.refSetRemoveElement(
+    ref: UHeapRef,
+    element: UHeapRef,
+    setType: SetType,
+    guard: UBoolExpr,
+) = write(URefSetEntryLValue(ref, element, setType), ref.uctx.falseExpr, guard)
+
+fun <SetType> UReadOnlyMemory<SetType>.refSetContainsElement(
+    ref: UHeapRef,
+    element: UHeapRef,
+    setType: SetType,
+): UBoolExpr = read(URefSetEntryLValue(ref, element, setType))

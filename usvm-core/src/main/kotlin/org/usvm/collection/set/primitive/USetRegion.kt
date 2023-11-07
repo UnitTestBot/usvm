@@ -8,10 +8,13 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.foldHeapRef2
@@ -55,7 +58,15 @@ typealias UAllocatedSet<SetType, ElementSort, Reg> =
 typealias UInputSet<SetType, ElementSort, Reg> =
         USymbolicCollection<UInputSetId<SetType, ElementSort, Reg>, USymbolicSetElement<ElementSort>, UBoolSort>
 
+typealias UPrimitiveSetEntries<SetType, ElementSort, Reg> = USymbolicSetEntries<USetEntryLValue<SetType, ElementSort, Reg>>
+
+interface USetReadOnlyRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
+    UReadOnlyMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
+    fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg>
+}
+
 interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
+    USetReadOnlyRegion<SetType, ElementSort, Reg>,
     UMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
 
     fun allocatedSetElements(address: UConcreteHeapAddress): UAllocatedSet<SetType, ElementSort, Reg>
@@ -187,4 +198,35 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
             region.updateInputSet(updated)
         },
     )
+
+    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
+        foldHeapRefWithStaticAsSymbolic(
+            ref = ref,
+            initial = UPrimitiveSetEntries(),
+            initialGuard = ref.uctx.trueExpr,
+            blockOnConcrete = { entries, (concreteRef, _) ->
+                val setElements = allocatedSetElements(concreteRef.address)
+                val elements = USymbolicSetElementsCollector.collect(setElements.updates)
+                elements.elements.forEach { elem ->
+                    entries.add(USetEntryLValue(elementSort, concreteRef, elem, setType, elementInfo))
+                }
+
+                if (elements.isInput) {
+                    entries.markAsInput()
+                }
+
+                entries
+            },
+            blockOnSymbolic = { entries, (symbolicRef, _) ->
+                val setElements = inputSetElements()
+                val elements = USymbolicSetElementsCollector.collect(setElements.updates)
+                elements.elements.forEach { elem ->
+                    entries.add(USetEntryLValue(elementSort, symbolicRef, elem.second, setType, elementInfo))
+                }
+
+                entries.markAsInput()
+
+                entries
+            }
+        )
 }

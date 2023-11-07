@@ -5,6 +5,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
+import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
@@ -86,8 +87,7 @@ private class UInputSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg
 ) : URegionTranslator<UInputSetId<SetType, ElementSort, Reg>, USymbolicSetElement<ElementSort>, UBoolSort>,
     UCollectionDecoder<USymbolicSetElement<ElementSort>, UBoolSort> {
     private val initialValue = with(collectionId.sort.uctx) {
-        val sort = mkArraySort(addressSort, collectionId.elementSort, boolSort)
-        mkArrayConst(sort, falseExpr)
+        mkArraySort(addressSort, collectionId.elementSort, boolSort).mkConst(collectionId.toString())
     }
 
     private val visitorCache = IdentityHashMap<Any?, KExpr<KArray2Sort<UAddressSort, ElementSort, UBoolSort>>>()
