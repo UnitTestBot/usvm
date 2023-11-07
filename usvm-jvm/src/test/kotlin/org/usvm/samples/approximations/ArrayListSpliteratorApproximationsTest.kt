@@ -1,9 +1,9 @@
 package org.usvm.samples.approximations
 
 import approximations.java.util.ArrayListSpliterator_Tests
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.isException
 
 class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     @Test
@@ -32,7 +32,6 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled("Index 3 out of bounds for length 3")
     fun testForEachRemaining() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayListSpliterator_Tests::test_forEachRemaining_0,
@@ -71,31 +70,28 @@ class ArrayListSpliteratorApproximationsTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTryAdvance() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayListSpliterator_Tests::test_tryAdvance_0,
             eq(4),
             { o, _ -> o == 0 },
             { o, _ -> o == 1 },
-            { o, _ -> o == 2 },
+            { o, r -> o == 2 && r.isException<NullPointerException>() },
             invariants = arrayOf(
-                { o, r -> o !in 0..2 || r.getOrThrow() == o }
+                { o, r -> o !in 0..2 || (r.isException<NullPointerException>() && o == 2) || (r.getOrThrow() == o) }
             )
         )
     }
 
     @Test
-    @Disabled("Unexpected expr of type void: JcLambdaExpr")
     fun testTrySplit() {
         checkDiscoveredPropertiesWithExceptions(
-            ArrayListSpliterator_Tests::test_tryAdvance_0,
-            eq(4),
+            ArrayListSpliterator_Tests::test_trySplit_0,
+            eq(3),
             { o, _ -> o == 0 },
             { o, _ -> o == 1 },
-            { o, _ -> o == 2 },
             invariants = arrayOf(
-                { o, r -> o !in 0..2 || r.getOrThrow() == o }
+                { o, r -> o !in 0..1 || r.getOrThrow() == o }
             )
         )
     }
