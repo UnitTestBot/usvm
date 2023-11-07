@@ -81,10 +81,6 @@ fun JcState.addDynamicCall(dynamicCall: JcDynamicCallExpr, arguments: List<UExpr
     newStmt(JcDynamicMethodCallInst(dynamicCall, arguments, lastStmt))
 }
 
-fun JcState.addDynamicCall(dynamicCall: JcDynamicCallExpr, arguments: List<UExpr<out USort>>) {
-    newStmt(JcDynamicMethodCallInst(dynamicCall, arguments, lastStmt))
-}
-
 fun JcMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
 
 // TODO: cache it with JacoDB cache

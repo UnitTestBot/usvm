@@ -256,5 +256,5 @@ private fun JcVirtualMethodCallInst.makeLambdaCallSiteCall(
     val callArgsWithoutInstance = this.arguments.drop(1)
     val lambdaMethodArgs = callSite.callSiteArgs + callArgsWithoutInstance
 
-    return JcConcreteMethodCallInst(location, lambdaMethod.method, lambdaMethodArgs, returnSite)
+    return JcConcreteMethodCallInst(lambdaMethod.method, location, lambdaMethodArgs, returnSite)
 }

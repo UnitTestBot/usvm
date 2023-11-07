@@ -43,7 +43,10 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
     private val applicationGraph = JcApplicationGraph(cp)
 
     private val typeSystem = JcTypeSystem(cp)
-    private val components = JcComponents(typeSystem, solverType = SolverType.YICES, useSolverForForks = true)
+    private val components = JcComponents(
+        typeSystem, solverType = SolverType.YICES,
+        useSolverForForks = true, runSolverInAnotherProcess = false
+    )
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph, observer = null)
@@ -256,7 +259,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
                     pobManager.onLevelTargetReach(state)
                 }
             } else {
-                val prevStatement = state.pathLocation.parent?.statement
+                val prevStatement = state.pathNode.parent?.statement
                 if (prevStatement is JcConcreteMethodCallInst && target.location == prevStatement.originalInst()) {
                     pobManager.onLevelTargetReach(state)
                 }

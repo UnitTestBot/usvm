@@ -269,16 +269,6 @@ class JcInterpreter(
 
                 mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
-
-            is JcDynamicMethodCallInst -> {
-                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
-
-                if (approximateMethod(scope, stmt)) {
-                    return
-                }
-
-                mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
-            }
         }
     }
 
