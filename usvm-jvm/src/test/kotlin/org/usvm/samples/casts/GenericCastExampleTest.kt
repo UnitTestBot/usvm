@@ -22,7 +22,7 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
+    @Disabled("TODO process generic fields in type constraints properly")
     fun testGetGenericFieldValue() {
         checkDiscoveredProperties(
             GenericCastExample::getGenericFieldValue,
