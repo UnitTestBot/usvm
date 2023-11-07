@@ -19,7 +19,13 @@ fun Any?.prettify(): String {
             }
         }
         this is Collection<*> -> joinToString(prefix = "[", postfix = "]") { it.prettify() }
-        this is Map<*, *> -> entries.joinToString(prefix = "{", postfix = "}") { "${it.key.prettify()}: ${it.value.prettify()}" }
+        this is Map<*, *> -> entries.joinToString(prefix = "{", postfix = "}") {
+            "${it.key.prettify()}: ${it.value.prettify()}"
+        }
+        this is Result<*> -> fold(
+            onSuccess = { it.prettify() },
+            onFailure = { it.prettify() },
+        )
         else -> toString()
     }
 }

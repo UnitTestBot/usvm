@@ -11,6 +11,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.PredefinedPrimitives
@@ -87,6 +88,7 @@ import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
+import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -96,6 +98,7 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
@@ -722,7 +725,20 @@ class JcExprResolver(
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
         checkNullPointer(arrayRef) ?: return null
 
-        val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
+        // It is possible that the array was upcasted, so we need to find a real type in this case
+        val isTypeUpcast = scope.calcOnState {
+            memory.types.evalIsSupertype(arrayRef, array.type)
+        }.isFalse
+
+        val arrayType = if (isTypeUpcast) {
+            val realTypesStream = scope.calcOnState { memory.types.getTypeStream(arrayRef) }
+            val realTopType = realTypesStream.superType ?: error("Cannot find type for the $arrayRef")
+            realTopType
+        } else {
+            array.type
+        } as JcArrayType
+
+        val arrayDescriptor = arrayDescriptorOf(arrayType)
 
         val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
@@ -860,7 +876,18 @@ class JcExprResolver(
         type: JcRefType,
     ): UHeapRef? {
         return if (!typeBefore.isAssignable(type)) {
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
+            val isExpr = scope.calcOnState {
+                if (type !is JcTypeVariable) {
+                    return@calcOnState memory.types.evalIsSubtype(expr, type)
+                }
+
+                // For type variable we need to ensure that type satisfies all bound of this type variable
+                val bounds = type.bounds.ifEmpty { listOf(ctx.classType) }
+                bounds.fold(ctx.trueExpr as UBoolExpr) { acc, bound ->
+                    ctx.mkAnd(acc, memory.types.evalIsSubtype(expr, bound))
+                }
+            }
+
             scope.fork(
                 isExpr,
                 blockOnFalseState = allocateException(ctx.classCastExceptionType)

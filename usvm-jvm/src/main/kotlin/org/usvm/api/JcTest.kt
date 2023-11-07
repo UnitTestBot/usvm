@@ -20,7 +20,7 @@ data class JcTest(
 ) {
     override fun toString(): String =
         // TODO use fully qualified name of the `method` instead of `toString`
-        "JcTest(method=$method, before=$before, after=$after, result=$result, coverage=$coverage)"
+        "JcTest(method=$method, before=$before, after=$after, result=${result.prettify()}, coverage=$coverage)"
 }
 
 data class JcParametersState(

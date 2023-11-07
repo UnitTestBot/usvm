@@ -29,6 +29,7 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.void
 import org.usvm.ForkCase
@@ -36,10 +37,13 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UInterpreter
+import org.usvm.USort
 import org.usvm.api.allocateStaticRef
 import org.usvm.api.targets.JcTarget
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
@@ -63,11 +67,10 @@ import org.usvm.machine.state.returnValue
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
+import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
-import org.usvm.types.first
-import org.usvm.util.findMethod
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -291,11 +294,51 @@ class JcInterpreter(
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
 
-        val nextStmt = stmt.nextStmt
-        scope.doWithState {
-            memory.write(lvalue, expr)
-            newStmt(nextStmt)
+        val noArrayStoreException = checkArrayStoreException(lvalue, expr, scope)
+
+        scope.fork(
+            noArrayStoreException,
+            blockOnTrueState = {
+                val nextStmt = stmt.nextStmt
+                memory.write(lvalue, expr)
+                newStmt(nextStmt)
+            },
+            blockOnFalseState = exprResolver.allocateException(ctx.arrayStoreExceptionType)
+        )
+    }
+
+    // Returns `trueExpr` if ArrayStoreException is impossible
+    private fun checkArrayStoreException(
+        lvalue: ULValue<*, *>,
+        rvalue: UExpr<out USort>,
+        scope: JcStepScope
+    ): UBoolExpr {
+        if (lvalue !is UArrayIndexLValue<*, *, *>) {
+            return ctx.trueExpr
         }
+
+        // ArrayStoreException is possible only for references
+        if (rvalue.sort != ctx.addressSort) {
+            return ctx.trueExpr
+        }
+
+        check(lvalue.sort == rvalue.sort) {
+            "Writing $rvalue with sort ${rvalue.sort} to the array with different sort ${lvalue.sort} by lvalue $lvalue found"
+        }
+
+        // ArrayStoreException happens if we write a value that is not a subtype of the element type
+        val isRvalueSubtypeOf = scope.calcOnState {
+            // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
+            // so we need to retrieve the real array type with another way
+            val arrayType = memory.types.getTypeStream(lvalue.ref).superType
+                ?: error("No type found for array ${lvalue.ref}")
+            val elementType = arrayType.ifArrayGetElementType
+                ?: error("Not array type $arrayType found for array ${lvalue.ref}")
+
+            memory.types.evalIsSubtype(rvalue.asExpr(ctx.addressSort), elementType)
+        }
+
+        return isRvalueSubtypeOf
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {

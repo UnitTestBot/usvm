@@ -90,6 +90,7 @@ public class ArrayStoreExceptionExamples {
 
         int[] result = new int[data.length];
         if (data.length != 0) {
+            //noinspection SuspiciousSystemArraycopy
             System.arraycopy(data, 0, result, 0, data.length);
         }
 
@@ -149,6 +150,14 @@ public class ArrayStoreExceptionExamples {
         Object[] result = new Object[1];
         result[0] = impl;
         return result;
+    }
+
+    public String[] arrayStoreExceptionWithEmptyArrayAndUpcast() {
+        String[] array = new String[1];
+        //noinspection DataFlowIssue
+        ((Object[]) array)[0] = new SomeImplementation();
+
+        return array;
     }
 
     @SuppressWarnings("unchecked")

@@ -20,7 +20,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentIntToIntegerArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
@@ -30,7 +29,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
@@ -40,7 +38,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCorrectAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
@@ -50,7 +48,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testWrongAssignmentUnrelatedType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
@@ -62,7 +59,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
@@ -72,7 +69,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithWrongCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
@@ -82,7 +78,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
@@ -92,7 +88,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
@@ -102,7 +97,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckObjectAssignment() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
@@ -132,7 +126,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCheckAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
@@ -212,6 +206,15 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
             eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
+        )
+    }
+
+    @Test
+    fun testArrayStoreExceptionWithEmptyArrayAndUpcast() {
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayStoreExceptionExamples::arrayStoreExceptionWithEmptyArrayAndUpcast,
+            eq(1),
+            { _, r -> r.isException<ArrayStoreException>() },
         )
     }
 }
