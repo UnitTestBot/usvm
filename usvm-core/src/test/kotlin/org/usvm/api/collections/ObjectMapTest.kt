@@ -1,6 +1,7 @@
 package org.usvm.api.collections
 
 import io.ksmt.solver.KSolver
+import org.usvm.UBoolExpr
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -8,6 +9,7 @@ import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
@@ -249,6 +251,31 @@ class ObjectMapTest : SymbolicCollectionTestBase() {
         assertNotNull(scope.ensureObjectMapSizeCorrect(symbolicMap1, mapType))
 
         testMapMerge(symbolicMap0, symbolicMap1)
+    }
+
+    @Test
+    fun testMapRetrieveAnyKey() = scope.doWithState {
+        callStack.push(method = Any(), returnSite = null)
+
+        with(ctx) {
+            val map = mkRegisterReading(0, addressSort)
+            val keys = (1..3).map { mkRegisterReading(it, addressSort) }
+
+            keys.forEachIndexed { idx, key ->
+                symbolicObjectMapPut(map, key, mkBv(idx), mapType, bv32Sort)
+            }
+
+            val retrievedKeyContains = mutableListOf<UBoolExpr>()
+            repeat(keys.size + 1) {
+                val key = symbolicObjectMapAnyKey(map, mapType)
+                retrievedKeyContains += symbolicObjectMapContains(map, key, mapType)
+                symbolicObjectMapRemove(map, key, mapType)
+            }
+
+            checkWithSolver {
+                assertPossible { mkAnd(retrievedKeyContains) }
+            }
+        }
     }
 
     private fun testMapMerge(mergeTarget: UHeapRef, otherMap: UHeapRef) = scope.doWithState {

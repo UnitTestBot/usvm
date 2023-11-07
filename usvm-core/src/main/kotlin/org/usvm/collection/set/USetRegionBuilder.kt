@@ -10,7 +10,7 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.regions.Region
 
-internal class USetUpdatesVisitor<Element, Reg : Region<Reg>>(
+internal class USetRegionBuilder<Element, Reg : Region<Reg>>(
     private val baseRegion: Reg,
     private val keyInfo: USymbolicCollectionKeyInfo<Element, Reg>,
     private val topRegion: Reg

@@ -9,7 +9,7 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.collection.set.USetUpdatesVisitor
+import org.usvm.collection.set.USetRegionBuilder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementRegion
 import org.usvm.collection.set.USymbolicSetKeyInfo
@@ -82,7 +82,7 @@ class UAllocatedRefSetWithInputElementsId<SetType>(
         collection: USymbolicCollection<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<UHeapRef, R>
     ): R {
-        val regionBuilder = USetUpdatesVisitor(
+        val regionBuilder = USetRegionBuilder(
             baseRegion = keyInfo.bottomRegion(),
             keyInfo = keyInfo,
             topRegion = keyInfo.topRegion()
@@ -156,7 +156,7 @@ class UInputRefSetWithAllocatedElementsId<SetType>(
         collection: USymbolicCollection<UInputRefSetWithAllocatedElementsId<SetType>, UHeapRef, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<UHeapRef, R>
     ): R {
-        val regionBuilder = USetUpdatesVisitor(
+        val regionBuilder = USetRegionBuilder(
             baseRegion = keyInfo.bottomRegion(),
             keyInfo = keyInfo,
             topRegion = keyInfo.topRegion()

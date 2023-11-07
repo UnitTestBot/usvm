@@ -4,6 +4,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
 import org.usvm.regions.Region
@@ -25,4 +26,20 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
 
     val newRegion = region.union(srcRef, dstRef, guard)
     setRegion(regionId, newRegion)
+}
+
+internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
+    setRef: UHeapRef,
+    type: SetType,
+    keySort: KeySort,
+    keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+): UPrimitiveSetEntries<SetType, KeySort, Reg> {
+    val regionId = USetRegionId(keySort, type, keyInfo)
+    val region = getRegion(regionId)
+
+    check(region is USetReadOnlyRegion<SetType, KeySort, Reg>) {
+        "No setEntries in region $region"
+    }
+
+    return region.setEntries(setRef)
 }

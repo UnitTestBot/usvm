@@ -27,12 +27,13 @@ fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRefWithSameTy
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> =
     mockSymbolicRef { objectTypeEquals(it, representative) }
 
+fun <Method> UState<*, Method, *, *, *, *>.makeSymbolicRefUntyped(): UHeapRef =
+    memory.mocker.call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort)
+
 private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbolicRef(
     crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
 ): UHeapRef? where State : UState<Type, Method, *, *, *, State> {
-    val ref = calcOnState {
-        memory.mocker.call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort)
-    }
+    val ref = calcOnState { makeSymbolicRefUntyped() }
 
     val typeConstraint = calcOnState {
         mkTypeConstraint(ref)
