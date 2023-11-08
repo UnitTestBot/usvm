@@ -29,7 +29,7 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Timeout Expected exactly 2 executions, but 0 found")
+    @Test
     fun testCompareWithDiv() {
         checkDiscoveredProperties(
             DoubleExamples::compareWithDiv,
