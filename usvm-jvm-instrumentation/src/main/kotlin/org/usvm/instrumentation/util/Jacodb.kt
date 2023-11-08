@@ -74,6 +74,10 @@ fun Class<*>.toJcType(jcClasspath: JcClasspath): JcType? {
     return jcClasspath.findTypeOrNull(this.typeName)
 }
 
+fun Class<*>.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? {
+    return jcClasspath.findClassOrNull(this.typeName)
+}
+
 fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
     strBuilder.append('[')
     when (elementType) {

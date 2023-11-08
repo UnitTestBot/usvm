@@ -172,10 +172,10 @@ class UTestExecutor(
     ): UTestExecutionState = with(descriptorBuilder) {
         descriptorBuilder.uTestExecutorCache.addAll(executor.objectToInstructionsCache)
         val instanceDescriptor = callMethodExpr.instance?.let {
-            buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+            buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
         val argsDescriptors = callMethodExpr.args.map {
-            buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+            buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
         val isInit = descriptorBuilder.previousState == null
         val statics = if (isInit) {

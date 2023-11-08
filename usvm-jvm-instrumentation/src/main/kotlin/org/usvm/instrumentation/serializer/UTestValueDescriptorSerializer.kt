@@ -2,6 +2,7 @@ package org.usvm.instrumentation.serializer
 
 import com.jetbrains.rd.framework.*
 import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.*
 import org.usvm.instrumentation.util.stringType
 import org.usvm.instrumentation.testcase.descriptor.*
@@ -25,9 +26,9 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
                     UTestValueDescriptorKind.SERIALIZED_DESCRIPTOR -> {
                         return getUTestValueDescriptor(id)
                     }
-
                     UTestValueDescriptorKind.INT -> deserializeInt()
                     UTestValueDescriptorKind.OBJECT -> deserializeObject()
+                    UTestValueDescriptorKind.ADVANCED_OBJECT -> deserializeAdvancedObject()
                     UTestValueDescriptorKind.BOOLEAN -> deserializeBoolean()
                     UTestValueDescriptorKind.BYTE -> deserializeByte()
                     UTestValueDescriptorKind.SHORT -> deserializeShort()
@@ -83,6 +84,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             is UTestEnumValueDescriptor -> serialize(uTestValueDescriptor)
             is UTestClassDescriptor -> serialize(uTestValueDescriptor)
             is UTestExceptionDescriptor -> serialize(uTestValueDescriptor)
+            is UTestAdvancedObjectDescriptor -> serialize(uTestValueDescriptor)
         }
     }
 
@@ -436,6 +438,50 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         return UTestObjectDescriptor(jcType, fields, originalUTestInst, refId)
     }
 
+    private fun AbstractBuffer.serialize(uTestObjectDescriptor: UTestAdvancedObjectDescriptor) =
+        serialize(
+            uTestValueDescriptor = uTestObjectDescriptor,
+            kind = UTestValueDescriptorKind.ADVANCED_OBJECT,
+            serializeInternals = {
+                instantiationChain.flatMap { it.second }.forEach { serializeUTestValueDescriptor(it) }
+            },
+            serialize = {
+                writeJcType(type)
+                writeInt(refId)
+                val uTestInstId = ctx.deserializedUTestInstructions.entries.find {
+                    it.value == originUTestExpr
+                }?.key ?: -1
+                writeInt(uTestInstId)
+                writeInt(instantiationChain.size)
+                instantiationChain.forEach { (method, args) ->
+                    writeJcMethod(method)
+                    writeInt(args.size)
+                    args.forEach { descriptor -> writeUTestValueDescriptor(descriptor) }
+                }
+            }
+        )
+
+    private fun AbstractBuffer.deserializeAdvancedObject(): UTestAdvancedObjectDescriptor {
+        val jcType = readJcType(jcClasspath) ?: jcClasspath.objectType
+        val refId = readInt()
+        val instId = readInt()
+        val instantiationChainSize = readInt()
+        val originalUTestInst = ctx.serializedUTestInstructions.entries.find {
+            it.value == instId
+        }?.key
+        val instantiationChain = mutableListOf<Pair<JcMethod, List<UTestValueDescriptor>>>()
+        repeat(instantiationChainSize) {
+            val jcMethod = readJcMethod(jcClasspath)
+            val args = mutableListOf<UTestValueDescriptor>()
+            val argsSize = readInt()
+            repeat(argsSize) {
+                args.add(readUTestValueDescriptor())
+            }
+            instantiationChain.add(jcMethod to args)
+        }
+        return UTestAdvancedObjectDescriptor(jcType, instantiationChain, originalUTestInst, refId)
+    }
+
     private fun AbstractBuffer.serialize(uTestExceptionDescriptor: UTestExceptionDescriptor) =
         serialize(
             uTestValueDescriptor = uTestExceptionDescriptor,
@@ -522,6 +568,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         SERIALIZED_DESCRIPTOR,
         INT,
         OBJECT,
+        ADVANCED_OBJECT,
         BOOLEAN,
         BYTE,
         SHORT,

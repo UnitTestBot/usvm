@@ -1,6 +1,7 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.usvm.instrumentation.testcase.api.UTestInst
 
@@ -219,6 +220,29 @@ class UTestObjectDescriptor(
     }
 
 }
+
+class UTestAdvancedObjectDescriptor(
+    override val type: JcType,
+    val instantiationChain: List<Pair<JcMethod, List<UTestValueDescriptor>>>,
+    val originUTestExpr: UTestInst?,
+    override val refId: Int
+) : UTestValueDescriptor(), UTestRefDescriptor {
+    override fun toString(): String =
+        "UTestAdvancedObjectDescriptor(type=$type, instantiationChain:${instantiationChain.joinToString(",") { "${it.first.name} to ${it.second}}" }}"
+
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestAdvancedObjectDescriptor) return false
+        if (type != other.type) return false
+        if (instantiationChain.size != other.instantiationChain.size) return false
+        instantiationChain.zip(other.instantiationChain).forEach { (ch1, ch2) ->
+            if (ch1.first != ch2.first) return false
+            if (ch1.second.size != ch2.second.size) return false
+            if (ch1.second != ch2.second) return false
+        }
+        return true
+    }
+}
+
 
 class UTestExceptionDescriptor(
     override val type: JcType,

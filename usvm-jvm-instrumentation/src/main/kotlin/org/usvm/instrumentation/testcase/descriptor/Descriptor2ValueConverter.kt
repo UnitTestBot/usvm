@@ -1,12 +1,13 @@
 package org.usvm.instrumentation.testcase.descriptor
 
 import org.jacodb.api.ext.*
+import org.usvm.instrumentation.testcase.descriptor.descriptor2stdlib.Descriptor2StdlibValueConverter
 import org.usvm.instrumentation.util.*
 import java.util.*
 
 class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
-    private val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any?>()
+    val descriptorToObject = IdentityHashMap<UTestValueDescriptor, Any?>()
 
     fun clear() {
         descriptorToObject.clear()
@@ -44,10 +45,12 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
                     .filter { it.first is UTestRefDescriptor }
                     .find { (it.first as UTestRefDescriptor).refId == descriptor.refId }?.second
             }
+
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)
             is UTestClassDescriptor -> descriptor.classType.toJavaClass(workerClassLoader)
             is UTestExceptionDescriptor -> `exception`(descriptor)
+            is UTestAdvancedObjectDescriptor -> `advanced object`(descriptor)
         }
 
     private fun string(descriptor: UTestConstantDescriptor.String) =
@@ -92,6 +95,13 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             jField.setFieldValue(classInstance, jFieldValue)
         }
         return classInstance
+    }
+
+    private fun `advanced object`(descriptor: UTestAdvancedObjectDescriptor): Any {
+        val jClass = descriptor.type.toJavaClass(workerClassLoader)
+        val converter = Descriptor2StdlibValueConverter.getSpecialConverterForStdLibClass(jClass)
+            ?: error("cant find converted for ${jClass.name}")
+        return converter.convert(descriptor, jClass, this)
     }
 
     private fun `exception`(descriptor: UTestExceptionDescriptor): Any {
