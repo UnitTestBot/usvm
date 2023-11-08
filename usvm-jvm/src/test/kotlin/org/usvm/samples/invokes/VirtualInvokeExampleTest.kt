@@ -40,7 +40,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix coverage zones")
     fun testObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::objectFromOutside,
@@ -66,7 +65,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix coverage zone")
     fun testYetAnotherObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::yetAnotherObjectFromOutside,
@@ -120,7 +118,7 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected illegal argument exception")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,
