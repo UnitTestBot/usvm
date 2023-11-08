@@ -9,7 +9,6 @@ import org.usvm.SolverType
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.algorithms.DeterministicPriorityCollection
-import org.usvm.algorithms.UPriorityCollection
 import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.logger
@@ -21,8 +20,8 @@ import org.usvm.machine.JcTypeSystem
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.merging.MutableMergeGuard
 import org.usvm.ps.StateWeighter
-import org.usvm.ps.WeightedPathSelector
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -63,7 +62,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         crashStackTrace: List<CrashStackTraceFrame>
     ): Boolean {
         crashException.let { } // todo: check exception type
-        pobManager.addPob(level = 0, pob = UPathConstraints(ctx))
+        pobManager.addPob(level = 0, newPob = UPathConstraints(ctx))
 
         val initialStates = mkInitialStates(crashStackTrace)
 
@@ -139,9 +138,10 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         fun currentLevel() = levelPobs.keys.max()
 
-        fun addPob(level: Int, pob: UPathConstraints<JcType>) {
+        fun addPob(level: Int, newPob: UPathConstraints<JcType>) {
             logger.info { "Found POB at level: $level | ${levelPobs(level).size}" }
 
+            val pob = mergePobs(newPob, levelPobs(level))
             levelPobs(level).add(pob)
 
             for (state in levelStates(level)) {
@@ -149,6 +149,26 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
                 check(target.level == level) { "Unexpected state" }
                 propagateBackward(target, pob, state)
             }
+        }
+
+        fun mergePobs(
+            newPob: UPathConstraints<JcType>,
+            levelPobs: MutableSet<UPathConstraints<JcType>>
+        ): UPathConstraints<JcType>{
+            var result = newPob
+            val removedPobs = mutableListOf<UPathConstraints<JcType>>()
+            for (levelPob in levelPobs) {
+                val guard = MutableMergeGuard(ctx)
+                val merged = levelPob.clone().mergeWith(result, guard) ?: continue
+                merged += ctx.mkOr(guard.thisConstraint, guard.otherConstraint)
+
+                logger.info { "Merged POB" }
+                result = merged
+                removedPobs += levelPob
+            }
+
+            levelPobs.removeAll(removedPobs)
+            return result
         }
 
         fun onLevelTargetReach(state: JcState) {
