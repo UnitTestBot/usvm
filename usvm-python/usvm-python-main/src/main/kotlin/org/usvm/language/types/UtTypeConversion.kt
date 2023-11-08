@@ -10,9 +10,9 @@ fun getTypeFromTypeHint(
     hint: UtType,
     typeSystem: PythonTypeSystemWithMypyInfo
 ): PythonType {
-    val hintAfterSubstitution = DefaultSubstitutionProvider.substituteAll(
+    val hintAfterSubstitution = DefaultSubstitutionProvider.substitute(
         hint,
-        hint.getBoundedParameters().map { pythonAnyType }
+        hint.getBoundedParameters().associateWith { pythonAnyType }
     )
     val fromTypeSystem = typeSystem.concreteTypeFromTypeHint(hintAfterSubstitution)
     if (fromTypeSystem != null)
