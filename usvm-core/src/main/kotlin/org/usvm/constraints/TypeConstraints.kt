@@ -100,14 +100,18 @@ class UTypeConstraints<Type>(
             "Expected static ref but $staticRef was passed"
         }
 
-        val symbolicTypes = getTypeStream(symbolicRef)
-        if (symbolicTypes.isEmpty) {
-            // Empty type stream is possible only for the null ref, and static ref could not be equal to it
+        // It is important to use a type region instead of a type stream
+        // since it is able to find simple semantic contradiction
+        // significantly improving performance
+        val typeRegion = getTypeRegion(symbolicRef)
+        if (typeRegion.isEmpty) {
+            // An empty type region is possible only for the null ref, and static ref could not be equal to it
             return false
         }
+
         val concreteType = concreteRefToType[staticRef.address] ?: error("Unknown type of the static ref $staticRef")
 
-        return !symbolicTypes.filterBySupertype(concreteType).isEmpty
+        return !typeRegion.addSupertype(concreteType).isEmpty
     }
 
     /**
