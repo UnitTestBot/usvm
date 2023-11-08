@@ -1,6 +1,7 @@
-package org.usvm.machine
+package org.usvm.types
 
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcPrimitiveType
@@ -11,16 +12,17 @@ import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
-import org.usvm.types.USupportTypeStream
-import org.usvm.types.UTypeStream
-import org.usvm.types.UTypeSystem
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
+
+object TypeScorer
 
 class JcTypeSystem(
     private val cp: JcClasspath,
-    override val typeOperationsTimeout: Duration
+    override val typeOperationsTimeout: Duration,
 ) : UTypeSystem<JcType> {
     private val hierarchy = HierarchyExtensionImpl(cp)
+    private val scorer = ScorerExtension<Double>(cp, TypeScorer)
 
     override fun isSupertype(supertype: JcType, type: JcType): Boolean =
         when {
@@ -101,25 +103,48 @@ class JcTypeSystem(
     // TODO: handle object type, serializable and cloneable
     override fun findSubtypes(type: JcType): Sequence<JcType> = when (type) {
         is JcPrimitiveType -> emptySequence() // TODO: should not be called here
+        cp.objectType -> objectInheritors
         is JcArrayType -> findSubtypes(type.elementType).map { cp.arrayTypeOf(it) }
-        is JcRefType -> hierarchy
-            .findSubClasses(
-                type.jcClass,
-                allHierarchy = false
-            ) // TODO: prioritize classes somehow and filter bad classes
-            .map { it.toType() }
-            .run {
-                if (type == cp.objectType) {
-                    // since we use DFS iterator, the array of objects should come last
-                    // here we return only the direct successors, so (2,3,...)-dimensional arrays isn't returned here
-                    // such arrays are subtypes of `Object[]`
-                    this + map { cp.arrayTypeOf(it) } + cp.arrayTypeOf(type)
-                } else {
-                    this
-                }
-            }
-
+        is JcClassType -> cache.findSubClasses(type.jcClass).map { it.toType() } // TODO: filter bad classes
+        is JcTypeVariable -> findSubtypes(type.jcClass.toType())
         else -> error("Unknown type $type")
+    }
+
+    private val objectInheritors by lazy {
+        scorer.allClassesSorted
+            .flatMap { jcClass ->
+                val type = jcClass.toType()
+                sequenceOf(type, cp.arrayTypeOf(type))
+            } + cp.arrayTypeOf(cp.objectType)
+    }
+
+    private fun Sequence<JcClassOrInterface>.sortByScore(): Pair<Sequence<JcClassOrInterface>, Int> =
+        mapTo(mutableListOf()) { jcClass ->
+            // TODO: fix NEGATIVE_INFINITY (workaround for unknown types)
+            val score = scorer.getScore(jcClass) ?: Double.NEGATIVE_INFINITY
+            jcClass to score
+        }.run {
+            sortByDescending { it.second }
+            asSequence().map { it.first } to size
+        }
+
+    // TODO: refactor this constant
+    private val cache = SubClassesCache(200)
+
+    private inner class SubClassesCache(
+        private val sizeThreshold: Int,
+    ) {
+        private val cache = ConcurrentHashMap<JcClassOrInterface, Sequence<JcClassOrInterface>>()
+        fun findSubClasses(jcClass: JcClassOrInterface): Sequence<JcClassOrInterface> =
+            cache.getOrElse(jcClass) {
+                val (sequence, size) = hierarchy
+                    .findSubClasses(jcClass, allHierarchy = false, includeOwn = false)
+                    .sortByScore()
+                if (size >= sizeThreshold) {
+                    cache[jcClass] = sequence
+                }
+                sequence
+            }
     }
 
     private val topTypeStream by lazy { USupportTypeStream.from(this, cp.objectType) }

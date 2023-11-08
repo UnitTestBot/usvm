@@ -763,9 +763,16 @@ class JcMethodApproximationResolver(
             dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::anyKey) {
                 val mapRef = it.arguments.single().asExpr(ctx.addressSort)
                 scope.ensureObjectMapSizeCorrect(mapRef, symbolicMapType) ?: return@dispatchUsvmApiMethod null
-                scope.calcOnState {
+                val key = scope.calcOnState {
                     symbolicObjectMapAnyKey(mapRef, symbolicMapType)
                 }
+
+                val keyContains = scope.calcOnState {
+                    symbolicObjectMapContains(mapRef, key, symbolicMapType)
+                }
+                scope.assert(keyContains) ?: return@dispatchUsvmApiMethod null
+
+                key
             }
             dispatchUsvmApiMethod(SymbolicIdentityMap<*, *>::merge) {
                 val (dstMapRef, srcMapRef) = it.arguments.map { it.asExpr(ctx.addressSort) }

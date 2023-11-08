@@ -1,11 +1,13 @@
 package org.usvm.machine
 
+import io.ksmt.utils.cast
 import org.jacodb.api.JcType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UMachineOptions
+import org.usvm.UMocker
 import org.usvm.USizeExprProvider
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
@@ -13,7 +15,7 @@ import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
-import kotlin.time.Duration
+import org.usvm.types.JcTypeSystem
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
@@ -63,4 +65,6 @@ class JcComponents(
     override fun <Context : UContext<USizeSort>> mkSoftConstraintsProvider(
         ctx: Context,
     ): USoftConstraintsProvider<JcType, USizeSort> = JcSoftConstraintsProvider(ctx)
+
+    override fun <Method> mkMocker(): UMocker<Method> = JcMocker().cast()
 }

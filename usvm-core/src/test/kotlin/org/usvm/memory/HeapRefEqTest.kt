@@ -5,9 +5,11 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.usvm.Method
 import org.usvm.Type
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import kotlin.test.assertSame
@@ -20,6 +22,7 @@ class HeapRefEqTest {
     fun initializeContext() {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         ctx = UContext(components)
         heap = UMemory(ctx, mockk())
     }

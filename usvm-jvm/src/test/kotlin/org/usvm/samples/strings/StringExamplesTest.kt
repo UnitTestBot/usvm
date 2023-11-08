@@ -695,4 +695,14 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
             { _, r -> r == "[a, b, c]" },
         )
     }
+
+    @Test
+    fun testGetSymbolicLength() {
+        checkDiscoveredProperties(
+            StringExamples::getSymbolicLength,
+            eq(2),
+            { _, s, r -> s == null && r == -1 },
+            { _, s, r -> s != null && r == s.length },
+        )
+    }
 }

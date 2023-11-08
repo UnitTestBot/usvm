@@ -8,11 +8,13 @@ import org.usvm.Field
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.Method
 import org.usvm.NULL_ADDRESS
+import org.usvm.TestMethod
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
@@ -71,6 +73,7 @@ class TypeSolverTest {
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
         every { components.mkSolver(ctx) } returns solver
+        every { components.mkMocker<TestMethod>() } returns UIndexedMocker()
         every { components.mkTypeSystem(ctx) } returns typeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType> -> UComposer(ctx, memory) } }

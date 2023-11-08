@@ -7,6 +7,8 @@ import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createTempFile
 
 abstract class UTestConcreteExecutorTest {
 
@@ -14,27 +16,34 @@ abstract class UTestConcreteExecutorTest {
     companion object {
         lateinit var testJarPath: List<String>
         lateinit var jcClasspath: JcClasspath
+        lateinit var jcPersistenceLocation: String
         lateinit var uTestConcreteExecutor: UTestConcreteExecutor
+        var instrumentationProcessPaths = InstrumentationProcessPaths()
 
 
         @JvmStatic
         fun init() = runBlocking {
             val cp = testJarPath.map { File(it) }
+            jcPersistenceLocation = createTempFile().absolutePathString()
             val db = jacodb {
                 loadByteCode(cp)
                 installFeatures(InMemoryHierarchy)
-                jre = File(InstrumentationModuleConstants.pathToJava)
+                jre = File(instrumentationProcessPaths.pathToJava)
+                persistent(location = jcPersistenceLocation)
             }
+            db.awaitBackgroundJobs()
             jcClasspath = db.classpath(cp)
             uTestConcreteExecutor = createUTestConcreteExecutor()
         }
 
         private fun createUTestConcreteExecutor(): UTestConcreteExecutor {
             return UTestConcreteExecutor(
-                JcRuntimeTraceInstrumenterFactory::class,
-                testJarPath,
-                jcClasspath,
-                InstrumentationModuleConstants.testExecutionTimeout
+                instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
+                testingProjectClasspath = testJarPath,
+                jcClasspath = jcClasspath,
+                instrumentationProcessPaths = instrumentationProcessPaths,
+                jcPersistenceLocation = jcPersistenceLocation,
+                timeout = InstrumentationModuleConstants.testExecutionTimeout
             )
         }
     }

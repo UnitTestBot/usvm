@@ -60,6 +60,7 @@ open class UContext<USizeSort : USort>(
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
+    private val mocker by lazy { components.mkMocker<Nothing>() }
     private val softConstraintsProvider by lazy { components.mkSoftConstraintsProvider(this) }
     private val composerBuilder: (UReadOnlyMemory<*>) -> UComposer<*, USizeSort> by lazy {
         @Suppress("UNCHECKED_CAST")
@@ -83,6 +84,9 @@ open class UContext<USizeSort : USort>(
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
         this.typeSystem as UTypeSystem<Type>
+
+    @Suppress("UNCHECKED_CAST")
+    fun <Method> mocker(): UMocker<Method> = this.mocker as UMocker<Method>
 
     fun <Type> softConstraintsProvider(): USoftConstraintsProvider<Type, USizeSort> = softConstraintsProvider.cast()
 
@@ -367,7 +371,7 @@ open class UContext<USizeSort : USort>(
     ): UTrackedSymbol<Sort> = trackedSymbols.createIfContextActive {
         UTrackedSymbol(this, name = "tracked#${trackedIndex++}", sort)
     }.cast()
-    
+
     private val isSubtypeExprCache = mkAstInterner<UIsSubtypeExpr<Any>>()
     fun <Type> mkIsSubtypeExpr(
         ref: UHeapRef, type: Type,

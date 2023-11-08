@@ -5,6 +5,7 @@ import mu.KLogging
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
+import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
@@ -29,6 +30,8 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.findType
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.toType
@@ -48,6 +51,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
@@ -75,6 +79,7 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.single
 import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
@@ -102,6 +107,7 @@ class JcInterpreter(
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
         val state = JcState(ctx, method, targets = UTargetsSet.from(targets))
         val typedMethod = with(applicationGraph) { method.typed }
+            ?: error("No typed method for entrypoint: $method")
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
         val enclosingType = typedMethod.enclosingType
@@ -294,6 +300,12 @@ class JcInterpreter(
                     },
                 )
 
+                // TODO usvm-sbft-merge: hack to prevent NPE for the `value` field in strings
+                handleStringValueField(
+                    scope,
+                    method,
+                ) { stmt.arguments.first().asExpr(ctx.addressSort) }
+
                 scope.doWithState {
                     addNewMethodCall(stmt, entryPoint)
                 }
@@ -318,6 +330,32 @@ class JcInterpreter(
 
                 mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
+        }
+    }
+
+    private fun handleStringValueField(scope: JcStepScope, method: JcMethod, stringRefBlock: () -> UHeapRef) {
+        with(ctx) {
+            if (method.isStatic || method.isConstructor) {
+                return
+            }
+
+            val type = method.enclosingClass.toType()
+            if (type != stringType) {
+                return
+            }
+
+            val stringThisRef = stringRefBlock()
+            if (isStaticHeapRef(stringThisRef)) {
+                // For string literals we set `value` explicitly
+                return
+            }
+
+            val stringValueLValue = UFieldLValue(addressSort, stringThisRef, stringValueField.field)
+            val stringValue = scope.calcOnState { memory.read(stringValueLValue) }
+
+            val notNullValueConstraint = mkEq(stringValue, nullRef).not()
+            scope.assert(notNullValueConstraint)
+                ?: error("Cannot make `java.lang.String#value` not-null for string $stringThisRef")
         }
     }
 
@@ -502,7 +540,9 @@ class JcInterpreter(
         observer?.onReturnStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
-        val returnType = with(applicationGraph) { method.typed }.returnType
+        val returnType = with(applicationGraph) { method.typed }?.returnType
+            ?: ctx.cp.findTypeOrNull(method.returnType)
+            ?: error("Method return type ${method.returnType} not found in cp")
 
         val valueToReturn = stmt.returnValue
             ?.let { exprResolver.resolveJcExpr(it, returnType) ?: return }
@@ -571,10 +611,15 @@ class JcInterpreter(
         val address = exprResolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         // Throwing `null` leads to NPE
-        exprResolver.checkNullPointer(address)
+        exprResolver.checkNullPointer(address) ?: return
 
         scope.calcOnState {
-            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
+            val exceptionType = if (address is UConcreteHeapRef) {
+                memory.types.getTypeStream(address).single()
+            } else {
+                stmt.throwable.type
+            }
+            throwExceptionWithoutStackFrameDrop(address, exceptionType)
         }
     }
 
@@ -689,16 +734,24 @@ class JcInterpreter(
         else -> error("Unexpected type: $type")
     }
 
-    private sealed interface JcTypeInfo
+    private sealed interface JcTypeInfo {
+        fun toType(cp: JcClasspath): JcType
+    }
 
     private data class JcClassTypeInfo(val className: String) : JcTypeInfo {
         // Don't use type.typeName here, because it contains generic parameters
         constructor(cls: JcClassOrInterface) : this(cls.name)
+
+        override fun toType(cp: JcClasspath): JcType = cp.findType(className)
     }
 
-    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
+    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo {
+        override fun toType(cp: JcClasspath): JcType = type
+    }
 
-    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
+    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo {
+        override fun toType(cp: JcClasspath): JcType = cp.arrayTypeOf(element.toType(cp))
+    }
 
     private fun resolveVirtualInvoke(
         methodCall: JcVirtualMethodCallInst,

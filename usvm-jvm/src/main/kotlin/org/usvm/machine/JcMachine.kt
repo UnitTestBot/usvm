@@ -3,6 +3,7 @@ package org.usvm.machine
 import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
@@ -27,6 +28,8 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.ListStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatistics
@@ -36,6 +39,7 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.types.JcTypeSystem
 import org.usvm.util.originalInst
 
 val logger = object : KLogging() {}.logger
@@ -107,13 +111,13 @@ class JcMachine(
             { loopTracker }
         )
 
-        val statesCollector =
+        val statesCollectorObs =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<JcState>(coverageStatistics) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(statesCollector, coverageStatistics) {
                     it.methodResult is JcMethodResult.JcException
                 }
 
-                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector(statesCollector)
                 StateCollectionStrategy.ALL -> AllStatesCollector()
             }
 
@@ -125,7 +129,7 @@ class JcMachine(
             timeStatisticsFactory = { timeStatistics },
             stepsStatisticsFactory = { stepsStatistics },
             coverageStatisticsFactory = { coverageStatistics },
-            getCollectedStatesCount = { statesCollector.collectedStates.size }
+            getCollectedStatesCount = { statesCollector.count }
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
@@ -153,7 +157,7 @@ class JcMachine(
                 )
             )
         }
-        observers.add(statesCollector)
+        observers.add(statesCollectorObs)
         // TODO: use the same calculator which is used for path selector
         if (targets.isNotEmpty()) {
             val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, InterprocDistance> { stmt ->
@@ -198,12 +202,16 @@ class JcMachine(
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
-
-        return statesCollector.collectedStates
     }
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> =
-        analyze(listOf(method), targets)
+    fun analyze(method: JcMethod, collector: StatesCollector<JcState>, targets: List<JcTarget> = emptyList()) =
+        analyze(listOf(method), collector, targets)
+
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
+        val collector = ListStatesCollector<JcState>()
+        analyze(method, collector, targets)
+        return collector.collectedStates
+    }
 
     /**
      * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.

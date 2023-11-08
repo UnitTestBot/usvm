@@ -18,6 +18,8 @@ class UTestConcreteExecutor(
     instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
     testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
+    instrumentationProcessPaths: InstrumentationProcessPaths,
+    private val jcPersistenceLocation: String?,
     private val timeout: Duration
 ) : AutoCloseable {
 
@@ -25,13 +27,27 @@ class UTestConcreteExecutor(
         instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
+        instrumentationProcessPaths: InstrumentationProcessPaths,
+        jcPersistenceLocation: String?,
         timeout: Duration
-    ) : this(instrumentationClassFactory, testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, timeout)
+    ) : this(
+        instrumentationClassFactory,
+        testingProjectClasspath.joinToString(File.pathSeparator),
+        jcClasspath,
+        instrumentationProcessPaths,
+        jcPersistenceLocation,
+        timeout
+    )
 
     private val lifetime = LifetimeDefinition()
 
-    private val instrumentationProcessRunner =
-        InstrumentationProcessRunner(testingProjectClasspath, jcClasspath, instrumentationClassFactory)
+    private val instrumentationProcessRunner = InstrumentationProcessRunner(
+        testingProjectClasspath,
+        jcClasspath,
+        instrumentationProcessPaths,
+        jcPersistenceLocation,
+        instrumentationClassFactory
+    )
     private val uTestUnexpectedExecutionBuilder = UTestUnexpectedExecutionBuilder(jcClasspath)
 
     suspend fun ensureRunnerAlive() {

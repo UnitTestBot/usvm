@@ -18,6 +18,7 @@ interface UComponents<Type, USizeSort : USort> {
     fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<Type>
     fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<Type>
     fun <Context : UContext<USizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<USizeSort>
+    fun <Method> mkMocker(): UMocker<Method> = UIndexedMocker()
 
     /**
      * Initializes [UExprTranslator] and [UModelDecoder] and returns them. We can safely reuse them while [UContext] is

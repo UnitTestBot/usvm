@@ -1,52 +1,39 @@
-// TODO unsupported
-
+//
 //package org.usvm.samples.mock
 //
 //import org.junit.jupiter.api.Test
-//import org.usvm.samples.JavaMethodTestRunner
-//import org.usvm.framework.plugin.api.UtCompositeModel
-//import org.usvm.framework.plugin.api.UtNewInstanceInstrumentation
+//import org.usvm.samples.approximations.ApproximationsTestRunner
 //import org.usvm.test.util.checkers.eq
-//import org.usvm.testing.TestExecution
+//import org.usvm.util.JcTestResolverType
 //
-//import org.usvm.testing.isParameter
-//import org.usvm.testing.mockValues
-//import org.usvm.testing.mocksMethod
-//import org.usvm.testing.singleMock
-//import org.usvm.testing.value
-//import java.util.Random
+//internal class MockRandomTest : ApproximationsTestRunner() {
+//    override val resolverType: JcTestResolverType
+//        get() = JcTestResolverType.CONCRETE_EXECUTOR
 //
-//internal class MockRandomTest : JavaMethodTestRunner(
-//    testClass = MockRandomExamples::class,
-//    testCodeGeneration = true,
-//    pipelines = listOf(
-//        TestLastStage(CodegenLanguage.JAVA, lastStage = TestExecution),
-//        TestLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
-//    )
-//) {
 //    @Test
 //    fun testRandomAsParameter() {
-//        val method: Random.() -> Int = Random::nextInt
-//        checkMocks(
+////        val method: Random.() -> Int = Random::nextInt
+//        checkDiscoveredProperties(
 //            MockRandomExamples::randomAsParameter,
 //            eq(3),
-//            { _, random, _, _, r -> random == null && r == null }, // NPE
-//            { _, random, threshold, mocks, r ->
-//                val mock = mocks.single()
-//                assert(mock.isParameter(1) && mock.mocksMethod(method))
-//                val nextInt = mock.value<Int>()
-//
-//                random == null && nextInt > threshold && r == threshold + 1
-//            },
-//            { _, random, threshold, mocks, r ->
-//                val mock = mocks.single()
-//                assert(mock.isParameter(1) && mock.mocksMethod(method))
-//                val nextInt = mock.value<Int>()
-//
-//                random == null && nextInt <= threshold && r == nextInt
-//            },
+//            { _, random, _, r -> random == null && r == null }, // NPE
+////            { _, random, threshold, mocks, r ->
+////                val mock = mocks.single()
+////                assert(mock.isParameter(1) && mock.mocksMethod(method))
+////                val nextInt = mock.value<Int>()
+////
+////                random == null && nextInt > threshold && r == threshold + 1
+////            },
+////            { _, random, threshold, mocks, r ->
+////                val mock = mocks.single()
+////                assert(mock.isParameter(1) && mock.mocksMethod(method))
+////                val nextInt = mock.value<Int>()
+////
+////                random == null && nextInt <= threshold && r == nextInt
+////            },
 //        )
 //    }
+///*
 //
 //    @Test
 //    fun testRandomAsField() {
@@ -146,5 +133,6 @@
 //                values.size == 2 && values[0] <= 1000 && r == values[1]
 //            },
 //        )
-//    }
+//*/
+////    }
 //}

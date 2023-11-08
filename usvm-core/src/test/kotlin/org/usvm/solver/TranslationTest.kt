@@ -11,6 +11,7 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Field
+import org.usvm.Method
 import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32SizeExprProvider
@@ -19,6 +20,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
@@ -70,6 +72,7 @@ class TranslationTest {
 
         ctx = RecordingCtx(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         heap = UMemory(ctx, mockk())
         translator = UExprTranslator(ctx)
 

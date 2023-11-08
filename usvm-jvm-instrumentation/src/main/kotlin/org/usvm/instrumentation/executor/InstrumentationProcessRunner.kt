@@ -22,6 +22,8 @@ import kotlin.time.Duration
 class InstrumentationProcessRunner(
     private val testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
+    private val instrumentationProcessPaths: InstrumentationProcessPaths,
+    private val jcPersistenceLocation: String?,
     private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<out JcInstrumenter>>
 ) {
 
@@ -31,32 +33,46 @@ class InstrumentationProcessRunner(
     constructor(
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
+        instrumentationProcessPaths: InstrumentationProcessPaths,
+        jcPersistenceLocation: String?,
         instrumentationClassFactory: KClass<JcInstrumenterFactory<out JcInstrumenter>>
-    ) : this(testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, instrumentationClassFactory)
+    ) : this(
+        testingProjectClasspath.joinToString(File.pathSeparator),
+        jcClasspath,
+        instrumentationProcessPaths,
+        jcPersistenceLocation,
+        instrumentationClassFactory
+    )
 
     fun isAlive() = this::lifetime.isInitialized && lifetime.isAlive
 
     private val jvmArgs: List<String> by lazy {
         val instrumentationClassNameFactoryName = instrumentationClassFactory.java.name
         val memoryLimit = listOf("-Xmx1g")
-        val pathToJava = Paths.get(InstrumentationModuleConstants.pathToJava)
+        val pathToJava = Paths.get(instrumentationProcessPaths.pathToJava)
         val usvmClasspath = System.getProperty("java.class.path")
         val javaVersionSpecificArguments = OpenModulesContainer.javaVersionSpecificArguments
         val instrumentedProcessClassName =
             InstrumentedProcess::class.qualifiedName ?: error("Can't find instumented process")
         listOf(pathToJava.resolve("bin${File.separatorChar}${osSpecificJavaExecutable()}").toString()) +
                 listOf("-ea") +
-                listOf("-javaagent:${InstrumentationModuleConstants.pathToUsvmInstrumentationJar}=$instrumentationClassNameFactoryName") +
+                listOf("-javaagent:${instrumentationProcessPaths.pathToUsvmInstrumentationJar}=$instrumentationClassNameFactoryName") +
                 memoryLimit +
                 javaVersionSpecificArguments +
                 listOf("-classpath", usvmClasspath) +
                 listOf(instrumentedProcessClassName)
     }
 
-    private fun createWorkerProcessArgs(rdPort: Int): List<String> =
-        listOf("-cp", testingProjectClasspath) +
-        listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}") +
-        listOf("-p", "$rdPort")
+    private fun createWorkerProcessArgs(rdPort: Int): List<String> = buildList {
+        this += listOf("-cp", testingProjectClasspath)
+        this += listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}")
+        this += listOf("-p", "$rdPort")
+        this += listOf("-javahome", instrumentationProcessPaths.pathToJava)
+
+        if (jcPersistenceLocation != null) {
+            this += listOf("-persistence", jcPersistenceLocation)
+        }
+    }
 
     suspend fun init(parentLifetime: Lifetime) {
         val processLifetime = LifetimeDefinition(parentLifetime)
@@ -64,6 +80,8 @@ class InstrumentationProcessRunner(
         val rdPort = NetUtils.findFreePort(0)
         val workerCommand = jvmArgs + createWorkerProcessArgs(rdPort)
         val pb = ProcessBuilder(workerCommand).inheritIO()
+        pb.environment()[InstrumentationModuleConstants.envVarForPathToUsvmCollectorsJarPath] =
+            instrumentationProcessPaths.pathToUsvmCollectorsJar
         val process = pb.start()
         rdProcessRunner =
             RdProcessRunner(process = process, rdPort = rdPort, jcClasspath = jcClasspath, lifetime = processLifetime)

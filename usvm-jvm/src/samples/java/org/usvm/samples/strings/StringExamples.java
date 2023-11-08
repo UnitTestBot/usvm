@@ -519,4 +519,12 @@ public class StringExamples {
     public String listToString() {
         return Arrays.asList("a", "b", "c").toString();
     }
+
+    public int getSymbolicLength(String s) {
+        if (s == null) {
+            return -1;
+        }
+
+        return s.length();
+    }
 }

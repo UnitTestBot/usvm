@@ -47,12 +47,12 @@ val JcInst.enclosingClass
 val JcInst.enclosingMethod
     get() = this.location.method
 
-fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
+fun JcType.toJavaClass(classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
     when (this) {
         is JcPrimitiveType -> toJavaClass()
-        is JcArrayType -> findClassInLoader(toJvmType(), classLoader)
-        is JcClassType -> this.jcClass.toJavaClass(classLoader)
-        else -> findClassInLoader(typeName, classLoader)
+        is JcArrayType -> findClassInLoader(toJvmType(), classLoader, initialize)
+        is JcClassType -> this.jcClass.toJavaClass(classLoader, initialize)
+        else -> findClassInLoader(typeName, classLoader, initialize)
     }
 
 private fun JcPrimitiveType.toJavaClass(): Class<*> {
@@ -104,19 +104,19 @@ fun JcType.toJcClass(): JcClassOrInterface? =
         else -> error("Unexpected type")
     }
 
-fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
-    findClassInLoader(name, classLoader)
+fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
+    findClassInLoader(name, classLoader, initialize)
 
 
-fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*> =
+fun findClassInLoader(name: String, classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
     try {
-        Class.forName(name, true, classLoader)
+        Class.forName(name, initialize, classLoader)
     } catch (e: Throwable) {
         throw TestExecutorException("Something gone wrong with $name loading. Exception: ${e::class.java.name}")
     }
 
 fun JcField.toJavaField(classLoader: ClassLoader): Field? =
-    enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
+    enclosingClass.toType().toJavaClass(classLoader, initialize = false).getFieldByName(name)
 
 val JcClassOrInterface.allDeclaredFields
     get(): List<JcField> {

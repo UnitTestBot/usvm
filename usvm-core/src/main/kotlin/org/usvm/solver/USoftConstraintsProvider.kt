@@ -204,15 +204,24 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         require(!isAllocatedConcreteHeapRef(arg)) {
             "Unexpected concrete address $arg in symbolic collection $expr"
         }
-        if (isStaticHeapRef(arg)) {
-            // Do not apply any soft constraints on static refs usages as they are actually concrete
-            return@computeSideEffect
+
+        val constraints = hashSetOf<UBoolExpr>()
+
+        // Do not apply any soft constraints on static refs usages as they are actually concrete
+        if (!isStaticHeapRef(arg)) {
+            constraints += provide(arg)
         }
 
-        val argConstraint = provide(arg)
-        val selfConstraint = expr.sort.accept(sortPreferredValuesProvider)(expr)
+        constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
 
-        caches[expr] = argConstraint + selfConstraint
+        // Avoid trivial cyclic references
+        with(ctx) {
+            if (expr.sort === addressSort && arg.sort === addressSort) {
+                constraints += mkNot(mkEq(arg.asExpr(addressSort), expr.asExpr(addressSort)))
+            }
+        }
+
+        caches[expr] = constraints
     }
 
     private fun <Sort : USort> readingWithTwoArgumentsTransform(
@@ -223,16 +232,30 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         require(!isAllocatedConcreteHeapRef(arg1)) {
             "Unexpected concrete address $arg1 in symbolic collection $expr"
         }
-        if (isStaticHeapRef(arg1)) {
-            // Do not apply any soft constraints on static refs usages as they are actually concrete
-            return@computeSideEffect
+
+        val constraints = hashSetOf<UBoolExpr>()
+
+        // Do not apply any soft constraints on static refs usages as they are actually concrete
+        if (!isStaticHeapRef(arg0)) {
+            constraints += provide(arg0)
         }
 
-        val constraints = mutableSetOf<UBoolExpr>()
+        if (!isStaticHeapRef(arg1)) {
+            constraints += provide(arg1)
+        }
 
-        constraints += provide(arg0)
-        constraints += provide(arg1)
         constraints += expr.sort.accept(sortPreferredValuesProvider)(expr)
+
+        // Avoid trivial cyclic references
+        with(ctx) {
+            if (expr.sort === addressSort && arg0.sort === addressSort) {
+                constraints += mkNot(mkEq(arg0.asExpr(addressSort), expr.asExpr(addressSort)))
+            }
+
+            if (expr.sort === addressSort && arg1.sort === addressSort) {
+                constraints += mkNot(mkEq(arg1.asExpr(addressSort), expr.asExpr(addressSort)))
+            }
+        }
 
         caches[expr] = constraints
     }

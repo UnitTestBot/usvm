@@ -6,7 +6,6 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcRawFieldRef
-import org.jacodb.api.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.enclosingClass
@@ -25,7 +24,7 @@ object JcInstructionTracer : Tracer<Trace> {
         val traceFromTraceCollector =
             TraceCollector.trace.allValues
         val trace = List(traceFromTraceCollector.size) { idx ->
-            decode(traceFromTraceCollector[idx])
+            decode(traceFromTraceCollector.arr[idx])
         }
         val statics = List(TraceCollector.statics.size) { idx ->
             decodeStatic(TraceCollector.statics.arr[idx])
@@ -36,7 +35,7 @@ object JcInstructionTracer : Tracer<Trace> {
     fun coveredInstructionsIds(): List<Long> {
         val traceFromTraceCollector =
             TraceCollector.trace.allValues
-        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector[idx] }
+        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector.arr[idx] }
     }
 
     fun getEncodedClasses() =
@@ -75,11 +74,15 @@ object JcInstructionTracer : Tracer<Trace> {
 
     private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
         val encodedClass = encodeClass(jcClass)
-        val methodIndex = jcClass.methods
-            .sortedBy { it.description }
-            .indexOf(jcMethod)
-            .also { if (it == -1) error("Encoding error") }
-        return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(methodIndex.toLong()) }
+
+        return encodedClass.encodedMethods.getOrPut(jcMethod) {
+            val methodIndex = jcClass.declaredMethods
+                .sortedBy { it.description }
+                .indexOf(jcMethod)
+                .also { if (it == -1) error("Encoding error") }
+
+            EncodedMethod(methodIndex.toLong())
+        }
     }
 
     fun encodeField(jcClass: JcClassOrInterface, jcField: JcField): EncodedField {

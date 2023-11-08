@@ -22,7 +22,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "d9d6f30985"
+val approximationsVersion = "bfce4eedde"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -110,6 +110,8 @@ tasks.withType<Test> {
 
     environment("usvm.jvm.test.samples", testSamples.asPath)
     environment("usvm.jvm.test.samples.approximations", testSamplesWithApproximations.asPath)
+
+    systemProperty("org.jacodb.impl.storage.defaultBatchSize", 2000)
 }
 
 

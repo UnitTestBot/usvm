@@ -64,6 +64,7 @@ internal class CompositionTest {
 
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
 
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
