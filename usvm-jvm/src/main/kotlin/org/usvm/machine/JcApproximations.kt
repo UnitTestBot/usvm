@@ -353,12 +353,9 @@ class JcMethodApproximationResolver(
 
     private fun approximateArrayClone(methodCall: JcMethodCall): Boolean {
         val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
-        if (instance !is UConcreteHeapRef) {
-            return false
-        }
 
         val arrayType = scope.calcOnState {
-            (memory.types.getTypeStream(instance).single())
+            memory.types.getTypeStream(instance).superType
         }
         if (arrayType !is JcArrayType) {
             return false
@@ -370,7 +367,7 @@ class JcMethodApproximationResolver(
 
     private fun JcExprResolver.resolveArrayClone(
         methodCall: JcMethodCall,
-        instance: UConcreteHeapRef,
+        instance: UHeapRef,
         arrayType: JcArrayType,
     ) = with(ctx) {
         scope.doWithState {
