@@ -9,17 +9,18 @@ fun UTestObjectDescriptor.getAllFields(): Set<Pair<JcField, UTestValueDescriptor
     val res = mutableSetOf<Pair<JcField, UTestValueDescriptor>>()
     val deque = dequeOf(fields.entries.map { it.key to it.value })
     while (deque.isNotEmpty()) {
-        val (field, value) = deque.removeFirst()
-        res.add(field to value)
-        when (value) {
+        val fieldToDescriptor = deque.removeFirst()
+        val fieldDescriptor = fieldToDescriptor.second
+        res.add(fieldToDescriptor)
+        when (fieldDescriptor) {
             is UTestEnumValueDescriptor -> {
-                if (!res.contains(field to value)) {
-                    deque.addAll(value.fields.entries.map { it.key to it.value })
+                if (!res.contains(fieldToDescriptor)) {
+                    deque.addAll(fieldDescriptor.fields.entries.map { it.key to it.value })
                 }
             }
             is UTestObjectDescriptor -> {
-                if (!res.contains(field to value)) {
-                    deque.addAll(value.fields.entries.map { it.key to it.value })
+                if (!res.contains(fieldToDescriptor)) {
+                    deque.addAll(fieldDescriptor.fields.entries.map { it.key to it.value })
                 }
             }
             else -> {}

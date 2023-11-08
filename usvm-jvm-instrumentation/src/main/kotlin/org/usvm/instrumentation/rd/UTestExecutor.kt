@@ -78,7 +78,11 @@ class UTestExecutor(
         executor.executeUTestInsts(initStmts)
             ?.onFailure {
                 return UTestExecutionInitFailedResult(
-                    cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
+                    cause = buildExceptionDescriptor(
+                        builder = initStateDescriptorBuilder,
+                        exception = it,
+                        raisedByUserCode = false
+                    ),
                     trace = JcInstructionTracer.getTrace().trace
                 )
             }
@@ -153,7 +157,7 @@ class UTestExecutor(
         exception: Throwable,
         raisedByUserCode: Boolean
     ): UTestExceptionDescriptor {
-        val descriptor = builder.buildDescriptorResultFromAny(exception, null).getOrNull() as? UTestExceptionDescriptor
+        val descriptor = builder.buildDescriptorResultFromAny(any = exception, type = null).getOrNull() as? UTestExceptionDescriptor
         return descriptor
             ?.also { it.raisedByUserCode = raisedByUserCode }
             ?: UTestExceptionDescriptor(
@@ -172,10 +176,10 @@ class UTestExecutor(
     ): UTestExecutionState = with(descriptorBuilder) {
         descriptorBuilder.uTestExecutorCache.addAll(executor.objectToInstructionsCache)
         val instanceDescriptor = callMethodExpr.instance?.let {
-            buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+            buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
         val argsDescriptors = callMethodExpr.args.map {
-            buildDescriptorFromUTestExpr(it, executor)?.getOrNull()
+            buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
         val isInit = descriptorBuilder.previousState == null
         val statics = if (isInit) {

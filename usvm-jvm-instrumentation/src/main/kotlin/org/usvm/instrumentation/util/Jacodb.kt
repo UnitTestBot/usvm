@@ -145,8 +145,7 @@ fun Constructor<*>.toJcdbSignature(): String {
 }
 
 private fun Array<Class<*>>.toJcdbFormat(): String =
-    if (isEmpty()) ""
-    else joinToString(";", postfix = ";") { it.typeName }
+    if (isEmpty()) "" else joinToString(";", postfix = ";") { it.typeName }
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
     toJcdbSignature() == jcMethod.jcdbSignature
