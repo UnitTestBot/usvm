@@ -1,14 +1,12 @@
 package org.usvm.samples.codegen
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
 
 @Suppress("INACCESSIBLE_TYPE")
-@Disabled("Expected exactly 2 executions, but 1 found. Fix inner classes")
 internal class ClassWithStaticAndInnerClassesTest : JavaMethodTestRunner() {
     @Test
     fun testUsePrivateStaticClassWithPrivateField() {
