@@ -8,7 +8,7 @@ import org.usvm.util.isException
 
 class CustomPredicateExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testNoCapturedValuesPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
@@ -20,7 +20,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCapturedLocalVariablePredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
@@ -32,7 +32,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCapturedParameterPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
@@ -44,7 +44,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCapturedStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
@@ -56,7 +56,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("TODO failed analysis of Integer constructor")
     fun testCapturedNonStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,
