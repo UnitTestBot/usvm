@@ -16,7 +16,7 @@ public class DoubleFunctions {
     }
 
     public double circleSquare(double r) {
-        // TODO || in if conditions still are not processed correctly
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
         if (r < 0) {
             throw new IllegalArgumentException();
         } else if (Double.isNaN(r)) {
