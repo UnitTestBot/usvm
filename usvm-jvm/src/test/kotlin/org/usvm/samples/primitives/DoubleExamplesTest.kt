@@ -1,7 +1,7 @@
 package org.usvm.samples.primitives
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -62,30 +62,32 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not enough time")
     fun testSimpleMul() {
-        checkDiscoveredProperties(
-            DoubleExamples::simpleMul,
-            ignoreNumberOfAnalysisResults,
-            { _, a, b, r -> (a * b).isNaN() && r == 0.0 },
-            { _, a, b, r -> a * b > 33.1 && a * b < 33.875 && r == 1.1 },
-            { _, a, b, r -> a * b >= 33.875 || a * b <= 33.1 && r == 1.2 }
-        )
+        withOptions(options.copy(solverType = SolverType.YICES)) {
+            checkDiscoveredProperties(
+                DoubleExamples::simpleMul,
+                ignoreNumberOfAnalysisResults,
+                { _, a, b, r -> (a * b).isNaN() && r == 0.0 },
+                { _, a, b, r -> a * b > 33.1 && a * b < 33.875 && r == 1.1 },
+                { _, a, b, r -> a * b >= 33.875 || a * b <= 33.1 && r == 1.2 }
+            )
+        }
     }
 
     @Test
-    @Disabled("Not enough time")
     fun testMul() {
-        checkDiscoveredProperties(
-            DoubleExamples::mul,
-            eq(6),
-            { _, a, b, r -> (a * b).isNaN() && r == 0.0 }, // 0 * inf || a == nan || b == nan
-            { _, a, b, r -> !(a * b > 33.32) && !(a * b > 33.333) && r == 1.3 }, // 1.3, 1-1 false, 2-1 false
-            { _, a, b, r -> a * b == 33.333 && r == 1.3 }, // 1.3, 1-1 true, 1-2 false, 2-1 false
-            { _, a, b, r -> a * b > 33.32 && a * b < 33.333 && r == 1.1 }, // 1.1, 1st true
-            { _, a, b, r -> a * b > 33.333 && a * b < 33.7592 && r == 1.2 }, // 1.2, 1st false, 2nd true
-            { _, a, b, r -> a * b >= 33.7592 && r == 1.3 } // 1.3, 1-1 false, 2-1 true, 2-2 false
-        )
+        withOptions(options.copy(solverType = SolverType.YICES)) {
+            checkDiscoveredProperties(
+                DoubleExamples::mul,
+                eq(6),
+                { _, a, b, r -> (a * b).isNaN() && r == 0.0 }, // 0 * inf || a == nan || b == nan
+                { _, a, b, r -> !(a * b > 33.32) && !(a * b > 33.333) && r == 1.3 }, // 1.3, 1-1 false, 2-1 false
+                { _, a, b, r -> a * b == 33.333 && r == 1.3 }, // 1.3, 1-1 true, 1-2 false, 2-1 false
+                { _, a, b, r -> a * b > 33.32 && a * b < 33.333 && r == 1.1 }, // 1.1, 1st true
+                { _, a, b, r -> a * b > 33.333 && a * b < 33.7592 && r == 1.2 }, // 1.2, 1st false, 2nd true
+                { _, a, b, r -> a * b >= 33.7592 && r == 1.3 } // 1.3, 1-1 false, 2-1 true, 2-2 false
+            )
+        }
     }
 
     @Test
@@ -118,14 +120,15 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not enough time")
     fun testSimpleNonLinearEquation() {
-        checkDiscoveredProperties(
-            DoubleExamples::simpleNonLinearEquation,
-            eq(2),
-            { _, x, r -> 3 * x - 9 == x + 3 && r == 0 },
-            { _, x, r -> 3 * x - 9 != x + 3 && r == 1 }
-        )
+        withOptions(options.copy(solverType = SolverType.YICES)) {
+            checkDiscoveredProperties(
+                DoubleExamples::simpleNonLinearEquation,
+                eq(2),
+                { _, x, r -> 3 * x - 9 == x + 3 && r == 0 },
+                { _, x, r -> 3 * x - 9 != x + 3 && r == 1 }
+            )
+        }
     }
 
     @Test

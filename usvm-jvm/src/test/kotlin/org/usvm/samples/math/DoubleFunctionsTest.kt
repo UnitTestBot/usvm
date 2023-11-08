@@ -2,6 +2,7 @@ package org.usvm.samples.math
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.SolverType
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -12,7 +13,7 @@ import kotlin.math.hypot
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleFunctionsTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 5 found")
+    @Disabled("TODO native java.lang.StrictMath::sqrt")
     fun testHypo() {
         checkDiscoveredProperties(
             DoubleFunctions::hypo,
@@ -31,18 +32,19 @@ internal class DoubleFunctionsTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test // todo: solver timout
-    @Disabled("Expected exactly 5 executions, but 4 found")
+    @Test
     fun testCircleSquare() {
-        checkDiscoveredPropertiesWithExceptions(
-            DoubleFunctions::circleSquare,
-            eq(5),
-            { _, radius, r -> radius < 0 && r.isException<IllegalArgumentException>() },
-            { _, radius, r -> radius > 10000 && r.isException<IllegalArgumentException>() },
-            { _, radius, r -> radius.isNaN() && r.isException<IllegalArgumentException>() },
-            { _, radius, r -> Math.PI * radius * radius <= 777.85 && r.getOrNull() == 0.0 },
-            { _, radius, r -> Math.PI * radius * radius > 777.85 && abs(777.85 - r.getOrNull()!!) >= 1e-5 }
-        )
+        withOptions(options.copy(solverType = SolverType.YICES)) { // Z3 is much slower than Yices in this test
+            checkDiscoveredPropertiesWithExceptions(
+                DoubleFunctions::circleSquare,
+                eq(5),
+                { _, radius, r -> radius < 0 && r.isException<IllegalArgumentException>() },
+                { _, radius, r -> radius > 10000 && r.isException<IllegalArgumentException>() },
+                { _, radius, r -> radius.isNaN() && r.isException<IllegalArgumentException>() },
+                { _, radius, r -> Math.PI * radius * radius <= 777.85 && r.getOrNull() == 0.0 },
+                { _, radius, r -> Math.PI * radius * radius > 777.85 && abs(777.85 - r.getOrNull()!!) >= 1e-5 }
+            )
+        }
     }
 
     @Test
