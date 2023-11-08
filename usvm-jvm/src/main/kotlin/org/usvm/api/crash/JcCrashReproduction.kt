@@ -9,6 +9,8 @@ import org.usvm.SolverType
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.RandomizedPriorityCollection
+import org.usvm.algorithms.UPriorityCollection
 import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.logger
@@ -31,6 +33,8 @@ import org.usvm.stopstrategies.TimeoutStopStrategy
 import org.usvm.targets.UProofObligation
 import org.usvm.util.log2
 import org.usvm.util.originalInst
+import java.util.IdentityHashMap
+import kotlin.random.Random
 import kotlin.time.Duration
 
 class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : UMachine<JcState>() {
@@ -154,7 +158,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         fun mergePobs(
             newPob: UPathConstraints<JcType>,
             levelPobs: MutableSet<UPathConstraints<JcType>>
-        ): UPathConstraints<JcType>{
+        ): UPathConstraints<JcType> {
             var result = newPob
             val removedPobs = mutableListOf<UPathConstraints<JcType>>()
             for (levelPob in levelPobs) {
@@ -289,7 +293,8 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
     private fun closestTargetPs(): UPathSelector<JcState> {
         val distanceCalculator = LevelTargetDistanceCalculator()
-        return DistancePathSelector(weighter = distanceCalculator::calculateDistance)
+//        return DistancePathSelector(weighter = distanceCalculator::calculateDistance)
+        return DistancePathSelectorWithLocalBuckets(weighter = distanceCalculator::calculateDistance)
     }
 
     private fun targetFrameDistance(statement: JcInst, target: JcInst): UInt {
@@ -297,7 +302,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         check(method == target.location.method) { "Non local distance" }
         val distance = cfgStatistics.getShortestDistance(method, statement, target)
         if (distance == UInt.MAX_VALUE) return distance
-        return distance * 64u
+        return distance * LOCAL_DISTANCE_SHIFT
     }
 
     private fun targetFrameDistanceAfterReturn(statement: JcInst, target: JcInst): UInt =
@@ -308,20 +313,24 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
     // todo: check call stacks (avoid recursion)
     private inner class LevelTargetDistanceCalculator {
-        fun calculateDistance(state: JcState): UInt {
-            val callStack = state.callStack
-            if (callStack.isEmpty()) return 1024u
+        fun calculateDistance(state: JcState): StateDistance {
+            if (state.callStack.isEmpty()) return StateDistance(1024u)
+            return calculateDistanceToLevelTarget(state)
+        }
 
+        private fun calculateDistanceToLevelTarget(state: JcState): StateDistance {
+            val callStack = state.callStack
             val targetLocation = state.levelTarget().location
             val currentStatement = state.currentStatement.originalInst()
 
             // todo: target is always on the first frame
             if (callStack.size == 1) {
-                return if (state.methodResult !is JcMethodResult.Success) {
+                val distance = if (state.methodResult !is JcMethodResult.Success) {
                     targetFrameDistance(currentStatement, targetLocation)
                 } else {
                     targetFrameDistanceAfterReturn(currentStatement, targetLocation)
                 }
+                return StateDistance(distance, distance / LOCAL_DISTANCE_SHIFT, currentStatement)
             }
 
 
@@ -334,23 +343,35 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
             var current = currentStatement
             for ((method, returnStatement) in callStack.asReversed().dropLast(1)) {
                 val distanceToExit = cfgStatistics.getShortestDistanceToExit(method, current)
-                if (distanceToExit == UInt.MAX_VALUE) return UInt.MAX_VALUE
+                if (distanceToExit == UInt.MAX_VALUE) return StateDistance(UInt.MAX_VALUE)
 
                 callStackDistance = callStackDistance * 2u + distanceToExit
                 current = returnStatement ?: error("No return statement")
             }
 
             val distanceToTarget = targetFrameDistanceAfterReturn(current, targetLocation)
-            if (distanceToTarget == UInt.MAX_VALUE) return UInt.MAX_VALUE
+            if (distanceToTarget == UInt.MAX_VALUE) return StateDistance(UInt.MAX_VALUE)
 
-            return distanceToTarget + log2(callStackDistance)
+            val distance = distanceToTarget + log2(callStackDistance)
+            return StateDistance(distance, distanceToTarget / LOCAL_DISTANCE_SHIFT, current)
         }
     }
 
+    data class StateDistance(
+        val distanceToTarget: UInt,
+        val localDistanceToTarget: UInt? = null,
+        val localInst: JcInst? = null
+    ) {
+        val isInfinite: Boolean
+            get() = distanceToTarget == UInt.MAX_VALUE
+    }
+
     class DistancePathSelector(
-        private val weighter: StateWeighter<JcState, UInt>
+        private val weighter: StateWeighter<JcState, StateDistance>
     ) : UPathSelector<JcState> {
-        private val priorityCollection = DeterministicPriorityCollection<JcState, UInt>(Comparator.naturalOrder())
+        private val priorityCollection = DeterministicPriorityCollection<JcState, StatePriority>(
+            compareBy<StatePriority> { it.distance }.thenBy { it.stateId }
+        )
 
         override fun isEmpty(): Boolean = priorityCollection.count == 0
 
@@ -358,21 +379,105 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         override fun update(state: JcState) {
             val weight = weighter.weight(state)
-            if (weight == UInt.MAX_VALUE) {
-                priorityCollection.remove(state)
+            if (weight.isInfinite) {
+                remove(state)
                 return
             }
-            priorityCollection.update(state, weight)
+
+            priorityCollection.update(state, StatePriority(weight.distanceToTarget, state.id))
         }
 
         override fun add(states: Collection<JcState>) {
             for (state in states) {
                 val weight = weighter.weight(state)
-                if (weight == UInt.MAX_VALUE) continue
-                priorityCollection.add(state, weight)
+                if (weight.isInfinite) continue
+
+                priorityCollection.add(state, StatePriority(weight.distanceToTarget, state.id))
             }
         }
 
         override fun remove(state: JcState) = priorityCollection.remove(state)
+
+        private data class StatePriority(
+            val distance: UInt,
+            val stateId: UInt
+        )
+    }
+
+    class DistancePathSelectorWithLocalBuckets(
+        private val weighter: StateWeighter<JcState, StateDistance>
+    ) : UPathSelector<JcState> {
+        private val random = Random(17)
+        private val stateBucketIds = IdentityHashMap<JcState, BucketId>()
+        private val bucketSelector = RandomizedPriorityCollection<BucketId>(
+            compareBy { it.hashCode() }
+        ) { random.nextDouble() }
+
+        private val stateDistances = IdentityHashMap<JcState, StateDistance>()
+        private val stateBuckets = hashMapOf<UInt, UPriorityCollection<JcState, JcState>>()
+        private fun getStateBucket(id: BucketId): UPriorityCollection<JcState, JcState> =
+            stateBuckets.getOrPut(id.id) {
+                DeterministicPriorityCollection(
+                    compareBy<JcState> { state ->
+                        val distance = stateDistances[state] ?: error("No distance")
+                        distance.distanceToTarget
+                    }.thenBy { state -> state.id }
+                )
+            }
+
+        private fun removeBucketIfEmpty(id: BucketId) {
+            val bucket = stateBuckets[id.id]
+            if (bucket?.count == 0) {
+                stateBuckets.remove(id.id)
+            }
+        }
+
+        override fun isEmpty(): Boolean = stateBuckets.isEmpty()
+
+        override fun peek(): JcState {
+            check(bucketSelector.count == stateBuckets.values.sumOf { it.count }) { "States count mismatch" }
+
+            val bucketId = bucketSelector.peek()
+            val bucket = getStateBucket(bucketId)
+            return bucket.peek()
+        }
+
+        override fun add(states: Collection<JcState>) {
+            for (state in states) {
+                val weight = weighter.weight(state)
+                if (weight.isInfinite) continue
+
+                val localDistance = weight.localDistanceToTarget ?: UInt.MAX_VALUE
+                val bucketId = BucketId(localDistance)
+                stateBucketIds[state] = bucketId
+                bucketSelector.add(bucketId, 1 / localDistance.coerceAtLeast(1u).toDouble())
+
+                stateDistances[state] = weight
+                val bucket = getStateBucket(bucketId)
+                bucket.add(state, state)
+            }
+        }
+
+        override fun remove(state: JcState) {
+            val bucketId = stateBucketIds.remove(state) ?: error("No bucket id")
+            bucketSelector.remove(bucketId)
+
+            val bucket = getStateBucket(bucketId)
+            bucket.remove(state)
+            stateDistances.remove(state)
+
+            removeBucketIfEmpty(bucketId)
+        }
+
+        private class BucketId(val id: UInt)
+
+        override fun update(state: JcState) {
+            remove(state)
+            add(listOf(state))
+        }
+    }
+
+    companion object {
+        private const val LOCAL_DISTANCE_SHIFT = 64u
     }
 }
