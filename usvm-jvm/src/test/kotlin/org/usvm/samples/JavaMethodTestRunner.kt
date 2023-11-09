@@ -3,30 +3,29 @@ package org.usvm.samples
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
-import org.usvm.CoverageZone
-import org.usvm.PathSelectionStrategy
-import org.usvm.UMachineOptions
+import org.junit.jupiter.api.extension.ExtendWith
+import org.usvm.*
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.targets.JcTarget
-import org.usvm.api.util.JcTestResolver
+import org.usvm.api.util.JcTestInterpreter
 import org.usvm.machine.JcInterpreterObserver
+import org.usvm.util.JcTestExecutor
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.util.declaringClass
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
+import org.usvm.util.JcTestResolverType
+import org.usvm.util.TestResolvingOptions
+import org.usvm.util.UTestRunnerController
+import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaMethod
 
 
+@ExtendWith(UTestRunnerController::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, JcClassCoverage>() {
 
@@ -738,7 +737,11 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected open val jacodbCpKey = samplesKey
     protected val cp = JacoDBContainer(jacodbCpKey).cp
 
-    private val testResolver = JcTestResolver()
+    private val testResolver =
+        when (TestResolvingOptions.resolverType) {
+            JcTestResolverType.INTERPRETER -> JcTestInterpreter()
+            JcTestResolverType.CONCRETE_EXECUTOR -> JcTestExecutor(classpath = cp)
+        }
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
 
@@ -775,3 +778,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 }
+
+private val KFunction<*>.declaringClass: Class<*>?
+    get() = (javaMethod ?: javaConstructor)?.declaringClass

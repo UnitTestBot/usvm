@@ -25,6 +25,7 @@ class TestLoanExam : JavaMethodTestRunner() {
             )
         ]
     )
+
     fun `Test getCreditPercent`(options: UMachineOptions) {
         withOptions(options) {
             checkDiscoveredPropertiesWithExceptions(
