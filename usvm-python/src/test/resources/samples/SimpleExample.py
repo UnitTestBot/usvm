@@ -148,3 +148,11 @@ def is_none(x):
 
 def is_not_none(x):
     assert x is not None
+
+
+def f_with_default(x, y=1):
+    return x + y
+
+
+def call_with_default(x):
+    assert f_with_default(x) == 10

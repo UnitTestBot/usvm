@@ -247,4 +247,18 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             )
         )
     }
+
+    @Test
+    fun testCallWithDefault() {
+        check1WithConcreteRun(
+            constructFunction("call_with_default", listOf(typeSystem.pythonInt)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> res.repr == "None" && x.repr == "9" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
