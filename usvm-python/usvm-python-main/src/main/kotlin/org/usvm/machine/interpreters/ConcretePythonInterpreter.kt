@@ -23,6 +23,8 @@ object ConcretePythonInterpreter {
         return PythonNamespace(result)
     }
 
+    fun pythonExceptionOccurred(): Boolean = CPythonAdapter.pythonExceptionOccurred() != 0
+
     fun addObjectToNamespace(namespace: PythonNamespace, pythonObject: PythonObject, name: String) {
         pythonAdapter.addName(namespace.address, pythonObject.address, name)
     }

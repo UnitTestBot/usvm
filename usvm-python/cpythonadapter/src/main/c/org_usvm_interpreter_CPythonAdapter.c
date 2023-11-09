@@ -97,6 +97,10 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(J
     SET_BOOLEAN_FIELD("isInitialized", JNI_FALSE)
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_pythonExceptionOccurred(JNIEnv *env, jclass _) {
+    return PyErr_Occurred();
+}
+
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace(JNIEnv *env, jobject cpython_adapter) {
     return (jlong) PyDict_New();
 }

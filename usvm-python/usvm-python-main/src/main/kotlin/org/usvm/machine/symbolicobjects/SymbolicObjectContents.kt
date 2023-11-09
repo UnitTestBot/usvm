@@ -8,6 +8,7 @@ import io.ksmt.sort.KRealSort
 import org.usvm.*
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.writeField
@@ -31,6 +32,16 @@ fun UninterpretedSymbolicPythonObject.getFieldValue(
     name.addSupertype(ctx, typeSystem.pythonStr)
     val addr = ctx.curState!!.symbolicObjectMapGet(address, name.address, ObjectDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(addr, typeSystem)
+}
+
+fun UninterpretedSymbolicPythonObject.setFieldValue(
+    ctx: ConcolicRunContext,
+    name: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    require(ctx.curState != null)
+    name.addSupertypeSoft(ctx, typeSystem.pythonStr)
+    ctx.curState!!.symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
 }
 
 fun UninterpretedSymbolicPythonObject.containsField(

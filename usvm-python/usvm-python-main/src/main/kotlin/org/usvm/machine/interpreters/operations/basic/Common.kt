@@ -141,6 +141,22 @@ fun handlerStandardTpGetattroKt(
     return SymbolForCPython(obj.getFieldValue(ctx, name), 0)
 }
 
+fun handlerStandardTpSetattroKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+    name: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return
+    val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return
+    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
+        return
+    if (ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) != null)
+        return
+    obj.setFieldValue(ctx, name, value)
+}
+
 fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null

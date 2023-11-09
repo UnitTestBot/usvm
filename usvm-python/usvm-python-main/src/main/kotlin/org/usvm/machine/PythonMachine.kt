@@ -5,6 +5,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
+import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
@@ -23,6 +24,7 @@ class PythonMachine(
     private val printErrorMsg: Boolean = false
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
+
     // private val random = Random(0)
     val statistics = PythonMachineStatistics()
 
@@ -103,38 +105,43 @@ class PythonMachine(
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
         timeoutPerRunMs: Long? = null
-    ): Int = program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
-        typeSystem.restart()
-        val observer = PythonMachineObserver()
-        val iterationCounter = IterationCounter()
-        val startTime = System.currentTimeMillis()
-        val stopTime = timeoutMs?.let { startTime + it }
-        val interpreter = getInterpreter(
-            pythonCallable,
-            pinnedCallable,
-            saver,
-            allowPathDiversion,
-            iterationCounter,
-            maxInstructions
-        ) { startIterationTime ->
-            (timeoutPerRunMs?.let {(System.currentTimeMillis() - startIterationTime) >= it} ?: false) ||
-                    (stopTime != null && System.currentTimeMillis() >= stopTime)
+    ): Int {
+        if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
+            typeSystem.resortTypes(pythonCallable.module)
         }
-        val pathSelector = getPathSelector(pythonCallable)
-        run(
-            interpreter,
-            pathSelector,
-            observer = observer,
-            isStateTerminated = { !it.isInterestingForPathSelector() },
-            stopStrategy = {
-                observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations ||
+        return program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
+            typeSystem.restart()
+            val observer = PythonMachineObserver()
+            val iterationCounter = IterationCounter()
+            val startTime = System.currentTimeMillis()
+            val stopTime = timeoutMs?.let { startTime + it }
+            val interpreter = getInterpreter(
+                pythonCallable,
+                pinnedCallable,
+                saver,
+                allowPathDiversion,
+                iterationCounter,
+                maxInstructions
+            ) { startIterationTime ->
+                (timeoutPerRunMs?.let { (System.currentTimeMillis() - startIterationTime) >= it } ?: false) ||
                         (stopTime != null && System.currentTimeMillis() >= stopTime)
             }
-        )
-        iterationCounter.iterations
-    }.also {
-        ConcretePythonInterpreter.restart()
-        ctx.restartSolver()
+            val pathSelector = getPathSelector(pythonCallable)
+            run(
+                interpreter,
+                pathSelector,
+                observer = observer,
+                isStateTerminated = { !it.isInterestingForPathSelector() },
+                stopStrategy = {
+                    observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations ||
+                            (stopTime != null && System.currentTimeMillis() >= stopTime)
+                }
+            )
+            iterationCounter.iterations
+        }.also {
+            ConcretePythonInterpreter.restart()
+            ctx.restartSolver()
+        }
     }
 
     override fun close() {

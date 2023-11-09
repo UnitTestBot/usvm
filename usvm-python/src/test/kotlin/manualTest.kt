@@ -83,7 +83,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "segment_tree_other")
     //    return null
-    //if (name != "MyQueue.push")
+    //if (name != "BinarySearchTree._reassign_nodes")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
