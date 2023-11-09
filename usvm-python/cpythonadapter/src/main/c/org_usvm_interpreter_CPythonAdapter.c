@@ -229,6 +229,7 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_concolicRun(
     adapter->approximate_pycfunction_call = handler_approximate_pycfunction_call;
     adapter->extract_symbolic_self_from_pycfunction = handler_extract_self_from_method;
     adapter->extract_self_from_method = handler_extract_self_from_method;
+    adapter->approximate_type_call = handler_approximate_type_call;
     register_approximations(adapter);
 
     construct_args_for_symbolic_adapter(adapter, &ctx, &concrete_args, &virtual_args, &symbolic_args, &args);

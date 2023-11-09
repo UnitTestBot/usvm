@@ -114,6 +114,7 @@ library {
         compileTask.includes.from(adapterHeaderPath)
         compileTask.includes.from("src/main/c/include")
         compileTask.source.from(fileTree("src/main/c"))
+        compileTask.source.from(fileTree(adapterHeaderPath).filter { it.name.endsWith(".c") })
         if (!isWindows) {
             compileTask.includes.from("$cpythonBuildPath/include/python3.11")
             compileTask.compilerArgs.addAll(listOf("-x", "c", "-std=c11", "-L$cpythonBuildPath/lib", "-lpython3.11", "-Werror", "-Wall"))

@@ -18,6 +18,7 @@ data class Unpack(val iterable: SymbolForCPython, val count: Int): SymbolicHandl
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class TupleCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class EmptyObjectCreation(val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodParameters(
     val name: String,
     val operands: List<SymbolForCPython>

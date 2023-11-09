@@ -1,6 +1,8 @@
 #include "manual_handlers.h"
 #include "symbolic_methods.h"
 
+#include "CPythonFunctions.h"  // generated
+
 #include "approximation_defs.h"
 
 static SymbolicMethod *
@@ -43,4 +45,36 @@ handler_extract_self_from_method(void *ctx_raw, PyObject *callable) {
     if (!method || !method->self_reference)
         return Py_None;
     return wrap_java_object(ctx->env, method->self_reference);
+}
+
+PyObject *
+handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *type_raw, PyObject *args, PyObject *kwargs) {
+    assert(PyType_Check(type_raw));
+    assert(args && PyTuple_Check(args));
+    ConcolicContext *ctx = (ConcolicContext *) ctx_raw;
+    SymbolicAdapter *adapter = ctx->adapter;
+    PyTypeObject *type = (PyTypeObject *) type_raw;
+    if (type->tp_init == EXPORT_OBJECT_INIT && !kwargs && PyTuple_Size(args) == 0) {
+        PyObject *symbolic_obj = create_empty_object(ctx_raw, type_raw);
+        PyObject *concrete_obj = PyBaseObject_Type.tp_new(type, args, 0);
+        *approximated = 1;
+        return wrap(concrete_obj, symbolic_obj, adapter);
+    } else if (type->tp_init == EXPORT_SLOT_INIT) {
+        PyObject *descr = _PyType_Lookup(type, PyUnicode_FromString("__init__"));
+        if (descr && PyFunction_Check(descr)) {
+            PyObject *symbolic_obj = create_empty_object(ctx_raw, type_raw);
+            PyObject *concrete_obj = PyBaseObject_Type.tp_new(type, args, 0);
+            PyObject *self = wrap(concrete_obj, symbolic_obj, adapter);
+            PyObject *new_args = PySequence_Concat(PyTuple_Pack(1, self), args);
+            int r = register_symbolic_tracing(descr, adapter);
+            assert(!r);
+            *approximated = 1;
+            PyObject *init_res = PyFunction_Type.tp_call(descr, new_args, kwargs);
+            if (!init_res)
+                return 0;
+            return self;
+        }
+    }
+    *approximated = 0;
+    return Py_None;
 }

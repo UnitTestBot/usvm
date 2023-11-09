@@ -22,11 +22,16 @@ class CPythonFunctionProcessor: AbstractProcessor() {
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val descriptions = getDescriptions(annotatedElements)
-        val code = generateCPythonFunctions(descriptions)
+        val headerName = "CPythonFunctions.h"
+        val implCode = generateCPythonFunctionsImpls(descriptions, headerName)
+        val headerCode = generateCPythonFunctionHeader(descriptions)
         val headerPath = getHeaderPath(processingEnv)
-        val file = File(headerPath, "CPythonFunctions.h")
-        file.writeText(code)
-        file.createNewFile()
+        val headerFile = File(headerPath, headerName)
+        headerFile.writeText(headerCode)
+        headerFile.createNewFile()
+        val implFile = File(headerPath, "CPythonFunctions.c")
+        implFile.writeText(implCode)
+        implFile.createNewFile()
         return true
     }
 
