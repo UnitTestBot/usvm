@@ -33,6 +33,14 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    pythonExceptionOccurred
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_pythonExceptionOccurred
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    getNewNamespace
  * Signature: ()J
  */

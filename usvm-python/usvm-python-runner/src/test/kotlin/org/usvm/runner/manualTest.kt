@@ -8,7 +8,7 @@ fun main() {
     val layout = TestingLayout(basePath) // StandardLayout(File(basePath, "build/distributions/usvm-python"))
     val mypyDir = File(basePath, "build/samples_build")
     val root = File(basePath, "src/test/resources/samples")
-    val venvConfig = extractVenvConfig("/home/tochilinak/sample_venv/bin/python")
+    val venvConfig = null // extractVenvConfig("/home/tochilinak/sample_venv/bin/python")
     val config = USVMPythonConfig(
         layout,
         "java",

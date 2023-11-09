@@ -1,5 +1,6 @@
 package org.usvm.language.types
 
+import org.utbot.python.newtyping.PythonSubtypeChecker
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.general.getBoundedParameters
@@ -32,9 +33,9 @@ fun getTypeFromTypeHint(
         typeSystem.pythonFloat
     } else if (typesAreEqual(hintAfterSubstitution, storage.pythonBool)) {
         typeSystem.pythonBool
-    } else if (typesAreEqual(hintAfterSubstitution, substitutedList)) {
+    } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedList, hintAfterSubstitution, storage)) {
         typeSystem.pythonList
-    } else if (typesAreEqual(hintAfterSubstitution, substitutedTuple)) {
+    } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedTuple, hintAfterSubstitution, storage)) {
         typeSystem.pythonTuple
     } else {
         PythonAnyType

@@ -16,11 +16,12 @@ private fun <RES_SORT: KSort> createBinaryIntOp(
         null
     else with (ctx.ctx) {
         val typeSystem = ctx.typeSystem
-        val possibleTypes = listOf(typeSystem.pythonInt, typeSystem.pythonBool)
-        addPossibleSupertypes(ctx, listOf(left, right), possibleTypes)
-        myAssert(ctx, ctx.ctx.mkHeapRefEq(left.address, ctx.ctx.nullRef).not())
-        if (ctx.modelHolder.model.eval(left.address) == ctx.modelHolder.model.eval(ctx.ctx.nullRef)) {
-            println()
+        // val possibleTypes = listOf(typeSystem.pythonInt, typeSystem.pythonBool)
+        // addPossibleSupertypes(ctx, listOf(left, right), possibleTypes)
+        if (left.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
+            myFork(ctx, left.evalIs(ctx, typeSystem.pythonInt))
+        } else {
+            myAssert(ctx, left.evalIs(ctx, typeSystem.pythonInt))
         }
         op(
             ctx,

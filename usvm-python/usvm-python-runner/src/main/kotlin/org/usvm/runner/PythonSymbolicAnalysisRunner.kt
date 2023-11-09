@@ -55,6 +55,8 @@ class PythonSymbolicAnalysisRunnerImpl(
                 }
             } catch (_: ClosedChannelException) {
                 logger.info("Interrupted usvm-python channel")
+            } catch (_: InterruptedException) {
+                logger.info("Interrupted usvm-python thread")
             }
         }
     }

@@ -15,6 +15,7 @@ abstract class VirtualPythonType: PythonType() {
 sealed class ConcretePythonType(
     val owner: PythonTypeSystem,
     val typeName: String,
+    val typeModule: String?,
     val isHidden: Boolean = false,
     val addressGetter: () -> PythonObject
 ): PythonType() {
@@ -29,13 +30,14 @@ sealed class ConcretePythonType(
 class PrimitiveConcretePythonType(
     owner: PythonTypeSystem,
     typeName: String,
+    typeModule: String?,
     isHidden: Boolean = false,
     addressGetter: () -> PythonObject
-): ConcretePythonType(owner, typeName, isHidden, addressGetter)
+): ConcretePythonType(owner, typeName, typeModule, isHidden, addressGetter)
 
 class ArrayLikeConcretePythonType(
     val elementConstraints: Set<ElementConstraint>,
     owner: PythonTypeSystem,
     typeName: String,
     addressGetter: () -> PythonObject
-): ConcretePythonType(owner, typeName, false, addressGetter)
+): ConcretePythonType(owner, typeName, null, false, addressGetter)
