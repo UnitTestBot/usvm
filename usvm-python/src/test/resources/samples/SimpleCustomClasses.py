@@ -67,10 +67,13 @@ class MyDataClass:
     root: int = 239
 
 
-def use_dataclass(x: int, y: int):
+def use_dataclass(x: int, y: int, z: int):
     obj = MyDataClass(x)
     if obj.data == 1:
         return 1
     if obj.root == y:
         return 2
-    return 3
+    obj.root += 100
+    if obj.root == z:
+        return 3
+    return 4

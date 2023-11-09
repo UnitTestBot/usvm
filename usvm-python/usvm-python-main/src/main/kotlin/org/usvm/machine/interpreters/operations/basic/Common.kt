@@ -125,14 +125,22 @@ fun handlerStandardTpGetattroKt(
     val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
+    var defaultValue: UninterpretedSymbolicPythonObject? = null
     if (concreteDescriptor != null) {
-        val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
-        return memberDescriptor.getMember(ctx, obj)
+        val typeOfDescriptor = ConcretePythonInterpreter.getPythonObjectType(concreteDescriptor)
+        if (ConcretePythonInterpreter.typeHasTpDescrGet(typeOfDescriptor)) {
+            val memberDescriptor = ConcretePythonInterpreter.getSymbolicDescriptor(concreteDescriptor) ?: return null
+            return memberDescriptor.getMember(ctx, obj)
+        } else {
+            defaultValue = handlerLoadConstKt(ctx, concreteDescriptor)
+        }
     }
     if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
         return null
     val containsFieldCond = obj.containsField(ctx, name)
     if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
+        if (defaultValue != null)
+            return SymbolForCPython(defaultValue, 0)
         myFork(ctx, containsFieldCond)
         return null
     } else {
@@ -152,8 +160,12 @@ fun handlerStandardTpSetattroKt(
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return
     if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
         return
-    if (ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr) != null)
-        return
+    val descriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
+    if (descriptor != null) {
+        val descrType = ConcretePythonInterpreter.getPythonObjectType(descriptor)
+        if (ConcretePythonInterpreter.typeHasTpDescrSet(descrType))
+            return
+    }
     obj.setFieldValue(ctx, name, value)
 }
 
