@@ -98,7 +98,7 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(J
 }
 
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_pythonExceptionOccurred(JNIEnv *env, jclass _) {
-    return PyErr_Occurred();
+    return PyErr_Occurred() != 0;
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getNewNamespace(JNIEnv *env, jobject cpython_adapter) {
