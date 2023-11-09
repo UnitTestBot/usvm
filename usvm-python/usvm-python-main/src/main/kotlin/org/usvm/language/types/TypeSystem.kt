@@ -64,10 +64,16 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         concreteTypeToAddress[type] = address
         ConcretePythonInterpreter.incref(address)
     }
-    protected fun addPrimitiveType(isHidden: Boolean, getter: () -> PythonObject): ConcretePythonType {
+    protected fun addPrimitiveType(isHidden: Boolean, module: String?, getter: () -> PythonObject): ConcretePythonType {
         val address = getter()
         require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
-        val type = PrimitiveConcretePythonType(this, ConcretePythonInterpreter.getNameOfPythonType(address), isHidden, getter)
+        val type = PrimitiveConcretePythonType(
+            this,
+            ConcretePythonInterpreter.getNameOfPythonType(address),
+            module,
+            isHidden,
+            getter
+        )
         addType(type, address)
         return type
     }
@@ -105,7 +111,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     private fun createConcreteTypeByName(name: String, isHidden: Boolean = false): ConcretePythonType =
-        addPrimitiveType(isHidden) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+        addPrimitiveType(isHidden, null) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
 
     private fun createArrayLikeTypeByName(name: String, constraints: Set<ElementConstraint>): ArrayLikeConcretePythonType =
         addArrayLikeType(constraints) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
@@ -169,6 +175,16 @@ class PythonTypeSystemWithMypyInfo(
         return concreteTypeOfUtType[wrappedType]
     }
 
+    fun resortTypes(module: String) {
+        allConcreteTypes = allConcreteTypes.sortedBy {
+            when (it.typeModule) {
+                null -> 0
+                module -> 1
+                else -> 2
+            }
+        }
+    }
+
     init {
         withAdditionalPaths(program.additionalPaths, null) {
             allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utTypeRaw ->
@@ -176,8 +192,9 @@ class PythonTypeSystemWithMypyInfo(
                     utTypeRaw,
                     utTypeRaw.getBoundedParameters().map { pythonAnyType }
                 )
+                val moduleName = utType.pythonModuleName()
                 val refGetter = {
-                    val namespace = program.getNamespaceOfModule(utType.pythonModuleName())
+                    val namespace = program.getNamespaceOfModule(moduleName)
                         ?: throw CPythonExecutionException()
                     ConcretePythonInterpreter.eval(namespace, utType.pythonName())
                 }
@@ -194,7 +211,7 @@ class PythonTypeSystemWithMypyInfo(
                     return@mapNotNull null
                 }
 
-                addPrimitiveType(isHidden = false, refGetter).also { concreteType ->
+                addPrimitiveType(isHidden = false, module = moduleName, refGetter).also { concreteType ->
                     utTypeOfConcretePythonType[concreteType] = utType
                     concreteTypeOfUtType[PythonTypeWrapperForEqualityCheck(utType)] = concreteType
                 }

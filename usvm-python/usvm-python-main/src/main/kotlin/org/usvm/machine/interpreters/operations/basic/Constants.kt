@@ -5,8 +5,10 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.*
 
-fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? =
-    when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
+fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+    if (ConcretePythonInterpreter.pythonExceptionOccurred())
+        return null
+    return when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
         "int" -> handlerLoadConstLongKt(context, value)
         "bool" -> handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
         "NoneType" -> context.curState?.preAllocatedObjects?.noneObject
@@ -17,10 +19,12 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): Uninte
             }
             handlerLoadConstTupleKt(context, symbolicElements)
         }
+
         "str" -> handlerLoadConstStrKt(context, value)
         "float" -> handlerLoadConstFloatKt(context, value)
         else -> null
     }
+}
 
 fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)

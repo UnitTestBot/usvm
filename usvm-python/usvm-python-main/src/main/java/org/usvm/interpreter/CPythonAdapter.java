@@ -52,6 +52,7 @@ public class CPythonAdapter {
     public native void initializePython(String pythonHome);
     public native void initializeSpecialApproximations();
     public native void finalizePython();
+    public static native int pythonExceptionOccurred();
     public native long getNewNamespace();  // returns reference to a new dict
     public native void addName(long dict, long object, String name);
     public native int concreteRun(long globals, String code, boolean printErrorMessage, boolean setHook);  // returns 0 on success
@@ -110,6 +111,8 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.FrameConverter}
     )
     public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
+        if (pythonExceptionOccurred() != 0)
+            return;
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
         long codeRef = getCodeFromFrame(frameRef);
@@ -920,6 +923,7 @@ public class CPythonAdapter {
         return virtualCallKt(context).getAddress();
     }
 
+
     @CPythonAdapterJavaMethod(cName = "lost_symbolic_value")
     @CPythonFunction(
             argCTypes = {CType.CStr},
@@ -938,6 +942,17 @@ public class CPythonAdapter {
         if (obj.obj == null || name.obj == null)
             return null;
         return withTracing(context, new MethodParameters("tp_getattro", Arrays.asList(obj, name)), () -> handlerStandardTpGetattroKt(context, obj.obj, name.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "standard_tp_setattro")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void handlerStandardTpSetattro(ConcolicRunContext context, SymbolForCPython obj, SymbolForCPython name, SymbolForCPython value) {
+        if (obj.obj == null || name.obj == null || value.obj == null)
+            return;
+        withTracing(context, new MethodParametersNoReturn("tp_setattro", Arrays.asList(obj, name, value)), unit(() -> handlerStandardTpSetattroKt(context, obj.obj, name.obj, value.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_int")
