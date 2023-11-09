@@ -46,7 +46,7 @@ data class CPythonFunctionDescription(
     val addToSymbolicAdapter: Boolean
 )
 
-fun generateCPythonFunction(description: CPythonFunctionDescription): String {
+fun generateCPythonFunction(description: CPythonFunctionDescription): Pair<String, String> {
     val cName = description.cName
     val numberOfArgs = description.args.size
     val defaultValue = description.defaultValue
@@ -72,8 +72,8 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): String {
             "return $returnConverter(ctx, java_return);"
     val cReturnType = description.result.cType.repr
     val failValue = description.failValue
-    return """
-        static $cReturnType
+    val implementation = """
+        $cReturnType
         $cName(${(listOf("void *arg") + cArgs).joinToString(", ")}) {
             // printf("INSIDE $cName!\n"); fflush(stdout);
             ConcolicContext *ctx = (ConcolicContext *) arg;
@@ -85,19 +85,36 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): String {
             $returnStmt
         }
     """.trimIndent()
+    val header = "$cReturnType $cName(${(listOf("void *arg") + cArgs).joinToString(", ")});"
+
+    return implementation to header
 }
 
-fun generateCPythonFunctions(descriptions: List<CPythonFunctionDescription>): String {
-    val functions = descriptions.map(::generateCPythonFunction)
+fun generateCPythonFunctionsImpls(descriptions: List<CPythonFunctionDescription>, headerName: String): String {
+    val header = """
+        #include "$headerName"
+    """.trimIndent()
+    val functions = descriptions.map { generateCPythonFunction(it).first }
     val registrations = descriptions.filter { it.addToSymbolicAdapter }.joinToString(separator = " ") {
         val name = it.cName
         "adapter->$name = $name;"
     }
     val registration = """
-        static void
+        void
         REGISTER_ADAPTER_METHODS(SymbolicAdapter *adapter) {
             $registrations
         }
     """.trimIndent()
-    return functions.joinToString("\n\n") + "\n\n" + registration
+    return header + "\n\n" + functions.joinToString("\n\n") + "\n\n" + registration
+}
+
+fun generateCPythonFunctionHeader(descriptions: List<CPythonFunctionDescription>): String {
+    val header = """
+        #include <jni.h>
+        #include "Python.h"
+        #include "converters.h"
+    """.trimIndent()
+    val functions = descriptions.map { generateCPythonFunction(it).second }
+    val registration = "void REGISTER_ADAPTER_METHODS(SymbolicAdapter *adapter);"
+    return header + "\n\n" + functions.joinToString("\n\n") + "\n\n" + registration
 }
