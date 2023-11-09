@@ -955,6 +955,17 @@ public class CPythonAdapter {
         withTracing(context, new MethodParametersNoReturn("tp_setattro", Arrays.asList(obj, name, value)), unit(() -> handlerStandardTpSetattroKt(context, obj.obj, name.obj, value.obj)));
     }
 
+    @CPythonAdapterJavaMethod(cName = "create_empty_object")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.RefConverter},
+            addToSymbolicAdapter = false
+    )
+    public static SymbolForCPython handlerCreateEmptyObject(ConcolicRunContext context, long type_ref) {
+        PythonObject ref = new PythonObject(type_ref);
+        return methodWrapper(context, new EmptyObjectCreation(ref), () -> handlerCreateEmptyObjectKt(context, ref));
+    }
+
     @CPythonAdapterJavaMethod(cName = "symbolic_method_int")
     @SymbolicMethod(id = SymbolicMethodId.Int)
     public static SymbolForCPython symbolicMethodInt(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {

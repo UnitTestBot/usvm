@@ -26,7 +26,7 @@ fun generateSymbolicMethod(id: SymbolicMethodId): String {
         "Py_None",
         addToSymbolicAdapter = false
     )
-    return generateCPythonFunction(cpythonFunctionInfo)
+    return "static " + generateCPythonFunction(cpythonFunctionInfo).first
 }
 
 fun generateSymbolicMethodInitialization(): String {
