@@ -87,6 +87,8 @@ public class CPythonAdapter {
     public native int typeHasTpGetattro(long type);
     public native int typeHasTpSetattro(long type);
     public native int typeHasTpIter(long type);
+    public native int typeHasTpDescrGet(long type);
+    public native int typeHasTpDescrSet(long type);
     public native int typeHasStandardNew(long type);
     public native long callStandardNew(long type);
     public native int typeHasStandardTpGetattro(long type);

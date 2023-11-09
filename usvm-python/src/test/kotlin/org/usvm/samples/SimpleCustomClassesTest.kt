@@ -83,4 +83,17 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
             )
         )
     }
+
+    @Test
+    fun testUseDataclass() {
+        check3WithConcreteRun(
+            constructFunction("use_dataclass", List(3) { typeSystem.pythonInt }),
+            eq(4),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ List(4) {
+                { _, _, _, res -> res.repr == (it + 1).toString() }
+            }
+        )
+    }
 }
