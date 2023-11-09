@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 class TrickyExamplesTest: PythonTestRunnerForStructuredProgram(
     "Tricky",
-    UMachineOptions(stepLimit = 80U),
+    UMachineOptions(stepLimit = 150U),
     allowPathDiversions = true
 ) {
     @Test
