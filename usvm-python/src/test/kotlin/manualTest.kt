@@ -31,34 +31,29 @@ fun main() {
         binPath = File("/home/tochilinak/sample_venv/bin")
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
+    val int = ConcretePythonInterpreter.eval(ConcretePythonInterpreter.emptyNamespace, "int")
+    println(ConcretePythonInterpreter.typeHasStandardTpGetattro(int))
     // ConcretePythonInterpreter.printIdInfo()
     // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
-    analyze(config)
+    // val config = buildSampleRunConfig()
+    // analyze(config)
     // checkConcolicAndConcrete(config)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructPrimitiveProgram(
+    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
         """
             def list_concat(x):
                 y = x + [1]
                 if len(y[::-1]) == 5:
                     return 1
                 return 2
-
-            def f(x, y=1):
-                return x + y
-            
-            def g(x):
-                a = f(x)
-                assert a == 10
-
         """.trimIndent()
-    )
+    )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt),
-        "g",
+        listOf(typeSystem.pythonInt, typeSystem.pythonInt),
+        "use_dataclass",
+        "SimpleCustomClasses"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -83,7 +78,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "segment_tree_other")
     //    return null
-    //if (name != "BinarySearchTree._reassign_nodes")
+    // if (name != "viterbi")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
@@ -190,6 +185,7 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
 private fun analyze(runConfig: RunConfig) {
     val (program, typeSystem, functions) = runConfig
     val machine = PythonMachine(program, typeSystem, printErrorMsg = false)
+    val emptyCoverage = mutableListOf<String>()
     machine.use { activeMachine ->
         functions.forEach { f ->
             println("Started analysing function ${f.tag}")
@@ -215,6 +211,9 @@ private fun analyze(runConfig: RunConfig) {
                     }
                     println()
                 }
+                if (machine.statistics.functionStatistics.last().coverage == 0.0) {
+                    emptyCoverage.add(f.tag)
+                }
                 println("Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
                 println("FUNCTION STATISTICS")
                 println(machine.statistics.functionStatistics.last().writeReport())
@@ -226,6 +225,9 @@ private fun analyze(runConfig: RunConfig) {
         println("GENERAL STATISTICS")
         println(machine.statistics.writeReport())
     }
+    println()
+    println("Empty coverage for:")
+    emptyCoverage.forEach { println(it) }
 }
 
 private data class RunConfig(

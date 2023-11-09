@@ -43,3 +43,18 @@ def call_of_slot_constructor(x: int, y: int):
 def call_of_slot_constructor_with_named_args(x: int, y: int):
     p = Point(y=y, x=x)
     return p.get_info()
+
+
+class ClassWithDefaultValues:
+    def __init__(self, a, b=1):
+        self.a = a
+        self.b = b
+
+
+def constructor_with_default_values(a: int, x: int):
+    obj = ClassWithDefaultValues(a)
+    if obj.a == 123:
+        return 1
+    elif obj.b == x:
+        return 2
+    return 3
