@@ -202,14 +202,12 @@ fun resolveSequenceIndex(
     }
 }
 
-fun addPossibleSupertypes(
+fun handlerCreateEmptyObjectKt(
     ctx: ConcolicRunContext,
-    objs: List<UninterpretedSymbolicPythonObject>,
-    possibleTypes: List<ConcretePythonType>
-) = with(ctx.ctx) {
-    val cond = objs.fold(trueExpr as UBoolExpr) { outerAcc, obj ->
-        val curCond = possibleTypes.fold(trueExpr as UBoolExpr) { acc, type -> acc or obj.evalIs(ctx, type) }
-        outerAcc and curCond
-    }
-    myAssert(ctx, cond)
+    typeRef: PythonObject
+): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    val typeSystem = ctx.typeSystem
+    val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
+    return constructEmptyObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, type)
 }

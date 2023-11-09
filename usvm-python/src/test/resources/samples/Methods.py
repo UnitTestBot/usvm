@@ -38,3 +38,8 @@ def call_of_object_constructor(value: int):
 def call_of_slot_constructor(x: int, y: int):
     p = Point(x, y)
     return p.get_info()
+
+
+def call_of_slot_constructor_with_named_args(x: int, y: int):
+    p = Point(y=y, x=x)
+    return p.get_info()
