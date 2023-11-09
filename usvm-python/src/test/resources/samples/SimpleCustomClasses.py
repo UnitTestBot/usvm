@@ -1,3 +1,6 @@
+import dataclasses
+
+
 class ClassWithMatmulAndAdd:
     def __init__(self):
         pass
@@ -56,3 +59,18 @@ class ClassWithField:
 
 def use_int_field(obj):
     assert obj.field == 123456
+
+
+@dataclasses.dataclass
+class MyDataClass:
+    data: int
+    root: int = 239
+
+
+def use_dataclass(x: int, y: int):
+    obj = MyDataClass(x)
+    if obj.data == 1:
+        return 1
+    if obj.root == y:
+        return 2
+    return 3

@@ -97,4 +97,19 @@ class MethodsTest: PythonTestRunnerForStructuredProgram("Methods", UMachineOptio
             )
         )
     }
+
+    @Test
+    fun testConstructorWithDefaultValues() {
+        check2WithConcreteRun(
+            constructFunction("constructor_with_default_values", listOf(typeSystem.pythonInt, typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                {_, _, res -> res.repr == "1"},
+                {_, _, res -> res.repr == "2"},
+                {_, _, res -> res.repr == "3"}
+            )
+        )
+    }
 }
