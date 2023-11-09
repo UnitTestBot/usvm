@@ -49,7 +49,6 @@ dependencies {
     implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
-    implementation(files(buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath))
 }
 
 tasks {
@@ -154,14 +153,16 @@ val collectorsJarTask = tasks.register<Jar>("collectorsJar") {
     dependsOn(configurations.compileClasspath)
 }
 
+sourceSets.main.get().compileClasspath += collectorsJarTask.get().outputs.files
+
 tasks.withType<Test> {
     environment(
         "usvm-jvm-instrumentation-jar",
-        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-1.0.jar").absolutePath
+        instrumentationRunnerJar.get().outputs.files.single()
     )
     environment(
         "usvm-jvm-collectors-jar",
-        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath
+        collectorsJarTask.get().outputs.files.single()
     )
 }
 
