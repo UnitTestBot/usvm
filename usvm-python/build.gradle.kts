@@ -30,6 +30,11 @@ dependencies {
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
+tasks.jar {
+    dependsOn(":usvm-util:jar")
+    dependsOn(":usvm-core:jar")
+}
+
 val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
 val samplesSourceDir = File(projectDir, "src/test/resources/samples")
 val approximationsDir = File(projectDir, "python_approximations")
