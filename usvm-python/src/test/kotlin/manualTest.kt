@@ -31,12 +31,10 @@ fun main() {
         binPath = File("/home/tochilinak/sample_venv/bin")
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
-    val int = ConcretePythonInterpreter.eval(ConcretePythonInterpreter.emptyNamespace, "int")
-    println(ConcretePythonInterpreter.typeHasStandardTpGetattro(int))
     // ConcretePythonInterpreter.printIdInfo()
     // val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
-    // analyze(config)
+    val config = buildSampleRunConfig()
+    analyze(config)
     // checkConcolicAndConcrete(config)
 }
 
@@ -51,7 +49,7 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt, typeSystem.pythonInt),
+        listOf(typeSystem.pythonInt, typeSystem.pythonInt, typeSystem.pythonInt),
         "use_dataclass",
         "SimpleCustomClasses"
     )
