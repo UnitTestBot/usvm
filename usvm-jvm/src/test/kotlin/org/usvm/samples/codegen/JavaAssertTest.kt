@@ -7,6 +7,7 @@ import org.usvm.util.isException
 
 class JavaAssertTest : JavaMethodTestRunner() {
     @Test
+    //TODO! Decide if -ea (assertions) flag should be enabled (now it's enabled)
     fun testAssertPositive() {
         checkDiscoveredPropertiesWithExceptions(
             JavaAssert::assertPositive,

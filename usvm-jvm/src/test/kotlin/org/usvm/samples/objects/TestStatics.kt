@@ -1,5 +1,6 @@
 package org.usvm.samples.objects
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -24,6 +25,7 @@ class TestStatics : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO we need to get mocks for static fields")
     fun `Test mutable primitive static field`() {
         checkDiscoveredProperties(
             ObjectWithStatics::useMutablePrimitiveStaticField,

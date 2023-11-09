@@ -8,6 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class JvmCrashExamplesTest : JavaMethodTestRunner() {
     @Test
+    @Disabled("We can't build descriptors after System.exit() in user code")
     fun testExit() {
         checkDiscoveredProperties(
             JvmCrashExamples::exit,

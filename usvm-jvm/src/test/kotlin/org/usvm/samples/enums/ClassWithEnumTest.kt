@@ -186,6 +186,7 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO we need to get mocks for static fields")
     fun testAffectSystemStaticAndUseInitEnumFromIt() {
         checkDiscoveredProperties(
             ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,

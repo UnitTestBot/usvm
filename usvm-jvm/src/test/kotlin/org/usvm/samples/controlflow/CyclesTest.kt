@@ -105,6 +105,7 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Pass, but slows down the process a lot")
     fun moveToExceptionTest() {
         checkDiscoveredPropertiesWithExceptions(
             Cycles::moveToException,

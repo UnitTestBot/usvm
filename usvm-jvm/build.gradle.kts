@@ -55,6 +55,7 @@ dependencies {
     samplesImplementation("javax.validation:validation-api:${Versions.samplesJavaxValidation}")
     samplesImplementation("com.github.stephenc.findbugs:findbugs-annotations:${Versions.samplesFindBugs}")
     samplesImplementation("org.jetbrains:annotations:${Versions.samplesJetbrainsAnnotations}")
+    testImplementation(project(":usvm-jvm-instrumentation"))
     // Use usvm-api in samples for makeSymbolic, assume, etc.
     samplesImplementation(`usvm-api`.output)
 }
@@ -72,4 +73,48 @@ tasks.withType<Test> {
 
     environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
     environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+}
+
+
+tasks {
+    register<Jar>("testJar") {
+        group = "jar"
+        shouldRunAfter("compileTestKotlin")
+        archiveClassifier.set("test")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        val contents = sourceSets.getByName("samples").output
+
+        from(contents)
+        dependsOn(getByName("compileSamplesJava"), configurations.testCompileClasspath)
+        dependsOn(configurations.compileClasspath)
+    }
+}
+
+tasks.getByName("compileTestKotlin").finalizedBy("testJar")
+
+tasks.withType<Test> {
+    environment(
+        "usvm-test-jar",
+        buildDir
+            .resolve("libs")
+            .resolve("usvm-jvm-test.jar")
+            .absolutePath
+    )
+    environment(
+        "usvm-jvm-instrumentation-jar",
+        project(":usvm-jvm-instrumentation")
+            .buildDir
+            .resolve("libs")
+            .resolve("usvm-jvm-instrumentation-1.0.jar")
+            .absolutePath
+    )
+    environment(
+        "usvm-jvm-collectors-jar",
+        project(":usvm-jvm-instrumentation")
+            .buildDir
+            .resolve("libs")
+            .resolve("usvm-jvm-instrumentation-collectors.jar")
+            .absolutePath
+    )
 }

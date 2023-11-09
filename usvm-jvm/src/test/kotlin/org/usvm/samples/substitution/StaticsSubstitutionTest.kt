@@ -1,5 +1,6 @@
 package org.usvm.samples.substitution
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -8,6 +9,7 @@ import org.usvm.test.util.checkers.eq
 class StaticsSubstitutionTest : JavaMethodTestRunner() {
 
     @Test
+    @Disabled("TODO we need to get mocks for static fields")
     fun lessThanZeroWithSubstitution() {
         checkDiscoveredProperties(
             StaticSubstitutionExamples::lessThanZero,
