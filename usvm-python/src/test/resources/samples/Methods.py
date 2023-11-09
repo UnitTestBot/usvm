@@ -17,8 +17,12 @@ def external_function(p):
 
 
 def set_attribute(p, x: int):
+    if p.x != 128:
+        return 1
     p.x = x
-    assert p.x == 239
+    if p.x == 239:
+        return 2
+    return 3
 
 
 class ClassWithoutInit:

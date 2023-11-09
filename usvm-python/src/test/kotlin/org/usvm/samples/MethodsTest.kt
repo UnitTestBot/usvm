@@ -36,4 +36,19 @@ class MethodsTest: PythonTestRunnerForStructuredProgram("Methods", UMachineOptio
             )
         )
     }
+
+    @Test
+    fun testSetAttribute() {
+        check2WithConcreteRun(
+            constructFunction("set_attribute", listOf(PythonAnyType, typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            compareConcolicAndConcreteTypes,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                {p, _, res -> res.repr == "1" && p.typeName == "Point"},
+                {p, x, res -> res.repr == "2" && p.typeName == "Point" && x.repr == "239"},
+                {p, _, res -> res.repr == "3" && p.typeName == "Point"},
+            )
+        )
+    }
 }
