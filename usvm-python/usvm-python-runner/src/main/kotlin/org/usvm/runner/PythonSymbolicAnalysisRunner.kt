@@ -22,32 +22,37 @@ class PythonSymbolicAnalysisRunnerImpl(
     ) {
         val processBuilder = setupEnvironment(runConfig)
         val process = processBuilder.start()
-        val readingThread = ReadingThread(process, serverSocketChannel, receiver, isCancelled)
-        val waitingThread = WaitingThread(runConfig, readingThread, isCancelled)
-        readingThread.start()
-        waitingThread.start()
-        readingThread.join()
-        waitingThread.join()
-        if (!process.isAlive && process.exitValue() != 0) {
-            logger.warn("usvm-python process ended with non-null value")
+        val readingThread = ReadingThread(serverSocketChannel, receiver, isCancelled)
+        val waitingThread = WaitingThread(process, runConfig, readingThread, isCancelled)
+        try {
+            readingThread.start()
+            waitingThread.start()
+            readingThread.join()
+            waitingThread.join()
+            if (!process.isAlive && process.exitValue() != 0) {
+                logger.warn("usvm-python process ended with non-null value")
+            }
+        } finally {
+            process.destroyForcibly()
+            readingThread.client?.close()
         }
     }
 
     class ReadingThread(
-        private val process: Process,
         private val serverSocketChannel: ServerSocketChannel,
         private val receiver: USVMPythonAnalysisResultReceiver,
         private val isCancelled: () -> Boolean
     ): Thread() {
+        var client: SocketChannel? = null
         override fun run() {
             try {
-                val client = ClientResources(serverSocketChannel, process)
-                client.use {
-                    if (client.clientSocketChannel == null) {
+                client = serverSocketChannel.accept()
+                client?.use {
+                    if (client == null) {
                         logger.warn("Could not connect to usvm-python process")
                         return@use
                     }
-                    val input = BufferedReader(Channels.newReader(client.clientSocketChannel, "UTF-8"))
+                    val input = BufferedReader(Channels.newReader(client!!, "UTF-8"))
                     while (!isCancelled()) {
                         val byteStr = input.readLine() ?: break
                         receiver.receivePickledInputValues(byteStr)
@@ -62,13 +67,14 @@ class PythonSymbolicAnalysisRunnerImpl(
     }
 
     class WaitingThread(
+        private val process: Process,
         private val runConfig: USVMPythonRunConfig,
         private val readingThread: Thread,
         private val isCancelled: () -> Boolean
     ): Thread() {
         override fun run() {
             val start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive) {
+            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive && process.isAlive) {
                 if (isCancelled()) {
                     readingThread.interrupt()
                 }
@@ -84,21 +90,5 @@ class PythonSymbolicAnalysisRunnerImpl(
 
     companion object {
         val logger = object : KLogging() {}.logger
-    }
-}
-
-class ClientResources(
-    serverSocketChannel: ServerSocketChannel,
-    val process: Process
-): AutoCloseable {
-    val clientSocketChannel: SocketChannel?
-
-    init {
-        clientSocketChannel = serverSocketChannel.accept()
-    }
-
-    override fun close() {
-        clientSocketChannel?.close()
-        process.destroy()
     }
 }
