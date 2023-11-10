@@ -16,7 +16,7 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO support multidimensional arrays")
+    @Disabled("TODO support multidimensional arrays initialization")
     fun `Test sumOfMultiNewArray`() {
         checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,

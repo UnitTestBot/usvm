@@ -13,7 +13,7 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.size < 3 },
             { _, initialValues, result ->

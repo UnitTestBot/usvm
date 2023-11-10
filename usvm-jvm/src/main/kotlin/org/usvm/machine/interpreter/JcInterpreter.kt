@@ -101,7 +101,15 @@ class JcInterpreter(
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
                 val thisType = typedMethod.enclosingType
-                state.pathConstraints += state.memory.types.evalTypeEquals(ref, thisType)
+
+                // TODO support virtual entrypoints https://github.com/UnitTestBot/usvm/issues/93
+                val thisTypeConstraints = if (thisType.jcClass.isAbstract) {
+                    state.memory.types.evalIsSubtype(ref, thisType)
+                } else {
+                    state.memory.types.evalTypeEquals(ref, thisType)
+                }
+
+                state.pathConstraints += thisTypeConstraints
 
                 entrypointArguments += thisType to ref
             }
