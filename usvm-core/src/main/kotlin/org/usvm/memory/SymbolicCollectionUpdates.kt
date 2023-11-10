@@ -158,7 +158,13 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
     ): UFlatUpdates<Key, Sort> {
         node ?: return this
         val splitNode = node.update.split(key, predicate, matchingWrites, guardBuilder, composer)
-        val splitNext = node.next.split(key, predicate, matchingWrites, guardBuilder, composer)
+
+        // False in the guardBuilder means that no nodes after this one are relevant
+        val splitNext = if (guardBuilder.isFalse) {
+            UFlatUpdates(keyInfo)
+        } else {
+            node.next.split(key, predicate, matchingWrites, guardBuilder, composer)
+        }
 
         if (splitNode == null) {
             return splitNext
@@ -299,10 +305,21 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         var hasChanged = false
         // here we split updates from the newest to the oldest
         val splitUpdates = toMutableList<UUpdateNode<Key, Sort>?>().apply { reverse() }
-        for ((idx, update) in splitUpdates.withIndex()) {
+        var idx = 0
+
+        for (update in splitUpdates) {
+            // here we collect splitUpdates in the correct order (from the newest to the oldest)
             val splitUpdate = update?.split(key, predicate, matchingWrites, guardBuilder, composer)
+
             hasChanged = hasChanged or (update !== splitUpdate)
             splitUpdates[idx] = splitUpdate
+            idx++
+
+            if (guardBuilder.isFalse) {
+                // If rest updates are non-relevant, filtering them out...
+                hasChanged = hasChanged or (idx < splitUpdates.size)
+                break
+            }
         }
 
         // if nothing changed, return this
@@ -310,9 +327,9 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
             return this
         }
 
-        // traverse all updates one by one from the oldest one
-        // here we collect matchingWrites and update guardBuilder in the correct order (from the newest to the oldest)
-        for (update in splitUpdates.asReversed()) {
+        // traverse all updates one by one from the oldest relevant one
+        for (i in idx - 1 downTo 0) {
+            val update = splitUpdates[i]
             if (update != null) {
                 applyUpdate(update)
             }

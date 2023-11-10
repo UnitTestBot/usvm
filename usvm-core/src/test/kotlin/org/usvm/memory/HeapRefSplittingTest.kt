@@ -13,7 +13,6 @@ import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
-import org.usvm.collection.field.UInputFieldReading
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
@@ -21,6 +20,7 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
+import org.usvm.collection.field.UInputFieldReading
 import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -242,7 +242,12 @@ class HeapRefSplittingTest {
         val res2 = heap.readField(ref2, addressFieldDescr.first, addressFieldDescr.second)
         assertIs<UInputFieldReading<Field, UBv32Sort>>(res2)
 
-        assertEquals(res1.collection, res2.collection)
+        val res1Updates = res1.collection.updates.toList()
+        val res2Updates = res2.collection.updates.toList()
+
+        assertEquals(3, res1Updates.size)
+        assertEquals(2, res2Updates.size)
+        assertEquals(res2Updates, res1Updates.subList(1, 3))
 
         val res3 = heap.readField(ref3, addressFieldDescr.first, addressFieldDescr.second)
         assertSame(val3, res3)
