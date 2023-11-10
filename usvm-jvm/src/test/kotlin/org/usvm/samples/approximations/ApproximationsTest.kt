@@ -1,69 +1,68 @@
 package org.usvm.samples.approximations
 
-import approximations.java.lang.StringBuffer_Tests
-import approximations.java.lang.System_Tests
-import approximations.java.util.ArrayListSpliterator_Tests
-import approximations.java.util.ArrayList_Tests
-import approximations.java.util.HashSet_Tests
-import approximations.java.util.OptionalDouble_Tests
-import approximations.java.util.OptionalInt_Tests
+import kotlinx.coroutines.runBlocking
+import org.jacodb.api.JcMethod
+import org.jacodb.api.ext.annotation
+import org.jacodb.api.ext.objectClass
+import org.jacodb.impl.features.hierarchyExt
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.test.util.checkers.ge
-import org.usvm.util.declaringClass
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
-import kotlin.reflect.jvm.javaMethod
 
 class ApproximationsTest : ApproximationsTestRunner() {
+    init {
+        options = options.copy(stepsFromLastCovered = null)
+    }
 
     @ParameterizedTest
     @MethodSource("approximationTests")
-    fun testApproximations(test: KFunction1<Int, Int>, testAnnotation: approximations.Test) {
+    fun testApproximations(test: ApproximationTestCase) {
         System.err.println("-".repeat(50))
-        System.err.println("Start: ${test.declaringClass?.name}#$test")
-        val properties = Array(testAnnotation.executionMax) { idx -> { o: Int, _: Result<Int> -> o == idx } }
+        System.err.println("Start: $test")
+
+        val properties = Array(test.executions) { idx -> { o: Int, _: Result<Int> -> o == idx } }
         checkDiscoveredPropertiesWithExceptions(
-            test,
-            ge(testAnnotation.executionMax + 2),
+            test.testMethod(),
+            ignoreNumberOfAnalysisResults,
             *properties,
             invariants = arrayOf({ execution, r ->
-                execution !in 0..testAnnotation.executionMax || r.getOrThrow() == execution
+                execution !in 0 until test.executions || r.getOrThrow() == execution
             })
         )
     }
 
-    companion object {
-        @JvmStatic
-        fun approximationTestClasses() = listOf(
-            StringBuffer_Tests::class,
-            ArrayList_Tests::class,
-            ArrayListSpliterator_Tests::class,
-            HashSet_Tests::class,
-            OptionalDouble_Tests::class,
-            OptionalInt_Tests::class,
-            System_Tests::class,
-        )
+    class ApproximationTestCase(val method: JcMethod, val executions: Int) : Arguments {
+        override fun get(): Array<Any> = arrayOf(this)
 
-        @JvmStatic
-        fun approximationTests(): List<Arguments> =
-            approximationTestClasses().flatMap { cls ->
-                cls.declaredFunctions
-                    .asSequence()
-                    .filterIsInstance<KFunction1<*, *>>()
-                    .map {
-                        @Suppress("UNCHECKED_CAST")
-                        it as KFunction1<Int, Int>
-                    }
-                    .mapNotNull { test ->
-                        val annotation = test.javaMethod?.getAnnotation(approximations.Test::class.java)
-                        annotation?.let { test to it }
-                    }
-                    .filterNot { it.second.disabled }
-                    .map { (test, annotation) ->
-                        Arguments.of(test, annotation)
-                    }
+        override fun toString(): String = "${method.enclosingClass.name}#${method.name}"
+
+        @Suppress("UNCHECKED_CAST")
+        fun testMethod(): KFunction1<Int, Int> =
+            Class.forName(method.enclosingClass.name)
+                .kotlin
+                .declaredFunctions
+                .single { it.name == method.name } as KFunction1<Int, Int>
+    }
+
+    private fun approximationTests(): List<ApproximationTestCase> {
+        val allClasses = runBlocking {
+            cp.hierarchyExt().findSubClasses(cp.objectClass, allHierarchy = true, includeOwn = true)
+        }
+        return allClasses
+            .filter { cls ->
+                cls.annotation(approximations.Test::class.java.name) != null
             }
+            .sortedBy { it.name }
+            .flatMap { cls -> cls.declaredMethods.sortedBy { it.name } }
+            .mapNotNull { method -> method.annotation(approximations.Test::class.java.name)?.let { method to it } }
+            .filterNot { (_, annotation) -> annotation.values["disabled"] == true }
+            .map { (method, annotation) ->
+                val maxExecutions = annotation.values["executionMax"] as? Int ?: 0
+                ApproximationTestCase(method, maxExecutions + 1)
+            }
+            .toList()
     }
 }
