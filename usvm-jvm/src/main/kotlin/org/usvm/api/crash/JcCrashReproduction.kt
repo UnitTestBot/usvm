@@ -70,7 +70,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         val initialStates = mkInitialStates(crashStackTrace)
 
-        val pathSelector = PobPathSelector(crashStackTrace.size) { closestTargetPs() }
+        val pathSelector = PobPathSelector(crashStackTrace.size) { level -> closestTargetPs(level) }
         pathSelector.add(initialStates)
 
         run(
@@ -214,10 +214,10 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
     private inner class PobPathSelector(
         numLevels: Int,
-        private val basePsFactory: () -> UPathSelector<JcState>
+        private val basePsFactory: (Int) -> UPathSelector<JcState>
     ) : UPathSelector<JcState> {
         private val levelStats = MutableList(numLevels) { 0 }
-        private val levelPs = List(numLevels) { basePsFactory() }
+        private val levelPs = List(numLevels) { level -> basePsFactory(level) }
 
         override fun isEmpty(): Boolean =
             levelPs.all { it.isEmpty() }
@@ -291,10 +291,10 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         }
     }
 
-    private fun closestTargetPs(): UPathSelector<JcState> {
+    private fun closestTargetPs(level: Int): UPathSelector<JcState> {
         val distanceCalculator = LevelTargetDistanceCalculator()
 //        return DistancePathSelector(weighter = distanceCalculator::calculateDistance)
-        return DistancePathSelectorWithLocalBuckets(weighter = distanceCalculator::calculateDistance)
+        return DistancePathSelectorWithLocalBuckets(level, weighter = distanceCalculator::calculateDistance)
     }
 
     private fun targetFrameDistance(statement: JcInst, target: JcInst): UInt {
@@ -405,6 +405,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
     }
 
     class DistancePathSelectorWithLocalBuckets(
+        private val level: Int,
         private val weighter: StateWeighter<JcState, StateDistance>
     ) : UPathSelector<JcState> {
         private val random = Random(17)
@@ -434,12 +435,27 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         override fun isEmpty(): Boolean = stateBuckets.isEmpty()
 
+        private var currentBucket: UPriorityCollection<JcState, *>? = null
+        private var bucketLimit = 0
+
         override fun peek(): JcState {
             check(bucketSelector.count == stateBuckets.values.sumOf { it.count }) { "States count mismatch" }
 
-            val bucketId = bucketSelector.peek()
-            val bucket = getStateBucket(bucketId)
-            return bucket.peek()
+            if (bucketLimit == 0 || currentBucket?.count == 0) {
+                bucketLimit = BUCKET_STEP_LIMIT
+                currentBucket = null
+            }
+
+            bucketLimit--
+
+            if (currentBucket == null) {
+                val bucketId = bucketSelector.peek()
+                currentBucket = getStateBucket(bucketId)
+
+                logger.debug { "Level $level select bucket: ${bucketId.id}" }
+            }
+
+            return currentBucket!!.peek()
         }
 
         override fun add(states: Collection<JcState>) {
@@ -479,5 +495,6 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
     companion object {
         private const val LOCAL_DISTANCE_SHIFT = 64u
+        private const val BUCKET_STEP_LIMIT = 42
     }
 }
