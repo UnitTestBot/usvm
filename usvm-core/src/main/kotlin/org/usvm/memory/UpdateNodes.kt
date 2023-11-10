@@ -5,6 +5,7 @@ import org.usvm.UComposer
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.compose
+import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.uctx
 
@@ -99,8 +100,12 @@ class UPinpointUpdateNode<Key, Sort : USort>(
     ): UUpdateNode<Key, Sort>? {
         val ctx = value.ctx
         val nodeIncludesKey = includesSymbolically(key, composer) // includes guard
-        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         val guard = guardBuilder.guarded(nodeIncludesKey)
+
+        // We don't need to take nodes with unsatisfiable guard expression
+        if (guard.isFalse) {
+            return null
+        }
 
         val transformedValue = composer.compose(value)
         val res = if (predicate(transformedValue)) {
@@ -110,6 +115,7 @@ class UPinpointUpdateNode<Key, Sort : USort>(
             this
         }
 
+        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         guardBuilder += nodeExcludesKey
 
         return res
@@ -154,11 +160,16 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
         composer: UComposer<*, *>?,
-    ): UUpdateNode<DstKey, Sort> {
+    ): UUpdateNode<DstKey, Sort>? {
         val ctx = guardBuilder.nonMatchingUpdatesGuard.ctx
         val nodeIncludesKey = includesSymbolically(key, composer) // contains guard
-        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         val nextGuard = guardBuilder.guarded(nodeIncludesKey)
+
+        // We don't need to take nodes with unsatisfiable guard expression
+        if (nextGuard.isFalse) {
+            return null
+        }
+
         val nextGuardBuilder = GuardBuilder(nextGuard)
 
         /**
@@ -194,6 +205,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
             URangedUpdateNode(splitCollection, adapter, composer.compose(guard))
         }
 
+        val nodeExcludesKey = ctx.mkNot(nodeIncludesKey)
         guardBuilder += nodeExcludesKey
 
         return resultUpdateNode

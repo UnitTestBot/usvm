@@ -77,19 +77,40 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     ): UExpr<Sort> {
         val ctx = sort.ctx
         val guardBuilder = GuardBuilder(ctx.trueExpr)
-        val matchingWrites = ArrayList<GuardedExpr<UExpr<Sort>>>() // works faster than linked list
+        val matchingWrites = ArrayList<GuardedExpr<UExpr<Sort>>>() // works faster than a linked list
         val splittingUpdates = split(key, predicate, matchingWrites, guardBuilder, composer).updates
 
-        val reading = read(key, splittingUpdates, composer)
+        // Check that all invariants are satisfied
+        ensureInvariantsAreCorrect(matchingWrites)
+
+        // If we have an exact match with a write result, we don't need to construct a reading
+        val base = if (matchingWrites.lastOrNull()?.guard?.isTrue == true) {
+            matchingWrites.last().expr
+        } else {
+            read(key, splittingUpdates, composer)
+        }
 
         // TODO: maybe introduce special expression for such operations?
-        val readingWithBubbledWrites = matchingWrites.foldRight(reading) { (expr, guard), acc ->
+        val readingWithBubbledWrites = matchingWrites.foldRight(base) { (expr, guard), acc ->
             //                         foldRight here ^^^^^^^^^ is important
             ctx.mkIte(guard, expr, acc)
         }
 
-
         return readingWithBubbledWrites
+    }
+
+    private fun ensureInvariantsAreCorrect(matchingWrites: ArrayList<GuardedExpr<UExpr<Sort>>>) {
+        for (i in 0..matchingWrites.lastIndex) {
+            val matchingWrite = matchingWrites[i]
+
+            check(!matchingWrite.guard.isFalse) { "False writes must be filtered out by split" }
+
+            if (matchingWrite.guard.isTrue) {
+                check(i == matchingWrites.lastIndex) {
+                    "Split should stop on first update with includesSymbolically(key).isTrue"
+                }
+            }
+        }
     }
 
     override fun write(
@@ -219,6 +240,9 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
      * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
      */
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
+
+    val isFalse: Boolean
+        get() = nonMatchingUpdatesGuard.isFalse
 }
 
 inline fun <K, VSort : USort> PersistentMap<K, UExpr<VSort>>.guardedWrite(
