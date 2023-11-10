@@ -22,7 +22,10 @@ import org.usvm.machine.JcTypeSystem
 import org.usvm.machine.interpreter.JcInterpreter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.merging.CloseStatesSearcherImpl
+import org.usvm.merging.MergingPathSelector
 import org.usvm.merging.MutableMergeGuard
+import org.usvm.ps.ExecutionTreeTracker
 import org.usvm.ps.StateWeighter
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.distances.CfgStatistics
@@ -69,8 +72,17 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         pobManager.addPob(level = 0, newPob = UPathConstraints(ctx))
 
         val initialStates = mkInitialStates(crashStackTrace)
+        val pathSelector = PobPathSelector(crashStackTrace.size) { level ->
+            val base = closestTargetPs(level)
 
-        val pathSelector = PobPathSelector(crashStackTrace.size) { level -> closestTargetPs(level) }
+            val initialState = initialStates.single { it.levelTarget().level == level }
+            val executionTreeTracker = ExecutionTreeTracker<JcState, JcInst>(initialState.pathNode)
+            val closeStatesSearcher = CloseStatesSearcherImpl(executionTreeTracker, cfgStatistics)
+            MergingPathSelector(
+                base,
+                closeStatesSearcher
+            )
+        }
         pathSelector.add(initialStates)
 
         run(

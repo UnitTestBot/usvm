@@ -297,9 +297,6 @@ class UTypeConstraints<Type>(
 
             to is UConcreteHeapRef -> {
                 // Here we have a pair of symbolic-concrete refs
-                if (to.address !in concreteRefToType) {
-                    println()
-                }
                 val concreteToType = concreteRefToType.getValue(to.address)
                 val symbolicFromType = getTypeRegion(from as USymbolicHeapRef, useRepresentative = false)
 
