@@ -4,12 +4,13 @@ package org.usvm.samples.invokes
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 import java.lang.Boolean
 
-internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
+// Use approximations for analysis of Integer#<clinit>
+internal class VirtualInvokeExampleTest : ApproximationsTestRunner() {
     @Test
     fun testSimpleVirtualInvoke() {
         checkDiscoveredPropertiesWithExceptions(
@@ -118,7 +119,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO failed analysis of Integer constructor")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,
