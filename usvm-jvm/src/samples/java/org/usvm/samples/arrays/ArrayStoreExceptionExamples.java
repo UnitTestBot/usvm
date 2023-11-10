@@ -5,9 +5,13 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class ArrayStoreExceptionExamples {
-
     public boolean correctAssignmentSamePrimitiveType(int[] data) {
-        if (data == null || data.length == 0) return false;
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
+        if (data == null) {
+            return false;
+        } else if (data.length == 0) {
+            return false;
+        }
         data[0] = 1;
         return true;
     }

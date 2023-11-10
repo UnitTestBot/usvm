@@ -9,11 +9,10 @@ import org.usvm.util.isException
 
 class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Fix branch coverage")
     fun testCorrectAssignmentSamePrimitiveType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
-            eq(2),
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data == null },
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data != null && data.isEmpty() },
             { _, data, result -> result.isSuccess && result.getOrNull() == true && data != null && data.isNotEmpty() }
