@@ -205,11 +205,11 @@ open class Value2DescriptorConverter(
         )
     }
 
-    private fun `enum`(value: Any, depth: Int): UTestEnumValueDescriptor {
+    private fun `enum`(value: Enum<*>, depth: Int): UTestEnumValueDescriptor {
         val enumValueJcClass = jcClasspath.findClass(value::class.java.name)
         val jcClass = if (!enumValueJcClass.isEnum) enumValueJcClass.superClass!! else enumValueJcClass
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val enumValueName = value.toString()
+        val enumValueName = value.name
         val jcType = jcClass.toType()
         val uTestEnumValueDescriptor =
             UTestEnumValueDescriptor(jcType, enumValueName, fields, System.identityHashCode(value))
