@@ -77,7 +77,7 @@ fun Class<*>.toJcType(jcClasspath: JcClasspath): JcType? {
 }
 
 fun Class<*>.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? {
-    return jcClasspath.findClassOrNull(this.typeName)
+    return jcClasspath.findClassOrNull(this.name)
 }
 
 fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
