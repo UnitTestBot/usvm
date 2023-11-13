@@ -49,7 +49,6 @@ dependencies {
     implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
     implementation("commons-cli:commons-cli:1.5.0")
     implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
-    implementation(files(buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath))
 }
 
 tasks {
@@ -102,29 +101,27 @@ val generateModels = tasks.register<RdGenTask>("generateProtocolModels") {
 }
 
 
-tasks {
-    register<Jar>("instrumentationJar") {
-        group = "jar"
-        dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources"))
-        archiveClassifier.set("1.0")
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        manifest {
-            attributes(
-                mapOf(
-                    "Main-Class" to "org.usvm.instrumentation.rd.InstrumentedProcessKt",
-                    "Premain-Class" to "org.usvm.instrumentation.agent.Agent",
-                    "Can-Retransform-Classes" to "true",
-                    "Can-Redefine-Classes" to "true"
-                )
+val instrumentationRunnerJar = tasks.register<Jar>("instrumentationJar") {
+    group = "jar"
+    dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources"))
+    archiveClassifier.set("1.0")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+            mapOf(
+                "Main-Class" to "org.usvm.instrumentation.rd.InstrumentedProcessKt",
+                "Premain-Class" to "org.usvm.instrumentation.agent.Agent",
+                "Can-Retransform-Classes" to "true",
+                "Can-Redefine-Classes" to "true"
             )
-        }
-
-        val contents = configurations.runtimeClasspath.get()
-            .map { if (it.isDirectory) it else zipTree(it) }
-
-        from(contents)
-        with(jar.get() as CopySpec)
+        )
     }
+
+    val contents = configurations.runtimeClasspath.get()
+        .map { if (it.isDirectory) it else zipTree(it) }
+
+    from(contents)
+    with(tasks.jar.get() as CopySpec)
 }
 
 
@@ -143,29 +140,29 @@ tasks {
     }
 }
 
-tasks {
-    register<Jar>("collectorsJar") {
-        group = "jar"
-        shouldRunAfter("compileKotlin")
-        archiveClassifier.set("collectors")
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+val collectorsJarTask = tasks.register<Jar>("collectorsJar") {
+    group = "jar"
+    shouldRunAfter("compileKotlin")
+    archiveBaseName.set("usvm-jvm-instrumentation-collectors")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-        val contents = sourceSets.getByName("collectors").output
+    val contents = sourceSets.getByName("collectors").output
 
-        from(contents)
-        dependsOn(getByName("compileCollectorsJava"), configurations.compileClasspath)
-        dependsOn(configurations.compileClasspath)
-    }
+    from(contents)
+    dependsOn(tasks.getByName("compileCollectorsJava"), configurations.compileClasspath)
+    dependsOn(configurations.compileClasspath)
 }
+
+sourceSets.main.get().compileClasspath += collectorsJarTask.get().outputs.files
 
 tasks.withType<Test> {
     environment(
         "usvm-jvm-instrumentation-jar",
-        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-1.0.jar").absolutePath
+        instrumentationRunnerJar.get().outputs.files.single()
     )
     environment(
         "usvm-jvm-collectors-jar",
-        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath
+        collectorsJarTask.get().outputs.files.single()
     )
 }
 
@@ -173,3 +170,22 @@ tasks.withType<Test> {
 tasks.getByName("compileKotlin").dependsOn("collectorsJar")//.mustRunAfter("collectorsJar")
 tasks.getByName("compileKotlin").finalizedBy("instrumentationJar")
 tasks.getByName("compileTestKotlin").finalizedBy("testJar")
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+        create<MavenPublication>("maven-collectors") {
+            artifactId = "usvm-jvm-instrumentation-collectors"
+            artifact(collectorsJarTask.get())
+        }
+
+//       Instrumentation runner publishing disabled because of runner jar size
+//
+//        create<MavenPublication>("maven-instrumentation-runner") {
+//            artifactId = "usvm-jvm-instrumentation-runner"
+//            artifact(instrumentationRunnerJar.get())
+//        }
+    }
+}

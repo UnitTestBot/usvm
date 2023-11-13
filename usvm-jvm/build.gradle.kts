@@ -118,3 +118,15 @@ tasks.withType<Test> {
             .absolutePath
     )
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+        create<MavenPublication>("maven-api") {
+            artifactId = "usvm-jvm-api"
+            artifact(`usvm-api-jar`)
+        }
+    }
+}

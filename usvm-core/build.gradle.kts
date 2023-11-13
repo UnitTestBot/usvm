@@ -15,3 +15,11 @@ dependencies {
 
     testImplementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
+}
