@@ -460,7 +460,8 @@ class UEqualityConstraints private constructor(
         if (equalReferences != other.equalReferences) {
             return null
         }
-        return this
+
+        return clone()
     }
 
     fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> {
