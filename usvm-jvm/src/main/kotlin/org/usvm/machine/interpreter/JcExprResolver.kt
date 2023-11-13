@@ -1052,7 +1052,6 @@ class JcSimpleValueResolver(
             // Equal string constants always have equal references
             val ref = resolveStringConstant(value.value)
             val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
-            val stringCoderLValue = UFieldLValue(byteSort, ref, stringCoderField.field)
 
             // String.value type depends on the JVM version
             val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
@@ -1075,7 +1074,13 @@ class JcSimpleValueResolver(
 
             // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
             memory.write(stringValueLValue, charArrayRef)
-            memory.write(stringCoderLValue, mkBv(0, byteSort))
+
+            // Write coder only if it is presented (depends on the JVM version)
+            stringCoderField?.let {
+                val stringCoderLValue = UFieldLValue(byteSort, ref, it.field)
+                memory.write(stringCoderLValue, mkBv(0, byteSort))
+            }
+
             memory.types.allocate(ref.address, stringType)
 
             ref
