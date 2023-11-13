@@ -1,5 +1,6 @@
 package org.usvm.samples.controlflow
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
