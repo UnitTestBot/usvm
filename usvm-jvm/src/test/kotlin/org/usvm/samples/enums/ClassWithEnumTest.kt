@@ -122,10 +122,20 @@ class ClassWithEnumTest : JavaMethodTestRunner() {
 */
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
-    fun testVirtualFunction() {
+    fun testVirtualFunctionWithoutPathConstraints() {
         checkDiscoveredProperties(
-            ClassWithEnum::virtualFunction,
+            ClassWithEnum::virtualFunctionWithoutPathConstraints,
+            eq(3),
+            { _, parameter, _ -> parameter == null },
+            { _, parameter, r -> r == 1 && parameter == ERROR },
+            { _, parameter, r -> r == 0 && parameter == READY },
+        )
+    }
+
+    @Test
+    fun testVirtualFunctionWithPathConstraints() {
+        checkDiscoveredProperties(
+            ClassWithEnum::virtualFunctionWithPathConstraints,
             eq(3),
             { _, parameter, _ -> parameter == null },
             { _, parameter, r -> r == 1 && parameter == ERROR },
