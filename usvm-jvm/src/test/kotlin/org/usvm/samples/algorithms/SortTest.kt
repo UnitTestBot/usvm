@@ -108,10 +108,10 @@ internal class SortTest : JavaMethodTestRunner() {
             Sort::defaultSort,
             ignoreNumberOfAnalysisResults,
             { _, a, r -> a == null && r.isException<NullPointerException>() },
-            { _, a, r -> a != null && a.size < 4 && r.isException<IllegalArgumentException>() },
+            { _, a, r -> a != null && a.size != 4 && r.isException<IllegalArgumentException>() },
             { _, a, r ->
                 val resultArray = intArrayOf(-100, 0, 100, 200)
-                a != null && r.getOrNull()!!.size >= 4 && r.getOrNull() contentEquals resultArray
+                a != null && r.getOrNull()!!.size == 4 && r.getOrNull() contentEquals resultArray
             }
         )
     }

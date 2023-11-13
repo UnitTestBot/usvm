@@ -102,6 +102,10 @@ public class Sort {
             throw new IllegalArgumentException();
         }
 
+        if (array.length > 4) {
+            throw new IllegalArgumentException();
+        }
+
         array[0] = 200;
         array[1] = 100;
         array[2] = 0;
