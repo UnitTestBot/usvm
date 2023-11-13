@@ -127,7 +127,7 @@ fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface?
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
-    return klass.methods.find { it.isSameSignatures(this) }
+    return (klass.methods + klass.declaredMethods).find { it.isSameSignatures(this) }
         ?: throw TestExecutorException("Can't find method in classpath")
 }
 
