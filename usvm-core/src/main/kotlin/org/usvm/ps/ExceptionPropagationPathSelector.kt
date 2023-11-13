@@ -31,7 +31,7 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
      */
     override fun peek(): State = exceptionalStates.keys.lastOrNull() ?: selector.peek()
 
-    override fun update(state: State) {
+    override fun update(state: State): Boolean {
         val alreadyInExceptionalStates = state in exceptionalStates
         val isExceptional = state.isExceptional
 
@@ -53,8 +53,11 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
                 exceptionalStates -= state
 
                 if (state !in statesInSelector) {
-                    selector.add(listOf(state))
+                    if (!selector.add(state)) {
+                        return false
+                    }
                     statesInSelector += state to null
+                    return true
                 }
             }
 
@@ -64,8 +67,13 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
 
         // If the state is contained in the selector, we must call `update` operation for it.
         if (state in statesInSelector) {
-            selector.update(state)
+            if (!selector.update(state)) {
+                statesInSelector -= state
+                return false
+            }
         }
+
+        return true
     }
 
     /**
@@ -73,23 +81,21 @@ class ExceptionPropagationPathSelector<State : UState<*, *, *, *, *, State>>(
      * is exceptional or not, it will be added in the exceptional
      * state queue or in the wrapper selector.
      */
-    override fun add(states: Collection<State>) {
-        val statesToAdd = mutableListOf<State>()
-
-        states.forEach {
-            // It if it is an exceptional state, we don't have to worry whether it
-            // is contains in the selector or not. It was either already added in it,
-            // or will be added later if required, when it becomes unexceptional one.
-            if (it.isExceptional) {
-                exceptionalStates += it to null
-            } else {
-                // Otherwise, we simply add it to the selector directly.
-                statesToAdd += it
-                statesInSelector += it to null
+    override fun add(state: State): Boolean {
+        // It if it is an exceptional state, we don't have to worry whether it
+        // is contains in the selector or not. It was either already added in it,
+        // or will be added later if required, when it becomes unexceptional one.
+        if (state.isExceptional) {
+            exceptionalStates += state to null
+            return true
+        } else {
+            // Otherwise, we simply add it to the selector directly.
+            if (!selector.add(state)) {
+                return false
             }
+            statesInSelector += state to null
+            return true
         }
-
-        selector.add(statesToAdd)
     }
 
     override fun remove(state: State) {

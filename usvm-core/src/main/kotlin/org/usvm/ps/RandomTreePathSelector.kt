@@ -41,9 +41,15 @@ internal class RandomTreePathSelector<State : UState<*, *, Statement, *, *, Stat
         return peekedState
     }
 
-    override fun update(state: State) = executionTreeTracker.update(state)
+    override fun update(state: State): Boolean {
+        executionTreeTracker.update(state)
+        return true
+    }
 
-    override fun add(states: Collection<State>) = executionTreeTracker.add(states)
+    override fun add(state: State): Boolean {
+        executionTreeTracker.add(listOf(state))
+        return true
+    }
 
     override fun remove(state: State) = executionTreeTracker.remove(state)
 

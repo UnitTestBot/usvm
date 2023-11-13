@@ -9,15 +9,17 @@ class BfsPathSelector<State> : UPathSelector<State> {
 
     override fun peek() = queue.first()
 
-    override fun update(state: State) {
+    override fun update(state: State): Boolean {
         if (state === queue.first()) {
             queue.removeFirst()
             queue.addLast(state)
         }
+
+        return true
     }
 
-    override fun add(states: Collection<State>) {
-        queue.addAll(states)
+    override fun add(state: State): Boolean {
+        return queue.add(state)
     }
 
     override fun remove(state: State) {

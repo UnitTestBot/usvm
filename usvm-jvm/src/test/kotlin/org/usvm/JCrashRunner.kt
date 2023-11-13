@@ -120,7 +120,7 @@ private val json = Json {
     prettyPrint = true
 }
 
-const val traceFileName = "traces_new.json"
+const val traceFileName = "traces_jcdb_1.4.json"
 
 @OptIn(ExperimentalSerializationApi::class)
 fun parseCrashTraces(crashPackPath: Path, crashPack: CrashPack) {

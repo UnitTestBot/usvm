@@ -31,13 +31,15 @@ class InterleavedPathSelector<State>(
         return selectors[ptr].peek()
     }
 
-    override fun update(state: State) {
+    override fun update(state: State): Boolean {
         selectors.forEach { it.update(state) }
+        return true // todo
     }
 
-    override fun add(states: Collection<State>) {
-        selectors.forEach { it.add(states) }
+    override fun add(state: State): Boolean {
+        selectors.forEach { it.add(state) }
         ptr = (ptr + 1) % selectors.size
+        return true // todo
     }
 
     override fun remove(state: State) {

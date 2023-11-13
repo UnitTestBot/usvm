@@ -10,7 +10,6 @@ import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
-import org.usvm.algorithms.UPriorityCollection
 import org.usvm.api.targets.JcTarget
 import org.usvm.constraints.UPathConstraints
 import org.usvm.logger
@@ -78,10 +77,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
             val initialState = initialStates.single { it.levelTarget().level == level }
             val executionTreeTracker = ExecutionTreeTracker<JcState, JcInst>(initialState.pathNode)
             val closeStatesSearcher = CloseStatesSearcherImpl(executionTreeTracker, cfgStatistics)
-            MergingPathSelector(
-                base,
-                closeStatesSearcher
-            )
+            MergingPathSelector(base, closeStatesSearcher)
         }
         pathSelector.add(initialStates)
 
@@ -263,20 +259,16 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
             return levelPs.first { !it.isEmpty() }.peek()
         }
 
-        override fun update(state: JcState) {
-            levelPs[state.level()].update(state)
+        override fun update(state: JcState): Boolean {
+            return levelPs[state.level()].update(state)
         }
 
-        override fun add(states: Collection<JcState>) {
-            states.forEach { addStateToLevel(it) }
+        override fun add(state: JcState): Boolean {
+            return levelPs[state.level()].add(state)
         }
 
         override fun remove(state: JcState) {
             levelPs[state.level()].remove(state)
-        }
-
-        private fun addStateToLevel(state: JcState) {
-            levelPs[state.level()].add(listOf(state))
         }
 
         private fun JcState.level(): Int = levelTarget().level
@@ -305,8 +297,8 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
     private fun closestTargetPs(level: Int): UPathSelector<JcState> {
         val distanceCalculator = LevelTargetDistanceCalculator()
-//        return DistancePathSelector(weighter = distanceCalculator::calculateDistance)
-        return DistancePathSelectorWithLocalBuckets(level, weighter = distanceCalculator::calculateDistance)
+        return DistancePathSelector(level, weighter = distanceCalculator::calculateDistance)
+//        return DistancePathSelectorWithLocalBuckets(level, weighter = distanceCalculator::calculateDistance)
     }
 
     private fun targetFrameDistance(statement: JcInst, target: JcInst): UInt {
@@ -379,33 +371,37 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
     }
 
     class DistancePathSelector(
+        private val level: Int,
         private val weighter: StateWeighter<JcState, StateDistance>
     ) : UPathSelector<JcState> {
         private val priorityCollection = DeterministicPriorityCollection<JcState, StatePriority>(
             compareBy<StatePriority> { it.distance }.thenBy { it.stateId }
         )
 
+        val count: Int
+            get() = priorityCollection.count
+
         override fun isEmpty(): Boolean = priorityCollection.count == 0
 
         override fun peek(): JcState = priorityCollection.peek()
 
-        override fun update(state: JcState) {
+        override fun update(state: JcState): Boolean {
             val weight = weighter.weight(state)
             if (weight.isInfinite) {
                 remove(state)
-                return
+                return false
             }
 
             priorityCollection.update(state, StatePriority(weight.distanceToTarget, state.id))
+            return true
         }
 
-        override fun add(states: Collection<JcState>) {
-            for (state in states) {
-                val weight = weighter.weight(state)
-                if (weight.isInfinite) continue
+        override fun add(state: JcState): Boolean {
+            val weight = weighter.weight(state)
+            if (weight.isInfinite) return false
 
-                priorityCollection.add(state, StatePriority(weight.distanceToTarget, state.id))
-            }
+            priorityCollection.add(state, StatePriority(weight.distanceToTarget, state.id))
+            return true
         }
 
         override fun remove(state: JcState) = priorityCollection.remove(state)
@@ -427,16 +423,9 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
         ) { random.nextDouble() }
 
         private val stateDistances = IdentityHashMap<JcState, StateDistance>()
-        private val stateBuckets = hashMapOf<UInt, UPriorityCollection<JcState, JcState>>()
-        private fun getStateBucket(id: BucketId): UPriorityCollection<JcState, JcState> =
-            stateBuckets.getOrPut(id.id) {
-                DeterministicPriorityCollection(
-                    compareBy<JcState> { state ->
-                        val distance = stateDistances[state] ?: error("No distance")
-                        distance.distanceToTarget
-                    }.thenBy { state -> state.id }
-                )
-            }
+        private val stateBuckets = hashMapOf<UInt, DistancePathSelector>()
+        private fun getStateBucket(id: BucketId): DistancePathSelector =
+            stateBuckets.getOrPut(id.id) { DistancePathSelector(level, weighter) }
 
         private fun removeBucketIfEmpty(id: BucketId) {
             val bucket = stateBuckets[id.id]
@@ -447,7 +436,7 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         override fun isEmpty(): Boolean = stateBuckets.isEmpty()
 
-        private var currentBucket: UPriorityCollection<JcState, *>? = null
+        private var currentBucket: DistancePathSelector? = null
         private var bucketLimit = 0
 
         override fun peek(): JcState {
@@ -470,20 +459,19 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
             return currentBucket!!.peek()
         }
 
-        override fun add(states: Collection<JcState>) {
-            for (state in states) {
-                val weight = weighter.weight(state)
-                if (weight.isInfinite) continue
+        override fun add(state: JcState): Boolean {
+            val weight = weighter.weight(state)
+            if (weight.isInfinite) return false
 
-                val localDistance = weight.localDistanceToTarget ?: UInt.MAX_VALUE
-                val bucketId = BucketId(localDistance)
-                stateBucketIds[state] = bucketId
-                bucketSelector.add(bucketId, 1 / localDistance.coerceAtLeast(1u).toDouble())
+            val localDistance = weight.localDistanceToTarget ?: UInt.MAX_VALUE
+            val bucketId = BucketId(localDistance)
+            stateBucketIds[state] = bucketId
+            bucketSelector.add(bucketId, 1 / localDistance.coerceAtLeast(1u).toDouble())
 
-                stateDistances[state] = weight
-                val bucket = getStateBucket(bucketId)
-                bucket.add(state, state)
-            }
+            stateDistances[state] = weight
+            val bucket = getStateBucket(bucketId)
+            check(bucket.add(state)) { "Unexpected" }
+            return true
         }
 
         override fun remove(state: JcState) {
@@ -499,9 +487,9 @@ class JcCrashReproduction(val cp: JcClasspath, private val timeout: Duration) : 
 
         private class BucketId(val id: UInt)
 
-        override fun update(state: JcState) {
+        override fun update(state: JcState): Boolean {
             remove(state)
-            add(listOf(state))
+            return add(state)
         }
     }
 

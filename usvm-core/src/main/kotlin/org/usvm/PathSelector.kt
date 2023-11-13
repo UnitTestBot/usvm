@@ -14,12 +14,17 @@ interface UPathSelector<State> {
     fun remove(state: State)
 
     /**
+     * Adds [state] to the path selector.
+     */
+    fun add(state: State): Boolean
+
+    /**
      * Adds [states] to the path selector.
      */
-    fun add(states: Collection<State>)
+    fun add(states: Collection<State>): Unit = states.forEach { add(it) }
 
     /**
      * Updates the internal priority of the [state].
      */
-    fun update(state: State)
+    fun update(state: State): Boolean
 }

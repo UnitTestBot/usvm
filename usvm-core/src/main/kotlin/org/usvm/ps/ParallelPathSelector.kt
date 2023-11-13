@@ -31,13 +31,15 @@ class ParallelPathSelector<State>(
         return selectors[ptr].peek()
     }
 
-    override fun update(state: State) {
+    override fun update(state: State): Boolean {
         selectors[ptr].update(state)
+        return true // todo
     }
 
-    override fun add(states: Collection<State>) {
-        selectors[ptr].add(states)
+    override fun add(state: State): Boolean {
+        selectors[ptr].add(state)
         ptr = (ptr + 1) % selectors.size
+        return true // todo
     }
 
     override fun remove(state: State) {

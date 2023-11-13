@@ -21,12 +21,14 @@ open class WeightedPathSelector<State, Weight>(
 
     override fun peek(): State = priorityCollection.peek()
 
-    override fun update(state: State) = priorityCollection.update(state, weighter.weight(state))
+    override fun update(state: State): Boolean {
+        priorityCollection.update(state, weighter.weight(state))
+        return true
+    }
 
-    override fun add(states: Collection<State>) {
-        for (state in states) {
-            priorityCollection.add(state, weighter.weight(state))
-        }
+    override fun add(state: State): Boolean {
+        priorityCollection.add(state, weighter.weight(state))
+        return true
     }
 
     override fun remove(state: State) = priorityCollection.remove(state)

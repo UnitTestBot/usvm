@@ -47,11 +47,11 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
                 }
                 selectorState.steps = 0
 
-                logger.debug { "Merged states: $state + $closeState == $mergedState" }
+                logger.info { "Merged states: ${state.id} + ${closeState.id} == ${mergedState.id}" }
 
                 remove(state)
                 remove(closeState)
-                add(listOf(mergedState))
+                check(add(mergedState)) { "Unexpected" }
 
                 mergedState
             }
@@ -64,14 +64,23 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
         return resultState
     }
 
-    override fun update(state: State) {
-        underlyingPathSelector.update(state)
+    override fun update(state: State): Boolean {
+        if (!underlyingPathSelector.update(state)) {
+            closeStatesSearcher.remove(state)
+            return false
+        }
+
         closeStatesSearcher.update(state)
+        return true
     }
 
-    override fun add(states: Collection<State>) {
-        underlyingPathSelector.add(states)
-        closeStatesSearcher.add(states)
+    override fun add(state: State): Boolean {
+        if (!underlyingPathSelector.add(state)) {
+            return false
+        }
+
+        closeStatesSearcher.add(listOf(state))
+        return true
     }
 
     override fun remove(state: State) {

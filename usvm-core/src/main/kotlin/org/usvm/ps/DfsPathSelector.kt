@@ -8,8 +8,9 @@ class DfsPathSelector<State> : UPathSelector<State> {
     override fun isEmpty() = stack.isEmpty()
 
     override fun peek() = stack.last()
-    override fun update(state: State) {
+    override fun update(state: State): Boolean {
         // nothing to do
+        return true
     }
 
     override fun remove(state: State) {
@@ -20,7 +21,7 @@ class DfsPathSelector<State> : UPathSelector<State> {
         }
     }
 
-    override fun add(states: Collection<State>) {
-        stack.addAll(states)
+    override fun add(state: State): Boolean {
+        return stack.add(state)
     }
 }
