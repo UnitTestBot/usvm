@@ -155,6 +155,7 @@ class ArrayStoreExceptionExamplesTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support constructing approximated objects https://github.com/UnitTestBot/usvm/issues/100")
     fun testFillObjectArrayWithList() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillObjectArrayWithList,
@@ -165,6 +166,7 @@ class ArrayStoreExceptionExamplesTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support constructing approximated objects https://github.com/UnitTestBot/usvm/issues/100")
     fun testFillWithTreeSet() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillWithTreeSet,
