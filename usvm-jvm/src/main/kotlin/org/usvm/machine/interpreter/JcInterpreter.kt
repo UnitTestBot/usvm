@@ -339,7 +339,7 @@ class JcInterpreter(
         val isRvalueSubtypeOf = scope.calcOnState {
             // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
             // so we need to retrieve the real array type with another way
-            val arrayType = memory.types.getTypeStream(lvalue.ref).superType
+            val arrayType = memory.types.getTypeStream(lvalue.ref).commonSuperType
                 ?: error("No type found for array ${lvalue.ref}")
             val elementType = arrayType.ifArrayGetElementType
                 ?: error("Not array type $arrayType found for array ${lvalue.ref}")

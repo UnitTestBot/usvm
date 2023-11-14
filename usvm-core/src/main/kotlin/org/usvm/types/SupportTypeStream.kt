@@ -90,7 +90,7 @@ class USupportTypeStream<Type> private constructor(
     override val isEmpty: Boolean
         get() = take(1).isEmpty()
 
-    override val superType: Type
+    override val commonSuperType: Type
         get() = supportType
 
     companion object {

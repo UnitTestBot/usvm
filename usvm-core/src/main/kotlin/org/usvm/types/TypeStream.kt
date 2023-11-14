@@ -52,7 +52,7 @@ interface UTypeStream<Type> {
     /**
      * Stores a supertype that satisfies current type constraints and other satisfying types are inheritors of this type.
      */
-    val superType: Type?
+    val commonSuperType: Type?
 }
 
 /**
@@ -72,7 +72,7 @@ object UEmptyTypeStream : UTypeStream<Nothing> {
     override val isEmpty: Boolean
         get() = true
 
-    override val superType: Nothing?
+    override val commonSuperType: Nothing?
         get() = null
 }
 
@@ -128,6 +128,6 @@ class USingleTypeStream<Type>(
     override val isEmpty: Boolean
         get() = false
 
-    override val superType: Type
+    override val commonSuperType: Type
         get() = singleType
 }
