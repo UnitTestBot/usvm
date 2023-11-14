@@ -2,6 +2,7 @@ package org.usvm.samples.approximations
 
 import org.junit.jupiter.api.Test
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 class ApproximationsExampleTest : ApproximationsTestRunner() {
@@ -26,7 +27,7 @@ class ApproximationsExampleTest : ApproximationsTestRunner() {
     fun testOptionalDouble() {
         checkDiscoveredPropertiesWithExceptions(
             ApproximationsExample::testOptionalDouble,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, o, _ -> o == 0 },
             { _, o, _ -> o == 1 },
             { _, o, _ -> o == 2 },

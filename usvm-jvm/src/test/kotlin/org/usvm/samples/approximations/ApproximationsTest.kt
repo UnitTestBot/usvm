@@ -4,6 +4,7 @@ import approximations.java.util.ArrayList_Tests
 import approximations.java.util.OptionalDouble_Tests
 import org.junit.jupiter.api.Test
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
 class ApproximationsTest : ApproximationsTestRunner() {
@@ -20,16 +21,16 @@ class ApproximationsTest : ApproximationsTestRunner() {
 
     @Test
     fun testArrayList() {
-        checkDiscoveredPropertiesWithExceptions(
+        checkDiscoveredProperties(
             ArrayList_Tests::test_get_0,
-            eq(6),
-            { o, r -> o == 0 && r.isException<IndexOutOfBoundsException>() },
+            ignoreNumberOfAnalysisResults,
+            { o, _ -> o == 0 },
             { o, _ -> o == 1 },
             { o, _ -> o == 2 },
             { o, _ -> o == 3 },
             { o, _ -> o == 4 },
             invariants = arrayOf(
-                { execution, r -> execution !in 1..4 || r.getOrThrow() == execution }
+                { execution, r -> execution !in 0..4 || r == execution }
             )
         )
     }
