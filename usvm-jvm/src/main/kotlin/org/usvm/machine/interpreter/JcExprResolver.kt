@@ -148,7 +148,7 @@ class JcExprResolver(
     fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? {
         val resolvedExpr = if (expr.type != type && type is JcPrimitiveType) {
             // Only primitive casts may appear here because reference casts are handled with cast instruction
-            resolvePrimitiveCastWithResolvingExpr(expr, type)
+            resolvePrimitiveCast(expr, type)
         } else {
             expr.accept(this)
         } ?: return null
@@ -156,18 +156,6 @@ class JcExprResolver(
         ensureExprCorrectness(resolvedExpr, type) ?: return null
 
         return resolvedExpr
-    }
-
-    private fun resolvePrimitiveCastWithResolvingExpr(
-        expr: JcExpr,
-        type: JcPrimitiveType
-    ): UExpr<out USort>? = resolveAfterResolved(expr) {
-        val exprType = expr.type
-        check(exprType is JcPrimitiveType) {
-            "Trying cast not primitive type $exprType to primitive type $type"
-        }
-
-        resolvePrimitiveCast(it, exprType, type)
     }
 
     fun resolveJcNotNullRefExpr(expr: JcExpr, type: JcType): UHeapRef? {
@@ -349,7 +337,7 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolvePrimitiveCastWithResolvingExpr(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val size = resolvePrimitiveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
 
@@ -739,7 +727,7 @@ class JcExprResolver(
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
-        val idx = resolvePrimitiveCastWithResolvingExpr(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val idx = resolvePrimitiveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
@@ -889,6 +877,18 @@ class JcExprResolver(
         } else {
             expr
         }
+    }
+
+    private fun resolvePrimitiveCast(
+        expr: JcExpr,
+        type: JcPrimitiveType
+    ): UExpr<out USort>? = resolveAfterResolved(expr) {
+        val exprType = expr.type
+        check(exprType is JcPrimitiveType) {
+            "Trying cast not primitive type $exprType to primitive type $type"
+        }
+
+        resolvePrimitiveCast(it, exprType, type)
     }
 
     private fun resolvePrimitiveCast(
