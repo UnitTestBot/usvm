@@ -19,3 +19,18 @@ def square_matrix(x, target):
 
     # ... some smart work ...
     return "Success"
+
+
+class Node:
+    def __init__(self):
+        self.left = None
+        self.right = None
+
+
+def is_full_binary_tree(node):
+    if not node:
+        return True
+    if node.left and node.right:
+        return is_full_binary_tree(node.left) and is_full_binary_tree(node.right)
+    else:
+        return not node.left and not node.right

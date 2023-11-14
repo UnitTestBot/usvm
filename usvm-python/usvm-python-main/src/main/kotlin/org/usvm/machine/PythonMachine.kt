@@ -75,7 +75,7 @@ class PythonMachine(
             symbols,
             pathConstraints,
             memory,
-            solverRes.model.toPyModel(ctx, typeSystem),
+            solverRes.model.toPyModel(ctx, typeSystem, pathConstraints),
             typeSystem,
             preAllocatedObjects
         ).also {
