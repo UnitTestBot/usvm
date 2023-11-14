@@ -8,6 +8,7 @@ import org.jacodb.impl.features.hierarchyExt
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.usvm.logger
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
@@ -20,18 +21,24 @@ class ApproximationsTest : ApproximationsTestRunner() {
     @ParameterizedTest
     @MethodSource("approximationTests")
     fun testApproximations(test: ApproximationTestCase) {
-        System.err.println("-".repeat(50))
-        System.err.println("Start: $test")
+        logger.info { "-".repeat(50) }
+        logger.info { "Start: $test" }
 
         val properties = Array(test.executions) { idx -> { o: Int, _: Result<Int> -> o == idx } }
-        checkDiscoveredPropertiesWithExceptions(
-            test.testMethod(),
-            ignoreNumberOfAnalysisResults,
-            *properties,
-            invariants = arrayOf({ execution, r ->
-                execution !in 0 until test.executions || r.getOrThrow() == execution
-            })
-        )
+        try {
+            checkDiscoveredPropertiesWithExceptions(
+                test.testMethod(),
+                ignoreNumberOfAnalysisResults,
+                *properties,
+                invariants = arrayOf({ execution, r ->
+                    execution !in 0 until test.executions || r.getOrThrow() == execution
+                })
+            )
+            logger.info { "Success: $test" }
+        } catch (ex: Throwable) {
+            logger.error(ex) { "Fail: $test" }
+            throw ex
+        }
     }
 
     class ApproximationTestCase(val method: JcMethod, val executions: Int) : Arguments {
