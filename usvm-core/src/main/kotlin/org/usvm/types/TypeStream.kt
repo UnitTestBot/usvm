@@ -69,7 +69,7 @@ interface UTypeStream<Type> {
     val commonSuperType: Type?
 }
 
-sealed interface TypesResult<Type> {
+sealed interface TypesResult<out Type> {
     object EmptyTypesResult : TypesResult<Nothing>, Collection<Nothing> by emptyList()
 
     class SuccessfulTypesResult<Type>(
