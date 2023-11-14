@@ -9,95 +9,103 @@ import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.machine.utils.substituteModel
 
-fun virtualNbBoolKt(context: ConcolicRunContext, on: VirtualPythonObject): Boolean {
-    context.curOperation ?: throw UnregisteredVirtualOperation
-    val interpretedArg = interpretSymbolicPythonObject(context, context.curOperation!!.args.first())
-    if(context.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
+fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
+    ctx.curOperation ?: throw UnregisteredVirtualOperation
+    val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
+    if(ctx.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
         throw UnregisteredVirtualOperation  // path diversion
 
-    val oldModel = context.modelHolder.model
-    val (interpretedObj, _) = internalVirtualCallKt(context) { mockSymbol ->
-        val trueObject = context.modelHolder.model.eval(context.curState!!.preAllocatedObjects.trueObject.address)
-        val falseObject = context.modelHolder.model.eval(context.curState!!.preAllocatedObjects.falseObject.address)
+    val oldModel = ctx.modelHolder.model
+    val (interpretedObj, _) = internalVirtualCallKt(ctx) { mockSymbol ->
+        val trueObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.trueObject.address)
+        val falseObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.falseObject.address)
         listOf(
             constructModelWithNewMockEvaluator(
-                context.ctx,
+                ctx.ctx,
                 oldModel,
                 mockSymbol,
-                context.typeSystem,
+                ctx.typeSystem,
+                ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 falseObject as UConcreteHeapRef
             ),
             constructModelWithNewMockEvaluator(
-                context.ctx,
+                ctx.ctx,
                 oldModel,
                 mockSymbol,
-                context.typeSystem,
+                ctx.typeSystem,
+                ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 trueObject as UConcreteHeapRef
             )
         )
     }
 
-    return interpretedObj.getBoolContent(context).isTrue
+    return interpretedObj.getBoolContent(ctx).isTrue
 }
 
-fun virtualSqLengthKt(context: ConcolicRunContext, on: VirtualPythonObject): Int = with(context.ctx) {
-    context.curOperation ?: throw UnregisteredVirtualOperation
-    val typeSystem = context.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(context, context.curOperation!!.args.first())
-    require(context.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
-    val (interpretedObj, symbolic) = internalVirtualCallKt(context)
-    symbolic.addSupertypeSoft(context, typeSystem.pythonInt)
-    val intValue = interpretedObj.getIntContent(context)
-    myAssert(context, intValue ge mkIntNum(0))
-    myAssert(context, intValue le mkIntNum(Int.MAX_VALUE))
+fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = with(ctx.ctx) {
+    ctx.curOperation ?: throw UnregisteredVirtualOperation
+    val typeSystem = ctx.typeSystem
+    val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
+    require(ctx.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
+    val (interpretedObj, symbolic) = internalVirtualCallKt(ctx)
+    symbolic.addSupertypeSoft(ctx, typeSystem.pythonInt)
+    val intValue = interpretedObj.getIntContent(ctx)
+    myAssert(ctx, intValue ge mkIntNum(0))
+    myAssert(ctx, intValue le mkIntNum(Int.MAX_VALUE))
     return intValue.toString().toInt()
 }
 
 private fun internalVirtualCallKt(
-    context: ConcolicRunContext,
+    ctx: ConcolicRunContext,
     customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModelWrapper, UBoolExpr>> = { emptyList() }
-): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(context.ctx) {
-    context.curOperation ?: throw UnregisteredVirtualOperation
-    context.curState ?: throw UnregisteredVirtualOperation
-    val owner = context.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
-    val ownerIsAlreadyMocked = context.curState!!.mockedObjects.contains(owner)
-    var clonedState = if (!ownerIsAlreadyMocked) context.curState!!.clone() else null
+): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(ctx.ctx) {
+    ctx.curOperation ?: throw UnregisteredVirtualOperation
+    ctx.curState ?: throw UnregisteredVirtualOperation
+    val owner = ctx.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
+    val ownerIsAlreadyMocked = ctx.curState!!.mockedObjects.contains(owner)
+    var clonedState = if (!ownerIsAlreadyMocked) ctx.curState!!.clone() else null
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
-    val (symbolic, isNew, mockSymbol) = context.curState!!.mock(context.curOperation)
+    val (symbolic, isNew, mockSymbol) = ctx.curState!!.mock(ctx.curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
-        addDelayedFork(context, owner, clonedState)
+        addDelayedFork(ctx, owner, clonedState)
     }
-    if (context.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
+    if (ctx.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
         val customNewModels = customNewModelsCreation(mockSymbol)
         val (newModel, constraint) =
             if (customNewModels.isEmpty())
-                constructModelWithNewMockEvaluator(context.ctx, context.modelHolder.model, mockSymbol, context.typeSystem)
+                constructModelWithNewMockEvaluator(
+                    ctx.ctx,
+                    ctx.modelHolder.model,
+                    mockSymbol,
+                    ctx.typeSystem,
+                    ctx.curState!!.pathConstraints // one constraint will be missing (TODO: is it ok?)
+                )
             else
                 customNewModels.first()
 
         customNewModels.drop(1).forEach { (nextNewModel, constraint) ->
-            val newState = context.curState!!.clone()
+            val newState = ctx.curState!!.clone()
             newState.models = listOf(nextNewModel.uModel)
             newState.pathConstraints += constraint
-            context.forkedStates.add(newState)
+            ctx.forkedStates.add(newState)
         }
 
-        substituteModel(context.curState!!, newModel, constraint, context)
+        substituteModel(ctx.curState!!, newModel, constraint, ctx)
     }
-    val concrete = interpretSymbolicPythonObject(context, symbolic)
+    val concrete = interpretSymbolicPythonObject(ctx, symbolic)
     return concrete to symbolic
 }
 
-fun virtualCallKt(context: ConcolicRunContext): PythonObject {
-    val (interpreted, _) = internalVirtualCallKt(context)
-    val converter = context.converter
+fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
+    val (interpreted, _) = internalVirtualCallKt(ctx)
+    val converter = ctx.converter
     require(interpreted is InterpretedInputSymbolicPythonObject)
     return converter.convert(interpreted)
 }
 
-fun virtualCallSymbolKt(context: ConcolicRunContext): UninterpretedSymbolicPythonObject = internalVirtualCallKt(context).second
+fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject = internalVirtualCallKt(ctx).second
 
 object UnregisteredVirtualOperation: Exception() {
     private fun readResolve(): Any = UnregisteredVirtualOperation
