@@ -57,7 +57,7 @@ class PythonVirtualPathSelector(
         if (forkResult.negativeState == null)
             return null
         val stateWithConcreteType = forkResult.negativeState!!
-        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem))
+        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints))
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 

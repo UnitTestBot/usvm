@@ -5,23 +5,26 @@ import org.usvm.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.array.length.UArrayLengthsRegion
 import org.usvm.collection.array.length.UArrayLengthsRegionId
-import org.usvm.language.types.ArrayLikeConcretePythonType
+import org.usvm.collection.set.primitive.USetRegionId
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.set.ref.URefSetRegionId
+import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.ArrayType
+import org.usvm.language.types.ObjectDictType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
-import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 
 
 class PyModel(
-    val ctx: UPythonContext,
+    private val ctx: UPythonContext,
     private val underlyingModel: UModelBase<PythonType>,
-    val typeSystem: PythonTypeSystem
+    private val typeSystem: PythonTypeSystem,
+    ps: UPathConstraints<PythonType>
 ) : UModelBase<PythonType>(
     ctx,
     underlyingModel.stack,
@@ -30,50 +33,7 @@ class PyModel(
     underlyingModel.regions,
     underlyingModel.nullRef
 ) {
-    private inner class WrappedArrayIndexRegion<ArrayType, Sort: USort>(
-        val region: UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort>,
-        val model: PyModel,
-        val ctx: UPythonContext
-    ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort> {
-        override fun read(key: UArrayIndexLValue<ArrayType, Sort, KIntSort>): UExpr<UAddressSort> {
-            val underlyingResult = region.read(key)
-            val array = key.ref as UConcreteHeapRef
-            if (array.address > 0)  // allocated object
-                return underlyingResult
-            val arrayType = PyModelWrapper(model).getConcreteType(array)
-            require(arrayType != null && arrayType is ArrayLikeConcretePythonType)
-            val constraints = arrayType.elementConstraints
-            if (constraints.all { it.applyInterpreted(array, underlyingResult as UConcreteHeapRef, model, ctx) }) {
-                return underlyingResult
-            }
-            return nullRef
-        }
-    }
-
-    private inner class WrappedArrayLengthRegion(
-        val ctx: UPythonContext,
-        val region: UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
-    ): UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort> {
-        override fun read(key: UArrayLengthLValue<ArrayType, KIntSort>): UExpr<KIntSort> {
-            val underlyingResult = region.read(key)
-            if (ctx.mkArithLt(underlyingResult, ctx.mkIntNum(0)).isTrue) {
-                return ctx.mkIntNum(0)
-            }
-            return underlyingResult
-        }
-    }
-
-    /* private inner class WrappedSetRegion<SetType>(
-        val region: UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>,
-        val ps: UPathConstraints<SetType>
-    ): UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>{
-
-        val realRegion by lazy { TODO() }
-        override fun read(key: URefSetEntryLValue<SetType>): UExpr<UBoolSort> {
-            return key.setRef.uctx.mkBool(key in realRegion)
-        }
-
-    } */
+    private val setKeys = WrappedSetRegion.constructKeys(ctx, ps, underlyingModel)
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
@@ -82,11 +42,15 @@ class PyModel(
             regionId.arrayType == ArrayType
         ) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>
-            return WrappedArrayIndexRegion(region, this, ctx) as UReadOnlyMemoryRegion<Key, Sort>
+            return WrappedArrayIndexRegion(region, this, ctx, nullRef) as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is UArrayLengthsRegionId<*, *> && regionId.sort == ctx.intSort && regionId.arrayType == ArrayType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
             return WrappedArrayLengthRegion(ctx, region) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
+            return WrappedSetRegion(ctx, region, setKeys) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)
     }
@@ -102,8 +66,12 @@ class PyModel(
     }
 }
 
-fun UModelBase<PythonType>.toPyModel(ctx: UPythonContext, typeSystem: PythonTypeSystem): PyModel {
+fun UModelBase<PythonType>.toPyModel(
+    ctx: UPythonContext,
+    typeSystem: PythonTypeSystem,
+    ps: UPathConstraints<PythonType>
+): PyModel {
     if (this is PyModel)
         return this
-    return PyModel(ctx, this, typeSystem)
+    return PyModel(ctx, this, typeSystem, ps)
 }

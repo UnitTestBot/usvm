@@ -18,6 +18,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
@@ -232,10 +233,18 @@ fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): U
 
 fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
     require(ctx.curState != null)
-    return when (getTypeIfDefined(ctx)) {
+    return when (val type = getTypeIfDefined(ctx)) {
         typeSystem.pythonBool -> getBoolContent(ctx)
         typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
-        typeSystem.pythonList -> ctx.curState!!.memory.readArrayLength(address, ArrayType, intSort) gt mkIntNum(0)
+        typeSystem.pythonList, typeSystem.pythonTuple -> readArrayLength(ctx) gt mkIntNum(0)
+        typeSystem.pythonNoneType -> falseExpr
+        is ConcretePythonType -> {
+            val address = ctx.typeSystem.addressOfConcreteType(type)
+            if (!ConcretePythonInterpreter.typeHasNbBool(address) && !ConcretePythonInterpreter.typeHasSqLength(address))
+                trueExpr
+            else
+                null
+        }
         else -> null
     }
 }
