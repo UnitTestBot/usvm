@@ -33,7 +33,7 @@ dependencies {
     implementation(project(mapOf("path" to ":usvm-python:usvm-python-annotations")))
     annotationProcessor(project(":usvm-python:usvm-python-annotations"))
 
-    implementation("org.utbot:utbot-python-types:2023.09-SNAPSHOT")
+    implementation("org.utbot:utbot-python-types:2023.11-SNAPSHOT")
 
     // implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     // implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")

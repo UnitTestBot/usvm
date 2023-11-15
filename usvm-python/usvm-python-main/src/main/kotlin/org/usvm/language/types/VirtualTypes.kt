@@ -116,3 +116,8 @@ object HasTpIter: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpIter(type.asObject)
 }
+
+object HasTpCall: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasTpCall(type.asObject)
+}
