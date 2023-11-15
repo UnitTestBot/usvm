@@ -74,11 +74,8 @@ class PythonSymbolicAnalysisRunnerImpl(
     ): Thread() {
         override fun run() {
             val start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive && process.isAlive) {
-                if (isCancelled()) {
-                    readingThread.interrupt()
-                }
-                TimeUnit.MILLISECONDS.sleep(100)
+            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive && process.isAlive && !isCancelled()) {
+                sleep(10)
             }
             readingThread.interrupt()
         }
