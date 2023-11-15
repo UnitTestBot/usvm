@@ -100,7 +100,7 @@ class TupleTest: PythonTestRunnerForPrimitiveProgram("Tuple", UMachineOptions(st
     @Test
     fun testGetItemOfInput() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 50U)
+        options = UMachineOptions(stepLimit = 80U)
         allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("get_item_of_input", listOf(PythonAnyType, PythonAnyType)),

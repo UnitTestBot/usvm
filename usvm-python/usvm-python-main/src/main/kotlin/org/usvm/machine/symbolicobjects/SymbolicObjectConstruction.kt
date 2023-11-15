@@ -30,7 +30,7 @@ fun constructInputObject(
     return result
 }
 
-fun constructEmptyObject(
+fun constructEmptyAllocatedObject(
     ctx: UPythonContext,
     memory: UMemory<PythonType, PythonCallable>,
     typeSystem: PythonTypeSystem,
@@ -91,7 +91,7 @@ fun constructInitialBool(
     typeSystem: PythonTypeSystem,
     expr: UExpr<KBoolSort>
 ): UninterpretedSymbolicPythonObject {
-    val address = memory.allocConcrete(typeSystem.pythonBool)
+    val address = memory.allocStatic(typeSystem.pythonBool)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool)
     val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)

@@ -1,10 +1,9 @@
 package org.usvm.machine.symbolicobjects
 
 import io.ksmt.expr.KInt32NumExpr
-import org.usvm.UConcreteHeapRef
-import org.usvm.UHeapRef
+import org.usvm.*
 import org.usvm.api.readArrayIndex
-import org.usvm.isStaticHeapRef
+import org.usvm.language.PythonCallable
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
@@ -14,13 +13,14 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
-import org.usvm.mkSizeExpr
+import org.usvm.memory.UMemory
 
 class ConverterToPythonObject(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder,
-    private val preallocatedObjects: PreallocatedObjects
+    private val preallocatedObjects: PreallocatedObjects,
+    private val memory: UMemory<PythonType, PythonCallable>
 ) {
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
@@ -45,8 +45,12 @@ class ConverterToPythonObject(
     fun getUSVMVirtualObjects(): Set<VirtualPythonObject> = virtualObjects.map { it.first }.toSet()
     fun numberOfVirtualObjectUsages(): Int = numberOfUsagesOfVirtualObjects
 
-    fun convert(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        require(obj.modelHolder == modelHolder)
+    fun convert(obj: InterpretedSymbolicPythonObject): PythonObject {
+        if (obj is InterpretedInputSymbolicPythonObject)
+            require(obj.modelHolder == modelHolder)
+        require(!isAllocatedConcreteHeapRef(obj.address)) {
+            "Cannot convert allocated objects"
+        }
         val cached = constructedObjects[obj.address]
         if (cached != null)
             return cached
@@ -77,8 +81,8 @@ class ConverterToPythonObject(
         }
     }
 
-    private fun convertFloat(obj: InterpretedInputSymbolicPythonObject): PythonObject {
-        val cmd = when (val floatValue = obj.getFloatContent(ctx)) {
+    private fun convertFloat(obj: InterpretedSymbolicPythonObject): PythonObject {
+        val cmd = when (val floatValue = obj.getFloatContent(ctx, memory)) {
             is FloatNan -> "float('nan')"
             is FloatPlusInfinity -> "float('inf')"
             is FloatMinusInfinity -> "float('-inf')"
@@ -112,7 +116,10 @@ class ConverterToPythonObject(
         }
     }
 
-    private fun constructFromDefaultConstructor(obj: InterpretedInputSymbolicPythonObject, type: ConcretePythonType): PythonObject {
+    private fun constructFromDefaultConstructor(obj: InterpretedSymbolicPythonObject, type: ConcretePythonType): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Instance of type with default constructor cannot be static"
+        }
         require(type.owner == typeSystem)
         val result = ConcretePythonInterpreter.callStandardNew(type.asObject)
         constructedObjects[obj.address] = result
@@ -124,7 +131,7 @@ class ConverterToPythonObject(
                 if (obj.containsField(nameSymbol)) {
                     val str = preallocatedObjects.concreteString(it)!!
                     if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
-                        val symbolicValue = obj.getFieldValue(ctx, nameSymbol)
+                        val symbolicValue = obj.getFieldValue(ctx, nameSymbol, memory)
                         val value = convert(symbolicValue)
                         val ref = preallocatedObjects.refOfString(str)!!
                         val namespace = ConcretePythonInterpreter.getNewNamespace()
@@ -151,7 +158,10 @@ class ConverterToPythonObject(
         return result
     }
 
-    private fun constructVirtualObject(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+    private fun constructVirtualObject(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Virtual object cannot be static"
+        }
         val default = forcedConcreteTypes[obj.address]?.let { defaultValueProvider.provide(it) }
         if (default != null)
             return default
@@ -163,17 +173,20 @@ class ConverterToPythonObject(
         return result
     }
 
-    private fun convertInt(obj: InterpretedInputSymbolicPythonObject): PythonObject =
-        ConcretePythonInterpreter.eval(emptyNamespace, obj.getIntContent(ctx).toString())
+    private fun convertInt(obj: InterpretedSymbolicPythonObject): PythonObject =
+        ConcretePythonInterpreter.eval(emptyNamespace, obj.getIntContent(ctx, memory).toString())
 
-    private fun convertBool(obj: InterpretedInputSymbolicPythonObject): PythonObject =
-        when (obj.getBoolContent(ctx)) {
+    private fun convertBool(obj: InterpretedSymbolicPythonObject): PythonObject =
+        when (obj.getBoolContent(ctx, memory)) {
             ctx.trueExpr -> ConcretePythonInterpreter.eval(emptyNamespace, "True")
             ctx.falseExpr -> ConcretePythonInterpreter.eval(emptyNamespace, "False")
             else -> error("Not reachable")
         }
 
-    private fun convertList(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+    private fun convertList(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "List object cannot be static"
+        }
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
         val listOfPythonObjects = constructArrayContents(obj)
@@ -187,7 +200,10 @@ class ConverterToPythonObject(
         return resultList
     }
 
-    private fun convertTuple(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+    private fun convertTuple(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Tuple object cannot be static"
+        }
         val size = obj.readArrayLength(ctx) as? KInt32NumExpr ?: throw LengthOverflowException
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
@@ -198,7 +214,10 @@ class ConverterToPythonObject(
         return resultTuple
     }
 
-    private fun convertSlice(obj: InterpretedInputSymbolicPythonObject): PythonObject {
+    private fun convertSlice(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Slice cannot be static"
+        }
         val (start, stop, step) = obj.getSliceContent(ctx, typeSystem)
         val startStr = start?.toString() ?: "None"
         val stopStr = stop?.toString() ?: "None"
