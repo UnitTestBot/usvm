@@ -112,4 +112,18 @@ class MethodsTest: PythonTestRunnerForStructuredProgram("Methods", UMachineOptio
             )
         )
     }
+
+    @Test
+    fun testPoint2Inference() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 2U)
+        check1WithConcreteRun(
+            constructFunction("point2_inference", List(1) { PythonAnyType }),
+            eq(1),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf { x, _ -> x.typeName == "Point2" }
+        )
+        options = oldOptions
+    }
 }

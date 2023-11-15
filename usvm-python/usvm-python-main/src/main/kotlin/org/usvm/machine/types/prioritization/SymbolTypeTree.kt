@@ -5,14 +5,12 @@ import org.usvm.machine.PythonExecutionState
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.getConcreteStrIfDefined
-import org.utbot.python.newtyping.PythonTypeHintsStorage
-import org.utbot.python.newtyping.createBinaryProtocol
-import org.utbot.python.newtyping.createUnaryProtocol
+import org.utbot.python.newtyping.*
+import org.utbot.python.newtyping.general.FunctionTypeCreator
 import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
 import org.utbot.python.newtyping.inference.TypeInferenceNode
 import org.utbot.python.newtyping.inference.addEdge
-import org.utbot.python.newtyping.pythonAnyType
 
 class SymbolTypeTree(
     private val state: PythonExecutionState,
@@ -24,7 +22,7 @@ class SymbolTypeTree(
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
         state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
             val protocol =
-                when (mockHeader.method) {
+                 when (mockHeader.method) {
                     MpAssSubscriptMethod ->
                         { returnType: UtType -> createBinaryProtocol("__setitem__", pythonAnyType, returnType) }
                     MpSubscriptMethod ->
@@ -71,6 +69,21 @@ class SymbolTypeTree(
                                 createBinaryProtocol("__ge__", pythonAnyType, returnType)
                             else -> error("Wrong OP in TpRichcmpMethod")
                         }
+                    }
+                    is TpCallMethod -> { returnType: UtType ->
+                        createProtocolWithAttribute(
+                            "__call__",
+                                createPythonCallableType(
+                                    1,
+                                    listOf(PythonCallableTypeDescription.ArgKind.ARG_STAR),
+                                    listOf(null)
+                                ) {
+                                    FunctionTypeCreator.InitializationData(
+                                        listOf(pythonAnyType),
+                                        returnType
+                                    )
+                                }
+                            )
                     }
                 }
             node.upperBounds.add(protocol(pythonAnyType))

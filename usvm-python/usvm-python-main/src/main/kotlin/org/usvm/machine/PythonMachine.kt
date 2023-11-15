@@ -107,7 +107,8 @@ class PythonMachine(
         allowPathDiversion: Boolean = true,
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
-        timeoutPerRunMs: Long? = null
+        timeoutPerRunMs: Long? = null,
+        // unfoldGenerator: Boolean = true
     ): Int {
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)

@@ -70,3 +70,8 @@ fun tpIterKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject)
     context.curState ?: return
     myAssert(context, on.evalIsSoft(context, HasTpIter))
 }
+
+fun tpCallKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIsSoft(context, HasTpCall))
+}
