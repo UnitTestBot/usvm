@@ -2,6 +2,12 @@ package org.usvm.types
 
 import org.usvm.algorithms.CachingSequence
 import org.usvm.algorithms.DfsIterator
+import org.usvm.types.TypesResult.Companion.toTypesResult
+import org.usvm.types.TypesResult.EmptyTypesResult
+import org.usvm.types.TypesResult.SuccessfulTypesResult
+import org.usvm.types.TypesResult.TypesResultWithExpiredTimeout
+import org.usvm.util.TimeoutException
+import org.usvm.util.timeLimitedIterator
 
 /**
  * A persistent type stream based on the [supportType]. Takes inheritors of the [supportType] and
@@ -21,7 +27,7 @@ class USupportTypeStream<Type> private constructor(
     private val supportType: Type,
     private val filtering: (Type) -> Boolean,
 ) : UTypeStream<Type> {
-    override fun filterBySupertype(type: Type): UTypeStream<Type> =
+    override fun filterBySupertype(type: Type): USupportTypeStream<Type> =
         when {
             // we update the [supportType]
             typeSystem.isSupertype(supportType, type) -> USupportTypeStream(
@@ -59,13 +65,13 @@ class USupportTypeStream<Type> private constructor(
             else -> withNewFiltering(type) { !typeSystem.isSupertype(type, it) }
         }
 
-    override fun filterByNotSubtype(type: Type): UTypeStream<Type> =
+    override fun filterByNotSubtype(type: Type): USupportTypeStream<Type> =
         when {
             typeSystem.isSupertype(type, supportType) && type != supportType -> this
             else -> withNewFiltering(type) { !typeSystem.isSupertype(it, type) }
         }
 
-    private fun withNewFiltering(type: Type, newFiltering: (Type) -> Boolean) =
+    private fun withNewFiltering(type: Type, newFiltering: (Type) -> Boolean): USupportTypeStream<Type> =
         USupportTypeStream(
             typeSystem,
             cachingSequence.filter(newFiltering),
@@ -78,17 +84,29 @@ class USupportTypeStream<Type> private constructor(
             filtering = { filtering(it) && newFiltering(it) }
         )
 
-    override fun take(n: Int): Set<Type> {
+    override fun take(n: Int): TypesResult<Type> {
         val set = cacheFromQueries.take(n).toMutableSet()
-        val iterator = cachingSequence.iterator()
-        while (set.size < n && iterator.hasNext()) {
-            set += iterator.next()
+        val iterator = cachingSequence.timeLimitedIterator(typeSystem.typeOperationsTimeout)
+
+        return try {
+            while (set.size < n && iterator.hasNext()) {
+                set += iterator.next()
+            }
+
+            set.toTypesResult(wasTimeoutExpired = false)
+        } catch (e: TimeoutException) {
+            set.toTypesResult(wasTimeoutExpired = true)
         }
-        return set
     }
 
-    override val isEmpty: Boolean
-        get() = take(1).isEmpty()
+    override val isEmpty: Boolean?
+        get() = take(1).let {
+            when (it) {
+                EmptyTypesResult -> true
+                is SuccessfulTypesResult -> it.isEmpty()
+                is TypesResultWithExpiredTimeout -> null
+            }
+        }
 
     override val commonSuperType: Type
         get() = supportType

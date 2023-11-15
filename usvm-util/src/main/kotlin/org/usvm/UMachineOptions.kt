@@ -1,5 +1,9 @@
 package org.usvm
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+
 enum class SolverType {
     YICES,
     Z3
@@ -192,6 +196,10 @@ data class UMachineOptions(
      */
     val solverType: SolverType = SolverType.Z3,
     /**
+     * A timeout for checks with the SMT solver.
+     */
+    val solverTimeout: Duration = 1.seconds,
+    /**
      * Whether we use a solver on symbolic branching to fork only with satisfiable states or keep all states.
      */
     val useSolverForForks: Boolean = true,
@@ -203,6 +211,10 @@ data class UMachineOptions(
      * Whether we should try to apply soft constraints for symbolic values.
      */
     val useSoftConstraints: Boolean = true,
+    /**
+     * A timeout for heavy operations with types.
+     */
+    val typeOperationsTimeout: Duration = 100.milliseconds,
     /**
      * Should machine stop when all terminal targets are reached.
      */

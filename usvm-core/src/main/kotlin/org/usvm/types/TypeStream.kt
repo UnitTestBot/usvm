@@ -1,5 +1,9 @@
 package org.usvm.types
 
+import org.usvm.types.TypesResult.EmptyTypesResult
+import org.usvm.types.TypesResult.SuccessfulTypesResult
+import org.usvm.types.TypesResult.TypesResultWithExpiredTimeout
+
 /**
  * A base interface representing persistent type constraints and a function to collect
  * **instantiable** types satisfying them.
@@ -43,16 +47,43 @@ interface UTypeStream<Type> {
     fun filterByNotSubtype(type: Type): UTypeStream<Type>
 
     /**
-     * @return the collection of **instantiable** types satisfying accumulated type constraints.
+     * @return a [TypesResult] on the collection of **instantiable** types satisfying accumulated type constraints,
+     * according to the [UTypeSystem.typeOperationsTimeout]:
+     * * If there are no types satisfying constraints, returns [EmptyTypesResult];
+     * * If there are some types found and [UTypeSystem.typeOperationsTimeout] was not expired,
+     * returns [SuccessfulTypesResult];
+     * * If the [UTypeSystem.typeOperationsTimeout] was expired, returns [TypesResultWithExpiredTimeout] containing
+     * all types satisfying constraints that were collected before timeout expiration.
      */
-    fun take(n: Int): Collection<Type>
+    fun take(n: Int): TypesResult<Type>
 
-    val isEmpty: Boolean
+    /**
+     * @return whether this [UTypeStream] is empty according to [UTypeStream.take],
+     * or null if [UTypeSystem.typeOperationsTimeout] was expired.
+     */
+    val isEmpty: Boolean?
 
     /**
      * Stores a supertype that satisfies current type constraints and other satisfying types are inheritors of this type.
      */
     val commonSuperType: Type?
+}
+
+sealed interface TypesResult<out Type> {
+    object EmptyTypesResult : TypesResult<Nothing>, Collection<Nothing> by emptyList()
+
+    class SuccessfulTypesResult<Type>(
+        val types: Collection<Type>
+    ) : TypesResult<Type>, Collection<Type> by types
+
+    class TypesResultWithExpiredTimeout<Type>(
+        val collectedTypes: Collection<Type>
+    ) : TypesResult<Type>
+
+    companion object {
+        fun <Type> Collection<Type>.toTypesResult(wasTimeoutExpired: Boolean): TypesResult<Type> =
+            if (wasTimeoutExpired) TypesResultWithExpiredTimeout(this) else SuccessfulTypesResult(this)
+    }
 }
 
 /**
@@ -67,7 +98,7 @@ object UEmptyTypeStream : UTypeStream<Nothing> {
 
     override fun filterByNotSubtype(type: Nothing): UTypeStream<Nothing> = this
 
-    override fun take(n: Int): Collection<Nothing> = emptyList()
+    override fun take(n: Int): EmptyTypesResult = EmptyTypesResult
 
     override val isEmpty: Boolean
         get() = true
@@ -79,14 +110,42 @@ object UEmptyTypeStream : UTypeStream<Nothing> {
 @Suppress("UNCHECKED_CAST")
 fun <Type> emptyTypeStream(): UTypeStream<Type> = UEmptyTypeStream as UTypeStream<Type>
 
-fun <Type> UTypeStream<Type>.first(): Type = take(1).first()
+fun <Type> UTypeStream<Type>.first(): Type = take(1).let {
+    when (it) {
+        EmptyTypesResult -> throw NoSuchElementException("Collection is empty.")
+        is SuccessfulTypesResult -> it.first()
+        is TypesResultWithExpiredTimeout -> it.collectedTypes.first()
+    }
+}
 
-fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).firstOrNull()
+fun <Type> UTypeStream<Type>.firstOrNull(): Type? = take(1).let {
+    when (it) {
+        EmptyTypesResult -> null
+        is SuccessfulTypesResult -> it.firstOrNull()
+        is TypesResultWithExpiredTimeout -> it.collectedTypes.firstOrNull()
+    }
+}
 
 // Note: we try to take at least two types to ensure that we don't have no more than one type.
-fun <Type> UTypeStream<Type>.single(): Type = take(2).single()
+fun <Type> UTypeStream<Type>.single(): Type = take(2).let {
+    when (it) {
+        EmptyTypesResult -> throw NoSuchElementException("Collection is empty.")
+        is SuccessfulTypesResult -> it.single()
+        is TypesResultWithExpiredTimeout ->
+            error(
+                "$this type stream has unknown number of types because of timeout exceeding, " +
+                        "already found types: ${it.collectedTypes}"
+            )
+    }
+}
 
-fun <Type> UTypeStream<Type>.singleOrNull(): Type? = take(2).singleOrNull()
+fun <Type> UTypeStream<Type>.singleOrNull(): Type? = take(2).let {
+    when (it) {
+        EmptyTypesResult -> null
+        is SuccessfulTypesResult -> it.singleOrNull()
+        is TypesResultWithExpiredTimeout -> null // Unknown number of types
+    }
+}
 
 /**
  * Consists of just one type [singleType].
@@ -123,7 +182,7 @@ class USingleTypeStream<Type>(
             this
         }
 
-    override fun take(n: Int) = listOf(singleType)
+    override fun take(n: Int): SuccessfulTypesResult<Type> = SuccessfulTypesResult(listOf(singleType))
 
     override val isEmpty: Boolean
         get() = false

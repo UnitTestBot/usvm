@@ -11,6 +11,7 @@ import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import kotlin.time.Duration
 
 sealed interface USolverResult<out T>
 
@@ -32,6 +33,8 @@ open class USolverBase<Type>(
     protected val typeSolver: UTypeSolver<Type>,
     protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
+    // TODO this timeout must not exceed time budget for the MUT
+    private val timeout: Duration
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
@@ -123,16 +126,16 @@ open class USolverBase<Type>(
     ): KSolverStatus {
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints, timeout)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints, timeout)
             }
         } else {
-            status = smtSolver.check()
+            status = smtSolver.check(timeout)
         }
         return status
     }

@@ -3,8 +3,12 @@ package org.usvm.types.system
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.INFINITE
 
 class TestTypeSystem : UTypeSystem<TestType> {
+    override val typeOperationsTimeout: Duration = INFINITE
+
     var id = 0
         private set
 

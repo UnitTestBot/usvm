@@ -21,7 +21,7 @@ class UTypeRegion<Type>(
      */
     private fun contradiction() = UTypeRegion(typeSystem, emptyTypeStream())
 
-    override val isEmpty: Boolean get() = typeStream.isEmpty
+    override val isEmpty: Boolean get() = typeStream.isEmpty ?: false // Timeout here means that this type region **may** be not empty
 
     private val <Type> UTypeRegion<Type>.size: Int
         get() = supertypes.size + notSupertypes.size + subtypes.size + notSubtypes.size
