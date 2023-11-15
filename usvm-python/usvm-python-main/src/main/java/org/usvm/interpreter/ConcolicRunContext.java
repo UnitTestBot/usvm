@@ -53,7 +53,7 @@ public class ConcolicRunContext {
         if (curState.getMeta().getLastConverter() != null) {
             this.converter = curState.getMeta().getLastConverter();
         } else {
-            this.converter = new ConverterToPythonObject(ctx, typeSystem, modelHolder, curState.getPreAllocatedObjects());
+            this.converter = new ConverterToPythonObject(ctx, typeSystem, modelHolder, curState.getPreAllocatedObjects(), curState.getMemory().clone(curState.getPathConstraints().getTypeConstraints()));
         }
         this.maxInstructions = maxInstructions;
         this.isCancelled = isCancelled;

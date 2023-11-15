@@ -11,6 +11,7 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.readArrayLength
 import org.usvm.api.readField
+import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
@@ -22,6 +23,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
+import org.usvm.types.first
 
 /** standard fields **/
 
@@ -64,12 +66,19 @@ fun InterpretedInputSymbolicPythonObject.containsField(
 
 fun InterpretedInputSymbolicPythonObject.getFieldValue(
     ctx: UPythonContext,
-    name: InterpretedSymbolicPythonObject
-): InterpretedInputSymbolicPythonObject {
+    name: InterpretedSymbolicPythonObject,
+    memory: UMemory<PythonType, PythonCallable>
+): InterpretedSymbolicPythonObject {
     require(!isAllocatedConcreteHeapRef(name.address))
     val result = modelHolder.model.uModel.read(URefMapEntryLValue(ctx.addressSort, address, name.address, ObjectDictType))
     require((result as UConcreteHeapRef).address <= 0)
-    return InterpretedInputSymbolicPythonObject(result, modelHolder, typeSystem)
+    return if (!isStaticHeapRef(result))
+        InterpretedInputSymbolicPythonObject(result, modelHolder, typeSystem)
+    else {
+        val type = memory.typeStreamOf(result).first()
+        require(type is ConcretePythonType)
+        InterpretedAllocatedOrStaticSymbolicPythonObject(result, type, typeSystem)
+    }
 }
 
 /** arrays (list, tuple) **/
@@ -114,16 +123,20 @@ fun InterpretedInputSymbolicPythonObject.getIntContent(ctx: UPythonContext): KIn
     return modelHolder.model.readField(address, IntContents.content, ctx.intSort)
 }
 
-fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> {
+fun InterpretedSymbolicPythonObject.getIntContent(ctx: UPythonContext, memory: UMemory<PythonType, PythonCallable>): KInterpretedValue<KIntSort> {
     return when (this) {
         is InterpretedInputSymbolicPythonObject -> {
-            getIntContent(ctx.ctx)
+            getIntContent(ctx)
         }
         is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
-            require(ctx.curState != null)
-            ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort) as KInterpretedValue<KIntSort>
+            memory.readField(address, IntContents.content, ctx.intSort) as KInterpretedValue<KIntSort>
         }
     }
+}
+
+fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): KInterpretedValue<KIntSort> {
+    require(ctx.curState != null)
+    return getIntContent(ctx.ctx, ctx.curState!!.memory)
 }
 
 
@@ -161,6 +174,22 @@ fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: UPythonContext): F
         return if (isPositive.isTrue) FloatPlusInfinity else FloatMinusInfinity
     }
     val realValue = modelHolder.model.readField(address, FloatContents.content, ctx.realSort)
+    val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
+    return FloatNormalValue(floatValue.value)
+}
+
+fun InterpretedSymbolicPythonObject.getFloatContent(ctx: UPythonContext, memory: UMemory<PythonType, PythonCallable>): FloatInterpretedContent {
+    if (this is InterpretedInputSymbolicPythonObject)
+        return getFloatContent(ctx)
+    val isNan = memory.readField(address, FloatContents.isNan, ctx.boolSort)
+    if (isNan.isTrue)
+        return FloatNan
+    val isInf = memory.readField(address, FloatContents.isInf, ctx.boolSort)
+    if (isInf.isTrue) {
+        val isPositive = memory.readField(address, FloatContents.infSign, ctx.boolSort)
+        return if (isPositive.isTrue) FloatPlusInfinity else FloatMinusInfinity
+    }
+    val realValue = memory.readField(address, FloatContents.content, ctx.realSort)
     val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
     return FloatNormalValue(floatValue.value)
 }
@@ -254,16 +283,20 @@ fun InterpretedInputSymbolicPythonObject.getBoolContent(ctx: UPythonContext): KI
     return modelHolder.model.readField(address, BoolContents.content, ctx.boolSort)
 }
 
-fun InterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
+fun InterpretedSymbolicPythonObject.getBoolContent(ctx: UPythonContext, memory: UMemory<PythonType, PythonCallable>): KInterpretedValue<KBoolSort> {
     return when (this) {
         is InterpretedInputSymbolicPythonObject -> {
-            getBoolContent(ctx.ctx)
+            getBoolContent(ctx)
         }
         is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
-            require(ctx.curState != null)
-            ctx.curState!!.memory.readField(address, BoolContents.content, ctx.ctx.boolSort) as KInterpretedValue<KBoolSort>
+            memory.readField(address, BoolContents.content, ctx.boolSort) as KInterpretedValue<KBoolSort>
         }
     }
+}
+
+fun InterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): KInterpretedValue<KBoolSort> {
+    require(ctx.curState != null)
+    return getBoolContent(ctx.ctx, ctx.curState!!.memory)
 }
 
 

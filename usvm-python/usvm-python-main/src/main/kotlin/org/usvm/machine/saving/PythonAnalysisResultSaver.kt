@@ -4,6 +4,7 @@ import org.usvm.language.types.PythonType
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
 
 abstract class PythonAnalysisResultSaver<InputRepr> {
     abstract fun serializeInput(inputs: List<GeneratedPythonObject>, converter: ConverterToPythonObject): InputRepr
@@ -14,7 +15,7 @@ abstract class PythonAnalysisResultSaver<InputRepr> {
 data class GeneratedPythonObject(
     val ref: PythonObject,
     val type: PythonType,
-    val asUExpr: InterpretedInputSymbolicPythonObject
+    val asUExpr: InterpretedSymbolicPythonObject
 )
 
 sealed class ExecutionResult<PythonObjectRepresentation>
