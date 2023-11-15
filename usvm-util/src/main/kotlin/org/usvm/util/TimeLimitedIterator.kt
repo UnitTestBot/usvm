@@ -3,6 +3,7 @@ package org.usvm.util
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
+import kotlin.time.measureTimedValue
 
 class TimeoutException : RuntimeException() {
     // Make it fast
@@ -10,17 +11,27 @@ class TimeoutException : RuntimeException() {
 }
 
 @OptIn(ExperimentalTime::class)
-class TimeLimitedIterator<T>(val iterator: Iterator<T>, timeout: Duration) : Iterator<T> {
-    private val timeoutMark: TimeSource.Monotonic.ValueTimeMark = TimeSource.Monotonic.markNow() + timeout
+class TimeLimitedIterator<T>(private val iterator: Iterator<T>, private val timeout: Duration) : Iterator<T> {
+    private var elapsedTime = Duration.ZERO
 
-    override fun hasNext(): Boolean = iterator.hasNext()
+    override fun hasNext(): Boolean = doWithTimeout { iterator.hasNext() }
 
-    override fun next(): T {
-        if (timeoutMark.hasPassedNow()) {
+    override fun next(): T = doWithTimeout { iterator.next() }
+
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun throwIfExpiredTimeout() {
+        if (elapsedTime >= timeout) {
             throw TimeoutException()
         }
+    }
 
-        return iterator.next()
+    private inline fun <T> doWithTimeout(block: () -> T): T {
+        throwIfExpiredTimeout()
+
+        val (value, time) = measureTimedValue { block() }
+        elapsedTime += time
+
+        return value
     }
 }
 
