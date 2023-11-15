@@ -87,6 +87,7 @@ public class CPythonAdapter {
     public native int typeHasTpGetattro(long type);
     public native int typeHasTpSetattro(long type);
     public native int typeHasTpIter(long type);
+    public native int typeHasTpCall(long type);
     public native int typeHasTpDescrGet(long type);
     public native int typeHasTpDescrSet(long type);
     public native int typeHasStandardNew(long type);
@@ -905,6 +906,18 @@ public class CPythonAdapter {
             return;
         context.curOperation = new MockHeader(TpIterMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
         tpIterKt(context, on.obj);
+    }
+
+    @CPythonAdapterJavaMethod(cName = "tp_call")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpCall(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        context.curOperation = new MockHeader(TpCallMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
+        tpCallKt(context, on.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "virtual_nb_bool")

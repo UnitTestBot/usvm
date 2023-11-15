@@ -70,6 +70,13 @@ tp_iter(PyObject *o1) {
 }
 PyType_Slot Virtual_tp_iter = {Py_tp_iter, tp_iter};
 
+static PyObject *
+tp_call(PyObject *o1, PyObject *args, PyObject *kwargs) {
+    assert(is_virtual_object(o1));
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
+}
+PyType_Slot Virtual_tp_call = {Py_tp_call, tp_call};
+
 static int
 nb_bool(PyObject *self) {
     VirtualPythonObject *obj = (VirtualPythonObject *) self;
@@ -167,6 +174,7 @@ initialize_virtual_object_type() {
         Virtual_tp_getattro,
         Virtual_tp_setattro,
         Virtual_tp_iter,
+        Virtual_tp_call,
         Virtual_nb_bool,
         Virtual_nb_add,
         Virtual_nb_subtract,
