@@ -36,12 +36,12 @@ class USVMPythonInterpreter<InputRepr>(
     private fun getSeeds(
         concolicRunContext: ConcolicRunContext,
         symbols: List<UninterpretedSymbolicPythonObject>
-    ): List<InterpretedInputSymbolicPythonObject> =
-        symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) as InterpretedInputSymbolicPythonObject }
+    ): List<InterpretedSymbolicPythonObject> =
+        symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
 
     private fun getConcrete(
         converter: ConverterToPythonObject,
-        seeds: List<InterpretedInputSymbolicPythonObject>,
+        seeds: List<InterpretedSymbolicPythonObject>,
         symbols: List<UninterpretedSymbolicPythonObject>
     ): List<PythonObject> =
         (seeds zip symbols).map { (seed, _) -> converter.convert(seed) }
@@ -49,7 +49,7 @@ class USVMPythonInterpreter<InputRepr>(
     private fun getInputs(
         converter: ConverterToPythonObject,
         concrete: List<PythonObject>,
-        seeds: List<InterpretedInputSymbolicPythonObject>
+        seeds: List<InterpretedSymbolicPythonObject>
     ): List<GeneratedPythonObject>? =
         if (converter.numberOfVirtualObjectUsages() == 0) {
             (seeds zip unpinnedCallable.signature zip concrete).map { (p, ref) ->

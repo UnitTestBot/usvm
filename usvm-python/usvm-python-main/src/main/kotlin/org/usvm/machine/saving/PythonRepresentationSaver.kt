@@ -3,7 +3,7 @@ package org.usvm.machine.saving
 import org.usvm.language.types.PythonType
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.symbolicobjects.ConverterToPythonObject
-import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
 
 class PythonRepresentationSaver<PythonObjectRepresentation>(
     private val serializer: PythonObjectSerializer<PythonObjectRepresentation>
@@ -51,7 +51,7 @@ data class PythonAnalysisResult<PythonObjectRepresentation>(
 )
 
 data class InputObject<PythonObjectRepresentation>(
-    val asUExpr: InterpretedInputSymbolicPythonObject,
+    val asUExpr: InterpretedSymbolicPythonObject,
     val type: PythonType,
     val reprFromPythonObject: PythonObjectRepresentation
 )

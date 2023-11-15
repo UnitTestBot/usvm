@@ -46,12 +46,12 @@ class SymbolTypeTree(
                     TpGetattro -> {
                         val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
                             ?: return@mapNotNull null
-                        { returnType: UtType -> createUnaryProtocol(attribute, returnType) }
+                        { returnType: UtType -> createProtocolWithAttribute(attribute, returnType) }
                     }
                     TpSetattro -> {
                         val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
                             ?: return@mapNotNull null
-                        { _: UtType -> createUnaryProtocol(attribute, pythonAnyType) }
+                        { _: UtType -> createProtocolWithAttribute(attribute, pythonAnyType) }
                     }
                     is TpRichcmpMethod -> { returnType: UtType ->
                         when (mockHeader.method.op) {

@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -50,8 +50,8 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "point2_usage",
-        "Methods"
+        "square_matrix",
+        "Tricky"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -74,9 +74,9 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    //if (module != "segment_tree_other")
+    //if (module != "binary_search_tree")
     //    return null
-    // if (name != "viterbi")
+    //if (name != "BinarySearchTree.remove")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
