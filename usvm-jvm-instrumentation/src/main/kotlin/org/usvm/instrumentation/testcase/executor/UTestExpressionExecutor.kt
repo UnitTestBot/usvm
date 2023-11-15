@@ -317,8 +317,13 @@ class UTestExpressionExecutor(
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {
         val instance = exec(uMethodCall.instance)
         val args = uMethodCall.args.map { exec(it) }
-        val jMethod = uMethodCall.method.toJavaMethod(workerClassLoader)
-        return jMethod.invokeWithAccessibility(instance, args)
+        return with(uMethodCall.method) {
+            if (isConstructor) {
+                toJavaConstructor(workerClassLoader).newInstanceWithAccessibility(args)
+            } else {
+                toJavaMethod(workerClassLoader).invokeWithAccessibility(instance, args)
+            }
+        }
     }
 
 }
