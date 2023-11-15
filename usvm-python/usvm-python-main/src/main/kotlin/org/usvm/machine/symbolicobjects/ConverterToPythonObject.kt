@@ -133,15 +133,17 @@ class ConverterToPythonObject(
                     if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
                         val symbolicValue = obj.getFieldValue(ctx, nameSymbol, memory)
                         val value = convert(symbolicValue)
-                        val ref = preallocatedObjects.refOfString(str)!!
+                        val strRef = preallocatedObjects.refOfString(str)!!
                         val namespace = ConcretePythonInterpreter.getNewNamespace()
-                        ConcretePythonInterpreter.addObjectToNamespace(namespace, ref, "field")
+                        ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
                         ConcretePythonInterpreter.concreteRun(namespace, "import keyword")
                         val isValidName = ConcretePythonInterpreter.eval(
                             namespace,
                             "field.isidentifier() and not keyword.iskeyword(field)"
                         )
                         if (ConcretePythonInterpreter.getPythonObjectRepr(isValidName) == "True") {
+                            // ConcretePythonInterpreter.incref(value)
+                            // ConcretePythonInterpreter.incref(strRef)
                             ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "obj")
                             ConcretePythonInterpreter.addObjectToNamespace(namespace, value, "value")
                             ConcretePythonInterpreter.concreteRun(
