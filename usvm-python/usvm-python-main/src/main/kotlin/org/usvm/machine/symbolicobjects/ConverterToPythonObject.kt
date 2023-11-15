@@ -64,6 +64,7 @@ class ConverterToPythonObject(
             typeSystem.pythonStr -> convertString()
             typeSystem.pythonSlice -> convertSlice(obj)
             typeSystem.pythonFloat -> convertFloat(obj)
+            typeSystem.pythonDict -> convertDict(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(obj, type)
@@ -79,6 +80,13 @@ class ConverterToPythonObject(
         constructedObjects.values.forEach {
             ConcretePythonInterpreter.decref(it)
         }
+    }
+
+    private fun convertDict(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Input dict cannot be static"
+        }
+        return ConcretePythonInterpreter.eval(emptyNamespace, "dict()")
     }
 
     private fun convertFloat(obj: InterpretedSymbolicPythonObject): PythonObject {
