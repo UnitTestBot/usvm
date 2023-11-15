@@ -1,6 +1,5 @@
 package org.usvm.samples.invokes
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -10,7 +9,6 @@ import org.usvm.util.isException
 
 internal class InvokeExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Disjunction in if statement covered by only one execution")
     fun testSimpleFormula() {
         checkDiscoveredProperties(
             InvokeExample::simpleFormula,

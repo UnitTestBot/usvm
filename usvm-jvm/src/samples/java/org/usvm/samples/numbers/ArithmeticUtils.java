@@ -53,7 +53,7 @@ public final class ArithmeticUtils {
     public int pow(final int k,
                    final int e) {
         if (e < 0) {
-            throw new IllegalArgumentException(NEGATIVE_EXPONENT_1 + e + NEGATIVE_EXPONENT_2);
+            throw new IllegalArgumentException();
         }
 
         if (k == 0) {

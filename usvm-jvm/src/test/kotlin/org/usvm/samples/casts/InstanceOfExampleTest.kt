@@ -134,7 +134,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO fix type streams: USupportTypeStream.from(Object[]).filterBySupertype(anyType)")
     fun testInstanceOfAsPartOfInternalExpressionsCastClass() {
         checkDiscoveredProperties(
             InstanceOfExample::instanceOfAsPartOfInternalExpressionsCastClass,
@@ -264,7 +263,6 @@ internal class InstanceOfExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [4]. Support connection between array and element type")
     fun testComplicatedInstanceOf() {
         checkDiscoveredProperties(
             InstanceOfExample::complicatedInstanceOf,

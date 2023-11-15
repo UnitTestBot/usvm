@@ -107,8 +107,9 @@ class JcContext(
         stringType.jcClass.toType().declaredFields.first { it.name == "value" }
     }
 
-    val stringCoderField: JcTypedField by lazy {
-        stringType.jcClass.toType().declaredFields.first { it.name == "coder" }
+    // The `coder` field is not presented in java 8, so return null if is missed
+    val stringCoderField: JcTypedField? by lazy {
+        stringType.jcClass.toType().declaredFields.firstOrNull { it.name == "coder" }
     }
 
     // Do not use JcTypedField here as its type is not required, however JcTypedField does not have required overridden `equals` method

@@ -1,9 +1,8 @@
 package org.usvm.api.mock
 
-import org.usvm.api.exception.UMockAssumptionViolatedException
+import org.usvm.api.Engine
 
 fun assume(predicate: Boolean) {
-    if (!predicate) {
-        throw UMockAssumptionViolatedException()
-    }
+    // TODO inline it
+    Engine.assume(predicate)
 }

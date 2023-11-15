@@ -90,6 +90,9 @@ class USupportTypeStream<Type> private constructor(
     override val isEmpty: Boolean
         get() = take(1).isEmpty()
 
+    override val commonSuperType: Type
+        get() = supportType
+
     companion object {
         fun <Type> from(typeSystem: UTypeSystem<Type>, type: Type): USupportTypeStream<Type> {
             val root = rootSequence(typeSystem, type).filter(typeSystem::isInstantiable)

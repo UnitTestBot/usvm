@@ -94,13 +94,33 @@ public class ClassWithEnum {
         return true;
     }
 
-    public int virtualFunction(StatusEnum parameter) {
+    public int virtualFunctionWithoutPathConstraints(StatusEnum parameter) {
         int value = parameter.virtualFunction();
         if (value > 0) {
             return value;
         }
 
         return Math.abs(value);
+    }
+
+    public int virtualFunctionWithPathConstraints(StatusEnum parameter) {
+        if (parameter == StatusEnum.READY) {
+            int value = parameter.virtualFunction();
+
+            if (value > 0) {
+                return value;
+            }
+
+            return Math.abs(value);
+        } else {
+            int value = parameter.virtualFunction();
+
+            if (value > 0) {
+                return value;
+            }
+
+            return Math.abs(value);
+        }
     }
 
     @SuppressWarnings("LombokGetterMayBeUsed")

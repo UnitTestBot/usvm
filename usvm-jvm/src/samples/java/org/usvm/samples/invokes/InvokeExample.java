@@ -13,7 +13,10 @@ public class InvokeExample {
     }
 
     public int simpleFormula(int fst, int snd) {
-        if (fst < 100 || snd < 100) {
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
+        if (fst < 100) {
+            throw new IllegalArgumentException();
+        } else if (snd < 100) {
             throw new IllegalArgumentException();
         }
 

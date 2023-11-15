@@ -19,7 +19,7 @@ class SimpleLambdaExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("class org.jacodb.api.PredefinedPrimitive cannot be cast to class org.jacodb.api.JcRefType")
+    @Disabled("TODO cannot instantiate java.util.Predicate in the test resolver")
     fun testChoosePredicate() {
         checkDiscoveredProperties(
             SimpleLambdaExamples::choosePredicate,

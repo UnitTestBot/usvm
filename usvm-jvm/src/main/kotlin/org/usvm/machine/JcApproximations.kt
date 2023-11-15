@@ -62,7 +62,6 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.single
 import org.usvm.types.singleOrNull
 import org.usvm.util.allocHeapRef
 import org.usvm.util.write
@@ -353,12 +352,9 @@ class JcMethodApproximationResolver(
 
     private fun approximateArrayClone(methodCall: JcMethodCall): Boolean {
         val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
-        if (instance !is UConcreteHeapRef) {
-            return false
-        }
 
         val arrayType = scope.calcOnState {
-            (memory.types.getTypeStream(instance).single())
+            memory.types.getTypeStream(instance).commonSuperType
         }
         if (arrayType !is JcArrayType) {
             return false
@@ -370,7 +366,7 @@ class JcMethodApproximationResolver(
 
     private fun JcExprResolver.resolveArrayClone(
         methodCall: JcMethodCall,
-        instance: UConcreteHeapRef,
+        instance: UHeapRef,
         arrayType: JcArrayType,
     ) = with(ctx) {
         scope.doWithState {

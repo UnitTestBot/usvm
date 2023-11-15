@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.isException
 
 internal class GenericCastExampleTest : JavaMethodTestRunner() {
     @Test
@@ -22,14 +23,17 @@ internal class GenericCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("org.jacodb.impl.fs.ByteCodeConverterKt: java.lang.OutOfMemoryError: Java heap space")
+    @Disabled("TODO violated invariants - process generic fields in type constraints properly")
     fun testGetGenericFieldValue() {
-        checkDiscoveredProperties(
+        checkDiscoveredPropertiesWithExceptions(
             GenericCastExample::getGenericFieldValue,
             eq(3),
-            { _, g, _ -> g == null },
-            { _, g, _ -> g.genericField == null },
-            { _, g, r -> g?.genericField != null && r == g.genericField },
+            invariants = arrayOf(
+                { _, g, r ->
+                    // Note that we do not expect ClassCastException or any other exceptions (except NPE)
+                    (g == null && r.isException<NullPointerException>()) || (g != null && r.getOrThrow() == g.genericField)
+                }
+            )
         )
     }
 

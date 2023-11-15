@@ -48,6 +48,11 @@ interface UTypeStream<Type> {
     fun take(n: Int): Collection<Type>
 
     val isEmpty: Boolean
+
+    /**
+     * Stores a supertype that satisfies current type constraints and other satisfying types are inheritors of this type.
+     */
+    val commonSuperType: Type?
 }
 
 /**
@@ -66,6 +71,9 @@ object UEmptyTypeStream : UTypeStream<Nothing> {
 
     override val isEmpty: Boolean
         get() = true
+
+    override val commonSuperType: Nothing?
+        get() = null
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -119,4 +127,7 @@ class USingleTypeStream<Type>(
 
     override val isEmpty: Boolean
         get() = false
+
+    override val commonSuperType: Type
+        get() = singleType
 }

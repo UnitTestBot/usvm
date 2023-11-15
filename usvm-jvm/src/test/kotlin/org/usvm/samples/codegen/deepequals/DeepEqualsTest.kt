@@ -144,7 +144,7 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support multidimensional arrays initialization")
+    @Disabled("TODO support multidimensional arrays initialization")
     fun testIntMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntMultiArrayWithConstValue,
@@ -165,26 +165,38 @@ class DeepEqualsTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support multidimensional arrays initialization")
     fun testDoubleMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleMultiArrayWithConstValue,
             eq(3),
+            { _, l, _, r -> l == 0 && r == null },
+            { _, l, v, _ -> l == 2 && v.toInt() == 10 },
+            { _, l, v, _ -> l == 2 && v.toInt() != 10 },
         )
     }
 
     @Test
+    @Disabled("TODO support multidimensional arrays initialization")
     fun testIntegerWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillIntegerWrapperMultiArrayWithConstValue,
             eq(3),
+            { _, l, _, r -> l == 0 && r == null },
+            { _, l, v, _ -> l == 2 && v == 10 },
+            { _, l, v, _ -> l == 2 && v != 10 },
         )
     }
 
     @Test
+    @Disabled("TODO support multidimensional arrays initialization")
     fun testDoubleWrapperMultiArray() {
         checkDiscoveredProperties(
             DeepEqualsTestingClass::fillDoubleWrapperMultiArrayWithConstValue,
             eq(3),
+            { _, l, _, r -> l == 0 && r == null },
+            { _, l, v, _ -> l == 2 && v.toInt() == 10 },
+            { _, l, v, _ -> l == 2 && v.toInt() != 10 },
         )
     }
 }

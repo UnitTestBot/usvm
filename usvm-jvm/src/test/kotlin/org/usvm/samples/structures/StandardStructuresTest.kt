@@ -1,15 +1,12 @@
 package org.usvm.samples.structures
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import java.util.LinkedList
-import java.util.TreeMap
+import java.util.*
 
 internal class StandardStructuresTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Support creation of collections")
     fun testGetList() {
         checkDiscoveredProperties(
             StandardStructures::getList,
@@ -24,7 +21,6 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support creation of collections")
     fun testGetMap() {
         checkDiscoveredProperties(
             StandardStructures::getMap,
@@ -36,16 +32,15 @@ internal class StandardStructuresTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Support creation of collections")
     fun testGetDeque() {
         checkDiscoveredProperties(
             StandardStructures::getDeque,
             eq(4),
-            { _, d, r -> d is ArrayDeque<*> && r is ArrayDeque<*> },
+            { _, d, r -> d is java.util.ArrayDeque<*> && r is java.util.ArrayDeque<*> },
             { _, d, r -> d is LinkedList && r is LinkedList },
             { _, d, r -> d == null && r == null },
             { _, d, r ->
-                d !is ArrayDeque<*> && d !is LinkedList && d != null && r !is ArrayDeque<*> && r !is LinkedList && r != null
+                d !is java.util.ArrayDeque<*> && d !is LinkedList && d != null && r !is java.util.ArrayDeque<*> && r !is LinkedList && r != null
             },
         )
     }

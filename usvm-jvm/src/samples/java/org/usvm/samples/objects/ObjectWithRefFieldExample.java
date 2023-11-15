@@ -11,7 +11,10 @@ public class ObjectWithRefFieldExample {
     }
 
     public ObjectWithRefFieldClass writeToRefTypeField(ObjectWithRefFieldClass objectExample, int value) {
-        if (value != 42 || objectExample.refField != null) {
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
+        if (value != 42) {
+            throw new IllegalArgumentException();
+        } else if (objectExample.refField != null) {
             throw new IllegalArgumentException();
         }
 

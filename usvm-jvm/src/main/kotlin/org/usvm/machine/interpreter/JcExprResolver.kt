@@ -11,6 +11,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.PredefinedPrimitives
@@ -78,7 +79,6 @@ import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
-import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.objectType
@@ -146,8 +146,9 @@ class JcExprResolver(
      * @return a symbolic expression, with the sort corresponding to the [type].
      */
     fun resolveJcExpr(expr: JcExpr, type: JcType = expr.type): UExpr<out USort>? {
-        val resolvedExpr = if (expr.type != type) {
-            resolveCast(expr, type)
+        val resolvedExpr = if (expr.type != type && type is JcPrimitiveType) {
+            // Only primitive casts may appear here because reference casts are handled with cast instruction
+            resolvePrimitiveCast(expr, type)
         } else {
             expr.accept(this)
         } ?: return null
@@ -311,7 +312,9 @@ class JcExprResolver(
     ): UExpr<out USort> = simpleValueResolver.visitJcClassConstant(value)
     // endregion
 
-    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? = resolveCast(expr.operand, expr.type)
+    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort>? =
+        // Note that primitive types may appear in JcCastExpr
+        resolveCast(expr.operand, expr.type)
 
     override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.operand)?.asExpr(addressSort) ?: return null
@@ -334,7 +337,7 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val size = resolvePrimitiveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         // TODO: other dimensions ( > 1)
         checkNewArrayLength(size) ?: return null
 
@@ -724,7 +727,7 @@ class JcExprResolver(
 
         val arrayDescriptor = arrayDescriptorOf(array.type as JcArrayType)
 
-        val idx = resolveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
+        val idx = resolvePrimitiveCast(index, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
@@ -859,8 +862,13 @@ class JcExprResolver(
         typeBefore: JcRefType,
         type: JcRefType,
     ): UHeapRef? {
-        return if (!typeBefore.isAssignable(type)) {
+        check(type !is JcTypeVariable) {
+            "Unexpected type variable $type"
+        }
+
+        return if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
             val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
+
             scope.fork(
                 isExpr,
                 blockOnFalseState = allocateException(ctx.classCastExceptionType)
@@ -869,6 +877,18 @@ class JcExprResolver(
         } else {
             expr
         }
+    }
+
+    private fun resolvePrimitiveCast(
+        expr: JcExpr,
+        type: JcPrimitiveType
+    ): UExpr<out USort>? = resolveAfterResolved(expr) {
+        val exprType = expr.type
+        check(exprType is JcPrimitiveType) {
+            "Trying cast not primitive type $exprType to primitive type $type"
+        }
+
+        resolvePrimitiveCast(it, exprType, type)
     }
 
     private fun resolvePrimitiveCast(
@@ -1032,7 +1052,6 @@ class JcSimpleValueResolver(
             // Equal string constants always have equal references
             val ref = resolveStringConstant(value.value)
             val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
-            val stringCoderLValue = UFieldLValue(byteSort, ref, stringCoderField.field)
 
             // String.value type depends on the JVM version
             val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
@@ -1055,7 +1074,13 @@ class JcSimpleValueResolver(
 
             // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
             memory.write(stringValueLValue, charArrayRef)
-            memory.write(stringCoderLValue, mkBv(0, byteSort))
+
+            // Write coder only if it is presented (depends on the JVM version)
+            stringCoderField?.let {
+                val stringCoderLValue = UFieldLValue(byteSort, ref, it.field)
+                memory.write(stringCoderLValue, mkBv(0, byteSort))
+            }
+
             memory.types.allocate(ref.address, stringType)
 
             ref

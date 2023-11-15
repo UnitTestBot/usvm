@@ -64,7 +64,7 @@ import org.usvm.types.firstOrNull
  * @param classLoader a class loader to load target classes.
  */
 class JcTestInterpreter(
-    private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
+    private val classLoader: ClassLoader = JcClassLoader,
 ): JcTestResolver {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
@@ -122,7 +122,7 @@ class JcTestInterpreter(
         private val model: UModelBase<JcType>,
         private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
-        private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
+        private val classLoader: ClassLoader = JcClassLoader,
     ) {
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Any?>()
 
@@ -350,7 +350,7 @@ class JcTestInterpreter(
 
                     else -> error("Unexpected type: $elementType")
                 }
-            } ?: classLoader.loadClass(type.jcClass.name)
+            } ?: classLoader.loadClass(type.jcClass)
 
         /**
          * If we resolve state after, [expr] is read from a state memory, so it requires concretization via [model].
@@ -365,4 +365,10 @@ class JcTestInterpreter(
         private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
             (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
     }
+}
+
+fun ClassLoader.loadClass(jcClass: JcClassOrInterface): Class<*> = if (this is JcClassLoader) {
+    loadClass(jcClass)
+} else {
+    loadClass(jcClass.name)
 }

@@ -80,8 +80,6 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass." +
-        "Connect element type and array type")
     fun testObjectArray() {
         checkDiscoveredProperties(
             ArrayOfObjects::objectArray,
@@ -95,7 +93,7 @@ internal class ArrayOfObjectsTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("List is empty. java.lang.ArrayStoreException: org.usvm.samples.arrays.ObjectWithPrimitivesClass")
+    @Disabled("TODO multidimensional array")
     fun testArrayOfArrays() {
         checkDiscoveredProperties(
             ArrayOfObjects::arrayOfArrays,
