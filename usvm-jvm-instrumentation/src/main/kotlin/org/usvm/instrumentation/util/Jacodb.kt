@@ -54,6 +54,7 @@ fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
         is JcClassType -> this.jcClass.toJavaClass(classLoader)
         else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
     }
+
 private fun JcPrimitiveType.toJavaClass(): Class<*> {
     val cp = this.classpath
     return when (this) {
@@ -70,8 +71,13 @@ private fun JcPrimitiveType.toJavaClass(): Class<*> {
 
     }
 }
+
 fun Class<*>.toJcType(jcClasspath: JcClasspath): JcType? {
     return jcClasspath.findTypeOrNull(this.typeName)
+}
+
+fun Class<*>.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? {
+    return jcClasspath.findClassOrNull(this.name)
 }
 
 fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
@@ -121,31 +127,33 @@ fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface?
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
-    return klass.declaredMethods.find { it.isSameSignatures(this) }
+    return (klass.methods + klass.declaredMethods).find { it.isSameSignatures(this) }
         ?: throw TestExecutorException("Can't find method in classpath")
 }
 
 fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
     require(isConstructor) { "Can't convert not constructor to constructor" }
     val klass = Class.forName(enclosingClass.name, true, classLoader)
-    return klass.constructors.find { it.toJcdbSignature() == this.jcdbSignature } ?: error("Can't find constructor")
+    return klass.constructors.find { it.jcdbSignature == this.jcdbSignature } ?: error("Can't find constructor")
 }
 
-fun Method.toJcdbSignature(): String {
-    val parameterTypesAsString = parameterTypes.toJcdbFormat()
-    return name + "(" + parameterTypesAsString + ")" + returnType.typeName + ";"
-}
+val Method.jcdbSignature: String
+    get() {
+        val parameterTypesAsString = parameterTypes.toJcdbFormat()
+        return name + "(" + parameterTypesAsString + ")" + returnType.typeName + ";"
+    }
 
-fun Constructor<*>.toJcdbSignature(): String {
-    val methodName = "<init>"
-    //Because of jcdb
-    val returnType = "void;"
-    val parameterTypesAsString = parameterTypes.toJcdbFormat()
-    return "$methodName($parameterTypesAsString)$returnType"
-}
+val Constructor<*>.jcdbSignature: String
+    get() {
+        val methodName = "<init>"
+        //Because of jcdb
+        val returnType = "void;"
+        val parameterTypesAsString = parameterTypes.toJcdbFormat()
+        return "$methodName($parameterTypesAsString)$returnType"
+    }
 
 private fun Array<Class<*>>.toJcdbFormat(): String =
     if (isEmpty()) "" else joinToString(";", postfix = ";") { it.typeName }
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
-    toJcdbSignature() == jcMethod.jcdbSignature
+    jcdbSignature == jcMethod.jcdbSignature
