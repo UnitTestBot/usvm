@@ -4,6 +4,7 @@ import org.usvm.runner.venv.extractVenvConfig
 import java.io.File
 
 fun main() {
+    val start = System.currentTimeMillis()
     val basePath = System.getProperty("project.root")
     val layout = TestingLayout(basePath) // StandardLayout(File(basePath, "build/distributions/usvm-python"))
     val mypyDir = File(basePath, "build/samples_build")
@@ -22,7 +23,7 @@ fun main() {
             "get_info",
             "Point"
         ),
-        10_000,
+        30_000,
         3_000
     )
     /*val debugRunner = DebugRunner(config)
@@ -32,7 +33,7 @@ fun main() {
     val receiver = PrintingResultReceiver()
     val runner = PythonSymbolicAnalysisRunnerImpl(config)
     runner.use {
-        val start = System.currentTimeMillis()
-        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 20_000 }
+        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 5_000 }
     }
+    println("Time: ${System.currentTimeMillis() - start}")
 }
