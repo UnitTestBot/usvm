@@ -24,7 +24,7 @@ class PythonSymbolicAnalysisRunnerImpl(
         val processBuilder = setupEnvironment(runConfig)
         val process = processBuilder.start()
         val newIsCancelled = {
-            isCancelled() || System.currentTimeMillis() - start < runConfig.timeoutMs
+            isCancelled() || System.currentTimeMillis() - start >= runConfig.timeoutMs
         }
         val readingThread = ReadingThread(serverSocketChannel, receiver, newIsCancelled)
         val waitingThread = WaitingThread(process, readingThread, newIsCancelled)
@@ -76,11 +76,13 @@ class PythonSymbolicAnalysisRunnerImpl(
         private val isCancelled: () -> Boolean
     ): Thread() {
         override fun run() {
-            val start = System.currentTimeMillis()
             while (readingThread.isAlive && process.isAlive && !isCancelled()) {
                 sleep(10)
             }
-            readingThread.interrupt()
+            while (readingThread.isAlive) {
+                readingThread.interrupt()
+                sleep(10)
+            }
         }
     }
 
