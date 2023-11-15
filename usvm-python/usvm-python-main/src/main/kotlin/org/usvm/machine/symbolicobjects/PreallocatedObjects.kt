@@ -59,7 +59,7 @@ class PreallocatedObjects(
             typeSystem: PythonTypeSystem
         ): PreallocatedObjects =
             PreallocatedObjects(
-                noneObject = constructEmptyObject(ctx, initialMemory, typeSystem, typeSystem.pythonNoneType),
+                noneObject = constructEmptyStaticObject(ctx, initialMemory, typeSystem, typeSystem.pythonNoneType),
                 trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
                 falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
                 concreteStrToSymbol = mutableMapOf(),

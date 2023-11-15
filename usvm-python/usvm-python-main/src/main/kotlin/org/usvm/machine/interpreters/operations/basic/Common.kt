@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreters.operations.basic
 
 import io.ksmt.sort.KIntSort
-import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
@@ -94,18 +93,25 @@ fun handlerIsOpKt(
     left: UninterpretedSymbolicPythonObject,
     right: UninterpretedSymbolicPythonObject
 ) = with(ctx.ctx) {
+    ctx.curState ?: return
     val leftType = left.getTypeIfDefined(ctx)
     val rightType = right.getTypeIfDefined(ctx)
-    if (leftType == null || rightType == null) {
-        myFork(ctx, mkHeapRefEq(left.address, right.address))
+    if (leftType != null && rightType == null) {
+        myFork(ctx, right.evalIs(ctx, leftType))
+    } else if (rightType != null && leftType == null) {
+        myFork(ctx, left.evalIs(ctx, rightType))
     }
-    if (leftType != rightType)
+    if (leftType != rightType) {
+        myFork(ctx, mkHeapRefEq(left.address, right.address))
         return
+    }
     when (leftType) {
         ctx.typeSystem.pythonBool ->
             myFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
         ctx.typeSystem.pythonInt ->
             myFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
+        ctx.typeSystem.pythonNoneType ->
+            return
         else ->
             myFork(ctx, mkHeapRefEq(left.address, right.address))
     }
@@ -223,5 +229,5 @@ fun handlerCreateEmptyObjectKt(
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
-    return constructEmptyObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, type)
+    return constructEmptyAllocatedObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, type)
 }
