@@ -4,12 +4,13 @@ package org.usvm.samples.invokes
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 import java.lang.Boolean
 
-internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
+// Use approximations for analysis of Integer#<clinit>
+internal class VirtualInvokeExampleTest : ApproximationsTestRunner() {
     @Test
     fun testSimpleVirtualInvoke() {
         checkDiscoveredPropertiesWithExceptions(
@@ -40,7 +41,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix coverage zones")
     fun testObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::objectFromOutside,
@@ -66,7 +66,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Fix coverage zone")
     fun testYetAnotherObjectFromOutside() {
         checkDiscoveredPropertiesWithExceptions(
             VirtualInvokeExample::yetAnotherObjectFromOutside,
@@ -120,7 +119,6 @@ internal class VirtualInvokeExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Unexpected illegal argument exception")
     fun testNullValueInReturnValue() {
         checkDiscoveredProperties(
             VirtualInvokeExample::nullValueInReturnValue,

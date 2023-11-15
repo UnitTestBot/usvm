@@ -1,16 +1,16 @@
 package org.usvm.samples.arrays;
 
 public class FinalStaticFieldArray {
-    static double checkNonNegative(String role, double x) {
+    static double checkNonNegative(double x) {
         if (!(x >= 0)) { // not x < 0, to work with NaN.
-            throw new IllegalArgumentException(role + " (" + x + ") must be >= 0");
+            throw new IllegalArgumentException();
         }
         return x;
     }
 
     //This is exact example from Guava where static final array with initialization is presented
     public static double factorial(int n) {
-        checkNonNegative("n", n);
+        checkNonNegative(n);
         if (n > MAX_FACTORIAL) {
             return Double.POSITIVE_INFINITY;
         } else {

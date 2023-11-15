@@ -16,7 +16,12 @@ public class DoubleFunctions {
     }
 
     public double circleSquare(double r) {
-        if (r < 0 || Double.isNaN(r) || r > 10000) {
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
+        if (r < 0) {
+            throw new IllegalArgumentException();
+        } else if (Double.isNaN(r)) {
+            throw new IllegalArgumentException();
+        } else if (r > 10000) {
             throw new IllegalArgumentException();
         }
         double square = Math.PI * r * r;

@@ -2,13 +2,14 @@ package org.usvm.samples.lambda
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.util.isException
 
-class CustomPredicateExampleTest : JavaMethodTestRunner() {
+// Use approximations for analysis of Integer#<clinit>
+class CustomPredicateExampleTest : ApproximationsTestRunner() {
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testNoCapturedValuesPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::noCapturedValuesPredicateCheck,
@@ -20,7 +21,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testCapturedLocalVariablePredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedLocalVariablePredicateCheck,
@@ -32,7 +33,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testCapturedParameterPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedParameterPredicateCheck,
@@ -44,7 +45,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testCapturedStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedStaticFieldPredicateCheck,
@@ -56,7 +57,7 @@ class CustomPredicateExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found")
+    @Disabled("Expected exactly 3 executions, but 1 found")
     fun testCapturedNonStaticFieldPredicateCheck() {
         checkDiscoveredPropertiesWithExceptions(
             CustomPredicateExample::capturedNonStaticFieldPredicateCheck,

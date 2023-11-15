@@ -8,7 +8,7 @@ import org.usvm.test.util.checkers.eq
 
 internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 3 found")
+    @Disabled("Unsupported mock strategies")
     fun testExamplePackageBased() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,
@@ -18,7 +18,6 @@ internal class AliasingInParamsExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 2 executions, but 3 found")
     fun testExample() {
         checkDiscoveredProperties(
             AliasingInParamsExample::example,

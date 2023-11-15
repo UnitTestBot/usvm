@@ -2,17 +2,17 @@ package org.usvm.samples.arrays
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
+class ArrayStoreExceptionExamplesTest : ApproximationsTestRunner() {
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]. Fix branch coverage")
     fun testCorrectAssignmentSamePrimitiveType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSamePrimitiveType,
-            eq(2),
+            eq(3),
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data == null },
             { _, data, result -> result.isSuccess && result.getOrNull() == false && data != null && data.isEmpty() },
             { _, data, result -> result.isSuccess && result.getOrNull() == true && data != null && data.isNotEmpty() }
@@ -20,7 +20,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentIntToIntegerArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentIntToIntegerArray,
@@ -30,7 +29,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
@@ -40,7 +38,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
+    @Disabled("TODO support constructing approximated objects https://github.com/UnitTestBot/usvm/issues/100")
     fun testCorrectAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentToObjectArray,
@@ -50,7 +48,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testWrongAssignmentUnrelatedType() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::wrongAssignmentUnrelatedType,
@@ -62,7 +59,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithCorrectCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithCorrectCast,
@@ -72,7 +68,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithWrongCast() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithWrongCast,
@@ -82,7 +77,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithExtendsSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsSubtype,
@@ -92,7 +86,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckGenericAssignmentWithExtendsUnrelated() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGenericAssignmentWithExtendsUnrelated,
@@ -102,7 +95,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckObjectAssignment() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkObjectAssignment,
@@ -112,7 +104,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
     fun testCheckWrongAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkWrongAssignmentOfItself,
@@ -122,7 +113,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [0]. Support generics")
     fun testCheckGoodAssignmentOfItself() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkGoodAssignmentOfItself,
@@ -132,7 +122,6 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Not implemented: string constant")
     fun testCheckAssignmentToObjectArray() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::checkAssignmentToObjectArray,
@@ -166,6 +155,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support constructing approximated objects https://github.com/UnitTestBot/usvm/issues/100")
     fun testFillObjectArrayWithList() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillObjectArrayWithList,
@@ -176,6 +166,7 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO support constructing approximated objects https://github.com/UnitTestBot/usvm/issues/100")
     fun testFillWithTreeSet() {
         checkDiscoveredProperties(
             ArrayStoreExceptionExamples::fillWithTreeSet,
@@ -212,6 +203,26 @@ class ArrayStoreExceptionExamplesTest : JavaMethodTestRunner() {
             eq(2),
             { _, impl, result -> impl == null && result == null },
             { _, impl, result -> impl != null && result != null && result[0] != null }
+        )
+    }
+
+    @Test
+    fun testArrayStoreExceptionWithEmptyArrayAndUpcast() {
+        checkDiscoveredPropertiesWithExceptions(
+            ArrayStoreExceptionExamples::arrayStoreExceptionWithEmptyArrayAndUpcast,
+            eq(1),
+            { _, r -> r.isException<ArrayStoreException>() },
+        )
+    }
+
+    @Test
+    fun testDeduceElementTypeFromArrayType() {
+        checkDiscoveredProperties(
+            ArrayStoreExceptionExamples::deduceElementTypeFromArrayType,
+            ignoreNumberOfAnalysisResults,
+            { _, arr, r -> arr == null || arr.isEmpty() || arr[0] == null && r == -1 },
+            { _, arr, r -> arr != null && arr.isNotEmpty() && arr[0] != null && r == 1 },
+            invariants = arrayOf({ _, _, r -> r != 42 })
         )
     }
 }

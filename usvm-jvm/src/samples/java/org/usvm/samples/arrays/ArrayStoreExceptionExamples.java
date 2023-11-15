@@ -5,9 +5,13 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class ArrayStoreExceptionExamples {
-
     public boolean correctAssignmentSamePrimitiveType(int[] data) {
-        if (data == null || data.length == 0) return false;
+        // TODO || in if conditions still are not processed correctly https://github.com/UnitTestBot/usvm/issues/95
+        if (data == null) {
+            return false;
+        } else if (data.length == 0) {
+            return false;
+        }
         data[0] = 1;
         return true;
     }
@@ -90,6 +94,7 @@ public class ArrayStoreExceptionExamples {
 
         int[] result = new int[data.length];
         if (data.length != 0) {
+            //noinspection SuspiciousSystemArraycopy
             System.arraycopy(data, 0, result, 0, data.length);
         }
 
@@ -151,6 +156,14 @@ public class ArrayStoreExceptionExamples {
         return result;
     }
 
+    public String[] arrayStoreExceptionWithEmptyArrayAndUpcast() {
+        String[] array = new String[1];
+        //noinspection DataFlowIssue
+        ((Object[]) array)[0] = new SomeImplementation();
+
+        return array;
+    }
+
     @SuppressWarnings("unchecked")
     private <T, E> void genericAssignmentWithCast(T[] data, E element) {
         if (data == null || data.length == 0) return;
@@ -160,5 +173,21 @@ public class ArrayStoreExceptionExamples {
     private <T, E extends T> void genericAssignmentWithExtends(T[] data, E element) {
         if (data == null || data.length == 0) return;
         data[0] = element;
+    }
+
+    public static class A {}
+
+    @SuppressWarnings("ConstantValue")
+    public int deduceElementTypeFromArrayType(A[] arr) {
+        if (arr == null || arr.length == 0 || arr[0] == null) {
+            return -1;
+        }
+
+        if (arr[0] instanceof A) {
+            return 1;
+        } else {
+            // Unreachable branch
+            return 42;
+        }
     }
 }

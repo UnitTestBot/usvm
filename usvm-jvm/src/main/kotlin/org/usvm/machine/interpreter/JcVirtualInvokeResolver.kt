@@ -1,7 +1,13 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.asExpr
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.ext.enumValues
+import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.toType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
@@ -68,17 +74,25 @@ private fun resolveVirtualInvokeWithModel(
 
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
         val callSite = findLambdaCallSite(methodCall, scope, concreteRef)
-        val concreteCall = if (callSite != null) {
-            makeLambdaCallSiteCall(callSite)
+        if (callSite != null) {
+            val lambdaCall = makeLambdaCallSiteCall(callSite)
+            scope.doWithState {
+                newStmt(lambdaCall)
+            }
         } else {
-            makeConcreteMethodCall(scope, concreteRef, methodCall)
+            val concreteInvokes = prepareVirtualInvokeOnConcreteRef(
+                scope,
+                concreteRef,
+                ctx,
+                methodCall,
+                instance,
+                condition = ctx.trueExpr
+            )
+
+            scope.forkMulti(concreteInvokes)
         }
 
-        scope.doWithState {
-            newStmt(concreteCall)
-        }
-
-        return@with
+        return
     }
 
     // Resolved lambda call site can't be an input ref
@@ -94,6 +108,66 @@ private fun resolveVirtualInvokeWithModel(
         forkOnRemainingTypes
     )
     scope.forkMulti(typeConstraintsWithBlockOnStates)
+}
+
+private fun JcVirtualMethodCallInst.prepareVirtualInvokeOnConcreteRef(
+    scope: JcStepScope,
+    concreteRef: UConcreteHeapRef,
+    ctx: JcContext,
+    methodCall: JcVirtualMethodCallInst,
+    instance: UHeapRef,
+    condition: UBoolExpr,
+): List<Pair<UBoolExpr, (JcState) -> Unit>> {
+    // We have only one type for allocated and static heap refs
+    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single() as JcRefType
+    val superClass = type.jcClass.superClass
+
+    if (superClass?.isEnum == true) {
+        // We need to process abstract enums differently - make not type equality conditions
+        // but ref equalities on enum constant refs
+        return prepareVirtualInvokeOnAbstractEnum(superClass, ctx, scope, methodCall, instance, condition)
+    }
+
+    val state = { state: JcState ->
+        val concreteCall = makeConcreteMethodCall(methodCall, type)
+        state.newStmt(concreteCall)
+    }
+
+    return listOf(condition to state)
+}
+
+private fun JcVirtualMethodCallInst.prepareVirtualInvokeOnAbstractEnum(
+    superClass: JcClassOrInterface,
+    ctx: JcContext,
+    scope: JcStepScope,
+    methodCall: JcVirtualMethodCallInst,
+    instance: UHeapRef,
+    condition: UBoolExpr
+): List<Pair<KExpr<KBoolSort>, (JcState) -> Unit>> {
+    val superType = superClass.toType()
+    // With enums, we need to fork on all enum types, in spite of type selector
+    val enumConstantFields = superType.jcClass.enumValues ?: error("No enum constants found at enum type $superType")
+    val curState = scope.calcOnState { this }
+
+    val enumConstantRefs = enumConstantFields.map {
+        val staticFieldLValue = JcStaticFieldLValue(it, ctx, ctx.addressSort)
+        curState.memory.read(staticFieldLValue)
+    }
+
+    return enumConstantRefs.map { enumRef ->
+        val enumConstantType = curState.memory.types.getTypeStream(enumRef).single()
+
+        val enumConstantState = { state: JcState ->
+            val concreteCall = makeConcreteMethodCall(methodCall, enumConstantType)
+            state.newStmt(concreteCall)
+        }
+
+        with(ctx) {
+            val equalToEnumRefCondition = mkHeapRefEq(instance, enumRef)
+
+            mkAnd(condition, equalToEnumRefCondition) to enumConstantState
+        }
+    }
 }
 
 private fun resolveVirtualInvokeWithoutModel(
@@ -138,8 +212,7 @@ private fun resolveVirtualInvokeWithoutModel(
     val conditionsWithBlocks = refsWithConditions.flatMapTo(mutableListOf()) { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
-                val concreteCall = makeConcreteMethodCall(scope, ref, methodCall)
-                listOf(condition to { state: JcState -> state.newStmt(concreteCall) })
+                prepareVirtualInvokeOnConcreteRef(scope, ref, ctx, methodCall, instance, condition)
             }
             ref is USymbolicHeapRef -> {
                 val state = scope.calcOnState { this }
@@ -174,13 +247,9 @@ private fun resolveVirtualInvokeWithoutModel(
 }
 
 private fun JcVirtualMethodCallInst.makeConcreteMethodCall(
-    scope: JcStepScope,
-    concreteRef: UConcreteHeapRef,
     methodCall: JcVirtualMethodCallInst,
+    type: JcType,
 ): JcConcreteMethodCallInst {
-    // We have only one type for allocated and static heap refs
-    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
-
     val concreteMethod = type.findMethod(method)
         ?: error("Can't find method $method in type ${type.typeName}")
 
@@ -216,7 +285,9 @@ private fun JcVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
             newState.newStmt(concreteCall)
         }
 
-        with(ctx) { (condition and isExpr) to block }
+        with(ctx) {
+            (condition and isExpr) to block
+        }
     }
 
     if (forkOnRemainingTypes) {

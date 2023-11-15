@@ -1,7 +1,6 @@
 package org.usvm.samples.arrays
 
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
@@ -158,7 +157,6 @@ internal class PrimitiveArraysTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [2]")
     fun testCharSizeAndIndex() {
         checkDiscoveredProperties(
             PrimitiveArrays::charSizeAndIndex,

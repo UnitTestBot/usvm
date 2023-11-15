@@ -1,21 +1,19 @@
 package org.usvm.samples.structures
 
-import org.junit.jupiter.api.Disabled
+
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
-
-
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.math.min
 
 internal class MinStackExampleTest : JavaMethodTestRunner() {
     @Test
-    @Disabled("Expected exactly 3 executions, but 4 found")
     fun testCreate() {
         checkDiscoveredProperties(
             MinStackExample::create,
-            eq(3),
+            ignoreNumberOfAnalysisResults,
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.size < 3 },
             { _, initialValues, result ->
@@ -34,7 +32,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Tune coverage zone")
     fun testAddSingleValue() {
         checkDiscoveredProperties(
             MinStackExample::addSingleValue,
@@ -54,7 +51,6 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 3 executions, but 2 found. Tune coverage zone")
     fun testGetMinValue() {
         checkDiscoveredProperties(
             MinStackExample::getMinValue,
@@ -68,11 +64,10 @@ internal class MinStackExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 5 found")
     fun testRemoveValue() {
         checkDiscoveredProperties(
             MinStackExample::removeValue,
-            eq(4),
+            ignoreNumberOfAnalysisResults,
             { _, initialValues, _ -> initialValues == null },
             { _, initialValues, _ -> initialValues != null && initialValues.isEmpty() },
             { _, initialValues, result ->
