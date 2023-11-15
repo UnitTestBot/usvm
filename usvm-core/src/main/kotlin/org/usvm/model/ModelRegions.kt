@@ -1,16 +1,12 @@
 package org.usvm.model
 
-import io.ksmt.decl.KFuncDecl
 import io.ksmt.expr.KArray2Store
 import io.ksmt.expr.KArrayConst
 import io.ksmt.expr.KArrayStore
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
-import io.ksmt.solver.model.KFuncInterpEntryVarsFreeTwoAry
-import io.ksmt.solver.model.KFuncInterpVarsFree
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
-import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
@@ -137,36 +133,6 @@ class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> internal 
 
             val constValue = valueCopy.value.mapAddress(mapping)
             return UMemory2DArray(stores.toPersistentMap(), constValue)
-        }
-
-        fun <Key1Sort : USort, Key2Sort : USort, Sort : USort> fromFunction(
-            initialFunction: KFuncDecl<Sort>,
-            model: KModel,
-            mapping: Map<UHeapRef, UConcreteHeapRef>,
-            defaultValue: UExpr<Sort>,
-        ): UMemory2DArray<Key1Sort, Key2Sort, Sort> {
-            val interpretation = model.interpretation(initialFunction)
-                ?: return UMemory2DArray(persistentMapOf(), defaultValue)
-
-            require(interpretation is KFuncInterpVarsFree<Sort>) {
-                "Function interpretation contains vars"
-            }
-
-            val entries = mutableMapOf<Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, UExpr<Sort>>()
-            interpretation.entries.forEach { entry ->
-                require(entry is KFuncInterpEntryVarsFreeTwoAry<Sort>)
-
-                val index0: UExpr<Key1Sort> = entry.arg0.mapAddress(mapping).uncheckedCast()
-                val index1: UExpr<Key2Sort> = entry.arg1.mapAddress(mapping).uncheckedCast()
-
-                val value = entry.value.mapAddress(mapping)
-
-                entries[index0 to index1] = value
-            }
-
-            val constValue = interpretation.default?.mapAddress(mapping) ?: defaultValue
-
-            return UMemory2DArray(entries.toPersistentMap(), constValue)
         }
     }
 }

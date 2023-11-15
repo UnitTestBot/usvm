@@ -2,6 +2,7 @@ package org.usvm.collection.set.primitive
 
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
+import io.ksmt.sort.KBoolSort
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -9,12 +10,11 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.set.UAllocatedSetUpdatesTranslator
 import org.usvm.collection.set.UInputSetUpdatesTranslator
+import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.model.UMemory2DArray
 import org.usvm.regions.Region
-import org.usvm.solver.UCollectionDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
@@ -48,9 +48,10 @@ class USetRegionDecoder<SetType, ElementSort : USort, Reg : Region<Reg>>(
 
     override fun decodeLazyRegion(
         model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
+        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        assertions: List<KExpr<KBoolSort>>
     ): UReadOnlyMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort>? =
-        inputRegionTranslator?.let { USetLazyModelRegion(regionId, model, mapping, it) }
+        inputRegionTranslator?.let { USetLazyModelRegion(regionId, model, mapping, assertions, it) }
 }
 
 private class UAllocatedSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg>>(
@@ -69,8 +70,8 @@ private class UInputSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg
     collectionId: UInputSetId<SetType, ElementSort, Reg>,
     private val exprTranslator: UExprTranslator<*, *>
 ) : URegionTranslator<UInputSetId<SetType, ElementSort, Reg>, USymbolicSetElement<ElementSort>, UBoolSort>,
-    UCollectionDecoder<USymbolicSetElement<ElementSort>, UBoolSort> {
-    private val initialFunction = with(collectionId.sort.uctx) {
+    USetCollectionDecoder<ElementSort>() {
+    override val inputFunction = with(collectionId.sort.uctx) {
         mkFuncDecl(collectionId.toString(), boolSort, listOf(addressSort, collectionId.elementSort))
     }
 
@@ -78,13 +79,7 @@ private class UInputSetTranslator<SetType, ElementSort : USort, Reg : Region<Reg
         region: USymbolicCollection<UInputSetId<SetType, ElementSort, Reg>, USymbolicSetElement<ElementSort>, UBoolSort>,
         key: USymbolicSetElement<ElementSort>
     ): KExpr<UBoolSort> {
-        val updatesTranslator = UInputSetUpdatesTranslator(exprTranslator, initialFunction, key)
+        val updatesTranslator = UInputSetUpdatesTranslator(exprTranslator, inputFunction, key)
         return region.updates.accept(updatesTranslator, IdentityHashMap())
     }
-
-    override fun decodeCollection(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
-    ): UReadOnlyMemoryRegion<USymbolicSetElement<ElementSort>, UBoolSort> =
-        UMemory2DArray.fromFunction(initialFunction, model, mapping, defaultValue = exprTranslator.ctx.falseExpr)
 }

@@ -54,7 +54,8 @@ open class USolverBase<Type>(
         }
 
         smtSolver.withAssertionsScope {
-            smtSolver.assert(pc.constraints(translator).toList())
+            val assertions = pc.constraints(translator).toList()
+            smtSolver.assert(assertions)
 
             val translatedSoftConstraints = softConstraints
                 .asSequence()
@@ -76,7 +77,7 @@ open class USolverBase<Type>(
                 }
 
                 // second, decode it unto uModel
-                val uModel = decoder.decode(kModel)
+                val uModel = decoder.decode(kModel, assertions)
 
                 // find interpretations of type constraints
 
@@ -98,19 +99,19 @@ open class USolverBase<Type>(
                 when (val typeResult = typeSolver.check(typeSolverQuery)) {
                     is USatResult -> return USatResult(
                         UModelBase(
-                            ctx,
-                            uModel.stack,
-                            typeResult.model,
-                            uModel.mocker,
-                            uModel.regions,
-                            uModel.nullRef
+                        ctx,
+                        uModel.stack,
+                        typeResult.model,
+                        uModel.mocker,
+                        uModel.regions,
+                        uModel.nullRef
                         )
                     )
 
                     // in case of failure, assert reference disequality expressions
                     is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
-                        .map(translator::translate)
-                        .let { smtSolver.assert(it) }
+                            .map(translator::translate)
+                            .let { smtSolver.assert(it) }
 
                     is UUnknownResult -> return UUnknownResult()
                     is UUnsatResult -> return UUnsatResult()

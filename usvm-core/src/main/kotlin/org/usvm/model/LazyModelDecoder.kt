@@ -2,6 +2,7 @@ package org.usvm.model
 
 import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
+import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KUninterpretedSort
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
@@ -16,7 +17,7 @@ import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.solver.UExprTranslator
 
 interface UModelDecoder<Model> {
-    fun decode(model: KModel): Model
+    fun decode(model: KModel, assertions: List<KExpr<KBoolSort>>): Model
 }
 
 
@@ -75,12 +76,13 @@ open class ULazyModelDecoder<Type>(
      */
     override fun decode(
         model: KModel,
+        assertions: List<KExpr<KBoolSort>>,
     ): UModelBase<Type> {
         val nullRef = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         val addressesMapping = buildMapping(model, nullRef)
 
         val stack = decodeStack(model, addressesMapping)
-        val regions = decodeHeap(model, addressesMapping)
+        val regions = decodeHeap(model, addressesMapping, assertions)
         val types = UTypeModel<Type>(ctx.typeSystem(), typeRegionByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
@@ -102,10 +104,11 @@ open class ULazyModelDecoder<Type>(
     private fun decodeHeap(
         model: KModel,
         addressesMapping: AddressesMapping,
+        assertions: List<KExpr<KBoolSort>>,
     ): Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>> {
         val result = mutableMapOf<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>()
         for ((regionId, decoder) in translator.regionIdToDecoder) {
-            val modelRegion = decoder.decodeLazyRegion(model, addressesMapping) ?: continue
+            val modelRegion = decoder.decodeLazyRegion(model, addressesMapping, assertions) ?: continue
             result[regionId] = modelRegion
         }
         return result

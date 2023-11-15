@@ -1,23 +1,23 @@
 package org.usvm.collection.set.ref
 
+import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
+import io.ksmt.sort.KBoolSort
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UHeapRef
-import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.AddressesMapping
 import org.usvm.model.UMemory2DArray
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.solver.UCollectionDecoder
 
 abstract class URefSetModelRegion<SetType>(
     private val regionId: URefSetRegionId<SetType>
-) : UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>,
-    URefSetReadOnlyRegion<SetType> {
-    abstract val inputSet: UReadOnlyMemoryRegion<USymbolicSetElement<UAddressSort>, UBoolSort>
+) : UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>, URefSetReadOnlyRegion<SetType> {
+    abstract val inputSet: UMemory2DArray<UAddressSort, UAddressSort, UBoolSort>
 
     override fun read(key: URefSetEntryLValue<SetType>): UBoolExpr {
         val setRef = modelEnsureConcreteInputRef(key.setRef)
@@ -27,15 +27,10 @@ abstract class URefSetModelRegion<SetType>(
     override fun setEntries(ref: UHeapRef): URefSetEntries<SetType> {
         val setRef = modelEnsureConcreteInputRef(ref)
 
-        // todo: remove this cast
-        val inputSetUpdates = inputSet as UMemory2DArray<UAddressSort, UAddressSort, UBoolSort>
+        check(inputSet.constValue.isFalse) { "Set model is not complete" }
 
         val result = URefSetEntries<SetType>()
-        if (!inputSetUpdates.constValue.isFalse) {
-            result.markAsInput()
-        }
-
-        inputSetUpdates.values.keys.forEach {
+        inputSet.values.keys.forEach {
             if (it.first == setRef) {
                 result.add(URefSetEntryLValue(setRef, it.second, regionId.setType))
             }
@@ -47,16 +42,16 @@ abstract class URefSetModelRegion<SetType>(
 
 class URefSetLazyModelRegion<SetType>(
     regionId: URefSetRegionId<SetType>,
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
-    private val inputSetDecoder: UCollectionDecoder<USymbolicSetElement<UAddressSort>, UBoolSort>
+    model: KModel,
+    addressesMapping: AddressesMapping,
+    assertions: List<KExpr<KBoolSort>>,
+    inputSetDecoder: USetCollectionDecoder<UAddressSort>
 ) : URefSetModelRegion<SetType>(regionId) {
-    override val inputSet: UReadOnlyMemoryRegion<USymbolicSetElement<UAddressSort>, UBoolSort> by lazy {
-        inputSetDecoder.decodeCollection(model, addressesMapping)
+    override val inputSet: UMemory2DArray<UAddressSort, UAddressSort, UBoolSort> by lazy {
+        inputSetDecoder.decodeCollection(model, addressesMapping, assertions)
     }
 }
 
 class URefSetEagerModelRegion<SetType>(
-    regionId: URefSetRegionId<SetType>,
-    override val inputSet: UReadOnlyMemoryRegion<USymbolicSetElement<UAddressSort>, UBoolSort>
+    regionId: URefSetRegionId<SetType>, override val inputSet: UMemory2DArray<UAddressSort, UAddressSort, UBoolSort>
 ) : URefSetModelRegion<SetType>(regionId)
