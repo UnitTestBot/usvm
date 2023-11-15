@@ -3,6 +3,7 @@ package org.usvm.machine.symbolicobjects
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.*
 import org.usvm.api.readArrayIndex
+import org.usvm.api.typeStreamOf
 import org.usvm.language.PythonCallable
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
@@ -14,6 +15,7 @@ import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.memory.UMemory
+import org.usvm.types.first
 
 class ConverterToPythonObject(
     private val ctx: UPythonContext,
@@ -119,7 +121,14 @@ class ConverterToPythonObject(
             ) as UConcreteHeapRef
             if (element.address == 0 && forcedConcreteTypes[element] == null)
                 numberOfUsagesOfVirtualObjects += 1
-            val elemInterpretedObject = InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
+            val elemInterpretedObject =
+                if (isStaticHeapRef(element)) {
+                    val type = memory.typeStreamOf(element).first()
+                    require(type is ConcretePythonType)
+                    InterpretedAllocatedOrStaticSymbolicPythonObject(element, type, typeSystem)
+                } else {
+                    InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
+                }
             convert(elemInterpretedObject)
         }
     }

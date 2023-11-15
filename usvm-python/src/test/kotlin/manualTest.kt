@@ -57,7 +57,9 @@ private fun buildSampleRunConfig(): RunConfig {
     return RunConfig(program, typeSystem, functions)
 }
 
-private val ignoreFunctions = listOf<String>()
+private val ignoreFunctions = listOf<String>(
+    "get_transitions"
+)
 private val ignoreModules = listOf<String>(
     "odd_even_transposition_parallel"
 )
@@ -74,10 +76,10 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    if (module != "viterbi")
-        return null
-    //if (name != "RedBlackTree.insert")
-    //    return null
+    // if (module != "markov_chain")
+    //     return null
+    // if (name != "get_transitions")
+    //     return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
@@ -109,7 +111,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\dynamic_programming"
+    val projectPath = "D:\\projects\\Python\\graphs"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
