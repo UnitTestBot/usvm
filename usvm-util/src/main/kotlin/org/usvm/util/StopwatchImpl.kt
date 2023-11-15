@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * [Stopwatch] implementation based on [System.currentTimeMillis] method.
  */
-class JvmStopwatch : Stopwatch {
+class StopwatchImpl : Stopwatch {
     private var startTime = Duration.ZERO
 
     override var elapsed: Duration = Duration.ZERO
@@ -15,11 +15,13 @@ class JvmStopwatch : Stopwatch {
             if (!isRunning) {
                 return field
             }
-            return field + System.currentTimeMillis().milliseconds - startTime
+            return field + currentElapsed
         }
 
     override var isRunning: Boolean = false
         private set
+
+    private val currentElapsed get() = System.currentTimeMillis().milliseconds - startTime
 
     override fun start() {
         if (isRunning) {
@@ -34,7 +36,7 @@ class JvmStopwatch : Stopwatch {
             return
         }
         isRunning = false
-        elapsed += (System.currentTimeMillis().milliseconds - startTime)
+        elapsed += currentElapsed
     }
 
     override fun reset() {

@@ -11,7 +11,6 @@ import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
-import org.usvm.statistics.TimeStatistics
 import kotlin.time.Duration
 
 sealed interface USolverResult<out T>

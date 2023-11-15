@@ -24,25 +24,27 @@ import kotlin.time.Duration
  * last peek in such series, if this value is greater than 1.
  */
 class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriority>>(
-    initialKeys: Sequence<Key>,
+    initialKeys: Set<Key>,
     private val stopwatch: Stopwatch,
     private val getKey: (State) -> Key,
     private val getKeyPriority: (Key) -> KeyPriority,
     basePathSelectorFactory: (Key) -> UPathSelector<State>,
     private val peeksInQuantum: UInt = 1U
-) : UPathSelector<State> {
+) : KeyedPathSelector<State, Key> {
 
-    private data class KeysQueueElement<Key, KeyPriority>(val key: Key, val priority: KeyPriority, val elapsed: Duration)
+    private data class KeysQueueElement<Key, KeyPriority>(val key: Key, var priority: KeyPriority, var elapsed: Duration)
     private val keysQueue = PriorityQueue(
-        Comparator.comparing<KeysQueueElement<Key, KeyPriority>, Duration> { it.elapsed }.thenComparing<KeyPriority> { it.priority }
+        Comparator
+            .comparing<KeysQueueElement<Key, KeyPriority>, Duration> { it.elapsed }
+            .thenComparing<KeyPriority> { it.priority }
     )
     private val pathSelectors = HashMap<Key, UPathSelector<State>>()
 
     private var peekCounter = 0U
 
     init {
-        require(peeksInQuantum > 0U)
-        require(initialKeys.any())
+        require(peeksInQuantum > 0U) { "peeksInQuantum value must be greater than zero" }
+        require(initialKeys.any()) { "initialKeys must contain at least one element" }
         stopwatch.reset()
         initialKeys.forEach {
             pathSelectors[it] = basePathSelectorFactory(it)
@@ -58,40 +60,39 @@ class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriorit
     }
 
     override fun peek(): State {
-        var nextKey = keysQueue.peek()
-        var nextPathSelector = pathSelectors[nextKey.key] // Key may not be found if it is removed by removeKey()
-        val isNextPathSelectorEmpty = nextPathSelector == null || nextPathSelector.isEmpty()
-        if (stopwatch.isRunning && peekCounter == peeksInQuantum || isNextPathSelectorEmpty) {
+        var currentKey = keysQueue.peek()
+        var currentPathSelector = pathSelectors[currentKey.key] // Key may not be found if it is removed by removeKey()
+        val isCurrentPathSelectorEmpty = currentPathSelector == null || currentPathSelector.isEmpty()
+        val quantumEnded = stopwatch.isRunning && peekCounter == peeksInQuantum
+        // When peek limit for the current element is reached or there is nothing to peek, start peeking the next one
+        if (quantumEnded || isCurrentPathSelectorEmpty) {
             stopwatch.stop()
             peekCounter = 0U
             keysQueue.poll()
-            if (!isNextPathSelectorEmpty) {
-                keysQueue.add(
-                    nextKey.copy(
-                        priority = getKeyPriority(nextKey.key),
-                        elapsed = nextKey.elapsed + stopwatch.elapsed
-                    )
-                )
+            if (!isCurrentPathSelectorEmpty) {
+                currentKey.elapsed += stopwatch.elapsed
+                currentKey.priority = getKeyPriority(currentKey.key)
+                keysQueue.add(currentKey)
             }
-            nextKey = keysQueue.peek()
-            nextPathSelector = pathSelectors[nextKey.key]
+            currentKey = keysQueue.peek()
+            currentPathSelector = pathSelectors[currentKey.key]
             stopwatch.reset()
         }
         if (++peekCounter == 1U) {
             stopwatch.start()
         }
-        while (nextPathSelector == null || nextPathSelector.isEmpty()) {
+        while (currentPathSelector == null || currentPathSelector.isEmpty()) {
             keysQueue.poll()
-            pathSelectors.remove(nextKey.key)
-            nextKey = keysQueue.peek()
-            nextPathSelector = pathSelectors[nextKey.key]
+            pathSelectors.remove(currentKey.key)
+            currentKey = keysQueue.peek()
+            currentPathSelector = pathSelectors[currentKey.key]
         }
-        return nextPathSelector.peek()
+        return currentPathSelector.peek()
     }
 
     override fun update(state: State) {
         val key = getKey(state)
-        pathSelectors[key]?.update(state) ?: IllegalStateException("Trying to update state with unknown key")
+        pathSelectors[key]?.update(state) ?: throw IllegalStateException("Trying to update state with unknown key")
     }
 
     override fun add(states: Collection<State>) {
@@ -102,11 +103,11 @@ class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriorit
 
     override fun remove(state: State) {
         val key = getKey(state)
-        pathSelectors[key]?.remove(state) ?: IllegalStateException("Trying to remove state with unknown key")
+        pathSelectors[key]?.remove(state) ?: throw IllegalStateException("Trying to remove state with unknown key")
     }
 
-    fun removeKey(key: Key) {
-        // Key will be removed from queue by peek()
+    override fun removeKey(key: Key) {
+        // Removing from keysQueue is performed by subsequent peek() calls
         pathSelectors.remove(key)
     }
 }

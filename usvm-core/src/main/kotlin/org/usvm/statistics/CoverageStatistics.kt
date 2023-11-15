@@ -83,6 +83,12 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     }
 
     /**
+     * Returns true if all statements of the [method] are covered.
+     */
+    fun isCompletelyCovered(method: Method): Boolean =
+        uncoveredStatements[method]?.isEmpty() ?: throw IllegalArgumentException("Trying to get coverage of unknown method")
+
+    /**
      * Returns statements from initial methods which have not been covered yet.
      */
     fun getUncoveredStatements(): Collection<Statement> {

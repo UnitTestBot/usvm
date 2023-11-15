@@ -193,11 +193,11 @@ data class UMachineOptions(
      */
     val collectedStatesLimit: Int? = null,
     /**
-     * Optional timeout to stop execution on.
+     * Timeout to stop execution on. Use [Duration.INFINITE] for no timeout.
      */
     val timeout: Duration = 20_000.milliseconds,
     /**
-     * Optional timeout for SMT solver checks.
+     * Timeout for SMT solver checks. Use [Duration.INFINITE] for no timeout.
      */
     val solverTimeout: Duration = timeout,
     /**

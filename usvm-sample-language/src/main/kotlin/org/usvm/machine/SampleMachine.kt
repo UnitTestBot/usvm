@@ -12,6 +12,7 @@ import org.usvm.language.Stmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
@@ -41,7 +42,10 @@ class SampleMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(methods: List<Method<*>>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> {
+    fun analyze(
+        methods: List<Method<*>>,
+        targets: List<SampleTarget> = emptyList()
+    ): Collection<ProgramExecutionResult> {
         logger.debug("{}.analyze({})", this, methods)
         val initialStates = mutableMapOf<Method<*>, SampleState>()
         methods.forEach {
@@ -60,7 +64,6 @@ class SampleMachine(
             }
 
         val timeStatistics = TimeStatistics<Method<*>, SampleState>()
-        TimeStatistics.configureTimeStatisticsForSolver(timeStatistics)
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -80,10 +83,13 @@ class SampleMachine(
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
             }
 
+        val stepsStatistics = StepsStatistics<Method<*>, SampleState>()
+
         val stopStrategy = createStopStrategy(
             options,
             targets,
             { timeStatistics },
+            { stepsStatistics },
             { coverageStatistics },
             { statesCollector.collectedStates.size }
         )
@@ -91,6 +97,7 @@ class SampleMachine(
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
         observers.add(statesCollector)
         observers.add(timeStatistics)
+        observers.add(stepsStatistics)
 
         if (options.useSoftConstraints) {
             observers.add(SoftConstraintsObserver())
@@ -107,7 +114,8 @@ class SampleMachine(
         return statesCollector.collectedStates.map { resultModelConverter.convert(it, it.entrypoint) }
     }
 
-    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> = analyze(listOf(method), targets)
+    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> =
+        analyze(listOf(method), targets)
 
     private fun getInitialState(
         method: Method<*>,

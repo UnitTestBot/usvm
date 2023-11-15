@@ -25,17 +25,19 @@ import kotlin.time.Duration
  * with the same key are maintained in path selector created by this function.
  */
 class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriority>>(
-    initialKeys: Sequence<Key>,
+    initialKeys: Set<Key>,
     private val stopwatch: Stopwatch,
     private val getRemainingTime: () -> Duration,
     private val getKey: (State) -> Key,
     private val getKeyPriority: (Key) -> KeyPriority,
     basePathSelectorFactory: (Key) -> UPathSelector<State>
-) : UPathSelector<State> {
+) : KeyedPathSelector<State, Key> {
 
-    private data class KeysQueueElement<Key, KeyPriority>(val key: Key, val priority: KeyPriority, val elapsed: Duration)
+    private data class KeysQueueElement<Key, KeyPriority>(val key: Key, var priority: KeyPriority, var elapsed: Duration)
     private val activeQueue = PriorityQueue(
-        Comparator.comparing<KeysQueueElement<Key, KeyPriority>, Duration> { it.elapsed }.thenComparing<KeyPriority> { it.priority }
+        Comparator
+            .comparing<KeysQueueElement<Key, KeyPriority>, Duration> { it.elapsed }
+            .thenComparing<KeyPriority> { it.priority }
     )
     private val expiredList = mutableListOf<KeysQueueElement<Key, KeyPriority>>()
     private val pathSelectors = HashMap<Key, UPathSelector<State>>()
@@ -43,21 +45,23 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
     private var currentTimeQuantum: Duration
 
     init {
-        require(initialKeys.any())
+        require(initialKeys.any()) { "initialKeys must contain at least one element" }
         stopwatch.reset()
         initialKeys.forEach {
             pathSelectors[it] = basePathSelectorFactory(it)
             activeQueue.add(KeysQueueElement(it, getKeyPriority(it), Duration.ZERO))
         }
+        val pathSelectorsCount = pathSelectors.size
         val remainingTime = getRemainingTime()
-        currentTimeQuantum = remainingTime / pathSelectors.size
+        currentTimeQuantum = remainingTime / pathSelectorsCount
     }
 
     private fun peekFromQueues(): KeysQueueElement<Key, KeyPriority> {
         check(activeQueue.isNotEmpty() || expiredList.isNotEmpty()) { "Trying to peek from empty path selector" }
         if (activeQueue.isEmpty()) {
             expiredList.forEach {
-                activeQueue.add(it.copy(priority = getKeyPriority(it.key)))
+                it.priority = getKeyPriority(it.key)
+                activeQueue.add(it)
             }
             expiredList.clear()
             val remainingTime = getRemainingTime()
@@ -74,40 +78,43 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
     }
 
     override fun peek(): State {
-        var nextKey = activeQueue.peek()
-        var nextPathSelector = pathSelectors[nextKey.key]
-        val isCurrentPathSelectorEmpty = nextPathSelector == null || nextPathSelector.isEmpty()
-        if (stopwatch.isRunning && stopwatch.elapsed >= currentTimeQuantum || isCurrentPathSelectorEmpty) {
+        var currentKey = activeQueue.peek()
+        var currentPathSelector = pathSelectors[currentKey.key]
+        val isCurrentPathSelectorEmpty = currentPathSelector == null || currentPathSelector.isEmpty()
+        val quantumEnded = stopwatch.isRunning && stopwatch.elapsed >= currentTimeQuantum
+        // When time quantum is exceeded or there is nothing to peek, start peeking the next one
+        if (quantumEnded || isCurrentPathSelectorEmpty) {
             stopwatch.stop()
-            activeQueue.remove(nextKey)
+            activeQueue.remove(currentKey)
             if (!isCurrentPathSelectorEmpty) {
-                expiredList.add(nextKey.copy(elapsed = nextKey.elapsed + stopwatch.elapsed))
+                currentKey.elapsed += stopwatch.elapsed
+                expiredList.add(currentKey)
             } else {
-                pathSelectors.remove(nextKey.key)
+                pathSelectors.remove(currentKey.key)
             }
             if (stopwatch.elapsed > currentTimeQuantum && activeQueue.isNotEmpty()) {
                 currentTimeQuantum -= (stopwatch.elapsed - currentTimeQuantum) / activeQueue.size
             }
-            nextKey = peekFromQueues()
-            nextPathSelector = pathSelectors[nextKey.key]
+            currentKey = peekFromQueues()
+            currentPathSelector = pathSelectors[currentKey.key]
             stopwatch.reset()
         }
         if (!stopwatch.isRunning) {
             stopwatch.start()
         }
 
-        while (nextPathSelector == null || nextPathSelector.isEmpty()) {
-            activeQueue.remove(nextKey)
-            pathSelectors.remove(nextKey.key)
-            nextKey = peekFromQueues()
-            nextPathSelector = pathSelectors[nextKey.key]
+        while (currentPathSelector == null || currentPathSelector.isEmpty()) {
+            activeQueue.remove(currentKey)
+            pathSelectors.remove(currentKey.key)
+            currentKey = peekFromQueues()
+            currentPathSelector = pathSelectors[currentKey.key]
         }
-        return nextPathSelector.peek()
+        return currentPathSelector.peek()
     }
 
     override fun update(state: State) {
         val key = getKey(state)
-        pathSelectors[key]?.update(state) ?: IllegalStateException("Trying to update state with unknown key")
+        pathSelectors[key]?.update(state) ?: throw IllegalStateException("Trying to update state with unknown key")
     }
 
     override fun add(states: Collection<State>) {
@@ -118,11 +125,11 @@ class ConstantTimeFairPathSelector<State, Key, KeyPriority : Comparable<KeyPrior
 
     override fun remove(state: State) {
         val key = getKey(state)
-        pathSelectors[key]?.remove(state) ?: IllegalStateException("Trying to remove state with unknown key")
+        pathSelectors[key]?.remove(state) ?: throw IllegalStateException("Trying to remove state with unknown key")
     }
 
-    fun removeKey(key: Key) {
-        // Key will be removed from queues by peek()
+    override fun removeKey(key: Key) {
+        // Removing from keysQueue is performed by subsequent peek() calls
         pathSelectors.remove(key)
     }
 }

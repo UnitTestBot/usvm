@@ -20,6 +20,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
@@ -91,7 +92,6 @@ class JcMachine(
         val transparentCfgStatistics = transparentCfgStatistics()
 
         val timeStatistics = TimeStatistics<JcMethod, JcState>()
-        TimeStatistics.configureTimeStatisticsForSolver(timeStatistics)
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -112,16 +112,20 @@ class JcMachine(
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
             }
 
+        val stepsStatistics = StepsStatistics<JcMethod, JcState>()
+
         val stopStrategy = createStopStrategy(
             options,
             targets,
             timeStatisticsFactory = { timeStatistics },
+            stepsStatisticsFactory = { stepsStatistics },
             coverageStatisticsFactory = { coverageStatistics },
             getCollectedStatesCount = { statesCollector.collectedStates.size }
         )
 
         val observers = mutableListOf<UMachineObserver<JcState>>(coverageStatistics)
         observers.add(timeStatistics)
+        observers.add(stepsStatistics)
 
         if (interpreterObserver is UMachineObserver<*>) {
             @Suppress("UNCHECKED_CAST")
@@ -168,20 +172,18 @@ class JcMachine(
         )
 
         if (logger.isInfoEnabled) {
-            val statsStrings = mutableListOf(Statistics("Method", "Coverage, %", "Time spent (total & solver), ms", "Steps"))
+            val statsStrings = mutableListOf(Statistics("Method", "Coverage, %", "Time spent, ms", "Steps"))
             methods.forEach {
                 val name = it.humanReadableSignature
                 val coverage = coverageStatistics.getMethodCoverage(it).roundToInt().toString()
                 val time = timeStatistics.getTimeSpentOnMethod(it).inWholeMilliseconds.toString()
-                val solverTime = timeStatistics.getSolverTimeSpentOnMethod(it).inWholeMilliseconds.toString()
-                val stepsCount = timeStatistics.getMethodSteps(it).toString()
-                statsStrings.add(Statistics(name, coverage, "$time ($solverTime)", stepsCount))
+                val stepsCount = stepsStatistics.getMethodSteps(it).toString()
+                statsStrings.add(Statistics(name, coverage, time, stepsCount))
             }
             val totalCoverage = coverageStatistics.getTotalCoverage().roundToInt().toString()
             val totalTime = timeStatistics.runningTime.inWholeMilliseconds.toString()
-            val totalSolverTime = timeStatistics.solverTime.inWholeMilliseconds.toString()
-            val totalSteps = timeStatistics.totalSteps.toString()
-            statsStrings.add(Statistics("TOTAL", totalCoverage, "$totalTime ($totalSolverTime)", totalSteps))
+            val totalSteps = stepsStatistics.totalSteps.toString()
+            statsStrings.add(Statistics("TOTAL", totalCoverage, totalTime, totalSteps))
             val timeColumnWidth = statsStrings.maxOf { it.time.length }
             val stepsColumnWidth = statsStrings.maxOf { it.stepsCount.length }
             val statisticsSb = StringBuilder("\n")
@@ -194,7 +196,8 @@ class JcMachine(
         return statesCollector.collectedStates
     }
 
-    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> = analyze(listOf(method), targets)
+    fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> =
+        analyze(listOf(method), targets)
 
     /**
      * Returns a wrapper for the [cfgStatistics] that ignores [JcTransparentInstruction]s.

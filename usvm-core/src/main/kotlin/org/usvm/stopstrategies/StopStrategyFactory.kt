@@ -2,6 +2,7 @@ package org.usvm.stopstrategies
 
 import org.usvm.UMachineOptions
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.targets.UTarget
 import kotlin.time.Duration
@@ -10,6 +11,7 @@ fun createStopStrategy(
     options: UMachineOptions,
     targets: Collection<UTarget<*, *>>,
     timeStatisticsFactory: () -> TimeStatistics<*, *>? = { null },
+    stepsStatisticsFactory: () -> StepsStatistics<*, *>? = { null },
     coverageStatisticsFactory: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null,
 ) : StopStrategy {
@@ -17,8 +19,8 @@ fun createStopStrategy(
 
     val stepLimit = options.stepLimit
     if (stepLimit != null) {
-        val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on step count" }
-        stopStrategies.add(StepLimitStopStrategy(stepLimit, timeStatistics))
+        val stepsStatistics = requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for stopping on step count" }
+        stopStrategies.add(StepLimitStopStrategy(stepLimit, stepsStatistics))
     }
     if (options.stopOnCoverage in 1..100) {
         val coverageStatistics = requireNotNull(coverageStatisticsFactory()) {
@@ -43,11 +45,11 @@ fun createStopStrategy(
 
     val stepsFromLastCovered = options.stepsFromLastCovered
     if (stepsFromLastCovered != null && getCollectedStatesCount != null) {
-        val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on step count" }
+        val stepsStatistics = requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for stopping on step count" }
         val stepsFromLastCoveredStopStrategy = StepsFromLastCoveredStopStrategy(
             stepsFromLastCovered.toULong(),
             getCollectedStatesCount,
-            timeStatistics
+            stepsStatistics
         )
         stopStrategies.add(stepsFromLastCoveredStopStrategy)
     }

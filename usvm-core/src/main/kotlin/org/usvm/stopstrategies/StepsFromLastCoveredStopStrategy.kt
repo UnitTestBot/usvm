@@ -1,6 +1,6 @@
 package org.usvm.stopstrategies
 
-import org.usvm.statistics.TimeStatistics
+import org.usvm.statistics.StepsStatistics
 
 /**
  * A stop strategy that checks how many steps were made since the last collected states.
@@ -8,7 +8,7 @@ import org.usvm.statistics.TimeStatistics
 class StepsFromLastCoveredStopStrategy(
     private val limit: ULong,
     private val collectedStateCount: () -> Int,
-    private val timeStatistics: TimeStatistics<*, *>
+    private val stepsStatistics: StepsStatistics<*, *>
 ) : StopStrategy {
     private var stepsMadeOnLastCollected = 0UL
     private var lastStatesCounter = collectedStateCount()
@@ -17,10 +17,10 @@ class StepsFromLastCoveredStopStrategy(
         val collectedStates = collectedStateCount()
 
         if (collectedStates > lastStatesCounter) {
-            stepsMadeOnLastCollected = timeStatistics.totalSteps
+            stepsMadeOnLastCollected = stepsStatistics.totalSteps
             lastStatesCounter = collectedStates
         }
 
-        return (timeStatistics.totalSteps - stepsMadeOnLastCollected) > limit
+        return (stepsStatistics.totalSteps - stepsMadeOnLastCollected) > limit
     }
 }

@@ -21,14 +21,14 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.targets.UTarget
-import org.usvm.util.JvmStopwatch
+import org.usvm.util.StopwatchImpl
 import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
 import kotlin.time.Duration
 
 private fun <Method, Statement, Target, State> createPathSelector(
-    initialStates: Collection<State>,
+    initialStates: List<State>,
     options: UMachineOptions,
     applicationGraph: ApplicationGraph<Method, Statement>,
     coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
@@ -160,15 +160,15 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
-    if (options.timeout == Duration.INFINITE || initialStates.count() == 1) {
+    if (options.timeout == Duration.INFINITE || initialStates.size == 1) {
         return createPathSelector(
-            initialStates.values, options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory
+            initialStates.values.toList(), options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory
         )
     }
 
     fun getRemainingTimeMs(): Duration {
         val diff = options.timeout - timeStatistics.runningTime
-        return if (diff < Duration.ZERO) Duration.ZERO else diff
+        return diff.coerceAtLeast(Duration.ZERO)
     }
 
     fun createBasePathSelector(method: Method) =
@@ -182,50 +182,40 @@ fun <Method, Statement, Target, State> createPathSelector(
         )
 
     val coverageStatistics = coverageStatisticsFactory()
-    val getMethodCoverage =
-        if (coverageStatistics == null) {
-            { 0f }
-        } else {
-            { m: Method -> coverageStatistics.getMethodCoverage(m) }
-        }
-
+    val getMethodCoverage = coverageStatistics?.let {
+        { m: Method -> coverageStatistics.getMethodCoverage(m) }
+    } ?: { 0f }
     val initialStateToEntrypoint = mutableMapOf<State, Method>()
     initialStates.forEach { (m, s) -> initialStateToEntrypoint[s] = m }
 
-    return when (options.pathSelectorFairnessStrategy) {
-        PathSelectorFairnessStrategy.CONSTANT_TIME -> {
-            val pathSelector = ConstantTimeFairPathSelector(
-                initialStates.keys.asSequence(),
-                JvmStopwatch(),
+    val pathSelector = when (options.pathSelectorFairnessStrategy) {
+        PathSelectorFairnessStrategy.CONSTANT_TIME ->
+            ConstantTimeFairPathSelector(
+                initialStates.keys,
+                StopwatchImpl(),
                 ::getRemainingTimeMs,
                 { it.entrypoint },
                 getMethodCoverage,
                 ::createBasePathSelector
             )
-            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
-                if (coverageStatistics.getMethodCoverage(method) == 100f) {
-                    pathSelector.removeKey(method)
-                }
-            }
-            pathSelector
-        }
 
-        PathSelectorFairnessStrategy.COMPLETELY_FAIR -> {
-            val pathSelector = CompletelyFairPathSelector(
-                initialStates.keys.asSequence(),
-                JvmStopwatch(),
+        PathSelectorFairnessStrategy.COMPLETELY_FAIR ->
+            CompletelyFairPathSelector(
+                initialStates.keys,
+                StopwatchImpl(),
                 { it.entrypoint },
                 getMethodCoverage,
                 ::createBasePathSelector
             )
-            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
-                if (coverageStatistics.getMethodCoverage(method) == 100f) {
-                    pathSelector.removeKey(method)
-                }
-            }
-            pathSelector
+    }
+
+    coverageStatistics?.addOnCoveredObserver { _, method, _ ->
+        if (coverageStatistics.isCompletelyCovered(method)) {
+            pathSelector.removeKey(method)
         }
     }
+
+    return pathSelector
 }
 
 /**

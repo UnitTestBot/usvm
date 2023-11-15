@@ -6,17 +6,19 @@ import kotlin.time.Duration.Companion.seconds
 
 class ConstantTimeFairPathSelectorTests {
 
+    private val constantPriority = 1
+
     @Test
     fun fairnessTest() {
         val stopwatch = TestStopwatch()
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3")
         var remainingTime = 99L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3"),
+            setOf("m1", "m2", "m3"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
-            { 1 },
+            { constantPriority },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3"))
@@ -38,19 +40,20 @@ class ConstantTimeFairPathSelectorTests {
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3")
         var remainingTime = 99L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3"),
+            setOf("m1", "m2", "m3"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
-            { 1 },
+            { constantPriority },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3"))
         val times = hashMapOf("s1" to 0, "s2" to 0, "s3" to 0)
+        val timeToRemoveS2 = 9
         while (remainingTime > 0) {
             val peeked = pathSelector.peek()
             times[peeked] = times.getValue(peeked) + 1
-            if (peeked == "s2" && times["s2"] == 9) {
+            if (peeked == "s2" && times["s2"] == timeToRemoveS2) {
                 pathSelector.remove(peeked)
             }
             stopwatch.elapsedRaw++
@@ -67,7 +70,7 @@ class ConstantTimeFairPathSelectorTests {
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3", "s4" to "m4")
         var remainingTime = 100L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3", "m4"),
+            setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
@@ -76,15 +79,16 @@ class ConstantTimeFairPathSelectorTests {
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
         val times = hashMapOf("s1" to 0, "s2" to 0, "s3" to 0, "s4" to 0)
+        val timeSpentOnS2 = 20
         while (remainingTime > 0L) {
             val peeked = pathSelector.peek()
             stopwatch.elapsedRaw++
             remainingTime--
             times[peeked] = times.getValue(peeked) + 1
             if (peeked == "s2") {
-                stopwatch.elapsedRaw += 20L
-                remainingTime -= 20L
-                times[peeked] = times.getValue(peeked) + 20
+                stopwatch.elapsedRaw += timeSpentOnS2
+                remainingTime -= timeSpentOnS2
+                times[peeked] = times.getValue(peeked) + timeSpentOnS2
             }
         }
         assertEquals(25, times["s1"])
@@ -99,7 +103,7 @@ class ConstantTimeFairPathSelectorTests {
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3", "s4" to "m4")
         var remainingTime = 40L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3", "m4"),
+            setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
@@ -108,12 +112,14 @@ class ConstantTimeFairPathSelectorTests {
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
         val times = hashMapOf("s1" to 0L, "s2" to 0L, "s3" to 0L, "s4" to 0L)
+        val timeToRemoveM2 = 35L
+        val timeToRemoveM4 = 25L
         while (remainingTime > 0L) {
             val peeked = pathSelector.peek()
-            if (remainingTime == 35L) {
+            if (remainingTime == timeToRemoveM2) {
                 pathSelector.removeKey("m2")
             }
-            if (remainingTime == 25L) {
+            if (remainingTime == timeToRemoveM4) {
                 pathSelector.removeKey("m4")
             }
             times[peeked] = times.getValue(peeked) + 1
@@ -132,7 +138,7 @@ class ConstantTimeFairPathSelectorTests {
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3", "s4" to "m4")
         var remainingTime = 40L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3", "m4"),
+            setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
@@ -141,12 +147,13 @@ class ConstantTimeFairPathSelectorTests {
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
         val times = hashMapOf("s1" to 0L, "s2" to 0L, "s3" to 0L, "s4" to 0L)
+        val timeToRemoveM1 = 36L
         while (remainingTime > 0L) {
             val peeked = pathSelector.peek()
             times[peeked] = times.getValue(peeked) + 1
             stopwatch.elapsedRaw++
             remainingTime--
-            if (remainingTime == 36L) {
+            if (remainingTime == timeToRemoveM1) {
                 pathSelector.removeKey("m1")
             }
         }
@@ -162,7 +169,7 @@ class ConstantTimeFairPathSelectorTests {
         val stateToMethod = mapOf("s1" to "m1", "s2" to "m2", "s3" to "m3", "s4" to "m4")
         var remainingTime = 40L
         val pathSelector = ConstantTimeFairPathSelector(
-            sequenceOf("m1", "m2", "m3", "m4"),
+            setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             { remainingTime.seconds },
             stateToMethod::getValue,
@@ -171,15 +178,18 @@ class ConstantTimeFairPathSelectorTests {
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
         val times = hashMapOf("s1" to 0L, "s2" to 0L, "s3" to 0L, "s4" to 0L)
+        val timeToRemoveM4 = 30L
+        val timeSpentOnS2 = 20L
+        val timeSpentOnOtherStates = 1L
         while (remainingTime > 0L) {
             val peeked = pathSelector.peek()
-            if (remainingTime == 35L) {
+            if (remainingTime == timeToRemoveM4) {
                 pathSelector.removeKey("m4")
             }
             val time =
                 when (peeked) {
-                    "s2" -> 20L
-                    else -> 1L
+                    "s2" -> timeSpentOnS2
+                    else -> timeSpentOnOtherStates
                 }
             times[peeked] = times.getValue(peeked) + time
             stopwatch.elapsedRaw += time
