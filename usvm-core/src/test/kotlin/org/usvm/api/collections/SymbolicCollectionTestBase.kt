@@ -29,6 +29,7 @@ import org.usvm.targets.UTarget
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.INFINITE
 
 abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext<USizeSort>
@@ -49,7 +50,7 @@ abstract class SymbolicCollectionTestBase {
         val decoder = ULazyModelDecoder(translator)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
+        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 

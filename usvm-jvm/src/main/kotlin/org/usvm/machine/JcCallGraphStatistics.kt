@@ -5,6 +5,7 @@ import org.jacodb.api.JcType
 import org.jacodb.api.ext.toType
 import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.distances.CallGraphStatistics
+import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
 import org.usvm.util.canBeOverridden
 import org.usvm.util.findMethod
@@ -47,6 +48,13 @@ class JcCallGraphStatistics(
             typeStream
                 .filterBySupertype(callee.enclosingClass.toType())
                 .take(subclassesToTake)
+                .let {
+                    when (it) {
+                        TypesResult.EmptyTypesResult -> emptyList()
+                        is TypesResult.SuccessfulTypesResult -> it
+                        is TypesResult.TypesResultWithExpiredTimeout -> it.collectedTypes
+                    }
+                }
                 .mapTo(overrides) {
                     val calleeMethod = it.findMethod(callee)?.method
                     checkNotNull(calleeMethod) {

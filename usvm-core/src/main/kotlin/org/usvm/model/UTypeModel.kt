@@ -31,7 +31,8 @@ class UTypeModel<Type>(
 
                 val evaluatedTypeStream = typeStream(ref)
                 val typeStream = evaluatedTypeStream.filterBySupertype(supertype)
-                if (!typeStream.isEmpty) {
+                val isEmpty = typeStream.isEmpty ?: error("Invalid model containing wrong type stream $typeStream")
+                if (!isEmpty) {
                     typeStreamByAddr[ref.address] = typeStream
                     ref.ctx.trueExpr
                 } else {
@@ -54,7 +55,8 @@ class UTypeModel<Type>(
 
                 val evaluatedTypeStream = typeStream(ref)
                 val typeStream = evaluatedTypeStream.filterBySubtype(subtype)
-                if (!typeStream.isEmpty) {
+                val isEmpty = typeStream.isEmpty ?: error("Invalid model containing wrong type stream $typeStream")
+                if (!isEmpty) {
                     typeStreamByAddr[ref.address] = typeStream
                     ref.ctx.trueExpr
                 } else {

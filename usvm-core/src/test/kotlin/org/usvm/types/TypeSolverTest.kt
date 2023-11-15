@@ -52,6 +52,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.INFINITE
 
 class TypeSolverTest {
     private val typeSystem = testTypeSystem
@@ -65,7 +66,7 @@ class TypeSolverTest {
         val decoder = ULazyModelDecoder(translator)
 
         typeSolver = UTypeSolver(typeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
@@ -514,6 +515,7 @@ class TypeSolverTest {
     private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
         val set = elements.toSet()
         val result = take(100)
+        assertIs<TypesResult.SuccessfulTypesResult<T>>(result)
         assertEquals(set.size, result.size, result.toString())
         assertEquals(set, result.toSet())
     }

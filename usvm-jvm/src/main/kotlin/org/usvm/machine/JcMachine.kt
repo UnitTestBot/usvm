@@ -42,13 +42,8 @@ class JcMachine(
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
 
-    private val typeSystem = JcTypeSystem(cp)
-    private val components = JcComponents(
-        typeSystem,
-        options.solverType,
-        options.useSolverForForks,
-        options.runSolverInAnotherProcess
-    )
+    private val typeSystem = JcTypeSystem(cp, options.typeOperationsTimeout)
+    private val components = JcComponents(typeSystem, options)
     private val ctx = JcContext(cp, components)
 
     private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)

@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.spyk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.usvm.types.system.TestType
 import org.usvm.types.system.base1
 import org.usvm.types.system.base2
 import org.usvm.types.system.comparable
@@ -17,6 +18,7 @@ import org.usvm.types.system.testTypeSystem
 import org.usvm.types.system.top
 import org.usvm.types.system.userComparable
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class TypeStreamTest {
@@ -27,6 +29,7 @@ class TypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(top)
         val result = typeStream.take(100)
+        assertIs<TypesResult.SuccessfulTypesResult<TestType>>(result)
         assertEquals(100, result.size)
         assertTrue(result.all(typeSystem::isInstantiable))
     }
@@ -37,6 +40,7 @@ class TypeStreamTest {
         val typeStream = typeSystem.topTypeStream()
             .filterBySupertype(comparable)
         val result = typeStream.take(100)
+        assertIs<TypesResult.SuccessfulTypesResult<TestType>>(result)
         assertEquals(100, result.size)
         assertTrue(result.all(typeSystem::isInstantiable))
     }
@@ -138,6 +142,7 @@ class TypeStreamTest {
     private fun <T> UTypeStream<T>.take100AndAssertEqualsToSetOf(vararg elements: T) {
         val set = elements.toSet()
         val result = take(100)
+        assertIs<TypesResult.SuccessfulTypesResult<T>>(result)
         assertEquals(set.size, result.size)
         assertEquals(set, result.toSet())
     }

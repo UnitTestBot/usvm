@@ -4,8 +4,9 @@ import org.usvm.language.SampleType
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
+import kotlin.time.Duration
 
-class SampleTypeSystem : UTypeSystem<SampleType> {
+class SampleTypeSystem(override val typeOperationsTimeout: Duration) : UTypeSystem<SampleType> {
     override fun isSupertype(supertype: SampleType, type: SampleType): Boolean =
         supertype == type
 

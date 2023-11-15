@@ -38,6 +38,7 @@ import org.usvm.solver.UUnsatResult
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.INFINITE
 
 private typealias Type = SingleTypeSystem.SingleType
 
@@ -60,7 +61,7 @@ class ModelDecodingTest {
         val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
         pc = UPathConstraints(ctx)
 

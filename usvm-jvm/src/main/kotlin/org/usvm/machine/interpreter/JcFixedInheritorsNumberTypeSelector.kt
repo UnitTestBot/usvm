@@ -5,6 +5,7 @@ import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.usvm.machine.logger
+import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
 
 interface JcTypeSelector {
@@ -19,6 +20,13 @@ class JcFixedInheritorsNumberTypeSelector(
     override fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType> {
         return typeStream
             .take(inheritorsNumberToSelectFrom)
+            .let {
+                when (it) {
+                    TypesResult.EmptyTypesResult -> emptyList()
+                    is TypesResult.SuccessfulTypesResult -> it
+                    is TypesResult.TypesResultWithExpiredTimeout -> it.collectedTypes
+                }
+            }
             .sortedByDescending { type -> typeScore(method, type) }
             .take(inheritorsNumberToChoose)
             .also {

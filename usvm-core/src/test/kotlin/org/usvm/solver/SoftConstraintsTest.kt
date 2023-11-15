@@ -18,6 +18,7 @@ import org.usvm.model.ULazyModelDecoder
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertSame
+import kotlin.time.Duration.Companion.INFINITE
 
 private typealias Type = SingleTypeSystem.SingleType
 
@@ -41,7 +42,7 @@ open class SoftConstraintsTest {
         decoder = ULazyModelDecoder(translator)
 
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
     }
 
     @Test
@@ -85,7 +86,7 @@ open class SoftConstraintsTest {
 
         val typeSolver = UTypeSolver<Type>(mockk())
         val solver: USolverBase<Type> =
-            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder)
+            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
         val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
