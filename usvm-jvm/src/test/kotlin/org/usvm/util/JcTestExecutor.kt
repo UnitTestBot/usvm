@@ -2,32 +2,109 @@ package org.usvm.util
 
 import io.ksmt.utils.asExpr
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.*
-import org.jacodb.api.ext.*
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClassType
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
+import org.jacodb.api.JcPrimitiveType
+import org.jacodb.api.JcRefType
+import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedField
+import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.LocationType
+import org.jacodb.api.ext.allSuperHierarchySequence
+import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.byte
+import org.jacodb.api.ext.char
+import org.jacodb.api.ext.double
+import org.jacodb.api.ext.enumValues
+import org.jacodb.api.ext.findFieldOrNull
+import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.float
+import org.jacodb.api.ext.int
+import org.jacodb.api.ext.isEnum
+import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectType
+import org.jacodb.api.ext.short
+import org.jacodb.api.ext.toType
+import org.jacodb.api.ext.void
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
-import org.usvm.*
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
+import org.usvm.NULL_ADDRESS
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.SymbolicIdentityMap
+import org.usvm.api.SymbolicList
+import org.usvm.api.SymbolicMap
+import org.usvm.api.decoder.DecoderApi
+import org.usvm.api.decoder.ObjectDecoder
+import org.usvm.api.internal.SymbolicListImpl
 import org.usvm.api.typeStreamOf
+import org.usvm.api.util.JcTestDecoders
 import org.usvm.api.util.JcTestResolver
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
+import org.usvm.instrumentation.testcase.api.UTestArrayGetExpression
+import org.usvm.instrumentation.testcase.api.UTestArrayLengthExpression
+import org.usvm.instrumentation.testcase.api.UTestArraySetStatement
+import org.usvm.instrumentation.testcase.api.UTestBooleanExpression
+import org.usvm.instrumentation.testcase.api.UTestByteExpression
+import org.usvm.instrumentation.testcase.api.UTestCastExpression
+import org.usvm.instrumentation.testcase.api.UTestCharExpression
+import org.usvm.instrumentation.testcase.api.UTestClassExpression
+import org.usvm.instrumentation.testcase.api.UTestConstructorCall
+import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
+import org.usvm.instrumentation.testcase.api.UTestDoubleExpression
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestFloatExpression
+import org.usvm.instrumentation.testcase.api.UTestGetFieldExpression
+import org.usvm.instrumentation.testcase.api.UTestGetStaticFieldExpression
+import org.usvm.instrumentation.testcase.api.UTestInst
+import org.usvm.instrumentation.testcase.api.UTestIntExpression
+import org.usvm.instrumentation.testcase.api.UTestLongExpression
+import org.usvm.instrumentation.testcase.api.UTestMethodCall
+import org.usvm.instrumentation.testcase.api.UTestNullExpression
+import org.usvm.instrumentation.testcase.api.UTestSetFieldStatement
+import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
+import org.usvm.instrumentation.testcase.api.UTestShortExpression
+import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
+import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
-import org.usvm.machine.*
-import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
-import org.usvm.machine.interpreter.JcTypeStreamPrioritization
+import org.usvm.instrumentation.util.stringType
+import org.usvm.machine.JcContext
+import org.usvm.machine.extractBool
+import org.usvm.machine.extractByte
+import org.usvm.machine.extractChar
+import org.usvm.machine.extractDouble
+import org.usvm.machine.extractFloat
+import org.usvm.machine.extractInt
+import org.usvm.machine.extractLong
+import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.types.first
 
 /**
@@ -172,6 +249,8 @@ class JcTestExecutor(
         private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
     ) {
+
+        private val decoders = JcTestDecoders(ctx.cp)
         private val typeSelector = JcTypeStreamPrioritization(
             typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
         )
@@ -297,13 +376,8 @@ class JcTestExecutor(
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
             val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int).first as UTestIntExpression
-            // TODO hack
-            val length =
-                if (resolvedLength.value in 0..10_000) {
-                    resolvedLength
-                } else {
-                    UTestIntExpression(0, ctx.cp.int)
-                }
+
+            val length = clipArrayLength(resolvedLength)
 
             val cellSort = ctx.typeToSort(type.elementType)
 
@@ -328,8 +402,14 @@ class JcTestExecutor(
         }
 
         private fun resolveObject(
-            ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType
+            ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType
         ): Pair<UTestExpression, List<UTestInst>> {
+            val decoder = decoders.findDecoder(type.jcClass)
+            if (decoder != null) {
+                val instanceWithInitializer = decodeObject(ref, type, decoder)
+                resolvedCache[ref.address] = instanceWithInitializer
+                return instanceWithInitializer
+            }
 
             if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
                 // Note that non-negative addresses are possible only for the result value.
@@ -401,6 +481,144 @@ class JcTestExecutor(
             return resolveLValue(strValueLValue, valueField.fieldType)
         }
 
+        private fun decodeObject(
+            ref: UConcreteHeapRef,
+            type: JcClassType,
+            objectDecoder: ObjectDecoder
+        ): Pair<UTestExpression, List<UTestInst>> {
+            val refDecoder = TestDecoder(ref)
+            val decodedObject = objectDecoder.decode(refDecoder, type.jcClass)
+            return decodedObject to refDecoder.instructions
+        }
+
+        private fun resolveSymbolicList(heapRef: UHeapRef): Pair<SymbolicList<UTestExpression>, List<UTestInst>>? {
+            val ref = evaluateInModel(heapRef) as UConcreteHeapRef
+            if (ref.address == NULL_ADDRESS) {
+                return null
+            }
+
+            val listType = ctx.cp.findTypeOrNull<SymbolicList<*>>() ?: return null
+            val instructions = mutableListOf<UTestInst>()
+
+            val lengthRef = UArrayLengthLValue(heapRef, listType, ctx.sizeSort)
+            val (resolvedLength, lengthInst) = resolveLValue(lengthRef, ctx.cp.int)
+            instructions += lengthInst
+
+            val length = clipArrayLength(resolvedLength as UTestIntExpression)
+
+            val result = SymbolicListImpl<UTestExpression>()
+            for (i in 0 until length.value) {
+                val elemRef = UArrayIndexLValue(ctx.addressSort, heapRef, ctx.mkSizeExpr(i), listType)
+                val (element, elementInst) = resolveLValue(elemRef, ctx.cp.objectType)
+                instructions += elementInst
+                result.insert(i, element)
+            }
+
+            return result to instructions
+        }
+
+        private inner class TestDecoder(
+            private val instanceRef: UConcreteHeapRef
+        ) : DecoderApi<UTestExpression> {
+            val instructions = mutableListOf<UTestInst>()
+
+            override fun decodeField(field: JcField): UTestExpression {
+                val lvalue = UFieldLValue(ctx.typeToSort(field.typed().fieldType), instanceRef, field)
+                val (res, inst) = resolveLValue(lvalue, field.typed().fieldType)
+                instructions += inst
+                return res
+            }
+
+            override fun decodeSymbolicListField(field: JcField): SymbolicList<UTestExpression>? {
+                val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
+                val listRef = memory.read(lvalue)
+                val (res, inst) = resolveSymbolicList(listRef) ?: return null
+                instructions += inst
+                return res
+            }
+
+            override fun decodeSymbolicMapField(field: JcField): SymbolicMap<UTestExpression, UTestExpression>? {
+                TODO("Not yet implemented")
+            }
+
+            override fun decodeSymbolicIdentityMapField(
+                field: JcField
+            ): SymbolicIdentityMap<UTestExpression, UTestExpression>? {
+                TODO("Not yet implemented")
+            }
+
+            override fun setField(field: JcField, instance: UTestExpression, value: UTestExpression) {
+                instructions += if (field.isStatic) {
+                    UTestSetStaticFieldStatement(field, value)
+                } else {
+                    UTestSetFieldStatement(instance, field, value)
+                }
+            }
+
+            override fun getField(field: JcField, instance: UTestExpression): UTestExpression =
+                if (field.isStatic) {
+                    UTestGetStaticFieldExpression(field)
+                } else {
+                    UTestGetFieldExpression(instance, field)
+                }
+
+            override fun invokeMethod(method: JcMethod, args: List<UTestExpression>): UTestExpression =
+                when {
+                    method.isConstructor -> UTestConstructorCall(method, args)
+                    method.isStatic -> UTestStaticMethodCall(method, args)
+                    else -> UTestMethodCall(args.first(), method, args.drop(1))
+                }
+
+            override fun createBoolConst(value: Boolean): UTestExpression =
+                UTestBooleanExpression(value, ctx.cp.boolean)
+
+            override fun createByteConst(value: Byte): UTestExpression =
+                UTestByteExpression(value, ctx.cp.byte)
+
+            override fun createShortConst(value: Short): UTestExpression =
+                UTestShortExpression(value, ctx.cp.short)
+
+            override fun createIntConst(value: Int): UTestExpression =
+                UTestIntExpression(value, ctx.cp.int)
+
+            override fun createLongConst(value: Long): UTestExpression =
+                UTestLongExpression(value, ctx.cp.long)
+
+            override fun createFloatConst(value: Float): UTestExpression =
+                UTestFloatExpression(value, ctx.cp.float)
+
+            override fun createDoubleConst(value: Double): UTestExpression =
+                UTestDoubleExpression(value, ctx.cp.double)
+
+            override fun createCharConst(value: Char): UTestExpression =
+                UTestCharExpression(value, ctx.cp.char)
+
+            override fun createStringConst(value: String): UTestExpression =
+                UTestStringExpression(value, ctx.cp.stringType())
+
+            override fun createClassConst(cls: JcClassOrInterface): UTestExpression =
+                UTestClassExpression(cls.toType())
+
+            override fun createNullConst(): UTestExpression =
+                UTestNullExpression(ctx.cp.objectType)
+
+            override fun setArrayIndex(array: UTestExpression, index: UTestExpression, value: UTestExpression) {
+                instructions += UTestArraySetStatement(array, index, value)
+            }
+
+            override fun getArrayIndex(array: UTestExpression, index: UTestExpression): UTestExpression =
+                UTestArrayGetExpression(array, index)
+
+            override fun getArrayLength(array: UTestExpression): UTestExpression =
+                UTestArrayLengthExpression(array)
+
+            override fun createArray(elementType: JcType, size: UTestExpression): UTestExpression =
+                UTestCreateArrayExpression(elementType, size)
+
+            override fun castClass(type: JcClassOrInterface, obj: UTestExpression): UTestExpression =
+                UTestCastExpression(obj, type.toType())
+        }
+
         /**
          * If we resolve state after, [expr] is read from a state memory, so it requires concretization via [model].
          *
@@ -416,6 +634,30 @@ class JcTestExecutor(
 
         private fun JcClassOrInterface.getAllSuperHierarchyIncludingThis() =
             (sequenceOf(this) + allSuperHierarchySequence)
+
+        private fun JcField.typed(): JcTypedField =
+            enclosingClass.toType()
+                .findFieldOrNull(name)
+                ?: error("Field not found: $this")
+    }
+
+    companion object {
+        fun clipArrayLength(length: UTestIntExpression): UTestIntExpression =
+            when {
+                length.value in 0..MAX_ARRAY_LENGTH -> length
+
+                length.value > MAX_ARRAY_LENGTH -> {
+                    org.usvm.logger.warn { "Array length exceeds $MAX_ARRAY_LENGTH: $length" }
+                    UTestIntExpression(MAX_ARRAY_LENGTH, length.type)
+                }
+
+                else -> {
+                    org.usvm.logger.warn { "Negative array length: $length" }
+                    UTestIntExpression(0, length.type)
+                }
+            }
+
+        private const val MAX_ARRAY_LENGTH = 10_000
     }
 
 }

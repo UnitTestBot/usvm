@@ -4,25 +4,31 @@ import io.ksmt.utils.asExpr
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
+import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.allSuperHierarchySequence
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.double
+import org.jacodb.api.ext.findFieldOrNull
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -32,7 +38,20 @@ import org.usvm.USort
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.SymbolicIdentityMap
+import org.usvm.api.SymbolicList
+import org.usvm.api.SymbolicMap
+import org.usvm.api.decoder.DecoderApi
+import org.usvm.api.decoder.ObjectDecoder
+import org.usvm.api.internal.SymbolicListImpl
 import org.usvm.api.typeStreamOf
+import org.usvm.api.util.JcClassLoader.loadClass
+import org.usvm.api.util.Reflection.toJavaConstructor
+import org.usvm.api.util.Reflection.toJavaMethod
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
+import org.usvm.logger
 import org.usvm.machine.JcContext
 import org.usvm.machine.extractBool
 import org.usvm.machine.extractByte
@@ -53,6 +72,7 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
 import org.usvm.machine.interpreter.JcTypeStreamPrioritization
+import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -66,7 +86,7 @@ import org.usvm.types.first
  */
 class JcTestInterpreter(
     private val classLoader: ClassLoader = JcClassLoader,
-): JcTestResolver {
+) : JcTestResolver {
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
@@ -126,6 +146,7 @@ class JcTestInterpreter(
         private val classLoader: ClassLoader = JcClassLoader,
     ) {
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Any?>()
+        private val decoders = JcTestDecoders(ctx.cp)
         private val typeSelector = JcTypeStreamPrioritization(
             typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
         )
@@ -215,7 +236,7 @@ class JcTestInterpreter(
             val arrayDescriptor = ctx.arrayDescriptorOf(type)
             val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
             val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
-            val length = if (resolvedLength in 0..10_000) resolvedLength else 0 // TODO hack
+            val length = clipArrayLength(resolvedLength)
 
             val cellSort = ctx.typeToSort(type.elementType)
 
@@ -251,7 +272,14 @@ class JcTestInterpreter(
             return instance
         }
 
-        private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcRefType): Any {
+        private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): Any {
+            val decoder = decoders.findDecoder(type.jcClass)
+            if (decoder != null) {
+                val decoded = decodeObject(ref, type, decoder)
+                resolvedCache[ref.address] = decoded
+                return decoded
+            }
+
             if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
                 // Note that non-negative addresses are possible only for the result value.
                 return resolveAllocatedClass(ref)
@@ -356,6 +384,111 @@ class JcTestInterpreter(
                 }
             } ?: classLoader.loadClass(type.jcClass)
 
+        private fun decodeObject(ref: UConcreteHeapRef, type: JcClassType, objectDecoder: ObjectDecoder): Any {
+            val refDecoder = TestDecoder(ref)
+            val decodedObject = objectDecoder.decode(refDecoder, type.jcClass)
+            requireNotNull(decodedObject) { "Object not properly decoded" }
+            return decodedObject
+        }
+
+        private fun resolveSymbolicList(heapRef: UHeapRef): SymbolicList<Any?>? {
+            val ref = evaluateInModel(heapRef) as UConcreteHeapRef
+            if (ref.address == NULL_ADDRESS) {
+                return null
+            }
+
+            val listType = ctx.cp.findTypeOrNull<SymbolicList<*>>() ?: return null
+
+            val lengthRef = UArrayLengthLValue(heapRef, listType, ctx.sizeSort)
+            val resolvedLength = resolveLValue(lengthRef, ctx.cp.int) as Int
+            val length = clipArrayLength(resolvedLength)
+
+            val result = SymbolicListImpl<Any?>()
+            for (i in 0 until length) {
+                val elemRef = UArrayIndexLValue(ctx.addressSort, heapRef, ctx.mkSizeExpr(i), listType)
+                val element = resolveLValue(elemRef, ctx.cp.objectType)
+                result.insert(i, element)
+            }
+
+            return result
+        }
+
+        private inner class TestDecoder(private val instanceRef: UConcreteHeapRef) : DecoderApi<Any?> {
+            override fun decodeField(field: JcField): Any? {
+                val lvalue = UFieldLValue(ctx.typeToSort(field.typed().fieldType), instanceRef, field)
+                return resolveLValue(lvalue, field.typed().fieldType)
+            }
+
+            override fun decodeSymbolicListField(field: JcField): SymbolicList<Any?>? {
+                val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
+                val listRef = memory.read(lvalue)
+                return resolveSymbolicList(listRef)
+            }
+
+            override fun decodeSymbolicMapField(field: JcField): SymbolicMap<Any?, Any?>? {
+                TODO("Not yet implemented")
+            }
+
+            override fun decodeSymbolicIdentityMapField(field: JcField): SymbolicIdentityMap<Any?, Any?>? {
+                TODO("Not yet implemented")
+            }
+
+            override fun invokeMethod(method: JcMethod, args: List<Any?>): Any? =
+                if (method.isConstructor) {
+                    val ctor = method.toJavaConstructor(classLoader)
+                    ctor.newInstance(*args.toTypedArray())
+                } else {
+                    val javaMethod = method.toJavaMethod(classLoader)
+                    if (method.isStatic) {
+                        javaMethod.invoke(null, *args.toTypedArray())
+                    } else {
+                        javaMethod.invoke(args.first(), *args.drop(1).toTypedArray())
+                    }
+                }
+
+            override fun getField(field: JcField, instance: Any?): Any? {
+                val fieldClazz = resolveType(field.typed().enclosingType)
+                val javaField = fieldClazz.getDeclaredField(field.name)
+                return Reflection.getField(instance, javaField)
+            }
+
+            override fun setField(field: JcField, instance: Any?, value: Any?) {
+                val fieldClazz = resolveType(field.typed().enclosingType)
+                val javaField = fieldClazz.getDeclaredField(field.name)
+                Reflection.setField(instance, javaField, value)
+            }
+
+            override fun createBoolConst(value: Boolean): Any = value
+            override fun createByteConst(value: Byte): Any = value
+            override fun createShortConst(value: Short): Any = value
+            override fun createIntConst(value: Int): Any = value
+            override fun createLongConst(value: Long): Any = value
+            override fun createFloatConst(value: Float): Any = value
+            override fun createDoubleConst(value: Double): Any = value
+            override fun createCharConst(value: Char): Any = value
+            override fun createStringConst(value: String): Any = value
+            override fun createClassConst(cls: JcClassOrInterface): Any = resolveType(cls.toType())
+            override fun createNullConst(): Any? = null
+
+            override fun setArrayIndex(array: Any?, index: Any?, value: Any?) {
+                TODO("Not yet implemented")
+            }
+
+            override fun getArrayIndex(array: Any?, index: Any?): Any? {
+                TODO("Not yet implemented")
+            }
+
+            override fun getArrayLength(array: Any?): Any? {
+                TODO("Not yet implemented")
+            }
+
+            override fun createArray(elementType: JcType, size: Any?): Any {
+                TODO("Not yet implemented")
+            }
+
+            override fun castClass(type: JcClassOrInterface, obj: Any?): Any? = obj
+        }
+
         /**
          * If we resolve state after, [expr] is read from a state memory, so it requires concretization via [model].
          *
@@ -368,6 +501,30 @@ class JcTestInterpreter(
         // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
         private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
             (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
+
+        private fun JcField.typed(): JcTypedField =
+            enclosingClass.toType()
+                .findFieldOrNull(name)
+                ?: error("Field not found: $this")
+    }
+
+    companion object {
+        fun clipArrayLength(length: Int): Int =
+            when {
+                length in 0..MAX_ARRAY_LENGTH -> length
+
+                length > MAX_ARRAY_LENGTH -> {
+                    logger.warn { "Array length exceeds $MAX_ARRAY_LENGTH: $length" }
+                    MAX_ARRAY_LENGTH
+                }
+
+                else -> {
+                    logger.warn { "Negative array length: $length" }
+                    0
+                }
+            }
+
+        private const val MAX_ARRAY_LENGTH = 10_000
     }
 }
 

@@ -47,6 +47,11 @@ dependencies {
     testImplementation(approximationsRepo, "tests", approximationsVersion)
 }
 
+val `usvm-apiCompileOnly`: Configuration by configurations.getting
+dependencies {
+    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
+}
+
 val samplesImplementation: Configuration by configurations.getting
 
 dependencies {
@@ -58,6 +63,10 @@ dependencies {
     testImplementation(project(":usvm-jvm-instrumentation"))
     // Use usvm-api in samples for makeSymbolic, assume, etc.
     samplesImplementation(`usvm-api`.output)
+
+    // Use @Approximate in samples to test approximations
+    samplesImplementation("org.jacodb:jacodb-api:${Versions.jcdb}")
+    samplesImplementation("org.jacodb:jacodb-approximations:${Versions.jcdb}")
 }
 
 val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {
