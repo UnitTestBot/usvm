@@ -20,10 +20,14 @@ class PythonSymbolicAnalysisRunnerImpl(
         receiver: USVMPythonAnalysisResultReceiver,
         isCancelled: () -> Boolean
     ) {
+        val start = System.currentTimeMillis()
         val processBuilder = setupEnvironment(runConfig)
         val process = processBuilder.start()
-        val readingThread = ReadingThread(serverSocketChannel, receiver, isCancelled)
-        val waitingThread = WaitingThread(process, runConfig, readingThread, isCancelled)
+        val newIsCancelled = {
+            isCancelled() || System.currentTimeMillis() - start < runConfig.timeoutMs
+        }
+        val readingThread = ReadingThread(serverSocketChannel, receiver, newIsCancelled)
+        val waitingThread = WaitingThread(process, readingThread, newIsCancelled)
         try {
             readingThread.start()
             waitingThread.start()
@@ -68,18 +72,15 @@ class PythonSymbolicAnalysisRunnerImpl(
 
     class WaitingThread(
         private val process: Process,
-        private val runConfig: USVMPythonRunConfig,
         private val readingThread: Thread,
         private val isCancelled: () -> Boolean
     ): Thread() {
         override fun run() {
             val start = System.currentTimeMillis()
-            while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive && process.isAlive && !isCancelled()) {
+            while (readingThread.isAlive && process.isAlive && !isCancelled()) {
                 sleep(10)
             }
-            while (readingThread.isAlive) {
-                readingThread.interrupt()
-            }
+            readingThread.interrupt()
         }
     }
 
