@@ -129,6 +129,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonRangeIterator = createConcreteTypeByName("type(range(1).__iter__())", isHidden = true)
     val pythonStr = createConcreteTypeByName("str")
     val pythonSlice = createConcreteTypeByName("slice")
+    val pythonDict = createConcreteTypeByName("dict")
 
     protected val basicTypes: List<ConcretePythonType> by lazy {
         concreteTypeToAddress.keys.filter { !it.isHidden }

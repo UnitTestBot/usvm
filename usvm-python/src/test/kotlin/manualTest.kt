@@ -50,8 +50,8 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "square_matrix",
-        "Tricky"
+        "expect_dict",
+        "Dicts"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -74,8 +74,8 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    //if (module != "binary_search_tree")
-    //    return null
+    if (module != "viterbi")
+        return null
     //if (name != "RedBlackTree.insert")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
@@ -109,7 +109,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
+    val projectPath = "D:\\projects\\Python\\dynamic_programming"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)

@@ -19,6 +19,7 @@ class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
             typeSystem.pythonTuple -> ConcretePythonInterpreter.eval(emptyNamespace, "tuple()")
             typeSystem.pythonStr -> ConcretePythonInterpreter.eval(emptyNamespace, "''")
             typeSystem.pythonSlice -> ConcretePythonInterpreter.eval(emptyNamespace, "slice(0, 1, 1)")
+            typeSystem.pythonDict -> ConcretePythonInterpreter.eval(emptyNamespace, "dict()")
             else -> {
                 val ref = typeSystem.addressOfConcreteType(type)
                 if (ConcretePythonInterpreter.typeHasStandardNew(ref)) {
