@@ -110,7 +110,11 @@ class USVMPythonInterpreter<InputRepr>(
                 )
                 return@runBlocking StepResult(emptySequence(), false)
             }?.let {
+                // println("Getting representation")
+                // System.out.flush()
                 val representation = saver.serializeInput(it, converter)
+                // println("Finished getting representation")
+                // System.out.flush()
                 launch {
                     saver.saveNextInputs(representation)
                 }
@@ -139,7 +143,9 @@ class USVMPythonInterpreter<InputRepr>(
                 if (madeInputSerialization) {
                     saver.saveExecutionResult(Success(result))
                 }
-                logger.debug("Step result: Successful run. Returned ${ReprObjectSerializer.serialize(result)}")
+                if (logger.isDebugEnabled) {
+                    logger.debug("Step result: Successful run. Returned ${ReprObjectSerializer.serialize(result)}")
+                }
 
             } catch (exception: CPythonExecutionException) {
                 require(exception.pythonExceptionType != null)
@@ -153,7 +159,11 @@ class USVMPythonInterpreter<InputRepr>(
                     ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
                 )
                 if (madeInputSerialization) {
+                    // println("Saving result")
+                    // System.out.flush()
                     saver.saveExecutionResult(Fail(exception.pythonExceptionType))
+                    // println("Finished saving result")
+                    // System.out.flush()
                 }
             }
 
