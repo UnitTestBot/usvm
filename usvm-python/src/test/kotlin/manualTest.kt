@@ -76,7 +76,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "binary_search_tree")
     //    return null
-    //if (name != "BinarySearchTree.remove")
+    //if (name != "RedBlackTree.insert")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
