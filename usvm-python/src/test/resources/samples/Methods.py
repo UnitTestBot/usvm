@@ -58,3 +58,16 @@ def constructor_with_default_values(a: int, x: int):
     elif obj.b == x:
         return 2
     return 3
+
+
+class Point2:
+    def get_info(self):
+        return ""
+
+    def func(self):
+        return ""
+
+
+def point2_inference(p):
+    s = p.get_info()
+    return p.func()
