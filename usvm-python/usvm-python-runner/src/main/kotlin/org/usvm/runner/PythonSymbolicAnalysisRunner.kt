@@ -77,7 +77,9 @@ class PythonSymbolicAnalysisRunnerImpl(
             while (System.currentTimeMillis() - start < runConfig.timeoutMs && readingThread.isAlive && process.isAlive && !isCancelled()) {
                 sleep(10)
             }
-            readingThread.interrupt()
+            while (readingThread.isAlive) {
+                readingThread.interrupt()
+            }
         }
     }
 
