@@ -46,12 +46,8 @@ object Reflection {
             classpath.double -> DoubleArray(length)
             classpath.byte -> ByteArray(length)
             classpath.char -> CharArray(length)
-            is JcArrayType -> {
+            is JcRefType -> {
                 // TODO: works incorrectly for inner array
-                java.lang.reflect.Array.newInstance(Any::class.java, length)
-            }
-
-            is JcClassType -> {
                 val clazz = elementType.toJavaClass(classLoader)
                 java.lang.reflect.Array.newInstance(clazz, length)
             }
