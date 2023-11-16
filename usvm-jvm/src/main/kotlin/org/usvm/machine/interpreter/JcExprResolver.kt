@@ -91,6 +91,7 @@ import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
@@ -566,6 +567,11 @@ class JcExprResolver(
     ): Unit? = with(ctx) {
         if (enumInstance is UConcreteHeapRef) {
             // We do not need to ensure correctness for existing enum constants
+            return Unit
+        }
+
+        // For null enum values, we do not need any correctness constraints
+        if (enumInstance is UNullRef) {
             return Unit
         }
 
