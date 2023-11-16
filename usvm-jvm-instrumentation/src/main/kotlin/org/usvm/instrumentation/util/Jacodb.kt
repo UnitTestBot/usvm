@@ -97,7 +97,11 @@ fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
     return strBuilder.toString()
 }
 
-fun JcType.toJcClass(): JcClassOrInterface? = classpath.findClassOrNull(typeName.substringBefore('<'))
+fun JcType.toJcClass(): JcClassOrInterface? =
+    when (this) {
+        is JcClassType -> jcClass
+        else -> classpath.findClassOrNull(typeName)
+    }
 
 fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
     findClassInLoader(name, classLoader) ?: throw TestExecutorException("Can't find class in classpath")

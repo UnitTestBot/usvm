@@ -81,7 +81,7 @@ class InstrumentedProcess private constructor() {
     }
 
     private suspend fun initProcess(classpath: String) {
-        fileClassPath = classpath.split(':').map { File(it) }
+        fileClassPath = classpath.split(File.pathSeparatorChar).map { File(it) }
         val db = jacodb {
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)

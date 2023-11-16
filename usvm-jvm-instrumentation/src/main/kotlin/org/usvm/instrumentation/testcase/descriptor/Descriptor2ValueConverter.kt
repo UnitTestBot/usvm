@@ -19,15 +19,6 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
     private fun build(descriptor: UTestValueDescriptor): Any? =
         when (descriptor) {
-            is UTestArrayDescriptor.Array -> array(descriptor)
-            is UTestArrayDescriptor.BooleanArray -> descriptor.value
-            is UTestArrayDescriptor.ByteArray -> descriptor.value
-            is UTestArrayDescriptor.CharArray -> descriptor.value
-            is UTestArrayDescriptor.DoubleArray -> descriptor.value
-            is UTestArrayDescriptor.FloatArray -> descriptor.value
-            is UTestArrayDescriptor.IntArray -> descriptor.value
-            is UTestArrayDescriptor.LongArray -> descriptor.value
-            is UTestArrayDescriptor.ShortArray -> descriptor.value
             is UTestConstantDescriptor.Boolean -> descriptor.value
             is UTestConstantDescriptor.Byte -> descriptor.value
             is UTestConstantDescriptor.Char -> descriptor.value
@@ -38,6 +29,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             is UTestConstantDescriptor.Null -> null
             is UTestConstantDescriptor.Short -> descriptor.value
             is UTestConstantDescriptor.String -> string(descriptor)
+            is UTestArrayDescriptor -> array(descriptor)
             is UTestCyclicReferenceDescriptor -> {
                 descriptorToObject
                     .toList()
@@ -57,7 +49,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             descriptor.value
         }
 
-    private fun array(descriptor: UTestArrayDescriptor.Array): Any {
+    private fun array(descriptor: UTestArrayDescriptor): Any {
         val jcElementType = descriptor.elementType
         val cp = descriptor.elementType.classpath
         val elementType = jcElementType.toJavaClass(workerClassLoader)
