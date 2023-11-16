@@ -75,7 +75,7 @@ class PythonMachine(
             symbols,
             pathConstraints,
             memory,
-            solverRes.model.toPyModel(ctx, typeSystem, pathConstraints),
+            solverRes.model.toPyModel(ctx, typeSystem, pathConstraints, preAllocatedObjects),
             typeSystem,
             preAllocatedObjects
         ).also {
@@ -97,7 +97,7 @@ class PythonMachine(
             pathSelectorCreation(),
             pathSelectorCreation(),
             pathSelectorCreation(),
-            // initialState.preAllocatedObjects
+            initialState.preAllocatedObjects
         )
         ps.add(listOf(initialState))
         return ps

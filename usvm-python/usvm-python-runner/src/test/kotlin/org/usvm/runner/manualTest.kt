@@ -1,6 +1,5 @@
 package org.usvm.runner
 
-import org.usvm.runner.venv.extractVenvConfig
 import java.io.File
 
 fun main() {

@@ -8,6 +8,7 @@ import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.model.toPyModel
+import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.types.first
 import kotlin.random.Random
 
@@ -16,7 +17,8 @@ class PythonVirtualPathSelector(
     private val typeSystem: PythonTypeSystem,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
-    private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>
+    private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>,
+    private val preallocatedObjects: PreallocatedObjects
 ) : UPathSelector<PythonExecutionState> {
     private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
@@ -57,7 +59,7 @@ class PythonVirtualPathSelector(
         if (forkResult.negativeState == null)
             return null
         val stateWithConcreteType = forkResult.negativeState!!
-        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints))
+        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints, preallocatedObjects))
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 

@@ -4,6 +4,7 @@ import io.ksmt.expr.KInt32NumExpr
 import org.usvm.*
 import org.usvm.api.readArrayIndex
 import org.usvm.api.typeStreamOf
+import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonCallable
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
@@ -14,6 +15,7 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
+import org.usvm.machine.utils.getMembersFromType
 import org.usvm.memory.UMemory
 import org.usvm.types.first
 
@@ -47,7 +49,7 @@ class ConverterToPythonObject(
     fun getUSVMVirtualObjects(): Set<VirtualPythonObject> = virtualObjects.map { it.first }.toSet()
     fun numberOfVirtualObjectUsages(): Int = numberOfUsagesOfVirtualObjects
 
-    fun convert(obj: InterpretedSymbolicPythonObject): PythonObject {
+    fun convert(obj: InterpretedSymbolicPythonObject, concolicCtx: ConcolicRunContext? = null): PythonObject {
         if (obj is InterpretedInputSymbolicPythonObject)
             require(obj.modelHolder == modelHolder)
         require(!isAllocatedConcreteHeapRef(obj.address)) {
@@ -69,7 +71,7 @@ class ConverterToPythonObject(
             typeSystem.pythonDict -> convertDict(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
-                    constructFromDefaultConstructor(obj, type)
+                    constructFromDefaultConstructor(obj, type, concolicCtx)
                 else
                     error("Could not construct instance of type $type")
             }
@@ -140,13 +142,26 @@ class ConverterToPythonObject(
         }
     }
 
-    private fun constructFromDefaultConstructor(obj: InterpretedSymbolicPythonObject, type: ConcretePythonType): PythonObject {
+    private fun constructFromDefaultConstructor(
+        obj: InterpretedSymbolicPythonObject,
+        type: ConcretePythonType,
+        concolicCtx: ConcolicRunContext?
+    ): PythonObject {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Instance of type with default constructor cannot be static"
         }
         require(type.owner == typeSystem)
         val result = ConcretePythonInterpreter.callStandardNew(type.asObject)
         constructedObjects[obj.address] = result
+        if (concolicCtx != null) {
+            val members = getMembersFromType(type, typeSystem)
+            members.forEach {
+                if (it.contains('\''))
+                    return@forEach
+                val ref = ConcretePythonInterpreter.eval(emptyNamespace, "'$it'")
+                preallocatedObjects.allocateStr(concolicCtx, it, ref)
+            }
+        }
         if (ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
             preallocatedObjects.listAllocatedStrs().forEach {
                 val nameAddress = modelHolder.model.eval(it.address)

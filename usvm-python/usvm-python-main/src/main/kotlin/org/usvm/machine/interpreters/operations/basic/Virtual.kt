@@ -26,6 +26,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 mockSymbol,
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                ctx.curState!!.preAllocatedObjects,
                 falseObject as UConcreteHeapRef
             ),
             constructModelWithNewMockEvaluator(
@@ -34,6 +35,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 mockSymbol,
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                ctx.curState!!.preAllocatedObjects,
                 trueObject as UConcreteHeapRef
             )
         )
@@ -80,7 +82,8 @@ private fun internalVirtualCallKt(
                     ctx.modelHolder.model,
                     mockSymbol,
                     ctx.typeSystem,
-                    ctx.curState!!.pathConstraints // one constraint will be missing (TODO: is it ok?)
+                    ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                    ctx.curState!!.preAllocatedObjects
                 )
             else
                 customNewModels.first()

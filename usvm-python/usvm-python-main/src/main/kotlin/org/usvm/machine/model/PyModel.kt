@@ -12,6 +12,7 @@ import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
@@ -21,7 +22,8 @@ class PyModel(
     private val ctx: UPythonContext,
     private val underlyingModel: UModelBase<PythonType>,
     private val typeSystem: PythonTypeSystem,
-    ps: UPathConstraints<PythonType>
+    ps: UPathConstraints<PythonType>,
+    private val preallocatedObjects: PreallocatedObjects
 ) : UModelBase<PythonType>(
     ctx,
     underlyingModel.stack,
@@ -47,11 +49,13 @@ class PyModel(
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
-            return WrappedSetRegion(ctx, region, setKeys) as UReadOnlyMemoryRegion<Key, Sort>
+            return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, true)
+                    as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == DictType(typeSystem)) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<DictType>, UBoolSort>
-            return WrappedSetRegion(ctx, region, setKeys) as UReadOnlyMemoryRegion<Key, Sort>
+            return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, false)
+                    as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)
     }
@@ -70,9 +74,10 @@ class PyModel(
 fun UModelBase<PythonType>.toPyModel(
     ctx: UPythonContext,
     typeSystem: PythonTypeSystem,
-    ps: UPathConstraints<PythonType>
+    ps: UPathConstraints<PythonType>,
+    preallocatedObjects: PreallocatedObjects
 ): PyModel {
     if (this is PyModel)
         return this
-    return PyModel(ctx, this, typeSystem, ps)
+    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects)
 }
