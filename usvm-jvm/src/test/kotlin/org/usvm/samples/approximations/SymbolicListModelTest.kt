@@ -4,10 +4,6 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.test.Test
 
 class SymbolicListModelTest : ApproximationsTestRunner() {
-    init {
-        options = options.copy(timeoutMs = null, stepsFromLastCovered = null, stopOnCoverage = 200)
-    }
-
     @Test
     fun testSymbolicListModel() {
         checkDiscoveredProperties(
