@@ -17,4 +17,9 @@ public class TestList<T> {
     public T get(int idx) {
         return list.get(idx);
     }
+
+    @Override
+    public String toString() {
+        return list.toString();
+    }
 }

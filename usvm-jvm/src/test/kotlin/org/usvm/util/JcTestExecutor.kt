@@ -47,6 +47,7 @@ import org.usvm.api.SymbolicIdentityMap
 import org.usvm.api.SymbolicList
 import org.usvm.api.SymbolicMap
 import org.usvm.api.decoder.DecoderApi
+import org.usvm.api.decoder.ObjectData
 import org.usvm.api.decoder.ObjectDecoder
 import org.usvm.api.internal.SymbolicListImpl
 import org.usvm.api.typeStreamOf
@@ -66,6 +67,7 @@ import org.usvm.instrumentation.testcase.api.UTestByteExpression
 import org.usvm.instrumentation.testcase.api.UTestCastExpression
 import org.usvm.instrumentation.testcase.api.UTestCharExpression
 import org.usvm.instrumentation.testcase.api.UTestClassExpression
+import org.usvm.instrumentation.testcase.api.UTestConstExpression
 import org.usvm.instrumentation.testcase.api.UTestConstructorCall
 import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
 import org.usvm.instrumentation.testcase.api.UTestDoubleExpression
@@ -406,9 +408,7 @@ class JcTestExecutor(
         ): Pair<UTestExpression, List<UTestInst>> {
             val decoder = decoders.findDecoder(type.jcClass)
             if (decoder != null) {
-                val instanceWithInitializer = decodeObject(ref, type, decoder)
-                resolvedCache[ref.address] = instanceWithInitializer
-                return instanceWithInitializer
+                return decodeObject(ref, type, decoder)
             }
 
             if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
@@ -486,9 +486,15 @@ class JcTestExecutor(
             type: JcClassType,
             objectDecoder: ObjectDecoder
         ): Pair<UTestExpression, List<UTestInst>> {
-            val refDecoder = TestDecoder(ref)
-            val decodedObject = objectDecoder.decode(refDecoder, type.jcClass)
-            return decodedObject to refDecoder.instructions
+            val decoderApi = UTestDecoderApi()
+            val objectData = UTestObjectData(ref, decoderApi)
+
+            val decodedObject = objectDecoder.createInstance(type.jcClass, objectData, decoderApi)
+            resolvedCache[ref.address] = decodedObject to decoderApi.instructions
+
+            objectDecoder.initializeInstance(type.jcClass, objectData, decodedObject, decoderApi)
+
+            return decodedObject to decoderApi.instructions
         }
 
         private fun resolveSymbolicList(heapRef: UHeapRef): Pair<SymbolicList<UTestExpression>, List<UTestInst>>? {
@@ -517,15 +523,14 @@ class JcTestExecutor(
             return result to instructions
         }
 
-        private inner class TestDecoder(
-            private val instanceRef: UConcreteHeapRef
-        ) : DecoderApi<UTestExpression> {
-            val instructions = mutableListOf<UTestInst>()
-
+        private inner class UTestObjectData(
+            private val instanceRef: UHeapRef,
+            private val decoderApi: UTestDecoderApi
+        ) : ObjectData<UTestExpression> {
             override fun decodeField(field: JcField): UTestExpression {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.typed().fieldType), instanceRef, field)
                 val (res, inst) = resolveLValue(lvalue, field.typed().fieldType)
-                instructions += inst
+                decoderApi.instructions += inst
                 return res
             }
 
@@ -533,7 +538,7 @@ class JcTestExecutor(
                 val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
                 val listRef = memory.read(lvalue)
                 val (res, inst) = resolveSymbolicList(listRef) ?: return null
-                instructions += inst
+                decoderApi.instructions += inst
                 return res
             }
 
@@ -546,6 +551,64 @@ class JcTestExecutor(
             ): SymbolicIdentityMap<UTestExpression, UTestExpression>? {
                 TODO("Not yet implemented")
             }
+
+            override fun getObjectField(field: JcField): ObjectData<UTestExpression>? {
+                val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
+                val objectRef = memory.read(lvalue)
+
+                val ref = evaluateInModel(objectRef) as UConcreteHeapRef
+                if (ref.address == NULL_ADDRESS) {
+                    return null
+                }
+
+                return UTestObjectData(objectRef, decoderApi)
+            }
+
+            private inline fun <reified T : UTestConstExpression<*>> readPrimitiveField(
+                field: JcField,
+                sort: USort,
+                type: JcPrimitiveType
+            ): T {
+                val lvalue = UFieldLValue(sort, instanceRef, field)
+                val (result, _) = resolveLValue(lvalue, type)
+                return result as T
+            }
+
+            override fun getBooleanField(field: JcField): Boolean =
+                readPrimitiveField<UTestBooleanExpression>(field, ctx.booleanSort, ctx.cp.boolean).value
+
+            override fun getByteField(field: JcField): Byte =
+                readPrimitiveField<UTestByteExpression>(field, ctx.byteSort, ctx.cp.byte).value
+
+            override fun getShortField(field: JcField): Short =
+                readPrimitiveField<UTestShortExpression>(field, ctx.shortSort, ctx.cp.short).value
+
+            override fun getIntField(field: JcField): Int =
+                readPrimitiveField<UTestIntExpression>(field, ctx.integerSort, ctx.cp.int).value
+
+            override fun getLongField(field: JcField): Long =
+                readPrimitiveField<UTestLongExpression>(field, ctx.longSort, ctx.cp.long).value
+
+            override fun getFloatField(field: JcField): Float =
+                readPrimitiveField<UTestFloatExpression>(field, ctx.floatSort, ctx.cp.float).value
+
+            override fun getDoubleField(field: JcField): Double =
+                readPrimitiveField<UTestDoubleExpression>(field, ctx.doubleSort, ctx.cp.double).value
+
+            override fun getCharField(field: JcField): Char =
+                readPrimitiveField<UTestCharExpression>(field, ctx.charSort, ctx.cp.char).value
+
+            override fun getArrayFieldLength(field: JcField): Int {
+                val type = field.typed().fieldType as JcArrayType
+                val arrayDescriptor = ctx.arrayDescriptorOf(type)
+                val lengthRef = UArrayLengthLValue(instanceRef, arrayDescriptor, ctx.sizeSort)
+                val (result, _) = resolveLValue(lengthRef, ctx.cp.int)
+                return (result as UTestIntExpression).value
+            }
+        }
+
+        private inner class UTestDecoderApi : DecoderApi<UTestExpression> {
+            val instructions = mutableListOf<UTestInst>()
 
             override fun setField(field: JcField, instance: UTestExpression, value: UTestExpression) {
                 instructions += if (field.isStatic) {

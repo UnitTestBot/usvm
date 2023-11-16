@@ -19,7 +19,6 @@ import org.jacodb.api.ext.double
 import org.jacodb.api.ext.findFieldOrNull
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.float
-import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
@@ -42,12 +41,16 @@ import org.usvm.api.SymbolicIdentityMap
 import org.usvm.api.SymbolicList
 import org.usvm.api.SymbolicMap
 import org.usvm.api.decoder.DecoderApi
+import org.usvm.api.decoder.ObjectData
 import org.usvm.api.decoder.ObjectDecoder
 import org.usvm.api.internal.SymbolicListImpl
 import org.usvm.api.typeStreamOf
 import org.usvm.api.util.JcClassLoader.loadClass
-import org.usvm.api.util.Reflection.toJavaConstructor
-import org.usvm.api.util.Reflection.toJavaMethod
+import org.usvm.api.util.Reflection.allocateInstance
+import org.usvm.api.util.Reflection.getFieldValue
+import org.usvm.api.util.Reflection.invoke
+import org.usvm.api.util.Reflection.setFieldValue
+import org.usvm.api.util.Reflection.toJavaClass
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
@@ -67,11 +70,6 @@ import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
-import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
@@ -147,6 +145,7 @@ class JcTestInterpreter(
     ) {
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Any?>()
         private val decoders = JcTestDecoders(ctx.cp)
+        private val decoderApi = TestInterpreterDecoderApi()
         private val typeSelector = JcTypeStreamPrioritization(
             typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
         )
@@ -240,32 +239,13 @@ class JcTestInterpreter(
 
             val cellSort = ctx.typeToSort(type.elementType)
 
-            fun <T> resolveElement(idx: Int): T {
-                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkBv(idx), arrayDescriptor)
-                @Suppress("UNCHECKED_CAST")
-                return resolveLValue(elemRef, type.elementType) as T
+            val instance = type.allocateInstance(classLoader, length)
+            for (i in 0 until length) {
+                val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkSizeExpr(i), arrayDescriptor)
+                val element = resolveLValue(elemRef, type.elementType)
+                Reflection.setArrayIndex(instance, i, element)
             }
 
-            val instance = when (type.elementType) {
-                ctx.cp.boolean -> BooleanArray(length, ::resolveElement)
-                ctx.cp.short -> ShortArray(length, ::resolveElement)
-                ctx.cp.int -> IntArray(length, ::resolveElement)
-                ctx.cp.long -> LongArray(length, ::resolveElement)
-                ctx.cp.float -> FloatArray(length, ::resolveElement)
-                ctx.cp.double -> DoubleArray(length, ::resolveElement)
-                ctx.cp.byte -> ByteArray(length, ::resolveElement)
-                ctx.cp.char -> CharArray(length, ::resolveElement)
-                else -> {
-                    // TODO: works incorrectly for inner array
-                    val clazz = resolveType(type.elementType as JcRefType)
-                    val instance = Reflection.allocateArray(clazz, length)
-                    resolvedCache[ref.address] = instance
-                    for (i in 0 until length) {
-                        instance[i] = resolveElement(i)
-                    }
-                    instance
-                }
-            }
             if (type.elementType is JcPrimitiveType) {
                 resolvedCache[ref.address] = instance
             }
@@ -275,9 +255,7 @@ class JcTestInterpreter(
         private fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): Any {
             val decoder = decoders.findDecoder(type.jcClass)
             if (decoder != null) {
-                val decoded = decodeObject(ref, type, decoder)
-                resolvedCache[ref.address] = decoded
-                return decoded
+                return decodeObject(ref, type, decoder)
             }
 
             if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
@@ -295,8 +273,7 @@ class JcTestInterpreter(
                 return resolveEnumValue(heapRef, anyEnumAncestor)
             }
 
-            val clazz = resolveType(type)
-            val instance = Reflection.allocateInstance(clazz)
+            val instance = type.allocateInstance(classLoader)
             resolvedCache[ref.address] = instance
 
             // TODO skips throwable construction for now
@@ -311,10 +288,7 @@ class JcTestInterpreter(
             for (field in fields) {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
                 val fieldValue = resolveLValue(lvalue, field.fieldType)
-
-                val fieldClazz = resolveType(field.enclosingType)
-                val javaField = fieldClazz.getDeclaredField(field.name)
-                Reflection.setField(instance, javaField, fieldValue)
+                field.field.setFieldValue(classLoader, instance, fieldValue)
             }
             return instance
         }
@@ -323,7 +297,7 @@ class JcTestInterpreter(
             with(ctx) {
                 val ordinalLValue = UFieldLValue(sizeSort, heapRef, enumOrdinalField)
                 val ordinalFieldValue = resolveLValue(ordinalLValue, cp.int)
-                val enumClass = resolveType(enumAncestor.toType())
+                val enumClass = enumAncestor.toType().toJavaClass(classLoader)
 
                 return enumClass.enumConstants[ordinalFieldValue as Int]
             }
@@ -338,18 +312,7 @@ class JcTestInterpreter(
 
             val classType = memory.typeStreamOf(classTypeRef).first()
 
-            return when (classType) {
-                ctx.cp.boolean -> Boolean::class.javaPrimitiveType!!
-                ctx.cp.short -> Short::class.javaPrimitiveType!!
-                ctx.cp.int -> Int::class.javaPrimitiveType!!
-                ctx.cp.long -> Long::class.javaPrimitiveType!!
-                ctx.cp.float -> Float::class.javaPrimitiveType!!
-                ctx.cp.double -> Double::class.javaPrimitiveType!!
-                ctx.cp.byte -> Byte::class.javaPrimitiveType!!
-                ctx.cp.char -> Char::class.javaPrimitiveType!!
-                is JcRefType -> resolveType(classType)
-                else -> error("Unexpected type: $classType")
-            }
+            return classType.toJavaClass(classLoader)
         }
 
         private fun resolveAllocatedString(ref: UConcreteHeapRef): String {
@@ -364,30 +327,14 @@ class JcTestInterpreter(
             }
         }
 
-        private fun resolveType(type: JcRefType): Class<*> =
-            type.ifArrayGetElementType?.let { elementType ->
-                when (elementType) {
-                    ctx.cp.boolean -> BooleanArray::class.java
-                    ctx.cp.short -> ShortArray::class.java
-                    ctx.cp.int -> IntArray::class.java
-                    ctx.cp.long -> LongArray::class.java
-                    ctx.cp.float -> FloatArray::class.java
-                    ctx.cp.double -> DoubleArray::class.java
-                    ctx.cp.byte -> ByteArray::class.java
-                    ctx.cp.char -> CharArray::class.java
-                    is JcRefType -> {
-                        val clazz = resolveType(elementType)
-                        Reflection.allocateArray(clazz, length = 0).javaClass
-                    }
-
-                    else -> error("Unexpected type: $elementType")
-                }
-            } ?: classLoader.loadClass(type.jcClass)
-
         private fun decodeObject(ref: UConcreteHeapRef, type: JcClassType, objectDecoder: ObjectDecoder): Any {
-            val refDecoder = TestDecoder(ref)
-            val decodedObject = objectDecoder.decode(refDecoder, type.jcClass)
+            val refDecoder = TestObjectData(ref)
+
+            val decodedObject = objectDecoder.createInstance(type.jcClass, refDecoder, decoderApi)
             requireNotNull(decodedObject) { "Object not properly decoded" }
+            resolvedCache[ref.address] = decodedObject
+
+            objectDecoder.initializeInstance(type.jcClass, refDecoder, decodedObject, decoderApi)
             return decodedObject
         }
 
@@ -413,7 +360,7 @@ class JcTestInterpreter(
             return result
         }
 
-        private inner class TestDecoder(private val instanceRef: UConcreteHeapRef) : DecoderApi<Any?> {
+        private inner class TestObjectData(private val instanceRef: UHeapRef) : ObjectData<Any?> {
             override fun decodeField(field: JcField): Any? {
                 val lvalue = UFieldLValue(ctx.typeToSort(field.typed().fieldType), instanceRef, field)
                 return resolveLValue(lvalue, field.typed().fieldType)
@@ -433,29 +380,68 @@ class JcTestInterpreter(
                 TODO("Not yet implemented")
             }
 
-            override fun invokeMethod(method: JcMethod, args: List<Any?>): Any? =
-                if (method.isConstructor) {
-                    val ctor = method.toJavaConstructor(classLoader)
-                    ctor.newInstance(*args.toTypedArray())
-                } else {
-                    val javaMethod = method.toJavaMethod(classLoader)
-                    if (method.isStatic) {
-                        javaMethod.invoke(null, *args.toTypedArray())
-                    } else {
-                        javaMethod.invoke(args.first(), *args.drop(1).toTypedArray())
-                    }
+            override fun getObjectField(field: JcField): ObjectData<Any?>? {
+                val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
+                val objectRef = memory.read(lvalue)
+
+                val ref = evaluateInModel(objectRef) as UConcreteHeapRef
+                if (ref.address == NULL_ADDRESS) {
+                    return null
                 }
 
-            override fun getField(field: JcField, instance: Any?): Any? {
-                val fieldClazz = resolveType(field.typed().enclosingType)
-                val javaField = fieldClazz.getDeclaredField(field.name)
-                return Reflection.getField(instance, javaField)
+                return TestObjectData(objectRef)
             }
 
+            private inline fun <reified T> readPrimitiveField(field: JcField, sort: USort, type: JcPrimitiveType): T {
+                val lvalue = UFieldLValue(sort, instanceRef, field)
+                return resolveLValue(lvalue, type) as T
+            }
+
+            override fun getBooleanField(field: JcField): Boolean =
+                readPrimitiveField(field, ctx.booleanSort, ctx.cp.boolean)
+
+            override fun getByteField(field: JcField): Byte =
+                readPrimitiveField(field, ctx.byteSort, ctx.cp.byte)
+
+            override fun getShortField(field: JcField): Short =
+                readPrimitiveField(field, ctx.shortSort, ctx.cp.short)
+
+            override fun getIntField(field: JcField): Int =
+                readPrimitiveField(field, ctx.integerSort, ctx.cp.int)
+
+            override fun getLongField(field: JcField): Long =
+                readPrimitiveField(field, ctx.longSort, ctx.cp.long)
+
+            override fun getFloatField(field: JcField): Float =
+                readPrimitiveField(field, ctx.floatSort, ctx.cp.float)
+
+            override fun getDoubleField(field: JcField): Double =
+                readPrimitiveField(field, ctx.doubleSort, ctx.cp.double)
+
+            override fun getCharField(field: JcField): Char =
+                readPrimitiveField(field, ctx.charSort, ctx.cp.char)
+
+            override fun getArrayFieldLength(field: JcField): Int {
+                val type = field.typed().fieldType as JcArrayType
+                val arrayDescriptor = ctx.arrayDescriptorOf(type)
+                val lengthRef = UArrayLengthLValue(instanceRef, arrayDescriptor, ctx.sizeSort)
+                return resolveLValue(lengthRef, ctx.cp.int) as Int
+            }
+        }
+
+        private inner class TestInterpreterDecoderApi : DecoderApi<Any?> {
+            override fun invokeMethod(method: JcMethod, args: List<Any?>): Any? =
+                if (method.isStatic || method.isConstructor) {
+                    method.invoke(classLoader, null, args)
+                } else {
+                    method.invoke(classLoader, args.first(), args.drop(1))
+                }
+
+            override fun getField(field: JcField, instance: Any?): Any? =
+                field.getFieldValue(classLoader, instance)
+
             override fun setField(field: JcField, instance: Any?, value: Any?) {
-                val fieldClazz = resolveType(field.typed().enclosingType)
-                val javaField = fieldClazz.getDeclaredField(field.name)
-                Reflection.setField(instance, javaField, value)
+                field.setFieldValue(classLoader, instance, value)
             }
 
             override fun createBoolConst(value: Boolean): Any = value
@@ -467,24 +453,24 @@ class JcTestInterpreter(
             override fun createDoubleConst(value: Double): Any = value
             override fun createCharConst(value: Char): Any = value
             override fun createStringConst(value: String): Any = value
-            override fun createClassConst(cls: JcClassOrInterface): Any = resolveType(cls.toType())
+
+            override fun createClassConst(cls: JcClassOrInterface): Any =
+                cls.toType().toJavaClass(classLoader)
+
             override fun createNullConst(): Any? = null
 
             override fun setArrayIndex(array: Any?, index: Any?, value: Any?) {
-                TODO("Not yet implemented")
+                Reflection.setArrayIndex(array!!, index as Int, value)
             }
 
-            override fun getArrayIndex(array: Any?, index: Any?): Any? {
-                TODO("Not yet implemented")
-            }
+            override fun getArrayIndex(array: Any?, index: Any?): Any? =
+                Reflection.getArrayIndex(array!!, index as Int)
 
-            override fun getArrayLength(array: Any?): Any? {
-                TODO("Not yet implemented")
-            }
+            override fun getArrayLength(array: Any?): Any =
+                Reflection.getArrayLength(array)
 
-            override fun createArray(elementType: JcType, size: Any?): Any {
-                TODO("Not yet implemented")
-            }
+            override fun createArray(elementType: JcType, size: Any?): Any =
+                ctx.cp.arrayTypeOf(elementType).allocateInstance(classLoader, size as Int)
 
             override fun castClass(type: JcClassOrInterface, obj: Any?): Any? = obj
         }
