@@ -5,7 +5,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.language.TimeOfCreation
+import org.usvm.machine.symbolicobjects.TimeOfCreation
 import org.usvm.machine.UPythonContext
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject

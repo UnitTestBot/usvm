@@ -16,6 +16,12 @@ object ArrayType: VirtualPythonType() {
     }
 }
 
+data class DictType(val typeSystem: PythonTypeSystem): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        return type == this || type == typeSystem.pythonDict
+    }
+}
+
 class HasElementConstraint(private val constraint: ElementConstraint): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type == this)
@@ -120,4 +126,9 @@ object HasTpIter: TypeProtocol() {
 object HasTpCall: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpCall(type.asObject)
+}
+
+object HasTpHash: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasTpHash(type.asObject)
 }

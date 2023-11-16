@@ -20,13 +20,14 @@ fun constructInputObject(
     ctx: UPythonContext,
     memory: UMemory<PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType>,
-    typeSystem: PythonTypeSystem
+    typeSystem: PythonTypeSystem,
+    // preallocatedObjects: PreallocatedObjects
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
     val address = memory.read(URegisterStackLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
     pathConstraints += ctx.mkNot(ctx.mkHeapRefEq(address, ctx.nullRef))
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, type)
+    pathConstraints += result.evalIs(ctx, pathConstraints.typeConstraints, type)
     return result
 }
 
@@ -93,7 +94,7 @@ fun constructInitialBool(
 ): UninterpretedSymbolicPythonObject {
     val address = memory.allocStatic(typeSystem.pythonBool)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
-    pathConstraints += result.evalIsSoft(ctx, pathConstraints.typeConstraints, typeSystem.pythonBool)
+    pathConstraints += pathConstraints.typeConstraints.evalIsSubtype(address, typeSystem.pythonBool)
     val lvalue = UFieldLValue(expr.sort, address, BoolContents.content)
     memory.write(lvalue, expr, ctx.trueExpr)
     result.setMinimalTimeOfCreation(ctx, memory)

@@ -63,7 +63,7 @@ class ConverterToPythonObject(
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
             typeSystem.pythonList -> convertList(obj)
             typeSystem.pythonTuple -> convertTuple(obj)
-            typeSystem.pythonStr -> convertString()
+            typeSystem.pythonStr -> convertString(obj)
             typeSystem.pythonSlice -> convertSlice(obj)
             typeSystem.pythonFloat -> convertFloat(obj)
             typeSystem.pythonDict -> convertDict(obj)
@@ -101,7 +101,14 @@ class ConverterToPythonObject(
         return ConcretePythonInterpreter.eval(emptyNamespace, cmd)
     }
 
-    private fun convertString(): PythonObject {
+    private fun convertString(obj: InterpretedSymbolicPythonObject): PythonObject {
+        if (isStaticHeapRef(obj.address)) {
+            val uninterpreted = UninterpretedSymbolicPythonObject(obj.address, typeSystem)
+            val str = preallocatedObjects.concreteString(uninterpreted)
+            val ref = str?.let { preallocatedObjects.refOfString(str) }
+            if (ref != null)
+                return ref
+        }
         return ConcretePythonInterpreter.eval(emptyNamespace, "'${strNumber++}'")
     }
 

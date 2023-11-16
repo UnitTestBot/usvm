@@ -32,7 +32,7 @@ fun handlerTupleIteratorNextKt(
         return null
     iterator.increaseTupleIteratorCounter(ctx)
     val tupleObject = UninterpretedSymbolicPythonObject(tuple, typeSystem)
-    return tupleObject.readElement(ctx, index)
+    return tupleObject.readArrayElement(ctx, index)
 }
 
 fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPythonObject, count: Int) = with(ctx.ctx) {
@@ -58,5 +58,5 @@ fun handlerTupleGetItemKt(
     if (ctx.curState == null)
         return null
     val indexInt = resolveSequenceIndex(ctx, tuple, index, ctx.typeSystem.pythonTuple) ?: return null
-    return tuple.readElement(ctx, indexInt)
+    return tuple.readArrayElement(ctx, indexInt)
 }

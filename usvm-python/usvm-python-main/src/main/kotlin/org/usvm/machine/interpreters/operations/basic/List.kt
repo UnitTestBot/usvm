@@ -20,14 +20,14 @@ fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
     if (ctx.curState == null)
         return null
     val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return null
-   return list.readElement(ctx, indexInt)
+   return list.readArrayElement(ctx, indexInt)
 }
 
 fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {
     if (ctx.curState == null)
         return
     val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return
-    list.writeElement(ctx, indexInt, value)
+    list.writeArrayElement(ctx, indexInt, value)
 }
 
 
@@ -37,8 +37,8 @@ private fun listConcat(
     right: UninterpretedSymbolicPythonObject,
     dst: UninterpretedSymbolicPythonObject,
 ) {
-    dst.extendConstraints(ctx, left)
-    dst.extendConstraints(ctx, right)
+    dst.extendArrayConstraints(ctx, left)
+    dst.extendArrayConstraints(ctx, right)
     with (ctx.ctx) {
         val leftSize = left.readArrayLength(ctx)
         val rightSize = right.readArrayLength(ctx)
@@ -90,7 +90,7 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
         return null
     with (ctx.ctx) {
         val currentSize = list.readArrayLength(ctx)
-        list.writeElement(ctx, currentSize, elem)
+        list.writeArrayElement(ctx, currentSize, elem)
         ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
         return list
     }
@@ -118,7 +118,7 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
 
     iterator.increaseListIteratorCounter(ctx)
     val list = UninterpretedSymbolicPythonObject(listAddress, typeSystem)
-    return list.readElement(ctx, index)
+    return list.readArrayElement(ctx, index)
 }
 
 private fun listPop(
@@ -133,7 +133,7 @@ private fun listPop(
         if (ctx.modelHolder.model.eval(sizeCond).isFalse)
             return null
         val newSize = mkArithSub(listSize, mkIntNum(1))
-        val result = list.readElement(ctx, ind ?: newSize)
+        val result = list.readArrayElement(ctx, ind ?: newSize)
         ctx.curState!!.memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
         return result
     }
@@ -175,7 +175,7 @@ fun handlerListInsertKt(
             listSize
         )
         ctx.curState!!.symbolicListInsert(list.address, ArrayType, addressSort, indValue, value.address)
-        list.writeElement(ctx, indValue, value)  // to assert element constraints
+        list.writeArrayElement(ctx, indValue, value)  // to assert element constraints
     }
 }
 
