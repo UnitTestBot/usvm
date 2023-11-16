@@ -11,18 +11,6 @@ import org.usvm.api.SymbolicMap;
 import java.util.List;
 
 public interface DecoderApi<T> {
-    T decodeField(final JcField field);
-
-    // Nullable
-    SymbolicList<T> decodeSymbolicListField(final JcField field);
-
-    // Nullable
-    SymbolicMap<T, T> decodeSymbolicMapField(final JcField field);
-
-    // Nullable
-    SymbolicIdentityMap<T, T> decodeSymbolicIdentityMapField(final JcField field);
-
-
     T invokeMethod(final JcMethod method, final List<T> args);
 
     T getField(final JcField field, final T instance);
