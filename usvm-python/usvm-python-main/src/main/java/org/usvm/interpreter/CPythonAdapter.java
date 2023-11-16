@@ -88,6 +88,7 @@ public class CPythonAdapter {
     public native int typeHasTpSetattro(long type);
     public native int typeHasTpIter(long type);
     public native int typeHasTpCall(long type);
+    public native int typeHasTpHash(long type);
     public native int typeHasTpDescrGet(long type);
     public native int typeHasTpDescrSet(long type);
     public native int typeHasStandardNew(long type);
@@ -918,6 +919,17 @@ public class CPythonAdapter {
             return;
         context.curOperation = new MockHeader(TpCallMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
         tpCallKt(context, on.obj);
+    }
+
+    @CPythonAdapterJavaMethod(cName = "tp_hash")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyTpHash(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        tpHashKt(context, on.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "virtual_nb_bool")

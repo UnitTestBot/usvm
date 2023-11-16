@@ -4,7 +4,7 @@ import io.ksmt.expr.KInterpretedValue
 import org.usvm.*
 import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PropertyOfPythonObject
+import org.usvm.machine.symbolicobjects.PropertyOfPythonObject
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType

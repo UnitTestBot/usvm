@@ -62,10 +62,10 @@ class PythonMachine(
         ).apply {
             stack.push(target.numberOfArguments)
         }
+        val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
         val symbols = target.signature.mapIndexed { index, type ->
             constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem)
         }
-        val preAllocatedObjects = PreallocatedObjects.initialize(ctx, memory, pathConstraints, typeSystem)
         val solverRes = ctx.solver<PythonType>().check(pathConstraints)
         if (solverRes !is USatResult)
             error("Failed to construct initial model")
@@ -83,19 +83,22 @@ class PythonMachine(
         }
     }
 
-    private fun getPathSelector(target: PythonUnpinnedCallable): UPathSelector<PythonExecutionState> {
+    private fun getPathSelector(
+        target: PythonUnpinnedCallable
+    ): UPathSelector<PythonExecutionState> {
         val pathSelectorCreation = {
             DfsPathSelector<PythonExecutionState>()
             // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
         }
+        val initialState = getInitialState(target)
         val ps = PythonVirtualPathSelector(
             ctx,
             typeSystem,
             pathSelectorCreation(),
             pathSelectorCreation(),
             pathSelectorCreation(),
+            // initialState.preAllocatedObjects
         )
-        val initialState = getInitialState(target)
         ps.add(listOf(initialState))
         return ps
     }

@@ -70,6 +70,13 @@ tp_iter(PyObject *o1) {
 }
 PyType_Slot Virtual_tp_iter = {Py_tp_iter, tp_iter};
 
+static Py_hash_t
+tp_hash(PyObject *o1) {
+    assert(is_virtual_object(o1));
+    return PyBaseObject_Type.tp_hash(o1);
+}
+PyType_Slot Virtual_tp_hash = {Py_tp_hash, tp_hash};
+
 static PyObject *
 tp_call(PyObject *o1, PyObject *args, PyObject *kwargs) {
     assert(is_virtual_object(o1));
@@ -174,6 +181,7 @@ initialize_virtual_object_type() {
         Virtual_tp_getattro,
         Virtual_tp_setattro,
         Virtual_tp_iter,
+        Virtual_tp_hash,
         Virtual_tp_call,
         Virtual_nb_bool,
         Virtual_nb_add,
