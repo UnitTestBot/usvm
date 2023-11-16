@@ -34,3 +34,21 @@ def is_full_binary_tree(node):
         return is_full_binary_tree(node.left) and is_full_binary_tree(node.right)
     else:
         return not node.left and not node.right
+
+
+class SegmentTreeNode:
+    def __init__(self, start, end, left=None, right=None):
+        self.start = start
+        self.end = end
+        self.mid = (start + end) // 2
+        self.left = left
+        self.right = right
+
+
+def build_tree(self, start, end):
+    if start == end:
+        return SegmentTreeNode(start, end)
+    mid = (start + end) // 2
+    left = build_tree(self, start, mid)
+    right = build_tree(self, mid + 1, end)
+    return SegmentTreeNode(start, end, left, right)

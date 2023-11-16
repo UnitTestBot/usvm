@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonDict, PythonAnyType),
-        "input_dict_virtual_get_item",
-        "Dicts"
+        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
+        "build_tree",
+        "Tricky"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -111,7 +111,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\graphs"
+    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
