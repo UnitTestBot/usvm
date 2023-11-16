@@ -1,4 +1,4 @@
-package org.usvm.language
+package org.usvm.machine.symbolicobjects
 
 sealed class PropertyOfPythonObject
 data class ContentOfType(val id: String): PropertyOfPythonObject()
