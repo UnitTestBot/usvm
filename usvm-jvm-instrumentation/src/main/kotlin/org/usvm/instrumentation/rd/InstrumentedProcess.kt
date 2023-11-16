@@ -88,7 +88,7 @@ class InstrumentedProcess private constructor() {
             jre = File(InstrumentationModuleConstants.pathToJava)
             //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
         }
-        jcClasspath = db.asyncClasspath(fileClassPath).get()
+        jcClasspath = db.classpath(fileClassPath)
         serializationCtx = SerializationContext(jcClasspath)
         ucp = URLClassPathLoader(fileClassPath)
         uTestExecutor = UTestExecutor(jcClasspath, ucp)
