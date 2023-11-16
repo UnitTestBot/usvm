@@ -454,6 +454,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpCall(JN
     return type->tp_call != 0;
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpHash(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_hash != 0;
+}
+
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasTpDescrGet(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_descr_get != 0;

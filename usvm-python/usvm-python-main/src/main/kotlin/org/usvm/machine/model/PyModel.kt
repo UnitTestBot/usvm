@@ -10,10 +10,7 @@ import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.types.ArrayType
-import org.usvm.language.types.ObjectDictType
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -50,6 +47,10 @@ class PyModel(
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
+            return WrappedSetRegion(ctx, region, setKeys) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is URefSetRegionId<*> && regionId.setType == DictType(typeSystem)) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<DictType>, UBoolSort>
             return WrappedSetRegion(ctx, region, setKeys) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)

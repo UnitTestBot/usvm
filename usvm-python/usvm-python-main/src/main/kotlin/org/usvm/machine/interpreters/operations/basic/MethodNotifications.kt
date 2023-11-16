@@ -75,3 +75,8 @@ fun tpCallKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject)
     context.curState ?: return
     myAssert(context, on.evalIsSoft(context, HasTpCall))
 }
+
+fun tpHashKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIsSoft(context, HasTpHash))
+}
