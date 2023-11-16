@@ -5,6 +5,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.model.UModelBase
 
@@ -33,6 +34,7 @@ fun constructModelWithNewMockEvaluator(
     mockSymbol: UMockSymbol<UAddressSort>,
     typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
+    preallocatedObjects: PreallocatedObjects,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
 ): Pair<PyModelWrapper, UBoolExpr> {
     val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
@@ -43,7 +45,7 @@ fun constructModelWithNewMockEvaluator(
         newMockEvaluator,
         oldModel.uModel.regions,
         oldModel.uModel.nullRef
-    ).toPyModel(ctx, typeSystem, ps)
+    ).toPyModel(ctx, typeSystem, ps, preallocatedObjects)
     val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
     return PyModelWrapper(newModel) to constraint
 }

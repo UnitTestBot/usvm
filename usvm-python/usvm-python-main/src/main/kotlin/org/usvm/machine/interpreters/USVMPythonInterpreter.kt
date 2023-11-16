@@ -40,11 +40,12 @@ class USVMPythonInterpreter<InputRepr>(
         symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
 
     private fun getConcrete(
+        concolicRunContext: ConcolicRunContext,
         converter: ConverterToPythonObject,
         seeds: List<InterpretedSymbolicPythonObject>,
         symbols: List<UninterpretedSymbolicPythonObject>
     ): List<PythonObject> =
-        (seeds zip symbols).map { (seed, _) -> converter.convert(seed) }
+        (seeds zip symbols).map { (seed, _) -> converter.convert(seed, concolicRunContext) }
 
     private fun getInputs(
         converter: ConverterToPythonObject,
@@ -94,7 +95,7 @@ class USVMPythonInterpreter<InputRepr>(
             val converter = concolicRunContext.converter
             state.meta.lastConverter = null
             val concrete = try {
-                getConcrete(converter, seeds, symbols)
+                getConcrete(concolicRunContext, converter, seeds, symbols)
             } catch (_: LengthOverflowException) {
                 logger.warn("Step result: length overflow")
                 state.meta.modelDied = true
