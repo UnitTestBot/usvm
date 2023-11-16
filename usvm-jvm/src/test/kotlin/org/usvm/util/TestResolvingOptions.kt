@@ -10,7 +10,3 @@ enum class JcTestResolverType {
      */
     CONCRETE_EXECUTOR
 }
-
-object TestResolvingOptions {
-    val resolverType = JcTestResolverType.INTERPRETER
-}
