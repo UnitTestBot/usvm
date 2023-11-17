@@ -146,4 +146,14 @@ public class ExceptionExamples {
             return 4;
         }
     }
+
+    public Class<? extends Throwable> tryThrowableMethod() {
+        Throwable throwable = new RuntimeException();
+        try {
+            Throwable cause = throwable.getCause();
+            return cause.getClass();
+        } catch (NullPointerException e) {
+            return NullPointerException.class;
+        }
+    }
 }

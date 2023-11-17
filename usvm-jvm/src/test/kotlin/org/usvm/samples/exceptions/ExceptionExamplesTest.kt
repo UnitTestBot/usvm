@@ -124,4 +124,14 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
             { _, e, r -> e !is RuntimeException && r == 4 },
         )
     }
+
+    @Test
+    fun testTryThrowableMethod() {
+        checkDiscoveredProperties(
+            ExceptionExamples::tryThrowableMethod,
+            eq(2),
+            { _, r -> r == NullPointerException::class.java },
+            { _, r -> r == Throwable::class.java },
+        )
+    }
 }
