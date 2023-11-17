@@ -78,8 +78,8 @@ private fun getFunctionInfo(
         return null
     // if (module != "markov_chain")
     //     return null
-    // if (name != "get_transitions")
-    //     return null
+    if (name != "RedBlackTree._remove_repair")
+         return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
