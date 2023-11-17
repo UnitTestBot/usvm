@@ -9,6 +9,8 @@ import org.usvm.language.types.MockType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
+import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
+import org.usvm.types.TypesResult
 import org.usvm.types.first
 import kotlin.random.Random
 
@@ -75,8 +77,15 @@ class PythonVirtualPathSelector(
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random(random)
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
         val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
-        val typeStreams = objects.map { it.getTypeStream() ?: state.possibleTypesForNull }
-        if (typeStreams.any { it.take(2).size < 2 }) {
+        val typeStreamsRaw = objects.map { it.getTypeStream() ?: state.possibleTypesForNull }
+        val typeStreams = typeStreamsRaw.map {
+            @Suppress("unchecked_cast")
+            when (val taken = it.take(2)) {
+                is TypesResult.SuccessfulTypesResult<*> -> taken.types as Collection<PythonType>
+                else -> return null
+            }
+        }
+        if (typeStreams.any { it.size < 2 }) {
             return generateStateWithConcretizedTypeWithoutDelayedForks()
         }
         require(typeStreams.all { it.first() == MockType })
