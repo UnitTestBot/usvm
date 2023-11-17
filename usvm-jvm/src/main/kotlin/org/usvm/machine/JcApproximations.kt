@@ -57,8 +57,8 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.interpreter.JcExprResolver
 import org.usvm.machine.interpreter.JcStepScope
+import org.usvm.machine.mocks.mockMethod
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -510,12 +510,11 @@ class JcMethodApproximationResolver(
 
     private fun skipMethodIfThrowable(methodCall: JcMethodCall): Boolean = with(methodCall) {
         if (method.enclosingClass.name == "java.lang.Throwable") {
-            scope.doWithState {
-                val nextStmt = applicationGraph.successors(methodCall.returnSite).single()
-                newStmt(nextStmt)
-            }
+            // We assume that methods of java.lang.Throwable are not really required to be analysed and can be simply mocked
+            mockMethod(scope, methodCall, applicationGraph)
             return true
         }
+
         return false
     }
 
