@@ -56,6 +56,7 @@ import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
 import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcVirtualMethodCallInst
+import org.usvm.machine.mocks.mockMethod
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addNewMethodCall
@@ -65,7 +66,6 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
@@ -250,7 +250,7 @@ class JcInterpreter(
                 }
 
                 if (stmt.method.isNative) {
-                    mockMethod(scope, stmt)
+                    mockMethod(scope, stmt, applicationGraph)
                     return
                 }
 
@@ -585,35 +585,5 @@ class JcInterpreter(
     private fun approximateMethod(scope: JcStepScope, methodCall: JcMethodCall): Boolean {
         val exprResolver = exprResolverWithScope(scope)
         return approximationResolver.approximate(scope, exprResolver, methodCall)
-    }
-
-    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall) {
-        val returnType = with(applicationGraph) { methodCall.method.typed }.returnType
-        mockMethod(scope, methodCall, returnType)
-    }
-
-    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall, returnType: JcType) = with(methodCall) {
-        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
-
-        if (returnType == ctx.cp.void) {
-            scope.doWithState { skipMethodInvocationWithValue(methodCall, ctx.voidValue) }
-            return@with
-        }
-
-        val mockSort = ctx.typeToSort(returnType)
-        val mockValue = scope.calcOnState {
-            memory.mocker.call(method, arguments.asSequence(), mockSort)
-        }
-
-        if (mockSort == ctx.addressSort) {
-            val constraint = scope.calcOnState {
-                memory.types.evalIsSubtype(mockValue.asExpr(ctx.addressSort), returnType)
-            }
-            scope.assert(constraint) ?: return
-        }
-
-        scope.doWithState {
-            skipMethodInvocationWithValue(methodCall, mockValue)
-        }
     }
 }
