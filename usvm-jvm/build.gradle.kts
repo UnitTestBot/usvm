@@ -22,7 +22,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "fcfd10e495"
+val approximationsVersion = "d3ea56e7ba"
 
 dependencies {
     implementation(project(":usvm-core"))
