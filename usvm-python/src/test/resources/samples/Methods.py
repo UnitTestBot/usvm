@@ -11,6 +11,10 @@ class Point:
         else:
             return "y is less that x"
 
+    @property
+    def my_property(self):
+        return self.x + 10
+
 
 def external_function(p):
     return p.get_info()
@@ -23,6 +27,11 @@ def set_attribute(p, x: int):
     if p.x == 239:
         return 2
     return 3
+
+
+def use_property(x):
+    assert isinstance(x, Point)
+    assert x.my_property == 25
 
 
 class ClassWithoutInit:
