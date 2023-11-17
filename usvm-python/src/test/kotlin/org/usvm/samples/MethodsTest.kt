@@ -126,4 +126,18 @@ class MethodsTest: PythonTestRunnerForStructuredProgram("Methods", UMachineOptio
         )
         options = oldOptions
     }
+
+    @Test
+    fun testUseProperty() {
+        check1WithConcreteRun(
+            constructFunction("use_property", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                {_, res -> res.repr == "None"},
+                {_, res -> res.selfTypeName == "AssertionError"}
+            )
+        )
+    }
 }
