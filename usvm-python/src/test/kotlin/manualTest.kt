@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -58,7 +58,7 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private val ignoreFunctions = listOf<String>(
-    "get_transitions"
+    // "SegmentTree.build"
 )
 private val ignoreModules = listOf<String>(
     "odd_even_transposition_parallel"
@@ -111,7 +111,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
+    val projectPath = "D:\\projects\\Python\\graphs"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
