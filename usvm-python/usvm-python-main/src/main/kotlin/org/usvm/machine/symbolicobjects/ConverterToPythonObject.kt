@@ -56,8 +56,10 @@ class ConverterToPythonObject(
             "Cannot convert allocated objects"
         }
         val cached = constructedObjects[obj.address]
-        if (cached != null)
+        if (cached != null) {
+            // ConcretePythonInterpreter.incref(cached)
             return cached
+        }
         val result = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {
             MockType -> constructVirtualObject(obj)
             typeSystem.pythonInt -> convertInt(obj)
@@ -181,6 +183,9 @@ class ConverterToPythonObject(
                             "field.isidentifier() and not keyword.iskeyword(field)"
                         )
                         if (ConcretePythonInterpreter.getPythonObjectRepr(isValidName) == "True") {
+                            // println("Setting field: $str")
+                            // val valueType = ConcretePythonInterpreter.getPythonObjectType(value)
+                            // println("With value of type: ${ConcretePythonInterpreter.getNameOfPythonType(valueType)}")
                             // ConcretePythonInterpreter.incref(value)
                             // ConcretePythonInterpreter.incref(strRef)
                             ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "obj")

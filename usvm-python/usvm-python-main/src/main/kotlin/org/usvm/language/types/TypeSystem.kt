@@ -204,6 +204,7 @@ class PythonTypeSystemWithMypyInfo(
                 } catch (_: CPythonExecutionException) {
                     return@mapNotNull null
                 }
+                ConcretePythonInterpreter.incref(ref)
                 if (!isWorkableType(ref))
                     return@mapNotNull null
 
