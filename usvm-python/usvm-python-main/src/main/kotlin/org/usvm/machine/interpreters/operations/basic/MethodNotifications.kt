@@ -39,14 +39,28 @@ fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObjec
     on.addSupertypeSoft(context, HasSqLength)
 }
 
-fun mpSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+fun mpSubscriptKt(
+    context: ConcolicRunContext,
+    on: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject
+) {
     context.curState ?: return
     on.addSupertypeSoft(context, HasMpSubscript)
+    if (index.getTypeIfDefined(context) == null && on.getTypeIfDefined(context) != context.typeSystem.pythonDict) {
+        index.addSupertype(context, HasNbIndex)
+    }
 }
 
-fun mpAssSubscriptKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+fun mpAssSubscriptKt(
+    context: ConcolicRunContext,
+    on: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject
+) {
     context.curState ?: return
     on.addSupertypeSoft(context, HasMpAssSubscript)
+    if (index.getTypeIfDefined(context) == null && on.getTypeIfDefined(context) != context.typeSystem.pythonDict) {
+        index.addSupertype(context, HasNbIndex)
+    }
 }
 
 fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {

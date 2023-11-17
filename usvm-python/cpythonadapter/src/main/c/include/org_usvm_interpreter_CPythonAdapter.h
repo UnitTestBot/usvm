@@ -217,6 +217,14 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbInt
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
+ * Method:    typeHasNbIndex
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbIndex
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    typeHasNbAdd
  * Signature: (J)I
  */
