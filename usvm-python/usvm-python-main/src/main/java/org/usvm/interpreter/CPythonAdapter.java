@@ -75,6 +75,7 @@ public class CPythonAdapter {
     public native void setTupleElement(long tuple, int index, long element);
     public native int typeHasNbBool(long type);
     public native int typeHasNbInt(long type);
+    public native int typeHasNbIndex(long type);
     public native int typeHasNbAdd(long type);
     public native int typeHasNbSubtract(long type);
     public native int typeHasNbMultiply(long type);
@@ -846,7 +847,7 @@ public class CPythonAdapter {
         if (storage.obj == null || item.obj == null)
             return;
         context.curOperation = new MockHeader(MpSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj), storage.obj);
-        mpSubscriptKt(context, storage.obj);
+        mpSubscriptKt(context, storage.obj, item.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "mp_ass_subscript")
@@ -858,7 +859,7 @@ public class CPythonAdapter {
         if (storage.obj == null || item.obj == null || value.obj == null)
             return;
         context.curOperation = new MockHeader(MpAssSubscriptMethod.INSTANCE, Arrays.asList(storage.obj, item.obj, value.obj), storage.obj);
-        mpAssSubscriptKt(context, storage.obj);
+        mpAssSubscriptKt(context, storage.obj, item.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "tp_richcompare")

@@ -63,6 +63,11 @@ object HasNbInt: TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbInt(type.asObject)
 }
 
+object HasNbIndex: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbIndex(type.asObject)
+}
+
 object HasNbAdd: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbAdd(type.asObject)

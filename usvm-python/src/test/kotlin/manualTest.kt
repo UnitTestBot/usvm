@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonDict),
-        "input_dict_int_get_item",
-        "Dicts"
+        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
+        "dijkstra",
+        "Tricky"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -76,9 +76,9 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    // if (module != "markov_chain")
-    //     return null
-    if (name != "RedBlackTree._remove_repair")
+    if (module != "dijkstra_2")
+        return null
+    if (name != "dijkstra")
          return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
