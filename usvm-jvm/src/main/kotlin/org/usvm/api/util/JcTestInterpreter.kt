@@ -46,6 +46,7 @@ import org.usvm.api.decoder.ObjectDecoder
 import org.usvm.api.internal.SymbolicListImpl
 import org.usvm.api.typeStreamOf
 import org.usvm.api.util.JcClassLoader.loadClass
+import org.usvm.api.util.JcTestResolver.Companion.resolveRef
 import org.usvm.api.util.Reflection.allocateInstance
 import org.usvm.api.util.Reflection.getFieldValue
 import org.usvm.api.util.Reflection.invoke
@@ -222,7 +223,7 @@ class JcTestInterpreter(
             // because even if the object is already resolved, it could be incompatible with the [type], if it
             // is an element of an array of the wrong type.
 
-            return resolvedCache.getOrElse(ref.address) {
+            return resolvedCache.resolveRef(ref.address) {
                 when (evaluatedType) {
                     is JcArrayType -> resolveArray(ref, heapRef, evaluatedType)
                     is JcClassType -> resolveObject(ref, heapRef, evaluatedType)
