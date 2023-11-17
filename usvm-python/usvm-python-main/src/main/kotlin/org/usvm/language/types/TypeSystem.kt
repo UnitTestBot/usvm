@@ -14,8 +14,12 @@ import org.utbot.python.newtyping.general.UtType
 import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
 import org.utbot.python.newtyping.general.getBoundedParameters
 import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
+    override val typeOperationsTimeout: Duration
+        get() = 100.milliseconds
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
         if (type is ObjectDictType || supertype == ObjectDictType)
