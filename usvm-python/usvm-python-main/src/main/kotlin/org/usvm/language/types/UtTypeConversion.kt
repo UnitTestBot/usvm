@@ -11,6 +11,8 @@ fun getTypeFromTypeHint(
     hint: UtType,
     typeSystem: PythonTypeSystemWithMypyInfo
 ): PythonType {
+    if (typesAreEqual(hint, pythonAnyType))
+        return PythonAnyType
     val hintAfterSubstitution = DefaultSubstitutionProvider.substitute(
         hint,
         hint.getBoundedParameters().associateWith { pythonAnyType }
