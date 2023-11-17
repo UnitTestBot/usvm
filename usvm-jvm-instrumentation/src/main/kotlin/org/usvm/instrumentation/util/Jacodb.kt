@@ -99,7 +99,8 @@ fun JcArrayType.toJvmType(strBuilder: StringBuilder = StringBuilder()): String {
 
 fun JcType.toJcClass(): JcClassOrInterface? =
     when (this) {
-        is JcClassType -> jcClass
+        is JcRefType -> jcClass
+        is JcPrimitiveType -> null
         else -> classpath.findClassOrNull(typeName)
     }
 
