@@ -276,6 +276,23 @@ JNIEXPORT jlongArray JNICALL Java_org_usvm_interpreter_CPythonAdapter_getIterabl
     return result;
 }
 
+/*
+static int
+trace_function(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg) {
+    PyObject_SetAttrString((PyObject *) frame, "f_trace_opcodes", Py_True);
+    // frame->f_trace_opcodes = 1;
+    // printf("Inside tracer!\n"); fflush(stdout);
+    Py_ssize_t lasti = PyFrame_GetLasti(frame);
+    PyObject *code_bytes = PyCode_GetCode(PyFrame_GetCode(frame));
+    assert(PyBytes_Check(code_bytes));
+    PyObject *cur_instruction_as_long = PySequence_GetItem(code_bytes, lasti);
+    assert(PyLong_Check(cur_instruction_as_long));
+    long cur_instruction = PyLong_AsLong(cur_instruction_as_long);
+    // printf("instruction: %ld\n", cur_instruction); fflush(stdout);
+    return 0;
+}
+*/
+
 JNIEXPORT jstring JNICALL Java_org_usvm_interpreter_CPythonAdapter_getPythonObjectRepr(JNIEnv *env, jobject _, jlong object_ref, jboolean print_error_message) {
     assert(!PyErr_Occurred());
     PyObject *repr = PyObject_Repr((PyObject *) object_ref);
