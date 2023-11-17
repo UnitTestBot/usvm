@@ -101,6 +101,7 @@ class USVMPythonInterpreter<InputRepr>(
                 state.meta.modelDied = true
                 return@runBlocking StepResult(emptySequence(), false)
             }
+            // logger.debug("Finished constructing")
             val virtualObjects = converter.getPythonVirtualObjects()
             val madeInputSerialization: Boolean = runCatching {
                 getInputs(converter, concrete, seeds)

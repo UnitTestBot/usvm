@@ -1,5 +1,9 @@
 #include "virtual_objects.h"
 
+#define DEBUG_OUTPUT(name) \
+    /*printf("Virtual " name "\n"); \
+    fflush(stdout);*/
+
 static void
 virtual_object_dealloc(PyObject *op) {
     //printf("DELETING: %p\n", op);
@@ -33,9 +37,17 @@ PyType_Slot Virtual_tp_dealloc = {Py_tp_dealloc, virtual_object_dealloc};
     CHECK_FOR_EXCEPTION(ctx, -1) \
     return 0;
 
+#define CHECK_IF_ACTIVATED(self, fail_value) \
+    if (!((VirtualPythonObject *)self)->ctx) { \
+        PyErr_Format(PyExc_RuntimeError, "ConcolicRunContext is not yet activated"); \
+        return fail_value; \
+    }
+
 static PyObject *
 tp_richcompare(PyObject *o1, PyObject *o2, int op) {
+    DEBUG_OUTPUT("tp_richcompare")
     assert(is_virtual_object(o1));
+    CHECK_IF_ACTIVATED(o1, 0)
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
 PyType_Slot Virtual_tp_richcompare = {Py_tp_richcompare, tp_richcompare};
@@ -50,7 +62,9 @@ is_special_attribute(PyObject *name) {
 
 static PyObject *
 tp_getattro(PyObject *self, PyObject *name) {
+    DEBUG_OUTPUT("tp_getattro")
     assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, 0)
     /*printf("tp_getattro on ");
     PyObject_Print(name, stdout, 0);
     printf("\n");
@@ -65,27 +79,36 @@ PyType_Slot Virtual_tp_getattro = {Py_tp_getattro, tp_getattro};
 
 static PyObject *
 tp_iter(PyObject *o1) {
+    DEBUG_OUTPUT("tp_iter")
     assert(is_virtual_object(o1));
+    CHECK_IF_ACTIVATED(o1, 0)
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
 PyType_Slot Virtual_tp_iter = {Py_tp_iter, tp_iter};
 
 static Py_hash_t
 tp_hash(PyObject *o1) {
+    DEBUG_OUTPUT("tp_hash")
     assert(is_virtual_object(o1));
+    CHECK_IF_ACTIVATED(o1, -1)
     return PyBaseObject_Type.tp_hash(o1);
 }
 PyType_Slot Virtual_tp_hash = {Py_tp_hash, tp_hash};
 
 static PyObject *
 tp_call(PyObject *o1, PyObject *args, PyObject *kwargs) {
+    DEBUG_OUTPUT("tp_call")
     assert(is_virtual_object(o1));
+    CHECK_IF_ACTIVATED(o1, 0)
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) o1, 0)
 }
 PyType_Slot Virtual_tp_call = {Py_tp_call, tp_call};
 
 static int
 nb_bool(PyObject *self) {
+    DEBUG_OUTPUT("nb_bool")
+    assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, -1)
     VirtualPythonObject *obj = (VirtualPythonObject *) self;
     SymbolicAdapter *adapter = obj->adapter;
     ConcolicContext *ctx = obj->ctx;
@@ -98,6 +121,12 @@ nb_bool(PyObject *self) {
 PyType_Slot Virtual_nb_bool = {Py_nb_bool, nb_bool};
 
 #define BINARY_FUNCTION \
+    if (is_virtual_object(first)) { \
+        CHECK_IF_ACTIVATED(first, 0) \
+    } \
+    if (is_virtual_object(second)) { \
+        CHECK_IF_ACTIVATED(second, 0) \
+    } \
     PyObject *owner = 0; \
     int owner_id = -1; \
     if (is_virtual_object(first)) { \
@@ -114,30 +143,37 @@ PyType_Slot Virtual_nb_bool = {Py_nb_bool, nb_bool};
 
 static PyObject *
 nb_add(PyObject *first, PyObject *second) {
+    DEBUG_OUTPUT("nb_add")
     BINARY_FUNCTION
 }
 PyType_Slot Virtual_nb_add = {Py_nb_add, nb_add};
 
 static PyObject *
 nb_subtract(PyObject *first, PyObject *second) {
+    DEBUG_OUTPUT("nb_subtract")
     BINARY_FUNCTION
 }
 PyType_Slot Virtual_nb_subtract = {Py_nb_subtract, nb_subtract};
 
 static PyObject *
 nb_multiply(PyObject *first, PyObject *second) {
+    DEBUG_OUTPUT("nb_multiply")
     BINARY_FUNCTION
 }
 PyType_Slot Virtual_nb_multiply = {Py_nb_multiply, nb_multiply};
 
 static PyObject *
 nb_matrix_multiply(PyObject *first, PyObject *second) {
+    DEBUG_OUTPUT("nb_matrix_multiply")
     BINARY_FUNCTION
 }
 PyType_Slot Virtual_nb_matrix_multiply = {Py_nb_matrix_multiply, nb_matrix_multiply};
 
 static Py_ssize_t
 sq_length(PyObject *self) {
+    DEBUG_OUTPUT("sq_length")
+    assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, -1)
     VirtualPythonObject *obj = (VirtualPythonObject *) self;
     SymbolicAdapter *adapter = obj->adapter;
     ConcolicContext *ctx = obj->ctx;
@@ -151,21 +187,27 @@ PyType_Slot Virtual_sq_length = {Py_sq_length, sq_length};
 
 static PyObject *
 mp_subscript(PyObject *self, PyObject *item) {
+    DEBUG_OUTPUT("mp_subscript")
     assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, 0)
     MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
 }
 PyType_Slot Virtual_mp_subscript = {Py_mp_subscript, mp_subscript};
 
 static int
 mp_ass_subscript(PyObject *self, PyObject *item, PyObject *value) {
+    DEBUG_OUTPUT("mp_ass_subscript")
     assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, -1)
     MAKE_USVM_VIRUAL_CALL_NO_RETURN((VirtualPythonObject *) self, 0)
 }
 PyType_Slot Virtual_mp_ass_subscript = {Py_mp_ass_subscript, mp_ass_subscript};
 
 static int
 tp_setattro(PyObject *self, PyObject *attr, PyObject *value) {
+    DEBUG_OUTPUT("tp_setattro")
     assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, -1)
     MAKE_USVM_VIRUAL_CALL_NO_RETURN((VirtualPythonObject *) self, 0)
 }
 PyType_Slot Virtual_tp_setattro = {Py_tp_setattro, tp_setattro};

@@ -50,7 +50,7 @@ class SlicesTest: PythonTestRunnerForStructuredProgram("Slices", UMachineOptions
     @Test
     fun testNoneFields() {
         check1WithConcreteRun(
-            constructFunction("none_fields", List(1) { PythonAnyType }),
+            constructFunction("none_fields", List(1) { typeSystem.pythonSlice }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),

@@ -18,16 +18,6 @@ object StandardPythonObjectSerializer: PythonObjectSerializer<PythonObjectInfo>(
 
 object ReprObjectSerializer: PythonObjectSerializer<String>() {
     override fun serialize(obj: PythonObject): String {
-        /*val type = ConcretePythonInterpreter.getPythonObjectType(obj)
-        println("Serializing ${ConcretePythonInterpreter.getPythonObjectRepr(type)}")
-        kotlin.runCatching {
-            val namespace = ConcretePythonInterpreter.getNewNamespace()
-            ConcretePythonInterpreter.addObjectToNamespace(namespace, obj, "obj")
-            ConcretePythonInterpreter.eval(namespace, "obj.__dict__")
-            println("(Managed to get __dict__)")
-        }.getOrElse {
-            println("(Exception while trying to get __dict__)")
-        }*/
         return runCatching {
             ConcretePythonInterpreter.getPythonObjectRepr(obj)
         }.getOrDefault("<Error repr for object of type ${ConcretePythonInterpreter.getPythonObjectTypeName(obj)} at ${obj.address}>")
