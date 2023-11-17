@@ -11,6 +11,7 @@ import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 import org.usvm.solver.*
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration.Companion.milliseconds
 
 class PythonComponents(
     private val typeSystem: PythonTypeSystem
@@ -40,7 +41,7 @@ class PySolver<Type>(
     translator: UExprTranslator<Type, *>,
     decoder: UModelDecoder<UModelBase<Type>>,
 ) : USolverBase<Type>(
-    ctx, smtSolver, typeSolver, translator, decoder
+    ctx, smtSolver, typeSolver, translator, decoder, 500.milliseconds
 ) {
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> {
         val softConstraints = ctx.softConstraintsProvider<Type>().makeSoftConstraints(query)

@@ -19,6 +19,7 @@ import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.TypesResult
 
 object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget>()
 private val targets = UTargetsSet.empty<PythonTarget, SymbolicHandlerEvent<Any>>()
@@ -68,7 +69,11 @@ class PythonExecutionState(
         pathNode.allStatements.toList().reversed()
 
     fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
-        val candidates = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER).mapNotNull { it as? ConcretePythonType }
+        val candidates = when (val types = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER)) {
+            is TypesResult.SuccessfulTypesResult -> types.mapNotNull { it as? ConcretePythonType }
+            is TypesResult.TypesResultWithExpiredTimeout, is TypesResult.EmptyTypesResult ->
+                return emptyList()
+        }
         if (typeSystem is PythonTypeSystemWithMypyInfo) {
             val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, delayedFork.symbol)
             return prioritizeTypes(candidates, typeGraph, typeSystem)

@@ -11,6 +11,7 @@ import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
 import org.usvm.memory.UMemory
+import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.first
@@ -170,7 +171,8 @@ fun interpretSymbolicPythonObject(
     if (isAllocatedConcreteHeapRef(evaluated) || isStaticHeapRef(evaluated)) {
         val typeStream = ctx.curState!!.memory.typeStreamOf(evaluated)
         val type = typeStream.first()
-        require(typeStream.take(2).size == 1 && type is ConcretePythonType) {
+        val taken = typeStream.take(2)
+        require(taken is TypesResult.SuccessfulTypesResult && taken.types.size == 1 && type is ConcretePythonType) {
             "Static and allocated objects must have concrete types"
         }
         return InterpretedAllocatedOrStaticSymbolicPythonObject(evaluated, type, obj.typeSystem)

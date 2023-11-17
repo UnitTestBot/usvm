@@ -10,6 +10,7 @@ import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
 import org.usvm.machine.PythonExecutionState
 import org.usvm.model.UModelBase
+import org.usvm.types.TypesResult
 
 class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     fun <Sort : USort> eval(expr: UExpr<Sort>): KInterpretedValue<Sort> =
@@ -29,8 +30,8 @@ class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     }
 
     fun getFirstType(ref: UConcreteHeapRef): PythonType? {
-        val typeStream = uModel.types.typeStream(ref)
-        if (typeStream.isEmpty)
+        val typeStream = uModel.types.typeStream(ref).take(1)
+        if (typeStream !is TypesResult.SuccessfulTypesResult || typeStream.types.isEmpty())
             return null
         val first = typeStream.take(1).first()
         val concrete = getConcreteType(ref)
@@ -42,7 +43,7 @@ class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     fun getConcreteType(ref: UConcreteHeapRef): ConcretePythonType? {
         val typeStream = uModel.types.typeStream(ref)
         val prefix = typeStream.take(2)
-        if (prefix.size > 1)
+        if (prefix !is TypesResult.SuccessfulTypesResult || prefix.size > 1)
             return null
         return prefix.first() as? ConcretePythonType
     }
