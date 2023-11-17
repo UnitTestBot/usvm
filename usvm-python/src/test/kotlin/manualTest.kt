@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
-        "build_tree",
-        "Tricky"
+        listOf(PythonAnyType),
+        "use_property",
+        "Methods"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
