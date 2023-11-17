@@ -101,7 +101,7 @@ fun JcType.toJcClass(): JcClassOrInterface? =
     when (this) {
         is JcRefType -> jcClass
         is JcPrimitiveType -> null
-        else -> classpath.findClassOrNull(typeName)
+        else -> error("Unexpected type")
     }
 
 fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
