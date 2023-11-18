@@ -11,9 +11,7 @@ import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
-import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
-import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
+import org.usvm.instrumentation.testcase.descriptor.*
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.URLClassPathLoader
@@ -94,15 +92,6 @@ class UTestExecutor(
             accessedStatics = hashSetOf()
         )
 
-        executor.clearCache()
-        executor.executeUTestInsts(uTest.initStatements)
-            ?.onFailure {
-                return UTestExecutionInitFailedResult(
-                    cause = buildExceptionDescriptor(initStateDescriptorBuilder, it, false),
-                    trace = JcInstructionTracer.getTrace().trace
-                )
-            }
-
         val methodInvocationResult =
             executor.executeUTestInst(callMethodExpr)
         val resultStateDescriptorBuilder =
@@ -157,7 +146,8 @@ class UTestExecutor(
         exception: Throwable,
         raisedByUserCode: Boolean
     ): UTestExceptionDescriptor {
-        val descriptor = builder.buildDescriptorResultFromAny(any = exception, type = null).getOrNull() as? UTestExceptionDescriptor
+        val descriptor =
+            builder.buildDescriptorResultFromAny(any = exception, type = null).getOrNull() as? UTestExceptionDescriptor
         return descriptor
             ?.also { it.raisedByUserCode = raisedByUserCode }
             ?: UTestExceptionDescriptor(
@@ -174,14 +164,14 @@ class UTestExecutor(
         descriptorBuilder: Value2DescriptorConverter,
         accessedStatics: MutableSet<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>
     ): UTestExecutionState = with(descriptorBuilder) {
-        descriptorBuilder.uTestExecutorCache.addAll(executor.objectToInstructionsCache)
+        uTestExecutorCache.addAll(executor.objectToInstructionsCache)
         val instanceDescriptor = callMethodExpr.instance?.let {
             buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
         val argsDescriptors = callMethodExpr.args.map {
             buildDescriptorFromUTestExpr(it, executor).getOrNull()
         }
-        val isInit = descriptorBuilder.previousState == null
+        val isInit = previousState == null
         val statics = if (isInit) {
             staticDescriptorsBuilder.builtInitialDescriptors
                 .mapValues { it.value!! }

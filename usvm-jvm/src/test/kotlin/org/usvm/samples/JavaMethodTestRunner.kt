@@ -17,7 +17,6 @@ import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.JcTestResolverType
-import org.usvm.util.TestResolvingOptions
 import org.usvm.util.UTestRunnerController
 import kotlin.reflect.*
 import kotlin.reflect.full.instanceParameter
@@ -738,8 +737,10 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected open val jacodbCpKey = samplesKey
     protected val cp = JacoDBContainer(jacodbCpKey).cp
 
+    protected open val resolverType: JcTestResolverType = JcTestResolverType.INTERPRETER
+
     private val testResolver =
-        when (TestResolvingOptions.resolverType) {
+        when (resolverType) {
             JcTestResolverType.INTERPRETER -> JcTestInterpreter()
             JcTestResolverType.CONCRETE_EXECUTOR -> JcTestExecutor(classpath = cp)
         }

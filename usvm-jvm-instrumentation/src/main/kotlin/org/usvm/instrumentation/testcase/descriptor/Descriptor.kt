@@ -50,114 +50,27 @@ sealed class UTestConstantDescriptor : UTestValueDescriptor() {
 
 }
 
-sealed class UTestArrayDescriptor<T>(
+class UTestArrayDescriptor(
     val elementType: JcType,
     val length: Int,
-    val value: T
-) : UTestValueDescriptor() {
-
+    val value: List<UTestValueDescriptor>,
+    override val refId: Int
+): UTestValueDescriptor(), UTestRefDescriptor {
     override val type: JcType
         get() = elementType.classpath.arrayTypeOf(elementType)
 
-    abstract fun valueToString(): String
-
-    class BooleanArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.BooleanArray
-    ) : UTestArrayDescriptor<kotlin.BooleanArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is BooleanArray && other.value.contentEquals(value)
-    }
-
-    class ByteArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.ByteArray
-    ) : UTestArrayDescriptor<kotlin.ByteArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is ByteArray && other.value.contentEquals(value)
-    }
-
-    class ShortArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.ShortArray
-    ) : UTestArrayDescriptor<kotlin.ShortArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is ShortArray && other.value.contentEquals(value)
-    }
-
-    class IntArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.IntArray
-    ) : UTestArrayDescriptor<kotlin.IntArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is IntArray && other.value.contentEquals(value)
-    }
-
-    class LongArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.LongArray
-    ) : UTestArrayDescriptor<kotlin.LongArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is LongArray && other.value.contentEquals(value)
-    }
-
-    class FloatArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.FloatArray
-    ) : UTestArrayDescriptor<kotlin.FloatArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is FloatArray && other.value.contentEquals(value)
-    }
-
-    class DoubleArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.DoubleArray
-    ) : UTestArrayDescriptor<kotlin.DoubleArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is DoubleArray && other.value.contentEquals(value)
-    }
-
-    class CharArray(
-        elementType: JcType,
-        length: Int,
-        value: kotlin.CharArray
-    ) : UTestArrayDescriptor<kotlin.CharArray>(elementType, length, value) {
-        override fun valueToString() = value.contentToString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
-            other is CharArray && other.value.contentEquals(value)
-    }
-
-    class Array(
-        elementType: JcType,
-        length: Int,
-        value: List<UTestValueDescriptor>,
-        override val refId: Int
-    ) : UTestArrayDescriptor<List<UTestValueDescriptor>>(elementType, length, value), UTestRefDescriptor {
-        override fun valueToString() = value.toString()
-        override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
-            if (other !is Array) return false
-            if (length != other.length) return false
-            if (elementType != other.elementType) return false
-            return value.zip(other.value).all { descriptorsAreEqual(it.first, it.second) }
+    override fun structurallyEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestArrayDescriptor) return false
+        if (length != other.length) return false
+        if (elementType != other.elementType) return false
+        for (i in value.indices) {
+            if (!value[i].structurallyEqual(other.value[i])) return false
         }
+        return true
     }
 
     override fun toString(): String {
-        return "UTestArrayDescriptor(elementType=$elementType, length=$length, value=${valueToString()})"
+        return "UTestArrayDescriptor(elementType=$elementType, length=$length, value=${value.joinToString(",")})"
     }
 }
 

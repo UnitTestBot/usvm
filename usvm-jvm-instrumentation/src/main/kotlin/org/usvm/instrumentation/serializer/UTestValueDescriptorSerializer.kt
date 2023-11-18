@@ -38,15 +38,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
                     UTestValueDescriptorKind.NULL -> deserializeNull()
                     UTestValueDescriptorKind.STRING -> deserializeString()
                     UTestValueDescriptorKind.CYCLIC_REF -> deserializeCyclicRef()
-                    UTestValueDescriptorKind.INT_ARRAY -> deserializeIntArray()
-                    UTestValueDescriptorKind.BOOLEAN_ARRAY -> deserializeBooleanArray()
-                    UTestValueDescriptorKind.BYTE_ARRAY -> deserializeByteArray()
-                    UTestValueDescriptorKind.SHORT_ARRAY -> deserializeShortArray()
-                    UTestValueDescriptorKind.LONG_ARRAY -> deserializeLongArray()
-                    UTestValueDescriptorKind.DOUBLE_ARRAY -> deserializeDoubleArray()
-                    UTestValueDescriptorKind.FLOAT_ARRAY -> deserializeFloatArray()
-                    UTestValueDescriptorKind.CHAR_ARRAY -> deserializeCharArray()
-                    UTestValueDescriptorKind.OBJECT_ARRAY -> deserializeArray()
+                    UTestValueDescriptorKind.ARRAY -> deserializeArray()
                     UTestValueDescriptorKind.ENUM_VALUE -> deserializeEnumValue()
                     UTestValueDescriptorKind.CLASS -> deserializeClass()
                     UTestValueDescriptorKind.EXCEPTION -> deserializeException()
@@ -59,16 +51,8 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.serializeUTestValueDescriptor(uTestValueDescriptor: UTestValueDescriptor) {
         if (ctx.serializedDescriptors.contains(uTestValueDescriptor)) return
         when (uTestValueDescriptor) {
-            is UTestArrayDescriptor.Array -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.BooleanArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.ByteArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.CharArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.DoubleArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.FloatArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.IntArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.LongArray -> serialize(uTestValueDescriptor)
-            is UTestArrayDescriptor.ShortArray -> serialize(uTestValueDescriptor)
             is UTestConstantDescriptor.Boolean -> serialize(uTestValueDescriptor)
+            is UTestArrayDescriptor -> serialize(uTestValueDescriptor)
             is UTestConstantDescriptor.Byte -> serialize(uTestValueDescriptor)
             is UTestConstantDescriptor.Char -> serialize(uTestValueDescriptor)
             is UTestConstantDescriptor.Double -> serialize(uTestValueDescriptor)
@@ -86,10 +70,10 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         }
     }
 
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.Array) =
+    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor) =
         serialize(
             uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.OBJECT_ARRAY,
+            kind = UTestValueDescriptorKind.ARRAY,
             serializeInternals = {
                 value.forEach { serializeUTestValueDescriptor(it) }
             },
@@ -101,162 +85,18 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
             }
         )
 
-    private fun AbstractBuffer.deserializeArray(): UTestArrayDescriptor.Array {
+    private fun AbstractBuffer.deserializeArray(): UTestArrayDescriptor {
         val elementType = readJcType(jcClasspath) ?: jcClasspath.objectType
         val refId = readInt()
         val length = readInt()
         val values = readList { readUTestValueDescriptor() }
-        return UTestArrayDescriptor.Array(
+        return UTestArrayDescriptor(
             elementType = elementType,
             length = length,
             value = values,
             refId = refId
         )
     }
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.BooleanArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.BOOLEAN_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeBooleanArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeBooleanArray(): UTestArrayDescriptor.BooleanArray =
-        UTestArrayDescriptor.BooleanArray(
-            elementType = jcClasspath.boolean,
-            length = readInt(),
-            value = readBooleanArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.ByteArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.BYTE_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeByteArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeByteArray(): UTestArrayDescriptor.ByteArray =
-        UTestArrayDescriptor.ByteArray(
-            elementType = jcClasspath.byte,
-            length = readInt(),
-            value = readByteArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.ShortArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.SHORT_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeShortArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeShortArray(): UTestArrayDescriptor.ShortArray =
-        UTestArrayDescriptor.ShortArray(
-            elementType = jcClasspath.short,
-            length = readInt(),
-            value = readShortArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.IntArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.INT_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeIntArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeIntArray(): UTestArrayDescriptor.IntArray =
-        UTestArrayDescriptor.IntArray(
-            elementType = jcClasspath.int,
-            length = readInt(),
-            value = readIntArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.LongArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.LONG_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeLongArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeLongArray(): UTestArrayDescriptor.LongArray =
-        UTestArrayDescriptor.LongArray(
-            elementType = jcClasspath.long,
-            length = readInt(),
-            value = readLongArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.FloatArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.FLOAT_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeFloatArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeFloatArray(): UTestArrayDescriptor.FloatArray =
-        UTestArrayDescriptor.FloatArray(
-            elementType = jcClasspath.float,
-            length = readInt(),
-            value = readFloatArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.DoubleArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.DOUBLE_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeDoubleArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeDoubleArray(): UTestArrayDescriptor.DoubleArray =
-        UTestArrayDescriptor.DoubleArray(
-            elementType = jcClasspath.double,
-            length = readInt(),
-            value = readDoubleArray()
-        )
-
-    private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestArrayDescriptor.CharArray) =
-        serialize(
-            uTestValueDescriptor = uTestValueDescriptor,
-            kind = UTestValueDescriptorKind.CHAR_ARRAY,
-            serializeInternals = {},
-            serialize = {
-                writeInt(length)
-                writeCharArray(value)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeCharArray(): UTestArrayDescriptor.CharArray =
-        UTestArrayDescriptor.CharArray(
-            elementType = jcClasspath.char,
-            length = readInt(),
-            value = readCharArray()
-        )
 
     private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestCyclicReferenceDescriptor) =
         serialize(
@@ -531,15 +371,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         CHAR,
         NULL,
         STRING,
-        INT_ARRAY,
-        BOOLEAN_ARRAY,
-        BYTE_ARRAY,
-        SHORT_ARRAY,
-        LONG_ARRAY,
-        DOUBLE_ARRAY,
-        FLOAT_ARRAY,
-        CHAR_ARRAY,
-        OBJECT_ARRAY,
+        ARRAY,
         CYCLIC_REF,
         ENUM_VALUE,
         CLASS,

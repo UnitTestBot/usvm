@@ -76,15 +76,15 @@ open class Value2DescriptorConverter(
                 is Float -> const(any)
                 is Double -> const(any)
                 is String -> const(any)
-                is BooleanArray -> array(any, depth + 1)
-                is ByteArray -> array(any, depth + 1)
-                is CharArray -> array(any, depth + 1)
-                is ShortArray -> array(any, depth + 1)
-                is IntArray -> array(any, depth + 1)
-                is LongArray -> array(any, depth + 1)
-                is FloatArray -> array(any, depth + 1)
-                is DoubleArray -> array(any, depth + 1)
-                is Array<*> -> array(any, depth + 1)
+                is BooleanArray -> `boolean array`(any)
+                is ByteArray -> `byte array`(any)
+                is CharArray -> `char array`(any)
+                is ShortArray -> `short array`(any)
+                is IntArray -> `int array`(any)
+                is LongArray -> `long array`(any)
+                is FloatArray -> `float array`(any)
+                is DoubleArray -> `double array`(any)
+                is Array<*> -> `object array`(any, depth + 1)
                 is Enum<*> -> `enum`(any, depth + 1)
                 is Class<*> -> `class`(any)
                 is Throwable -> `exception`(any, depth + 1)
@@ -119,33 +119,85 @@ open class Value2DescriptorConverter(
         else -> error("Unsupported type")
     }
 
-    private fun array(array: Any, depth: Int) =
-        when (array) {
-            is BooleanArray -> UTestArrayDescriptor.BooleanArray(jcClasspath.boolean, array.size, array)
-            is ByteArray -> UTestArrayDescriptor.ByteArray(jcClasspath.byte, array.size, array)
-            is ShortArray -> UTestArrayDescriptor.ShortArray(jcClasspath.short, array.size, array)
-            is IntArray -> UTestArrayDescriptor.IntArray(jcClasspath.int, array.size, array)
-            is LongArray -> UTestArrayDescriptor.LongArray(jcClasspath.long, array.size, array)
-            is FloatArray -> UTestArrayDescriptor.FloatArray(jcClasspath.float, array.size, array)
-            is DoubleArray -> UTestArrayDescriptor.DoubleArray(jcClasspath.double, array.size, array)
-            is CharArray -> UTestArrayDescriptor.CharArray(jcClasspath.char, array.size, array)
-            is Array<*> -> {
-                val listOfRefs = mutableListOf<UTestValueDescriptor>()
-                val descriptor = UTestArrayDescriptor.Array(
-                    findTypeOrNull(array.javaClass.componentType)!!,
-                    array.size,
-                    listOfRefs,
-                    System.identityHashCode(array)
-                )
-                createCyclicRef(descriptor, array) {
-                    for (i in array.indices) {
-                        listOfRefs.add(buildDescriptorFromAny(array[i], elementType, depth))
-                    }
-                }
-            }
+    private fun `boolean array`(array: BooleanArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.boolean,
+            array.size,
+            array.map { UTestConstantDescriptor.Boolean(it, jcClasspath.boolean) },
+            System.identityHashCode(array)
+        )
 
-            else -> error("It is not array")
+    private fun `byte array`(array: ByteArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.byte,
+            array.size,
+            array.map { UTestConstantDescriptor.Byte(it, jcClasspath.byte) },
+            System.identityHashCode(array)
+        )
+
+    private fun `char array`(array: CharArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.char,
+            array.size,
+            array.map { UTestConstantDescriptor.Char(it, jcClasspath.char) },
+            System.identityHashCode(array)
+        )
+
+    private fun `short array`(array: ShortArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.short,
+            array.size,
+            array.map { UTestConstantDescriptor.Short(it, jcClasspath.short) },
+            System.identityHashCode(array)
+        )
+
+    private fun `int array`(array: IntArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.int,
+            array.size,
+            array.map { UTestConstantDescriptor.Int(it, jcClasspath.int) },
+            System.identityHashCode(array)
+        )
+
+    private fun `long array`(array: LongArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.long,
+            array.size,
+            array.map { UTestConstantDescriptor.Long(it, jcClasspath.long) },
+            System.identityHashCode(array)
+        )
+
+    private fun `float array`(array: FloatArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.float,
+            array.size,
+            array.map { UTestConstantDescriptor.Float(it, jcClasspath.float) },
+            System.identityHashCode(array)
+        )
+
+    private fun `double array`(array: DoubleArray): UTestArrayDescriptor =
+        UTestArrayDescriptor(
+            jcClasspath.double,
+            array.size,
+            array.map { UTestConstantDescriptor.Double(it, jcClasspath.double) },
+            System.identityHashCode(array)
+        )
+
+    private fun `object array`(array: Array<*>, depth: Int): UTestArrayDescriptor {
+        val listOfRefs = mutableListOf<UTestValueDescriptor>()
+        val descriptor = UTestArrayDescriptor(
+            findTypeOrNull(array.javaClass.componentType) ?: jcClasspath.objectType,
+            array.size,
+            listOfRefs,
+            System.identityHashCode(array)
+        )
+        createCyclicRef(descriptor, array) {
+            for (i in array.indices) {
+                listOfRefs.add(buildDescriptorFromAny(array[i], elementType, depth))
+            }
         }
+        return descriptor
+    }
 
     private fun <T> createCyclicRef(
         valueDescriptor: T,
@@ -170,14 +222,18 @@ open class Value2DescriptorConverter(
         val originUTestInst = uTestExecutorCache.find { it.first === value }?.second
         val jcClass =
             if (originUTestInst is UTestMock) {
-                originUTestInst.type.toJcClass() ?:
-                jcClasspath.findClass(value::class.java.name.substringBefore(MockHelper.MOCKED_CLASS_POSTFIX))
+                originUTestInst.type.toJcClass() ?: jcClasspath.findClass(
+                    value::class.java.name.substringBeforeLast(
+                        MockHelper.MOCKED_CLASS_POSTFIX
+                    )
+                )
             } else {
                 jcClasspath.findClass(value::class.java.name)
             }
         val jcType = jcClass.toType()
         val fields = mutableMapOf<JcField, UTestValueDescriptor>()
-        val uTestObjectDescriptor = UTestObjectDescriptor(jcType, fields, originUTestInst, System.identityHashCode(value))
+        val uTestObjectDescriptor =
+            UTestObjectDescriptor(jcType, fields, originUTestInst, System.identityHashCode(value))
         return createCyclicRef(uTestObjectDescriptor, value) {
             jcClass.allDeclaredFields
                 //TODO! Decide for which fields descriptors should be build
