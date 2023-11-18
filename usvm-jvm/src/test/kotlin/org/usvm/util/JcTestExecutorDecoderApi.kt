@@ -74,6 +74,8 @@ class JcTestExecutorDecoderApi(
             method.isConstructor -> UTestConstructorCall(method, args)
             method.isStatic -> UTestStaticMethodCall(method, args)
             else -> UTestMethodCall(args.first(), method, args.drop(1))
+        }.also {
+            instructions += it
         }
 
     override fun createBoolConst(value: Boolean): UTestExpression =
