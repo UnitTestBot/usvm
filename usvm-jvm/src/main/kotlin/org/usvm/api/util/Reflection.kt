@@ -1,6 +1,7 @@
 package org.usvm.api.util
 
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
@@ -88,6 +89,13 @@ object Reflection {
                 else -> error("Unexpected type: $elementType")
             }
         } ?: classLoader.loadClass(jcClass)
+
+    private fun ClassLoader.loadClass(jcClass: JcClassOrInterface): Class<*> =
+        if (this is JcClassLoader) {
+            loadClass(jcClass)
+        } else {
+            loadClass(jcClass.name)
+        }
 
     fun getArrayLength(instance: Any?): Int =
         java.lang.reflect.Array.getLength(instance)

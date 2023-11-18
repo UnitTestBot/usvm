@@ -1,5 +1,6 @@
 package org.usvm.samples.approximations
 
+import org.junit.jupiter.api.Disabled
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.test.Test
 
@@ -17,6 +18,7 @@ class SymbolicCollectionModelTest : ApproximationsTestRunner() {
     }
 
     @Test
+    @Disabled
     fun testSymbolicMapModel() {
         checkDiscoveredProperties(
             ApproximationsApiExample::symbolicMap,

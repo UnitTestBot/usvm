@@ -4,9 +4,6 @@ import org.jacodb.api.JcClassOrInterface;
 import org.jacodb.api.JcField;
 import org.jacodb.api.JcMethod;
 import org.jacodb.api.JcType;
-import org.usvm.api.SymbolicIdentityMap;
-import org.usvm.api.SymbolicList;
-import org.usvm.api.SymbolicMap;
 
 import java.util.List;
 
@@ -35,7 +32,7 @@ public interface DecoderApi<T> {
 
     T createStringConst(final String value);
 
-    T createClassConst(final JcClassOrInterface cls);
+    T createClassConst(final JcType type);
 
     T createNullConst();
 
