@@ -81,14 +81,14 @@ class InstrumentedProcess private constructor() {
     }
 
     private suspend fun initProcess(classpath: String) {
-        fileClassPath = classpath.split(':').map { File(it) }
+        fileClassPath = classpath.split(File.pathSeparatorChar).map { File(it) }
         val db = jacodb {
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)
             jre = File(InstrumentationModuleConstants.pathToJava)
             //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
         }
-        jcClasspath = db.asyncClasspath(fileClassPath).get()
+        jcClasspath = db.classpath(fileClassPath)
         serializationCtx = SerializationContext(jcClasspath)
         ucp = URLClassPathLoader(fileClassPath)
         uTestExecutor = UTestExecutor(jcClasspath, ucp)
