@@ -33,7 +33,8 @@ class UTypeModel<Type>(
                 val evaluatedTypeRegion = typeRegion(ref)
                 val updatedTypeRegion = evaluatedTypeRegion.addSupertype(supertype)
                 val updatedTypeStream = updatedTypeRegion.typeStream
-                val isEmpty = updatedTypeStream.isEmpty ?: error("Invalid model containing wrong type stream $updatedTypeStream")
+                val isEmpty = updatedTypeStream.isEmpty
+                    ?: error("Type stream exceeded ${typeSystem.typeOperationsTimeout} timeout on supertype $supertype")
                 if (!isEmpty) {
                     typeStreamByAddr[ref.address] = updatedTypeRegion
                     ref.ctx.trueExpr
@@ -58,7 +59,8 @@ class UTypeModel<Type>(
                 val evaluatedTypeRegion = typeRegion(ref)
                 val updatedTypeRegion = evaluatedTypeRegion.addSubtype(subtype)
                 val updatedTypeStream = updatedTypeRegion.typeStream
-                val isEmpty = updatedTypeStream.isEmpty ?: error("Invalid model containing wrong type stream $updatedTypeStream")
+                val isEmpty = updatedTypeStream.isEmpty
+                    ?: error("Type stream exceeded ${typeSystem.typeOperationsTimeout} timeout on subtype $subtype")
                 if (!isEmpty) {
                     typeStreamByAddr[ref.address] = updatedTypeRegion
                     ref.ctx.trueExpr
