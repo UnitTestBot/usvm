@@ -782,7 +782,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
-            states.map { testResolver.resolve(jcMethod, it) }
+            states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
         }
     }
 

@@ -48,12 +48,12 @@ public class ApproximationsApiExample {
             return 4;
         }
 
-        if (!map.containsKey("xxx")) {
+        if (!other.containsKey("xxx")) {
             // unreachable
             return 5;
         }
 
-        value = map.get("xxx");
+        value = other.get("xxx");
 
         if (value == 17) {
             return 6;

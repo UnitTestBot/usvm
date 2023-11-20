@@ -158,7 +158,7 @@ object Reflection {
         return try {
             klass.getDeclaredField(name)
         } catch (ex: NoSuchFieldException) {
-            error("Class ${enclosingClass.name} has no $name field")
+            error("Class ${enclosingClass.name} has no `$name` field")
         }
     }
 

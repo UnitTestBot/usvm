@@ -1,6 +1,5 @@
 package org.usvm.samples.approximations
 
-import org.junit.jupiter.api.Disabled
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.test.Test
 
@@ -18,15 +17,14 @@ class SymbolicCollectionModelTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled
     fun testSymbolicMapModel() {
         checkDiscoveredProperties(
             ApproximationsApiExample::symbolicMap,
             ignoreNumberOfAnalysisResults,
             { map, res -> res == 0 && map.size() < 10 },
             { map, res -> res == 1 && map.size() >= 10 && !map.containsKey("abc") },
-            { map, res -> res == 2 && map.size() >= 10 && map["abc"] != 5 },
-            { map, res -> res == 6 && map.size() >= 10 && map["abc"] == 5 && map["xxx"] == 17 },
+            { map, res -> res == 2 && map.size() >= 10 && map.containsKey("abc") && map["abc"] != 5 },
+            { map, res -> res == 6 && map.size() >= 10 && map["abc"] == 5 },
             { map, res -> res == 7 && map.size() >= 10 && map["abc"] == 5 && map["xxx"] != 17 },
             invariants = arrayOf({ _, res -> res !in 3..5 })
         )

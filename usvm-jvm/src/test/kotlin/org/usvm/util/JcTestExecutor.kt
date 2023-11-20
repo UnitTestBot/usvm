@@ -9,6 +9,7 @@ import org.jacodb.api.LocationType
 import org.jacodb.api.ext.objectType
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
@@ -63,12 +64,16 @@ class JcTestExecutor(
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    override fun resolve(method: JcTypedMethod, state: JcState): JcTest {
+    override fun resolve(
+        method: JcTypedMethod,
+        state: JcState,
+        stringConstants: Map<String, UConcreteHeapRef>
+    ): JcTest {
         val model = state.models.first()
 
         val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, model, method)
+        val memoryScope = MemoryScope(ctx, model, model, stringConstants, method)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -174,8 +179,9 @@ class JcTestExecutor(
         ctx: JcContext,
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
+        stringConstants: Map<String, UConcreteHeapRef>,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, method) {
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 

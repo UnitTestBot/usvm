@@ -78,6 +78,9 @@ class UTypeConstraints<Type>(
             return inputTypeRegions
         }
 
+    val concreteRefToTypeStream: Map<UConcreteHeapAddress, UTypeStream<Type>>
+        get() = concreteRefToType.mapValues { USingleTypeStream(typeSystem, it.value) }
+
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
      */

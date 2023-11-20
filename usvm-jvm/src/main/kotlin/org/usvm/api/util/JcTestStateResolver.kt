@@ -13,6 +13,7 @@ import org.jacodb.api.ext.allSuperHierarchySequence
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
+import org.jacodb.api.ext.constructors
 import org.jacodb.api.ext.double
 import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.findTypeOrNull
@@ -39,11 +40,19 @@ import org.usvm.api.SymbolicMap
 import org.usvm.api.decoder.DecoderApi
 import org.usvm.api.decoder.ObjectData
 import org.usvm.api.decoder.ObjectDecoder
+import org.usvm.api.internal.SymbolicIdentityMapImpl
 import org.usvm.api.internal.SymbolicListImpl
+import org.usvm.api.internal.SymbolicMapImpl
+import org.usvm.api.refSetContainsElement
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.ref.URefSetEntries
+import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.machine.JcContext
 import org.usvm.machine.extractBool
@@ -66,6 +75,7 @@ abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
     val model: UModelBase<JcType>,
     val memory: UReadOnlyMemory<JcType>,
+    val stringConstants: Map<String, UConcreteHeapRef>,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
@@ -250,6 +260,11 @@ abstract class JcTestStateResolver<T>(
     abstract fun allocateString(value: T): T
 
     fun resolveAllocatedString(ref: UConcreteHeapRef): T {
+        val stringConstant = stringConstants.entries.singleOrNull { it.value == ref }
+        if (stringConstant != null) {
+            return decoderApi.createStringConst(stringConstant.key)
+        }
+
         val valueField = ctx.stringValueField
         val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
         val strValue = resolveLValue(strValueLValue, valueField.fieldType)
@@ -269,11 +284,6 @@ abstract class JcTestStateResolver<T>(
     }
 
     fun resolveSymbolicList(heapRef: UHeapRef): SymbolicList<T>? {
-        val ref = evaluateInModel(heapRef) as UConcreteHeapRef
-        if (ref.address == NULL_ADDRESS) {
-            return null
-        }
-
         val listType = ctx.cp.findTypeOrNull<SymbolicList<*>>() ?: return null
 
         val lengthRef = UArrayLengthLValue(heapRef, listType, ctx.sizeSort)
@@ -290,6 +300,95 @@ abstract class JcTestStateResolver<T>(
         return result
     }
 
+    fun resolveSymbolicMap(heapRef: UHeapRef): SymbolicMap<T, T>? {
+        val mapType = ctx.cp.findTypeOrNull<SymbolicMap<*, *>>() ?: return null
+
+        val resultMap = SymbolicMapImpl<T, T>()
+
+        // todo: equals based check
+        resolveSymbolicIdentityMapEntries(heapRef, mapType, { resultMap.size() }, { k, v -> resultMap.set(k, v) })
+
+        return resultMap
+    }
+
+    fun resolveSymbolicIdentityMap(heapRef: UHeapRef): SymbolicIdentityMap<T, T>? {
+        val mapType = ctx.cp.findTypeOrNull<SymbolicIdentityMap<*, *>>() ?: return null
+        val resultMap = SymbolicIdentityMapImpl<T, T>()
+        resolveSymbolicIdentityMapEntries(heapRef, mapType, { resultMap.size() }, { k, v -> resultMap.set(k, v) })
+        return resultMap
+    }
+
+    private inline fun resolveSymbolicIdentityMapEntries(
+        heapRef: UHeapRef,
+        mapType: JcType,
+        resultMapSize: () -> Int,
+        resultMapAddEntry: (T, T) -> Unit
+    ) {
+        val lengthRef = UMapLengthLValue(heapRef, mapType, ctx.sizeSort)
+        val resolvedLength = resolvePrimitiveInt(memory.read(lengthRef))
+        val length = clipArrayLength(resolvedLength)
+
+        val keysInModel = hashSetOf<UHeapRef>()
+
+        val memoryEntries = memory.refSetEntries(heapRef, mapType)
+        resolveMapEntries(memory, memoryEntries, heapRef, mapType,
+            keyInModel = { !keysInModel.add(it) },
+            addModelEntry = { k, v -> resultMapAddEntry(k, v) }
+        )
+
+        val modelMapRef = evaluateInModel(heapRef)
+        val modelEntries = model.refSetEntries(modelMapRef, mapType)
+        resolveMapEntries(model, modelEntries, modelMapRef, mapType,
+            keyInModel = { !keysInModel.add(it) },
+            addModelEntry = { k, v -> resultMapAddEntry(k, v) }
+        )
+
+        // todo: map length refinement loop in solver
+        val mapSize = resultMapSize()
+        if (length < mapSize) {
+            logger.warn { "Incorrect model: map length $length lower than resolved map size $mapSize" }
+        }
+
+        if (length > mapSize) {
+            logger.warn { "Incorrect model: map length $length greater than resolved map size $mapSize" }
+
+            // fill map with new objects which are definitely unique
+            // note: may not satisfy map type constraints
+            val objectCtor = ctx.cp.objectType.constructors.single { it.parameters.isEmpty() }
+            while (length > resultMapSize()) {
+                val freshKey = decoderApi.invokeMethod(objectCtor.method, emptyList())
+                resultMapAddEntry(freshKey, freshKey)
+            }
+        }
+    }
+
+    private inline fun resolveMapEntries(
+        memory: UReadOnlyMemory<JcType>,
+        keySetEntries: URefSetEntries<JcType>,
+        mapRef: UHeapRef,
+        mapType: JcType,
+        keyInModel: (UHeapRef) -> Boolean,
+        addModelEntry: (T, T) -> Unit
+    ) {
+        for (entry in keySetEntries.entries) {
+            val key = entry.setElement
+            val keyContains = memory.refSetContainsElement(mapRef, key, mapType)
+            if (evaluateInModel(keyContains).isTrue) {
+                val keyRefModel = evaluateInModel(key)
+                if (keyInModel(keyRefModel)) {
+                    continue
+                }
+
+                val keyModel = resolveReference(key, ctx.cp.objectType)
+
+                val lvalue = URefMapEntryLValue(ctx.addressSort, mapRef, key, mapType)
+                val valueModel = resolveLValue(lvalue, ctx.cp.objectType)
+
+                addModelEntry(keyModel, valueModel)
+            }
+        }
+    }
+
     inner class TestObjectData(private val instanceRef: UHeapRef) : ObjectData<T> {
         override fun decodeField(field: JcField): T {
             val fieldType = ctx.cp.findTypeOrNull(field.type) ?: error("No type for field: $field")
@@ -297,31 +396,29 @@ abstract class JcTestStateResolver<T>(
             return resolveLValue(lvalue, fieldType)
         }
 
-        override fun decodeSymbolicListField(field: JcField): SymbolicList<T>? {
+        private inline fun <R> readRefField(field: JcField, body: (UHeapRef) -> R): R? {
             val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
-            val listRef = memory.read(lvalue)
-            return resolveSymbolicList(listRef)
-        }
+            val ref = memory.read(lvalue)
 
-        override fun decodeSymbolicMapField(field: JcField): SymbolicMap<T, T>? {
-            TODO("Not yet implemented")
-        }
-
-        override fun decodeSymbolicIdentityMapField(field: JcField): SymbolicIdentityMap<T, T>? {
-            TODO("Not yet implemented")
-        }
-
-        override fun getObjectField(field: JcField): ObjectData<T>? {
-            val lvalue = UFieldLValue(ctx.addressSort, instanceRef, field)
-            val objectRef = memory.read(lvalue)
-
-            val ref = evaluateInModel(objectRef) as UConcreteHeapRef
-            if (ref.address == NULL_ADDRESS) {
+            val refValue = evaluateInModel(ref) as UConcreteHeapRef
+            if (refValue.address == NULL_ADDRESS) {
                 return null
             }
 
-            return TestObjectData(objectRef)
+            return body(ref)
         }
+
+        override fun decodeSymbolicListField(field: JcField): SymbolicList<T>? =
+            readRefField(field) { ref -> resolveSymbolicList(ref) }
+
+        override fun decodeSymbolicMapField(field: JcField): SymbolicMap<T, T>? =
+            readRefField(field) { ref -> resolveSymbolicMap(ref) }
+
+        override fun decodeSymbolicIdentityMapField(field: JcField): SymbolicIdentityMap<T, T>? =
+            readRefField(field) { ref -> resolveSymbolicIdentityMap(ref) }
+
+        override fun getObjectField(field: JcField): ObjectData<T>? =
+            readRefField(field) { ref -> TestObjectData(ref) }
 
         private inline fun <reified T> readPrimitiveField(field: JcField, sort: USort, resolver: (UExpr<*>) -> T): T {
             val lvalue = UFieldLValue(sort, instanceRef, field)
