@@ -81,7 +81,17 @@ class JcTypeSystem(
         (type as? JcClassType)?.isFinal ?: false
 
     override fun isInstantiable(type: JcType): Boolean =
-        type !is JcRefType || (!type.jcClass.isInterface && !type.jcClass.isAbstract)
+        when (type) {
+            is JcPrimitiveType -> true
+
+            is JcRefType -> when (type) {
+                is JcArrayType -> isInstantiable(type.elementType)
+                is JcClassType -> !type.jcClass.isInterface && !type.jcClass.isAbstract
+                else -> false
+            }
+
+            else -> error("Unknown type $type")
+        }
 
     // TODO: deal with generics
     // TODO: handle object type, serializable and cloneable
