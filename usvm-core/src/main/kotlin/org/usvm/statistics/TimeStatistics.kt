@@ -36,14 +36,15 @@ class TimeStatistics<Method, State : UState<*, Method, *, *, *, State>> : UMachi
 
     override fun onStatePeeked(state: State) {
         check(!methodStopwatch.isRunning)
-        methodStopwatch.reset()
         methodStopwatch.start()
     }
 
     override fun onState(parent: State, forks: Sequence<State>) {
         check(methodStopwatch.isRunning)
         methodStopwatch.stop()
+        // TODO: measure time for all visited methods, not only for entrypoints
         val entrypoint = parent.entrypoint
         methodTimes.merge(entrypoint, methodStopwatch.elapsed) { current, elapsed -> current + elapsed }
+        methodStopwatch.reset()
     }
 }

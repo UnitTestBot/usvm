@@ -10,33 +10,29 @@ import kotlin.time.Duration
  * to switch between states with different [Key]s (for example, different entry point methods).
  * Keys are stored in queue prioritized with estimated time which has already been spent to states with
  * that key. As a result, a key with the lowest time spent is always peeked.
- * Spent time is estimated as timespan between successive peeks. Keys in queue are additionally sorted by [KeyPriority] (for example,
- * current method coverage).
+ * Spent time is estimated as timespan between successive peeks.
  *
  * @param initialKeys complete set of [Key]s which will be used with this instance. Operations with states having other keys
  * are not allowed.
  * @param stopwatch [Stopwatch] implementation instance used to measure time between peeks.
  * @param getKey returns key by state. For the same states the same key should be returned.
- * @param getKeyPriority returns priority by key. Priority can change over time.
  * @param basePathSelectorFactory function to create a [UPathSelector] associated with specific key. States
  * with the same key are maintained in path selector created by this function.
  * @param peeksInQuantum number of peeks to switch keys after. Time is measured between the first and the
  * last peek in such series, if this value is greater than 1.
  */
-class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriority>>(
+class CompletelyFairPathSelector<State, Key>(
     initialKeys: Set<Key>,
     private val stopwatch: Stopwatch,
     private val getKey: (State) -> Key,
-    private val getKeyPriority: (Key) -> KeyPriority,
     basePathSelectorFactory: (Key) -> UPathSelector<State>,
     private val peeksInQuantum: UInt = 1U
 ) : KeyedPathSelector<State, Key> {
 
-    private data class KeysQueueElement<Key, KeyPriority>(val key: Key, var priority: KeyPriority, var elapsed: Duration)
+    private data class KeysQueueElement<Key>(val key: Key, var elapsed: Duration)
     private val keysQueue = PriorityQueue(
         Comparator
-            .comparing<KeysQueueElement<Key, KeyPriority>, Duration> { it.elapsed }
-            .thenComparing<KeyPriority> { it.priority }
+            .comparing<KeysQueueElement<Key>, Duration> { it.elapsed }
     )
     private val pathSelectors = HashMap<Key, UPathSelector<State>>()
 
@@ -48,8 +44,13 @@ class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriorit
         stopwatch.reset()
         initialKeys.forEach {
             pathSelectors[it] = basePathSelectorFactory(it)
-            keysQueue.add(KeysQueueElement(it, getKeyPriority(it), Duration.ZERO))
+            keysQueue.add(KeysQueueElement(it, Duration.ZERO))
         }
+    }
+
+    private fun startNewQuantum() {
+        stopwatch.reset()
+        peekCounter = 0U
     }
 
     override fun isEmpty(): Boolean {
@@ -67,18 +68,17 @@ class CompletelyFairPathSelector<State, Key, KeyPriority : Comparable<KeyPriorit
         // When peek limit for the current element is reached or there is nothing to peek, start peeking the next one
         if (quantumEnded || isCurrentPathSelectorEmpty) {
             stopwatch.stop()
-            peekCounter = 0U
             keysQueue.poll()
             if (!isCurrentPathSelectorEmpty) {
                 currentKey.elapsed += stopwatch.elapsed
-                currentKey.priority = getKeyPriority(currentKey.key)
                 keysQueue.add(currentKey)
             }
             currentKey = keysQueue.peek()
             currentPathSelector = pathSelectors[currentKey.key]
-            stopwatch.reset()
+            startNewQuantum()
         }
-        if (++peekCounter == 1U) {
+        peekCounter++
+        if (!stopwatch.isRunning) {
             stopwatch.start()
         }
         while (currentPathSelector == null || currentPathSelector.isEmpty()) {

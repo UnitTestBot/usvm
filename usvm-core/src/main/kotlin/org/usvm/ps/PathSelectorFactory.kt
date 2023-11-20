@@ -1,5 +1,6 @@
 package org.usvm.ps
 
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathSelectorCombinationStrategy
 import org.usvm.PathSelectorFairnessStrategy
@@ -182,14 +183,15 @@ fun <Method, Statement, Target, State> createPathSelector(
         )
 
     val coverageStatistics = coverageStatisticsFactory()
-    val getMethodCoverage = coverageStatistics?.let {
-        { m: Method -> coverageStatistics.getMethodCoverage(m) }
-    } ?: { 0f }
     val initialStateToEntrypoint = mutableMapOf<State, Method>()
     initialStates.forEach { (m, s) -> initialStateToEntrypoint[s] = m }
 
     val pathSelector = when (options.pathSelectorFairnessStrategy) {
-        PathSelectorFairnessStrategy.CONSTANT_TIME ->
+        PathSelectorFairnessStrategy.CONSTANT_TIME -> {
+            val getMethodCoverage = coverageStatistics?.let {
+                { m: Method -> coverageStatistics.getMethodCoverage(m) }
+            } ?: { 0f }
+
             ConstantTimeFairPathSelector(
                 initialStates.keys,
                 StopwatchImpl(),
@@ -198,21 +200,34 @@ fun <Method, Statement, Target, State> createPathSelector(
                 getMethodCoverage,
                 ::createBasePathSelector
             )
+        }
 
         PathSelectorFairnessStrategy.COMPLETELY_FAIR ->
             CompletelyFairPathSelector(
                 initialStates.keys,
                 StopwatchImpl(),
                 { it.entrypoint },
-                getMethodCoverage,
                 ::createBasePathSelector
             )
     }
 
-    coverageStatistics?.addOnCoveredObserver { _, method, _ ->
-        if (coverageStatistics.isCompletelyCovered(method)) {
-            pathSelector.removeKey(method)
+    val totalCoveragePercents = 100f
+    when (options.coverageZone) {
+        CoverageZone.METHOD -> {
+            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
+                if (coverageStatistics.getMethodCoverage(method) == totalCoveragePercents) {
+                    pathSelector.removeKey(method)
+                }
+            }
         }
+        CoverageZone.CLASS -> {
+            coverageStatistics?.addOnCoveredObserver { _, method, _ ->
+                if (coverageStatistics.getTransitiveMethodCoverage(method) == totalCoveragePercents) {
+                    pathSelector.removeKey(method)
+                }
+            }
+        }
+        CoverageZone.TRANSITIVE -> {}
     }
 
     return pathSelector

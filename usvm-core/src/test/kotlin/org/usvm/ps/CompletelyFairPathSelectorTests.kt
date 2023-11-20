@@ -31,8 +31,6 @@ internal class TestStopwatch : Stopwatch {
 
 class CompletelyFairPathSelectorTests {
 
-    private val constantPriority = 1
-
     @Test
     fun fairnessTest() {
         val stopwatch = TestStopwatch()
@@ -43,7 +41,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3"),
             stopwatch,
             stateToMethod::getValue,
-            { constantPriority },
             { BfsPathSelector() },
             peeksInQuantum
         )
@@ -69,7 +66,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3"),
             stopwatch,
             stateToMethod::getValue,
-            { constantPriority },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3"))
@@ -98,7 +94,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             stateToMethod::getValue,
-            { it },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
@@ -117,8 +112,8 @@ class CompletelyFairPathSelectorTests {
         }
         assertEquals(22, times["s1"])
         assertEquals(42, times["s2"])
-        assertEquals(21, times["s3"])
-        assertEquals(21, times["s4"])
+        assertEquals(22, times["s3"])
+        assertEquals(22, times["s4"])
     }
 
     @Test
@@ -130,7 +125,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             stateToMethod::getValue,
-            { it },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
@@ -164,7 +158,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             stateToMethod::getValue,
-            { it },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
@@ -194,7 +187,6 @@ class CompletelyFairPathSelectorTests {
             setOf("m1", "m2", "m3", "m4"),
             stopwatch,
             stateToMethod::getValue,
-            { it },
             { BfsPathSelector() }
         )
         pathSelector.add(listOf("s1", "s2", "s3", "s4"))
@@ -217,9 +209,9 @@ class CompletelyFairPathSelectorTests {
             remainingTime -= time
         }
 
-        assertEquals(10, times["s1"])
+        assertEquals(9, times["s1"])
         assertEquals(20, times["s2"])
         assertEquals(10, times["s3"])
-        assertEquals(0, times["s4"])
+        assertEquals(1, times["s4"])
     }
 }

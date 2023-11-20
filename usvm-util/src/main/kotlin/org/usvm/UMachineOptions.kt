@@ -197,10 +197,6 @@ data class UMachineOptions(
      */
     val timeout: Duration = 20_000.milliseconds,
     /**
-     * Timeout for SMT solver checks. Use [Duration.INFINITE] for no timeout.
-     */
-    val solverTimeout: Duration = timeout,
-    /**
      * A number of steps from the last terminated state.
      */
     val stepsFromLastCovered: Long? = null,

@@ -17,37 +17,37 @@ class JcCallGraphStatisticsTests : JavaMethodTestRunner() {
 
     @Test
     fun `base method is reachable`() {
-        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C)
-        val methodTo = cp.getJcMethodByName(CallGraphTestClass1::A)
+        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C).method
+        val methodTo = cp.getJcMethodByName(CallGraphTestClass1::A).method
         assertTrue { statistics.checkReachability(methodFrom, methodTo) }
     }
 
     @Test
     fun `method override is reachable`() {
-        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C)
-        val methodTo = cp.getJcMethodByName(CallGraphTestClass2::A)
+        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C).method
+        val methodTo = cp.getJcMethodByName(CallGraphTestClass2::A).method
         assertTrue { statistics.checkReachability(methodFrom, methodTo) }
     }
 
     @Test
     fun `interface implementation is reachable`() {
-        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::D)
-        val methodTo = cp.getJcMethodByName(CallGraphTestClass4::A)
+        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::D).method
+        val methodTo = cp.getJcMethodByName(CallGraphTestClass4::A).method
         assertTrue { statistics.checkReachability(methodFrom, methodTo) }
     }
 
     @Test
     fun `final method is reachable`() {
-        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::E)
-        val methodTo = cp.getJcMethodByName(CallGraphTestClass1::B)
+        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::E).method
+        val methodTo = cp.getJcMethodByName(CallGraphTestClass1::B).method
         assertTrue { statistics.checkReachability(methodFrom, methodTo) }
     }
 
     // CallGraphTestClass3::C -> CallGraphTestClass2::A -> CallGraphTestClass4::A
     @Test
     fun `transitive reachability test`() {
-        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C)
-        val methodTo = cp.getJcMethodByName(CallGraphTestClass4::A)
+        val methodFrom = cp.getJcMethodByName(CallGraphTestClass3::C).method
+        val methodTo = cp.getJcMethodByName(CallGraphTestClass4::A).method
         assertTrue { statistics.checkReachability(methodFrom, methodTo) }
     }
 }

@@ -22,6 +22,8 @@ class StepsStatistics<Method, State : UState<*, Method, *, *, *, State>> : UMach
 
     override fun onState(parent: State, forks: Sequence<State>) {
         totalSteps++
-        methodSteps.merge(parent.entrypoint, 1UL) { current, one -> current + one }
+        parent.callStack.forEach { (m, _) ->
+            methodSteps.merge(m, 1UL) { current, one -> current + one }
+        }
     }
 }

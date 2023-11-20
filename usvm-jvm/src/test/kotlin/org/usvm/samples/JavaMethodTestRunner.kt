@@ -1,28 +1,35 @@
 package org.usvm.samples
 
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
-import org.usvm.*
+import org.usvm.CoverageZone
+import org.usvm.PathSelectionStrategy
+import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestInterpreter
 import org.usvm.machine.JcInterpreterObserver
-import org.usvm.util.JcTestExecutor
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.JcTestExecutor
 import org.usvm.util.JcTestResolverType
 import org.usvm.util.UTestRunnerController
-import kotlin.reflect.*
+import org.usvm.util.getJcMethodByName
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.KFunction1
+import kotlin.reflect.KFunction2
+import kotlin.reflect.KFunction3
+import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @ExtendWith(UTestRunnerController::class)
@@ -761,9 +768,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     )
 
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
-        val declaringClassName = requireNotNull(method.declaringClass?.name)
-        val jcClass = cp.findClass(declaringClassName).toType()
-        val jcMethod = jcClass.declaredMethods.first { it.name == method.name }
+        val jcMethod = cp.getJcMethodByName(method)
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)

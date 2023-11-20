@@ -30,7 +30,6 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.types.single.SingleTypeSystem
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.INFINITE
-import kotlin.time.Duration
 
 abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext<USizeSort>
