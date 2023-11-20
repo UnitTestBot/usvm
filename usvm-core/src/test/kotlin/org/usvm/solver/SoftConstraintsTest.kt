@@ -12,8 +12,8 @@ import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
-import org.usvm.constraints.UPathConstraints
 import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.constraints.UPathConstraints
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem

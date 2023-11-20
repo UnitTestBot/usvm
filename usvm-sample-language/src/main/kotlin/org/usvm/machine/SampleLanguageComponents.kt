@@ -12,6 +12,7 @@ import org.usvm.language.SampleType
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration
 
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,

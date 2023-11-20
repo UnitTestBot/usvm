@@ -35,38 +35,44 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
         stopStrategy: StopStrategy = StopStrategy { false }
     ) {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
-            while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
-                val state = pathSelector.peek()
-                val (forkedStates, stateAlive) = interpreter.step(state)
+            observer.onMachineStarted()
+            try {
+                while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
+                    val state = pathSelector.peek()
+                    observer.onStatePeeked(state)
 
-                observer.onState(state, forkedStates)
+                    val (forkedStates, stateAlive) = interpreter.step(state)
+                    observer.onState(state, forkedStates)
 
-                val originalStateAlive = stateAlive && !isStateTerminated(state)
-                val aliveForkedStates = mutableListOf<State>()
-                for (forkedState in forkedStates) {
-                    if (!isStateTerminated(forkedState)) {
-                        aliveForkedStates.add(forkedState)
-                    } else {
-                        // TODO: distinguish between states terminated by exception (runtime or user) and
-                        //  those which just exited
-                        if (forkedState.isSat()) {
-                            observer.onStateTerminated(forkedState, stateReachable = true)
+                    val originalStateAlive = stateAlive && !isStateTerminated(state)
+                    val aliveForkedStates = mutableListOf<State>()
+                    for (forkedState in forkedStates) {
+                        if (!isStateTerminated(forkedState)) {
+                            aliveForkedStates.add(forkedState)
+                        } else {
+                            // TODO: distinguish between states terminated by exception (runtime or user) and
+                            //  those which just exited
+                            if (forkedState.isSat()) {
+                                observer.onStateTerminated(forkedState, stateReachable = true)
+                            }
                         }
                     }
-                }
 
-                if (originalStateAlive) {
-                    pathSelector.update(state)
-                } else {
-                    pathSelector.remove(state)
-                    if (state.isSat()) {
-                        observer.onStateTerminated(state, stateReachable = stateAlive)
+                    if (originalStateAlive) {
+                        pathSelector.update(state)
+                    } else {
+                        pathSelector.remove(state)
+                        if (state.isSat()) {
+                            observer.onStateTerminated(state, stateReachable = stateAlive)
+                        }
+                    }
+
+                    if (aliveForkedStates.isNotEmpty()) {
+                        pathSelector.add(aliveForkedStates)
                     }
                 }
-
-                if (aliveForkedStates.isNotEmpty()) {
-                    pathSelector.add(aliveForkedStates)
-                }
+            } finally {
+                observer.onMachineStopped()
             }
 
             if (!pathSelector.isEmpty()) {

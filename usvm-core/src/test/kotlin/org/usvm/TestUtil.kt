@@ -15,6 +15,7 @@ typealias Field = java.lang.reflect.Field
 typealias Type = kotlin.reflect.KClass<*>
 typealias Method = kotlin.reflect.KFunction<*>
 typealias USizeSort = UBv32Sort
+typealias TestMethod = String
 
 fun <T> shouldNotBeCalled(): T {
     error("Should not be called")
@@ -32,17 +33,18 @@ internal fun pseudoRandom(i: Int): Int {
     return res
 }
 
-internal class TestTarget(method: String, offset: Int) : UTarget<TestInstruction, TestTarget>(
+internal class TestTarget(method: TestMethod, offset: Int) : UTarget<TestInstruction, TestTarget>(
     TestInstruction(method, offset)
 )
 
 internal class TestState(
     ctx: UContext<*>,
-    callStack: UCallStack<String, TestInstruction>, pathConstraints: UPathConstraints<Any>,
-    memory: UMemory<Any, String>, models: List<UModelBase<Any>>,
+    callStack: UCallStack<TestMethod, TestInstruction>, pathConstraints: UPathConstraints<Any>,
+    memory: UMemory<Any, TestMethod>, models: List<UModelBase<Any>>,
     pathLocation: PathNode<TestInstruction>,
-    targetTrees: UTargetsSet<TestTarget, TestInstruction> = UTargetsSet.empty()
-) : UState<Any, String, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
+    targetTrees: UTargetsSet<TestTarget, TestInstruction> = UTargetsSet.empty(),
+    override val entrypoint: TestMethod = ""
+) : UState<Any, TestMethod, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
 
     override fun clone(newConstraints: UPathConstraints<Any>?): TestState = this
 
@@ -65,17 +67,17 @@ interface TestKeyInfo<T, Reg : Region<Reg>> : USymbolicCollectionKeyInfo<T, Reg>
     override fun bottomRegion(): Reg = shouldNotBeCalled()
 }
 
-internal fun mockState(id: StateId, startMethod: String, startInstruction: Int = 0, targets: List<TestTarget> = emptyList()): TestState {
+internal fun mockState(id: StateId, startMethod: TestMethod, startInstruction: Int = 0, targets: List<TestTarget> = emptyList()): TestState {
     val ctxMock = mockk<UContext<*>>()
     every { ctxMock.getNextStateId() } returns id
-    val callStack = UCallStack<String, TestInstruction>(startMethod)
+    val callStack = UCallStack<TestMethod, TestInstruction>(startMethod)
     val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), mockk(), UTargetsSet.from(targets)))
     every { spyk.currentStatement } returns TestInstruction(startMethod, startInstruction)
     return spyk
 }
 
-internal fun callStackOf(startMethod: String, vararg elements: Pair<String, Int>): UCallStack<String, TestInstruction> {
-    val callStack = UCallStack<String, TestInstruction>(startMethod)
+internal fun callStackOf(startMethod: TestMethod, vararg elements: Pair<TestMethod, Int>): UCallStack<TestMethod, TestInstruction> {
+    val callStack = UCallStack<TestMethod, TestInstruction>(startMethod)
     var currentMethod = startMethod
     for ((method, instr) in elements) {
         callStack.push(method, TestInstruction(currentMethod, instr))

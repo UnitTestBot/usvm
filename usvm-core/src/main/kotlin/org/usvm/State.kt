@@ -58,6 +58,8 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
         return id.hashCode()
     }
 
+    abstract val entrypoint: Method
+
     val lastEnteredMethod: Method
         get() = callStack.lastMethod()
 

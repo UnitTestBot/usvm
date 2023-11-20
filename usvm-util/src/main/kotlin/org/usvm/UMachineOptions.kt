@@ -107,6 +107,19 @@ enum class PathSelectorCombinationStrategy {
     PARALLEL
 }
 
+enum class PathSelectorFairnessStrategy {
+    /**
+     * Strategy similar to Linux Completely Fair Scheduler: method with the lowest time spent is always peeked.
+     */
+    COMPLETELY_FAIR,
+
+    /**
+     * Strategy similar to Linux O(1) scheduler: keys are switched in round-robin fashion (so, all keys are guaranteed to be selected).
+     * Each key is given an equal time quantum.
+     */
+    CONSTANT_TIME
+}
+
 // TODO: add module/package coverage zone
 enum class CoverageZone {
     /**
@@ -152,6 +165,12 @@ data class UMachineOptions(
      */
     val pathSelectorCombinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED,
     /**
+     * Strategy to switch between multiple methods' path selectors. Valid only when [timeout] is set.
+     *
+     * @see PathSelectorFairnessStrategy
+     */
+    val pathSelectorFairnessStrategy: PathSelectorFairnessStrategy = PathSelectorFairnessStrategy.CONSTANT_TIME,
+    /**
      * Strategy to collect terminated states.
      *
      * @see StateCollectionStrategy
@@ -174,9 +193,9 @@ data class UMachineOptions(
      */
     val collectedStatesLimit: Int? = null,
     /**
-     * Optional timeout in milliseconds to stop execution on.
+     * Timeout to stop execution on. Use [Duration.INFINITE] for no timeout.
      */
-    val timeoutMs: Long? = 20_000,
+    val timeout: Duration = 20_000.milliseconds,
     /**
      * A number of steps from the last terminated state.
      */

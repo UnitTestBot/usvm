@@ -1,7 +1,7 @@
 package org.usvm.util
 
 import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.toType
 import java.io.File
@@ -21,10 +21,10 @@ private val classpath: List<String>
             .toList()
     }
 
-fun JcClasspath.getJcMethodByName(func: KFunction<*>): JcMethod {
+fun JcClasspath.getJcMethodByName(func: KFunction<*>): JcTypedMethod {
     val declaringClassName = requireNotNull(func.javaMethod?.declaringClass?.name)
     val jcClass = findClass(declaringClassName).toType()
-    return jcClass.declaredMethods.first { it.name == func.name }.method
+    return jcClass.declaredMethods.first { it.name == func.name }
 }
 
 inline fun <reified T> Result<*>.isException(): Boolean = exceptionOrNull() is T
