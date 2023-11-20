@@ -155,7 +155,11 @@ object Reflection {
 
     private fun JcField.toJavaField(classLoader: ClassLoader): Field {
         val klass = Class.forName(enclosingClass.name, false, classLoader)
-        return klass.getDeclaredField(name)
+        return try {
+            klass.getDeclaredField(name)
+        } catch (ex: NoSuchFieldException) {
+            error("Class ${enclosingClass.name} has no $name field")
+        }
     }
 
     private fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {

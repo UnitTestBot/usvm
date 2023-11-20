@@ -3,7 +3,8 @@ package org.usvm.api.util
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcRefType
 import org.jacodb.api.ext.allSuperHierarchySequence
-import org.jacodb.api.ext.toType
+import org.jacodb.api.ext.fields
+import org.jacodb.api.ext.findTypeOrNull
 import java.nio.ByteBuffer
 import java.security.CodeSource
 import java.security.SecureClassLoader
@@ -38,16 +39,11 @@ object JcClassLoader : SecureClassLoader(ClassLoader.getSystemClassLoader()) {
                 val notVisitedSupers = allSuperHierarchySequence.filterNot { it in visited }
                 notVisitedSupers.forEach { defineClassRecursively(it, visited) }
 
-                val classType = toType()
-                val notVisitedRefFieldTypes = classType
-                    .fields
-                    .asSequence()
-                    .map { it.fieldType }
-                    .filterIsInstance<JcRefType>()
-                    .map { it.jcClass }
-                    .filterNot { it in visited }
-
-                notVisitedRefFieldTypes.forEach { defineClassRecursively(it, visited) }
+                for (field in fields) {
+                    val fieldType = classpath.findTypeOrNull(field.type) ?: continue
+                    if (fieldType !is JcRefType) continue
+                    defineClassRecursively(fieldType.jcClass, visited)
+                }
 
                 return defineClass(name, bytecode())
             }
