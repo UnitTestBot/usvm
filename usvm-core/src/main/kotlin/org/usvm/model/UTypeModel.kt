@@ -7,17 +7,18 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.constraints.UTypeEvaluator
+import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 
 class UTypeModel<Type>(
     val typeSystem: UTypeSystem<Type>,
-    typeStreamByAddr: Map<UConcreteHeapAddress, UTypeStream<Type>>,
+    typeRegionByAddr: Map<UConcreteHeapAddress, UTypeRegion<Type>>,
 ) : UTypeEvaluator<Type> {
-    private val typeStreamByAddr = typeStreamByAddr.toMutableMap()
+    private val typeStreamByAddr = typeRegionByAddr.toMutableMap()
 
-    fun typeStream(ref: UConcreteHeapRef): UTypeStream<Type> =
-        typeStreamByAddr[ref.address] ?: typeSystem.topTypeStream()
+    private fun typeRegion(ref: UConcreteHeapRef): UTypeRegion<Type> =
+        typeStreamByAddr[ref.address] ?: UTypeRegion(typeSystem, typeSystem.topTypeStream())
 
     override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
         when {
@@ -29,11 +30,13 @@ class UTypeModel<Type>(
                 // which have addresses less or equal than INITIAL_INPUT_ADDRESS
                 require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
-                val evaluatedTypeStream = typeStream(ref)
-                val typeStream = evaluatedTypeStream.filterBySupertype(supertype)
-                val isEmpty = typeStream.isEmpty ?: error("Invalid model containing wrong type stream $typeStream")
+                val evaluatedTypeRegion = typeRegion(ref)
+                val updatedTypeRegion = evaluatedTypeRegion.addSupertype(supertype)
+                val updatedTypeStream = updatedTypeRegion.typeStream
+                val isEmpty = updatedTypeStream.isEmpty
+                    ?: error("Type stream exceeded ${typeSystem.typeOperationsTimeout} timeout on supertype $supertype")
                 if (!isEmpty) {
-                    typeStreamByAddr[ref.address] = typeStream
+                    typeStreamByAddr[ref.address] = updatedTypeRegion
                     ref.ctx.trueExpr
                 } else {
                     ref.ctx.falseExpr
@@ -53,11 +56,13 @@ class UTypeModel<Type>(
                 // which have addresses less or equal than INITIAL_INPUT_ADDRESS
                 require(ref.address <= INITIAL_INPUT_ADDRESS) { "Unexpected ref: $ref" }
 
-                val evaluatedTypeStream = typeStream(ref)
-                val typeStream = evaluatedTypeStream.filterBySubtype(subtype)
-                val isEmpty = typeStream.isEmpty ?: error("Invalid model containing wrong type stream $typeStream")
+                val evaluatedTypeRegion = typeRegion(ref)
+                val updatedTypeRegion = evaluatedTypeRegion.addSubtype(subtype)
+                val updatedTypeStream = updatedTypeRegion.typeStream
+                val isEmpty = updatedTypeStream.isEmpty
+                    ?: error("Type stream exceeded ${typeSystem.typeOperationsTimeout} timeout on subtype $subtype")
                 if (!isEmpty) {
-                    typeStreamByAddr[ref.address] = typeStream
+                    typeStreamByAddr[ref.address] = updatedTypeRegion
                     ref.ctx.trueExpr
                 } else {
                     ref.ctx.falseExpr
@@ -69,6 +74,6 @@ class UTypeModel<Type>(
 
     override fun getTypeStream(ref: UHeapRef): UTypeStream<Type> {
         check(ref is UConcreteHeapRef) { "Unexpected ref: $ref" }
-        return typeStream(ref)
+        return typeRegion(ref).typeStream
     }
 }
