@@ -32,7 +32,7 @@ class InstrumentationProcessRunner(
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
         instrumentationClassFactory: KClass<JcInstrumenterFactory<out JcInstrumenter>>
-    ) : this(testingProjectClasspath.joinToString(":"), jcClasspath, instrumentationClassFactory)
+    ) : this(testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, instrumentationClassFactory)
 
     fun isAlive() = this::lifetime.isInitialized && lifetime.isAlive
 
