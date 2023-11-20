@@ -10,6 +10,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.descriptor.UTestUnexpectedExecutionBuilder
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.UTestExecutorInitException
+import java.io.File
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -25,7 +26,7 @@ class UTestConcreteExecutor(
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
         timeout: Duration
-    ) : this(instrumentationClassFactory, testingProjectClasspath.joinToString(":"), jcClasspath, timeout)
+    ) : this(instrumentationClassFactory, testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, timeout)
 
     private val lifetime = LifetimeDefinition()
 
