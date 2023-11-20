@@ -99,19 +99,19 @@ open class USolverBase<Type>(
                 when (val typeResult = typeSolver.check(typeSolverQuery)) {
                     is USatResult -> return USatResult(
                         UModelBase(
-                        ctx,
-                        uModel.stack,
-                        typeResult.model,
-                        uModel.mocker,
-                        uModel.regions,
-                        uModel.nullRef
+                            ctx,
+                            uModel.stack,
+                            typeResult.model,
+                            uModel.mocker,
+                            uModel.regions,
+                            uModel.nullRef
                         )
                     )
 
                     // in case of failure, assert reference disequality expressions
                     is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
-                            .map(translator::translate)
-                            .let { smtSolver.assert(it) }
+                        .map(translator::translate)
+                        .let { smtSolver.assert(it) }
 
                     is UUnknownResult -> return UUnknownResult()
                     is UUnsatResult -> return UUnsatResult()
