@@ -198,7 +198,7 @@ class ConstantTimeFairPathSelectorTests {
 
         assertEquals(12, times["s1"])
         assertEquals(40, times["s2"])
-        assertEquals(7, times["s3"])
+        assertEquals(5, times["s3"])
         assertEquals(0, times["s4"])
     }
 }

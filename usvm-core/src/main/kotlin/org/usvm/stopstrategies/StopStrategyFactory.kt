@@ -15,12 +15,13 @@ fun createStopStrategy(
     coverageStatisticsFactory: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null,
 ) : StopStrategy {
+    val stepsStatistics = lazy { requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for selected stopping strategy" } }
+
     val stopStrategies = mutableListOf<StopStrategy>()
 
     val stepLimit = options.stepLimit
     if (stepLimit != null) {
-        val stepsStatistics = requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for stopping on step count" }
-        stopStrategies.add(StepLimitStopStrategy(stepLimit, stepsStatistics))
+        stopStrategies.add(StepLimitStopStrategy(stepLimit, stepsStatistics.value))
     }
     if (options.stopOnCoverage in 1..100) {
         val coverageStatistics = requireNotNull(coverageStatisticsFactory()) {
@@ -45,11 +46,10 @@ fun createStopStrategy(
 
     val stepsFromLastCovered = options.stepsFromLastCovered
     if (stepsFromLastCovered != null && getCollectedStatesCount != null) {
-        val stepsStatistics = requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for stopping on step count" }
         val stepsFromLastCoveredStopStrategy = StepsFromLastCoveredStopStrategy(
             stepsFromLastCovered.toULong(),
             getCollectedStatesCount,
-            stepsStatistics
+            stepsStatistics.value
         )
         stopStrategies.add(stepsFromLastCoveredStopStrategy)
     }

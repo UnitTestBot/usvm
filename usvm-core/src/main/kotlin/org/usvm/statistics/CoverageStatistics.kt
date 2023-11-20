@@ -30,7 +30,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     /**
      * Methods which coverage is currently tracked.
      */
-    val coverageZone get() = coveredStatements.keys.toList()
+    val coverageZone: List<Method> get() = coveredStatements.keys.toList()
 
     init {
         for (method in methods) {
@@ -99,7 +99,7 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
         bfsTraversal(listOf(method)) {
             applicationGraph.statementsOf(method).flatMap(applicationGraph::callees).filter(uncoveredStatements::containsKey)
         }.forEach {
-            uncoveredStatementsCountAcc += uncoveredStatements[it]?.size ?: throw IllegalArgumentException("Trying to get coverage of unknown method $it")
+            uncoveredStatementsCountAcc += uncoveredStatements.getValue(it).size
             coveredStatementsCountAcc += coveredStatements.getValue(it).size
         }
         return computeCoverage(coveredStatementsCountAcc, uncoveredStatementsCountAcc)

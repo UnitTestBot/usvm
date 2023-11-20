@@ -24,17 +24,16 @@ import kotlin.time.Duration
 class CompletelyFairPathSelector<State, Key>(
     initialKeys: Set<Key>,
     private val stopwatch: Stopwatch,
-    private val getKey: (State) -> Key,
+    getKey: (State) -> Key,
     basePathSelectorFactory: (Key) -> UPathSelector<State>,
     private val peeksInQuantum: UInt = 1U
-) : KeyedPathSelector<State, Key> {
+) : KeyedPathSelector<State, Key>(getKey) {
 
     private data class KeysQueueElement<Key>(val key: Key, var elapsed: Duration)
     private val keysQueue = PriorityQueue(
         Comparator
             .comparing<KeysQueueElement<Key>, Duration> { it.elapsed }
     )
-    private val pathSelectors = HashMap<Key, UPathSelector<State>>()
 
     private var peekCounter = 0U
 
@@ -88,26 +87,5 @@ class CompletelyFairPathSelector<State, Key>(
             currentPathSelector = pathSelectors[currentKey.key]
         }
         return currentPathSelector.peek()
-    }
-
-    override fun update(state: State) {
-        val key = getKey(state)
-        pathSelectors[key]?.update(state) ?: throw IllegalStateException("Trying to update state with unknown key")
-    }
-
-    override fun add(states: Collection<State>) {
-        states.groupBy(getKey).forEach { (key, states) ->
-            pathSelectors[key]?.add(states) ?: throw IllegalStateException("Trying to add states with unknown key")
-        }
-    }
-
-    override fun remove(state: State) {
-        val key = getKey(state)
-        pathSelectors[key]?.remove(state) ?: throw IllegalStateException("Trying to remove state with unknown key")
-    }
-
-    override fun removeKey(key: Key) {
-        // Removing from keysQueue is performed by subsequent peek() calls
-        pathSelectors.remove(key)
     }
 }

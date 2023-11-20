@@ -18,9 +18,9 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.ByMethodStatisticsPrinter
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StatisticsByMethodPrinter
 import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
@@ -171,7 +171,7 @@ class JcMachine(
         
         if (logger.isInfoEnabled) {
             observers.add(
-                ByMethodStatisticsPrinter(
+                StatisticsByMethodPrinter(
                     { methods },
                     logger::info,
                     { it.humanReadableSignature },

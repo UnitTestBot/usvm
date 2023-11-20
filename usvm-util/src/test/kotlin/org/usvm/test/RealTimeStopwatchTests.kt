@@ -1,14 +1,14 @@
 package org.usvm.test
 
 import org.junit.jupiter.api.Test
-import org.usvm.util.StopwatchImpl
+import org.usvm.util.RealTimeStopwatch
 import java.util.concurrent.TimeUnit
 
-class StopwatchImplTests {
+class RealTimeStopwatchTests {
 
     @Test
     fun smokeTest() {
-        val stopwatch = StopwatchImpl()
+        val stopwatch = RealTimeStopwatch()
         stopwatch.start()
         TimeUnit.MILLISECONDS.sleep(400)
         stopwatch.stop()
@@ -17,7 +17,7 @@ class StopwatchImplTests {
 
     @Test
     fun elapsedWithoutStopTest() {
-        val stopwatch = StopwatchImpl()
+        val stopwatch = RealTimeStopwatch()
         stopwatch.start()
         TimeUnit.MILLISECONDS.sleep(400)
         assert(stopwatch.elapsed.inWholeMilliseconds in 300..1000)
@@ -25,7 +25,7 @@ class StopwatchImplTests {
 
     @Test
     fun multiplePeriodsTest() {
-        val stopwatch = StopwatchImpl()
+        val stopwatch = RealTimeStopwatch()
         stopwatch.start()
         TimeUnit.MILLISECONDS.sleep(400)
         stopwatch.stop()

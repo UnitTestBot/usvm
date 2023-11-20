@@ -6,7 +6,7 @@ import kotlin.math.roundToInt
 /**
  * Prints a table with coverage, time and steps statistics for each method in [getMethods] result using [print] function.
  */
-class ByMethodStatisticsPrinter<Method, Statement, State : UState<*, Method, Statement, *, *, State>>(
+class StatisticsByMethodPrinter<Method, Statement, State : UState<*, Method, Statement, *, *, State>>(
     private val getMethods: () -> List<Method>,
     private val print: (String) -> Unit,
     private val getMethodSignature: (Method) -> String,
@@ -16,8 +16,12 @@ class ByMethodStatisticsPrinter<Method, Statement, State : UState<*, Method, Sta
 ) : UMachineObserver<State> {
 
     override fun onMachineStopped() {
+        val methods = getMethods()
+        if (methods.isEmpty()) {
+            return
+        }
         val statsStrings = mutableListOf(StatisticsRow("Method", "Coverage, %", "Time spent, ms", "Steps"))
-        getMethods().forEach {
+        methods.forEach {
             val name = getMethodSignature(it)
             val coverage = coverageStatistics.getMethodCoverage(it).roundToInt().toString()
             val time = timeStatistics.getTimeSpentOnMethod(it).inWholeMilliseconds.toString()

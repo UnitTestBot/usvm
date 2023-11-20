@@ -22,7 +22,7 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.targets.UTarget
-import org.usvm.util.StopwatchImpl
+import org.usvm.util.RealTimeStopwatch
 import org.usvm.util.log2
 import kotlin.math.max
 import kotlin.random.Random
@@ -194,7 +194,7 @@ fun <Method, Statement, Target, State> createPathSelector(
 
             ConstantTimeFairPathSelector(
                 initialStates.keys,
-                StopwatchImpl(),
+                RealTimeStopwatch(),
                 ::getRemainingTimeMs,
                 { it.entrypoint },
                 getMethodCoverage,
@@ -205,7 +205,7 @@ fun <Method, Statement, Target, State> createPathSelector(
         PathSelectorFairnessStrategy.COMPLETELY_FAIR ->
             CompletelyFairPathSelector(
                 initialStates.keys,
-                StopwatchImpl(),
+                RealTimeStopwatch(),
                 { it.entrypoint },
                 ::createBasePathSelector
             )

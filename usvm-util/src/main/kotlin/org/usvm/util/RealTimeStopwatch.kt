@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.milliseconds
 /**
  * [Stopwatch] implementation based on [System.currentTimeMillis] method.
  */
-class StopwatchImpl : Stopwatch {
+class RealTimeStopwatch : Stopwatch {
     private var startTime = Duration.ZERO
 
     override var elapsed: Duration = Duration.ZERO
