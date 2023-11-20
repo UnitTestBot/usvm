@@ -117,7 +117,7 @@ class UTypeSolver<Type>(
                 return UUnsatResult()
             }
 
-            typeStream
+            region
         }
 
         val typeModel = UTypeModel(typeSystem, allConcreteRefToType)
