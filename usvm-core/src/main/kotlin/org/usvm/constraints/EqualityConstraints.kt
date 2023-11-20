@@ -428,7 +428,9 @@ class UEqualityConstraints private constructor(
         if (equalReferences != other.equalReferences) {
             return null
         }
-        return this
+
+        // Clone because of mutable [isStaticRefAssignableToSymbolic]
+        return clone()
     }
 
     fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> {
