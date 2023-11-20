@@ -27,6 +27,11 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     private var totalUncoveredStatements = 0
     private var totalCoveredStatements = 0
 
+    /**
+     * Methods which coverage is currently tracked.
+     */
+    val coverageZone: List<Method> get() = coveredStatements.keys.toList()
+
     init {
         for (method in methods) {
             addCoverageZone(method)
@@ -61,29 +66,47 @@ class CoverageStatistics<Method, Statement, State : UState<*, Method, Statement,
     }
 
     /**
-     * Returns current total coverage of all initial methods (in percents).
+     * Returns current total coverage of all methods in coverage zone (in percents).
      */
     fun getTotalCoverage(): Float {
         return computeCoverage(totalCoveredStatements, totalUncoveredStatements)
     }
 
     /**
-     * Returns current number of covered statements of all initial methods.
+     * Returns current number of covered statements of all methods in coverage zone.
      */
     fun getTotalCoveredStatements(): Int = totalCoveredStatements
 
     /**
      * Returns current coverage of specified method (in percents).
      *
-     * @param method one of the initial methods to get coverage of.
+     * @param method one of the methods in coverage zone to get coverage of.
      */
     fun getMethodCoverage(method: Method): Float {
-        val uncoveredStatementsCount = uncoveredStatements[method]?.size ?: throw IllegalArgumentException("Trying to get coverage of unknown method")
+        val uncoveredStatementsCount = uncoveredStatements[method]?.size ?: throw IllegalArgumentException("Trying to get coverage of unknown method $method")
         return computeCoverage(coveredStatements.getValue(method).size, uncoveredStatementsCount)
     }
 
     /**
-     * Returns statements from initial methods which have not been covered yet.
+     * Returns current coverage (in percents) of the [method] and all the methods in coverage zone
+     * transitively reachable from it in call graph.
+     *
+     * @param method one of the methods in coverage zone to get transitive coverage of.
+     */
+    fun getTransitiveMethodCoverage(method: Method): Float {
+        var uncoveredStatementsCountAcc = 0
+        var coveredStatementsCountAcc = 0
+        bfsTraversal(listOf(method)) {
+            applicationGraph.statementsOf(method).flatMap(applicationGraph::callees).filter(uncoveredStatements::containsKey)
+        }.forEach {
+            uncoveredStatementsCountAcc += uncoveredStatements.getValue(it).size
+            coveredStatementsCountAcc += coveredStatements.getValue(it).size
+        }
+        return computeCoverage(coveredStatementsCountAcc, uncoveredStatementsCountAcc)
+    }
+
+    /**
+     * Returns statements from methods in coverage zone which have not been covered yet.
      */
     fun getUncoveredStatements(): Collection<Statement> {
         return uncoveredStatements.values.flatten()

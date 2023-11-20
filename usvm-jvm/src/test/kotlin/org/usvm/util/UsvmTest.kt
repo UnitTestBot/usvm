@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.support.AnnotationConsumer
 import org.usvm.*
 import java.util.stream.Stream
+import kotlin.time.Duration.Companion.milliseconds
 
 annotation class Options(
     val strategies: Array<PathSelectionStrategy>,
@@ -38,7 +39,7 @@ class MachineOptionsArgumentsProvider : ArgumentsProvider, AnnotationConsumer<Us
                 pathSelectionStrategies = it.strategies.toList(),
                 pathSelectorCombinationStrategy = it.combinationStrategy,
                 stopOnCoverage = it.stopOnCoverage,
-                timeoutMs = it.timeout,
+                timeout = it.timeout.milliseconds,
                 coverageZone = it.coverageZone,
                 solverType = it.solverType,
                 targetSearchDepth = it.targetSearchDepth

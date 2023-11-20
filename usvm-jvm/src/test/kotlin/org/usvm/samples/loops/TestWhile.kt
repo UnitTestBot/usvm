@@ -6,14 +6,15 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.time.Duration.Companion.milliseconds
 
 class TestWhile : JavaMethodTestRunner() {
 
     // Increased limits for loop tests
     override var options: UMachineOptions = super.options.copy(
         stepLimit = 100_000UL,
-        timeoutMs = 100_000,
-        stepsFromLastCovered = 100_000,
+        timeout = 100_000.milliseconds,
+        stepsFromLastCovered = 100_000
     )
 
     @Test

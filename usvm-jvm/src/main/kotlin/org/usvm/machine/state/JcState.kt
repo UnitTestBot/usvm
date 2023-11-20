@@ -16,6 +16,7 @@ import org.usvm.targets.UTargetsSet
 
 class JcState(
     ctx: JcContext,
+    override val entrypoint: JcMethod,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
     pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
@@ -36,6 +37,7 @@ class JcState(
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return JcState(
             ctx,
+            entrypoint,
             callStack.clone(),
             clonedConstraints,
             memory.clone(clonedConstraints.typeConstraints),
@@ -52,6 +54,7 @@ class JcState(
      * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
      */
     override fun mergeWith(other: JcState, by: Unit): JcState? {
+        require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
         // TODO: copy-paste
 
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
@@ -71,9 +74,9 @@ class JcState(
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
         mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
-
         return JcState(
             ctx,
+            entrypoint,
             mergedCallStack,
             mergedPathConstraints,
             mergedMemory,

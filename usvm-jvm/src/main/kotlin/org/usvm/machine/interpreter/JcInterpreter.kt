@@ -91,7 +91,7 @@ class JcInterpreter(
     }
 
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
-        val state = JcState(ctx, targets = UTargetsSet.from(targets))
+        val state = JcState(ctx, method, targets = UTargetsSet.from(targets))
         val typedMethod = with(applicationGraph) { method.typed }
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
