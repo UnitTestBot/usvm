@@ -81,7 +81,7 @@ open class ULazyModelDecoder<Type>(
 
         val stack = decodeStack(model, addressesMapping)
         val regions = decodeHeap(model, addressesMapping)
-        val types = UTypeModel<Type>(ctx.typeSystem(), typeStreamByAddr = emptyMap())
+        val types = UTypeModel<Type>(ctx.typeSystem(), typeRegionByAddr = emptyMap())
         val mocks = decodeMocker(model, addressesMapping)
 
         return UModelBase(ctx, stack, types, mocks, regions, nullRef)
