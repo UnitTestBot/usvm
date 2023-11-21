@@ -110,7 +110,15 @@ class JcTestExecutor(
                         }
                     }
                     before = JcParametersState(thisBefore, argsBefore)
-                    after = before
+                    val thisAfterDescr = execResult.resultState.instanceDescriptor
+                    val thisAfter = thisAfterDescr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                    val afterArgsDescr = execResult.resultState.argsDescriptors.map { it }
+                    val argsAfter = afterArgsDescr.let { descriptors ->
+                        descriptors.map { descr ->
+                            descr?.let { descriptor2ValueConverter.buildObjectFromDescriptor(it) }
+                        }
+                    }
+                    after = JcParametersState(thisAfter, argsAfter)
                     if (execResult.cause.raisedByUserCode) {
                         Result.success(exceptionInstance)
                     } else {

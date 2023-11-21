@@ -75,7 +75,7 @@ open class Value2DescriptorConverter(
                 is Long -> const(any)
                 is Float -> const(any)
                 is Double -> const(any)
-                is String -> const(any)
+                is String -> const(any, depth + 1)
                 is BooleanArray -> `boolean array`(any)
                 is ByteArray -> `byte array`(any)
                 is CharArray -> `char array`(any)
@@ -99,14 +99,11 @@ open class Value2DescriptorConverter(
 
     private fun const(value: Char) = UTestConstantDescriptor.Char(value, jcClasspath.char)
 
-    private fun const(value: String) =
+    private fun const(value: String, depth: Int) =
         try {
             UTestConstantDescriptor.String(value, jcClasspath.stringType()).also { value.length }
         } catch (e: Throwable) {
-            UTestConstantDescriptor.String(
-                InstrumentationModuleConstants.nameForExistingButNullString,
-                jcClasspath.stringType()
-            )
+            `object`(value, depth)
         }
 
     private fun const(number: Number) = when (number) {

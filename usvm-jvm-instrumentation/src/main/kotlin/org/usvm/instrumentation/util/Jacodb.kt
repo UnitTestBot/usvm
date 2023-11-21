@@ -139,7 +139,8 @@ fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
 fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
     require(isConstructor) { "Can't convert not constructor to constructor" }
     val klass = Class.forName(enclosingClass.name, true, classLoader)
-    return klass.constructors.find { it.jcdbSignature == this.jcdbSignature } ?: error("Can't find constructor")
+    return (klass.constructors + klass.declaredConstructors).find { it.jcdbSignature == this.jcdbSignature }
+        ?: throw TestExecutorException("Can't find constructor")
 }
 
 val Method.jcdbSignature: String
