@@ -59,6 +59,7 @@ open class UContext<USizeSort : USort>(
 
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
+    private val mocker by lazy { components.mkMocker<Nothing>() }
     private val softConstraintsProvider by lazy { USoftConstraintsProvider<Nothing, USizeSort>(this) }
 
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
@@ -78,6 +79,9 @@ open class UContext<USizeSort : USort>(
     @Suppress("UNCHECKED_CAST")
     fun <Type> typeSystem(): UTypeSystem<Type> =
         this.typeSystem as UTypeSystem<Type>
+
+    @Suppress("UNCHECKED_CAST")
+    fun <Method> mocker(): UMocker<Method> = this.mocker as UMocker<Method>
 
     fun <Type> softConstraintsProvider(): USoftConstraintsProvider<Type, USizeSort> = softConstraintsProvider.cast()
 

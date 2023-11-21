@@ -11,11 +11,11 @@ interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
-interface UMocker<Method> : UMockEvaluator {
+interface UMocker<Method> : UMockEvaluator, UMergeable<UMocker<Method>, MergeGuard> {
     fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
-        sort: Sort
+        sort: Sort,
     ): UMockSymbol<Sort>
 
     fun clone(): UMocker<Method>
@@ -23,7 +23,7 @@ interface UMocker<Method> : UMockEvaluator {
 
 class UIndexedMocker<Method>(
     private var clauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentMapOf()
-) : UMocker<Method>, UMergeable<UIndexedMocker<Method>, MergeGuard> {
+) : UMocker<Method> {
     override fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
@@ -32,6 +32,7 @@ class UIndexedMocker<Method>(
         val currentClauses = clauses.getOrDefault(method, persistentListOf())
         val index = currentClauses.size
         val const = sort.uctx.mkIndexedMethodReturnValue(method, index, sort)
+
         clauses = clauses.put(method, currentClauses.add(const))
         return const
     }
@@ -47,8 +48,8 @@ class UIndexedMocker<Method>(
      *
      * @return the merged indexed mocker.
      */
-    override fun mergeWith(other: UIndexedMocker<Method>, by: MergeGuard): UIndexedMocker<Method>? {
-        if (clauses !== other.clauses) {
+    override fun mergeWith(other: UMocker<Method>, by: MergeGuard): UIndexedMocker<Method>? {
+        if (other !is UIndexedMocker || clauses !== other.clauses) {
             return null
         }
         return this
