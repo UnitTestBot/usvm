@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -48,9 +48,11 @@ private fun buildSampleRunConfig(): RunConfig {
                 return 2
             
             def f(x):
-                if 1 in x:
+                if -x == 10:
                     return 1
-                return 2
+                elif +x == 15:
+                    return 2
+                return 3
         """.trimIndent()
     )
     val function = PythonUnpinnedCallable.constructCallableFromName(

@@ -156,3 +156,11 @@ def f_with_default(x, y=1):
 
 def call_with_default(x):
     assert f_with_default(x) == 10
+
+
+def unary_int_ops(x: int):
+    if -x == 10:
+        return 1
+    elif +x == 15:
+        return 2
+    return 3
