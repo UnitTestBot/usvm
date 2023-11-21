@@ -65,6 +65,7 @@ void register_approximations(SymbolicAdapter *adapter) {
     adapter->approximation_range = Approximation_range;
     adapter->approximation_list_repeat = Approximation_list_repeat;
     adapter->approximation_list_slice_get_item = Approximation_list_slice_get_item;
+    adapter->approximation_contains_op = Approximation_contains_op;
 }
 
 static void

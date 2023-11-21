@@ -115,15 +115,48 @@ Approximation_range(void *adapter_raw, PyObject *args) {
 
 PyObject *builtin_sum = 0;
 
+#define contains_op_name "ContainsOpApproximation"
+PyObject *contains_op = 0;
+
+#define builtins_approximation_module "approximations.implementations"
+
 void
 initialize_builtin_python_impls() {
     PyObject *globals = PyDict_New();
-    if (!builtin_sum) {
-        PyRun_StringFlags(builtin_sum_impl, Py_file_input, globals, globals, 0);
-        builtin_sum = PyRun_StringFlags("builtin_sum_impl", Py_eval_input, globals, globals, 0);
-        Py_INCREF(builtin_sum);
-    }
+
+    PyRun_StringFlags(builtin_sum_impl, Py_file_input, globals, globals, 0);
+    builtin_sum = PyRun_StringFlags("builtin_sum_impl", Py_eval_input, globals, globals, 0);
+    Py_INCREF(builtin_sum);
+
+    PyRun_StringFlags("import " builtins_approximation_module, Py_file_input, globals, globals, 0);
+    assert(!PyErr_Occurred());
+
+    contains_op = PyRun_StringFlags(builtins_approximation_module "." contains_op_name ".run", Py_eval_input, globals, globals, 0);
+    assert(!PyErr_Occurred() && contains_op);
+    Py_INCREF(contains_op);
+
     Py_DECREF(globals);
+}
+
+int
+Approximation_contains_op(PyObject *storage, PyObject *item, int *approximated) {
+    assert(is_wrapped(storage) && is_wrapped(item));
+    PyObject *concrete_storage = unwrap(storage);
+    SymbolicAdapter *adapter = get_adapter(storage);
+    if (PyList_Check(concrete_storage) || PyTuple_Check(concrete_storage)) {
+        *approximated = 1;
+        PyObject *wrapped = wrap(contains_op, Py_None, adapter);
+        PyObject *args = PyTuple_Pack(2, storage, item);
+        PyObject *result = Py_TYPE(wrapped)->tp_call(wrapped, args, 0);
+        Py_DECREF(args);
+        if (!result)
+            return -1;
+        PyObject *concrete_result = unwrap(result);
+        Py_DECREF(result);
+        return concrete_result == Py_True ? 1 : 0;
+    }
+    *approximated = 0;
+    return 0;
 }
 
 PyObject *
