@@ -225,3 +225,7 @@ def reverse_usage(x: list):
         else:
             result = 2
     return (result, x)
+
+
+def contains_op(x: list):
+    assert 1 in x
