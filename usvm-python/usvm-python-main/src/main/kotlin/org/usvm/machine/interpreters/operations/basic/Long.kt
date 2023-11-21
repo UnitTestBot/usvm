@@ -9,6 +9,19 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.machine.symbolicobjects.*
 
+private fun <RES_SORT: KSort> extractValue(
+    ctx: ConcolicRunContext,
+    expr: UExpr<RES_SORT>
+): UninterpretedSymbolicPythonObject = with(ctx.ctx) {
+    @Suppress("unchecked_cast")
+    when (expr.sort) {
+        intSort -> constructInt(ctx, expr as UExpr<KIntSort>)
+        boolSort -> constructBool(ctx, expr as UBoolExpr)
+        realSort -> constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, expr as UExpr<KRealSort>))
+        else -> error("Bad return sort of int operation: ${expr.sort}")
+    }
+}
+
 private fun <RES_SORT: KSort> createBinaryIntOp(
     op: (ConcolicRunContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?
 ): (ConcolicRunContext, UninterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { ctx, left, right ->
@@ -23,19 +36,35 @@ private fun <RES_SORT: KSort> createBinaryIntOp(
         } else {
             myAssert(ctx, left.evalIs(ctx, typeSystem.pythonInt))
         }
+        if (right.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
+            myFork(ctx, right.evalIs(ctx, typeSystem.pythonInt))
+        } else {
+            myAssert(ctx, right.evalIs(ctx, typeSystem.pythonInt))
+        }
         op(
             ctx,
             left.getToIntContent(ctx) ?: return@with null,
             right.getToIntContent(ctx) ?: return@with null
-        )?.let {
-            @Suppress("unchecked_cast")
-            when (it.sort) {
-                intSort -> constructInt(ctx, it as UExpr<KIntSort>)
-                boolSort -> constructBool(ctx, it as UBoolExpr)
-                realSort -> constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, it as UExpr<KRealSort>))
-                else -> error("Bad return sort of int operation: ${it.sort}")
-            }
+        )?.let { extractValue(ctx, it) }
+    }
+}
+
+private fun <RES_SORT: KSort> createUnaryIntOp(
+    op: (ConcolicRunContext, UExpr<KIntSort>) -> UExpr<RES_SORT>?
+): (ConcolicRunContext, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { ctx, on ->
+    if (ctx.curState == null)
+        null
+    else with (ctx.ctx) {
+        val typeSystem = ctx.typeSystem
+        if (on.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
+            myFork(ctx, on.evalIs(ctx, typeSystem.pythonInt))
+        } else {
+            myAssert(ctx, on.evalIs(ctx, typeSystem.pythonInt))
         }
+        op(
+            ctx,
+            on.getToIntContent(ctx) ?: return@with null
+        )?.let { extractValue(ctx, it) }
     }
 }
 
@@ -67,6 +96,10 @@ fun handlerDIVLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject
                 mkArithDiv(left, right)
         }
     } (x, y, z)
+fun handlerNEGLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    createUnaryIntOp { ctx, on -> ctx.ctx.mkArithUnaryMinus(on) } (x, y)
+fun handlerPOSLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    createUnaryIntOp { _, on -> on } (x, y)
 fun handlerREMLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject, z: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.ctx.mkIntMod(left, right) } (x, y, z)
 @Suppress("unused_parameter")

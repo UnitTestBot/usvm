@@ -120,6 +120,24 @@ nb_bool(PyObject *self) {
 }
 PyType_Slot Virtual_nb_bool = {Py_nb_bool, nb_bool};
 
+static PyObject *
+nb_negative(PyObject *self) {
+    DEBUG_OUTPUT("nb_negative")
+    assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, 0)
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
+}
+PyType_Slot Virtual_nb_negative = {Py_nb_negative, nb_negative};
+
+static PyObject *
+nb_positive(PyObject *self) {
+    DEBUG_OUTPUT("nb_positive")
+    assert(is_virtual_object(self));
+    CHECK_IF_ACTIVATED(self, 0)
+    MAKE_USVM_VIRUAL_CALL((VirtualPythonObject *) self, 0)
+}
+PyType_Slot Virtual_nb_positive = {Py_nb_positive, nb_positive};
+
 #define BINARY_FUNCTION \
     if (is_virtual_object(first)) { \
         CHECK_IF_ACTIVATED(first, 0) \
@@ -230,6 +248,8 @@ initialize_virtual_object_type() {
         Virtual_nb_subtract,
         Virtual_nb_multiply,
         Virtual_nb_matrix_multiply,
+        Virtual_nb_negative,
+        Virtual_nb_positive,
         Virtual_sq_length,
         Virtual_mp_subscript,
         Virtual_mp_ass_subscript,
@@ -289,4 +309,6 @@ void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_nb_multiply = nb_multiply;
     adapter->virtual_nb_matrix_multiply = nb_matrix_multiply;
     adapter->virtual_mp_subscript = mp_subscript;
+    adapter->virtual_nb_positive = nb_positive;
+    adapter->virtual_nb_negative = nb_negative;
 }

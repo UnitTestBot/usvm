@@ -81,6 +81,8 @@ public class CPythonAdapter {
     public native int typeHasNbSubtract(long type);
     public native int typeHasNbMultiply(long type);
     public native int typeHasNbMatrixMultiply(long type);
+    public native int typeHasNbNegative(long type);
+    public native int typeHasNbPositive(long type);
     public native int typeHasSqLength(long type);
     public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);
@@ -347,6 +349,28 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
     }
 
+    @CPythonAdapterJavaMethod(cName = "neg_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerNEGLong(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("neg_long", Collections.singletonList(on)), () -> handlerNEGLongKt(context, on.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "pos_long")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerPOSLong(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("pos_long", Collections.singletonList(on)), () -> handlerPOSLongKt(context, on.obj));
+    }
+
     @CPythonAdapterJavaMethod(cName = "true_div_long")
     @CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
@@ -466,6 +490,28 @@ public class CPythonAdapter {
         if (left.obj == null || right.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("div_float", Arrays.asList(left, right)), () -> handlerDIVFloatKt(context, left.obj, right.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "neg_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerNEGFloat(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("neg_float", Collections.singletonList(on)), () -> handlerNEGFloatKt(context, on.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "pos_float")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerPOSFloat(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("pos_float", Collections.singletonList(on)), () -> handlerPOSFloatKt(context, on.obj));
     }
 
     @CPythonAdapterJavaMethod(cName = "bool_and")
@@ -836,6 +882,30 @@ public class CPythonAdapter {
             return;
         context.curOperation = new MockHeader(NbMatrixMultiplyMethod.INSTANCE, Arrays.asList(left.obj, right.obj), left.obj);
         nbMatrixMultiplyKt(context, left.obj);
+    }
+
+    @CPythonAdapterJavaMethod(cName = "nb_negative")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbNegative(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbNegativeMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
+        nbNegativeKt(context, on.obj);
+    }
+
+    @CPythonAdapterJavaMethod(cName = "nb_positive")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static void notifyNbPositive(ConcolicRunContext context, SymbolForCPython on) {
+        if (on.obj == null)
+            return;
+        context.curOperation = new MockHeader(NbPositiveMethod.INSTANCE, Collections.singletonList(on.obj), on.obj);
+        nbPositiveKt(context, on.obj);
     }
 
     @CPythonAdapterJavaMethod(cName = "sq_length")

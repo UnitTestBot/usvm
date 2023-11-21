@@ -35,6 +35,10 @@ class SymbolTypeTree(
                         { _: UtType -> createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) }
                     NbIntMethod ->
                         { _: UtType -> createUnaryProtocol("__int__", typeHintsStorage.pythonInt) }
+                    NbNegativeMethod ->
+                        { returnType: UtType -> createUnaryProtocol("__neg__", returnType) }
+                    NbPositiveMethod ->
+                        { returnType: UtType -> createUnaryProtocol("__pos__", returnType) }
                     NbMatrixMultiplyMethod ->
                         { returnType: UtType -> createBinaryProtocol("__matmul__", pythonAnyType, returnType) }
                     NbMultiplyMethod ->

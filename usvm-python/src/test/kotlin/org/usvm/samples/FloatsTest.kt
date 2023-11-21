@@ -106,4 +106,19 @@ class FloatsTest : PythonTestRunnerForPrimitiveProgram("Floats") {
             )
         )
     }
+
+    @Test
+    fun testUnaryOps() {
+        check1WithConcreteRun(
+            constructFunction("unary_ops", listOf(typeSystem.pythonFloat)),
+            eq(3),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" },
+            )
+        )
+    }
 }

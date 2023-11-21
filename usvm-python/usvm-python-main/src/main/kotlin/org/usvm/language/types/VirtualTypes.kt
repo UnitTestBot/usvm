@@ -88,6 +88,16 @@ object HasNbMatrixMultiply: TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbMatrixMultiply(type.asObject)
 }
 
+object HasNbNegative: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbNegative(type.asObject)
+}
+
+object HasNbPositive: TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasNbPositive(type.asObject)
+}
+
 object HasSqLength: TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqLength(type.asObject)

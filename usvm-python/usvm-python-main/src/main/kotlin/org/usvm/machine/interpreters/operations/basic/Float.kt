@@ -263,6 +263,19 @@ fun handlerDIVFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyt
     return constructFloat(ctx, floatValue)
 }
 
+fun handlerNEGFloatKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    val value = obj.getToFloatContent(ctx) ?: return null
+    val result = constructNegExpr(ctx, value)
+    return constructFloat(ctx, result)
+}
+
+fun handlerPOSFloatKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    val value = obj.getToFloatContent(ctx) ?: return null
+    return constructFloat(ctx, value)
+}
+
 fun castFloatToInt(
     ctx: ConcolicRunContext,
     float: UninterpretedSymbolicPythonObject

@@ -227,6 +227,8 @@ object ConcretePythonInterpreter {
     val typeHasNbSubtract = createTypeQuery { pythonAdapter.typeHasNbSubtract(it) }
     val typeHasNbMultiply = createTypeQuery { pythonAdapter.typeHasNbMultiply(it) }
     val typeHasNbMatrixMultiply = createTypeQuery { pythonAdapter.typeHasNbMatrixMultiply(it) }
+    val typeHasNbNegative = createTypeQuery { pythonAdapter.typeHasNbNegative(it) }
+    val typeHasNbPositive = createTypeQuery { pythonAdapter.typeHasNbPositive(it) }
     val typeHasSqLength = createTypeQuery { pythonAdapter.typeHasSqLength(it) }
     val typeHasMpLength = createTypeQuery { pythonAdapter.typeHasMpLength(it) }
     val typeHasMpSubscript = createTypeQuery { pythonAdapter.typeHasMpSubscript(it) }
