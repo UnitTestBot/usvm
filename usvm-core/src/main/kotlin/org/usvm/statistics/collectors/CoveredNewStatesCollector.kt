@@ -11,12 +11,10 @@ import org.usvm.statistics.UMachineObserver
  * @param isException if true, state is collected regardless of coverage.
  */
 class CoveredNewStatesCollector<State>(
+    private val statesCollector: StatesCollector<State>,
     private val coverageStatistics: CoverageStatistics<*, *, *>,
     private val isException: (State) -> Boolean
-) : StatesCollector<State> {
-    private val mutableCollectedStates = mutableListOf<State>()
-    override val collectedStates: List<State> = mutableCollectedStates
-
+) : UMachineObserver<State> {
     private var previousCoveredStatements = coverageStatistics.getTotalCoveredStatements()
 
     override fun onStateTerminated(state: State, stateReachable: Boolean) {
@@ -25,14 +23,14 @@ class CoveredNewStatesCollector<State>(
         }
 
         if (isException(state)) {
-            mutableCollectedStates.add(state)
+            statesCollector.addState(state)
             return
         }
 
         val currentCoveredStatements = coverageStatistics.getTotalCoveredStatements()
         if (currentCoveredStatements > previousCoveredStatements) {
             previousCoveredStatements = currentCoveredStatements
-            mutableCollectedStates += state
+            statesCollector.addState(state)
         }
     }
 }

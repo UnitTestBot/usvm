@@ -16,6 +16,8 @@ import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.ListStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CallGraphStatisticsImpl
@@ -44,8 +46,9 @@ class SampleMachine(
 
     fun analyze(
         methods: List<Method<*>>,
+        resultCollector: StatesCollector<ProgramExecutionResult>,
         targets: List<SampleTarget> = emptyList()
-    ): Collection<ProgramExecutionResult> {
+    ) {
         logger.debug("{}.analyze({})", this, methods)
         val initialStates = mutableMapOf<Method<*>, SampleState>()
         methods.forEach {
@@ -75,12 +78,21 @@ class SampleMachine(
             { callGraphStatistics }
         )
 
+        val stateCollector = object : StatesCollector<SampleState> {
+            override val count: Int
+                get() = resultCollector.count
+
+            override fun addState(state: SampleState) {
+                resultCollector.addState(resultModelConverter.convert(state, state.entrypoint))
+            }
+        }
+
         val statesCollector =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<SampleState>(coverageStatistics) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(stateCollector, coverageStatistics) {
                     it.exceptionRegister != null
                 }
-                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector(stateCollector)
             }
 
         val stepsStatistics = StepsStatistics<Method<*>, SampleState>()
@@ -91,7 +103,7 @@ class SampleMachine(
             { timeStatistics },
             { stepsStatistics },
             { coverageStatistics },
-            { statesCollector.collectedStates.size }
+            { stateCollector.count }
         )
 
         val observers = mutableListOf<UMachineObserver<SampleState>>(coverageStatistics)
@@ -110,12 +122,19 @@ class SampleMachine(
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
-
-        return statesCollector.collectedStates.map { resultModelConverter.convert(it, it.entrypoint) }
     }
 
-    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): Collection<ProgramExecutionResult> =
-        analyze(listOf(method), targets)
+    fun analyze(
+        method: Method<*>,
+        resultCollector: StatesCollector<ProgramExecutionResult>,
+        targets: List<SampleTarget> = emptyList()
+    ) = analyze(listOf(method), resultCollector, targets)
+
+    fun analyze(method: Method<*>, targets: List<SampleTarget> = emptyList()): List<ProgramExecutionResult> {
+        val collector = ListStatesCollector<ProgramExecutionResult>()
+        analyze(method, collector, targets)
+        return collector.collectedStates
+    }
 
     private fun getInitialState(
         method: Method<*>,
