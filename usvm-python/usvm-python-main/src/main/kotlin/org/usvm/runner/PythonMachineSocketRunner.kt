@@ -49,7 +49,8 @@ class PythonMachineSocketRunner(
             callable,
             PickledObjectSaver(communicator),
             timeoutMs = timeoutMs,
-            timeoutPerRunMs = timeoutPerRunMs
+            timeoutPerRunMs = timeoutPerRunMs,
+            maxIterations = 1000
         )
     }
 

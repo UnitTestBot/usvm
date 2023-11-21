@@ -451,4 +451,18 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
         )
         options = oldOptions
     }
+
+    @Test
+    fun testContainsOp() {
+        check1WithConcreteRun(
+            constructFunction("contains_op", listOf(typeSystem.pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
 }
