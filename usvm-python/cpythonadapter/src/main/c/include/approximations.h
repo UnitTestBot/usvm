@@ -21,6 +21,7 @@ PyObject *Approximation_len(PyObject *o);  // builtins.len
 PyObject *Approximation_isinstance(PyObject *obj, PyObject *type);  // builtins.isinstance
 PyObject *Approximation_range(void *adapter_raw, PyObject *args);  // builtins.range
 PyObject *Approximation_sum(PyObject *iterable);  // builtins.sum
+int Approximation_contains_op(PyObject *storage, PyObject *item, int *approximated);  // `item` in `storage`
 
 PyObject *Approximation_list_richcompare(PyObject *, PyObject *, int op);  // PyList_Type.tp_richcompare
 PyObject *Approximation_list_repeat(PyObject *self, PyObject *n);  // PyList_Type.tp_as_sequence.sq_repeat

@@ -563,3 +563,14 @@ fun UninterpretedSymbolicPythonObject.readDictElement(
     val resultAddress = ctx.curState!!.symbolicObjectMapGet(address, key.address, DictType(typeSystem), ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
 }
+
+fun UninterpretedSymbolicPythonObject.writeDictElement(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertypeSoft(ctx, typeSystem.pythonDict)
+    ctx.curState!!.symbolicObjectMapPut(address, key.address, value.address, DictType(typeSystem), ctx.ctx.addressSort)
+}

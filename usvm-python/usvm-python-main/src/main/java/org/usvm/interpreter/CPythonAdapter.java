@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
 import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
+import static org.usvm.machine.interpreters.operations.basic.DictKt.handlerDictGetItemKt;
 import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
@@ -690,6 +691,17 @@ public class CPythonAdapter {
         if (iterator.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("tuple_iterator_next", Collections.singletonList(iterator)), () -> handlerTupleIteratorNextKt(context, iterator.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "dict_get_item")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerDictGetItem(ConcolicRunContext context, SymbolForCPython dict, SymbolForCPython key) {
+        if (dict.obj == null || key.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("dict_get_item", Arrays.asList(dict, key)), () -> handlerDictGetItemKt(context, dict.obj, key.obj));
     }
 
     @CPythonAdapterJavaMethod(cName = "function_call")
