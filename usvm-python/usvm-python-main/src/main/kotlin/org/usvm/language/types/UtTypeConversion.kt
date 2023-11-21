@@ -35,9 +35,9 @@ fun getTypeFromTypeHint(
         typeSystem.pythonFloat
     } else if (typesAreEqual(hintAfterSubstitution, storage.pythonBool)) {
         typeSystem.pythonBool
-    } else if (typesAreEqual(hintAfterSubstitution, storage.pythonDict)) {
+    } /*else if (typesAreEqual(hintAfterSubstitution, storage.pythonDict)) {
         typeSystem.pythonDict
-    } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedList, hintAfterSubstitution, storage)) {
+    }*/ else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedList, hintAfterSubstitution, storage)) {
         typeSystem.pythonList
     } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedTuple, hintAfterSubstitution, storage)) {
         typeSystem.pythonTuple

@@ -153,7 +153,23 @@ class USVMPythonInterpreter<InputRepr>(
                 require(exception.pythonExceptionType != null)
                 require(exception.pythonExceptionValue != null)
                 if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
-                    throw ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
+                    val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
+                    if (javaException == UnregisteredVirtualOperation) {
+                        iterationCounter.iterations += 1
+                        logger.debug("Step result: Unregistrered virtual operation")
+                        val resultState = concolicRunContext.curState
+                        concolicRunContext.statistics.addUnregisteredVirtualOperation()
+                        require(!madeInputSerialization)
+                        if (resultState != null && resultState.delayedForks.isEmpty()) {
+                            resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
+                            resultState.meta.lastConverter = converter
+                            resultState.meta.wasExecuted = true
+                        } else if (resultState != null) {
+                            resultState.meta.modelDied = true
+                        }
+                        return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                    }
+                    throw javaException
                 }
                 logger.debug(
                     "Step result: exception from CPython: {} - {}",
@@ -190,14 +206,6 @@ class USVMPythonInterpreter<InputRepr>(
 
             iterationCounter.iterations += 1
             logger.debug("Step result: Bad model")
-            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
-
-        } catch (_: UnregisteredVirtualOperation) {
-
-            iterationCounter.iterations += 1
-            logger.debug("Step result: Unregistrered virtual operation")
-            concolicRunContext.curState?.meta?.modelDied = true
-            concolicRunContext.statistics.addUnregisteredVirtualOperation()
             return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
         } catch (_: InstructionLimitExceededException) {

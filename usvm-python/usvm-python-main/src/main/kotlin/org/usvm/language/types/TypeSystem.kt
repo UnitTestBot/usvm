@@ -22,7 +22,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         get() = 100.milliseconds
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
-        if (type is ObjectDictType || supertype == ObjectDictType)
+        if (type is InternalDictType || supertype is InternalDictType)
             return type == supertype
         if (supertype is VirtualPythonType)
             return supertype.accepts(type)
@@ -43,8 +43,8 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         val containsMock = types.any { it is MockType }
         require((concrete == null) || !containsMock) { "Error in Python's hasCommonSubtype implementation" }
         return when (type) {
-            is ObjectDictType -> {
-                types.all { it == ObjectDictType }
+            is InternalDictType -> {
+                types.all { it == type }
             }
             is ConcretePythonType -> {
                 if (concrete != null) {
