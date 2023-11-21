@@ -51,10 +51,10 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.firstOrNull
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -125,6 +125,7 @@ class JcTestInterpreter(
         private val classLoader: ClassLoader = JcClassLoader,
     ) {
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Any?>()
+        private val typeSelector = JcFixedInheritorsNumberTypeSelector(inheritorsNumberToChoose = 1)
 
         fun resolveState(): JcParametersState {
             // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
@@ -192,7 +193,7 @@ class JcTestInterpreter(
             // and array types right now.
             // In such cases, we need to resolve this element to null.
 
-            val evaluatedType = typeStream.firstOrNull() ?: return null
+            val evaluatedType = typeSelector.choose(type.jcClass, typeStream).firstOrNull() ?: return null
 
             // We check for the type stream emptiness firsly and only then for the resolved cache,
             // because even if the object is already resolved, it could be incompatible with the [type], if it

@@ -1,9 +1,11 @@
 package org.usvm.machine.interpreter
 
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
+import org.jacodb.api.ext.constructors
 import org.usvm.machine.logger
 import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
@@ -17,8 +19,11 @@ class JcFixedInheritorsNumberTypeSelector(
     private val inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
 ) : JcTypeSelector {
 
-    override fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType> {
-        return typeStream
+    override fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType> =
+        choose(method.enclosingClass, typeStream)
+
+    fun choose(referenceClass: JcClassOrInterface, typeStream: UTypeStream<out JcType>): Collection<JcType> =
+        typeStream
             .take(inheritorsNumberToSelectFrom)
             .let {
                 when (it) {
@@ -27,14 +32,13 @@ class JcFixedInheritorsNumberTypeSelector(
                     is TypesResult.TypesResultWithExpiredTimeout -> it.collectedTypes
                 }
             }
-            .sortedByDescending { type -> typeScore(method, type) }
+            .sortedByDescending { type -> typeScore(referenceClass, type) }
             .take(inheritorsNumberToChoose)
             .also {
-                logger.debug { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
+                logger.debug { "Select types for ${referenceClass.name} : ${it.map { it.typeName }}" }
             }
-    }
 
-    private fun typeScore(method: JcMethod, type: JcType): Double {
+    private fun typeScore(referenceClass: JcClassOrInterface, type: JcType): Double {
         var score = 0.0
 
         if (type is JcClassType) {
@@ -42,7 +46,12 @@ class JcFixedInheritorsNumberTypeSelector(
             score += 1
 
             if (type.isPublic) {
-                score += 1
+                score += 3
+            }
+
+            // Prefer easy instantiable classes
+            if (type.constructors.any { it.isPublic }) {
+                score += 3
             }
 
             if (type.isFinal) {
@@ -54,7 +63,7 @@ class JcFixedInheritorsNumberTypeSelector(
             }
 
             val typePkg = type.jcClass.name.split(".")
-            val methodPkg = method.enclosingClass.name.split(".")
+            val methodPkg = referenceClass.name.split(".")
 
             for ((typePkgPart, methodPkgPart) in typePkg.zip(methodPkg)) {
                 if (typePkgPart != methodPkgPart) break
@@ -63,7 +72,7 @@ class JcFixedInheritorsNumberTypeSelector(
         }
 
         if (type is JcArrayType) {
-            val elementScore = typeScore(method, type.elementType)
+            val elementScore = typeScore(referenceClass, type.elementType)
             score += elementScore / 10
         }
 
