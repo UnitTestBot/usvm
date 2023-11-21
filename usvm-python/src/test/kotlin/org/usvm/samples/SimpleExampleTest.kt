@@ -261,4 +261,19 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
             )
         )
     }
+
+    @Test
+    fun testUnaryIntOps() {
+        check1WithConcreteRun(
+            constructFunction("unary_int_ops", listOf(typeSystem.pythonInt)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" },
+            )
+        )
+    }
 }

@@ -431,6 +431,16 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbMatrixM
     return type->tp_as_number && type->tp_as_number->nb_matrix_multiply;
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbNegative(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_number && type->tp_as_number->nb_negative;
+}
+
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbPositive(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_number && type->tp_as_number->nb_positive;
+}
+
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasSqLength(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_as_sequence && type->tp_as_sequence->sq_length;
