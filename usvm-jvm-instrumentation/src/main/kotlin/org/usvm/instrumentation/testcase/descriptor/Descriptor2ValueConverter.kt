@@ -28,7 +28,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             is UTestConstantDescriptor.Long -> descriptor.value
             is UTestConstantDescriptor.Null -> null
             is UTestConstantDescriptor.Short -> descriptor.value
-            is UTestConstantDescriptor.String -> string(descriptor)
+            is UTestConstantDescriptor.String -> descriptor.value
             is UTestArrayDescriptor -> array(descriptor)
             is UTestCyclicReferenceDescriptor -> {
                 descriptorToObject
@@ -40,13 +40,6 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
             is UTestEnumValueDescriptor -> `enum`(descriptor)
             is UTestClassDescriptor -> descriptor.classType.toJavaClass(workerClassLoader)
             is UTestExceptionDescriptor -> `exception`(descriptor)
-        }
-
-    private fun string(descriptor: UTestConstantDescriptor.String) =
-        if (descriptor.value == InstrumentationModuleConstants.nameForExistingButNullString) {
-            ReflectionUtils.UNSAFE.allocateInstance(String::class.java) as String
-        } else {
-            descriptor.value
         }
 
     private fun array(descriptor: UTestArrayDescriptor): Any {
