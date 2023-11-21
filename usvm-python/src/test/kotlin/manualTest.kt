@@ -64,7 +64,8 @@ private fun buildSampleRunConfig(): RunConfig {
 }
 
 private val ignoreFunctions = listOf<String>(
-    // "SegmentTree.build"
+    // "SegmentTree.build",
+    "get_transitions"
 )
 private val ignoreModules = listOf<String>(
     "odd_even_transposition_parallel"
@@ -82,10 +83,10 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    if (module != "dijkstra_2")
-        return null
-    if (name != "dijkstra")
-         return null
+    //if (module != "bidirectional_a_star")
+    //    return null
+    //if (name != "AStar.get_successors")
+    //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
