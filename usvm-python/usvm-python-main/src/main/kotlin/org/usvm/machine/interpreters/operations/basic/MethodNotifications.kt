@@ -29,9 +29,19 @@ fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonO
     myAssert(context, left.evalIsSoft(context, HasNbMultiply) or right.evalIsSoft(context, HasNbMultiply))
 }
 
-fun nbMatrixMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+fun nbMatrixMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     myAssert(context, left.evalIsSoft(context, HasNbMatrixMultiply))
+}
+
+fun nbNegativeKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIsSoft(context, HasNbNegative))
+}
+
+fun nbPositiveKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
+    context.curState ?: return
+    myAssert(context, on.evalIsSoft(context, HasNbPositive))
 }
 
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {

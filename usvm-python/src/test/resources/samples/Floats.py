@@ -83,3 +83,11 @@ def infinity_ops(x: float):
 
 def int_true_div(x: int, y: int):
     assert x / y == 10.5
+
+
+def unary_ops(x: float):
+    if -x == 10:
+        return 1
+    elif +x == 15:
+        return 2
+    return 3
