@@ -6,6 +6,7 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UMockEvaluator
 import org.usvm.UMockSymbol
 import org.usvm.USort
+import org.usvm.UTrackedMockSymbol
 import org.usvm.memory.UReadOnlyRegistersStack
 import org.usvm.solver.UExprTranslator
 import org.usvm.uctx
@@ -44,7 +45,10 @@ class ULazyIndexedMockModel(
     private val translator: UExprTranslator<*, *>,
 ) : UMockEvaluator {
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
-        require(symbol is UIndexedMethodReturnValue<*, Sort>)
+        require(symbol is UIndexedMethodReturnValue<*, Sort> || symbol is UTrackedMockSymbol<Sort>) {
+            "Unexpected symbol $symbol found"
+        }
+
         val translated = translator.translate(symbol)
         return model.evalAndComplete(translated)
     }

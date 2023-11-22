@@ -100,6 +100,9 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
+import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
+import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -542,7 +545,7 @@ class JcExprResolver(
 
             return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
                 val sort = ctx.typeToSort(field.fieldType)
-                JcStaticFieldLValue(field.field, ctx, sort)
+                JcStaticFieldLValue(field.field, sort)
             }
         }
     }
@@ -595,7 +598,7 @@ class JcExprResolver(
             )
 
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val oneOfEnumInstancesLValue =
@@ -626,7 +629,7 @@ class JcExprResolver(
     private fun JcState.ensureEnumStaticInitializerInvariants(type: JcClassOrInterface) = with(ctx) {
         val enumValues = type.enumValues ?: error("Expected enum values containing in the enum type $type")
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val enumValuesType = enumValuesField.fieldType as JcArrayType
@@ -990,10 +993,14 @@ class JcExprResolver(
     ) {
         scope.calcOnState {
             with(ctx) {
-                // We can use any sort here as it is not used
-                val staticFieldsMemoryRegionId = JcStaticFieldRegionId(staticInitializer.enclosingClass.toType(), voidSort)
-                val staticFieldsMemoryRegion = memory.getRegion(staticFieldsMemoryRegionId) as JcStaticFieldsMemoryRegion
-                staticFieldsMemoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState)
+                primitiveTypes.forEach {
+                    val sort = typeToSort(it)
+
+                    if (sort === voidSort) return@forEach
+
+                    val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState, staticInitializer.enclosingClass)
+                }
             }
         }
     }

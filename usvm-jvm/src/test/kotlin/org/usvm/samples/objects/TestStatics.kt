@@ -1,11 +1,14 @@
 package org.usvm.samples.objects
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
+import org.usvm.util.JcTestResolverType
 
 class TestStatics : JavaMethodTestRunner() {
+    override val resolverType: JcTestResolverType
+        get() = JcTestResolverType.CONCRETE_EXECUTOR
+
     @Test
     fun `Test static field access`() {
         checkDiscoveredProperties(
@@ -17,21 +20,27 @@ class TestStatics : JavaMethodTestRunner() {
 
     @Test
     fun `Test static field write`() {
-        checkDiscoveredProperties(
+        checkDiscoveredPropertiesWithStatics(
             ObjectWithStatics::mutateStatics,
             eq(1),
-            { _, r -> r == 1 },
+            { _, r, staticsBefore, staticsAfter ->
+                val staticBefore = staticsBefore.entries.single().value.single().value as Int
+                val staticAfter = staticsAfter.entries.single().value.single().value as Int
+
+                r == 1 && staticBefore == staticAfter - 1
+            },
+            checkMode = CheckMode.MATCH_PROPERTIES
         )
     }
 
     @Test
-    @Disabled("TODO we need to get mocks for static fields")
     fun `Test mutable primitive static field`() {
-        checkDiscoveredProperties(
+        checkDiscoveredPropertiesWithStatics(
             ObjectWithStatics::useMutablePrimitiveStaticField,
             eq(2),
-            { _, r -> r == 0 },
-            { _, r -> r == 1 },
+            { _, r, staticsBefore, _ -> r == 0 && staticsBefore.entries.single().value.single().value == 17 },
+            { _, r, staticsBefore, _ -> r == 1 && staticsBefore.entries.single().value.single().value != 17 },
+            checkMode = CheckMode.MATCH_PROPERTIES
         )
     }
 

@@ -1,6 +1,7 @@
 package org.usvm.api
 
 import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcField
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcInst
 
@@ -21,7 +22,10 @@ data class JcTest(
 data class JcParametersState(
     val thisInstance: Any?,
     val parameters: List<Any?>,
+    val statics: Map<JcClassOrInterface, List<StaticFieldValue>>
 )
+
+data class StaticFieldValue(val field: JcField, val value: Any?)
 
 data class JcCoverage(
     val targetClassToCoverage: Map<JcClassOrInterface, JcClassCoverage>,

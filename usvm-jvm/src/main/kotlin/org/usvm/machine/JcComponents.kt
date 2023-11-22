@@ -3,9 +3,14 @@ package org.usvm.machine
 import org.jacodb.api.JcType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.model.ULazyModelDecoder
+import org.usvm.solver.UExprTranslator
+import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import kotlin.time.Duration
@@ -17,6 +22,20 @@ class JcComponents(
 ) : UComponents<JcType, USizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
     override val useSolverForForks: Boolean get() = options.useSolverForForks
+
+    override fun <Context : UContext<USizeSort>> buildTranslatorAndLazyDecoder(
+        ctx: Context,
+    ): Pair<UExprTranslator<JcType, USizeSort>, ULazyModelDecoder<JcType>> {
+        val translator = JcExprTranslator(ctx)
+        val decoder: ULazyModelDecoder<JcType> = ULazyModelDecoder(translator)
+
+        return translator to decoder
+    }
+
+    override fun <Context : UContext<USizeSort>> mkComposer(
+        ctx: Context
+    ): (UReadOnlyMemory<JcType>) -> UComposer<JcType, USizeSort> =
+        { memory: UReadOnlyMemory<JcType> -> JcComposer(ctx, memory) }
 
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
@@ -41,4 +60,7 @@ class JcComponents(
     override fun <Context : UContext<USizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<USizeSort> =
         UBv32SizeExprProvider(ctx)
 
+    override fun <Context : UContext<USizeSort>> mkSoftConstraintsProvider(
+        ctx: Context,
+    ): USoftConstraintsProvider<JcType, USizeSort> = JcSoftConstraintsProvider(ctx)
 }

@@ -1,23 +1,61 @@
 package org.usvm.api.util
 
+import io.ksmt.utils.asExpr
+import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
+import org.jacodb.api.JcPrimitiveType
+import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.allSuperHierarchySequence
+import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.byte
+import org.jacodb.api.ext.char
+import org.jacodb.api.ext.double
+import org.jacodb.api.ext.float
+import org.jacodb.api.ext.ifArrayGetElementType
+import org.jacodb.api.ext.int
+import org.jacodb.api.ext.isEnum
+import org.jacodb.api.ext.long
+import org.jacodb.api.ext.short
+import org.jacodb.api.ext.toType
+import org.jacodb.api.ext.void
+import org.usvm.INITIAL_STATIC_ADDRESS
+import org.usvm.INITIAL_INPUT_ADDRESS
+import org.usvm.NULL_ADDRESS
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.api.decoder.DecoderApi
-import org.usvm.api.util.Reflection.allocateInstance
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.JcContext
+import org.usvm.machine.extractBool
+import org.usvm.machine.extractByte
+import org.usvm.machine.extractChar
+import org.usvm.machine.extractDouble
+import org.usvm.machine.extractFloat
+import org.usvm.machine.extractInt
+import org.usvm.machine.extractLong
+import org.usvm.machine.extractShort
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
+import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
+import org.usvm.types.first
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -41,8 +79,17 @@ class JcTestInterpreter(
         val initialScope = MemoryScope(ctx, model, model, stringConstants, method, classLoader)
         val afterScope = MemoryScope(ctx, model, memory, stringConstants, method, classLoader)
 
-        val before = with(initialScope) { resolveState() }
-        val after = with(afterScope) { resolveState() }
+        val staticsToResolve = ctx.primitiveTypes
+            .flatMap {
+                val sort = ctx.typeToSort(it)
+                val regionId = JcStaticFieldRegionId(sort)
+                val region = memory.getRegion(regionId) as JcStaticFieldsMemoryRegion<*>
+
+                region.mutableStaticFields
+            }
+
+        val before = with(initialScope) { resolveState(staticsToResolve) }
+        val after = with(afterScope) { resolveState(staticsToResolve) }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
@@ -90,7 +137,7 @@ class JcTestInterpreter(
     ) : JcTestStateResolver<Any?>(ctx, model, memory, stringConstants, method) {
         override val decoderApi: DecoderApi<Any?> = JcTestInterpreterDecoderApi(ctx, classLoader)
 
-        fun resolveState(): JcParametersState {
+        fun resolveState(staticsToResolve: List<JcField>): JcParametersState {
             // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
             val thisInstance = if (!method.isStatic) {
                 val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
@@ -105,7 +152,16 @@ class JcTestInterpreter(
                 resolveLValue(ref, param.type)
             }
 
-            return JcParametersState(thisInstance, parameters)
+            val statics = staticsToResolve.map { field ->
+                    val fieldType = ctx.cp.findTypeOrNull(field.type.typeName)
+                        ?: error("No such type ${field.type} found")
+                    val sort = ctx.typeToSort(fieldType)
+
+                    StaticFieldValue(field, resolveLValue(JcStaticFieldLValue(field, sort), fieldType))
+                }
+                .groupBy { it.field.enclosingClass }
+
+            return JcParametersState(thisInstance, parameters, statics)
         }
 
         override fun allocateClassInstance(type: JcClassType): Any =
