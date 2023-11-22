@@ -30,7 +30,8 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.repr == "None" },
-                { _, res -> res.selfTypeName == "AssertionError" }
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.selfTypeName == "KeyError" }
             )
         )
     }
@@ -44,7 +45,53 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, _, res -> res.repr == "None" },
-                { _, _, res -> res.selfTypeName == "AssertionError" }
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
+
+    @Test
+    fun testAllocateDict() {
+        check2WithConcreteRun(
+            constructFunction("allocate_dict", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
+
+    @Test
+    fun testInputDictIntGetItem() {
+        check1WithConcreteRun(
+            constructFunction("input_dict_int_get_item", listOf(typeSystem.pythonDict)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
+
+    @Test
+    fun testAllocateDictWithIntKey() {
+        check2WithConcreteRun(
+            constructFunction("allocate_dict_with_int_key", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
             )
         )
     }
