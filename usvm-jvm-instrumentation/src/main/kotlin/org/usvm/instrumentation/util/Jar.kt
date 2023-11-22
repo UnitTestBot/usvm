@@ -196,7 +196,7 @@ fun ClassNode.toByteArray(
     inlineJsrs()
     //Workaround for bug with locals translation
     methods?.map { it?.localVariables?.size }
-    val cw = ClassWriter(flags.value)
+    val cw = UsvmClassWriter(loader, flags)
     val adapter = when {
         checkClass -> CheckClassAdapter(cw)
         else -> cw
