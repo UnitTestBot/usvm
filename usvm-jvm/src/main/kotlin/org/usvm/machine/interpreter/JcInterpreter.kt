@@ -238,7 +238,9 @@ class JcInterpreter(
                 }
 
                 val method = stmt.method
-                val entryPoint = applicationGraph.entryPoints(method).single()
+                val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+                    ?: error("Entrypoint method $method has no entry points")
+
                 scope.doWithState {
                     newStmt(entryPoint)
                 }
@@ -250,13 +252,15 @@ class JcInterpreter(
                     return
                 }
 
-                if (stmt.method.isNative) {
+                val entryPoint = applicationGraph.entryPoints(stmt.method).singleOrNull()
+
+                if (stmt.method.isNative || entryPoint == null) {
                     mockMethod(scope, stmt, applicationGraph)
                     return
                 }
 
                 scope.doWithState {
-                    addNewMethodCall(applicationGraph, stmt)
+                    addNewMethodCall(stmt, entryPoint)
                 }
             }
 
