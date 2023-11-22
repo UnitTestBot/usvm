@@ -12,6 +12,7 @@ import org.usvm.machine.UPythonContext
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
+import org.usvm.machine.model.PyModel
 import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
@@ -92,7 +93,33 @@ class ConverterToPythonObject(
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input dict cannot be static"
         }
-        return ConcretePythonInterpreter.eval(emptyNamespace, "dict()")
+        val namespace = ConcretePythonInterpreter.getNewNamespace()
+        ConcretePythonInterpreter.concreteRun(namespace, "x = dict()")
+        val result = ConcretePythonInterpreter.eval(namespace, "x")
+        constructedObjects[obj.address] = result
+        val model = modelHolder.model.uModel
+        require(model is PyModel)
+        model.possibleRefKeys.forEach {
+            val key = if (isStaticHeapRef(it)) {
+                val type = memory.typeStreamOf(it).first()
+                require(type is ConcretePythonType)
+                InterpretedAllocatedOrStaticSymbolicPythonObject(it, type, typeSystem)
+            } else {
+                InterpretedInputSymbolicPythonObject(it, modelHolder, typeSystem)
+            }
+            if (obj.dictContainsRef(key)) {
+                val value = obj.readDictRefElement(ctx, key, memory)
+                val convertedValue = convert(value)
+                val convertedKey = convert(key)
+                ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedKey, "key")
+                ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedValue, "value")
+                ConcretePythonInterpreter.concreteRun(namespace, "x[key] = value", printErrorMsg = false)
+            }
+        }
+        return result.also {
+            ConcretePythonInterpreter.incref(it)
+            ConcretePythonInterpreter.decref(namespace)
+        }
     }
 
     private fun convertFloat(obj: InterpretedSymbolicPythonObject): PythonObject {

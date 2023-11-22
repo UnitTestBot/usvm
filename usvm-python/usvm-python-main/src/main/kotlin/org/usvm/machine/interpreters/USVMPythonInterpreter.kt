@@ -100,6 +100,10 @@ class USVMPythonInterpreter<InputRepr>(
                 logger.warn("Step result: length overflow")
                 state.meta.modelDied = true
                 return@runBlocking StepResult(emptySequence(), false)
+            } catch (_: CPythonExecutionException) {
+                logger.info("Step result: could not assemble Python object")
+                state.meta.modelDied = true
+                return@runBlocking StepResult(emptySequence(), false)
             }
             // logger.debug("Finished constructing")
             val virtualObjects = converter.getPythonVirtualObjects()
