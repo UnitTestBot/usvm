@@ -21,6 +21,7 @@ import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.machine.*
 import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
+import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
@@ -171,7 +172,9 @@ class JcTestExecutor(
         private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
     ) {
-        private val typeSelector = JcFixedInheritorsNumberTypeSelector(inheritorsNumberToChoose = 1)
+        private val typeSelector = JcTypeStreamPrioritization(
+            typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
+        )
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestInst>>>()
 
         fun createUTest(): UTest {
@@ -272,7 +275,7 @@ class JcTestExecutor(
             // and array types right now.
             // In such cases, we need to resolve this element to null.
 
-            val evaluatedType = typeSelector.choose(type.jcClass, typeStream).firstOrNull()
+            val evaluatedType = typeSelector.firstOrNull(typeStream, type.jcClass)
                 ?: return UTestNullExpression(type) to listOf()
 
             // We check for the type stream emptiness firsly and only then for the resolved cache,

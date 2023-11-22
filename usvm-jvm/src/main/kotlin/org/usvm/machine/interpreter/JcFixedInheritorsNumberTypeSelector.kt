@@ -16,26 +16,47 @@ interface JcTypeSelector {
 
 class JcFixedInheritorsNumberTypeSelector(
     private val inheritorsNumberToChoose: Int = DEFAULT_INHERITORS_NUMBER_TO_CHOOSE,
-    private val inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
+    inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
 ) : JcTypeSelector {
+    private val typesPriorities = JcTypeStreamPrioritization(inheritorsNumberToSelectFrom)
 
     override fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType> =
-        choose(method.enclosingClass, typeStream)
+        typesPriorities.take(typeStream, method.enclosingClass, inheritorsNumberToChoose)
+            .also {
+                logger.debug { "Select types for ${method.enclosingClass.name} : ${it.map { it.typeName }}" }
+            }
 
-    fun choose(referenceClass: JcClassOrInterface, typeStream: UTypeStream<out JcType>): Collection<JcType> =
+    companion object {
+        const val DEFAULT_INHERITORS_NUMBER_TO_CHOOSE: Int = 4
+        // TODO: elaborate on better constant choosing
+        const val DEFAULT_INHERITORS_NUMBER_TO_SCORE: Int = 100
+    }
+}
+
+class JcTypeStreamPrioritization(private val typesToScore: Int) {
+    fun take(
+        typeStream: UTypeStream<out JcType>,
+        referenceClass: JcClassOrInterface,
+        limit: Int
+    ): Collection<JcType> = fetchTypes(typeStream)
+        .sortedByDescending { type -> typeScore(referenceClass, type) }
+        .take(limit)
+
+    fun firstOrNull(
+        typeStream: UTypeStream<out JcType>,
+        referenceClass: JcClassOrInterface,
+    ): JcType? = fetchTypes(typeStream)
+        .maxByOrNull { type -> typeScore(referenceClass, type) }
+
+    private fun fetchTypes(typeStream: UTypeStream<out JcType>): Collection<JcType> =
         typeStream
-            .take(inheritorsNumberToSelectFrom)
+            .take(typesToScore)
             .let {
                 when (it) {
                     TypesResult.EmptyTypesResult -> emptyList()
                     is TypesResult.SuccessfulTypesResult -> it
                     is TypesResult.TypesResultWithExpiredTimeout -> it.collectedTypes
                 }
-            }
-            .sortedByDescending { type -> typeScore(referenceClass, type) }
-            .take(inheritorsNumberToChoose)
-            .also {
-                logger.debug { "Select types for ${referenceClass.name} : ${it.map { it.typeName }}" }
             }
 
     private fun typeScore(referenceClass: JcClassOrInterface, type: JcType): Double {
@@ -77,11 +98,5 @@ class JcFixedInheritorsNumberTypeSelector(
         }
 
         return score
-    }
-
-    companion object {
-        const val DEFAULT_INHERITORS_NUMBER_TO_CHOOSE: Int = 4
-        // TODO: elaborate on better constant choosing
-        const val DEFAULT_INHERITORS_NUMBER_TO_SCORE: Int = 100
     }
 }
