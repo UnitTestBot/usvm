@@ -39,27 +39,19 @@ fun main() {
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructPrimitiveProgram(
+    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
         """
             def list_concat(x):
                 y = x + [1]
                 if len(y[::-1]) == 5:
                     return 1
                 return 2
-            
-            def f(x):
-                if -x == 10:
-                    return 1
-                elif +x == 15:
-                    return 2
-                return 3
         """.trimIndent()
-    )
+    )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "f"
-        //"input_dict_str_get_item",
-        //"Dicts"
+        listOf(typeSystem.pythonDict, PythonAnyType),
+        "input_dict_virtual_get_item",
+        "Dicts"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)

@@ -10,6 +10,7 @@ import org.usvm.api.*
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
+import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
@@ -553,18 +554,62 @@ fun UninterpretedSymbolicPythonObject.getConcreteStrIfDefined(preallocatedObject
 
 /** dict **/
 
-fun UninterpretedSymbolicPythonObject.readDictElement(
+fun UninterpretedSymbolicPythonObject.readDictRefElement(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    val resultAddress = ctx.curState!!.symbolicObjectMapGet(address, key.address, DictType(typeSystem), ctx.ctx.addressSort)
+    val resultAddress = ctx.curState!!.symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
 }
 
-fun UninterpretedSymbolicPythonObject.writeDictElement(
+fun UninterpretedSymbolicPythonObject.dictContainsRef(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+): UBoolExpr {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertype(ctx, typeSystem.pythonDict)
+    return ctx.curState!!.symbolicObjectMapContains(address, key.address, RefDictType)
+}
+
+/*
+fun UninterpretedSymbolicPythonObject.readDictIntElement(
+    ctx: ConcolicRunContext,
+    key: UExpr<KIntSort>
+): UninterpretedSymbolicPythonObject {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertype(ctx, typeSystem.pythonDict)
+    val lvalue = UMapEntryLValue(ctx.ctx.intSort, ctx.ctx.addressSort, address, key, IntDictType)
+}
+ */
+
+fun InterpretedInputSymbolicPythonObject.readDictRefElement(
+    ctx: UPythonContext,
+    key: InterpretedSymbolicPythonObject,
+    memory: UMemory<PythonType, PythonCallable>
+): InterpretedSymbolicPythonObject {
+    val lvalue = URefMapEntryLValue(ctx.addressSort, address, key.address, RefDictType)
+    val elemAddress = modelHolder.model.uModel.read(lvalue)
+    return if (isStaticHeapRef(elemAddress)) {
+        val type = memory.typeStreamOf(elemAddress).first()
+        require(type is ConcretePythonType)
+        InterpretedAllocatedOrStaticSymbolicPythonObject(elemAddress, type, typeSystem)
+    } else {
+        InterpretedInputSymbolicPythonObject(elemAddress as UConcreteHeapRef, modelHolder, typeSystem)
+    }
+}
+
+fun InterpretedInputSymbolicPythonObject.dictContainsRef(key: InterpretedSymbolicPythonObject): Boolean {
+    val lvalue = URefSetEntryLValue(address, key.address, RefDictType)
+    val result = modelHolder.model.uModel.read(lvalue)
+    return result.isTrue
+}
+
+fun UninterpretedSymbolicPythonObject.writeDictRefElement(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
     value: UninterpretedSymbolicPythonObject
@@ -572,5 +617,5 @@ fun UninterpretedSymbolicPythonObject.writeDictElement(
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
-    ctx.curState!!.symbolicObjectMapPut(address, key.address, value.address, DictType(typeSystem), ctx.ctx.addressSort)
+    ctx.curState!!.symbolicObjectMapPut(address, key.address, value.address, RefDictType, ctx.ctx.addressSort)
 }
