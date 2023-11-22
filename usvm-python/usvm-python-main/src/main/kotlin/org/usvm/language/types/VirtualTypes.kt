@@ -16,12 +16,6 @@ object ArrayType: VirtualPythonType() {
     }
 }
 
-data class DictType(val typeSystem: PythonTypeSystem): VirtualPythonType() {
-    override fun accepts(type: PythonType): Boolean {
-        return type == this || type == typeSystem.pythonDict
-    }
-}
-
 class HasElementConstraint(private val constraint: ElementConstraint): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type == this)
