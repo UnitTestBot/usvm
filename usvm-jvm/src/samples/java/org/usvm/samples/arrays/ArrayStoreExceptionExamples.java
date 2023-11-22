@@ -23,7 +23,14 @@ public class ArrayStoreExceptionExamples {
     }
 
     public boolean correctAssignmentSubtype(Number[] data) {
-        if (data == null || data.length == 0) return false;
+        if (data == null) {
+            return false;
+        }
+
+        if (data.length == 0) {
+            return false;
+        }
+
         data[0] = 15;
         return true;
     }
