@@ -34,6 +34,9 @@ class PyModel(
 ) {
     private val setKeys = WrappedSetRegion.constructKeys(ctx, ps, underlyingModel)
 
+    val possibleRefKeys: Set<UConcreteHeapRef>
+        get() = setKeys
+
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
         if (regionId is UArrayRegionId<*, *, *> &&
@@ -52,8 +55,8 @@ class PyModel(
             return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, true)
                     as UReadOnlyMemoryRegion<Key, Sort>
         }
-        if (regionId is URefSetRegionId<*> && regionId.setType == DictType(typeSystem)) {
-            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<DictType>, UBoolSort>
+        if (regionId is URefSetRegionId<*> && regionId.setType == RefDictType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>
             return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, false)
                     as UReadOnlyMemoryRegion<Key, Sort>
         }

@@ -3,7 +3,8 @@ package org.usvm.machine.interpreters.operations.basic
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.HasTpHash
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.readDictElement
+import org.usvm.machine.symbolicobjects.dictContainsRef
+import org.usvm.machine.symbolicobjects.readDictRefElement
 
 fun handlerDictGetItemKt(
     ctx: ConcolicRunContext,
@@ -15,13 +16,20 @@ fun handlerDictGetItemKt(
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     return when (keyType) {
-        null,
         typeSystem.pythonInt,
         typeSystem.pythonFloat,
         typeSystem.pythonBool,
         typeSystem.pythonNoneType -> null
+        null -> {
+            val clonedState = ctx.curState!!.clone()
+            val stateForDelayedFork =
+                myAssertOnState(clonedState, ctx.ctx.mkNot(ctx.ctx.mkHeapRefEq(key.address, ctx.ctx.nullRef)))
+            stateForDelayedFork?.let { addDelayedFork(ctx, key, it) }
+            null
+        }
         else -> {
-            dict.readDictElement(ctx, key)
+            myFork(ctx, dict.dictContainsRef(ctx, key))
+            dict.readDictRefElement(ctx, key)
         }
     }
 }
