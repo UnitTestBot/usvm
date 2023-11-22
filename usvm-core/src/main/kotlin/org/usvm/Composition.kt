@@ -43,6 +43,10 @@ open class UComposer<Type, USizeSort : USort>(
         expr: UIndexedMethodReturnValue<Method, Sort>,
     ): UExpr<Sort> = memory.mocker.eval(expr)
 
+    override fun <Sort : USort> transform(
+        expr: UTrackedMockSymbol<Sort>
+    ): UExpr<Sort> = memory.mocker.eval(expr)
+
     override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr =
         transformExprAfterTransformed(expr, expr.ref) { ref ->
             memory.types.evalIsSubtype(ref, expr.supertype)

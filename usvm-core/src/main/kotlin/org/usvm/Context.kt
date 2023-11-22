@@ -352,6 +352,15 @@ open class UContext<USizeSort : USort>(
         UIndexedMethodReturnValue(this, method.cast(), callIndex, sort)
     }.cast()
 
+    private val trackedMockSymbols = mkAstInterner<UTrackedMockSymbol<out USort>>()
+    private var trackedIndex = 0
+
+    fun <Sort : USort> mkTrackedMockSymbol(
+        sort: Sort
+    ): UTrackedMockSymbol<Sort> = trackedMockSymbols.createIfContextActive {
+        UTrackedMockSymbol(this, name = "tracked#${trackedIndex++}", sort)
+    }.cast()
+    
     private val isSubtypeExprCache = mkAstInterner<UIsSubtypeExpr<Any>>()
     fun <Type> mkIsSubtypeExpr(
         ref: UHeapRef, type: Type,

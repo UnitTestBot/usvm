@@ -34,6 +34,7 @@ import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USort
+import org.usvm.UTrackedMockSymbol
 import org.usvm.UTransformer
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
@@ -59,7 +60,7 @@ import org.usvm.mkSizeLeExpr
 import org.usvm.regions.Region
 import org.usvm.uctx
 
-class USoftConstraintsProvider<Type, USizeSort : USort>(
+open class USoftConstraintsProvider<Type, USizeSort : USort>(
     override val ctx: UContext<USizeSort>
 ) : UTransformer<Type, USizeSort> {
     // We have a list here since sometimes we want to add several soft constraints
@@ -111,6 +112,10 @@ class USoftConstraintsProvider<Type, USizeSort : USort>(
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
+    ): UExpr<Sort> = transformAppIfPossible(expr)
+
+    override fun <Sort : USort> transform(
+        expr: UTrackedMockSymbol<Sort>
     ): UExpr<Sort> = transformAppIfPossible(expr)
 
     override fun transform(
@@ -321,7 +326,7 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         sort: KArraySort<D, R>,
     ): (KExpr<*>) -> KExpr<KBoolSort> = sort.range.accept(this)
 
-    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { it.asExpr(sort) }
+    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { it.asExpr(sort) } // TODO remove it
 
     override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
