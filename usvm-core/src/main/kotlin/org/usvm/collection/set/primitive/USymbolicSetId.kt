@@ -1,5 +1,6 @@
 package org.usvm.collection.set.primitive
 
+import io.ksmt.cache.hash
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -99,6 +100,21 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
             regionCache.uncheckedCast()
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UAllocatedSetId<*, *, *>
+
+        if (setAddress != other.setAddress) return false
+        if (setType != other.setType) return false
+        if (elementSort != other.elementSort) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = hash(setAddress, setType, elementSort)
 }
 
 class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
@@ -149,4 +165,18 @@ class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
         collection: USymbolicCollection<UInputSetId<SetType, ElementSort, *>, USymbolicSetElement<ElementSort>, UBoolSort>,
         keyInfo: USymbolicCollectionKeyInfo<USymbolicSetElement<ElementSort>, R>,
     ): R = keyInfo.topRegion()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UInputSetId<*, *, *>
+
+        if (other.setType != setType) return false
+        if (other.elementSort != elementSort) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = hash(setType, elementSort)
 }

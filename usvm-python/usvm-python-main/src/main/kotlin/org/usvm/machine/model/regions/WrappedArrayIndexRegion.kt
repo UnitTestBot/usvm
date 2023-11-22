@@ -1,4 +1,4 @@
-package org.usvm.machine.model
+package org.usvm.machine.model.regions
 
 import io.ksmt.sort.KIntSort
 import org.usvm.UAddressSort
@@ -8,6 +8,7 @@ import org.usvm.USort
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.model.PyModel
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UReadOnlyMemoryRegion
 
