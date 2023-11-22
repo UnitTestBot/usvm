@@ -49,8 +49,8 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonDict, PythonAnyType),
-        "input_dict_virtual_get_item",
+        listOf(typeSystem.pythonInt, typeSystem.pythonInt),
+        "allocate_dict_with_int_key",
         "Dicts"
     )
     val functions = listOf(function)
@@ -199,8 +199,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    timeoutPerRunMs = 4_000,
-                    timeoutMs = 30_000
+                    // timeoutPerRunMs = 4_000,
+                    // timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

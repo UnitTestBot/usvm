@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
 import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
+import static org.usvm.machine.interpreters.operations.basic.DictKt.handlerCreateDictKt;
 import static org.usvm.machine.interpreters.operations.basic.DictKt.handlerDictGetItemKt;
 import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
@@ -572,6 +573,18 @@ public class CPythonAdapter {
             return null;
         MethodParameters event = new MethodParameters("create_slice", Arrays.asList(start, stop, step));
         return withTracing(context, event, () -> wrap(handlerCreateSliceKt(context, start.obj, stop.obj, step.obj)));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "create_dict")
+    @CPythonFunction(
+            argCTypes = {CType.PyObjectArray, CType.PyObjectArray},
+            argConverters = {ObjectConverter.ArrayConverter, ObjectConverter.ArrayConverter}
+    )
+    public static SymbolForCPython handlerCreateDict(ConcolicRunContext context, SymbolForCPython[] keys, SymbolForCPython[] elements) {
+        if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null) || Arrays.stream(keys).anyMatch(elem -> elem.obj == null))
+            return null;
+        DictCreation event = new DictCreation(Arrays.asList(keys), Arrays.asList(elements));
+        return withTracing(context, event, () -> wrap(handlerCreateDictKt(context, Arrays.stream(keys).map(s -> s.obj), Arrays.stream(elements).map(s -> s.obj))));
     }
 
     @CPythonAdapterJavaMethod(cName = "range_iter")
