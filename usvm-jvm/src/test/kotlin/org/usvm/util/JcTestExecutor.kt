@@ -20,6 +20,8 @@ import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.machine.*
+import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
+import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
@@ -27,7 +29,6 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
-import org.usvm.types.firstOrNull
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -171,7 +172,9 @@ class JcTestExecutor(
         private val memory: UReadOnlyMemory<JcType>,
         private val method: JcTypedMethod,
     ) {
-
+        private val typeSelector = JcTypeStreamPrioritization(
+            typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
+        )
         private val resolvedCache = mutableMapOf<UConcreteHeapAddress, Pair<UTestExpression, List<UTestInst>>>()
 
         fun createUTest(): UTest {
@@ -272,7 +275,8 @@ class JcTestExecutor(
             // and array types right now.
             // In such cases, we need to resolve this element to null.
 
-            val evaluatedType = typeStream.firstOrNull() ?: return UTestNullExpression(type) to listOf()
+            val evaluatedType = typeSelector.firstOrNull(typeStream, type.jcClass)
+                ?: return UTestNullExpression(type) to listOf()
 
             // We check for the type stream emptiness firsly and only then for the resolved cache,
             // because even if the object is already resolved, it could be incompatible with the [type], if it
