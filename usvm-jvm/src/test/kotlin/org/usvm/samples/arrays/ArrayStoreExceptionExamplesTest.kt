@@ -32,8 +32,11 @@ class ArrayStoreExceptionExamplesTest : ApproximationsTestRunner() {
     fun testCorrectAssignmentSubtype() {
         checkDiscoveredPropertiesWithExceptions(
             ArrayStoreExceptionExamples::correctAssignmentSubtype,
-            eq(3),
-            { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() }
+            eq(4),
+            { _, data, result -> result.isSuccess && result.getOrNull() == data?.isNotEmpty() },
+            { _, data, result ->
+                result.isException<ArrayStoreException>() && !data.isNullOrEmpty() && !data.isArrayOf<Int>()
+            }
         )
     }
 

@@ -31,7 +31,6 @@ import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
-import org.jacodb.api.ext.void
 import org.usvm.ForkCase
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -43,6 +42,7 @@ import org.usvm.UInterpreter
 import org.usvm.USort
 import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.mapTypeStream
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.forkblacklists.UForkBlackList
@@ -72,6 +72,7 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.singleOrNull
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -335,16 +336,35 @@ class JcInterpreter(
             "Writing $rvalue with sort ${rvalue.sort} to the array with different sort ${lvalue.sort} by lvalue $lvalue found"
         }
 
+        val rvalueRef = rvalue.asExpr(ctx.addressSort)
+
         // ArrayStoreException happens if we write a value that is not a subtype of the element type
         val isRvalueSubtypeOf = scope.calcOnState {
-            // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
-            // so we need to retrieve the real array type with another way
-            val arrayType = memory.types.getTypeStream(lvalue.ref).commonSuperType
-                ?: error("No type found for array ${lvalue.ref}")
-            val elementType = arrayType.ifArrayGetElementType
-                ?: error("Not array type $arrayType found for array ${lvalue.ref}")
+            val elementTypeConstraints = mapTypeStream(lvalue.ref) { arrayRef, types ->
+                // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
+                // so we need to retrieve the real array type with another way
+                val arrayType = types.commonSuperType
+                    ?: error("No type found for array $arrayRef")
 
-            memory.types.evalIsSubtype(rvalue.asExpr(ctx.addressSort), elementType)
+                val elementType = arrayType.ifArrayGetElementType
+                // Super type is not Array type (e.g. Object).
+                // When we can't verify a type, treat this check as no exception possible
+                    ?: return@mapTypeStream ctx.trueExpr
+
+                memory.types.evalIsSubtype(rvalueRef, elementType)
+            } ?: ctx.trueExpr // We can't extract types for array ref -> treat this check as no exception possible
+
+            val arrayTypeConstraints = mapTypeStream(rvalueRef) { _, types ->
+                val elementType = types.singleOrNull()
+                    // When we can't verify a type, treat this check as no exception possible
+                    ?: return@mapTypeStream ctx.trueExpr
+
+                val arrayType = ctx.cp.arrayTypeOf(elementType)
+
+                memory.types.evalIsSupertype(lvalue.ref, arrayType)
+            } ?: ctx.trueExpr
+
+            ctx.mkAnd(elementTypeConstraints, arrayTypeConstraints)
         }
 
         return isRvalueSubtypeOf
