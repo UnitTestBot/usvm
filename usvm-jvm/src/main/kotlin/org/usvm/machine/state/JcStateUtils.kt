@@ -9,7 +9,6 @@ import org.jacodb.api.ext.cfg.locals
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcMethodCall
@@ -58,13 +57,8 @@ fun JcState.throwExceptionAndDropStackFrame() {
     }
 }
 
-fun JcState.addNewMethodCall(
-    applicationGraph: JcApplicationGraph,
-    methodCall: JcConcreteMethodCallInst
-) {
+fun JcState.addNewMethodCall(methodCall: JcConcreteMethodCallInst, entryPoint: JcInst) {
     val method = methodCall.method
-    val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
-        ?: error("No entrypoint found for method: $method")
     callStack.push(method, methodCall.returnSite)
     memory.stack.push(methodCall.arguments.toTypedArray(), method.localsCount)
     newStmt(entryPoint)
