@@ -1,22 +1,28 @@
 package org.usvm.machine.model
 
+import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.array.length.UArrayLengthsRegionId
+import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
+import org.usvm.machine.model.regions.WrappedArrayIndexRegion
+import org.usvm.machine.model.regions.WrappedArrayLengthRegion
+import org.usvm.machine.model.regions.WrappedRefSetRegion
+import org.usvm.machine.model.regions.WrappedSetRegion
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.memory.key.USizeRegion
 import org.usvm.model.UModelBase
-
 
 class PyModel(
     private val ctx: UPythonContext,
@@ -32,10 +38,13 @@ class PyModel(
     underlyingModel.regions,
     underlyingModel.nullRef
 ) {
-    private val setKeys = WrappedSetRegion.constructKeys(ctx, ps, underlyingModel)
+    private val psInfo = getPathConstraintsInfo(ctx, ps, underlyingModel)
 
     val possibleRefKeys: Set<UConcreteHeapRef>
-        get() = setKeys
+        get() = psInfo.setRefKeys
+
+    val possibleIntKeys: Set<KInterpretedValue<KIntSort>>
+        get() = psInfo.setIntKeys
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
@@ -52,13 +61,17 @@ class PyModel(
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
-            return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, true)
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys, typeSystem, preallocatedObjects, underlyingModel.types, true)
                     as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == RefDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>
-            return WrappedSetRegion(ctx, region, setKeys, typeSystem, preallocatedObjects, underlyingModel.types, false)
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys, typeSystem, preallocatedObjects, underlyingModel.types, false)
                     as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<USetEntryLValue<IntDictType, KIntSort, USizeRegion>, UBoolSort>
+            return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)
     }

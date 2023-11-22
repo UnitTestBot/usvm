@@ -1,4 +1,4 @@
-package org.usvm.machine.model
+package org.usvm.machine.model.regions
 
 import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
