@@ -112,7 +112,6 @@ fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*> =
     try {
         Class.forName(name, true, classLoader)
     } catch (e: Throwable) {
-        System.err.println("${classLoader.hashCode()} || EXCEPTION WHILE LOADING CLASS $name")
         throw TestExecutorException("Can't find class $name in classpath")
     }
 
