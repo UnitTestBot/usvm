@@ -76,6 +76,7 @@ abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
     val model: UModelBase<JcType>,
     val memory: UReadOnlyMemory<JcType>,
+    // todo: remove hack with stringConstants. All statically allocated strings should present in the model
     val stringConstants: Map<String, UConcreteHeapRef>,
     val method: JcTypedMethod,
 ) {

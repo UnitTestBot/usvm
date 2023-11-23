@@ -27,6 +27,7 @@ abstract class USetCollectionDecoder<ElementSort : USort> {
         FunctionAppCollector(inputFunction.ctx, inputFunction)
     }
 
+    // todo: think about a better way of set keys retrieval to avoid traversing all the assertions.
     fun decodeCollection(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>,
