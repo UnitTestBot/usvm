@@ -16,7 +16,7 @@ class URLClassPathLoader(private val classPath: List<File>) {
         fun getCodeSigners(): Array<CodeSigner>?
     }
 
-    private val urlClassLoader = URLClassLoader(classPath.map { it.toURI().toURL() }.toTypedArray())
+    private val urlClassLoader = URLClassLoader(classPath.map { it.toURI().toURL() }.toTypedArray(), null)
 
     fun getResource(name: String): Resource {
         val resourceUrl = urlClassLoader.getResource(name) ?: error("Resource $name not found on classpath $classPath")
