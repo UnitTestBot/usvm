@@ -3,18 +3,18 @@ package org.usvm.solver
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UHeapRef
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
-import org.usvm.USymbolicHeapRef
 import org.usvm.model.UTypeModel
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeSystem
 import org.usvm.uctx
 
 data class TypeSolverQuery<Type>(
-    val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
-    val symbolicRefToTypeRegion: Map<USymbolicHeapRef, UTypeRegion<Type>>,
+    val inputToConcrete: (UHeapRef) -> UConcreteHeapRef,
+    val inputRefToTypeRegion: Map<UHeapRef, UTypeRegion<Type>>,
     val isExprToInterpretation: List<Pair<UIsExpr<Type>, Boolean>>,
 )
 
@@ -31,9 +31,9 @@ class UTypeSolver<Type>(
      * Checks the [query].
      *
      * Checking works as follows:
-     * 1. Groups propositional variables by symbolic heap references and builds nullability conflict lemmas.
-     * 2. Groups symbolic references into clusters by their concrete interpretations and filters out nulls.
-     * 3. For each cluster processes symbolic references one by one, intersects their type regions according to
+     * 1. Groups propositional variables by input heap references and builds nullability conflict lemmas.
+     * 2. Groups input references into clusters by their concrete interpretations and filters out nulls.
+     * 3. For each cluster processes input references one by one, intersects their type regions according to
      * [UIsSubtypeExpr]s and [UIsSupertypeExpr]s.
      * 4. If the current region became empty, then we have found a conflicting group, so build a new reference
      * disequality lemma with negation of [UIsSubtypeExpr]s and [UIsSupertypeExpr]s.
@@ -71,7 +71,7 @@ class UTypeSolver<Type>(
         val conflictLemmas = mutableListOf<UBoolExpr>()
 
         val symbolicRefToIsExprs = extractIsExpressionsAndFindNullConflicts(
-            query.symbolicToConcrete,
+            query.inputToConcrete,
             query.isExprToInterpretation,
             onHolds = { ref, isExpr ->
                 if (isExpr is UIsSupertypeExpr) {
@@ -87,11 +87,11 @@ class UTypeSolver<Type>(
 
         val symbolicRefToRegion =
             symbolicRefToIsExprs.mapValues { topTypeRegion } +
-                query.symbolicRefToTypeRegion
+                query.inputRefToTypeRegion
 
 
         val concreteRefToCluster = symbolicRefToRegion.entries
-            .groupBy { (ref, _) -> query.symbolicToConcrete(ref).address }
+            .groupBy { (ref, _) -> query.inputToConcrete(ref).address }
             .filterNot { (address, _) -> address == NULL_ADDRESS }
 
 
@@ -125,12 +125,12 @@ class UTypeSolver<Type>(
     }
 
     private fun checkCluster(
-        cluster: List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>,
-        symbolicRefToIsExpr: Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
+        cluster: List<Map.Entry<UHeapRef, UTypeRegion<Type>>>,
+        symbolicRefToIsExpr: Map<UHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
         conflictLemmas: MutableList<UBoolExpr>,
-    ): Pair<UTypeRegion<Type>, List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>> {
+    ): Pair<UTypeRegion<Type>, List<Map.Entry<UHeapRef, UTypeRegion<Type>>>> {
         var currentRegion = topTypeRegion
-        val potentialConflictingRefs = mutableListOf<USymbolicHeapRef>()
+        val potentialConflictingRefs = mutableListOf<UHeapRef>()
         val potentialConflictingIsExprs = mutableListOf<UBoolExpr>()
 
         for ((heapRef, region) in cluster) {
@@ -198,14 +198,14 @@ class UTypeSolver<Type>(
     }
 
     private inline fun extractIsExpressionsAndFindNullConflicts(
-        symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
+        inputToConcrete: (UHeapRef) -> UConcreteHeapRef,
         isExpressions: List<Pair<UIsExpr<Type>, Boolean>>,
-        onHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
-        onNotHolds: (USymbolicHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
-    ): Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>> {
-        val symbolicRefToIsSubtypeExprs = isExpressions.groupBy { (expr, _) -> expr.ref as USymbolicHeapRef }
-        for ((ref, isSupertypeExprs) in symbolicRefToIsSubtypeExprs) {
-            val concreteRef = symbolicToConcrete(ref).address
+        onHolds: (UHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+        onNotHolds: (UHeapRef, UIsExpr<Type>) -> Unit = { _, _ -> },
+    ): Map<UHeapRef, List<Pair<UIsExpr<Type>, Boolean>>> {
+        val inputRefToIsSubtypeExprs = isExpressions.groupBy { (expr, _) -> expr.ref }
+        for ((ref, isSupertypeExprs) in inputRefToIsSubtypeExprs) {
+            val concreteRef = inputToConcrete(ref).address
             if (concreteRef != NULL_ADDRESS) {
                 continue
             }
@@ -217,7 +217,7 @@ class UTypeSolver<Type>(
                 }
             }
         }
-        return symbolicRefToIsSubtypeExprs
+        return inputRefToIsSubtypeExprs
     }
 
 }
