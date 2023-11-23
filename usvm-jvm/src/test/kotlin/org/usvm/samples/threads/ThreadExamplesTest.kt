@@ -3,6 +3,7 @@ package org.usvm.samples.threads
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
@@ -39,4 +40,22 @@ class ThreadExamplesTest : JavaMethodTestRunner() {
             { _, r -> r.isException<IndexOutOfBoundsException>() },
         )
     }
+
+    @Test
+    fun testGetThreadLocalValue() {
+        checkDiscoveredPropertiesWithExceptions(
+            ThreadExamples::getThreadLocalValue,
+            ignoreNumberOfAnalysisResults,
+            { _, r -> r.isSuccess },
+        )
+    }
+
+//    @Test
+//    fun testGetLength() {
+//        checkDiscoveredPropertiesWithExceptions(
+//            ThreadExamples::getLength,
+//            ignoreNumberOfAnalysisResults,
+////            { _, r -> r.isSuccess },
+//        )
+//    }
 }
