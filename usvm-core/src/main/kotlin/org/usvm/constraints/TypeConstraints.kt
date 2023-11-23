@@ -78,9 +78,6 @@ class UTypeConstraints<Type>(
             return inputTypeRegions
         }
 
-    val concreteRefToTypeRegion: Map<UConcreteHeapAddress, UTypeRegion<Type>>
-        get() = concreteRefToType.mapValues { UTypeRegion.fromSingleType(typeSystem, it.value) }
-
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
      */
