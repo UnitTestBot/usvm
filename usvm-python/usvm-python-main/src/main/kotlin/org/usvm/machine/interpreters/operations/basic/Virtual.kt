@@ -10,6 +10,7 @@ import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.machine.utils.substituteModel
 
 fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
+    ctx.curState ?: throw UnregisteredVirtualOperation
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
     if(ctx.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
@@ -45,6 +46,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
 }
 
 fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = with(ctx.ctx) {
+    ctx.curState ?: throw UnregisteredVirtualOperation
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = ctx.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
@@ -102,13 +104,17 @@ private fun internalVirtualCallKt(
 }
 
 fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
+    ctx.curState ?: throw UnregisteredVirtualOperation
     val (interpreted, _) = internalVirtualCallKt(ctx)
     val converter = ctx.converter
     require(interpreted is InterpretedInputSymbolicPythonObject)
     return converter.convert(interpreted)
 }
 
-fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject = internalVirtualCallKt(ctx).second
+fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {
+    ctx.curState ?: throw UnregisteredVirtualOperation
+    return internalVirtualCallKt(ctx).second
+}
 
 object UnregisteredVirtualOperation: Exception() {
     private fun readResolve(): Any = UnregisteredVirtualOperation

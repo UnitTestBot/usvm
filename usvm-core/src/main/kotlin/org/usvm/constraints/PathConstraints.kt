@@ -1,5 +1,7 @@
 package org.usvm.constraints
 
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentHashSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
@@ -39,6 +41,7 @@ open class UPathConstraints<Type> private constructor(
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
     private val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
+    var pythonSoftConstraints: PersistentSet<UBoolExpr> = persistentHashSetOf()
 ) : UMergeable<UPathConstraints<Type>, MutableMergeGuard> {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -49,7 +52,7 @@ open class UPathConstraints<Type> private constructor(
      * Constraints solved by SMT solver.
      */
     val softConstraintsSourceSequence: Sequence<UBoolExpr>
-        get() = logicalConstraints.asSequence() + numericConstraints.constraints()
+        get() = logicalConstraints.asSequence() + numericConstraints.constraints() + pythonSoftConstraints.asSequence()
 
     constructor(ctx: UContext<*>) : this(ctx, ULogicalConstraints.empty())
 
@@ -170,7 +173,8 @@ open class UPathConstraints<Type> private constructor(
             logicalConstraints = clonedLogicalConstraints,
             equalityConstraints = clonedEqualityConstraints,
             typeConstraints = clonedTypeConstraints,
-            numericConstraints = clonedNumericConstraints
+            numericConstraints = clonedNumericConstraints,
+            pythonSoftConstraints = pythonSoftConstraints,
         )
     }
 
@@ -206,7 +210,8 @@ open class UPathConstraints<Type> private constructor(
             mergedLogicalConstraints,
             mergedEqualityConstraints,
             mergedTypeConstraints,
-            mergedNumericConstraints
+            mergedNumericConstraints,
+            pythonSoftConstraints.addAll(other.pythonSoftConstraints),
         )
     }
 }
