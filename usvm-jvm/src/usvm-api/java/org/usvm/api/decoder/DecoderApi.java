@@ -34,7 +34,7 @@ public interface DecoderApi<T> {
 
     T createClassConst(final JcType type);
 
-    T createNullConst();
+    T createNullConst(final JcType type);
 
     T castClass(final JcClassOrInterface type, final T obj);
 

@@ -43,7 +43,7 @@ class JcTestInterpreterDecoderApi(
     override fun createClassConst(type: JcType): Any =
         type.toJavaClass(classLoader)
 
-    override fun createNullConst(): Any? = null
+    override fun createNullConst(type: JcType): Any? = null
 
     override fun setArrayIndex(array: Any?, index: Any?, value: Any?) {
         Reflection.setArrayIndex(array!!, index as Int, value)

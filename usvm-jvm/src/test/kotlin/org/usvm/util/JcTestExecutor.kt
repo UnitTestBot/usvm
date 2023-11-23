@@ -186,8 +186,6 @@ class JcTestExecutor(
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 
         fun createUTest(): UTest {
-            decoderApi.resetInitializerInstructions()
-
             val thisInstance = if (!method.isStatic) {
                 val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
                 resolveLValue(ref, method.enclosingType)

@@ -63,13 +63,14 @@ import org.usvm.machine.extractFloat
 import org.usvm.machine.extractInt
 import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
+import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
+import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.firstOrNull
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
@@ -82,6 +83,9 @@ abstract class JcTestStateResolver<T>(
 
     val resolvedCache = mutableMapOf<UConcreteHeapAddress, T>()
     val decoders = JcTestDecoders(ctx.cp)
+    val typeSelector = JcTypeStreamPrioritization(
+        typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
+    )
 
     fun resolveLValue(lvalue: ULValue<*, *>, type: JcType): T {
         val expr = memory.read(lvalue)
@@ -105,7 +109,7 @@ abstract class JcTestStateResolver<T>(
         ctx.cp.float -> decoderApi.createFloatConst(resolvePrimitiveFloat(expr))
         ctx.cp.double -> decoderApi.createDoubleConst(resolvePrimitiveDouble(expr))
         ctx.cp.char -> decoderApi.createCharConst(resolvePrimitiveChar(expr))
-        ctx.cp.void -> decoderApi.createNullConst()
+        ctx.cp.void -> decoderApi.createNullConst(ctx.cp.objectType)
         else -> error("Unexpected type: ${type.typeName}")
     }
 
@@ -136,7 +140,7 @@ abstract class JcTestStateResolver<T>(
     fun resolveReference(heapRef: UHeapRef, type: JcRefType): T {
         val ref = evaluateInModel(heapRef) as UConcreteHeapRef
         if (ref.address == NULL_ADDRESS) {
-            return decoderApi.createNullConst()
+            return decoderApi.createNullConst(type)
         }
         // to find a type, we need to understand the source of the object
         val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
@@ -152,7 +156,8 @@ abstract class JcTestStateResolver<T>(
         // and array types right now.
         // In such cases, we need to resolve this element to null.
 
-        val evaluatedType = typeStream.firstOrNull() ?: return decoderApi.createNullConst()
+        val evaluatedType = typeSelector.firstOrNull(typeStream, type.jcClass)
+            ?: return decoderApi.createNullConst(type)
 
         // We check for the type stream emptiness firsly and only then for the resolved cache,
         // because even if the object is already resolved, it could be incompatible with the [type], if it
@@ -213,6 +218,10 @@ abstract class JcTestStateResolver<T>(
             return resolveEnumValue(heapRef, anyEnumAncestor)
         }
 
+        return allocateAndInitializeObject(ref, heapRef, type)
+    }
+
+    fun allocateAndInitializeObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
         val instance = allocateClassInstance(type)
         saveResolvedRef(ref.address, instance)
 
@@ -242,7 +251,7 @@ abstract class JcTestStateResolver<T>(
         val enumField = enumAncestor.enumValues?.get(ordinalFieldValue)
             ?: error("Cant find enum field with index $ordinalFieldValue")
 
-        return decoderApi.getField(enumField, decoderApi.createNullConst())
+        return decoderApi.getField(enumField, decoderApi.createNullConst(ctx.cp.objectType))
     }
 
     fun resolveAllocatedClass(ref: UConcreteHeapRef): T {
@@ -457,6 +466,19 @@ abstract class JcTestStateResolver<T>(
             val lengthRef = UArrayLengthLValue(instanceRef, arrayDescriptor, ctx.sizeSort)
             return resolvePrimitiveInt(memory.read(lengthRef))
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as JcTestStateResolver<*>.TestObjectData
+
+            return instanceRef == other.instanceRef
+        }
+
+        override fun hashCode(): Int = instanceRef.hashCode()
+
+        override fun toString(): String = "(Object $instanceRef)"
     }
 
     /**

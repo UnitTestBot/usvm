@@ -48,10 +48,6 @@ class JcTestExecutorDecoderApi(
 ) : DecoderApi<UTestExpression> {
     private val instructions = mutableListOf<UTestInst>()
 
-    fun resetInitializerInstructions() {
-        instructions.clear()
-    }
-
     fun initializerInstructions(): List<UTestInst> = instructions
 
     override fun setField(field: JcField, instance: UTestExpression, value: UTestExpression) {
@@ -108,8 +104,8 @@ class JcTestExecutorDecoderApi(
     override fun createClassConst(type: JcType): UTestExpression =
         UTestClassExpression(type)
 
-    override fun createNullConst(): UTestExpression =
-        UTestNullExpression(ctx.cp.objectType)
+    override fun createNullConst(type: JcType): UTestExpression =
+        UTestNullExpression(type)
 
     override fun setArrayIndex(array: UTestExpression, index: UTestExpression, value: UTestExpression) {
         instructions += UTestArraySetStatement(array, index, value)
