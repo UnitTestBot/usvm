@@ -17,6 +17,7 @@ data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters
 data class Unpack(val iterable: SymbolForCPython, val count: Int): SymbolicHandlerEventParameters<Unit>()
 data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class DictCreation(val keys: List<SymbolForCPython>, val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class DictCreationConstKey(val keys: SymbolForCPython, val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class TupleCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class EmptyObjectCreation(val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
