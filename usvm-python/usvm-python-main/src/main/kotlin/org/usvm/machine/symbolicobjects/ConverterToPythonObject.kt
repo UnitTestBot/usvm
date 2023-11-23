@@ -59,7 +59,7 @@ class ConverterToPythonObject(
         }
         val cached = constructedObjects[obj.address]
         if (cached != null) {
-            // ConcretePythonInterpreter.incref(cached)
+            ConcretePythonInterpreter.incref(cached)
             return cached
         }
         val result = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {

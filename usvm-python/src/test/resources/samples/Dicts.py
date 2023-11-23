@@ -27,3 +27,21 @@ def allocate_dict_with_int_key(x, y):
 def allocate_const_key_dict(x):
     d = {25: 15, 10: 0}
     assert d[x] == 15
+
+
+def dict_int_set_item(x, y):
+    d = {}
+    d[10] = 10
+    assert d[x] == y
+
+
+def dict_str_set_item(x, y):
+    d = {}
+    d[10] = 10
+    assert d["hello"] == y
+
+
+def dict_virtual_set_item(x, y):
+    d = {}
+    d[x] = 10
+    assert d[155] == y

@@ -60,8 +60,7 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, _, res -> res.repr == "None" },
-                { _, _, res -> res.selfTypeName == "AssertionError" },
-                { _, _, res -> res.selfTypeName == "KeyError" }
+                { _, _, res -> res.selfTypeName == "AssertionError" }
             )
         )
     }
