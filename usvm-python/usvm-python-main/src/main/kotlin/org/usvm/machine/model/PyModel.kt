@@ -7,6 +7,8 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.array.length.UArrayLengthsRegionId
+import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.map.ref.URefMapRegionId
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.collection.set.ref.URefSetEntryLValue
@@ -14,10 +16,7 @@ import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
-import org.usvm.machine.model.regions.WrappedArrayIndexRegion
-import org.usvm.machine.model.regions.WrappedArrayLengthRegion
-import org.usvm.machine.model.regions.WrappedRefSetRegion
-import org.usvm.machine.model.regions.WrappedSetRegion
+import org.usvm.machine.model.regions.*
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -72,6 +71,10 @@ class PyModel(
         if (regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<USetEntryLValue<IntDictType, KIntSort, USizeRegion>, UBoolSort>
             return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is URefMapRegionId<*, *> && regionId.mapType == ObjectDictType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefMapEntryLValue<ObjectDictType, UAddressSort>, UAddressSort>
+            return WrappedRefMapRegion(ctx, region, psInfo.setRefKeys, underlyingModel) as UReadOnlyMemoryRegion<Key, Sort>
         }
         return super.getRegion(regionId)
     }

@@ -217,7 +217,7 @@ class ConverterToPythonObject(
                     val str = preallocatedObjects.concreteString(it)!!
                     if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
                         val symbolicValue = obj.getFieldValue(ctx, nameSymbol, memory)
-                        val value = convert(symbolicValue)
+                        val value = convert(symbolicValue, concolicCtx)
                         val strRef = preallocatedObjects.refOfString(str)!!
                         val namespace = ConcretePythonInterpreter.getNewNamespace()
                         ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
