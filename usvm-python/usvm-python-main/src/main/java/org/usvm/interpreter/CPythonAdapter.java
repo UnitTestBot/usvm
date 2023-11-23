@@ -22,8 +22,7 @@ import java.util.concurrent.Callable;
 import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
 import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
-import static org.usvm.machine.interpreters.operations.basic.DictKt.handlerCreateDictKt;
-import static org.usvm.machine.interpreters.operations.basic.DictKt.handlerDictGetItemKt;
+import static org.usvm.machine.interpreters.operations.basic.DictKt.*;
 import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
@@ -587,6 +586,18 @@ public class CPythonAdapter {
         return withTracing(context, event, () -> wrap(handlerCreateDictKt(context, Arrays.stream(keys).map(s -> s.obj), Arrays.stream(elements).map(s -> s.obj))));
     }
 
+    @CPythonAdapterJavaMethod(cName = "create_dict_const_key")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObjectArray},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.ArrayConverter}
+    )
+    public static SymbolForCPython handlerCreateDictConstKey(ConcolicRunContext context, SymbolForCPython keys, SymbolForCPython[] elements) {
+        if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null) || keys.obj == null)
+            return null;
+        DictCreationConstKey event = new DictCreationConstKey(keys, Arrays.asList(elements));
+        return withTracing(context, event, () -> wrap(handlerCreateDictConstKeyKt(context, keys.obj, Arrays.stream(elements).map(s -> s.obj))));
+    }
+
     @CPythonAdapterJavaMethod(cName = "range_iter")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
@@ -761,6 +772,17 @@ public class CPythonAdapter {
         if (dict.obj == null || key.obj == null)
             return null;
         return methodWrapper(context, new MethodParameters("dict_get_item", Arrays.asList(dict, key)), () -> handlerDictGetItemKt(context, dict.obj, key.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "dict_set_item")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void handlerDictGetItem(ConcolicRunContext context, SymbolForCPython dict, SymbolForCPython key, SymbolForCPython value) {
+        if (dict.obj == null || key.obj == null || value.obj == null)
+            return;
+        withTracing(context, new MethodParametersNoReturn("dict_set_item", Arrays.asList(dict, key, value)), unit(() -> handlerDictSetItemKt(context, dict.obj, key.obj, value.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "function_call")
