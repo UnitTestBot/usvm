@@ -47,12 +47,12 @@ val JcInst.enclosingClass
 val JcInst.enclosingMethod
     get() = this.location.method
 
-fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
+fun JcType.toJavaClass(classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
     when (this) {
         is JcPrimitiveType -> toJavaClass()
-        is JcArrayType -> findClassInLoader(toJvmType(), classLoader)
-        is JcClassType -> this.jcClass.toJavaClass(classLoader)
-        else -> findClassInLoader(typeName, classLoader)
+        is JcArrayType -> findClassInLoader(toJvmType(), classLoader, initialize)
+        is JcClassType -> this.jcClass.toJavaClass(classLoader, initialize)
+        else -> findClassInLoader(typeName, classLoader, initialize)
     }
 
 private fun JcPrimitiveType.toJavaClass(): Class<*> {
@@ -104,11 +104,11 @@ fun JcType.toJcClass(): JcClassOrInterface? =
         else -> error("Unexpected type")
     }
 
-fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader, initialize: Boolean = false): Class<*> =
+fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
     findClassInLoader(name, classLoader, initialize)
 
 
-fun findClassInLoader(name: String, classLoader: ClassLoader, initialize: Boolean = false): Class<*> =
+fun findClassInLoader(name: String, classLoader: ClassLoader, initialize: Boolean = true): Class<*> =
     try {
         Class.forName(name, initialize, classLoader)
     } catch (e: Throwable) {
