@@ -139,4 +139,19 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             )
         )
     }
+
+    @Test
+    fun testAllocateConstKeyDict() {
+        check1WithConcreteRun(
+            constructFunction("allocate_const_key_dict", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
 }
