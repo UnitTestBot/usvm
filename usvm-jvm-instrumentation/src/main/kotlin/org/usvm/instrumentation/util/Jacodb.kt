@@ -104,13 +104,13 @@ fun JcType.toJcClass(): JcClassOrInterface? =
         else -> error("Unexpected type")
     }
 
-fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
-    findClassInLoader(name, classLoader)
+fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader, initialize: Boolean = false): Class<*> =
+    findClassInLoader(name, classLoader, initialize)
 
 
-fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*> =
+fun findClassInLoader(name: String, classLoader: ClassLoader, initialize: Boolean = false): Class<*> =
     try {
-        Class.forName(name, true, classLoader)
+        Class.forName(name, initialize, classLoader)
     } catch (e: Throwable) {
         throw TestExecutorException("Something gone wrong with $name loading. Exception: ${e::class.java.name}")
     }
