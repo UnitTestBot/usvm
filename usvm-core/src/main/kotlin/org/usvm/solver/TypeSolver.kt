@@ -2,11 +2,13 @@ package org.usvm.solver
 
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.USymbolicHeapRef
+import org.usvm.isStatic
 import org.usvm.model.UTypeModel
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeSystem
@@ -15,6 +17,7 @@ import org.usvm.uctx
 data class TypeSolverQuery<Type>(
     val symbolicToConcrete: (USymbolicHeapRef) -> UConcreteHeapRef,
     val symbolicRefToTypeRegion: Map<USymbolicHeapRef, UTypeRegion<Type>>,
+    val concreteRefToType: Map<UConcreteHeapAddress, Type>,
     val isExprToInterpretation: List<Pair<UIsExpr<Type>, Boolean>>,
 )
 
@@ -27,6 +30,7 @@ class UTypeSolver<Type>(
 ) : USolver<TypeSolverQuery<Type>, UTypeModel<Type>>() {
     private val topTypeRegion by lazy { UTypeRegion(typeSystem, typeSystem.topTypeStream()) }
 
+    // TODO update docs
     /**
      * Checks the [query].
      *
@@ -95,9 +99,17 @@ class UTypeSolver<Type>(
             .filterNot { (address, _) -> address == NULL_ADDRESS }
 
 
+        val staticRefToTypeRegion = query.concreteRefToType
+            .filterKeys { it.isStatic }
+            .mapValues { UTypeRegion.fromSingleType(typeSystem, it.value) }
+
         // then for each group check conflicting types
-        val concreteToRegionWithCluster = concreteRefToCluster.mapValues { (_, cluster) ->
-            checkCluster(cluster, symbolicRefToIsExprs, conflictLemmas)
+        val concreteToRegionWithCluster = concreteRefToCluster.mapValues { (address, cluster) ->
+            val initialRegion = address.takeIf { it.isStatic }?.let { staticAddress ->
+                staticRefToTypeRegion[staticAddress] ?: topTypeRegion
+            } ?: topTypeRegion
+
+            checkCluster(initialRegion, cluster, symbolicRefToIsExprs, conflictLemmas)
         }
 
         // if there were some conflicts, return constraints on reference equalities
@@ -120,16 +132,17 @@ class UTypeSolver<Type>(
             region
         }
 
-        val typeModel = UTypeModel(typeSystem, allConcreteRefToType)
+        val typeModel = UTypeModel(typeSystem, allConcreteRefToType + staticRefToTypeRegion)
         return USatResult(typeModel)
     }
 
     private fun checkCluster(
+        initialRegion: UTypeRegion<Type>,
         cluster: List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>,
         symbolicRefToIsExpr: Map<USymbolicHeapRef, List<Pair<UIsExpr<Type>, Boolean>>>,
         conflictLemmas: MutableList<UBoolExpr>,
     ): Pair<UTypeRegion<Type>, List<Map.Entry<USymbolicHeapRef, UTypeRegion<Type>>>> {
-        var currentRegion = topTypeRegion
+        var currentRegion = initialRegion
         val potentialConflictingRefs = mutableListOf<USymbolicHeapRef>()
         val potentialConflictingIsExprs = mutableListOf<UBoolExpr>()
 

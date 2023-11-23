@@ -91,6 +91,7 @@ open class USolverBase<Type>(
                 val typeSolverQuery = TypeSolverQuery(
                     symbolicToConcrete = { uModel.eval(it) as UConcreteHeapRef },
                     symbolicRefToTypeRegion = pc.typeConstraints.symbolicRefToTypeRegion,
+                    concreteRefToType = pc.typeConstraints.concreteRefToType,
                     isExprToInterpretation = isExprToInterpretation,
                 )
 

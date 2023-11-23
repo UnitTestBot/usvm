@@ -76,6 +76,9 @@ typealias UHeapRef = UExpr<UAddressSort>
 typealias USymbolicHeapRef = USymbol<UAddressSort>
 typealias UConcreteHeapAddress = Int
 
+val UConcreteHeapAddress.isAllocated: Boolean get() = this >= INITIAL_CONCRETE_ADDRESS
+val UConcreteHeapAddress.isStatic: Boolean get() = this <= INITIAL_STATIC_ADDRESS
+
 @OptIn(ExperimentalContracts::class)
 fun isSymbolicHeapRef(expr: UExpr<*>): Boolean {
     contract {
@@ -103,8 +106,8 @@ fun isStaticHeapRef(expr: UExpr<*>): Boolean {
     return expr is UConcreteHeapRef && expr.isStatic
 }
 
-val UConcreteHeapRef.isAllocated: Boolean get() = address >= INITIAL_CONCRETE_ADDRESS
-val UConcreteHeapRef.isStatic: Boolean get() = address <= INITIAL_STATIC_ADDRESS
+val UConcreteHeapRef.isAllocated: Boolean get() = address.isAllocated
+val UConcreteHeapRef.isStatic: Boolean get() = address.isStatic
 
 class UConcreteHeapRefDecl internal constructor(
     ctx: UContext<*>,
