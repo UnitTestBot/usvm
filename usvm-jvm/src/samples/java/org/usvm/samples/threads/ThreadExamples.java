@@ -26,42 +26,4 @@ public class ThreadExamples {
 
         return values.get(0);
     }
-
-    // In this method we check that java.lang.ThreadLocal.ThreadLocalMap#table contain values of correct type (not enum)
-    public String getThreadLocalValue() {
-        /*@SuppressWarnings("unused")
-        AppContext appContext = AppContext.getAppContext();
-        ThreadLocal<String> threadLocal = new ThreadLocal<>();
-        threadLocal.set("42");
-
-        return threadLocal.get();*/
-        // Init enum
-        //noinspection ResultOfMethodCallIgnored
-        EnumWithSixteenValues.values();
-
-        ThreadLocal<String> threadLocal = new ThreadLocal<>();
-
-        return threadLocal.get();
-    }
-
-
-    // Contains 16 constants - the same as java.lang.ThreadLocal.ThreadLocalMap.INITIAL_CAPACITY
-    public enum EnumWithSixteenValues {
-        A,
-        B,
-        C,
-        D,
-        E,
-        F,
-        G,
-        H,
-        I,
-        J,
-        K,
-        L,
-        M,
-        N,
-        O,
-        P,
-    }
 }

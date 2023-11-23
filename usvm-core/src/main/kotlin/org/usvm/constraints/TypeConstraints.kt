@@ -9,6 +9,7 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
+import org.usvm.isStatic
 import org.usvm.isStaticHeapRef
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.merging.MutableMergeGuard
@@ -52,8 +53,8 @@ interface UTypeEvaluator<Type> {
 class UTypeConstraints<Type>(
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    private var _concreteRefToType: PersistentMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
-    private var _symbolicRefToTypeRegion: PersistentMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
+    private var concreteRefToType: PersistentMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
+    private var symbolicRefToTypeRegion: PersistentMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
 ) : UTypeEvaluator<Type>, UMergeable<UTypeConstraints<Type>, MutableMergeGuard> {
     private val ctx: UContext<*> get() = equalityConstraints.ctx
 
@@ -61,8 +62,21 @@ class UTypeConstraints<Type>(
         equalityConstraints.subscribeEquality(::intersectRegions)
     }
 
-    val symbolicRefToTypeRegion get(): Map<USymbolicHeapRef, UTypeRegion<Type>> = _symbolicRefToTypeRegion
-    val concreteRefToType get(): Map<UConcreteHeapAddress, Type> = _concreteRefToType
+    val inputRefToTypeRegion: Map<UHeapRef, UTypeRegion<Type>>
+        get(): Map<UHeapRef, UTypeRegion<Type>> {
+            val inputTypeRegions: MutableMap<UHeapRef, UTypeRegion<Type>> = symbolicRefToTypeRegion.toMutableMap()
+
+            // Add all static refs
+            for ((address, type) in concreteRefToType) {
+                if (!address.isStatic) {
+                    continue
+                }
+
+                inputTypeRegions[ctx.mkConcreteHeapRef(address)] = UTypeRegion.fromSingleType(typeSystem, type)
+            }
+
+            return inputTypeRegions
+        }
 
     /**
      * Returns true if the current type and equality constraints are unsatisfiable (syntactically).
@@ -85,7 +99,7 @@ class UTypeConstraints<Type>(
      * Binds concrete heap address [ref] to its [type].
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
-        _concreteRefToType = _concreteRefToType.put(ref, type)
+        concreteRefToType = concreteRefToType.put(ref, type)
 
         equalityConstraints.updateDisequality(ctx.mkConcreteHeapRef(ref))
     }
@@ -108,7 +122,7 @@ class UTypeConstraints<Type>(
             return false
         }
 
-        val concreteType = _concreteRefToType[staticRef.address] ?: error("Unknown type of the static ref $staticRef")
+        val concreteType = concreteRefToType[staticRef.address] ?: error("Unknown type of the static ref $staticRef")
 
         return !typeRegion.addSupertype(concreteType).isEmpty
     }
@@ -127,12 +141,12 @@ class UTypeConstraints<Type>(
 
         // The representative can be a static ref, so we need to construct a type region from its concrete type.
         if (representative is UConcreteHeapRef) {
-            return _concreteRefToType[representative.address]?.let {
+            return concreteRefToType[representative.address]?.let {
                 UTypeRegion.fromSingleType(typeSystem, it)
             } ?: topTypeRegion
         }
 
-        return _symbolicRefToTypeRegion[representative] ?: topTypeRegion
+        return symbolicRefToTypeRegion[representative] ?: topTypeRegion
     }
 
 
@@ -143,7 +157,7 @@ class UTypeConstraints<Type>(
             return
         }
 
-        _symbolicRefToTypeRegion = _symbolicRefToTypeRegion.put(representative as USymbolicHeapRef, value)
+        symbolicRefToTypeRegion = symbolicRefToTypeRegion.put(representative as USymbolicHeapRef, value)
     }
 
     /**
@@ -159,7 +173,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
-                val concreteType = _concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
@@ -186,7 +200,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> contradiction() // the [ref] can't be equal to null
 
             is UConcreteHeapRef -> {
-                val concreteType = _concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType.getValue(ref.address)
                 if (typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
@@ -213,7 +227,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> contradiction()
 
             is UConcreteHeapRef -> {
-                val concreteType = _concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType.getValue(ref.address)
                 if (!typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
@@ -241,7 +255,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
-                val concreteType = _concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType.getValue(ref.address)
                 if (typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
@@ -261,7 +275,7 @@ class UTypeConstraints<Type>(
     override fun getTypeStream(ref: UHeapRef): UTypeStream<Type> =
         when (ref) {
             is UConcreteHeapRef -> {
-                val concreteType = _concreteRefToType[ref.address]
+                val concreteType = concreteRefToType[ref.address]
                 val typeStream = if (concreteType == null) {
                     typeSystem.topTypeStream()
                 } else {
@@ -289,8 +303,8 @@ class UTypeConstraints<Type>(
 
             to is UConcreteHeapRef && from is UConcreteHeapRef -> {
                 // For both concrete refs we need to check types are the same
-                val toType = _concreteRefToType.getValue(to.address)
-                val fromType = _concreteRefToType.getValue(from.address)
+                val toType = concreteRefToType.getValue(to.address)
+                val fromType = concreteRefToType.getValue(from.address)
 
                 if (toType != fromType) {
                     contradiction()
@@ -299,7 +313,7 @@ class UTypeConstraints<Type>(
 
             to is UConcreteHeapRef -> {
                 // Here we have a pair of symbolic-concrete refs
-                val concreteToType = _concreteRefToType.getValue(to.address)
+                val concreteToType = concreteRefToType.getValue(to.address)
                 val symbolicFromType = getTypeRegion(from as USymbolicHeapRef, useRepresentative = false)
 
                 if (symbolicFromType.addSupertype(concreteToType).isEmpty) {
@@ -309,7 +323,7 @@ class UTypeConstraints<Type>(
 
             from is UConcreteHeapRef -> {
                 // Here to is symbolic and from is concrete
-                val concreteType = _concreteRefToType.getValue(from.address)
+                val concreteType = concreteRefToType.getValue(from.address)
                 val symbolicType = getTypeRegion(to as USymbolicHeapRef)
                 // We need to set only the concrete type instead of all these symbolic types - make it using both subtype/supertype
                 val regionFromConcreteType = symbolicType.addSubtype(concreteType).addSupertype(concreteType)
@@ -336,7 +350,7 @@ class UTypeConstraints<Type>(
             contradiction()
             return
         }
-        for ((key, value) in _symbolicRefToTypeRegion.entries) {
+        for ((key, value) in symbolicRefToTypeRegion.entries) {
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
                 // If we have two inputs of incomparable reference types, then they are non equal
@@ -358,7 +372,7 @@ class UTypeConstraints<Type>(
         if (newRegion.isEmpty) {
             equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
         }
-        for ((key, value) in _symbolicRefToTypeRegion.entries) {
+        for ((key, value) in symbolicRefToTypeRegion.entries) {
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
                 // If we have two inputs of incomparable reference types, then they are non equal or both null
@@ -374,7 +388,7 @@ class UTypeConstraints<Type>(
     override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
         ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
-                val concreteType = _concreteRefToType.getValue(concreteRef.address)
+                val concreteType = concreteRefToType.getValue(concreteRef.address)
                 if (typeSystem.isSupertype(supertype, concreteType)) {
                     concreteRef.ctx.trueExpr
                 } else {
@@ -400,7 +414,7 @@ class UTypeConstraints<Type>(
     override fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr =
         ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
-                val concreteType = _concreteRefToType.getValue(concreteRef.address)
+                val concreteType = concreteRefToType.getValue(concreteRef.address)
                 if (typeSystem.isSupertype(concreteType, subtype)) {
                     concreteRef.ctx.trueExpr
                 } else {
@@ -430,14 +444,14 @@ class UTypeConstraints<Type>(
         UTypeConstraints(
             typeSystem,
             equalityConstraints,
-            _concreteRefToType,
-            _symbolicRefToTypeRegion
+            concreteRefToType,
+            symbolicRefToTypeRegion
         )
 
     /**
      * Check if this [UTypeConstraints] can be merged with [other] type constraints.
      *
-     * Ignores [equalityConstraints]. Verifies, that [symbolicRefToTypeRegion] equals to
+     * Ignores [equalityConstraints]. Verifies, that [inputRefToTypeRegion] equals to
      * [other]`.symbolicRefToTypeRegion`. Merges the type constraints for concrete references.
      *
      * @return the merged type constraints.
@@ -447,8 +461,8 @@ class UTypeConstraints<Type>(
         if (symbolicRefToTypeRegion != other.symbolicRefToTypeRegion) {
             return null
         }
-        val mergedConcreteRefs = _concreteRefToType.builder().apply { putAll(other._concreteRefToType) }.build()
-        return UTypeConstraints(typeSystem, equalityConstraints, mergedConcreteRefs, _symbolicRefToTypeRegion)
+        val mergedConcreteRefs = concreteRefToType.builder().apply { putAll(other.concreteRefToType) }.build()
+        return UTypeConstraints(typeSystem, equalityConstraints, mergedConcreteRefs, symbolicRefToTypeRegion)
     }
 
 
