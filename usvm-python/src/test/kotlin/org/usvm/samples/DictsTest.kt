@@ -94,4 +94,49 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             )
         )
     }
+
+    @Test
+    fun testDictIntSetItem() {
+        check2WithConcreteRun(
+            constructFunction("dict_int_set_item", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
+
+    @Test
+    fun testDictStrSetItem() {
+        check2WithConcreteRun(
+            constructFunction("dict_str_set_item", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
+
+    @Test
+    fun testDictVirtualSetItem() {
+        check2WithConcreteRun(
+            constructFunction("dict_virtual_set_item", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.selfTypeName == "KeyError" }
+            )
+        )
+    }
 }

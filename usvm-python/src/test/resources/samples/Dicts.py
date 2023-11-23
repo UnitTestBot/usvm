@@ -37,8 +37,8 @@ def dict_int_set_item(x, y):
 
 def dict_str_set_item(x, y):
     d = {}
-    d[10] = 10
-    assert d["hello"] == y
+    d["hello"] = 10
+    assert d[x] == y
 
 
 def dict_virtual_set_item(x, y):

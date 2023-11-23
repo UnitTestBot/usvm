@@ -54,6 +54,41 @@ fun handlerDictGetItemKt(
     }
 }
 
+private fun setItem(
+    ctx: ConcolicRunContext,
+    dict: UninterpretedSymbolicPythonObject,
+    key: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    val typeSystem = ctx.typeSystem
+    when (key.getTypeIfDefined(ctx)) {
+        null -> {
+            forkOnUnknownType(ctx, key)
+        }
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit  // TODO
+        typeSystem.pythonInt -> {
+            val intValue = key.getToIntContent(ctx) ?: return
+            dict.writeDictIntElement(ctx, intValue, value)
+        }
+        else -> {
+            dict.writeDictRefElement(ctx, key, value)
+        }
+    }
+}
+
+fun handlerDictSetItemKt(
+    ctx: ConcolicRunContext,
+    dict: UninterpretedSymbolicPythonObject,
+    key: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    val typeSystem = ctx.typeSystem
+    dict.addSupertypeSoft(ctx, typeSystem.pythonDict)
+    key.addSupertypeSoft(ctx, HasTpHash)
+    setItem(ctx, dict, key, value)
+}
+
 fun handlerCreateDictKt(
     ctx: ConcolicRunContext,
     keysStream: Stream<UninterpretedSymbolicPythonObject>,
@@ -67,18 +102,25 @@ fun handlerCreateDictKt(
     val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     (keys zip elems).forEach { (key, elem) ->
-        val keyType = key.getTypeIfDefined(ctx)
-        when (keyType) {
-            null -> forkOnUnknownType(ctx, key)
-            typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit  // TODO
-            typeSystem.pythonInt, typeSystem.pythonBool -> {
-                val keyValue = key.getToIntContent(ctx) ?: return@forEach
-                result.writeDictIntElement(ctx, keyValue, elem)
-            }
-            else -> {
-                result.writeDictRefElement(ctx, key, elem)
-            }
-        }
+        setItem(ctx, result, key, elem)
+    }
+    return result
+}
+
+fun handlerCreateDictConstKeyKt(
+    ctx: ConcolicRunContext,
+    keys: UninterpretedSymbolicPythonObject,
+    elemsStream: Stream<UninterpretedSymbolicPythonObject>
+): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    val elems = elemsStream.asSequence().toList()
+    val typeSystem = ctx.typeSystem
+    keys.addSupertypeSoft(ctx, typeSystem.pythonTuple)
+    val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
+    val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
+    elems.forEachIndexed { index, elem ->
+        val key = keys.readArrayElement(ctx, ctx.ctx.mkIntNum(index))
+        setItem(ctx, result, key, elem)
     }
     return result
 }
