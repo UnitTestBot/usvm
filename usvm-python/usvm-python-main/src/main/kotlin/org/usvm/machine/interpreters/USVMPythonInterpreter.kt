@@ -178,7 +178,7 @@ class USVMPythonInterpreter<InputRepr>(
                 logger.debug(
                     "Step result: exception from CPython: {} - {}",
                     ConcretePythonInterpreter.getNameOfPythonType(exception.pythonExceptionType),
-                    ConcretePythonInterpreter.getPythonObjectRepr(exception.pythonExceptionValue)
+                    ReprObjectSerializer.serialize(exception.pythonExceptionValue)
                 )
                 if (madeInputSerialization) {
                     // println("Saving result")
