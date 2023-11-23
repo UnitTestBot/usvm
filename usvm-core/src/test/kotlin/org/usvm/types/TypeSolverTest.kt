@@ -254,8 +254,8 @@ class TypeSolverTest {
             }
 
             val query = TypeSolverQuery(
-                symbolicToConcrete = { model.eval(it) as UConcreteHeapRef },
-                symbolicRefToTypeRegion = typeConstraints.symbolicRefToTypeRegion,
+                inputToConcrete = { model.eval(it) as UConcreteHeapRef },
+                inputRefToTypeRegion = typeConstraints.inputRefToTypeRegion,
                 isExprToInterpretation = emptyList(),
             )
 
