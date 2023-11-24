@@ -146,14 +146,14 @@ fun handlerStandardTpGetattroKt(
         return null
     val containsFieldCond = obj.containsField(ctx, name)
     // println("Attr result: ${ctx.modelHolder.model.eval(containsFieldCond).isTrue}")
+
+    val softConstraint = ctx.ctx.mkHeapRefEq(obj.getFieldValue(ctx, name).address, ctx.ctx.nullRef)
+    val ps = ctx.curState!!.pathConstraints
+    ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
+
     if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
         if (defaultValue != null)
             return SymbolForCPython(defaultValue, 0)
-
-        val softConstraint = ctx.ctx.mkHeapRefEq(obj.getFieldValue(ctx, name).address, ctx.ctx.nullRef)
-        val ps = ctx.curState!!.pathConstraints
-        ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
-
         myFork(ctx, containsFieldCond)
         return null
     } else {
