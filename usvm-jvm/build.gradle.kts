@@ -8,6 +8,12 @@ val samples by sourceSets.creating {
     }
 }
 
+val `sample-approximations` by sourceSets.creating {
+    java {
+        srcDir("src/sample-approximations/java")
+    }
+}
+
 val `usvm-api` by sourceSets.creating {
     java {
         srcDir("src/usvm-api/java")
@@ -16,7 +22,7 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "fcfd10e495"
+val approximationsVersion = "fdbed9a76b"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -47,6 +53,11 @@ dependencies {
     testImplementation(approximationsRepo, "tests", approximationsVersion)
 }
 
+val `usvm-apiCompileOnly`: Configuration by configurations.getting
+dependencies {
+    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
+}
+
 val samplesImplementation: Configuration by configurations.getting
 
 dependencies {
@@ -60,19 +71,45 @@ dependencies {
     samplesImplementation(`usvm-api`.output)
 }
 
+val `sample-approximationsCompileOnly`: Configuration by configurations.getting
+
+dependencies {
+    `sample-approximationsCompileOnly`(samples.output)
+    `sample-approximationsCompileOnly`(`usvm-api`.output)
+    `sample-approximationsCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
+    `sample-approximationsCompileOnly`("org.jacodb:jacodb-approximations:${Versions.jcdb}")
+}
+
 val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {
     archiveBaseName.set(`usvm-api`.name)
     from(`usvm-api`.output)
 }
 
+val testSamples by configurations.creating
+val testSamplesWithApproximations by configurations.creating
+
+dependencies {
+    testSamples(samples.output)
+    testSamples(`usvm-api`.output)
+
+    testSamplesWithApproximations(samples.output)
+    testSamplesWithApproximations(`usvm-api`.output)
+    testSamplesWithApproximations(`sample-approximations`.output)
+    testSamplesWithApproximations(approximationsRepo, "tests", approximationsVersion)
+}
+
 tasks.withType<Test> {
     dependsOn(`usvm-api-jar`)
+    dependsOn(testSamples, testSamplesWithApproximations)
 
     val usvmApiJarPath = `usvm-api-jar`.get().outputs.files.singleFile
     val usvmApproximationJarPath = approximations.resolvedConfiguration.files.single()
 
     environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
     environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+
+    environment("usvm.jvm.test.samples", testSamples.asPath)
+    environment("usvm.jvm.test.samples.approximations", testSamplesWithApproximations.asPath)
 }
 
 

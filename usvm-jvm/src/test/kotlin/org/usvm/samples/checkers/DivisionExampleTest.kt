@@ -10,6 +10,7 @@ import org.jacodb.api.ext.toType
 import org.junit.jupiter.api.Test
 import org.usvm.api.checkers.JcCheckerRunner
 import org.usvm.samples.JacoDBContainer
+import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.samples.samplesKey
 import org.usvm.util.declaringClass
 import kotlin.reflect.KFunction
@@ -18,7 +19,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertIsNot
 
 class DivisionExampleTest {
-    private val cp: JcClasspath = JacoDBContainer(samplesKey).cp
+    private val cp: JcClasspath = JacoDBContainer(samplesKey, JavaMethodTestRunner.samplesClasspath).cp
 
     @Test
     fun analyzeConstantSinglePath() {
