@@ -5,6 +5,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
+import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapAddress
@@ -54,7 +55,8 @@ class UArrayRegionDecoder<ArrayType, Sort : USort, USizeSort : USort>(
 
     override fun decodeLazyRegion(
         model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
+        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        assertions: List<KExpr<KBoolSort>>
     ) = inputRegionTranslator?.let { UArrayLazyModelRegion(regionId, model, mapping, it) }
 }
 

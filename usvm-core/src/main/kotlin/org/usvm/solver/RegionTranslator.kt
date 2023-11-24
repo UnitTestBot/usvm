@@ -5,6 +5,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
+import io.ksmt.sort.KBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -27,7 +28,11 @@ interface URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, Coll
 }
 
 interface URegionDecoder<Key, Sort : USort> {
-    fun decodeLazyRegion(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UReadOnlyMemoryRegion<Key, Sort>?
+    fun decodeLazyRegion(
+        model: KModel,
+        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        assertions: List<KExpr<KBoolSort>>,
+    ): UReadOnlyMemoryRegion<Key, Sort>?
 }
 
 interface UCollectionDecoder<Key, Sort : USort> {

@@ -23,16 +23,13 @@ internal fun <SetType> UWritableMemory<*>.refSetUnion(
     setRegion(regionId, newRegion)
 }
 
-internal fun <SetType> UReadOnlyMemory<*>.refSetEntries(
+fun <SetType> UReadOnlyMemory<*>.refSetEntries(
     setRef: UHeapRef,
     type: SetType,
 ): URefSetEntries<SetType> {
     val regionId = URefSetRegionId(type, setRef.uctx.boolSort)
-    val region = getRegion(regionId)
-
-    check(region is URefSetReadOnlyRegion<SetType>) {
-        "No setEntries in region $region"
-    }
+    val region = getRegion(regionId) as? URefSetReadOnlyRegion<SetType>
+        ?: return URefSetEntries<SetType>().apply { markAsInput() }
 
     return region.setEntries(setRef)
 }

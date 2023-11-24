@@ -54,7 +54,8 @@ open class USolverBase<Type>(
         }
 
         smtSolver.withAssertionsScope {
-            smtSolver.assert(pc.constraints(translator).toList())
+            val assertions = pc.constraints(translator).toList()
+            smtSolver.assert(assertions)
 
             val translatedSoftConstraints = softConstraints
                 .asSequence()
@@ -76,7 +77,7 @@ open class USolverBase<Type>(
                 }
 
                 // second, decode it unto uModel
-                val uModel = decoder.decode(kModel)
+                val uModel = decoder.decode(kModel, assertions)
 
                 // find interpretations of type constraints
 

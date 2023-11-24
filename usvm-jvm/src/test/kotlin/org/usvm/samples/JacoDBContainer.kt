@@ -7,7 +7,6 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
-import org.usvm.util.allClasspath
 import org.usvm.util.classpathWithApproximations
 import java.io.File
 
@@ -21,7 +20,16 @@ class JacoDBContainer(
 
     init {
         val (db, cp) = runBlocking {
-            val db = jacodb(builder)
+            val db = jacodb {
+                builder()
+
+                if (samplesWithApproximationsKey == key) {
+                    installFeatures(Approximations)
+                }
+
+                loadByteCode(classpath)
+            }
+
             val cp = if (samplesWithApproximationsKey == key) {
                 db.classpathWithApproximations(classpath)
             } else {
@@ -41,19 +49,14 @@ class JacoDBContainer(
 
         operator fun invoke(
             key: Any?,
-            classpath: List<File> = samplesClasspath,
+            classpath: List<File>,
             builder: JcSettings.() -> Unit = defaultBuilder,
         ): JacoDBContainer =
             keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(key, classpath, builder) }
 
-        private val samplesClasspath = allClasspath.filter {
-            it.name.contains("samples") || it.name.contains("usvm-api") || it.name.contains("tests")
-        }
-
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()
-            installFeatures(InMemoryHierarchy, Approximations)
-            loadByteCode(samplesClasspath)
+            installFeatures(InMemoryHierarchy)
         }
     }
 }

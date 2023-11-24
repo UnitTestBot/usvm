@@ -18,6 +18,8 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.JcTestExecutor
 import org.usvm.util.JcTestResolverType
 import org.usvm.util.UTestRunnerController
+import org.usvm.util.loadClasspathFromEnv
+import java.io.File
 import org.usvm.util.getJcMethodByName
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -741,8 +743,15 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         return values
     }
 
-    protected open val jacodbCpKey = samplesKey
-    protected val cp = JacoDBContainer(jacodbCpKey).cp
+    protected open val jacodbCpKey: String
+        get() = samplesKey
+
+    protected open val classpath: List<File>
+        get() = samplesClasspath
+
+    protected val cp by lazy {
+        JacoDBContainer(jacodbCpKey, classpath).cp
+    }
 
     protected open val resolverType: JcTestResolverType = JcTestResolverType.INTERPRETER
 
@@ -772,7 +781,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
-            states.map { testResolver.resolve(jcMethod, it) }
+            states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
         }
     }
 
@@ -781,6 +790,12 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     }
 
     companion object {
+        private const val ENV_TEST_SAMPLES = "usvm.jvm.test.samples"
+
+        val samplesClasspath by lazy {
+            loadClasspathFromEnv(ENV_TEST_SAMPLES)
+        }
+
         init {
             // See https://dzone.com/articles/how-to-export-all-modules-to-all-modules-at-runtime-in-java?preview=true
             org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll()

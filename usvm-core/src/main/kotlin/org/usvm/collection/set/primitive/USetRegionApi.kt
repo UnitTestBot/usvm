@@ -28,18 +28,15 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
     setRegion(regionId, newRegion)
 }
 
-internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
+fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
     setRef: UHeapRef,
     type: SetType,
     keySort: KeySort,
     keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
 ): UPrimitiveSetEntries<SetType, KeySort, Reg> {
     val regionId = USetRegionId(keySort, type, keyInfo)
-    val region = getRegion(regionId)
-
-    check(region is USetReadOnlyRegion<SetType, KeySort, Reg>) {
-        "No setEntries in region $region"
-    }
+    val region = getRegion(regionId) as? USetReadOnlyRegion<SetType, KeySort, Reg>
+        ?: return UPrimitiveSetEntries<SetType, KeySort, Reg>().apply { markAsInput() }
 
     return region.setEntries(setRef)
 }
