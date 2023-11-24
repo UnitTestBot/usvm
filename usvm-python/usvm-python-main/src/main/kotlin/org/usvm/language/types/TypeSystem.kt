@@ -19,7 +19,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     override val typeOperationsTimeout: Duration
-        get() = 100.milliseconds
+        get() = 1000.milliseconds
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
         if (type is InternalDictType || supertype is InternalDictType)
