@@ -29,9 +29,9 @@ class ApproximationsTest : ApproximationsTestRunner() {
 
         val properties = Array(test.executions) { idx -> { o: Int, _: Result<Int> -> o == idx } }
         try {
-        checkDiscoveredPropertiesWithExceptions(
+            checkDiscoveredPropertiesWithExceptions(
                 test.testMethod(),
-            ignoreNumberOfAnalysisResults,
+                ignoreNumberOfAnalysisResults,
                 *properties,
                 invariants = arrayOf({ execution, r ->
                     execution !in 0 until test.executions || r.getOrThrow() == execution
