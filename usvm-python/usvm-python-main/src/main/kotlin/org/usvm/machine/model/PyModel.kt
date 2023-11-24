@@ -28,7 +28,8 @@ class PyModel(
     private val underlyingModel: UModelBase<PythonType>,
     private val typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
-    private val preallocatedObjects: PreallocatedObjects
+    private val preallocatedObjects: PreallocatedObjects,
+    suggestedPsInfo: PathConstraintsInfo? = null
 ) : UModelBase<PythonType>(
     ctx,
     underlyingModel.stack,
@@ -37,7 +38,7 @@ class PyModel(
     underlyingModel.regions,
     underlyingModel.nullRef
 ) {
-    private val psInfo = getPathConstraintsInfo(ctx, ps, underlyingModel)
+    val psInfo = suggestedPsInfo ?: getPathConstraintsInfo(ctx, ps, underlyingModel)
 
     val possibleRefKeys: Set<UConcreteHeapRef>
         get() = psInfo.setRefKeys
@@ -94,9 +95,10 @@ fun UModelBase<PythonType>.toPyModel(
     ctx: UPythonContext,
     typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
-    preallocatedObjects: PreallocatedObjects
+    preallocatedObjects: PreallocatedObjects,
+    suggestedPsInfo: PathConstraintsInfo? = null
 ): PyModel {
     if (this is PyModel)
         return this
-    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects)
+    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects, suggestedPsInfo)
 }
