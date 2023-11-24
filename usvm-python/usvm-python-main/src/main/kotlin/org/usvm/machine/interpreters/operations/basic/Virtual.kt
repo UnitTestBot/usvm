@@ -28,7 +28,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 ctx.curState!!.preAllocatedObjects,
-                falseObject as UConcreteHeapRef,
+                trueObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             ),
             constructModelWithNewMockEvaluator(
@@ -38,7 +38,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 ctx.curState!!.preAllocatedObjects,
-                trueObject as UConcreteHeapRef,
+                falseObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             )
         )
@@ -115,7 +115,13 @@ fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
 
 fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {
     ctx.curState ?: throw UnregisteredVirtualOperation
-    return internalVirtualCallKt(ctx).second
+    val result = internalVirtualCallKt(ctx).second
+    if (!ctx.curOperation!!.method.isMethodWithNonVirtualReturn) {
+        val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
+        val ps = ctx.curState!!.pathConstraints
+        ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
+    }
+    return result
 }
 
 object UnregisteredVirtualOperation: Exception() {

@@ -304,6 +304,7 @@ void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;
     adapter->virtual_tp_getattro = tp_getattro;
     adapter->virtual_tp_iter = tp_iter;
+    adapter->virtual_tp_call = tp_call;
     adapter->virtual_nb_add = nb_add;
     adapter->virtual_nb_subtract = nb_subtract;
     adapter->virtual_nb_multiply = nb_multiply;
