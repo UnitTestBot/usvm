@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -50,8 +50,8 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "allocate_const_key_dict",
-        "Dicts"
+        "f",
+        "tricky.CompositeObjects"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -199,8 +199,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    timeoutPerRunMs = 4_000,
-                    timeoutMs = 30_000
+                    // timeoutPerRunMs = 4_000,
+                    // timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

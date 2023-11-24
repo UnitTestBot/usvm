@@ -15,6 +15,7 @@ import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemory
+import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.createForkDepthPathSelector
 import org.usvm.solver.USatResult
@@ -95,7 +96,7 @@ class PythonMachine(
             ctx,
             typeSystem,
             pathSelectorCreation(),
-            pathSelectorCreation(),
+            pathSelectorForStatesWithDelayedForks = BfsPathSelector(),
             pathSelectorCreation(),
             initialState.preAllocatedObjects
         )

@@ -184,7 +184,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.IntConverter}
     )
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
-        PathTracingKt.handlerForkResultKt(context, cond, result);
+        withTracing(context, new ForkResult(cond, result), unit(() -> PathTracingKt.handlerForkResultKt(context, cond, result)));
     }
 
     @CPythonAdapterJavaMethod(cName = "unpack")
