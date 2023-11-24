@@ -64,7 +64,7 @@ class JcMachine(
         methods: List<JcMethod>,
         statesCollector: StatesCollector<JcState>,
         targets: List<JcTarget> = emptyList(),
-        ): List<JcState> {
+        ) {
         logger.debug("{}.analyze({})", this, methods)
         val initialStates = mutableMapOf<JcMethod, JcState>()
         methods.forEach {
