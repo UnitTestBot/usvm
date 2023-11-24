@@ -79,7 +79,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "bidirectional_a_star")
     //    return null
-    //if (name != "Graph.boruvka")
+    //if (name != "BidirectionalBreadthFirstSearch.search")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null

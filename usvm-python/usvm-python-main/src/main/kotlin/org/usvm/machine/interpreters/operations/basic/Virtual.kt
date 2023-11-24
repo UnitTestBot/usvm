@@ -28,7 +28,8 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 ctx.curState!!.preAllocatedObjects,
-                falseObject as UConcreteHeapRef
+                falseObject as UConcreteHeapRef,
+                useOldPossibleRefs = true
             ),
             constructModelWithNewMockEvaluator(
                 ctx.ctx,
@@ -37,7 +38,8 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
                 ctx.curState!!.preAllocatedObjects,
-                trueObject as UConcreteHeapRef
+                trueObject as UConcreteHeapRef,
+                useOldPossibleRefs = true
             )
         )
     }
@@ -85,7 +87,8 @@ private fun internalVirtualCallKt(
                     mockSymbol,
                     ctx.typeSystem,
                     ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
-                    ctx.curState!!.preAllocatedObjects
+                    ctx.curState!!.preAllocatedObjects,
+                    useOldPossibleRefs = true
                 )
             else
                 customNewModels.first()
@@ -107,7 +110,6 @@ fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
     ctx.curState ?: throw UnregisteredVirtualOperation
     val (interpreted, _) = internalVirtualCallKt(ctx)
     val converter = ctx.converter
-    require(interpreted is InterpretedInputSymbolicPythonObject)
     return converter.convert(interpreted)
 }
 

@@ -35,9 +35,16 @@ fun constructModelWithNewMockEvaluator(
     typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
     preallocatedObjects: PreallocatedObjects,
-    suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
+    suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null,
+    useOldPossibleRefs: Boolean = false
 ): Pair<PyModelWrapper, UBoolExpr> {
     val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
+    val suggestedPsInfo = if (useOldPossibleRefs) {
+        require(oldModel.uModel is PyModel)
+        oldModel.uModel.psInfo
+    } else {
+        null
+    }
     val newModel = UModelBase(
         ctx,
         oldModel.uModel.stack,
@@ -45,7 +52,7 @@ fun constructModelWithNewMockEvaluator(
         newMockEvaluator,
         oldModel.uModel.regions,
         oldModel.uModel.nullRef
-    ).toPyModel(ctx, typeSystem, ps, preallocatedObjects)
+    ).toPyModel(ctx, typeSystem, ps, preallocatedObjects, suggestedPsInfo)
     val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
     return PyModelWrapper(newModel) to constraint
 }
