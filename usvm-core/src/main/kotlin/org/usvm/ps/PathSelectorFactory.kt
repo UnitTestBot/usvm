@@ -140,7 +140,7 @@ private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRe
         this
     }
 
-private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
+fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
 private fun <State : UState<*, *, *, *, *, State>> createDepthPathSelector(random: Random? = null): UPathSelector<State> {
     if (random == null) {

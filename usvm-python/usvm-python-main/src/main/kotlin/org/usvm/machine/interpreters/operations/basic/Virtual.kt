@@ -17,9 +17,10 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
         throw UnregisteredVirtualOperation  // path diversion
 
     val oldModel = ctx.modelHolder.model
+    val preallocatedObjects = oldModel.uModel.preallocatedObjects
     val (interpretedObj, _) = internalVirtualCallKt(ctx) { mockSymbol ->
-        val trueObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.trueObject.address)
-        val falseObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.falseObject.address)
+        val trueObject = ctx.modelHolder.model.eval(preallocatedObjects.trueObject.address)
+        val falseObject = ctx.modelHolder.model.eval(preallocatedObjects.falseObject.address)
         listOf(
             constructModelWithNewMockEvaluator(
                 ctx.ctx,
@@ -27,7 +28,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 mockSymbol,
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
-                ctx.curState!!.preAllocatedObjects,
+                preallocatedObjects,
                 trueObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             ),
@@ -37,7 +38,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 mockSymbol,
                 ctx.typeSystem,
                 ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
-                ctx.curState!!.preAllocatedObjects,
+                preallocatedObjects,
                 falseObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             )
@@ -69,7 +70,8 @@ private fun internalVirtualCallKt(
     ctx.curState ?: throw UnregisteredVirtualOperation
     val owner = ctx.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
     val ownerIsAlreadyMocked = ctx.curState!!.mockedObjects.contains(owner)
-    var clonedState = if (!ownerIsAlreadyMocked) ctx.curState!!.clone() else null
+    val alreadyMadeDelayedForks = ctx.curState!!.delayedForks.isNotEmpty()
+    var clonedState = if (!ownerIsAlreadyMocked && !alreadyMadeDelayedForks) ctx.curState!!.clone() else null
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
@@ -87,7 +89,7 @@ private fun internalVirtualCallKt(
                     mockSymbol,
                     ctx.typeSystem,
                     ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
-                    ctx.curState!!.preAllocatedObjects,
+                    ctx.modelHolder.model.uModel.preallocatedObjects,
                     useOldPossibleRefs = true
                 )
             else

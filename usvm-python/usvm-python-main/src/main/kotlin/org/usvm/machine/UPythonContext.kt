@@ -29,7 +29,6 @@ class UPythonContext(
         //return mkRealToFpExpr(fp64Sort, floatRoundingMode, realValue)
     }
 
-
     private var solver: USolverBase<PythonType> = components.mkSolver(this)
 
     @Suppress("UNCHECKED_CAST")

@@ -32,6 +32,13 @@ class PreallocatedObjects(
         return result
     }
 
+    fun inheritStrAllocation(string: String, ref: PythonObject, symbolic: UninterpretedSymbolicPythonObject) {
+        require(string !in concreteStrToSymbol.keys)
+        concreteStrToSymbol[string] = symbolic
+        symbolToConcreteStr[symbolic] = string
+        refOfString[string] = ref
+    }
+
     fun concreteString(symbol: UninterpretedSymbolicPythonObject): String? =
         symbolToConcreteStr[symbol]
 

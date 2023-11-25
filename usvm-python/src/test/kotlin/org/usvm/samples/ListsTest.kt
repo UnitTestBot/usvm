@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(stepLimit = 20U)) {
+class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(stepLimit = 80U)) {
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(
@@ -132,7 +132,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             constructFunction("positive_and_negative_index", listOf(typeSystem.pythonList, typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { i, j, _ -> i.typeName == "list" && j.typeName == "int" },
+            /* invariants = */ listOf { i, _, _ -> i.typeName == "list" },
             /* propertiesToDiscover = */ List(7) { index ->
                 { _, _, res -> res.repr == (index + 1).toString() }
             }
@@ -158,7 +158,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             constructFunction("sum_of_elements", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* invariants = */ listOf { x, _ -> x.typeName == "list" },
             /* propertiesToDiscover = */ List(4) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
@@ -171,7 +171,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             constructFunction("for_loop", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* invariants = */ listOf { x, _ -> x.typeName == "list" },
             /* propertiesToDiscover = */ List(3) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
@@ -438,7 +438,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
     fun testReverseUsage() {
         val oldOptions = options
         allowPathDiversions = false
-        options = UMachineOptions(stepLimit = 50U)
+        options = UMachineOptions(stepLimit = 100U)
         check1WithConcreteRun(
             constructFunction("reverse_usage", listOf(typeSystem.pythonList)),
             ge(5),

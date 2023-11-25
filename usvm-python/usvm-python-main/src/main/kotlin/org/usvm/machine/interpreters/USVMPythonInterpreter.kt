@@ -39,13 +39,21 @@ class USVMPythonInterpreter<InputRepr>(
     ): List<InterpretedSymbolicPythonObject> =
         symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
 
+    @Suppress("unused_parameter")
     private fun getConcrete(
         concolicRunContext: ConcolicRunContext,
+        visitor: PreConversionVisitor,
         converter: ConverterToPythonObject,
         seeds: List<InterpretedSymbolicPythonObject>,
         symbols: List<UninterpretedSymbolicPythonObject>
-    ): List<PythonObject> =
-        (seeds zip symbols).map { (seed, _) -> converter.convert(seed, concolicRunContext) }
+    ): List<PythonObject> {
+        /*(seeds zip symbols).forEach { (seed, symbol) ->
+            visitor.visit(seed, symbol, concolicRunContext)
+        }*/
+        return seeds.map {
+            converter.convert(it)
+        }
+    }
 
     private fun getInputs(
         converter: ConverterToPythonObject,
@@ -87,15 +95,13 @@ class USVMPythonInterpreter<InputRepr>(
         try {
             logger.debug("Step on state: {}", state)
             logger.debug("Source of the state: {}", state.meta.generatedFrom)
-            require(state.pyModel.uModel is PyModel) {
-                "Did not call .toPyModel on model from solver"
-            }
             val symbols = state.inputSymbols
             val seeds = getSeeds(concolicRunContext, symbols)
             val converter = concolicRunContext.converter
             state.meta.lastConverter = null
+            val visitor = PreConversionVisitor(ctx, state.memory, typeSystem, modelHolder, state.preAllocatedObjects)
             val concrete = try {
-                getConcrete(concolicRunContext, converter, seeds, symbols)
+                getConcrete(concolicRunContext, visitor, converter, seeds, symbols)
             } catch (_: LengthOverflowException) {
                 logger.warn("Step result: length overflow")
                 state.meta.modelDied = true
@@ -104,6 +110,11 @@ class USVMPythonInterpreter<InputRepr>(
                 logger.info("Step result: could not assemble Python object")
                 state.meta.modelDied = true
                 return@runBlocking StepResult(emptySequence(), false)
+            }
+            state.pyModel.uModel.preallocatedObjects.listAllocatedStrs().forEach {
+                require(state.preAllocatedObjects.concreteString(it) != null) {
+                    "State's preallocated objects must include models' preallocated object"
+                }
             }
             // logger.debug("Finished constructing")
             val virtualObjects = converter.getPythonVirtualObjects()
@@ -157,27 +168,51 @@ class USVMPythonInterpreter<InputRepr>(
                 require(exception.pythonExceptionType != null)
                 require(exception.pythonExceptionValue != null)
                 if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
-                    val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
-                    if (javaException == UnregisteredVirtualOperation) {
-                        iterationCounter.iterations += 1
-                        logger.debug("Step result: Unregistrered virtual operation")
-                        val resultState = concolicRunContext.curState
-                        concolicRunContext.statistics.addUnregisteredVirtualOperation()
-                        require(!madeInputSerialization)
-                        if (resultState != null && resultState.delayedForks.isEmpty()) {
-                            resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
-                            resultState.meta.lastConverter = converter
-                            resultState.meta.wasExecuted = true
-                        } else if (resultState != null) {
-                            resultState.meta.modelDied = true
-                        }
-                        return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                    val numberOfVirtualObjects = converter.getUSVMVirtualObjects().size
+                    (concolicRunContext.forkedStates + state).forEach {
+                        it.meta.numberOfVirtualObjectsInParent = numberOfVirtualObjects
                     }
-                    throw javaException
+                    when (val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)) {
+                        UnregisteredVirtualOperation -> {
+                            iterationCounter.iterations += 1
+                            logger.debug("Step result: Unregistrered virtual operation")
+                            val resultState = concolicRunContext.curState
+                            concolicRunContext.statistics.addUnregisteredVirtualOperation()
+                            require(!madeInputSerialization)
+                            if (resultState != null && resultState.delayedForks.isEmpty()) {
+                                resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
+                                resultState.meta.lastConverter = converter
+                                resultState.meta.wasExecuted = true
+                            }
+                            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                        }
+                        BadModelException -> {
+                            iterationCounter.iterations += 1
+                            logger.debug("Step result: Bad model")
+                            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                        }
+                        InstructionLimitExceededException -> {
+                            iterationCounter.iterations += 1
+                            logger.debug("Step result: InstructionLimitExceededException")
+                            concolicRunContext.curState?.meta?.wasInterrupted = true
+                            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
+                        }
+                        CancelledExecutionException -> {
+                            logger.debug("Step result: execution cancelled")
+                            concolicRunContext.curState?.meta?.wasInterrupted = true
+                            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
+                        }
+                        else -> throw  javaException
+                    }
+                }
+                val nameOfException = ConcretePythonInterpreter.getNameOfPythonType(exception.pythonExceptionType)
+                val resultState = concolicRunContext.curState
+                if ((nameOfException == "AttributeError" || nameOfException == "TypeError") && resultState != null) {
+                    resultState.meta.endedWithTypeErrorOrAttributeError = true
                 }
                 logger.debug(
                     "Step result: exception from CPython: {} - {}",
-                    ConcretePythonInterpreter.getNameOfPythonType(exception.pythonExceptionType),
+                    nameOfException,
                     ReprObjectSerializer.serialize(exception.pythonExceptionValue)
                 )
                 if (madeInputSerialization) {
@@ -198,32 +233,20 @@ class USVMPythonInterpreter<InputRepr>(
                     resultState.meta.objectsWithoutConcreteTypes = converter.getUSVMVirtualObjects()
                     resultState.meta.lastConverter = converter
                 }
+                val numberOfVirtualObjects = converter.getUSVMVirtualObjects().size
                 logger.debug("Finished step on state: {}", concolicRunContext.curState)
+                (concolicRunContext.forkedStates + state).forEach {
+                    it.meta.numberOfVirtualObjectsInParent = numberOfVirtualObjects
+                    if (resultState.meta.endedWithTypeErrorOrAttributeError) {
+                        it.meta.parentEndedWithTypeOrAttributeError = true
+                    }
+                }
                 return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
 
             } else {
                 logger.debug("Ended step with path diversion")
                 return@runBlocking StepResult(emptySequence(), !state.isTerminated())
             }
-
-        } catch (_: BadModelException) {
-
-            iterationCounter.iterations += 1
-            logger.debug("Step result: Bad model")
-            return@runBlocking StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
-
-        } catch (_: InstructionLimitExceededException) {
-
-            iterationCounter.iterations += 1
-            logger.debug("Step result: InstructionLimitExceededException")
-            concolicRunContext.curState?.meta?.wasInterrupted = true
-            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
-
-        } catch (_: CancelledExecutionException) {
-
-            logger.debug("Step result: execution cancelled")
-            concolicRunContext.curState?.meta?.wasInterrupted = true
-            return@runBlocking StepResult(concolicRunContext.forkedStates.reversed().asSequence(), !state.isTerminated())
 
         } finally {
             concolicRunContext.converter.restart()

@@ -9,10 +9,11 @@ import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
 import org.usvm.machine.PythonExecutionState
+import org.usvm.machine.model.PyModel
 import org.usvm.model.UModelBase
 import org.usvm.types.TypesResult
 
-class PyModelWrapper(val uModel: UModelBase<PythonType>) {
+class PyModelWrapper(val uModel: PyModel) {
     fun <Sort : USort> eval(expr: UExpr<Sort>): KInterpretedValue<Sort> =
         uModel.eval(expr) as KInterpretedValue<Sort>
 

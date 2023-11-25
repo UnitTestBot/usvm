@@ -25,9 +25,12 @@ class ConverterToPythonObject(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder,
-    private val preallocatedObjects: PreallocatedObjects,
     private val memory: UMemory<PythonType, PythonCallable>
 ) {
+
+    private val preallocatedObjects
+        get() = modelHolder.model.uModel.preallocatedObjects
+
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
     private val constructedObjects = mutableMapOf<UHeapRef, PythonObject>()
@@ -51,7 +54,7 @@ class ConverterToPythonObject(
     fun getUSVMVirtualObjects(): Set<VirtualPythonObject> = virtualObjects.map { it.first }.toSet()
     fun numberOfVirtualObjectUsages(): Int = numberOfUsagesOfVirtualObjects
 
-    fun convert(obj: InterpretedSymbolicPythonObject, concolicCtx: ConcolicRunContext? = null): PythonObject {
+    fun convert(obj: InterpretedSymbolicPythonObject): PythonObject {
         if (obj is InterpretedInputSymbolicPythonObject)
             require(obj.modelHolder == modelHolder)
         require(!isAllocatedConcreteHeapRef(obj.address)) {
@@ -67,15 +70,15 @@ class ConverterToPythonObject(
             typeSystem.pythonInt -> convertInt(obj)
             typeSystem.pythonBool -> convertBool(obj)
             typeSystem.pythonNoneType -> ConcretePythonInterpreter.eval(emptyNamespace, "None")
-            typeSystem.pythonList -> convertList(obj, concolicCtx)
-            typeSystem.pythonTuple -> convertTuple(obj, concolicCtx)
+            typeSystem.pythonList -> convertList(obj)
+            typeSystem.pythonTuple -> convertTuple(obj)
             typeSystem.pythonStr -> convertString(obj)
             typeSystem.pythonSlice -> convertSlice(obj)
             typeSystem.pythonFloat -> convertFloat(obj)
-            typeSystem.pythonDict -> convertDict(obj, concolicCtx)
+            typeSystem.pythonDict -> convertDict(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
-                    constructFromDefaultConstructor(obj, type, concolicCtx)
+                    constructFromDefaultConstructor(obj, type)
                 else
                     error("Could not construct instance of type $type")
             }
@@ -92,15 +95,14 @@ class ConverterToPythonObject(
 
     private fun addEntryToDict(
         namespace: PythonNamespace,
-        value: InterpretedSymbolicPythonObject,
-        concolicCtx: ConcolicRunContext?
+        value: InterpretedSymbolicPythonObject
     ) {
-        val convertedValue = convert(value, concolicCtx)
+        val convertedValue = convert(value)
         ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedValue, "value")
         ConcretePythonInterpreter.concreteRun(namespace, "x[key] = value", printErrorMsg = false)
     }
 
-    private fun convertDict(obj: InterpretedSymbolicPythonObject, concolicCtx: ConcolicRunContext?): PythonObject {
+    private fun convertDict(obj: InterpretedSymbolicPythonObject): PythonObject {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input dict cannot be static"
         }
@@ -109,7 +111,6 @@ class ConverterToPythonObject(
         val result = ConcretePythonInterpreter.eval(namespace, "x")
         constructedObjects[obj.address] = result
         val model = modelHolder.model.uModel
-        require(model is PyModel)
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
                 val type = memory.typeStreamOf(it).first()
@@ -119,17 +120,17 @@ class ConverterToPythonObject(
                 InterpretedInputSymbolicPythonObject(it, modelHolder, typeSystem)
             }
             if (obj.dictContainsRef(key)) {
-                val convertedKey = convert(key, concolicCtx)
+                val convertedKey = convert(key)
                 ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedKey, "key")
                 val value = obj.readDictRefElement(ctx, key, memory)
-                addEntryToDict(namespace, value, concolicCtx)
+                addEntryToDict(namespace, value)
             }
         }
         model.possibleIntKeys.forEach {
             if (obj.dictContainsInt(ctx, it)) {
                 ConcretePythonInterpreter.concreteRun(namespace, "key = $it")
                 val value = obj.readDictIntElement(ctx, it, memory)
-                addEntryToDict(namespace, value, concolicCtx)
+                addEntryToDict(namespace, value)
             }
         }
         return result.also {
@@ -159,10 +160,7 @@ class ConverterToPythonObject(
         return ConcretePythonInterpreter.eval(emptyNamespace, "'${strNumber++}'")
     }
 
-    private fun constructArrayContents(
-        obj: InterpretedInputSymbolicPythonObject,
-        concolicCtx: ConcolicRunContext?
-    ): List<PythonObject> {
+    private fun constructArrayContents(obj: InterpretedInputSymbolicPythonObject): List<PythonObject> {
         val size = obj.readArrayLength(ctx) as? KInt32NumExpr ?: throw LengthOverflowException
         if (size.value > MAX_INPUT_ARRAY_LENGTH)
             throw LengthOverflowException
@@ -184,14 +182,13 @@ class ConverterToPythonObject(
                 } else {
                     InterpretedInputSymbolicPythonObject(element, obj.modelHolder, typeSystem)
                 }
-            convert(elemInterpretedObject, concolicCtx)
+            convert(elemInterpretedObject)
         }
     }
 
     private fun constructFromDefaultConstructor(
         obj: InterpretedSymbolicPythonObject,
-        type: ConcretePythonType,
-        concolicCtx: ConcolicRunContext?
+        type: ConcretePythonType
     ): PythonObject {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Instance of type with default constructor cannot be static"
@@ -199,15 +196,6 @@ class ConverterToPythonObject(
         require(type.owner == typeSystem)
         val result = ConcretePythonInterpreter.callStandardNew(type.asObject)
         constructedObjects[obj.address] = result
-        if (concolicCtx != null) {
-            val members = getMembersFromType(type, typeSystem)
-            members.forEach {
-                if (it.contains('\''))
-                    return@forEach
-                val ref = ConcretePythonInterpreter.eval(emptyNamespace, "'$it'")
-                preallocatedObjects.allocateStr(concolicCtx, it, ref)
-            }
-        }
         if (ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
             preallocatedObjects.listAllocatedStrs().forEach {
                 val nameAddress = modelHolder.model.eval(it.address)
@@ -217,7 +205,7 @@ class ConverterToPythonObject(
                     val str = preallocatedObjects.concreteString(it)!!
                     if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
                         val symbolicValue = obj.getFieldValue(ctx, nameSymbol, memory)
-                        val value = convert(symbolicValue, concolicCtx)
+                        val value = convert(symbolicValue)
                         val strRef = preallocatedObjects.refOfString(str)!!
                         val namespace = ConcretePythonInterpreter.getNewNamespace()
                         ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
@@ -273,13 +261,13 @@ class ConverterToPythonObject(
             else -> error("Not reachable")
         }
 
-    private fun convertList(obj: InterpretedSymbolicPythonObject, concolicCtx: ConcolicRunContext?): PythonObject {
+    private fun convertList(obj: InterpretedSymbolicPythonObject): PythonObject {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "List object cannot be static"
         }
         val resultList = ConcretePythonInterpreter.makeList(emptyList())
         constructedObjects[obj.address] = resultList
-        val listOfPythonObjects = constructArrayContents(obj, concolicCtx)
+        val listOfPythonObjects = constructArrayContents(obj)
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.addObjectToNamespace(namespace, resultList, "x")
         listOfPythonObjects.forEach {
@@ -290,14 +278,14 @@ class ConverterToPythonObject(
         return resultList
     }
 
-    private fun convertTuple(obj: InterpretedSymbolicPythonObject, concolicCtx: ConcolicRunContext?): PythonObject {
+    private fun convertTuple(obj: InterpretedSymbolicPythonObject): PythonObject {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Tuple object cannot be static"
         }
         val size = obj.readArrayLength(ctx) as? KInt32NumExpr ?: throw LengthOverflowException
         val resultTuple = ConcretePythonInterpreter.allocateTuple(size.value)
         constructedObjects[obj.address] = resultTuple
-        val listOfPythonObjects = constructArrayContents(obj, concolicCtx)
+        val listOfPythonObjects = constructArrayContents(obj)
         listOfPythonObjects.forEachIndexed { index, pythonObject ->
             ConcretePythonInterpreter.setTupleElement(resultTuple, index, pythonObject)
         }

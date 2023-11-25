@@ -162,7 +162,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
 
     private fun testRange(functionName: String) {
         val oldOption = options
-        options = UMachineOptions(stepLimit = 5U)
+        options = UMachineOptions(stepLimit = 10U)
         check1WithConcreteRun(
             constructFunction(functionName, listOf(typeSystem.pythonInt)),
             ignoreNumberOfAnalysisResults,

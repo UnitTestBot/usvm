@@ -209,6 +209,7 @@ fun resolveSequenceIndex(
         val indexValue = index.getIntContent(ctx)
 
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
+
         myFork(ctx, indexCond)
 
         if (ctx.curState!!.pyModel.eval(indexCond).isFalse)

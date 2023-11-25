@@ -40,7 +40,6 @@ fun constructModelWithNewMockEvaluator(
 ): Pair<PyModelWrapper, UBoolExpr> {
     val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
     val suggestedPsInfo = if (useOldPossibleRefs) {
-        require(oldModel.uModel is PyModel)
         oldModel.uModel.psInfo
     } else {
         null

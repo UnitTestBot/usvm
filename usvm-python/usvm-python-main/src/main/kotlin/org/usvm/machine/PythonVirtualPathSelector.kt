@@ -8,19 +8,16 @@ import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.model.toPyModel
-import org.usvm.machine.symbolicobjects.PreallocatedObjects
-import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.types.TypesResult
-import org.usvm.types.first
 import kotlin.random.Random
 
 class PythonVirtualPathSelector(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
-    private val basePathSelector: UPathSelector<PythonExecutionState>,
+    private val basePathSelectorWithoutVirtual: UPathSelector<PythonExecutionState>,
+    private val basePathSelectorWithVirtual: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>,
-    private val preallocatedObjects: PreallocatedObjects
 ) : UPathSelector<PythonExecutionState> {
     private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
@@ -61,7 +58,7 @@ class PythonVirtualPathSelector(
         if (forkResult.negativeState == null)
             return null
         val stateWithConcreteType = forkResult.negativeState!!
-        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints, preallocatedObjects))
+        stateWithConcreteType.models = listOf(stateWithConcreteType.models.first().toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints, stateWithConcreteType.preAllocatedObjects))
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 
@@ -103,12 +100,14 @@ class PythonVirtualPathSelector(
     private fun nullablePeek(): PythonExecutionState? {
         if (peekCache != null)
             return peekCache
+
         if (!pathSelectorForStatesWithConcretizedTypes.isEmpty()) {
             val result = pathSelectorForStatesWithConcretizedTypes.peek()
             result.meta.extractedFrom = pathSelectorForStatesWithConcretizedTypes
             peekCache = result
             return result
         }
+
         val stateWithConcreteType = generateStateWithConcretizedTypeWithoutDelayedForks()
         if (stateWithConcreteType != null) {
             pathSelectorForStatesWithConcretizedTypes.add(listOf(stateWithConcreteType))
@@ -118,21 +117,29 @@ class PythonVirtualPathSelector(
         val zeroCoin = random.nextDouble()
         val firstCoin = random.nextDouble()
         val secondCoin = random.nextDouble()
-        if (!basePathSelector.isEmpty() && (zeroCoin < 0.6 || (unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty()))) {
-            val result = basePathSelector.peek()
-            result.meta.extractedFrom = basePathSelector
+        val thirdCoin = random.nextDouble()
+
+        if (!basePathSelectorWithoutVirtual.isEmpty() && (zeroCoin < 0.8 || (unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty() && basePathSelectorWithVirtual.isEmpty() && servedDelayedForks.isEmpty()))) {
+            val result = basePathSelectorWithoutVirtual.peek()
+            result.meta.extractedFrom = basePathSelectorWithoutVirtual
             peekCache = result
             return result
 
-        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.9 || pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty())) {
+        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.9 || pathSelectorForStatesWithDelayedForks.isEmpty() && basePathSelectorWithVirtual.isEmpty() && servedDelayedForks.isEmpty())) {
             logger.debug("Trying to make delayed fork")
             val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
             newState?.let { add(listOf(it)) }
             return nullablePeek()
 
-        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < 0.7 || servedDelayedForks.isEmpty())) {
+        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < 0.7 || basePathSelectorWithVirtual.isEmpty() && servedDelayedForks.isEmpty())) {
             val result = pathSelectorForStatesWithDelayedForks.peek()
             result.meta.extractedFrom = pathSelectorForStatesWithDelayedForks
+            peekCache = result
+            return result
+
+        } else if (!basePathSelectorWithVirtual.isEmpty() && (thirdCoin < 0.5 || servedDelayedForks.isEmpty())) {
+            val result = basePathSelectorWithVirtual.peek()
+            result.meta.extractedFrom = basePathSelectorWithVirtual
             peekCache = result
             return result
 
@@ -150,7 +157,8 @@ class PythonVirtualPathSelector(
     override fun peek(): PythonExecutionState {
         val result = nullablePeek()!!
         val source = when (result.meta.extractedFrom) {
-            basePathSelector -> "basePathSelector"
+            basePathSelectorWithoutVirtual -> "basePathSelectorWithoutVirtual"
+            basePathSelectorWithVirtual -> "basePathSelectorWithVirtual"
             pathSelectorForStatesWithDelayedForks -> "pathSelectorForStatesWithDelayedForks"
             pathSelectorForStatesWithConcretizedTypes -> "pathSelectorForStatesWithConcretizedTypes"
             else -> error("Not reachable")
@@ -161,6 +169,12 @@ class PythonVirtualPathSelector(
 
     private fun processDelayedForksOfExecutedState(state: PythonExecutionState) {
         require(state.isTerminated())
+        /*if (!state.meta.endedWithTypeErrorOrAttributeError && state.meta.objectsWithoutConcreteTypes != null) {
+            /*require(state.meta.objectsWithoutConcreteTypes != null) {
+                "State with delayed fork must have virtual objects"
+            }*/
+            executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
+        }*/
         state.delayedForks.firstOrNull()?.let {
             unservedDelayedForks.add(
                 DelayedForkWithTypeRating(
@@ -184,11 +198,15 @@ class PythonVirtualPathSelector(
                 processDelayedForksOfExecutedState(state)
                 return@forEach
             }
-            if (state.meta.objectsWithoutConcreteTypes != null) {
+            if (state.meta.objectsWithoutConcreteTypes != null /*&& !state.meta.endedWithTypeErrorOrAttributeError*/) {
                 require(state.meta.wasExecuted)
                 executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
             } else if (state.delayedForks.isEmpty()) {
-                basePathSelector.add(listOf(state))
+                if (state.meta.numberOfVirtualObjectsInParent > 0) {
+                    basePathSelectorWithVirtual.add(listOf(state))
+                } else {
+                    basePathSelectorWithoutVirtual.add(listOf(state))
+                }
             } else {
                 pathSelectorForStatesWithDelayedForks.add(listOf(state))
             }

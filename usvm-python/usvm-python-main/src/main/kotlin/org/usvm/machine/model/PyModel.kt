@@ -28,7 +28,7 @@ class PyModel(
     private val underlyingModel: UModelBase<PythonType>,
     private val typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
-    private val preallocatedObjects: PreallocatedObjects,
+    val preallocatedObjects: PreallocatedObjects,
     suggestedPsInfo: PathConstraintsInfo? = null
 ) : UModelBase<PythonType>(
     ctx,
@@ -100,5 +100,5 @@ fun UModelBase<PythonType>.toPyModel(
 ): PyModel {
     if (this is PyModel)
         return this
-    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects, suggestedPsInfo)
+    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects.clone(), suggestedPsInfo)
 }

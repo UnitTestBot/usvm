@@ -40,5 +40,5 @@ dependencies {
     // implementation("io.ksmt:ksmt-bitwuzla:${Versions.ksmt}")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
 
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }

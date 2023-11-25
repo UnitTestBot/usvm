@@ -1,7 +1,9 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
@@ -9,6 +11,8 @@ import org.usvm.machine.symbolicobjects.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*
+import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.types.prioritization.SymbolTypeTree
 import org.usvm.machine.types.prioritization.prioritizeTypes
@@ -38,7 +42,8 @@ class PythonExecutionState(
     pathLocation: PathNode<SymbolicHandlerEvent<Any>> = PathNode.root(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
-    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
+    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
+    var visitedInstructions: PersistentSet<Pair<Int, PythonObject>> = persistentSetOf()
 ): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, UPythonContext, PythonTarget, PythonExecutionState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation, targets) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PythonExecutionState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
@@ -57,13 +62,14 @@ class PythonExecutionState(
             pathNode,
             delayedForks,
             mocks.toMutableMap(),  // copy
-            mockedObjects.toMutableSet()  // copy
+            mockedObjects.toMutableSet(),  // copy
+            visitedInstructions
         )
     }
     override val isExceptional: Boolean = false  // TODO
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModelWrapper
-        get() = PyModelWrapper(models.first())
+        get() = PyModelWrapper(models.first() as? PyModel ?: error("model in Python state must be PyModel"))
 
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
         pathNode.allStatements.toList().reversed()
@@ -136,4 +142,7 @@ class PythonExecutionStateMeta {
     var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
     var lastConverter: ConverterToPythonObject? = null
     var generatedFrom: String = ""  // for debugging only
+    var endedWithTypeErrorOrAttributeError: Boolean = false
+    var parentEndedWithTypeOrAttributeError: Boolean = false
+    var numberOfVirtualObjectsInParent: Int = 0
 }

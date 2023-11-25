@@ -107,11 +107,7 @@ class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallab
     private val coveredInstructions = mutableSetOf<Int>()
     private val coveredInstructionsNoVirtual = mutableSetOf<Int>()
     private val functionCode: PythonObject by lazy {
-        val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPythonObject, "f")
-        ConcretePythonInterpreter.eval(namespace, "f.__code__").also {
-            ConcretePythonInterpreter.decref(namespace)
-        }
+        getCodeOfFunction(function.asPythonObject)
     }
     fun updateCoverage(cmd: NextInstruction, usesVirtual: Boolean) {
         if (cmd.code != functionCode)

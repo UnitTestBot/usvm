@@ -21,8 +21,14 @@ fun <T : Any> withTracing(
     if (context.isCancelled.call())
         throw CancelledExecutionException
     context.instructionCounter += 1
-    if (newEventParameters is NextInstruction)
+    if (newEventParameters is NextInstruction) {
         context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
+        if (context.curState != null) {
+            context.curState!!.visitedInstructions = context.curState!!.visitedInstructions.add(
+                Pair(newEventParameters.pythonInstruction.numberInBytecode, newEventParameters.code)
+            )
+        }
+    }
     if (context.instructionCounter > context.maxInstructions)
         throw InstructionLimitExceededException
     if (context.curState == null)

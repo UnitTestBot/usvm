@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "f",
-        "tricky.CompositeObjects"
+        listOf(typeSystem.pythonList),
+        "for_loop",
+        "Lists"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -79,8 +79,8 @@ private fun getFunctionInfo(
         return null
     //if (module != "bidirectional_a_star")
     //    return null
-    //if (name != "BidirectionalBreadthFirstSearch.search")
-    //    return null
+    if (name != "BidirectionalBreadthFirstSearch.search")
+        return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
@@ -112,13 +112,13 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\graphs"
-    val mypyRoot = "D:\\projects\\mypy_tmp"
+    val projectPath = "/home/tochilinak/Documents/projects/utbot/Python/graphs"
+    val mypyRoot = "/home/tochilinak/Documents/projects/utbot/mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
     val mypyDir = MypyBuildDirectory(File(mypyRoot), setOf(projectPath))
     buildMypyInfo(
-        "D:\\projects\\usvm\\usvm-python\\cpythonadapter\\build\\cpython_build\\python_d.exe",
+        "/home/tochilinak/Documents/projects/utbot/usvm/usvm-python/cpythonadapter/build/cpython_build/bin/python3",
         files.map { it.canonicalPath },
         modules,
         mypyDir
@@ -199,8 +199,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    // timeoutPerRunMs = 4_000,
-                    // timeoutMs = 30_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.usvm.*
+import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
 import org.usvm.language.types.PythonType
@@ -15,11 +16,11 @@ import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemory
-import org.usvm.ps.BfsPathSelector
-import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.createForkDepthPathSelector
+import org.usvm.ps.*
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
+import kotlin.math.log2
+import kotlin.math.max
 import kotlin.random.Random
 
 class PythonMachine(
@@ -29,7 +30,7 @@ class PythonMachine(
 ): UMachine<PythonExecutionState>() {
     private val ctx = UPythonContext(typeSystem)
 
-    // private val random = Random(0)
+    private val random = Random(0)
     val statistics = PythonMachineStatistics()
 
     private fun <InputRepr> getInterpreter(
@@ -88,17 +89,25 @@ class PythonMachine(
         target: PythonUnpinnedCallable
     ): UPathSelector<PythonExecutionState> {
         val pathSelectorCreation = {
-            DfsPathSelector<PythonExecutionState>()
+            WeightedPathSelector<PythonExecutionState, Double>(
+                priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
+                weighter = {
+                    val x = it.meta.numberOfVirtualObjectsInParent
+                    val coef = if (it.meta.endedWithTypeErrorOrAttributeError) 0.5 else 1.0
+                    log2(it.visitedInstructions.size.toDouble() + 2) / (x * x + 1) * coef
+                }
+            )
+            // DfsPathSelector<PythonExecutionState>()
             // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
         }
         val initialState = getInitialState(target)
         val ps = PythonVirtualPathSelector(
             ctx,
             typeSystem,
+            BfsPathSelector(),
             pathSelectorCreation(),
-            pathSelectorForStatesWithDelayedForks = BfsPathSelector(),
             pathSelectorCreation(),
-            initialState.preAllocatedObjects
+            pathSelectorCreation(),
         )
         ps.add(listOf(initialState))
         return ps
