@@ -6,7 +6,7 @@ object Versions {
     const val clikt = "5.0.0"
     const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
-    const val jacodb = "453ec7c0b3"
+    const val jacodb = "816194b963"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "2.1.0"
@@ -140,6 +140,11 @@ object Libs {
     val jacodb_storage = dep(
         group = jacodbPackage,
         name = "jacodb-storage",
+        version = Versions.jacodb
+    )
+    val jacodb_go = dep(
+        group = jacodbPackage,
+        name = "jacodb-go",
         version = Versions.jacodb
     )
     val jacodb_approximations = dep(

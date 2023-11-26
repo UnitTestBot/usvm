@@ -31,6 +31,7 @@ import org.usvm.UExpr
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
+import org.usvm.ULValuePointer
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USort
@@ -123,6 +124,8 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
     ): UExpr<UAddressSort> = expr
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
+
+    override fun transform(expr: ULValuePointer): UExpr<UAddressSort> = expr
 
     override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = expr
 

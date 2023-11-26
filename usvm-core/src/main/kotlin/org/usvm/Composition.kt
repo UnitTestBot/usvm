@@ -122,6 +122,8 @@ open class UComposer<Type, USizeSort : USort>(
     override fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort> = expr
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
+
+    override fun transform(expr: ULValuePointer): UExpr<UAddressSort> = expr
 }
 
 @Suppress("NOTHING_TO_INLINE")
