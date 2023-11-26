@@ -3,6 +3,7 @@ rootProject.name = "usvm"
 include("usvm-core")
 include("usvm-jvm")
 include("usvm-ts")
+include("usvm-go")
 include("usvm-util")
 include("usvm-jvm-instrumentation")
 include("usvm-sample-language")

@@ -92,6 +92,7 @@ open class UContext<USizeSort : USort>(
         composerBuilder(memory, ownership).cast()
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
+    
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {
