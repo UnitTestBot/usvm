@@ -15,3 +15,4 @@ pluginManagement {
         }
     }
 }
+include("usvm-go")

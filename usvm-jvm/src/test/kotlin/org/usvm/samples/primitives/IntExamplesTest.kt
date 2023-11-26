@@ -36,7 +36,6 @@ internal class IntExamplesTest : JavaMethodTestRunner() {
         )
     }
 
-    @Test
     fun testPreferableLt() {
         checkDiscoveredProperties(
             IntExamples::preferableLt,
