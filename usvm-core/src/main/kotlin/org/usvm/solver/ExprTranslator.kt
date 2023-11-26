@@ -17,6 +17,7 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
+import org.usvm.ULValuePointer
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USort
@@ -91,6 +92,11 @@ open class UExprTranslator<Type, USizeSort : USort>(
 
     override fun transform(expr: UNullRef): KExpr<UAddressSort> {
         val const = expr.sort.mkConst("null")
+        return const
+    }
+
+    override fun transform(expr: ULValuePointer): KExpr<UAddressSort> {
+        val const = expr.sort.mkConst("&${expr.lvalue}")
         return const
     }
 
