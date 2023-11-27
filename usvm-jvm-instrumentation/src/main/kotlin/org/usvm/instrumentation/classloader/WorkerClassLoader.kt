@@ -108,7 +108,11 @@ class WorkerClassLoader(
             val cs = CodeSource(res.getCodeSourceURL(), res.getCodeSigners())
             val foundClass = defineClass(name, bb, 0, bb.size, cs)
             val jcClass = jcClasspath.findClass(name)
-            staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
+            try {
+                staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
+            } catch (e: Throwable) {
+                //We can't build descriptors for static for some reason
+            }
             foundClass to jcClass
         }.first.also {
             redefineQueue.forEach { redefineClass(it.first, it.second) }
