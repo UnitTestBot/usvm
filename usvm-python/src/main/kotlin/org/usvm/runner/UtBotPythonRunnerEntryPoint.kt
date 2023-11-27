@@ -18,9 +18,9 @@ fun main(args: Array<String>) {
         prefixNumberOfArgs += 2
         require(args.size >= prefixNumberOfArgs + 1) { "Incorrect number of arguments" }
         val venvConfig = VenvConfig(
-            basePath = File(args[8]),
-            libPath = File(args[9]),
-            binPath = File(args[10])
+            basePath = File(args[7]),
+            libPath = File(args[8]),
+            binPath = File(args[9])
         )
         ConcretePythonInterpreter.setVenv(venvConfig)
         System.err.println("VenvConfig: $venvConfig")
