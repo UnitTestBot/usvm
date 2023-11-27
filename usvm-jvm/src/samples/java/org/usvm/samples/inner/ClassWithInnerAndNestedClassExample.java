@@ -4,6 +4,12 @@ public class ClassWithInnerAndNestedClassExample {
     int x;
 
     class InnerClassExample {
+        int y;
+
+        InnerClassExample() {
+            y = x + 42;
+        }
+
         int accessOuterClassField() {
             return x;
         }

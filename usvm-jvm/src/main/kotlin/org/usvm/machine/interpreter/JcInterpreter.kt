@@ -9,6 +9,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.cfg.JcArgument
 import org.jacodb.api.cfg.JcAssignInst
 import org.jacodb.api.cfg.JcCallInst
@@ -98,7 +99,7 @@ class JcInterpreter(
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
         val enclosingType = typedMethod.enclosingType
-        if (!method.isStatic) {
+        if (!method.isStatic && !method.isConstructor) {
             with(ctx) {
                 val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
@@ -117,26 +118,7 @@ class JcInterpreter(
             }
         }
 
-        val outerType = (enclosingType as? JcClassType)?.outerType
-
-        // TODO For now, it's the only way to differentiate inner and static nested classes - wait for updates in jacodb
-        // for more appropriate approach
-        val outerClassField = (enclosingType as? JcClassType)?.fields?.singleOrNull { it.name == "this\$0" }
-        if (outerType != null && outerClassField != null && !method.isStatic) {
-            // A reference to the outer class is presented only in non-static methods
-            // (static members in inner classes are allowed in Java 16, see https://bugs.openjdk.org/browse/JDK-8254321)
-            val thisRef = entrypointArguments.firstOrNull()?.second
-                ?: error("Not found 'this' ref in non-static method $method")
-            with(ctx) {
-                val outerClassFieldLValue = UFieldLValue(addressSort, thisRef, outerClassField.field)
-
-                val outerClassRef = state.memory.read(outerClassFieldLValue).asExpr(addressSort)
-                state.pathConstraints += mkEq(outerClassRef, nullRef).not()
-                state.pathConstraints += state.memory.types.evalTypeEquals(outerClassRef, outerType)
-
-                entrypointArguments += outerType to outerClassRef
-            }
-        }
+        state.handleInnerClassMethod(typedMethod, enclosingType, entrypointArguments)
 
         typedMethod.parameters.forEachIndexed { idx, typedParameter ->
             with(ctx) {
@@ -193,6 +175,41 @@ class JcInterpreter(
         }
 
         return scope.stepResult()
+    }
+
+    private fun JcState.handleInnerClassMethod(
+        method: JcTypedMethod,
+        enclosingType: JcRefType,
+        entrypointArguments: MutableList<Pair<JcRefType, UHeapRef>>
+    ) {
+        val outerType = (enclosingType as? JcClassType)?.outerType
+
+        // TODO For now, it's the only way to differentiate inner and static nested classes - wait for updates in jacodb
+        // for more appropriate approach
+        val outerClassField = (enclosingType as? JcClassType)?.fields?.singleOrNull { it.name == "this\$0" }
+        if (outerType != null && outerClassField != null && !method.isStatic) {
+            // For methods or constructors of inner classes, we need to ensure correctness of the instance of an outer class
+            with(ctx) {
+                if (method.method.isConstructor) {
+                    val outerClassParameter = method.parameters.firstOrNull()
+                        ?: error("Not found outer class parameter in constructor of the inner class $enclosingType")
+                    val argumentLValue = URegisterStackLValue(addressSort, 0)
+                    val ref = memory.read(argumentLValue).asExpr(addressSort)
+                    pathConstraints += mkEq(ref, nullRef).not()
+                    pathConstraints += memory.types.evalTypeEquals(ref, outerClassParameter.type)
+                } else {
+                    // A reference to the outer class is presented only in non-static methods
+                    // (static members in inner classes are allowed in Java 16, see https://bugs.openjdk.org/browse/JDK-8254321)
+                    val thisRef = entrypointArguments.firstOrNull()?.second
+                        ?: error("Not found 'this' ref in non-static method $method")
+                    val outerClassFieldLValue = UFieldLValue(addressSort, thisRef, outerClassField.field)
+
+                    val outerClassRef = memory.read(outerClassFieldLValue).asExpr(addressSort)
+                    pathConstraints += mkEq(outerClassRef, nullRef).not()
+                    pathConstraints += memory.types.evalTypeEquals(outerClassRef, outerType)
+                }
+            }
+        }
     }
 
     private fun handleException(

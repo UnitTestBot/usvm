@@ -16,6 +16,15 @@ class ClassWithInnerAndNestedClassExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    fun testInnerClassConstructor() {
+        checkDiscoveredPropertiesWithExceptions(
+            ClassWithInnerAndNestedClassExample::InnerClassExample,
+            eq(1),
+            { _, r -> r.isSuccess }
+        )
+    }
+
+    @Test
     fun testAccessOuterClassFieldWithParameter() {
         checkDiscoveredPropertiesWithExceptions(
             ClassWithInnerAndNestedClassExample.NestedClassExample::accessOuterClassFieldWithParameter,
