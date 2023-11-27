@@ -7,6 +7,7 @@ import io.ksmt.utils.uncheckedCast
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
+import org.usvm.Method
 import org.usvm.PathNode
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -15,6 +16,7 @@ import org.usvm.UCallStack
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.WithSolverStateForker
@@ -44,6 +46,7 @@ abstract class SymbolicCollectionTestBase {
         val components: UComponents<SingleTypeSystem.SingleType, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         ctx = UContext(components)
 
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
