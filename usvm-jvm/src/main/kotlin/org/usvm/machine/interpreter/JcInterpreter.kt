@@ -45,6 +45,7 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.mapTypeStream
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
@@ -96,23 +97,44 @@ class JcInterpreter(
         val typedMethod = with(applicationGraph) { method.typed }
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
+        val enclosingType = typedMethod.enclosingType
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
-                val thisType = typedMethod.enclosingType
 
                 // TODO support virtual entrypoints https://github.com/UnitTestBot/usvm/issues/93
-                val thisTypeConstraints = if (thisType.jcClass.isAbstract) {
-                    state.memory.types.evalIsSubtype(ref, thisType)
+                val thisTypeConstraints = if (enclosingType.jcClass.isAbstract) {
+                    state.memory.types.evalIsSubtype(ref, enclosingType)
                 } else {
-                    state.memory.types.evalTypeEquals(ref, thisType)
+                    state.memory.types.evalTypeEquals(ref, enclosingType)
                 }
 
                 state.pathConstraints += thisTypeConstraints
 
-                entrypointArguments += thisType to ref
+                entrypointArguments += enclosingType to ref
+            }
+        }
+
+        val outerType = (enclosingType as? JcClassType)?.outerType
+
+        // TODO For now, it's the only way to differentiate inner and static nested classes - wait for updates in jacodb
+        // for more appropriate approach
+        val outerClassField = (enclosingType as? JcClassType)?.fields?.singleOrNull { it.name == "this\$0" }
+        if (outerType != null && outerClassField != null && !method.isStatic) {
+            // A reference to the outer class is presented only in non-static methods
+            // (static members in inner classes are allowed in Java 16, see https://bugs.openjdk.org/browse/JDK-8254321)
+            val thisRef = entrypointArguments.firstOrNull()?.second
+                ?: error("Not found 'this' ref in non-static method $method")
+            with(ctx) {
+                val outerClassFieldLValue = UFieldLValue(addressSort, thisRef, outerClassField.field)
+
+                val outerClassRef = state.memory.read(outerClassFieldLValue).asExpr(addressSort)
+                state.pathConstraints += mkEq(outerClassRef, nullRef).not()
+                state.pathConstraints += state.memory.types.evalTypeEquals(outerClassRef, outerType)
+
+                entrypointArguments += outerType to outerClassRef
             }
         }
 
