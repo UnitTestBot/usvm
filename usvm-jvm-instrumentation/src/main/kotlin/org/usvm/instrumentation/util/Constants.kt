@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.seconds
 object InstrumentationModuleConstants {
 
     //Timeout for test execution
-    val testExecutionTimeout = 5.seconds
+    val testExecutionTimeout = 10.seconds
     //Timeout for method execution
     val methodExecutionTimeout = 2.seconds
     //Timeout for executor process waiting (should be in seconds)
@@ -20,6 +20,8 @@ object InstrumentationModuleConstants {
     val maxDepthOfDescriptorConstruction = 5
     //Number of stacktrace elements for exception construction
     val maxStackTraceElements = 10
+
+    const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 
     //Passes as environment parameter
     val pathToUsvmInstrumentationJar: String

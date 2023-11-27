@@ -4,6 +4,7 @@ package org.usvm.instrumentation.util
 
 import sun.misc.Unsafe
 import java.lang.reflect.*
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 
@@ -71,7 +72,10 @@ private fun <T> executeWithTimeout(block: () -> T): T {
             /* timeout = */ InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
             /* unit = */ TimeUnit.MILLISECONDS
         )
-    } finally {
+    } catch (e: ExecutionException) {
+        throw (e.cause ?: e)
+    }
+    finally {
         while (executionThread.isAlive) {
             executionThread.stop()
         }

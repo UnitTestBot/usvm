@@ -1,6 +1,5 @@
 package org.usvm.instrumentation.agent
 
-import org.usvm.instrumentation.classloader.UtilClassLoader
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.util.toByteArray
@@ -17,8 +16,6 @@ class ClassTransformer(
     private val instrumenterFactoryInstance =
         Class.forName(instrumenterClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
     private val instrumenterCache = HashMap<String, ByteArray>()
-    private val utilClassLoader = UtilClassLoader()
-
 
     override fun transform(
         loader: ClassLoader?,
@@ -35,7 +32,7 @@ class ClassTransformer(
         return instrumenterCache.getOrPut(className) {
             val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
             val instrumentedClassNode = instrumenter.instrumentClass(classfileBuffer.toClassNode())
-            instrumentedClassNode.toByteArray(utilClassLoader, checkClass = true)
+            instrumentedClassNode.toByteArray(loader.jcClasspath , checkClass = true)
         }
     }
 

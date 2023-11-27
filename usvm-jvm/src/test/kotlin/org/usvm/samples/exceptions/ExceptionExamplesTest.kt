@@ -1,10 +1,12 @@
 package org.usvm.samples.exceptions
 
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.util.JcTestResolverType
 import org.usvm.util.isException
 import java.nio.file.InvalidPathException
 
@@ -125,8 +127,10 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
         )
     }
 
+    //Muted for concrete executor because of no mocks
     @Test
     fun testTryThrowableMethod() {
+        Assumptions.assumeTrue(resolverType == JcTestResolverType.INTERPRETER)
         checkDiscoveredProperties(
             ExceptionExamples::tryThrowableMethod,
             eq(2),
