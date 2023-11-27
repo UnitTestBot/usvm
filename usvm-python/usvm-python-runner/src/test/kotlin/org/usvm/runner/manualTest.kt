@@ -25,14 +25,14 @@ fun main() {
         30_000,
         3_000
     )
-    /*val debugRunner = DebugRunner(config)
+    val debugRunner = DebugRunner(config)
     debugRunner.use {
         it.runProcessAndPrintInfo(runConfig)
-    }*/
-    val receiver = PrintingResultReceiver()
+    }
+    /*val receiver = PrintingResultReceiver()
     val runner = PythonSymbolicAnalysisRunnerImpl(config)
     runner.use {
         it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 5_000 }
-    }
+    }*/
     println("Time: ${System.currentTimeMillis() - start}")
 }
