@@ -10,6 +10,7 @@ import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.LocationType
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.methods
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.jacodb.approximation.JcEnrichedVirtualMethod
@@ -90,9 +91,7 @@ class JcTestExecutor(
         val methodMocks = mocker.symbols
 
         val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
-            .mapValues {
-                it.value.flatten().sortedBy { (it as? UIndexedMethodReturnValue<*, *>)?.callIndex ?: Int.MAX_VALUE }
-            }
+            .mapValues { it.value.flatten() }
 
         val memoryScope = MemoryScope(ctx, model, model, stringConstants, resolvedMethodMocks, method)
 
@@ -249,18 +248,30 @@ class JcTestExecutor(
             val instance = UTestMockObject(type, fieldValues, methods)
             saveResolvedRef(ref.address, instance)
 
-            mocks.filterIsInstance<UIndexedMethodReturnValue<JcMethod, *>>()
-                .groupBy { it.method }
-                .filterKeys { it !is JcEnrichedVirtualMethod }
-                .forEach { (method, calls) ->
-                    methods[method] = calls.map {
-                        val mockedValueType = requireNotNull(ctx.cp.findTypeOrNull(method.returnType)) {
-                            "No such type found: ${method.returnType}"
-                        }
+            val mockedMethodValues = mutableMapOf<JcMethod, MutableList<UIndexedMethodReturnValue<JcMethod, *>>>()
+            mocks.filterIsInstance<UIndexedMethodReturnValue<JcMethod, *>>().forEach { mockValue ->
+                var method = mockValue.method
 
-                        resolveExpr(it, mockedValueType)
-                    }
+                // Find original method
+                if (method is JcEnrichedVirtualMethod) {
+                    method = method.enclosingClass.methods
+                        .filter { it !is JcEnrichedVirtualMethod }
+                        .singleOrNull { it.name == method.name && it.description == method.description }
+                        ?: return@forEach
                 }
+
+                mockedMethodValues.getOrPut(method) { mutableListOf() }.add(mockValue)
+            }
+
+            mockedMethodValues.forEach { (method, values) ->
+                val mockedValueType = requireNotNull(ctx.cp.findTypeOrNull(method.returnType)) {
+                    "No such type found: ${method.returnType}"
+                }
+
+                methods[method] = values
+                    .sortedBy { it.callIndex }
+                    .map { resolveExpr(it, mockedValueType) }
+            }
 
             val fields = generateSequence(type.jcClass) { it.superClass }
                 .map { it.toType() }
