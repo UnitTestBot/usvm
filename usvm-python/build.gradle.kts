@@ -27,7 +27,7 @@ dependencies {
     implementation(project(":usvm-python:usvm-python-main"))
     implementation("org.utbot:utbot-python-types:2023.11-SNAPSHOT")
 
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
 tasks.jar {
