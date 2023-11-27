@@ -6,8 +6,10 @@ import kotlin.time.Duration.Companion.seconds
 //TODO move in common settings file
 object InstrumentationModuleConstants {
 
+    //Timeout for test execution
+    val testExecutionTimeout = 5.seconds
     //Timeout for method execution
-    val testExecutionTimeout = 10.seconds
+    val methodExecutionTimeout = 2.seconds
     //Timeout for executor process waiting (should be in seconds)
     const val concreteExecutorProcessTimeout = 120
     //If something gone wrong with RD
@@ -18,8 +20,6 @@ object InstrumentationModuleConstants {
     val maxDepthOfDescriptorConstruction = 5
     //Number of stacktrace elements for exception construction
     val maxStackTraceElements = 10
-
-    const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 
     //Passes as environment parameter
     val pathToUsvmInstrumentationJar: String

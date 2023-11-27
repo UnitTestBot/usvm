@@ -4,6 +4,8 @@ package org.usvm.instrumentation.util
 
 import sun.misc.Unsafe
 import java.lang.reflect.*
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
 
 
 object ReflectionUtils {
@@ -40,8 +42,10 @@ fun Field.getFieldValue(instance: Any?): Any? = with(ReflectionUtils.UNSAFE) {
 
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
     try {
-        withAccessibility {
-            invoke(instance, *args.toTypedArray())
+        executeWithTimeout {
+            withAccessibility {
+                invoke(instance, *args.toTypedArray())
+            }
         }
     } catch (e: InvocationTargetException) {
         throw e.cause ?: e
@@ -49,12 +53,30 @@ fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
 
 fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
     try {
-        withAccessibility {
-            newInstance(*args.toTypedArray())
+        executeWithTimeout {
+            withAccessibility {
+                newInstance(*args.toTypedArray())
+            }
         }
     } catch (e: InvocationTargetException) {
         throw e.cause ?: e
     }
+
+private fun <T> executeWithTimeout(block: () -> T): T {
+    val futureTask = FutureTask(block)
+    val executionThread = Thread(futureTask)
+    executionThread.start()
+    try {
+        return futureTask.get(
+            /* timeout = */ InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
+            /* unit = */ TimeUnit.MILLISECONDS
+        )
+    } finally {
+        while (executionThread.isAlive) {
+            executionThread.stop()
+        }
+    }
+}
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils.UNSAFE) {
     val (fixedInstance, fieldOffset) = getInstanceAndOffset(instance)
