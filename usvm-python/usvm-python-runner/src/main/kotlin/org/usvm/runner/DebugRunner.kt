@@ -7,6 +7,9 @@ class DebugRunner(config: USVMPythonConfig): USVMPythonRunner(config) {
         builder.redirectOutput(ProcessBuilder.Redirect.INHERIT)
         val process = builder.start()
         process.waitFor()
-        println("Exit status: ${process.exitValue()}")
+        when (val status = process.exitValue()) {
+            0 -> println("Exit status: 0 (Success)")
+            else -> println("Exit status: $status (Failure)")
+        }
     }
 }
