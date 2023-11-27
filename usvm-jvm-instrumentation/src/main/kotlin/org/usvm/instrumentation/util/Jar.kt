@@ -99,8 +99,10 @@ data class Flags(val value: Int) : Comparable<Flags> {
 class UsvmClassWriter(private val jcClassPath: JcClasspath, flags: Flags) : ClassWriter(flags.value) {
 
     override fun getCommonSuperClass(type1: String, type2: String): String = try {
-        var class1 = jcClassPath.findClassOrNull(type1) ?: error("$type1 is not in jacodb cp")
-        val class2 = jcClassPath.findClassOrNull(type2) ?: error("$type2 is not in jacodb cp")
+        val type1WithDots = type1.replace(Package.SEPARATOR, Package.CANONICAL_SEPARATOR)
+        val type2WithDots = type2.replace(Package.SEPARATOR, Package.CANONICAL_SEPARATOR)
+        var class1 = jcClassPath.findClassOrNull(type1WithDots) ?: error("$type1 is not in jacodb cp")
+        val class2 = jcClassPath.findClassOrNull(type2WithDots) ?: error("$type2 is not in jacodb cp")
 
         when {
             class2.isSubClassOf(class1) -> type1
