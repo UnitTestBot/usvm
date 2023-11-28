@@ -40,45 +40,40 @@ fun Field.getFieldValue(instance: Any?): Any? = with(ReflectionUtils.UNSAFE) {
 }
 
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
-    try {
-        executeWithTimeout {
-            withAccessibility {
-                invoke(instance, *args.toTypedArray())
-            }
+    executeWithTimeout {
+        withAccessibility {
+            invoke(instance, *args.toTypedArray())
         }
-    } catch (e: InvocationTargetException) {
-        throw e.cause ?: e
     }
 
 fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
-    try {
-        executeWithTimeout {
-            withAccessibility {
-                newInstance(*args.toTypedArray())
-            }
-        } ?: error("Cant instantiate class ${this.declaringClass.name}")
-    } catch (e: InvocationTargetException) {
-        throw e.cause ?: e
-    }
+    executeWithTimeout {
+        withAccessibility {
+            newInstance(*args.toTypedArray())
+        }
+    } ?: error("Cant instantiate class ${this.declaringClass.name}")
 
-//If something gone wrong with thread stop
-//RD will kill the process
-private fun executeWithTimeout(block: () -> Any?): Any? {
-    val executor = Executors.newSingleThreadExecutor()
-    val future: Future<*> = executor.submit(block)
-    try {
-        return future.get(
-            InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
-            TimeUnit.MILLISECONDS
-        )
-    } catch (e: TimeoutException) {
-        future.cancel(true)
-        throw e
-    } catch (e: ExecutionException) {
-        throw (e.cause ?: e)
-    } finally {
-        executor.shutdownNow()
+
+fun executeWithTimeout(body: () -> Any?): Any? {
+    var result: Any? = null
+    val thread = Thread {
+        result = try {
+            body()
+        } catch (e: Throwable) {
+            e
+        }
     }
+    thread.start()
+    thread.join(InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds)
+    if (thread.isAlive) {
+        @Suppress("DEPRECATION")
+        thread.stop()
+        throw TimeoutException()
+    }
+    if (result is InvocationTargetException) {
+        throw (result as InvocationTargetException).cause ?: result as Throwable
+    }
+    return result
 }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils.UNSAFE) {
