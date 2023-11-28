@@ -16,6 +16,7 @@ private const val USVM_APPROXIMATIONS_JAR_PATH = "usvm.jvm.approximations.jar.pa
 
 private val classpathApproximations: MutableMap<JcClasspath, Set<String>> = ConcurrentHashMap()
 
+// TODO: use another way to detect internal classes (e.g. special bytecode location type)
 val JcClassOrInterface.isUsvmInternalClass: Boolean
     get() = classpathApproximations[classpath]?.contains(name) ?: false
 
