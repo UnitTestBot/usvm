@@ -16,11 +16,9 @@ import kotlin.random.Random
 
 class PythonVirtualPathSelector(
     private val ctx: UPythonContext,
-    private val typeSystem: PythonTypeSystem,
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>,
-    private val preallocatedObjects: PreallocatedObjects
 ) : UPathSelector<PythonExecutionState> {
     private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
@@ -61,7 +59,7 @@ class PythonVirtualPathSelector(
         if (forkResult.negativeState == null)
             return null
         val stateWithConcreteType = forkResult.negativeState!!
-        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, typeSystem, stateWithConcreteType.pathConstraints, preallocatedObjects))
+        stateWithConcreteType.models = listOf(stateWithConcreteType.pyModel.uModel.toPyModel(ctx, stateWithConcreteType.pathConstraints))
         if (unservedDelayedForks.remove(delayedFork))
             servedDelayedForks.add(delayedFork)
 

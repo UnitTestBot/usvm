@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -59,7 +59,8 @@ private fun buildSampleRunConfig(): RunConfig {
 
 private val ignoreFunctions = listOf<String>(
     // "SegmentTree.build",
-    "get_transitions"
+    "get_transitions",
+    "BidirectionalAStar.retrace_bidirectional_path"
 )
 private val ignoreModules = listOf<String>(
     "odd_even_transposition_parallel"
@@ -79,8 +80,8 @@ private fun getFunctionInfo(
         return null
     //if (module != "bidirectional_a_star")
     //    return null
-    //if (name != "BidirectionalBreadthFirstSearch.search")
-    //    return null
+    if (name != "Graph.boruvka")
+        return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {

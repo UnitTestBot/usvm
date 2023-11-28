@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.operations.basic
 
 import io.ksmt.sort.KIntSort
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
@@ -8,14 +9,12 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
-import org.usvm.language.types.ArrayLikeConcretePythonType
-import org.usvm.language.types.ArrayType
-import org.usvm.language.types.ConcretePythonType
+import org.usvm.language.types.*
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.language.types.ConcreteTypeNegation
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.MethodDescription
+import org.utbot.python.newtyping.getPythonAttributeByName
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
@@ -146,20 +145,31 @@ fun handlerStandardTpGetattroKt(
         return null
     val containsFieldCond = obj.containsField(ctx, name)
     // println("Attr result: ${ctx.modelHolder.model.eval(containsFieldCond).isTrue}")
+    val result = obj.getFieldValue(ctx, name)
 
-    val softConstraint = ctx.ctx.mkHeapRefEq(obj.getFieldValue(ctx, name).address, ctx.ctx.nullRef)
+    val typeSystem = ctx.typeSystem
+    val additionalCond: UBoolExpr = (typeSystem as? PythonTypeSystemWithMypyInfo)?.let {
+        val utType = it.typeHintOfConcreteType(type) ?: return@let null
+        val attrDef = utType.getPythonAttributeByName(it.typeHintsStorage, concreteStr) ?: return@let null
+        val attrType = attrDef.type
+        val concreteAttrType = getTypeFromTypeHint(attrType, it)
+        result.evalIs(ctx, concreteAttrType)
+    } ?: ctx.ctx.trueExpr
+
+    val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
     val ps = ctx.curState!!.pathConstraints
     ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
 
     if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
         if (defaultValue != null)
             return SymbolForCPython(defaultValue, 0)
-        myFork(ctx, containsFieldCond)
+        myFork(ctx, ctx.ctx.mkAnd(containsFieldCond, additionalCond))
         return null
     } else {
         myAssert(ctx, containsFieldCond)
+        myAssert(ctx, additionalCond)
     }
-    return SymbolForCPython(obj.getFieldValue(ctx, name), 0)
+    return SymbolForCPython(result, 0)
 }
 
 fun handlerStandardTpSetattroKt(
