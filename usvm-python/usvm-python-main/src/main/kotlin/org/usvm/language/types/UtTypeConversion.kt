@@ -21,6 +21,10 @@ fun getTypeFromTypeHint(
     if (fromTypeSystem != null)
         return fromTypeSystem
     val storage = typeSystem.typeHintsStorage
+    val substitutedDict = DefaultSubstitutionProvider.substituteAll(
+        storage.pythonDict,
+        storage.pythonTuple.getBoundedParameters().map { pythonAnyType }
+    )
     val substitutedList = DefaultSubstitutionProvider.substituteAll(
         storage.pythonList,
         storage.pythonList.getBoundedParameters().map { pythonAnyType }
@@ -35,7 +39,7 @@ fun getTypeFromTypeHint(
         typeSystem.pythonFloat
     } else if (typesAreEqual(hintAfterSubstitution, storage.pythonBool)) {
         typeSystem.pythonBool
-    } else if (typesAreEqual(hintAfterSubstitution, storage.pythonDict)) {
+    } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedDict, hintAfterSubstitution, storage)) {
         typeSystem.pythonDict
     } else if (PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(substitutedList, hintAfterSubstitution, storage)) {
         typeSystem.pythonList
