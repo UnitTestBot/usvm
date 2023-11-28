@@ -36,8 +36,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
             Optional_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
             { obj, result -> result == 0 && !obj.isPresent },
-            { obj, result -> result == 1 && obj.isPresent && obj.get() == 123 },
-            { obj, result -> result == 2 && obj.isPresent && obj.get() == "ABC" },
+            { obj, result -> result == 1 && obj.isPresent && obj.get() == 64 },
         )
     }
 
@@ -47,7 +46,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
             OptionalDouble_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
             { obj, result -> result == 0 && !obj.isPresent },
-            { obj, result -> result == 1 && obj.isPresent && obj.asDouble == 3.14 },
+            { obj, result -> result == 1 && obj.isPresent && obj.asDouble == 2.0 },
         )
     }
 
@@ -96,7 +95,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
             OptionalInt_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
             { obj, result -> result == 0 && !obj.isPresent },
-            { obj, result -> result == 1 && obj.isPresent && obj.asInt == 128 }
+            { obj, result -> result == 1 && obj.isPresent && obj.asInt == 32 }
         )
     }
 
@@ -125,7 +124,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
         checkProperties(
             AtomicInteger_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
-            { obj, result -> result == 0 && obj.get() == 123 },
+            { obj, result -> result == 0 && obj.get() == 128 },
         )
     }
 
@@ -134,7 +133,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
         checkProperties(
             AtomicLong_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
-            { obj, result -> result == 0 && obj.get() == 321L },
+            { obj, result -> result == 0 && obj.get() == 16L },
         )
     }
 
@@ -144,8 +143,7 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
             AtomicReference_DecoderTests::test_0,
             ignoreNumberOfAnalysisResults,
             { obj, result -> result == 0 && obj.get() == null },
-            { obj, result -> result == 1 && obj.get() == 73 },
-            { obj, result -> result == 2 && obj.get() == "XYZ" },
+            { obj, result -> result == 1 && obj.get() == 32 },
         )
     }
 
