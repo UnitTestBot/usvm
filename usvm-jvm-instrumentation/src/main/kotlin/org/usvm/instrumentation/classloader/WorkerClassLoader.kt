@@ -76,7 +76,7 @@ class WorkerClassLoader(
             redefineQueue.add(jClass to asmBody)
             return
         }
-        val classDefinition = ClassDefinition(jClass, asmBody.toByteArray(this))
+        val classDefinition = ClassDefinition(jClass, asmBody.toByteArray(jcClasspath))
         shouldInstrumentCurrentClass = false
         instrumentation.redefineClasses(classDefinition)
         shouldInstrumentCurrentClass = true
@@ -94,7 +94,7 @@ class WorkerClassLoader(
     }
 
     fun defineClass(name: String, classNode: ClassNode): Class<*>? {
-        val classByteArray = classNode.toByteArray(this)
+        val classByteArray = classNode.toByteArray(jcClasspath)
         shouldInstrumentCurrentClass = false
         val newClass = defineClass(name, classByteArray, 0, classByteArray.size)
         shouldInstrumentCurrentClass = true
@@ -108,7 +108,11 @@ class WorkerClassLoader(
             val cs = CodeSource(res.getCodeSourceURL(), res.getCodeSigners())
             val foundClass = defineClass(name, bb, 0, bb.size, cs)
             val jcClass = jcClasspath.findClass(name)
-            staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
+            try {
+                staticDescriptorsBuilder?.buildInitialDescriptorForClass(jcClass)
+            } catch (e: Throwable) {
+                //We can't build descriptors for static for some reason
+            }
             foundClass to jcClass
         }.first.also {
             redefineQueue.forEach { redefineClass(it.first, it.second) }

@@ -22,15 +22,22 @@ object JcInstructionTracer : Tracer<Trace> {
     }
 
     override fun getTrace(): Trace {
-        val trace = List(TraceCollector.trace.size) { idx -> decode(
-            TraceCollector.trace.arr[idx]) }
-        val statics = List(TraceCollector.statics.size) { idx -> decodeStatic(
-            TraceCollector.statics.arr[idx]) }
+        val traceFromTraceCollector =
+            TraceCollector.trace.allValues
+        val trace = List(traceFromTraceCollector.size) { idx ->
+            decode(traceFromTraceCollector[idx])
+        }
+        val statics = List(TraceCollector.statics.size) { idx ->
+            decodeStatic(TraceCollector.statics.arr[idx])
+        }
         return Trace(trace, statics)
     }
 
-    fun coveredInstructionsIds(): List<Long> =
-        List(TraceCollector.trace.size) { idx -> TraceCollector.trace.arr[idx] }
+    fun coveredInstructionsIds(): List<Long> {
+        val traceFromTraceCollector =
+            TraceCollector.trace.allValues
+        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector[idx] }
+    }
 
     fun getEncodedClasses() =
         encodedClasses.entries.associate { it.key to it.value.id }

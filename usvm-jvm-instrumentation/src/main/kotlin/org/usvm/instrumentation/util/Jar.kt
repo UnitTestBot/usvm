@@ -1,5 +1,8 @@
 package org.usvm.instrumentation.util
 
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.ext.isSubClassOf
+import org.jacodb.api.ext.objectClass
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Label
@@ -93,26 +96,22 @@ data class Flags(val value: Int) : Comparable<Flags> {
     override fun compareTo(other: Flags) = value.compareTo(other.value)
 }
 
-class UsvmClassWriter(private val loader: ClassLoader, flags: Flags) : ClassWriter(flags.value) {
-
-    private fun readClass(type: String) = try {
-        Class.forName(type.replace(Package.SEPARATOR, Package.CANONICAL_SEPARATOR), false, loader)
-    } catch (e: Throwable) {
-        throw ClassReadException(e.toString())
-    }
+class UsvmClassWriter(private val jcClassPath: JcClasspath, flags: Flags) : ClassWriter(flags.value) {
 
     override fun getCommonSuperClass(type1: String, type2: String): String = try {
-        var class1 = readClass(type1)
-        val class2 = readClass(type2)
+        val type1WithDots = type1.replace(Package.SEPARATOR, Package.CANONICAL_SEPARATOR)
+        val type2WithDots = type2.replace(Package.SEPARATOR, Package.CANONICAL_SEPARATOR)
+        var class1 = jcClassPath.findClassOrNull(type1WithDots) ?: error("$type1 is not in jacodb cp")
+        val class2 = jcClassPath.findClassOrNull(type2WithDots) ?: error("$type2 is not in jacodb cp")
 
         when {
-            class1.isAssignableFrom(class2) -> type1
-            class2.isAssignableFrom(class1) -> type2
+            class2.isSubClassOf(class1) -> type1
+            class1.isSubClassOf(class2) -> type2
             class1.isInterface || class2.isInterface -> OBJECT_TYPE
             else -> {
                 do {
-                    class1 = class1.superclass
-                } while (!class1.isAssignableFrom(class2))
+                    class1 = class1.superClass ?: jcClassPath.objectClass
+                } while (!class2.isSubClassOf(class1))
                 class1.name.replace(Package.CANONICAL_SEPARATOR, Package.SEPARATOR)
             }
         }
@@ -176,11 +175,6 @@ internal fun readClassNode(input: InputStream, flags: Flags = Flags.readAll): Cl
     return classNode
 }
 
-internal fun ClassNode.recomputeFrames(loader: ClassLoader): ClassNode {
-    val ba = this.toByteArray(loader)
-    return ba.toClassNode()
-}
-
 fun ByteArray.toClassNode(): ClassNode {
     val classReader = ClassReader(this.inputStream())
     val classNode = ClassNode()
@@ -189,14 +183,14 @@ fun ByteArray.toClassNode(): ClassNode {
 }
 
 fun ClassNode.toByteArray(
-    loader: ClassLoader,
+    jcClassPath: JcClasspath,
     flags: Flags = Flags.writeComputeAll,
     checkClass: Boolean = false
 ): ByteArray {
     inlineJsrs()
     //Workaround for bug with locals translation
     methods?.map { it?.localVariables?.size }
-    val cw = UsvmClassWriter(loader, flags)
+    val cw = UsvmClassWriter(jcClassPath, flags)
     val adapter = when {
         checkClass -> CheckClassAdapter(cw)
         else -> cw
@@ -206,14 +200,14 @@ fun ClassNode.toByteArray(
 }
 
 internal fun ClassNode.write(
-    loader: ClassLoader,
+    jcClassPath: JcClasspath,
     path: Path,
     flags: Flags = Flags.writeComputeAll,
     checkClass: Boolean = false
 ): File =
     path.toFile().apply {
         parentFile?.mkdirs()
-        this.writeBytes(this@write.toByteArray(loader, flags, checkClass))
+        this.writeBytes(this@write.toByteArray(jcClassPath, flags, checkClass))
     }
 
 internal class LabelFilterer(private val mn: MethodNode) {
