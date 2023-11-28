@@ -65,15 +65,17 @@ fun executeWithTimeout(body: () -> Any?): Any? {
     }
     thread.start()
     thread.join(InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds)
-    if (thread.isAlive) {
+    var isThreadStopped = false
+    while (thread.isAlive) {
         @Suppress("DEPRECATION")
         thread.stop()
-        throw TimeoutException()
+        isThreadStopped = true
     }
-    if (result is InvocationTargetException) {
-        throw (result as InvocationTargetException).cause ?: result as Throwable
+    when {
+        isThreadStopped -> throw TimeoutException()
+        result is InvocationTargetException -> throw (result as InvocationTargetException).cause ?: result as Throwable
+        else -> return result
     }
-    return result
 }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils.UNSAFE) {
