@@ -17,22 +17,22 @@ fun main() {
         venvConfig
     )
     val runConfig = USVMPythonRunConfig(
-        USVMPythonMethodConfig(
-            "Methods",
-            "get_info",
-            "Point"
+        USVMPythonFunctionConfig(
+            "tricky.CompositeObjects",
+            "g"
         ),
-        30_000,
+        20_000,
         3_000
     )
-    val debugRunner = DebugRunner(config)
+    /*val debugRunner = DebugRunner(config)
     debugRunner.use {
         it.runProcessAndPrintInfo(runConfig)
-    }
-    /*val receiver = PrintingResultReceiver()
+    }*/
+    val receiver = PrintingResultReceiver()
     val runner = PythonSymbolicAnalysisRunnerImpl(config)
     runner.use {
-        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 5_000 }
-    }*/
+        it.analyze(runConfig, receiver) { System.currentTimeMillis() - start >= 20_000 }
+    }
     println("Time: ${System.currentTimeMillis() - start}")
+    println("Number of executions: ${receiver.cnt}")
 }
