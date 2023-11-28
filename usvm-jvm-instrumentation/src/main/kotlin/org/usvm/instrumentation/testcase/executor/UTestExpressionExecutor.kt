@@ -152,12 +152,7 @@ class UTestExpressionExecutor(
     }
 
     private fun executeUTestAllocateMemoryCall(uTestAllocateMemoryCall: UTestAllocateMemoryCall): Any? {
-        val jClass =
-            try {
-                uTestAllocateMemoryCall.type.toJavaClass(workerClassLoader, true)
-            } catch (e: Throwable) {
-                return null
-            }
+        val jClass = uTestAllocateMemoryCall.type.toJavaClass(workerClassLoader, initialize = true)
         return ReflectionUtils.UNSAFE.allocateInstance(jClass)
     }
 
