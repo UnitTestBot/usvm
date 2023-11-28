@@ -14,7 +14,13 @@ fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     sort: T
 ): UExpr<T> {
     check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
-    return memory.mocker.call(lastEnteredMethod, emptySequence(), sort)
+    return memory.mocker.call(
+        lastEnteredMethod,
+        runCatching {
+            sequenceOf(memory.stack.readRegister(0, ctx.addressSort))
+        }.getOrNull() ?: emptySequence(),
+        sort
+    ) // TODO caelbleidd-competition-hack
 }
 
 fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(
@@ -28,7 +34,13 @@ fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRefWithSameTy
     mockSymbolicRef { objectTypeEquals(it, representative) }
 
 fun <Method> UState<*, Method, *, *, *, *>.makeSymbolicRefUntyped(): UHeapRef =
-    memory.mocker.call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort)
+    memory.mocker.call(
+        lastEnteredMethod,
+        runCatching {
+            sequenceOf(memory.stack.readRegister(0, ctx.addressSort))
+        }.getOrNull() ?: emptySequence(),
+        ctx.addressSort
+    ) // TODO caelbleidd-competition-hack
 
 private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbolicRef(
     crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
