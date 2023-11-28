@@ -3,12 +3,14 @@ package org.usvm.memory
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
+import org.usvm.Method
 import org.usvm.Type
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIndexedMocker
 import org.usvm.USizeSort
 import org.usvm.api.refSetAddElement
 import org.usvm.api.refSetRemoveElement
@@ -37,6 +39,7 @@ class SetEntriesTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         val eqConstraints = UEqualityConstraints(ctx)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, typeConstraints)

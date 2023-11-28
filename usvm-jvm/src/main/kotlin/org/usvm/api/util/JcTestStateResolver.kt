@@ -199,7 +199,7 @@ abstract class JcTestStateResolver<T>(
 
     abstract fun allocateClassInstance(type: JcClassType): T
 
-    fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
+    open fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
         val decoder = decoders.findDecoder(type.jcClass)
         if (decoder != null) {
             return decodeObject(ref, type, decoder)

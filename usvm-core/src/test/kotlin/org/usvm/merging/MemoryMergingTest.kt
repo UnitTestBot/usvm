@@ -13,6 +13,7 @@ import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UIndexedMocker
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readField
@@ -37,6 +38,7 @@ class MemoryMergingTest {
         val components: UComponents<SingleType, UBv32Sort> = mockk()
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         ctx = UContext(components)
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)

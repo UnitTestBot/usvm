@@ -7,12 +7,14 @@ import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.usvm.Field
+import org.usvm.Method
 import org.usvm.Type
 import org.usvm.UAddressSort
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UIndexedMocker
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
@@ -41,6 +43,7 @@ class HeapRefSplittingTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkMocker<Method>() } answers { UIndexedMocker() }
         heap = UMemory(ctx, mockk())
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
