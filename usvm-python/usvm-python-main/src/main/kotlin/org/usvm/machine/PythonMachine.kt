@@ -91,6 +91,7 @@ class PythonMachine(
             // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
         }
         val initialState = getInitialState(target)
+        newStateObserver.onNewState(initialState)
         val ps = PythonVirtualPathSelector(
             ctx,
             pathSelectorCreation(),
