@@ -16,12 +16,19 @@ import org.usvm.types.first
 class StateSeedSender<InputRepr>(
     private val saver: PythonAnalysisResultSaver<InputRepr>
 ) {
-    fun getData(state: PythonExecutionState): InputRepr? {
+    fun getData(state: PythonExecutionState): InputRepr {
         val converter = if (state.meta.lastConverter != null) {
             state.meta.lastConverter!!
         } else {
             val modelHolder = PyModelHolder(state.pyModel)
-            ConverterToPythonObject(state.ctx, state.typeSystem, modelHolder, state.preAllocatedObjects, state.memory)
+            ConverterToPythonObject(
+                state.ctx,
+                state.typeSystem,
+                modelHolder,
+                state.preAllocatedObjects,
+                state.memory,
+                useNoneInsteadOfVirtual = true
+            )
         }
         converter.restart()
         val inputs = state.inputSymbols.map {
@@ -33,7 +40,7 @@ class StateSeedSender<InputRepr>(
             } else {
                 InterpretedInputSymbolicPythonObject(interpretedRaw, converter.modelHolder, state.typeSystem)
             }
-            val type = interpreted.getConcreteType() ?: return null
+            val type = interpreted.getConcreteType() ?: state.typeSystem.pythonNoneType
             val concrete = converter.convert(interpreted)
             GeneratedPythonObject(concrete, type, interpreted)
         }
@@ -45,6 +52,7 @@ class StateSeedSender<InputRepr>(
     }
 
     suspend fun sendStateSeeds(data: InputRepr) {
+        // println("Sending!")
         saver.saveNextInputs(data)
     }
 }

@@ -26,8 +26,9 @@ class ConverterToPythonObject(
     private val ctx: UPythonContext,
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder,
-    val preallocatedObjects: PreallocatedObjects,
-    private val memory: UMemory<PythonType, PythonCallable>
+    private val preallocatedObjects: PreallocatedObjects,
+    private val memory: UMemory<PythonType, PythonCallable>,
+    private val useNoneInsteadOfVirtual: Boolean = false
 ) {
     private val defaultValueProvider = DefaultValueProvider(typeSystem)
     val forcedConcreteTypes = mutableMapOf<UHeapRef, PythonType>()
@@ -238,6 +239,9 @@ class ConverterToPythonObject(
     }
 
     private fun constructVirtualObject(obj: InterpretedSymbolicPythonObject): PythonObject {
+        if (useNoneInsteadOfVirtual) {
+            return ConcretePythonInterpreter.eval(emptyNamespace, "None")
+        }
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Virtual object cannot be static"
         }
