@@ -44,7 +44,12 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
         return
     }
     val tupleSize = iterable.readArrayLength(ctx)
-    myFork(ctx, tupleSize eq mkIntNum(count))
+    val sizeCond = tupleSize eq mkIntNum(count)
+    if (ctx.modelHolder.model.eval(sizeCond).isTrue) {
+        myAssert(ctx, sizeCond)
+    } else {
+        myFork(ctx, sizeCond)
+    }
 }
 
 fun handlerTupleGetSizeKt(context: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =

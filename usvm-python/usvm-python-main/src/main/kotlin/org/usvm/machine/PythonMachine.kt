@@ -8,19 +8,15 @@ import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.USVMPythonInterpreter
-import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.saving.PythonAnalysisResultSaver
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.memory.UMemory
-import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
-import org.usvm.ps.createForkDepthPathSelector
 import org.usvm.solver.USatResult
 import org.usvm.statistics.UMachineObserver
-import kotlin.random.Random
 
 class PythonMachine(
     private val program: PythonProgram,
@@ -76,7 +72,7 @@ class PythonMachine(
             symbols,
             pathConstraints,
             memory,
-            solverRes.model.toPyModel(ctx, typeSystem, pathConstraints, preAllocatedObjects),
+            solverRes.model.toPyModel(ctx, pathConstraints),
             typeSystem,
             preAllocatedObjects
         ).also {
@@ -94,11 +90,9 @@ class PythonMachine(
         val initialState = getInitialState(target)
         val ps = PythonVirtualPathSelector(
             ctx,
-            typeSystem,
             pathSelectorCreation(),
-            pathSelectorForStatesWithDelayedForks = BfsPathSelector(),
+            pathSelectorForStatesWithDelayedForks = DfsPathSelector(),
             pathSelectorCreation(),
-            initialState.preAllocatedObjects
         )
         ps.add(listOf(initialState))
         return ps

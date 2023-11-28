@@ -26,9 +26,7 @@ import org.usvm.model.UModelBase
 class PyModel(
     private val ctx: UPythonContext,
     private val underlyingModel: UModelBase<PythonType>,
-    private val typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
-    private val preallocatedObjects: PreallocatedObjects,
     suggestedPsInfo: PathConstraintsInfo? = null
 ) : UModelBase<PythonType>(
     ctx,
@@ -61,12 +59,12 @@ class PyModel(
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys, typeSystem, preallocatedObjects, underlyingModel.types, true)
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys)
                     as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == RefDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys, typeSystem, preallocatedObjects, underlyingModel.types, false)
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys)
                     as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType) {
@@ -93,12 +91,10 @@ class PyModel(
 
 fun UModelBase<PythonType>.toPyModel(
     ctx: UPythonContext,
-    typeSystem: PythonTypeSystem,
     ps: UPathConstraints<PythonType>,
-    preallocatedObjects: PreallocatedObjects,
     suggestedPsInfo: PathConstraintsInfo? = null
 ): PyModel {
     if (this is PyModel)
         return this
-    return PyModel(ctx, this, typeSystem, ps, preallocatedObjects, suggestedPsInfo)
+    return PyModel(ctx, this, ps, suggestedPsInfo)
 }
