@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "f",
-        "tricky.CompositeObjects"
+        listOf(typeSystem.pythonInt),
+        "simple_generator",
+        "Generators"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -80,7 +80,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "bidirectional_a_star")
     //    return null
-    if (name != "Graph.boruvka")
+    if (name != "SegmentTree.traverse")
         return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
@@ -113,7 +113,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\graphs"
+    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
