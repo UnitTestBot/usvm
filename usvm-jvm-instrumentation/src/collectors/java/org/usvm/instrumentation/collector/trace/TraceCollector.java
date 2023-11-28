@@ -57,20 +57,11 @@ public class TraceCollector {
         private static final int DEFAULT_CAPACITY = 1024;
         private static final double DEFAULT_LOAD_FACTOR = 0.75;
 
-        private static class Entry {
-            long key;
-            Entry next;
-
-            Entry(long key, Entry next) {
-                this.key = key;
-                this.next = next;
-            }
-        }
-
-        private Entry[] buckets;
+        public long[] keys;
         public int size;
         private int capacity;
         private final double loadFactor;
+        private boolean containsNull;
 
         public LongHashSet() {
             this(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR);
@@ -80,7 +71,8 @@ public class TraceCollector {
             this.capacity = initialCapacity;
             this.loadFactor = loadFactor;
             this.size = 0;
-            this.buckets = new Entry[capacity];
+            this.keys = new long[capacity];
+            containsNull = false;
         }
 
         private int hash(long key) {
@@ -88,22 +80,24 @@ public class TraceCollector {
         }
 
         public void add(long key) {
+            if (key == 0) {
+                containsNull = true;
+                return;
+            }
             if (contains(key)) {
                 return; // Avoid duplicates
             }
 
             int index = hash(key);
-            Entry newEntry = new Entry(key, null);
 
-            if (buckets[index] == null) {
-                buckets[index] = newEntry;
-            } else {
-                Entry current = buckets[index];
-                while (current.next != null) {
-                    current = current.next;
+            if (keys[index] != 0) {
+                while (keys[++index] != 0) {
+                    if (index == capacity - 1) {
+                        index = 0;
+                    }
                 }
-                current.next = newEntry;
             }
+            keys[index] = key;
 
             size++;
 
@@ -114,75 +108,69 @@ public class TraceCollector {
         }
 
         public long[] getAllValues() {
-            long[] values = new long[size];
-            int index = 0;
-
-            for (Entry bucket : buckets) {
-                Entry current = bucket;
-                while (current != null) {
-                    values[index++] = current.key;
-                    current = current.next;
+            long[] res = new long[realSize()];
+            int ind = 0;
+            if (containsNull) {
+                res[0] = 0;
+                ind++;
+            }
+            for (long key: keys) {
+                if (key != 0) {
+                    res[ind++] = key;
                 }
             }
-
-            return values;
+            return res;
         }
 
         public boolean contains(long key) {
             int index = hash(key);
-            Entry current = buckets[index];
-
-            while (current != null) {
-                if (current.key == key) {
-                    return true;
+            long current = keys[index];
+            if (current == key) return true;
+            while (keys[++index] != 0) {
+                if (keys[index] == key) return true;
+                if (index == capacity - 1) {
+                    index = 0;
                 }
-                current = current.next;
             }
-
             return false;
         }
 
         private void rehash() {
             int newCapacity = capacity * 2;
-            Entry[] newBuckets = new Entry[newCapacity];
+            long[] newKeys = new long[newCapacity];
 
-            for (Entry bucket : buckets) {
-                Entry current = bucket;
-                while (current != null) {
-                    int newIndex = hash(current.key);
-
-                    Entry newEntry = new Entry(current.key, null);
-
-                    if (newBuckets[newIndex] == null) {
-                        newBuckets[newIndex] = newEntry;
-                    } else {
-                        Entry newCurrent = newBuckets[newIndex];
-                        while (newCurrent.next != null) {
-                            newCurrent = newCurrent.next;
-                        }
-                        newCurrent.next = newEntry;
-                    }
-
-                    current = current.next;
+            for (long key : keys) {
+                if (key == 0) continue;
+                int newIndex = hash(key);
+                if (newKeys[newIndex] == 0) {
+                    newKeys[newIndex] = key;
+                    continue;
                 }
+                while (newKeys[++newIndex] != 0) {
+                    if (newIndex == newCapacity - 1) {
+                        newIndex = 0;
+                    }
+                }
+                newKeys[newIndex] = key;
             }
 
-            buckets = newBuckets;
+            keys = newKeys;
             capacity = newCapacity;
         }
 
-        public int size() {
-            return size;
+        public int realSize() {
+            return containsNull ? size + 1 : size;
         }
 
         public boolean isEmpty() {
-            return size == 0;
+            return realSize() == 0;
         }
 
         public void clear() {
             size = 0;
             capacity = DEFAULT_CAPACITY;
-            buckets = new Entry[capacity];
+            keys = new long[capacity];
+            containsNull = false;
         }
     }
 
