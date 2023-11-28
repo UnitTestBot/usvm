@@ -1,14 +1,31 @@
 package org.usvm.util
 
+import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcClasspathFeature
 import org.jacodb.api.JcDatabase
 import org.jacodb.approximation.Approximations
+import org.jacodb.impl.types.JcClassTypeImpl
 import org.usvm.machine.logger
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 private const val USVM_API_JAR_PATH = "usvm.jvm.api.jar.path"
 private const val USVM_APPROXIMATIONS_JAR_PATH = "usvm.jvm.approximations.jar.path"
+
+private val classpathApproximations: MutableMap<JcClasspath, Set<String>> = ConcurrentHashMap()
+
+// TODO: use another way to detect internal classes (e.g. special bytecode location type)
+val JcClassOrInterface.isUsvmInternalClass: Boolean
+    get() = classpathApproximations[classpath]?.contains(name) ?: false
+
+val JcClassType.isUsvmInternalClass: Boolean
+    get() = if (this is JcClassTypeImpl) {
+        classpathApproximations[classpath]?.contains(name) ?: false
+    } else {
+        jcClass.isUsvmInternalClass
+    }
 
 suspend fun JcDatabase.classpathWithApproximations(
     dirOrJars: List<File>,
@@ -24,7 +41,15 @@ suspend fun JcDatabase.classpathWithApproximations(
     logger.info { "Load USVM API: $usvmApiJarPath" }
     logger.info { "Load USVM Approximations: $usvmApproximationsJarPath" }
 
-    val cpWithApproximations = dirOrJars + listOf(File(usvmApiJarPath), File(usvmApproximationsJarPath))
+    val approximationsPath = setOf(File(usvmApiJarPath), File(usvmApproximationsJarPath))
+
+    val cpWithApproximations = dirOrJars + approximationsPath
     val featuresWithApproximations = features + listOf(Approximations)
-    return classpath(cpWithApproximations, featuresWithApproximations.distinct())
+    val cp = classpath(cpWithApproximations, featuresWithApproximations.distinct())
+
+    val approximationsLocations = cp.locations.filter { it.jarOrFolder in approximationsPath }
+    val approximationsClasses = approximationsLocations.flatMapTo(hashSetOf()) { it.classNames ?: emptySet() }
+    classpathApproximations[cp] = approximationsClasses
+
+    return cp
 }

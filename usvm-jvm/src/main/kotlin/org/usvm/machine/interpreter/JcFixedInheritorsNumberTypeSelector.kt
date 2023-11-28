@@ -9,6 +9,7 @@ import org.jacodb.api.ext.constructors
 import org.usvm.machine.logger
 import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
+import org.usvm.util.isUsvmInternalClass
 
 interface JcTypeSelector {
     fun choose(method: JcMethod, typeStream: UTypeStream<out JcType>): Collection<JcType>
@@ -63,6 +64,16 @@ class JcTypeStreamPrioritization(private val typesToScore: Int) {
         var score = 0.0
 
         if (type is JcClassType) {
+            /**
+             * TODO: USVM internal classes should not appear in type streams,
+             *  but for now they are required for isSubtypes checks and virtual calls.
+             *  So we give them the lowest possible priority to avoid such classes when they
+             *  don't really needed (e.g. forced by type constraints).
+             **/
+            if (type.isUsvmInternalClass) {
+                return Double.NEGATIVE_INFINITY
+            }
+
             // prefer class types over arrays
             score += 1
 
