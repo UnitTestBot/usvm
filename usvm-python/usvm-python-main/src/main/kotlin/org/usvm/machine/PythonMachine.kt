@@ -83,7 +83,8 @@ class PythonMachine(
     }
 
     private fun getPathSelector(
-        target: PythonUnpinnedCallable
+        target: PythonUnpinnedCallable,
+        newStateObserver: NewStateObserver
     ): UPathSelector<PythonExecutionState> {
         val pathSelectorCreation = {
             DfsPathSelector<PythonExecutionState>()
@@ -95,6 +96,7 @@ class PythonMachine(
             pathSelectorCreation(),
             pathSelectorForStatesWithDelayedForks = DfsPathSelector(),
             pathSelectorCreation(),
+            newStateObserver
         )
         ps.add(listOf(initialState))
         return ps
@@ -108,7 +110,8 @@ class PythonMachine(
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
         timeoutPerRunMs: Long? = null,
-        unfoldGenerator: Boolean = true
+        unfoldGenerator: Boolean = true,
+        newStateObserver: NewStateObserver = DummyNewStateObserver
     ): Int {
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)
@@ -121,7 +124,7 @@ class PythonMachine(
                 val substituted = unfoldGenerator(rawPinnedCallable.asPythonObject)
                 PythonPinnedCallable(substituted)
             }
-            val observer = PythonMachineObserver()
+            val observer = PythonMachineObserver(newStateObserver)
             val iterationCounter = IterationCounter()
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
@@ -136,14 +139,14 @@ class PythonMachine(
                 (timeoutPerRunMs?.let { (System.currentTimeMillis() - startIterationTime) >= it } ?: false) ||
                         (stopTime != null && System.currentTimeMillis() >= stopTime)
             }
-            val pathSelector = getPathSelector(pythonCallable)
+            val pathSelector = getPathSelector(pythonCallable, newStateObserver)
             run(
                 interpreter,
                 pathSelector,
                 observer = observer,
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
-                    observer.stateCounter >= 1000 || iterationCounter.iterations >= maxIterations ||
+                    iterationCounter.iterations >= maxIterations ||
                             (stopTime != null && System.currentTimeMillis() >= stopTime)
                 }
             )
@@ -160,13 +163,26 @@ class PythonMachine(
     }
 
     private class PythonMachineObserver(
-        var stateCounter: Int = 0
+        val newStateObserver: NewStateObserver
     ): UMachineObserver<PythonExecutionState> {
         override fun onState(parent: PythonExecutionState, forks: Sequence<PythonExecutionState>) {
             super.onState(parent, forks)
-            stateCounter += 1
+            if (!parent.isTerminated())
+                newStateObserver.onNewState(parent)
+            forks.forEach {
+                if (!it.isTerminated())
+                    newStateObserver.onNewState(it)
+            }
         }
     }
 }
 
 data class IterationCounter(var iterations: Int = 0)
+
+abstract class NewStateObserver {
+    abstract fun onNewState(state: PythonExecutionState)
+}
+
+object DummyNewStateObserver: NewStateObserver() {
+    override fun onNewState(state: PythonExecutionState) = run {}
+}

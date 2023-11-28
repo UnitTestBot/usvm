@@ -1,5 +1,8 @@
 package org.usvm.machine.saving
 
+import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.rendering.ConverterToPythonObject
+
 fun createStandardSaver(): PythonRepresentationSaver<PythonObjectInfo> =
     PythonRepresentationSaver(StandardPythonObjectSerializer)
 
@@ -11,3 +14,9 @@ fun createDictSaver(): PythonRepresentationSaver<String> =
 
 fun createPickleSaver(): PythonRepresentationSaver<String?> =
     PythonRepresentationSaver(PickleObjectSerializer)
+
+object DummySaver: PythonAnalysisResultSaver<Unit>() {
+    override suspend fun saveNextInputs(input: Unit)  = run {}
+    override fun saveExecutionResult(result: ExecutionResult<PythonObject>) = run {}
+    override fun serializeInput(inputs: List<GeneratedPythonObject>, converter: ConverterToPythonObject) = run {}
+}

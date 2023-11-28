@@ -5,7 +5,7 @@ import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent
-import org.usvm.machine.symbolicobjects.ConverterToPythonObject
+import org.usvm.machine.rendering.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*

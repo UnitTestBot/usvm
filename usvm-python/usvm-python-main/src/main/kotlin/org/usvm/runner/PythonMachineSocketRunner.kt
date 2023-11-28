@@ -1,10 +1,12 @@
 package org.usvm.runner
 
+import kotlinx.coroutines.runBlocking
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.language.types.getTypeFromTypeHint
 import org.usvm.machine.PythonMachine
+import org.usvm.machine.saving.DummySaver
 import org.usvm.machine.saving.PickledObjectSaver
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.PythonCompositeTypeDescription
@@ -44,13 +46,15 @@ class PythonMachineSocketRunner(
         callable: PythonUnpinnedCallable,
         timeoutPerRunMs: Long,
         timeoutMs: Long
-    ) {
+    ) = runBlocking {
+        val newStateObserver = NewStateObserverForRunner(communicator, this)
         machine.analyze(
             callable,
-            PickledObjectSaver(communicator),
+            DummySaver,
             timeoutMs = timeoutMs,
             timeoutPerRunMs = timeoutPerRunMs,
-            maxIterations = 1000
+            maxIterations = 1000,
+            newStateObserver = newStateObserver
         )
     }
 
