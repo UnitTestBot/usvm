@@ -13,6 +13,8 @@ import org.usvm.machine.saving.PythonAnalysisResultSaver
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PythonMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
+import org.usvm.machine.utils.isGenerator
+import org.usvm.machine.utils.unfoldGenerator
 import org.usvm.memory.UMemory
 import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
@@ -106,13 +108,19 @@ class PythonMachine(
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
         timeoutPerRunMs: Long? = null,
-        // unfoldGenerator: Boolean = true
+        unfoldGenerator: Boolean = true
     ): Int {
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)
         }
-        return program.withPinnedCallable(pythonCallable, typeSystem) { pinnedCallable ->
+        return program.withPinnedCallable(pythonCallable, typeSystem) { rawPinnedCallable ->
             typeSystem.restart()
+            val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.asPythonObject)) {
+                rawPinnedCallable
+            } else {
+                val substituted = unfoldGenerator(rawPinnedCallable.asPythonObject)
+                PythonPinnedCallable(substituted)
+            }
             val observer = PythonMachineObserver()
             val iterationCounter = IterationCounter()
             val startTime = System.currentTimeMillis()

@@ -3,11 +3,14 @@ package org.usvm.machine.utils
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
 
-/*
 fun isGenerator(funcRef: PythonObject): Boolean {
-    TODO()
+    val namespace = ConcretePythonInterpreter.getNewNamespace()
+    ConcretePythonInterpreter.addObjectToNamespace(namespace, funcRef, "x")
+    ConcretePythonInterpreter.concreteRun(namespace, "import inspect")
+    val res = ConcretePythonInterpreter.eval(namespace, "inspect.isgeneratorfunction(x)", printErrorMsg = true)
+    ConcretePythonInterpreter.decref(namespace)
+    return ConcretePythonInterpreter.getPythonObjectRepr(res) == "True"
 }
-*/
 
 fun unfoldGenerator(funcRef: PythonObject): PythonObject {
     val namespace = ConcretePythonInterpreter.getNewNamespace()
