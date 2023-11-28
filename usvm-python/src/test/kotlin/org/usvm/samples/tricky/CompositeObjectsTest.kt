@@ -9,7 +9,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 class CompositeObjectsTest: PythonTestRunnerForStructuredProgram(
     "tricky.CompositeObjects",
     allowPathDiversions = false,
-    options = UMachineOptions(stepLimit = 100U)
+    options = UMachineOptions(stepLimit = 150U)
 ) {
     @Test
     fun testF() {

@@ -19,6 +19,7 @@ class PythonVirtualPathSelector(
     private val basePathSelector: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithDelayedForks: UPathSelector<PythonExecutionState>,
     private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PythonExecutionState>,
+    private val newStateObserver: NewStateObserver
 ) : UPathSelector<PythonExecutionState> {
     private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
     private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
@@ -109,6 +110,7 @@ class PythonVirtualPathSelector(
         }
         val stateWithConcreteType = generateStateWithConcretizedTypeWithoutDelayedForks()
         if (stateWithConcreteType != null) {
+            newStateObserver.onNewState(stateWithConcreteType)
             pathSelectorForStatesWithConcretizedTypes.add(listOf(stateWithConcreteType))
             return nullablePeek()
         }
@@ -125,7 +127,10 @@ class PythonVirtualPathSelector(
         } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.9 || pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty())) {
             logger.debug("Trying to make delayed fork")
             val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
-            newState?.let { add(listOf(it)) }
+            newState?.let {
+                add(listOf(it))
+                newStateObserver.onNewState(it)
+            }
             return nullablePeek()
 
         } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < 0.7 || servedDelayedForks.isEmpty())) {
@@ -136,7 +141,10 @@ class PythonVirtualPathSelector(
 
         } else if (servedDelayedForks.isNotEmpty()) {
             val newState = generateStateWithConcretizedTypeFromDelayedFork(servedDelayedForks)
-            newState?.let { add(listOf(it)) }
+            newState?.let {
+                add(listOf(it))
+                newStateObserver.onNewState(it)
+            }
             return nullablePeek()
 
         } else {

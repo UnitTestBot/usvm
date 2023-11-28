@@ -9,7 +9,7 @@ import org.usvm.machine.utils.PyModelHolder;
 import org.usvm.machine.PythonExecutionState;
 import org.usvm.machine.UPythonContext;
 import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
-import org.usvm.machine.symbolicobjects.ConverterToPythonObject;
+import org.usvm.machine.rendering.ConverterToPythonObject;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
 import java.util.*;
