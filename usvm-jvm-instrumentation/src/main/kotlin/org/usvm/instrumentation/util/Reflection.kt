@@ -4,9 +4,7 @@ package org.usvm.instrumentation.util
 
 import sun.misc.Unsafe
 import java.lang.reflect.*
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.FutureTask
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 
 object ReflectionUtils {
@@ -58,27 +56,28 @@ fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
             withAccessibility {
                 newInstance(*args.toTypedArray())
             }
-        }
+        } ?: error("Cant instantiate class ${this.declaringClass.name}")
     } catch (e: InvocationTargetException) {
         throw e.cause ?: e
     }
 
-private fun <T> executeWithTimeout(block: () -> T): T {
-    val futureTask = FutureTask(block)
-    val executionThread = Thread(futureTask)
-    executionThread.start()
+//If something gone wrong with thread stop
+//RD will kill the process
+private fun executeWithTimeout(block: () -> Any?): Any? {
+    val executor = Executors.newSingleThreadExecutor()
+    val future: Future<*> = executor.submit(block)
     try {
-        return futureTask.get(
-            /* timeout = */ InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
-            /* unit = */ TimeUnit.MILLISECONDS
+        return future.get(
+            InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
+            TimeUnit.MILLISECONDS
         )
+    } catch (e: TimeoutException) {
+        future.cancel(true)
+        throw e
     } catch (e: ExecutionException) {
         throw (e.cause ?: e)
-    }
-    finally {
-        while (executionThread.isAlive) {
-            executionThread.stop()
-        }
+    } finally {
+        executor.shutdownNow()
     }
 }
 
