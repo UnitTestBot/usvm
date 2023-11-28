@@ -25,7 +25,7 @@ class UTestUnexpectedExecutionBuilder(
             is RdFault ->
                 UTestExecutionFailedResult(buildExceptionDescriptor(exception.reasonAsText))
             else ->
-                error("Unexpected exception")
+                error("Unexpected exception $exception")
         }
     }
 
