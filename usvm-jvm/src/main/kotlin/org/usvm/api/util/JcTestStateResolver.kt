@@ -26,6 +26,7 @@ import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
+import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
@@ -232,16 +233,42 @@ abstract class JcTestStateResolver<T>(
             return instance
         }
 
-        val fields = generateSequence(type.jcClass) { it.superClass }
-            .map { it.toType() }
-            .flatMap { it.declaredFields }
-            .filter { !it.isStatic }
+        for (cls in generateSequence(type.jcClass) { it.superClass }.map { it.toType() }) {
+            // If superclass have a decoder, apply decoder and copy fields values
+            val decoder = decoders.findDecoder(cls.jcClass)
+            if (decoder != null) {
+                val decodedCls = decodeObject(ref, cls, decoder)
 
-        for (field in fields) {
-            val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
-            val fieldValue = resolveLValue(lvalue, field.fieldType)
-            decoderApi.setField(field.field, instance, fieldValue)
+                // Decoder can overwrite cached instance. Restore correct instance
+                saveResolvedRef(ref.address, instance)
+
+                generateSequence(cls) { it.superType }
+                    .flatMap { it.declaredFields }
+                    .filterNot { it.isStatic }
+                    // Don't copy approximation-specific fields
+                    .filterNot { it.field is JcEnrichedVirtualField }
+                    .forEach { field ->
+                        val fieldValue = decoderApi.getField(field.field, decodedCls)
+                        decoderApi.setField(field.field, instance, fieldValue)
+                    }
+
+                // No need to process other superclasses since we already decode them
+                break
+            } else {
+                val fields = cls.declaredFields.filter { !it.isStatic }
+
+                for (field in fields) {
+                    check(field.field !is JcEnrichedVirtualField) {
+                        "Class ${cls.jcClass.name} has approximated field ${field.field} but has no decoder"
+                    }
+
+                    val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
+                    val fieldValue = resolveLValue(lvalue, field.fieldType)
+                    decoderApi.setField(field.field, instance, fieldValue)
+                }
+            }
         }
+
         return instance
     }
 

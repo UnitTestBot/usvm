@@ -21,12 +21,15 @@ object JcClassLoader : SecureClassLoader(ClassLoader.getSystemClassLoader()) {
 
     private fun defineClassRecursively(jcClass: JcClassOrInterface): Class<*> =
         defineClassRecursively(jcClass, hashSetOf())
+            ?: error("Can't define class $jcClass")
 
     private fun defineClassRecursively(
         jcClass: JcClassOrInterface,
         visited: MutableSet<JcClassOrInterface>
-    ): Class<*> {
-        visited += jcClass
+    ): Class<*>? {
+        if (!visited.add(jcClass)) {
+            return null
+        }
 
         return try {
             // We cannot redefine a class that was already defined
