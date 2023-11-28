@@ -2,7 +2,7 @@ package org.usvm.machine.saving
 
 import org.usvm.language.types.PythonType
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.symbolicobjects.ConverterToPythonObject
+import org.usvm.machine.rendering.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
 
 class PythonRepresentationSaver<PythonObjectRepresentation>(

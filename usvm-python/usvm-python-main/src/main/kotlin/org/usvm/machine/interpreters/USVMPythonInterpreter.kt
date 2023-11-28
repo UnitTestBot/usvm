@@ -16,6 +16,8 @@ import org.usvm.machine.*
 import org.usvm.machine.interpreters.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModel
+import org.usvm.machine.rendering.ConverterToPythonObject
+import org.usvm.machine.rendering.LengthOverflowException
 import org.usvm.machine.saving.*
 import org.usvm.machine.utils.PyModelHolder
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
@@ -40,12 +42,11 @@ class USVMPythonInterpreter<InputRepr>(
         symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
 
     private fun getConcrete(
-        concolicRunContext: ConcolicRunContext,
         converter: ConverterToPythonObject,
         seeds: List<InterpretedSymbolicPythonObject>,
         symbols: List<UninterpretedSymbolicPythonObject>
     ): List<PythonObject> =
-        (seeds zip symbols).map { (seed, _) -> converter.convert(seed, concolicRunContext) }
+        (seeds zip symbols).map { (seed, _) -> converter.convert(seed) }
 
     private fun getInputs(
         converter: ConverterToPythonObject,
@@ -95,7 +96,7 @@ class USVMPythonInterpreter<InputRepr>(
             val converter = concolicRunContext.converter
             state.meta.lastConverter = null
             val concrete = try {
-                getConcrete(concolicRunContext, converter, seeds, symbols)
+                getConcrete(converter, seeds, symbols)
             } catch (_: LengthOverflowException) {
                 logger.warn("Step result: length overflow")
                 state.meta.modelDied = true

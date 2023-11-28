@@ -2,7 +2,7 @@ package org.usvm.machine.saving
 
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.symbolicobjects.ConverterToPythonObject
+import org.usvm.machine.rendering.ConverterToPythonObject
 
 class PickledObjectSaver(
     private val sender: PickledObjectSender
