@@ -27,7 +27,7 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         error("Should not be reachable")
     }
     val applyToPyModel = { state: PythonExecutionState ->
-        state.models = listOf(state.pyModel.uModel.toPyModel(ctx.ctx, ctx.typeSystem, state.pathConstraints, state.preAllocatedObjects))
+        state.models = listOf(state.pyModel.uModel.toPyModel(ctx.ctx, state.pathConstraints))
     }
     forkResult.positiveState?.let(applyToPyModel)
     forkResult.negativeState?.let(applyToPyModel)
@@ -43,7 +43,7 @@ fun myAssertOnState(state: PythonExecutionState, cond: UExpr<KBoolSort>): Python
     val forkResult = forkMulti(state, listOf(cond)).single()
     if (forkResult != null) {
         require(forkResult == state)
-        forkResult.models = listOf(forkResult.pyModel.uModel.toPyModel(state.ctx, state.typeSystem, state.pathConstraints, state.preAllocatedObjects))
+        forkResult.models = listOf(forkResult.pyModel.uModel.toPyModel(state.ctx, state.pathConstraints))
     }
 
     return forkResult

@@ -51,6 +51,7 @@ long extract_long_value(PyObject *int_object);
 #define CHECK_FOR_EXCEPTION(ctx, fail_value) \
     jthrowable cur_exception = (*ctx->env)->ExceptionOccurred(ctx->env); \
     if (cur_exception && !PyErr_Occurred()) { \
+        /*(*ctx->env)->ExceptionDescribe(ctx->env);*/ \
         (*ctx->env)->ExceptionClear(ctx->env); \
         PyObject *exception_instance = ((PyTypeObject *)ctx->java_exception)->tp_new((PyTypeObject *)ctx->java_exception, 0, 0); \
         PyObject_SetAttrString(exception_instance, "java_exception", wrap_java_object(ctx->env, cur_exception)); \
