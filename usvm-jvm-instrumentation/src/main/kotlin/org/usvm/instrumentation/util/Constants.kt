@@ -6,8 +6,10 @@ import kotlin.time.Duration.Companion.seconds
 //TODO move in common settings file
 object InstrumentationModuleConstants {
 
-    //Timeout for method execution
+    //Timeout for test execution
     val testExecutionTimeout = 10.seconds
+    //Timeout for method execution
+    val methodExecutionTimeout = 2.seconds
     //Timeout for executor process waiting (should be in seconds)
     const val concreteExecutorProcessTimeout = 120
     //If something gone wrong with RD

@@ -50,9 +50,9 @@ val JcInst.enclosingMethod
 fun JcType.toJavaClass(classLoader: ClassLoader): Class<*> =
     when (this) {
         is JcPrimitiveType -> toJavaClass()
-        is JcArrayType -> findClassInLoader(toJvmType(), classLoader) ?: throw TestExecutorException("Can't find class in classpath")
+        is JcArrayType -> findClassInLoader(toJvmType(), classLoader)
         is JcClassType -> this.jcClass.toJavaClass(classLoader)
-        else -> findClassInLoader(typeName, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
+        else -> findClassInLoader(typeName, classLoader)
     }
 
 private fun JcPrimitiveType.toJavaClass(): Class<*> {
@@ -105,11 +105,15 @@ fun JcType.toJcClass(): JcClassOrInterface? =
     }
 
 fun JcClassOrInterface.toJavaClass(classLoader: ClassLoader): Class<*> =
-    findClassInLoader(name, classLoader) ?: throw TestExecutorException("Can't find class in classpath")
+    findClassInLoader(name, classLoader)
 
 
-fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*>? =
-    Class.forName(name, true, classLoader)
+fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*> =
+    try {
+        Class.forName(name, true, classLoader)
+    } catch (e: Throwable) {
+        throw TestExecutorException("Something gone wrong with $name loading. Exception: ${e::class.java.name}")
+    }
 
 fun JcField.toJavaField(classLoader: ClassLoader): Field? =
     enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
@@ -133,14 +137,14 @@ fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface?
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
     val klass = Class.forName(enclosingClass.name, false, classLoader)
     return (klass.methods + klass.declaredMethods).find { it.isSameSignatures(this) }
-        ?: throw TestExecutorException("Can't find method in classpath")
+        ?: throw TestExecutorException("Can't find method $name in classpath")
 }
 
 fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
     require(isConstructor) { "Can't convert not constructor to constructor" }
     val klass = Class.forName(enclosingClass.name, true, classLoader)
     return (klass.constructors + klass.declaredConstructors).find { it.jcdbSignature == this.jcdbSignature }
-        ?: throw TestExecutorException("Can't find constructor")
+        ?: throw TestExecutorException("Can't find constructor of class ${enclosingClass.name}")
 }
 
 val Method.jcdbSignature: String

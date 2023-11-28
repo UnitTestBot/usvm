@@ -151,8 +151,9 @@ class UTestExecutor(
         return descriptor
             ?.also { it.raisedByUserCode = raisedByUserCode }
             ?: UTestExceptionDescriptor(
-                type = jcClasspath.findClass<Exception>().toType(),
-                message = "",
+                type = jcClasspath.findClassOrNull(exception::class.java.name)?.toType()
+                    ?: jcClasspath.findClass<Exception>().toType(),
+                message = exception.message ?: "message_is_null",
                 stackTrace = listOf(),
                 raisedByUserCode = raisedByUserCode
             )
