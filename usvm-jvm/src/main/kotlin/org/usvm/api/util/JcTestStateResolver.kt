@@ -22,13 +22,13 @@ import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectClass
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.INITIAL_INPUT_ADDRESS
-import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
@@ -53,6 +53,8 @@ import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.machine.JcContext
@@ -71,7 +73,6 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
-import org.usvm.types.first
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
@@ -205,14 +206,14 @@ abstract class JcTestStateResolver<T>(
             return decodeObject(ref, type, decoder)
         }
 
-        if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+        if (type.jcClass == ctx.classType.jcClass) {
             // Note that non-negative addresses are possible only for the result value.
-            return resolveAllocatedClass(ref)
+            return resolveClass(ref)
         }
 
-        if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+        if (type.jcClass == ctx.stringType.jcClass) {
             // Note that non-negative addresses are possible only for the result value.
-            return resolveAllocatedString(ref)
+            return resolveString(ref)
         }
 
         val anyEnumAncestor = type.getEnumAncestorOrNull()
@@ -282,21 +283,32 @@ abstract class JcTestStateResolver<T>(
         return decoderApi.getField(enumField, decoderApi.createNullConst(ctx.cp.objectType))
     }
 
-    fun resolveAllocatedClass(ref: UConcreteHeapRef): T {
+    fun resolveClass(ref: UConcreteHeapRef): T {
         val classTypeField = ctx.classTypeSyntheticField
         val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
+        val classTypeRef = evaluateInModel(memory.read(classTypeLValue)) as UConcreteHeapRef
 
-        val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
-            ?: error("No type for allocated class")
+        val classTypes = when {
+            // We have no constraints on class type
+            classTypeRef.address == NULL_ADDRESS -> return decoderApi.createClassConst(ctx.cp.objectType)
 
-        val classType = memory.typeStreamOf(classTypeRef).first()
+            // allocated or static object
+            isStaticHeapRef(classTypeRef) || isAllocatedConcreteHeapRef(classTypeRef) ->
+                        memory.typeStreamOf(classTypeRef)
+
+            // input object
+            else -> model.typeStreamOf(ref)
+        }
+
+        val classType = typeSelector.firstOrNull(classTypes, ctx.cp.objectClass)
+            ?: ctx.cp.objectType
 
         return decoderApi.createClassConst(classType)
     }
 
     abstract fun allocateString(value: T): T
 
-    fun resolveAllocatedString(ref: UConcreteHeapRef): T {
+    fun resolveString(ref: UConcreteHeapRef): T {
         val stringConstant = stringConstants.entries.singleOrNull { it.value == ref }
         if (stringConstant != null) {
             return decoderApi.createStringConst(stringConstant.key)
@@ -304,8 +316,14 @@ abstract class JcTestStateResolver<T>(
 
         val valueField = ctx.stringValueField
         val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
-        val strValue = resolveLValue(strValueLValue, valueField.fieldType)
 
+        val valueRef = memory.read(strValueLValue)
+
+        if ((evaluateInModel(valueRef) as UConcreteHeapRef).address == NULL_ADDRESS) {
+            return decoderApi.createStringConst("")
+        }
+
+        val strValue = resolveLValue(strValueLValue, valueField.fieldType)
         return allocateString(strValue)
     }
 

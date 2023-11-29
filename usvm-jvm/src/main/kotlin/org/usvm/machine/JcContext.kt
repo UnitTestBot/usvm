@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.jacodb.api.JcArrayType
+import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
 import org.jacodb.api.JcPrimitiveType
@@ -46,18 +47,18 @@ class JcContext(
 
     val voidValue by lazy { JcVoidValue(this) }
 
-    val classType: JcRefType by lazy {
-        cp.findTypeOrNull("java.lang.Class") as? JcRefType
+    val classType: JcClassType by lazy {
+        cp.findTypeOrNull("java.lang.Class") as? JcClassType
             ?: error("No class type in classpath")
     }
 
-    val stringType: JcRefType by lazy {
-        cp.findTypeOrNull("java.lang.String") as? JcRefType
+    val stringType: JcClassType by lazy {
+        cp.findTypeOrNull("java.lang.String") as? JcClassType
             ?: error("No string type in classpath")
     }
 
-    private val enumType: JcRefType by lazy {
-        cp.findTypeOrNull("java.lang.Enum") as? JcRefType
+    private val enumType: JcClassType by lazy {
+        cp.findTypeOrNull("java.lang.Enum") as? JcClassType
             ?: error("No enum type in classpath")
     }
 

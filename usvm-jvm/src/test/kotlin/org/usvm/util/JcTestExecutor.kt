@@ -8,6 +8,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.LocationType
+import org.jacodb.api.ext.constructors
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
@@ -230,8 +231,12 @@ class JcTestExecutor(
         override fun allocateClassInstance(type: JcClassType): UTestExpression =
             UTestAllocateMemoryCall(type.jcClass)
 
-        // todo: looks incorrect
-        override fun allocateString(value: UTestExpression): UTestExpression = value
+        override fun allocateString(value: UTestExpression): UTestExpression {
+            val stringConstructor = ctx.stringType.constructors
+                .firstOrNull { it.parameters.size == 1 && it.parameters.single().type == value.type }
+                ?: error("Can't allocate string from value: $value")
+            return decoderApi.invokeMethod(stringConstructor.method, listOf(value))
+        }
 
         override fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): UTestExpression {
             if (ref !in resolvedMethodMocks) {
