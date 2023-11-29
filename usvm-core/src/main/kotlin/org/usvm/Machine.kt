@@ -45,7 +45,11 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                         interpreter.step(state)
                     } catch (ex: Exception) { // note: don't catch errors
                         logger.error(ex) { "Machine step failed" }
+
+                        observer.onState(state, emptySequence())
                         pathSelector.remove(state)
+                        observer.onStateTerminated(state, stateReachable = false)
+
                         continue
                     }
 
