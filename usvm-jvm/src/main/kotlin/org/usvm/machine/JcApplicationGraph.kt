@@ -47,9 +47,9 @@ class JcApplicationGraph(
 
     private val typedMethodsCache = ConcurrentHashMap<JcMethod, JcTypedMethod>()
 
-    val JcMethod.typed: JcTypedMethod
+    val JcMethod.typed: JcTypedMethod?
         get() = typedMethodsCache.getOrPut(this) {
-            enclosingClass.toType().declaredMethods.first { it.method == this }
+            enclosingClass.toType().declaredMethods.firstOrNull { it.method == this }
         }
 
     private val statementsOfMethodCache = ConcurrentHashMap<JcMethod, Collection<JcInst>>()

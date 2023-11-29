@@ -2,6 +2,7 @@ package org.usvm.machine.mocks
 
 import io.ksmt.utils.asExpr
 import org.jacodb.api.JcType
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.void
 import org.usvm.UMocker
 import org.usvm.machine.JcApplicationGraph
@@ -14,7 +15,12 @@ import org.usvm.machine.state.skipMethodInvocationWithValue
  * Mocks this [methodCall] with its return type according to the [applicationGraph].
  */
 fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall, applicationGraph: JcApplicationGraph) {
-    val returnType = with(applicationGraph) { methodCall.method.typed }.returnType
+    val ctx = scope.calcOnState { ctx }
+
+    val returnType = with(applicationGraph) { methodCall.method.typed }?.returnType
+        ?: ctx.cp.findTypeOrNull(methodCall.method.returnType)
+        ?: error("Method return type ${methodCall.method.returnType} not found in cp")
+
     mockMethod(scope, methodCall, returnType)
 }
 
