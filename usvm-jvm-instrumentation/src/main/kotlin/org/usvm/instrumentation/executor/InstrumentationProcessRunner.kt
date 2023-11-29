@@ -22,6 +22,7 @@ import kotlin.time.Duration
 class InstrumentationProcessRunner(
     private val testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
+    private val jcPersistenceLocation: String?,
     private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<out JcInstrumenter>>
 ) {
 
@@ -31,8 +32,14 @@ class InstrumentationProcessRunner(
     constructor(
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
+        jcPersistenceLocation: String?,
         instrumentationClassFactory: KClass<JcInstrumenterFactory<out JcInstrumenter>>
-    ) : this(testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, instrumentationClassFactory)
+    ) : this(
+        testingProjectClasspath.joinToString(File.pathSeparator),
+        jcClasspath,
+        jcPersistenceLocation,
+        instrumentationClassFactory
+    )
 
     fun isAlive() = this::lifetime.isInitialized && lifetime.isAlive
 
@@ -53,10 +60,15 @@ class InstrumentationProcessRunner(
                 listOf(instrumentedProcessClassName)
     }
 
-    private fun createWorkerProcessArgs(rdPort: Int): List<String> =
-        listOf("-cp", testingProjectClasspath) +
-        listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}") +
-        listOf("-p", "$rdPort")
+    private fun createWorkerProcessArgs(rdPort: Int): List<String> = buildList {
+        this += listOf("-cp", testingProjectClasspath)
+        this += listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}")
+        this += listOf("-p", "$rdPort")
+
+        if (jcPersistenceLocation != null) {
+            this += listOf("-persistence", jcPersistenceLocation)
+        }
+    }
 
     suspend fun init(parentLifetime: Lifetime) {
         val processLifetime = LifetimeDefinition(parentLifetime)
