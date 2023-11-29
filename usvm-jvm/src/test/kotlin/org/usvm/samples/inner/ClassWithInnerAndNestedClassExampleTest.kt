@@ -62,4 +62,13 @@ class ClassWithInnerAndNestedClassExampleTest : JavaMethodTestRunner() {
             { _, p, r -> p != null && r.isSuccess },
         )
     }
+
+    @Test
+    fun testUseInheritorAndInnerClass() {
+        checkDiscoveredProperties(
+            ClassWithInnerAndNestedClassExample.NestedClassExample::useInheritorAndInnerClass,
+            eq(1),
+            { _, r -> r == 0 },
+        )
+    }
 }

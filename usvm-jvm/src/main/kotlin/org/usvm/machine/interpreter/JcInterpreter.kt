@@ -408,7 +408,7 @@ class JcInterpreter(
             scope.assert(mkEq(outerClassRef, nullRef).not())
                 ?: error("Outer class ref cannot be null for the inner type ${enclosingType.name}")
 
-            val typeConstraint = scope.calcOnState { memory.types.evalTypeEquals(outerClassRef, outerType) }
+            val typeConstraint = scope.calcOnState { memory.types.evalIsSubtype(outerClassRef, outerType) }
             scope.assert(typeConstraint)
                 ?: error("Outer class ref of the inner type ${enclosingType.name} must have the corresponding type ${outerType.name}")
         }

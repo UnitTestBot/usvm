@@ -734,8 +734,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     ): MutableList<Any?> {
         val values = mutableListOf<Any?>()
         if (method.instanceParameter != null && method.javaConstructor == null) {
-            requireNotNull(thisInstance)
-            values += thisInstance
+            values += requireNotNull(thisInstance)
         } else {
             // Note that for constructors we have thisInstance in such as case, in contrast to simple methods
             require(thisInstance == null || method.javaConstructor != null)

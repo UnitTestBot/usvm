@@ -34,5 +34,13 @@ public class ClassWithInnerAndNestedClassExample {
         int useInnerClassAsParameter(InnerClassExample e) {
             return e.accessOuterClassField();
         }
+
+        int useInheritorAndInnerClass() {
+            Inheritor inheritor = new Inheritor();
+            return (inheritor.new InnerClassExample()).accessOuterClassField();
+        }
     }
+}
+
+class Inheritor extends ClassWithInnerAndNestedClassExample {
 }
