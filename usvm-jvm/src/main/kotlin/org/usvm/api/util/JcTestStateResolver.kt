@@ -80,6 +80,7 @@ abstract class JcTestStateResolver<T>(
     val memory: UReadOnlyMemory<JcType>,
     // todo: remove hack with stringConstants. All statically allocated strings should present in the model
     val stringConstants: Map<String, UConcreteHeapRef>,
+    val classConstants: Map<JcType, UConcreteHeapRef>,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
@@ -284,6 +285,11 @@ abstract class JcTestStateResolver<T>(
     }
 
     fun resolveClass(ref: UConcreteHeapRef): T {
+        val classConstant = classConstants.entries.singleOrNull { it.value == ref }
+        if (classConstant != null) {
+            return decoderApi.createClassConst(classConstant.key)
+        }
+
         val classTypeField = ctx.classTypeSyntheticField
         val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
         val classTypeRef = evaluateInModel(memory.read(classTypeLValue)) as UConcreteHeapRef

@@ -32,14 +32,19 @@ class JcTestInterpreter(
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    override fun resolve(method: JcTypedMethod, state: JcState, stringConstants: Map<String, UConcreteHeapRef>): JcTest {
+    override fun resolve(
+        method: JcTypedMethod,
+        state: JcState,
+        stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>
+    ): JcTest {
         val model = state.models.first()
         val memory = state.memory
 
         val ctx = state.ctx
 
-        val initialScope = MemoryScope(ctx, model, model, stringConstants, method, classLoader)
-        val afterScope = MemoryScope(ctx, model, memory, stringConstants, method, classLoader)
+        val initialScope = MemoryScope(ctx, model, model, stringConstants, classConstants, method, classLoader)
+        val afterScope = MemoryScope(ctx, model, memory, stringConstants, classConstants, method, classLoader)
 
         val before = with(initialScope) { resolveState() }
         val after = with(afterScope) { resolveState() }
@@ -85,9 +90,10 @@ class JcTestInterpreter(
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
         stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
         method: JcTypedMethod,
         private val classLoader: ClassLoader = JcClassLoader,
-    ) : JcTestStateResolver<Any?>(ctx, model, memory, stringConstants, method) {
+    ) : JcTestStateResolver<Any?>(ctx, model, memory, stringConstants, classConstants, method) {
         override val decoderApi: DecoderApi<Any?> = JcTestInterpreterDecoderApi(ctx, classLoader)
 
         fun resolveState(): JcParametersState {
