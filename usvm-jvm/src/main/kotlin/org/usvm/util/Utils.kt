@@ -2,15 +2,13 @@ package org.usvm.util
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedField
-import org.jacodb.api.TypeName
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findFieldOrNull
-import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
+import org.jacodb.impl.types.JcClassTypeImpl
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
@@ -38,10 +36,8 @@ internal fun UWritableMemory<JcType>.allocHeapRef(type: JcType, useStaticAddress
 
 tailrec fun JcInst.originalInst(): JcInst = if (this is JcTransparentInstruction) originalInst.originalInst() else this
 
-fun TypeName.toType(cp: JcClasspath): JcType? = cp.findTypeOrNull(this)
+val JcClassType.name: String
+    get() = if (this is JcClassTypeImpl) name else jcClass.name
 
-val JcRefType.name: String
-    get() = jcClass.name
-
-val JcClassType.outerClassField: JcTypedField?
+val JcClassType.outerClassInstanceField: JcTypedField?
     get() = fields.singleOrNull { it.name == "this\$0" }
