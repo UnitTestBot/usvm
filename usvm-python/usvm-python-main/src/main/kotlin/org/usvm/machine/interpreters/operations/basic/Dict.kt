@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreters.operations.basic
 
+import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.types.HasTpHash
@@ -123,4 +124,28 @@ fun handlerCreateDictConstKeyKt(
         setItem(ctx, result, key, elem)
     }
     return result
+}
+
+fun handlerDictContainsKt(
+    ctx: ConcolicRunContext,
+    dict: UninterpretedSymbolicPythonObject,
+    key: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    key.addSupertypeSoft(ctx, HasTpHash)
+    val keyType = key.getTypeIfDefined(ctx)
+    val typeSystem = ctx.typeSystem
+    val result: UBoolExpr = when (keyType) {
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return  // TODO
+        typeSystem.pythonInt, typeSystem.pythonBool -> {
+            val intValue = key.getToIntContent(ctx) ?: return
+            dict.dictContainsInt(ctx, intValue)
+        }
+        null -> {
+            forkOnUnknownType(ctx, key)
+            return
+        }
+        else -> dict.dictContainsRef(ctx, key)
+    }
+    myFork(ctx, result)
 }

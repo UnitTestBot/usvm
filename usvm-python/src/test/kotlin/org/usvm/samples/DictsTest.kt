@@ -154,4 +154,18 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts") {
             )
         )
     }
+
+    @Test
+    fun testDictEmptyCheck() {
+        check1WithConcreteRun(
+            constructFunction("dict_empty_check", listOf(typeSystem.pythonDict)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

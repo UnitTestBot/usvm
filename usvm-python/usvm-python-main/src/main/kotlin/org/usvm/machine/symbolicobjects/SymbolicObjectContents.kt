@@ -18,7 +18,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
 import org.usvm.language.types.*
 import org.usvm.machine.UPythonContext
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.machine.utils.PyModelWrapper
 import org.usvm.memory.UMemory
@@ -304,9 +303,9 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
         typeSystem.pythonInt -> getIntContent(ctx) neq mkIntNum(0)
         typeSystem.pythonList, typeSystem.pythonTuple -> readArrayLength(ctx) gt mkIntNum(0)
         typeSystem.pythonNoneType -> falseExpr
+        typeSystem.pythonDict -> dictIsEmpty(ctx).not()
         is ConcretePythonType -> {
-            val address = ctx.typeSystem.addressOfConcreteType(type)
-            if (!ConcretePythonInterpreter.typeHasNbBool(address) && !ConcretePythonInterpreter.typeHasSqLength(address))
+            if (HasNbBool.accepts(type) && !HasSqLength.accepts(type) && HasMpLength.accepts(type))
                 trueExpr
             else
                 null
@@ -556,6 +555,25 @@ fun UninterpretedSymbolicPythonObject.getConcreteStrIfDefined(preallocatedObject
 
 /** dict **/
 
+fun UninterpretedSymbolicPythonObject.dictIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertype(ctx, typeSystem.pythonDict)
+    return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, DictContents.isNotEmpty, ctx.ctx.boolSort))
+}
+
+fun InterpretedInputSymbolicPythonObject.dictIsEmpty(ctx: UPythonContext): Boolean {
+    val field = modelHolder.model.readField(address, DictContents.isNotEmpty, ctx.boolSort)
+    return modelHolder.model.eval(field).isFalse
+}
+
+fun UninterpretedSymbolicPythonObject.setDictNotEmpty(ctx: ConcolicRunContext) {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertypeSoft(ctx, typeSystem.pythonDict)
+    ctx.curState!!.memory.writeField(address, DictContents.isNotEmpty, ctx.ctx.boolSort, ctx.ctx.trueExpr, ctx.ctx.trueExpr)
+}
+
 fun UninterpretedSymbolicPythonObject.readDictRefElement(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject
@@ -574,7 +592,10 @@ fun UninterpretedSymbolicPythonObject.dictContainsRef(
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    return ctx.curState!!.symbolicObjectMapContains(address, key.address, RefDictType)
+    val contains = ctx.curState!!.symbolicObjectMapContains(address, key.address, RefDictType)
+    return with(ctx.ctx) {
+        dictIsEmpty(ctx).not() and contains
+    }
 }
 
 fun UninterpretedSymbolicPythonObject.writeDictRefElement(
@@ -585,6 +606,7 @@ fun UninterpretedSymbolicPythonObject.writeDictRefElement(
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
+    setDictNotEmpty(ctx)
     ctx.curState!!.symbolicObjectMapPut(address, key.address, value.address, RefDictType, ctx.ctx.addressSort)
 }
 
@@ -608,7 +630,10 @@ fun UninterpretedSymbolicPythonObject.dictContainsInt(
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val lvalue = USetEntryLValue(ctx.ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
-    return ctx.curState!!.memory.read(lvalue)
+    val contains = ctx.curState!!.memory.read(lvalue)
+    return with(ctx.ctx) {
+        dictIsEmpty(ctx).not() and contains
+    }
 }
 
 fun UninterpretedSymbolicPythonObject.writeDictIntElement(
@@ -619,6 +644,7 @@ fun UninterpretedSymbolicPythonObject.writeDictIntElement(
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
+    setDictNotEmpty(ctx)
     val lvalue = UMapEntryLValue(ctx.ctx.intSort, ctx.ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
     ctx.curState!!.memory.write(lvalue, value.address, ctx.ctx.trueExpr)
     val lvalueSet = USetEntryLValue(ctx.ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
