@@ -60,6 +60,7 @@ class InstrumentedProcess private constructor() {
             addOption("cp", true, "Project class path")
             addOption("t", true, "Process timeout in seconds")
             addOption("p", true, "Rd port number")
+            addOption("persistence", true, "Jacodb persistence location")
         }
         val parser = DefaultParser()
         val cmd = parser.parse(options, args)
@@ -67,8 +68,10 @@ class InstrumentedProcess private constructor() {
         val timeout = cmd.getOptionValue("t").toIntOrNull()?.toDuration(DurationUnit.SECONDS)
             ?: error("Specify timeout in seconds")
         val port = cmd.getOptionValue("p").toIntOrNull() ?: error("Specify rd port number")
+        val persistentLocation = cmd.getOptionValue("persistence")
+
         val def = LifetimeDefinition()
-        initProcess(classPath)
+        initProcess(classPath, persistentLocation)
         def.terminateOnException {
             def.launch {
                 checkAliveLoop(def, timeout)
@@ -80,13 +83,15 @@ class InstrumentedProcess private constructor() {
         }
     }
 
-    private suspend fun initProcess(classpath: String) {
+    private suspend fun initProcess(classpath: String, persistentLocation: String?) {
         fileClassPath = classpath.split(File.pathSeparatorChar).map { File(it) }
         val db = jacodb {
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)
             jre = File(InstrumentationModuleConstants.pathToJava)
-            //persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)
+            if (persistentLocation != null) {
+                persistent(location = persistentLocation, clearOnStart = false)
+            }
         }
         jcClasspath = db.classpath(fileClassPath)
         serializationCtx = SerializationContext(jcClasspath)

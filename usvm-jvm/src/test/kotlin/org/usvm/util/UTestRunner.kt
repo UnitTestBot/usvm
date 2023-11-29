@@ -12,13 +12,13 @@ object UTestRunner {
     fun isInitialized() = this::runner.isInitialized
 
     fun initRunner(pathToJars: List<String>, classpath: JcClasspath) {
-        runner =
-            UTestConcreteExecutor(
-                JcRuntimeTraceInstrumenterFactory::class,
-                pathToJars,
-                classpath,
-                InstrumentationModuleConstants.testExecutionTimeout
-            )
+        runner = UTestConcreteExecutor(
+            instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
+            testingProjectClasspath = pathToJars,
+            jcClasspath = classpath,
+            jcPersistenceLocation = null,
+            timeout = InstrumentationModuleConstants.testExecutionTimeout
+        )
     }
 
 }
