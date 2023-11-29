@@ -29,6 +29,7 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.toType
@@ -98,6 +99,7 @@ class JcInterpreter(
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
         val state = JcState(ctx, method, targets = UTargetsSet.from(targets))
         val typedMethod = with(applicationGraph) { method.typed }
+            ?: error("No typed method for entrypoint: $method")
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
         val enclosingType = typedMethod.enclosingType
@@ -492,7 +494,9 @@ class JcInterpreter(
         observer?.onReturnStatement(exprResolver.simpleValueResolver, stmt, scope)
 
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
-        val returnType = with(applicationGraph) { method.typed }.returnType
+        val returnType = with(applicationGraph) { method.typed }?.returnType
+            ?: ctx.cp.findTypeOrNull(method.returnType)
+            ?: error("Method return type ${method.returnType} not found in cp")
 
         val valueToReturn = stmt.returnValue
             ?.let { exprResolver.resolveJcExpr(it, returnType) ?: return }
