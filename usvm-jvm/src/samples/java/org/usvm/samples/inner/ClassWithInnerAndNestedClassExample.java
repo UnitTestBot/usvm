@@ -23,5 +23,16 @@ public class ClassWithInnerAndNestedClassExample {
         static int staticAccessOuterClassFieldWithParameter(ClassWithInnerAndNestedClassExample c) {
             return c.x;
         }
+
+        int createInnerClassOutside() {
+            ClassWithInnerAndNestedClassExample c = new ClassWithInnerAndNestedClassExample();
+            InnerClassExample inner = c.new InnerClassExample();
+
+            return inner.accessOuterClassField();
+        }
+
+        int useInnerClassAsParameter(InnerClassExample e) {
+            return e.accessOuterClassField();
+        }
     }
 }

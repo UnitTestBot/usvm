@@ -43,4 +43,23 @@ class ClassWithInnerAndNestedClassExampleTest : JavaMethodTestRunner() {
             { _, r -> r.isSuccess },
         )
     }
+
+    @Test
+    fun testCreateInnerClassOutside() {
+        checkDiscoveredProperties(
+            ClassWithInnerAndNestedClassExample.NestedClassExample::createInnerClassOutside,
+            eq(1),
+            { _, r -> r == 0 },
+        )
+    }
+
+    @Test
+    fun testUseInnerClassAsParameter() {
+        checkDiscoveredPropertiesWithExceptions(
+            ClassWithInnerAndNestedClassExample.NestedClassExample::useInnerClassAsParameter,
+            eq(2),
+            { _, p, r -> p == null && r.isException<NullPointerException>() },
+            { _, p, r -> p != null && r.isSuccess },
+        )
+    }
 }

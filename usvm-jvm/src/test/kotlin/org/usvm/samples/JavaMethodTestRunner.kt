@@ -28,6 +28,7 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlin.time.Duration
@@ -732,14 +733,15 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         method: KFunction<*>,
     ): MutableList<Any?> {
         val values = mutableListOf<Any?>()
-        if (method.instanceParameter != null) {
+        if (method.instanceParameter != null && method.javaConstructor == null) {
             requireNotNull(thisInstance)
             values += thisInstance
         } else {
             // Note that for constructors we have thisInstance in such as case, in contrast to simple methods
             require(thisInstance == null || method.javaConstructor != null)
         }
-        values.addAll(parameters.take(method.parameters.size - values.size)) // add remaining arguments
+
+        values.addAll(parameters) // add remaining arguments
         return values
     }
 
