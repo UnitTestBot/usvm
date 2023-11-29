@@ -6,6 +6,7 @@ import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.constructors
+import org.jacodb.impl.features.classpaths.JcUnknownType
 import org.usvm.machine.logger
 import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
@@ -70,7 +71,7 @@ class JcTypeStreamPrioritization(private val typesToScore: Int) {
              *  So we give them the lowest possible priority to avoid such classes when they
              *  don't really needed (e.g. forced by type constraints).
              **/
-            if (type.isUsvmInternalClass) {
+            if (type.isUsvmInternalClass || type is JcUnknownType) {
                 return Double.NEGATIVE_INFINITY
             }
 
