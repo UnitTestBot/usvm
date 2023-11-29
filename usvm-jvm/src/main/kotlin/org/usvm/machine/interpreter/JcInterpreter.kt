@@ -31,6 +31,7 @@ import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
+import org.jacodb.api.ext.toType
 import org.usvm.ForkCase
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -45,6 +46,7 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.mapTypeStream
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
@@ -73,6 +75,8 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.singleOrNull
+import org.usvm.util.name
+import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -96,23 +100,22 @@ class JcInterpreter(
         val typedMethod = with(applicationGraph) { method.typed }
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()
+        val enclosingType = typedMethod.enclosingType
         if (!method.isStatic) {
             with(ctx) {
                 val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
                 state.pathConstraints += mkEq(ref, nullRef).not()
-                val thisType = typedMethod.enclosingType
 
                 // TODO support virtual entrypoints https://github.com/UnitTestBot/usvm/issues/93
-                val thisTypeConstraints = if (thisType.jcClass.isAbstract) {
-                    state.memory.types.evalIsSubtype(ref, thisType)
+                val thisTypeConstraints = if (enclosingType.jcClass.isAbstract) {
+                    state.memory.types.evalIsSubtype(ref, enclosingType)
                 } else {
-                    state.memory.types.evalTypeEquals(ref, thisType)
+                    state.memory.types.evalTypeEquals(ref, enclosingType)
                 }
-
                 state.pathConstraints += thisTypeConstraints
 
-                entrypointArguments += thisType to ref
+                entrypointArguments += enclosingType to ref
             }
         }
 
@@ -228,6 +231,7 @@ class JcInterpreter(
         val exprResolver = exprResolverWithScope(scope)
         val simpleValueResolver = exprResolver.simpleValueResolver
 
+        val method = stmt.method
         when (stmt) {
             is JcMethodEntrypointInst -> {
                 observer?.onEntryPoint(simpleValueResolver, stmt, scope)
@@ -237,7 +241,20 @@ class JcInterpreter(
                     exprResolver.ensureExprCorrectness(ref, type) ?: return
                 }
 
-                val method = stmt.method
+                handleInnerClassMethodCall(
+                    scope,
+                    method.enclosingClass.toType(),
+                    method,
+                    outerClassInstanceConstructorArgument = {
+                        // Implicit first argument is `this`, an instance of the outer class would be second
+                        stmt.entrypointArguments[1].second
+                    },
+                    thisInstanceMethodArgument = {
+                        // For methods, we need to extract `this`
+                        stmt.entrypointArguments.first().second
+                    },
+                )
+
                 val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
                     ?: error("Entrypoint method $method has no entry points")
 
@@ -252,12 +269,26 @@ class JcInterpreter(
                     return
                 }
 
-                val entryPoint = applicationGraph.entryPoints(stmt.method).singleOrNull()
+                val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
 
-                if (stmt.method.isNative || entryPoint == null) {
+                if (method.isNative || entryPoint == null) {
                     mockMethod(scope, stmt, applicationGraph)
                     return
                 }
+
+                handleInnerClassMethodCall(
+                    scope,
+                    method.enclosingClass.toType(),
+                    method,
+                    outerClassInstanceConstructorArgument = {
+                        // Implicit first argument is `this`, an instance of the outer class would be second
+                        stmt.arguments[1].asExpr(ctx.addressSort)
+                    },
+                    thisInstanceMethodArgument = {
+                        // For methods, we need to extract `this`
+                        stmt.arguments.first().asExpr(ctx.addressSort)
+                    },
+                )
 
                 scope.doWithState {
                     addNewMethodCall(stmt, entryPoint)
@@ -283,6 +314,65 @@ class JcInterpreter(
 
                 mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
+        }
+    }
+
+    private inline fun handleInnerClassMethodCall(
+        scope: JcStepScope,
+        enclosingType: JcClassType,
+        method: JcMethod,
+        outerClassInstanceConstructorArgument: () -> UHeapRef,
+        thisInstanceMethodArgument: () -> UHeapRef,
+    ) {
+        if (method.isStatic) {
+            return
+        }
+
+        val outerType = enclosingType.outerType
+            ?: return
+
+        // TODO For now, it's the only way to differentiate inner and static nested classes - wait for updates in jacodb
+        //  for more appropriate approach
+        val outerClassField = enclosingType.outerClassInstanceField
+            ?: return
+        if (method.isConstructor) {
+            // For constructors of inner classes, we need to ensure that its first argument
+            // (which is an instance of the outer class) is not null
+            // (because it's impossible to create an inner class with null outer class)
+            ensureOuterClassRefCorrectnessForTheInnerClass(
+                scope,
+                enclosingType,
+                outerType,
+                outerClassInstanceConstructorArgument()
+            )
+        } else {
+            // For methods of inner classes, we need to ensure correctness of the instance of the outer class
+            // (which is stored in the `this$0` field) - not-null and with correct type
+            with(ctx) {
+                val outerClassFieldLValue = UFieldLValue(
+                    addressSort,
+                    thisInstanceMethodArgument(),
+                    outerClassField.field
+                )
+                val outerClassRef = scope.calcOnState { memory.read(outerClassFieldLValue).asExpr(addressSort) }
+                ensureOuterClassRefCorrectnessForTheInnerClass(scope, enclosingType, outerType, outerClassRef)
+            }
+        }
+    }
+
+    private fun ensureOuterClassRefCorrectnessForTheInnerClass(
+        scope: JcStepScope,
+        enclosingType: JcClassType,
+        outerType: JcClassType,
+        outerClassRef: UHeapRef
+    ) {
+        with(ctx) {
+            scope.assert(mkEq(outerClassRef, nullRef).not())
+                ?: error("Outer class ref cannot be null for the inner type ${enclosingType.name}")
+
+            val typeConstraint = scope.calcOnState { memory.types.evalIsSubtype(outerClassRef, outerType) }
+            scope.assert(typeConstraint)
+                ?: error("Outer class ref of the inner type ${enclosingType.name} must have the corresponding type ${outerType.name}")
         }
     }
 
