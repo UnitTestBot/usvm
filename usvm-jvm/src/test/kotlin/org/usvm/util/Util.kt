@@ -21,7 +21,7 @@ fun parseClasspath(classpath: String): List<File> =
         .map { File(it) }
 
 fun JcClasspath.getJcMethodByName(func: KFunction<*>): JcTypedMethod {
-    val declaringClassName = requireNotNull(func.javaMethod?.declaringClass?.name)
+    val declaringClassName = requireNotNull(func.declaringClass?.name)
     val jcClass = findClass(declaringClassName).toType()
     return jcClass.declaredMethods.first { it.name == func.name }
 }
