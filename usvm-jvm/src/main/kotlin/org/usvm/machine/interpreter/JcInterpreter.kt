@@ -75,6 +75,7 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.single
 import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
@@ -564,10 +565,15 @@ class JcInterpreter(
         val address = exprResolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         // Throwing `null` leads to NPE
-        exprResolver.checkNullPointer(address)
+        exprResolver.checkNullPointer(address) ?: return
 
         scope.calcOnState {
-            throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
+            val exceptionType = if (address is UConcreteHeapRef) {
+                memory.types.getTypeStream(address).single()
+            } else {
+                stmt.throwable.type
+            }
+            throwExceptionWithoutStackFrameDrop(address, exceptionType)
         }
     }
 
