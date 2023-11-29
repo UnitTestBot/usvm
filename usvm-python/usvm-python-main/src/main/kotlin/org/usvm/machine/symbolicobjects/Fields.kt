@@ -52,4 +52,8 @@ object SliceContents {
     val stepIsNone = ContentOfType("step_none_of_slice")
 }
 
+object DictContents {
+    val isNotEmpty = ContentOfType("dict_is_empty")
+}
+
 object TimeOfCreation: PropertyOfPythonObject()

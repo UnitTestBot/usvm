@@ -785,6 +785,18 @@ public class CPythonAdapter {
         withTracing(context, new MethodParametersNoReturn("dict_set_item", Arrays.asList(dict, key, value)), unit(() -> handlerDictSetItemKt(context, dict.obj, key.obj, value.obj)));
     }
 
+    @CPythonAdapterJavaMethod(cName = "dict_contains")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter},
+            addToSymbolicAdapter = false
+    )
+    public static void handlerDictContains(ConcolicRunContext context, SymbolForCPython dict, SymbolForCPython key) {
+        if (dict.obj == null || key.obj == null)
+            return;
+        withTracing(context, new MethodParametersNoReturn("dict_contains", Arrays.asList(dict, key)), unit(() -> handlerDictContainsKt(context, dict.obj, key.obj)));
+    }
+
     @CPythonAdapterJavaMethod(cName = "function_call")
     @CPythonFunction(
             argCTypes = {CType.PyObject},

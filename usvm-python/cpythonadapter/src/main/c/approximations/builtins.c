@@ -4,6 +4,8 @@
 #include "wrapper.h"
 #include "virtual_objects.h"
 
+#include "CPythonFunctions.h"  // generated
+
 
 PyObject *
 Approximation_len(PyObject *o) {
@@ -154,6 +156,11 @@ Approximation_contains_op(PyObject *storage, PyObject *item, int *approximated) 
         PyObject *concrete_result = unwrap(result);
         Py_DECREF(result);
         return concrete_result == Py_True ? 1 : 0;
+    } else if (PyDict_Check(concrete_storage)) {
+        *approximated = 1;
+        if (dict_contains(adapter->handler_param, get_symbolic_or_none(storage), get_symbolic_or_none(item)))
+            return -1;
+        return PySequence_Contains(concrete_storage, unwrap(item));
     }
     *approximated = 0;
     return 0;

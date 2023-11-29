@@ -45,3 +45,7 @@ def dict_virtual_set_item(x, y):
     d = {}
     d[x] = 10
     assert d[155] == y
+
+
+def dict_empty_check(d: dict):
+    assert d

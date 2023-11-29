@@ -49,9 +49,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt),
-        "simple_generator",
-        "Generators"
+        listOf(typeSystem.pythonDict),
+        "dict_empty_check",
+        "Dicts"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -78,9 +78,9 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    //if (module != "bidirectional_a_star")
-    //    return null
-    if (name != "SegmentTree.traverse")
+    if (module != "breadth_first_search_shortest_path_2")
+        return null
+    if (name != "bfs_shortest_path_distance")
         return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
@@ -113,7 +113,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\data_structures\\binary_tree"
+    val projectPath = "D:\\projects\\Python\\graphs"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath)
     val modules = getModulesFromFiles(projectPath, files)
@@ -200,8 +200,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    // timeoutPerRunMs = 4_000,
-                    // timeoutMs = 30_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")
