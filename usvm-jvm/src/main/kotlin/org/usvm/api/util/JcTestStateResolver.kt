@@ -278,8 +278,13 @@ abstract class JcTestStateResolver<T>(
         val ordinalLValue = UFieldLValue(ctx.sizeSort, heapRef, ctx.enumOrdinalField)
         val ordinalFieldValue = resolvePrimitiveInt(memory.read(ordinalLValue))
 
-        val enumField = enumAncestor.enumValues?.get(ordinalFieldValue)
-            ?: error("Cant find enum field with index $ordinalFieldValue")
+        val enumValues = enumAncestor.enumValues
+            ?: error("Cant find enum values from enum type $enumAncestor")
+
+        val enumField = enumValues.getOrNull(ordinalFieldValue)
+            // It means we do not have any constraints for this enum value (including correctness constraints),
+            // so we can choose any enum value
+            ?: enumValues.first()
 
         return decoderApi.getField(enumField, decoderApi.createNullConst(ctx.cp.objectType))
     }
