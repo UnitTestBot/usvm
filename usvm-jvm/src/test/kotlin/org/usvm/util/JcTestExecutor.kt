@@ -79,7 +79,8 @@ class JcTestExecutor(
     override fun resolve(
         method: JcTypedMethod,
         state: JcState,
-        stringConstants: Map<String, UConcreteHeapRef>
+        stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
     ): JcTest {
         val model = state.models.first()
 
@@ -92,7 +93,7 @@ class JcTestExecutor(
         val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
             .mapValues { it.value.flatten() }
 
-        val memoryScope = MemoryScope(ctx, model, model, stringConstants, resolvedMethodMocks, method)
+        val memoryScope = MemoryScope(ctx, model, model, stringConstants, classConstants, resolvedMethodMocks, method)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -199,9 +200,10 @@ class JcTestExecutor(
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
         stringConstants: Map<String, UConcreteHeapRef>,
+        classConstants: Map<JcType, UConcreteHeapRef>,
         private val resolvedMethodMocks: Map<UHeapRef, List<UMockSymbol<*>>>,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, method) {
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, stringConstants, classConstants, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 

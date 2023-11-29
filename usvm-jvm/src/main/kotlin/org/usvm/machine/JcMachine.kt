@@ -3,6 +3,7 @@ package org.usvm.machine
 import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
+import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
@@ -59,6 +60,9 @@ class JcMachine(
 
     val stringConstants: Map<String, UConcreteHeapRef>
         get() = interpreter.stringConstants
+
+    val classConstants: Map<JcType, UConcreteHeapRef>
+        get() = interpreter.classConstants
 
     fun analyze(
         methods: List<JcMethod>,

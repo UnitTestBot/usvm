@@ -5,6 +5,7 @@ import mu.KLogging
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
+import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcPrimitiveType
 import org.jacodb.api.JcRefType
@@ -29,6 +30,7 @@ import org.jacodb.api.cfg.JcThis
 import org.jacodb.api.cfg.JcThrowInst
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.ext.findType
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.ifArrayGetElementType
 import org.jacodb.api.ext.isEnum
@@ -661,6 +663,11 @@ class JcInterpreter(
     val stringConstants: Map<String, UConcreteHeapRef>
         get() = stringConstantAllocatedRefs
 
+    val classConstants: Map<JcType, UConcreteHeapRef>
+        get() = typeInstanceAllocatedRefs.mapKeys { (typeInfo, _) ->
+            typeInfo.toType(ctx.cp)
+        }
+
     // Equal string constants must have equal references
     private fun stringConstantAllocator(value: String): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {
@@ -690,16 +697,24 @@ class JcInterpreter(
         else -> error("Unexpected type: $type")
     }
 
-    private sealed interface JcTypeInfo
+    private sealed interface JcTypeInfo {
+        fun toType(cp: JcClasspath): JcType
+    }
 
     private data class JcClassTypeInfo(val className: String) : JcTypeInfo {
         // Don't use type.typeName here, because it contains generic parameters
         constructor(cls: JcClassOrInterface) : this(cls.name)
+
+        override fun toType(cp: JcClasspath): JcType = cp.findType(className)
     }
 
-    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
+    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo {
+        override fun toType(cp: JcClasspath): JcType = type
+    }
 
-    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
+    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo {
+        override fun toType(cp: JcClasspath): JcType = cp.arrayTypeOf(element.toType(cp))
+    }
 
     private fun resolveVirtualInvoke(
         methodCall: JcVirtualMethodCallInst,
