@@ -105,12 +105,16 @@ class ConverterToPythonObject(
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input dict cannot be static"
         }
+        if (obj.dictIsEmpty(ctx)) {
+            return ConcretePythonInterpreter.eval(emptyNamespace, "dict()")
+        }
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.concreteRun(namespace, "x = dict()")
         val result = ConcretePythonInterpreter.eval(namespace, "x")
         constructedObjects[obj.address] = result
         val model = modelHolder.model.uModel
         require(model is PyModel)
+        var addedElems = 0
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
                 val type = memory.typeStreamOf(it).first()
@@ -123,6 +127,7 @@ class ConverterToPythonObject(
                 val convertedKey = convert(key)
                 ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedKey, "key")
                 val value = obj.readDictRefElement(ctx, key, memory)
+                addedElems += 1
                 addEntryToDict(namespace, value)
             }
         }
@@ -130,8 +135,18 @@ class ConverterToPythonObject(
             if (obj.dictContainsInt(ctx, it)) {
                 ConcretePythonInterpreter.concreteRun(namespace, "key = $it")
                 val value = obj.readDictIntElement(ctx, it, memory)
+                addedElems += 1
                 addEntryToDict(namespace, value)
             }
+        }
+        if (addedElems == 0) {
+            ConcretePythonInterpreter.concreteRun(
+                namespace,
+                """
+                elem = object()
+                x[elem] = None
+                """.trimIndent()
+            )
         }
         return result.also {
             ConcretePythonInterpreter.incref(it)

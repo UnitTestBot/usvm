@@ -23,7 +23,7 @@ fun getTypeFromTypeHint(
     val storage = typeSystem.typeHintsStorage
     val substitutedDict = DefaultSubstitutionProvider.substituteAll(
         storage.pythonDict,
-        storage.pythonTuple.getBoundedParameters().map { pythonAnyType }
+        storage.pythonDict.getBoundedParameters().map { pythonAnyType }
     )
     val substitutedList = DefaultSubstitutionProvider.substituteAll(
         storage.pythonList,

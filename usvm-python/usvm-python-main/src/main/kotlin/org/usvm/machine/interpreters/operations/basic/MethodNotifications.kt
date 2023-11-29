@@ -47,7 +47,9 @@ fun nbPositiveKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObj
 
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    on.addSupertypeSoft(context, HasSqLength)
+    val sqLength = on.evalIsSoft(context, HasSqLength)
+    val mpLength = on.evalIsSoft(context, HasMpLength)
+    myAssert(context, context.ctx.mkOr(sqLength, mpLength))
 }
 
 fun mpSubscriptKt(
