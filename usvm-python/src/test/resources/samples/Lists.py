@@ -229,3 +229,13 @@ def reverse_usage(x: list):
 
 def contains_op(x: list):
     assert 1 in x
+
+
+def use_constructor(x):
+    y = list(x)
+    assert y[2] == 15
+
+
+def list_from_range(x, y, z):
+    a = list(range(x, y, z))
+    assert a[0] == -239

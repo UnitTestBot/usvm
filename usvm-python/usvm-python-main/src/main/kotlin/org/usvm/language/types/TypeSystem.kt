@@ -134,6 +134,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonStr = createConcreteTypeByName("str")
     val pythonSlice = createConcreteTypeByName("slice")
     val pythonDict = createConcreteTypeByName("dict")
+    val pythonSet = createConcreteTypeByName("set")
 
     protected val basicTypes: List<ConcretePythonType> by lazy {
         concreteTypeToAddress.keys.filter { !it.isHidden }
