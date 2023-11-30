@@ -18,6 +18,7 @@ class UTestConcreteExecutor(
     instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
     testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
+    private val javaHome: String,
     private val jcPersistenceLocation: String?,
     private val timeout: Duration
 ) : AutoCloseable {
@@ -26,12 +27,14 @@ class UTestConcreteExecutor(
         instrumentationClassFactory: KClass<out JcInstrumenterFactory<*>>,
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
+        javaHome: String,
         jcPersistenceLocation: String?,
         timeout: Duration
     ) : this(
         instrumentationClassFactory,
         testingProjectClasspath.joinToString(File.pathSeparator),
         jcClasspath,
+        javaHome,
         jcPersistenceLocation,
         timeout
     )
@@ -41,6 +44,7 @@ class UTestConcreteExecutor(
     private val instrumentationProcessRunner = InstrumentationProcessRunner(
         testingProjectClasspath,
         jcClasspath,
+        javaHome,
         jcPersistenceLocation,
         instrumentationClassFactory
     )
