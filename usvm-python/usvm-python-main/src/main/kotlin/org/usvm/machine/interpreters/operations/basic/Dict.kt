@@ -2,7 +2,9 @@ package org.usvm.machine.interpreters.operations.basic
 
 import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isFalse
 import org.usvm.isTrue
+import org.usvm.language.types.ConcreteTypeNegation
 import org.usvm.language.types.HasTpHash
 import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
@@ -11,11 +13,29 @@ import kotlin.streams.asSequence
 private fun forkOnUnknownType(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject
-) {
-    val clonedState = ctx.curState!!.clone()
-    val stateForDelayedFork =
-        myAssertOnState(clonedState, ctx.ctx.mkNot(ctx.ctx.mkHeapRefEq(key.address, ctx.ctx.nullRef)))
-    stateForDelayedFork?.let { addDelayedFork(ctx, key, it) }
+) = with(ctx.ctx) {
+    require(key.getTypeIfDefined(ctx) == null)
+    val keyIsInt = key.evalIs(ctx, ctx.typeSystem.pythonInt)
+    val keyIsBool = key.evalIs(ctx, ctx.typeSystem.pythonBool)
+    val keyIsFloat = key.evalIs(ctx, ctx.typeSystem.pythonFloat)
+    val keyIsNone = key.evalIs(ctx, ctx.typeSystem.pythonNoneType)
+    require(ctx.modelHolder.model.eval(keyIsInt or keyIsBool).isFalse)
+    myFork(ctx, keyIsInt)
+    myFork(ctx, keyIsBool)
+    require(ctx.modelHolder.model.eval(keyIsFloat or keyIsNone).isFalse)
+    myAssert(ctx, (keyIsFloat or keyIsNone).not())
+}
+
+private fun addKeyTypeConstrains(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    var cond: UBoolExpr = trueExpr
+    cond = cond and key.evalIsSoft(ctx, HasTpHash)
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonList).not()
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonDict).not()
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonSet).not()
+    myAssert(ctx, cond)
 }
 
 fun handlerDictGetItemKt(
@@ -24,7 +44,7 @@ fun handlerDictGetItemKt(
     key: UninterpretedSymbolicPythonObject
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    key.addSupertypeSoft(ctx, HasTpHash)
+    addKeyTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     return when (keyType) {
@@ -39,11 +59,10 @@ fun handlerDictGetItemKt(
                 null
             }
         }
-        null -> {
-            forkOnUnknownType(ctx, key)
-            null
-        }
         else -> {
+            if (keyType == null) {
+                forkOnUnknownType(ctx, key)
+            }
             val containsCond = dict.dictContainsRef(ctx, key)
             myFork(ctx, containsCond)
             if (ctx.modelHolder.model.eval(containsCond).isTrue) {
@@ -62,16 +81,16 @@ private fun setItem(
     value: UninterpretedSymbolicPythonObject
 ) {
     val typeSystem = ctx.typeSystem
-    when (key.getTypeIfDefined(ctx)) {
-        null -> {
-            forkOnUnknownType(ctx, key)
-        }
+    when (val keyType = key.getTypeIfDefined(ctx)) {
         typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit  // TODO
         typeSystem.pythonInt -> {
             val intValue = key.getToIntContent(ctx) ?: return
             dict.writeDictIntElement(ctx, intValue, value)
         }
         else -> {
+            if (keyType == null) {
+                forkOnUnknownType(ctx, key)
+            }
             dict.writeDictRefElement(ctx, key, value)
         }
     }
@@ -84,9 +103,9 @@ fun handlerDictSetItemKt(
     value: UninterpretedSymbolicPythonObject
 ) {
     ctx.curState ?: return
+    addKeyTypeConstrains(ctx, key)
     val typeSystem = ctx.typeSystem
     dict.addSupertypeSoft(ctx, typeSystem.pythonDict)
-    key.addSupertypeSoft(ctx, HasTpHash)
     setItem(ctx, dict, key, value)
 }
 
@@ -103,6 +122,7 @@ fun handlerCreateDictKt(
     val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     (keys zip elems).forEach { (key, elem) ->
+        addKeyTypeConstrains(ctx, key)
         setItem(ctx, result, key, elem)
     }
     return result
@@ -121,6 +141,7 @@ fun handlerCreateDictConstKeyKt(
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     elems.forEachIndexed { index, elem ->
         val key = keys.readArrayElement(ctx, ctx.ctx.mkIntNum(index))
+        addKeyTypeConstrains(ctx, key)
         setItem(ctx, result, key, elem)
     }
     return result
@@ -132,7 +153,7 @@ fun handlerDictContainsKt(
     key: UninterpretedSymbolicPythonObject
 ) {
     ctx.curState ?: return
-    key.addSupertypeSoft(ctx, HasTpHash)
+    addKeyTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (keyType) {
@@ -141,11 +162,12 @@ fun handlerDictContainsKt(
             val intValue = key.getToIntContent(ctx) ?: return
             dict.dictContainsInt(ctx, intValue)
         }
-        null -> {
-            forkOnUnknownType(ctx, key)
-            return
+        else -> {
+            if (keyType == null) {
+                forkOnUnknownType(ctx, key)
+            }
+            dict.dictContainsRef(ctx, key)
         }
-        else -> dict.dictContainsRef(ctx, key)
     }
     myFork(ctx, result)
 }

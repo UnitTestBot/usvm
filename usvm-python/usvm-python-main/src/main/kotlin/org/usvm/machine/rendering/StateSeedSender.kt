@@ -16,7 +16,7 @@ import org.usvm.types.first
 class StateSeedSender<InputRepr>(
     private val saver: PythonAnalysisResultSaver<InputRepr>
 ) {
-    fun getData(state: PythonExecutionState): InputRepr {
+    fun getData(state: PythonExecutionState): InputRepr? = runCatching {
         val converter = if (state.meta.lastConverter != null) {
             state.meta.lastConverter!!
         } else {
@@ -49,7 +49,7 @@ class StateSeedSender<InputRepr>(
             ConcretePythonInterpreter.decref(it.ref)
         }
         return serialized
-    }
+    }.getOrNull()
 
     suspend fun sendStateSeeds(data: InputRepr) {
         // println("Sending!")
