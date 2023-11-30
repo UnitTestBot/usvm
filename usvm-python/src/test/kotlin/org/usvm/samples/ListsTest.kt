@@ -465,4 +465,32 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testUseConstructor() {
+        check1WithConcreteRun(
+            constructFunction("use_constructor", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testListFromRange() {
+        check3WithConcreteRun(
+            constructFunction("list_from_range", List(3) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, _, res -> res.repr == "None" }
+            )
+        )
+    }
 }

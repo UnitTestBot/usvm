@@ -1,6 +1,21 @@
 from typing import Any, Tuple
 
-from approximations.api import ApproximationForMethod, SpecialApproximation
+from approximations.api import *
+
+
+class ConstructorApproximation(ApproximationForFunction):
+    @staticmethod
+    def accept(*args) -> bool:
+        return len(args) <= 1
+
+    @staticmethod
+    def run(*args) -> list:
+        if len(args) == 0:
+            return []
+        result = []
+        for elem in args[0]:
+            result.append(elem)
+        return result
 
 
 # TODO: optional arguments

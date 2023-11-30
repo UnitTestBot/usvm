@@ -4,7 +4,6 @@ import io.ksmt.expr.KInt32NumExpr
 import org.usvm.*
 import org.usvm.api.readArrayIndex
 import org.usvm.api.typeStreamOf
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonCallable
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
@@ -15,10 +14,8 @@ import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.PythonNamespace
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.utils.DefaultValueProvider
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
 import org.usvm.machine.utils.PyModelHolder
-import org.usvm.machine.utils.getMembersFromType
 import org.usvm.memory.UMemory
 import org.usvm.types.first
 
@@ -75,6 +72,7 @@ class ConverterToPythonObject(
             typeSystem.pythonSlice -> convertSlice(obj)
             typeSystem.pythonFloat -> convertFloat(obj)
             typeSystem.pythonDict -> convertDict(obj)
+            typeSystem.pythonSet -> convertSet(obj)
             else -> {
                 if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true)
                     constructFromDefaultConstructor(obj, type)
@@ -90,6 +88,13 @@ class ConverterToPythonObject(
         constructedObjects.values.forEach {
             ConcretePythonInterpreter.decref(it)
         }
+    }
+
+    private fun convertSet(obj: InterpretedSymbolicPythonObject): PythonObject {
+        require(obj is InterpretedInputSymbolicPythonObject) {
+            "Input set cannot be static"
+        }
+        return ConcretePythonInterpreter.eval(emptyNamespace, "set()")
     }
 
     private fun addEntryToDict(
