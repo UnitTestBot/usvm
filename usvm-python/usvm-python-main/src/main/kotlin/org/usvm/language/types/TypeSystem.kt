@@ -22,8 +22,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         get() = 1000.milliseconds
 
     override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
-        if (type is InternalDictType || supertype is InternalDictType)
-            return type == supertype
+        require(supertype !is IntDictType)
         if (supertype is VirtualPythonType)
             return supertype.accepts(type)
         return supertype == type
@@ -43,9 +42,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         val containsMock = types.any { it is MockType }
         require((concrete == null) || !containsMock) { "Error in Python's hasCommonSubtype implementation" }
         return when (type) {
-            is InternalDictType -> {
-                types.all { it == type }
-            }
+            is InternalType -> error("Should not be reachable")
             is ConcretePythonType -> {
                 if (concrete != null) {
                     concrete == type
@@ -135,6 +132,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     val pythonSlice = createConcreteTypeByName("slice")
     val pythonDict = createConcreteTypeByName("dict")
     val pythonSet = createConcreteTypeByName("set")
+    val pythonEnumerate = createConcreteTypeByName("enumerate", isHidden = true)
 
     protected val basicTypes: List<ConcretePythonType> by lazy {
         concreteTypeToAddress.keys.filter { !it.isHidden }

@@ -32,4 +32,46 @@ class SetsTest: PythonTestRunnerForPrimitiveProgram("Sets", UMachineOptions(step
             /* propertiesToDiscover = */ listOf { _, res -> res.repr == "None" }
         )
     }
+
+    @Test
+    fun testInputSetIntCheck() {
+        check1WithConcreteRun(
+            constructFunction("input_set_int_check", listOf(typeSystem.pythonSet)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testInputSetStrCheck() {
+        check1WithConcreteRun(
+            constructFunction("input_set_str_check", listOf(typeSystem.pythonSet)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testInputSetVirtualCheck() {
+        check2WithConcreteRun(
+            constructFunction("input_set_virtual_check", listOf(typeSystem.pythonSet, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

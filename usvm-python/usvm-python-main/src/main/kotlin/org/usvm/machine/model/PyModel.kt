@@ -64,11 +64,18 @@ class PyModel(
         }
         if (regionId is URefSetRegionId<*> && regionId.setType == RefDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys)
-                    as UReadOnlyMemoryRegion<Key, Sort>
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys) as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType) {
             val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<USetEntryLValue<IntDictType, KIntSort, USizeRegion>, UBoolSort>
+            return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is URefSetRegionId<*> && regionId.setType == RefSetType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefSetType>, UBoolSort>
+            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys) as UReadOnlyMemoryRegion<Key, Sort>
+        }
+        if (regionId is USetRegionId<*, *, *> && regionId.setType == IntSetType) {
+            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<USetEntryLValue<IntSetType, KIntSort, USizeRegion>, UBoolSort>
             return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
         }
         if (regionId is URefMapRegionId<*, *> && regionId.mapType == ObjectDictType) {

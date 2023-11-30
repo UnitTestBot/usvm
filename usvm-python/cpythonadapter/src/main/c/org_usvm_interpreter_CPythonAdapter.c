@@ -570,9 +570,9 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartia
     return (jlong) construct_symbolic_method_with_self(env, self, (call_type) method_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation(JNIEnv *env, jobject _, jobject self, jlong approximation_ref) {
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation(JNIEnv *env, jobject _, jobject self, jlong method_ref, jlong approximation_ref) {
     assert(approximation_ref);
-    return (jlong) construct_approximation(env, self, (PyObject *) approximation_ref);
+    return (jlong) construct_approximation(env, self, (call_type) method_ref, (PyObject *) approximation_ref);
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartiallyAppliedPythonMethod(JNIEnv *env, jobject _, jobject self) {
