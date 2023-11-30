@@ -40,6 +40,7 @@ abstract class UTestConcreteExecutorTest {
                 instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
                 testingProjectClasspath = testJarPath,
                 jcClasspath = jcClasspath,
+                javaHome = InstrumentationModuleConstants.pathToJava,
                 jcPersistenceLocation = jcPersistenceLocation,
                 timeout = InstrumentationModuleConstants.testExecutionTimeout
             )

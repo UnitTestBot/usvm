@@ -16,6 +16,7 @@ object UTestRunner {
             instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
             testingProjectClasspath = pathToJars,
             jcClasspath = classpath,
+            javaHome = InstrumentationModuleConstants.pathToJava,
             jcPersistenceLocation = null,
             timeout = InstrumentationModuleConstants.testExecutionTimeout
         )

@@ -22,6 +22,7 @@ import kotlin.time.Duration
 class InstrumentationProcessRunner(
     private val testingProjectClasspath: String,
     private val jcClasspath: JcClasspath,
+    private val javaHome: String,
     private val jcPersistenceLocation: String?,
     private val instrumentationClassFactory: KClass<out JcInstrumenterFactory<out JcInstrumenter>>
 ) {
@@ -32,11 +33,13 @@ class InstrumentationProcessRunner(
     constructor(
         testingProjectClasspath: List<String>,
         jcClasspath: JcClasspath,
+        javaHome: String,
         jcPersistenceLocation: String?,
         instrumentationClassFactory: KClass<JcInstrumenterFactory<out JcInstrumenter>>
     ) : this(
         testingProjectClasspath.joinToString(File.pathSeparator),
         jcClasspath,
+        javaHome,
         jcPersistenceLocation,
         instrumentationClassFactory
     )
@@ -64,6 +67,7 @@ class InstrumentationProcessRunner(
         this += listOf("-cp", testingProjectClasspath)
         this += listOf("-t", "${InstrumentationModuleConstants.concreteExecutorProcessTimeout}")
         this += listOf("-p", "$rdPort")
+        this += listOf("-javahome", javaHome)
 
         if (jcPersistenceLocation != null) {
             this += listOf("-persistence", jcPersistenceLocation)
