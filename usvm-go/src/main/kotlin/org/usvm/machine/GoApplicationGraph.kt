@@ -1,40 +1,40 @@
 package org.usvm.machine
 
-import org.usvm.bridge.Bridge
+import org.usvm.bridge.GoBridge
 import org.usvm.statistics.ApplicationGraph
 
 class GoApplicationGraph(
-    private val bridge: Bridge,
+    private val bridge: GoBridge,
 ) : ApplicationGraph<GoMethod, GoInst> {
     override fun predecessors(node: GoInst): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.predecessors(node).asSequence()
     }
 
     override fun successors(node: GoInst): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.successors(node).asSequence()
     }
 
     override fun callees(node: GoInst): Sequence<GoMethod> {
-        TODO("Not yet implemented")
+        return bridge.callees(node).asSequence()
     }
 
     override fun callers(method: GoMethod): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.callers(method).asSequence()
     }
 
     override fun entryPoints(method: GoMethod): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.entryPoints(method).asSequence()
     }
 
     override fun exitPoints(method: GoMethod): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.exitPoints(method).asSequence()
     }
 
     override fun methodOf(node: GoInst): GoMethod {
-        TODO("Not yet implemented")
+        return bridge.methodOf(node)
     }
 
     override fun statementsOf(method: GoMethod): Sequence<GoInst> {
-        TODO("Not yet implemented")
+        return bridge.statementsOf(method).asSequence()
     }
 }
