@@ -90,7 +90,6 @@ static Py_hash_t
 tp_hash(PyObject *o1) {
     DEBUG_OUTPUT("tp_hash")
     assert(is_virtual_object(o1));
-    CHECK_IF_ACTIVATED(o1, -1)
     return PyBaseObject_Type.tp_hash(o1);
 }
 PyType_Slot Virtual_tp_hash = {Py_tp_hash, tp_hash};
