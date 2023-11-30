@@ -4,39 +4,9 @@ import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
-import org.usvm.language.types.ConcreteTypeNegation
-import org.usvm.language.types.HasTpHash
 import org.usvm.machine.symbolicobjects.*
 import java.util.stream.Stream
 import kotlin.streams.asSequence
-
-private fun forkOnUnknownType(
-    ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
-) = with(ctx.ctx) {
-    require(key.getTypeIfDefined(ctx) == null)
-    val keyIsInt = key.evalIs(ctx, ctx.typeSystem.pythonInt)
-    val keyIsBool = key.evalIs(ctx, ctx.typeSystem.pythonBool)
-    val keyIsFloat = key.evalIs(ctx, ctx.typeSystem.pythonFloat)
-    val keyIsNone = key.evalIs(ctx, ctx.typeSystem.pythonNoneType)
-    require(ctx.modelHolder.model.eval(keyIsInt or keyIsBool).isFalse)
-    myFork(ctx, keyIsInt)
-    myFork(ctx, keyIsBool)
-    require(ctx.modelHolder.model.eval(keyIsFloat or keyIsNone).isFalse)
-    myAssert(ctx, (keyIsFloat or keyIsNone).not())
-}
-
-private fun addKeyTypeConstrains(
-    ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
-) = with(ctx.ctx) {
-    var cond: UBoolExpr = trueExpr
-    cond = cond and key.evalIsSoft(ctx, HasTpHash)
-    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonList).not()
-    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonDict).not()
-    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonSet).not()
-    myAssert(ctx, cond)
-}
 
 fun handlerDictGetItemKt(
     ctx: ConcolicRunContext,
@@ -44,7 +14,7 @@ fun handlerDictGetItemKt(
     key: UninterpretedSymbolicPythonObject
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    addKeyTypeConstrains(ctx, key)
+    addHashableTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     return when (keyType) {
@@ -61,7 +31,7 @@ fun handlerDictGetItemKt(
         }
         else -> {
             if (keyType == null) {
-                forkOnUnknownType(ctx, key)
+                forkOnUnknownHashableType(ctx, key)
             }
             val containsCond = dict.dictContainsRef(ctx, key)
             myFork(ctx, containsCond)
@@ -89,7 +59,7 @@ private fun setItem(
         }
         else -> {
             if (keyType == null) {
-                forkOnUnknownType(ctx, key)
+                forkOnUnknownHashableType(ctx, key)
             }
             dict.writeDictRefElement(ctx, key, value)
         }
@@ -103,7 +73,7 @@ fun handlerDictSetItemKt(
     value: UninterpretedSymbolicPythonObject
 ) {
     ctx.curState ?: return
-    addKeyTypeConstrains(ctx, key)
+    addHashableTypeConstrains(ctx, key)
     val typeSystem = ctx.typeSystem
     dict.addSupertypeSoft(ctx, typeSystem.pythonDict)
     setItem(ctx, dict, key, value)
@@ -122,7 +92,7 @@ fun handlerCreateDictKt(
     val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     (keys zip elems).forEach { (key, elem) ->
-        addKeyTypeConstrains(ctx, key)
+        addHashableTypeConstrains(ctx, key)
         setItem(ctx, result, key, elem)
     }
     return result
@@ -141,7 +111,7 @@ fun handlerCreateDictConstKeyKt(
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     elems.forEachIndexed { index, elem ->
         val key = keys.readArrayElement(ctx, ctx.ctx.mkIntNum(index))
-        addKeyTypeConstrains(ctx, key)
+        addHashableTypeConstrains(ctx, key)
         setItem(ctx, result, key, elem)
     }
     return result
@@ -153,7 +123,7 @@ fun handlerDictContainsKt(
     key: UninterpretedSymbolicPythonObject
 ) {
     ctx.curState ?: return
-    addKeyTypeConstrains(ctx, key)
+    addHashableTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (keyType) {
@@ -164,7 +134,7 @@ fun handlerDictContainsKt(
         }
         else -> {
             if (keyType == null) {
-                forkOnUnknownType(ctx, key)
+                forkOnUnknownHashableType(ctx, key)
             }
             dict.dictContainsRef(ctx, key)
         }

@@ -28,6 +28,7 @@ import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
 import static org.usvm.machine.interpreters.operations.basic.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.basic.RangeKt.*;
+import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerSetContainsKt;
 import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
 import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
 import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
@@ -107,7 +108,7 @@ public class CPythonAdapter {
     @Nullable
     public native MemberDescriptor getSymbolicDescriptor(long concreteDescriptorRef);
     public native long constructPartiallyAppliedSymbolicMethod(SymbolForCPython self, long methodRef);
-    public native long constructApproximation(SymbolForCPython self, long approximationRef);
+    public native long constructApproximation(SymbolForCPython self, long methodRef, long approximationRef);
     public native long constructPartiallyAppliedPythonMethod(SymbolForCPython self);
     static {
         System.loadLibrary("cpythonadapter");
@@ -795,6 +796,18 @@ public class CPythonAdapter {
         if (dict.obj == null || key.obj == null)
             return;
         withTracing(context, new MethodParametersNoReturn("dict_contains", Arrays.asList(dict, key)), unit(() -> handlerDictContainsKt(context, dict.obj, key.obj)));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "set_contains")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter},
+            addToSymbolicAdapter = false
+    )
+    public static void handlerSetContains(ConcolicRunContext context, SymbolForCPython set, SymbolForCPython elem) {
+        if (set.obj == null || elem.obj == null)
+            return;
+        withTracing(context, new MethodParametersNoReturn("set_contains", Arrays.asList(set, elem)), unit(() -> handlerSetContainsKt(context, set.obj, elem.obj)));
     }
 
     @CPythonAdapterJavaMethod(cName = "function_call")

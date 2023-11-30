@@ -6,11 +6,16 @@ sealed class PythonType
 
 object MockType: PythonType()
 
-sealed class InternalDictType: PythonType()
+open class InternalType: PythonType()
 
+sealed class InternalDictType: InternalType()
 object ObjectDictType: InternalDictType()
 object RefDictType: InternalDictType()
 object IntDictType: InternalDictType()
+
+sealed class InternalSetType: InternalType()
+object RefSetType: InternalSetType()
+object IntSetType: InternalSetType()
 
 abstract class VirtualPythonType: PythonType() {
     abstract fun accepts(type: PythonType): Boolean

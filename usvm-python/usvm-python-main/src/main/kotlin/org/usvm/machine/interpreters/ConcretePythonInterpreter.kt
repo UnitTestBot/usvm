@@ -202,7 +202,7 @@ object ConcretePythonInterpreter {
     }
 
     fun constructApproximation(self: SymbolForCPython?, id: ApproximationId): SymbolForCPython {
-        val ref = pythonAdapter.constructApproximation(self, id.cRef)
+        val ref = pythonAdapter.constructApproximation(self, 0, id.cRef)
         require(ref != 0L)
         return SymbolForCPython(null, ref)
     }

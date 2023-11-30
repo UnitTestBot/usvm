@@ -161,6 +161,11 @@ Approximation_contains_op(PyObject *storage, PyObject *item, int *approximated) 
         if (dict_contains(adapter->handler_param, get_symbolic_or_none(storage), get_symbolic_or_none(item)))
             return -1;
         return PySequence_Contains(concrete_storage, unwrap(item));
+    } else if (PySet_Check(concrete_storage)) {
+        *approximated = 1;
+        if (set_contains(adapter->handler_param, get_symbolic_or_none(storage), get_symbolic_or_none(item)))
+            return -1;
+        return PySequence_Contains(concrete_storage, unwrap(item));
     }
     *approximated = 0;
     return 0;
