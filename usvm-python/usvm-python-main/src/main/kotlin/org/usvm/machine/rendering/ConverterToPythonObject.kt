@@ -94,7 +94,41 @@ class ConverterToPythonObject(
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input set cannot be static"
         }
-        return ConcretePythonInterpreter.eval(emptyNamespace, "set()")
+        if (obj.setIsEmpty(ctx)) {
+            return ConcretePythonInterpreter.eval(emptyNamespace, "set()")
+        }
+        var addedElems = 0
+        val namespace = ConcretePythonInterpreter.getNewNamespace()
+        ConcretePythonInterpreter.concreteRun(namespace, "x = set()")
+        val result = ConcretePythonInterpreter.eval(namespace, "x")
+        constructedObjects[obj.address] = result
+        val model = modelHolder.model.uModel
+        require(model is PyModel)
+        model.possibleRefKeys.forEach {
+            val key = if (isStaticHeapRef(it)) {
+                val type = memory.typeStreamOf(it).first()
+                require(type is ConcretePythonType)
+                InterpretedAllocatedOrStaticSymbolicPythonObject(it, type, typeSystem)
+            } else {
+                InterpretedInputSymbolicPythonObject(it, modelHolder, typeSystem)
+            }
+            if (obj.setContainsRef(ctx, key)) {
+                addedElems += 1
+                val convertedElem = convert(key)
+                ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedElem, "elem")
+                ConcretePythonInterpreter.concreteRun(namespace, "x.add(elem)")
+            }
+        }
+        model.possibleIntKeys.forEach {
+            if (obj.setContainsInt(ctx, it)) {
+                addedElems += 1
+                ConcretePythonInterpreter.concreteRun(namespace, "x.add($it)")
+            }
+        }
+        if (addedElems == 0) {
+            ConcretePythonInterpreter.concreteRun(namespace, "x.add(object())")
+        }
+        return result
     }
 
     private fun addEntryToDict(
@@ -128,7 +162,7 @@ class ConverterToPythonObject(
             } else {
                 InterpretedInputSymbolicPythonObject(it, modelHolder, typeSystem)
             }
-            if (obj.dictContainsRef(key)) {
+            if (obj.dictContainsRef(ctx, key)) {
                 val convertedKey = convert(key)
                 ConcretePythonInterpreter.addObjectToNamespace(namespace, convertedKey, "key")
                 val value = obj.readDictRefElement(ctx, key, memory)

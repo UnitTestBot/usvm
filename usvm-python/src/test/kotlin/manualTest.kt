@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    val config = buildProjectRunConfig()
-    // val config = buildSampleRunConfig()
+    // val config = buildProjectRunConfig()
+    val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -46,12 +46,19 @@ private fun buildSampleRunConfig(): RunConfig {
                 if len(y[::-1]) == 5:
                     return 1
                 return 2
+
+
+            def f(x):
+                s = 0
+                for i, a in enumerate(x):
+                    s += i + a
+                assert s == 10
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType),
-        "allocate_dict_with_int_key",
-        "Dicts"
+        listOf(typeSystem.pythonInt),
+        "construct_set_with_call",
+        "Sets"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -78,10 +85,10 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    if (module != "breadth_first_search_shortest_path_2")
-        return null
-    if (name != "bfs_shortest_path_distance")
-        return null
+    //if (module != "breadth_first_search_shortest_path_2")
+    //    return null
+    //if (name != "bfs_shortest_path_distance")
+    //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
@@ -200,8 +207,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    // timeoutPerRunMs = 4_000,
-                    // timeoutMs = 30_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 30_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

@@ -562,11 +562,6 @@ fun UninterpretedSymbolicPythonObject.dictIsEmpty(ctx: ConcolicRunContext): UBoo
     return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, DictContents.isNotEmpty, ctx.ctx.boolSort))
 }
 
-fun InterpretedInputSymbolicPythonObject.dictIsEmpty(ctx: UPythonContext): Boolean {
-    val field = modelHolder.model.readField(address, DictContents.isNotEmpty, ctx.boolSort)
-    return modelHolder.model.eval(field).isFalse
-}
-
 fun UninterpretedSymbolicPythonObject.setDictNotEmpty(ctx: ConcolicRunContext) {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -652,6 +647,11 @@ fun UninterpretedSymbolicPythonObject.writeDictIntElement(
     // TODO: size?
 }
 
+fun InterpretedInputSymbolicPythonObject.dictIsEmpty(ctx: UPythonContext): Boolean {
+    val field = modelHolder.model.readField(address, DictContents.isNotEmpty, ctx.boolSort)
+    return modelHolder.model.eval(field).isFalse
+}
+
 private fun InterpretedInputSymbolicPythonObject.constructResultObject(
     resultAddress: UConcreteHeapRef,
     memory: UMemory<PythonType, PythonCallable>
@@ -674,10 +674,13 @@ fun InterpretedInputSymbolicPythonObject.readDictRefElement(
     return constructResultObject(elemAddress, memory)
 }
 
-fun InterpretedInputSymbolicPythonObject.dictContainsRef(key: InterpretedSymbolicPythonObject): Boolean {
+fun InterpretedInputSymbolicPythonObject.dictContainsRef(
+    ctx: UPythonContext,
+    key: InterpretedSymbolicPythonObject
+): Boolean {
     val lvalue = URefSetEntryLValue(address, key.address, RefDictType)
     val result = modelHolder.model.uModel.read(lvalue)
-    return result.isTrue
+    return !dictIsEmpty(ctx) && result.isTrue
 }
 
 fun InterpretedInputSymbolicPythonObject.readDictIntElement(
@@ -695,5 +698,62 @@ fun InterpretedInputSymbolicPythonObject.dictContainsInt(
     key: KInterpretedValue<KIntSort>
 ): Boolean {
     val lvalue = USetEntryLValue(ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
-    return modelHolder.model.uModel.read(lvalue).isTrue
+    return !dictIsEmpty(ctx) && modelHolder.model.uModel.read(lvalue).isTrue
 }
+
+/** set **/
+
+fun UninterpretedSymbolicPythonObject.setIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertype(ctx, typeSystem.pythonSet)
+    return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, SetContents.isNotEmpty, ctx.ctx.boolSort))
+}
+
+fun UninterpretedSymbolicPythonObject.setContainsInt(
+    ctx: ConcolicRunContext,
+    key: UExpr<KIntSort>
+): UBoolExpr = with(ctx.ctx) {
+    require(ctx.curState != null)
+    val lvalue = USetEntryLValue(intSort, address, key, IntSetType, USizeExprKeyInfo())
+    return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
+}
+
+/*
+fun UninterpretedSymbolicPythonObject.addIntToSet(
+    ctx: ConcolicRunContext,
+    key: UExpr<KIntSort>
+): UBoolExpr {
+}
+*/
+
+fun UninterpretedSymbolicPythonObject.setContainsRef(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+): UBoolExpr = with(ctx.ctx) {
+    require(ctx.curState != null)
+    val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
+    return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
+}
+
+fun InterpretedInputSymbolicPythonObject.setIsEmpty(ctx: UPythonContext): Boolean = with(ctx) {
+    return modelHolder.model.readField(address, SetContents.isNotEmpty, boolSort).isFalse
+}
+
+fun InterpretedInputSymbolicPythonObject.setContainsInt(
+    ctx: UPythonContext,
+    key: KInterpretedValue<KIntSort>
+): Boolean = with(ctx) {
+    val lvalue = USetEntryLValue(intSort, address, key, IntSetType, USizeExprKeyInfo())
+    return !setIsEmpty(ctx) && modelHolder.model.uModel.read(lvalue).isTrue
+}
+
+fun InterpretedInputSymbolicPythonObject.setContainsRef(
+    ctx: UPythonContext,
+    key: InterpretedSymbolicPythonObject
+): Boolean {
+    val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
+    return !setIsEmpty(ctx) && modelHolder.model.uModel.read(lvalue).isTrue
+}
+
+/** enumerate **/

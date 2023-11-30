@@ -458,10 +458,10 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructPartia
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter
  * Method:    constructApproximation
- * Signature: (Lorg/usvm/language/SymbolForCPython;J)J
+ * Signature: (Lorg/usvm/language/SymbolForCPython;JJ)J
  */
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_constructApproximation
-  (JNIEnv *, jobject, jobject, jlong);
+  (JNIEnv *, jobject, jobject, jlong, jlong);
 
 /*
  * Class:     org_usvm_interpreter_CPythonAdapter

@@ -53,7 +53,16 @@ object SliceContents {
 }
 
 object DictContents {
-    val isNotEmpty = ContentOfType("dict_is_empty")
+    val isNotEmpty = ContentOfType("dict_is_not_empty")
+}
+
+object SetContents {
+    val isNotEmpty = ContentOfType("set_is_not_empty")
+}
+
+object EnumerateContents {
+    val iterator = ContentOfType("iterator_of_enumerate")
+    val index = ContentOfType("index_of_enumerate")
 }
 
 object TimeOfCreation: PropertyOfPythonObject()

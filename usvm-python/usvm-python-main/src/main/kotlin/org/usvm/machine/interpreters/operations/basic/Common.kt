@@ -246,3 +246,31 @@ fun handlerCreateEmptyObjectKt(
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
     return constructEmptyAllocatedObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, type)
 }
+
+fun addHashableTypeConstrains(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    var cond: UBoolExpr = trueExpr
+    cond = cond and key.evalIsSoft(ctx, HasTpHash)
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonList).not()
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonDict).not()
+    cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonSet).not()
+    myAssert(ctx, cond)
+}
+
+fun forkOnUnknownHashableType(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    require(key.getTypeIfDefined(ctx) == null)
+    val keyIsInt = key.evalIs(ctx, ctx.typeSystem.pythonInt)
+    val keyIsBool = key.evalIs(ctx, ctx.typeSystem.pythonBool)
+    val keyIsFloat = key.evalIs(ctx, ctx.typeSystem.pythonFloat)
+    val keyIsNone = key.evalIs(ctx, ctx.typeSystem.pythonNoneType)
+    require(ctx.modelHolder.model.eval(keyIsInt or keyIsBool).isFalse)
+    myFork(ctx, keyIsInt)
+    myFork(ctx, keyIsBool)
+    require(ctx.modelHolder.model.eval(keyIsFloat or keyIsNone).isFalse)
+    myAssert(ctx, (keyIsFloat or keyIsNone).not())
+}
