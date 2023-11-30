@@ -7,6 +7,9 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
+import org.usvm.types.ClassScorer
+import org.usvm.types.TypeScorer
+import org.usvm.types.scoreClassNode
 import org.usvm.util.classpathWithApproximations
 import java.io.File
 
@@ -57,6 +60,7 @@ class JacoDBContainer(
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()
             installFeatures(InMemoryHierarchy)
+            installFeatures(ClassScorer(TypeScorer, ::scoreClassNode))
         }
     }
 }
