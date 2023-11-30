@@ -39,6 +39,7 @@ import org.usvm.statistics.distances.InterprocDistanceCalculator
 import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.types.JcTypeSystem
 import org.usvm.util.originalInst
 
 val logger = object : KLogging() {}.logger

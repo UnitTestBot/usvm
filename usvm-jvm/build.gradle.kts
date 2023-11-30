@@ -110,6 +110,8 @@ tasks.withType<Test> {
 
     environment("usvm.jvm.test.samples", testSamples.asPath)
     environment("usvm.jvm.test.samples.approximations", testSamplesWithApproximations.asPath)
+
+    systemProperty("org.jacodb.impl.storage.defaultBatchSize", 2000)
 }
 
 

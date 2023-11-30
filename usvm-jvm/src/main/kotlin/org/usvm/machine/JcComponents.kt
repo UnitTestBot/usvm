@@ -10,6 +10,7 @@ import org.usvm.UMocker
 import org.usvm.USizeExprProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
+import org.usvm.types.JcTypeSystem
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,

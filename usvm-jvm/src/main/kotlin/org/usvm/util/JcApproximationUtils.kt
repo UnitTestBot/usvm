@@ -11,8 +11,8 @@ import org.usvm.machine.logger
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
-private const val USVM_API_JAR_PATH = "usvm.jvm.api.jar.path"
-private const val USVM_APPROXIMATIONS_JAR_PATH = "usvm.jvm.approximations.jar.path"
+const val USVM_API_JAR_PATH = "usvm.jvm.api.jar.path"
+const val USVM_APPROXIMATIONS_JAR_PATH = "usvm.jvm.approximations.jar.path"
 
 private val classpathApproximations: MutableMap<JcClasspath, Set<String>> = ConcurrentHashMap()
 
