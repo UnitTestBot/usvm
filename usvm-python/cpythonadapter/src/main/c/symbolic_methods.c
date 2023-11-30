@@ -92,7 +92,6 @@ approximate_symbolic_method(SymbolicMethod *method, ConcolicContext *ctx, int *a
         *approximated = 0;
         return Py_None;
     }
-    register_symbolic_tracing(method->approximation_run_ref, ctx->adapter);
     *approximated = 1;
-    return PyFunction_Type.tp_call(method->approximation_run_ref, full_args, 0);
+    return call_function_with_symbolic_tracing(ctx->adapter, method->approximation_run_ref, full_args, 0);
 }

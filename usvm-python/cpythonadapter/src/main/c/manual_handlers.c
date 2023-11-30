@@ -48,7 +48,9 @@ handler_extract_self_from_method(void *ctx_raw, PyObject *callable) {
 }
 
 PyObject *
-handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *type_raw, PyObject *args, PyObject *kwargs) {
+handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *wrapped_type, PyObject *args, PyObject *kwargs) {
+    assert(is_wrapped(wrapped_type));
+    PyObject *type_raw = unwrap(wrapped_type);
     assert(PyType_Check(type_raw));
     assert(args && PyTuple_Check(args));
     ConcolicContext *ctx = (ConcolicContext *) ctx_raw;
@@ -66,14 +68,17 @@ handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *type_r
             PyObject *concrete_obj = PyBaseObject_Type.tp_new(type, args, 0);
             PyObject *self = wrap(concrete_obj, symbolic_obj, adapter);
             PyObject *new_args = PySequence_Concat(PyTuple_Pack(1, self), args);
-            int r = register_symbolic_tracing(descr, adapter);
-            assert(!r);
             *approximated = 1;
-            PyObject *init_res = PyFunction_Type.tp_call(descr, new_args, kwargs);
+            PyObject *init_res = call_function_with_symbolic_tracing(adapter, descr, new_args, kwargs);
             if (!init_res)
                 return 0;
             return self;
         }
+    }
+    PyObject *symbolic_type = get_symbolic_or_none(wrapped_type);
+    SymbolicMethod *symbolic_method = extract_symbolic_method(ctx, symbolic_type);
+    if (symbolic_method && symbolic_method->approximation_check_ref && symbolic_method->approximation_run_ref) {
+        return approximate_symbolic_method(symbolic_method, ctx, approximated, 0, args, kwargs);
     }
     *approximated = 0;
     return Py_None;

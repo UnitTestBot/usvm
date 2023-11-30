@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreters
 
+import org.usvm.annotations.ids.ApproximationId
 import org.usvm.annotations.ids.SymbolicMethodId
 import org.usvm.language.NamedSymbolForCPython
 import org.usvm.language.SymbolForCPython
@@ -13,6 +14,10 @@ object SymbolicClonesOfGlobals {
             ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Int)
         clonesMap["float"] =
             ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Float)
+        clonesMap["list"] =
+            ConcretePythonInterpreter.constructApproximation(null, ApproximationId.ListConstructor)
+        clonesMap["set"] =
+            ConcretePythonInterpreter.constructApproximation(null, ApproximationId.SetConstructor)
     }
 
     init {

@@ -1,4 +1,4 @@
-package org.usvm.machine.utils
+package org.usvm.machine.rendering
 
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.ConcretePythonInterpreter
@@ -20,6 +20,7 @@ class DefaultValueProvider(private val typeSystem: PythonTypeSystem) {
             typeSystem.pythonStr -> ConcretePythonInterpreter.eval(emptyNamespace, "''")
             typeSystem.pythonSlice -> ConcretePythonInterpreter.eval(emptyNamespace, "slice(0, 1, 1)")
             typeSystem.pythonDict -> ConcretePythonInterpreter.eval(emptyNamespace, "dict()")
+            typeSystem.pythonSet -> ConcretePythonInterpreter.eval(emptyNamespace, "set()")
             else -> {
                 val ref = typeSystem.addressOfConcreteType(type)
                 if (ConcretePythonInterpreter.typeHasStandardNew(ref)) {
