@@ -68,6 +68,8 @@ handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *wrappe
             if (!concrete_obj)
                 return 0;
             PyObject *symbolic_obj = create_empty_object(ctx_raw, type_raw);
+            if (!symbolic_obj)
+                return 0;
             PyObject *self = wrap(concrete_obj, symbolic_obj, adapter);
             assert(self);
             PyObject *tuple = PyTuple_Pack(1, self);
