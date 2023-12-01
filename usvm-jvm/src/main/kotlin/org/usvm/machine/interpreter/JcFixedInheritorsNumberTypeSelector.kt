@@ -6,6 +6,7 @@ import org.jacodb.api.JcClassType
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.constructors
+import org.jacodb.api.ext.packageName
 import org.jacodb.impl.features.classpaths.JcUnknownType
 import org.usvm.machine.logger
 import org.usvm.types.TypesResult
@@ -73,6 +74,10 @@ class JcTypeStreamPrioritization(private val typesToScore: Int) {
              **/
             if (type.isUsvmInternalClass || type is JcUnknownType) {
                 return Double.NEGATIVE_INFINITY
+            }
+
+            if (!type.jcClass.declaration.location.isRuntime || type.jcClass.packageName.startsWith("java.")) {
+                score += 1000000
             }
 
             // prefer class types over arrays
