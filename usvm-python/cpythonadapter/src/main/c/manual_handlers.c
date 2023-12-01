@@ -64,10 +64,15 @@ handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *wrappe
     } else if (type->tp_init == EXPORT_SLOT_INIT) {
         PyObject *descr = _PyType_Lookup(type, PyUnicode_FromString("__init__"));
         if (descr && PyFunction_Check(descr)) {
-            PyObject *symbolic_obj = create_empty_object(ctx_raw, type_raw);
             PyObject *concrete_obj = PyBaseObject_Type.tp_new(type, args, 0);
+            if (!concrete_obj)
+                return 0;
+            PyObject *symbolic_obj = create_empty_object(ctx_raw, type_raw);
             PyObject *self = wrap(concrete_obj, symbolic_obj, adapter);
-            PyObject *new_args = PySequence_Concat(PyTuple_Pack(1, self), args);
+            assert(self);
+            PyObject *tuple = PyTuple_Pack(1, self);
+            PyObject *new_args = PySequence_Concat(tuple, args);
+            Py_DECREF(tuple);
             *approximated = 1;
             PyObject *init_res = call_function_with_symbolic_tracing(adapter, descr, new_args, kwargs);
             if (!init_res)

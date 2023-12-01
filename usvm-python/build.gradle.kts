@@ -129,6 +129,9 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     }
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
+    //doFirst {
+    //    println(sourceSets.test.get().runtimeClasspath.joinToString(separator = ":"))
+    //}
 }
 
 /*

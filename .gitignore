@@ -14,3 +14,4 @@ buildSrc/.gradle
 
 # Ignore Python execution cache
 __pycache__/
+run_python_with_gdb.sh
