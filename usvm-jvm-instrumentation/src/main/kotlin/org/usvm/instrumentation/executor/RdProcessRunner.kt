@@ -10,7 +10,7 @@ import kotlinx.coroutines.delay
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.methods
+import org.jacodb.approximation.JcEnrichedVirtualMethod
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
@@ -196,13 +196,16 @@ class RdProcessRunner(
                 val jcClass =
                     deserializedClassesCache.getOrPut(classId) {
                         val className = coveredClasses.find { it.classId == classId }
-                            ?: error("Deserialization error")
-                        jcClasspath.findClassOrNull(className.className) ?: error("Deserialization error")
+                            ?: error("Trace deserialization error")
+                        jcClasspath.findClassOrNull(className.className) ?: error("Trace deserialization error")
                     }
-                val jcMethod = jcClass.methods.sortedBy { it.description }[methodId.toInt()]
+                if (jcClass.declaredMethods.any { it is JcEnrichedVirtualMethod }) {
+                    return listOf()
+                }
+                val jcMethod = jcClass.declaredMethods.sortedBy { it.description }[methodId.toInt()]
                 jcMethod.instList
                     .find { it.location.index == instructionId }
-                    ?: error("Deserialization error")
+                    ?: error("Trace deserialization error")
             }
         }
 
