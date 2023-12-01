@@ -51,6 +51,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
@@ -295,6 +296,12 @@ class JcInterpreter(
                     },
                 )
 
+                // TODO usvm-sbft-merge: hack to prevent NPE for the `value` field in strings
+                handleStringValueField(
+                    scope,
+                    method,
+                ) { stmt.arguments.first().asExpr(ctx.addressSort) }
+
                 scope.doWithState {
                     addNewMethodCall(stmt, entryPoint)
                 }
@@ -319,6 +326,32 @@ class JcInterpreter(
 
                 mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
+        }
+    }
+
+    private fun handleStringValueField(scope: JcStepScope, method: JcMethod, stringRefBlock: () -> UHeapRef) {
+        with(ctx) {
+            if (method.isStatic || method.isConstructor) {
+                return
+            }
+
+            val type = method.enclosingClass.toType()
+            if (type != stringType) {
+                return
+            }
+
+            val stringThisRef = stringRefBlock()
+            if (isStaticHeapRef(stringThisRef)) {
+                // For string literals we set `value` explicitly
+                return
+            }
+
+            val stringValueLValue = UFieldLValue(addressSort, stringThisRef, stringValueField.field)
+            val stringValue = scope.calcOnState { memory.read(stringValueLValue) }
+
+            val notNullValueConstraint = mkEq(stringValue, nullRef).not()
+            scope.assert(notNullValueConstraint)
+                ?: error("Cannot make `java.lang.String#value` not-null for string $stringThisRef")
         }
     }
 
