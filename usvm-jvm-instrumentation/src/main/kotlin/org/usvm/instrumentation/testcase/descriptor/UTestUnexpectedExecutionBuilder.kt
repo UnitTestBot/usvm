@@ -19,7 +19,7 @@ class UTestUnexpectedExecutionBuilder(
     fun build(exception: Exception): UTestExecutionResult {
         return when (exception) {
             is TimeoutCancellationException ->
-                UTestExecutionTimedOutResult(buildExceptionDescriptor(exception.message ?: "timeout"))
+                UTestExecutionFailedResult(buildExceptionDescriptor(exception.message ?: "timeout"))
             is CancellationException ->
                 UTestExecutionFailedResult(buildExceptionDescriptor("CancellationException"))
             is RdFault ->
