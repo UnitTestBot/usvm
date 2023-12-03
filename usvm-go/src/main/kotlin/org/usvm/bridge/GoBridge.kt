@@ -4,6 +4,8 @@ import com.sun.jna.Native
 import com.sun.jna.Structure
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
+import org.usvm.machine.GoType
+import org.usvm.util.GoResult
 
 class GoBridge {
     private val path = "/home/buraindo/libs/java_bridge.so"
@@ -15,8 +17,8 @@ class GoBridge {
 
     // ------------ region: init
 
-    fun initialize(filename: String): String { //TODO proper error handling
-        return bridge.initialize(GoString(filename)).toString()
+    fun initialize(filename: String): GoResult {
+        return toResult(bridge.initialize(GoString(filename)))
     }
 
     // ------------ region: init
@@ -47,7 +49,43 @@ class GoBridge {
 
     // ------------ region: application graph
 
+    // ------------ region: type system
+
+    fun getAnyType(): GoType = toType(bridge.getAnyType())
+
+    fun findSubTypes(type: GoType): Array<GoType> = toTypeArray(bridge.findSubTypes(type.pointer))
+
+    fun isInstantiable(type: GoType): Boolean = bridge.isInstantiable(type.pointer)
+
+    fun isFinal(type: GoType): Boolean = bridge.isFinal(type.pointer)
+
+    fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean =
+        bridge.hasCommonSubtype(type.pointer, toTypeGoSlice(types.toTypedArray()))
+
+    fun isSupertype(supertype: GoType, type: GoType): Boolean = bridge.isSupertype(supertype.pointer, type.pointer)
+
+    // ------------ region: type system
+
     // ------------ region: util
+
+    private val mapType: (Type.ByReference, GoType) -> Unit = { out, type ->
+        out.pointer = type.pointer
+        out.name = type.name
+    }
+
+    private inline fun <reified T, reified R : Structure> toGoSlice(
+        array: Array<T>,
+        type: Class<R>,
+        mapper: (R, T) -> Unit
+    ): GoSlice {
+        val typeInstance = Structure.newInstance(type)
+        val slice = typeInstance.toArray(array.size).map { it as R }.toTypedArray()
+        for (i in array.indices) {
+            mapper(slice[i], array[i])
+            slice[i].write()
+        }
+        return GoSlice(typeInstance.pointer, slice.size.toLong(), slice.size.toLong())
+    }
 
     private inline fun <reified T : Structure, reified R> toArray(
         slice: Slice,
@@ -70,17 +108,29 @@ class GoBridge {
         return toArray(slice, Method.ByReference::class.java) { toMethod(it) }
     }
 
+    private fun toTypeArray(slice: Slice): Array<GoType> {
+        return toArray(slice, Type.ByReference::class.java) { toType(it) }
+    }
+
+    private fun toTypeGoSlice(array: Array<GoType>): GoSlice {
+        return toGoSlice(array, Type.ByReference::class.java, mapType)
+    }
+
     private fun toInst(inst: Inst): GoInst = GoInst(inst.pointer, inst.statement)
 
     private fun toMethod(method: Method): GoMethod = GoMethod(method.pointer, method.name)
 
+    private fun toType(type: Type): GoType = GoType(type.pointer, type.name)
+
     private fun toString(string: GoString): String = string.p
+
+    private fun toResult(result: Result): GoResult = GoResult(result.message, result.code)
 
     // ------------ region: util
 
     // ------------ region: test
 
-    fun talk(): String = bridge.talk().toString() //TODO proper error handling
+    fun talk(): GoResult = toResult(bridge.talk())
 
     fun getCalls(): Int = bridge.getCalls()
 
@@ -109,6 +159,7 @@ class GoBridge {
     companion object {
         private var i: Int = 0
 
+        @Suppress("unused")
         @JvmStatic
         fun increase() {
             println("INCREASE")

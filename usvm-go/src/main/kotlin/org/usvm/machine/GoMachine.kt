@@ -10,8 +10,12 @@ import org.usvm.machine.state.GoState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.distances.CallGraphStatisticsImpl
+import org.usvm.statistics.distances.CfgStatisticsImpl
+import org.usvm.statistics.distances.PlainCallGraphStatistics
 
 val logger = object : KLogging() {}.logger
 
@@ -19,24 +23,41 @@ class GoMachine(
     private val options: UMachineOptions
 ) : UMachine<GoState>() {
     private val bridge = GoBridge()
-    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout)
+    private val typeSystem = GoTypeSystem(bridge, options.typeOperationsTimeout)
     private val applicationGraph = GoApplicationGraph(bridge)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter()
+    private val interpreter = GoInterpreter(bridge)
+    private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
     fun analyze(file: String) {
         logger.debug("{}.analyze()", this)
 
         bridge.initialize(file)
 
-        val method = bridge.getMain()
+        val entryPoint = bridge.getMain()
+        val initialStates = mapOf(entryPoint to GoState(ctx, entryPoint))
+
+        val timeStatistics = TimeStatistics<GoMethod, GoState>()
+        val coverageStats = CoverageStatistics<GoMethod, GoInst, GoState>(setOf(entryPoint), applicationGraph)
+        val callGraphStatistics =
+            when (options.targetSearchDepth) {
+                0u -> PlainCallGraphStatistics()
+                else -> CallGraphStatisticsImpl(
+                    options.targetSearchDepth,
+                    applicationGraph
+                )
+            }
+
         val pathSelector = createPathSelector(
-            GoState(ctx),
+            initialStates,
             UMachineOptions(),
             applicationGraph,
+            timeStatistics,
+            { coverageStats },
+            { cfgStatistics },
+            { callGraphStatistics }
         )
-        val coverageStats: CoverageStatistics<GoMethod, GoInst, GoState> = CoverageStatistics(setOf(method), applicationGraph)
         val statesCollector =
             when (options.stateCollectionStrategy) {
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<GoState>(coverageStats) { false }
@@ -56,6 +77,6 @@ class GoMachine(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        ctx.close()
     }
 }

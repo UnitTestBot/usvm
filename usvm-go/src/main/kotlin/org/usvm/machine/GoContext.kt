@@ -6,5 +6,4 @@ import org.usvm.UContext
 
 internal typealias USizeSort = UBv32Sort
 
-class GoContext(components: UComponents<*, USizeSort>) : UContext<USizeSort>(components) {
-}
+class GoContext(components: UComponents<*, USizeSort>) : UContext<USizeSort>(components)

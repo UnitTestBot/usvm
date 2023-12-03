@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 
 class BridgeTest {
     @Test
-    fun testBridge() {
+    fun testBridgePlayground() {
         val bridge = GoBridge()
         bridge.hello()
         bridge.inc()
@@ -75,5 +75,17 @@ class BridgeTest {
 
         val statements = bridge.statementsOf(main)
         statements.forEach { println(it) }
+
+        println(bridge.methodOf(statements[0]))
+    }
+
+    @Test
+    fun testBridgeTypeSystem() {
+        val bridge = GoBridge()
+        bridge.initialize("/home/buraindo/programs/max2.go")
+        val any = bridge.getAnyType()
+        println(any)
+        println(bridge.isSupertype(any, any))
+        println(bridge.hasCommonSubtype(any, listOf(any, any)))
     }
 }

@@ -11,12 +11,14 @@ import org.usvm.targets.UTargetsSet
 
 class GoState(
     ctx: GoContext,
+    override val entrypoint: GoMethod,
     callStack: UCallStack<GoMethod, GoInst> = UCallStack(),
     pathConstraints: UPathConstraints<GoType> = UPathConstraints(ctx),
     memory: UMemory<GoType, GoMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<GoType>> = listOf(),
     pathNode: PathNode<GoInst> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
+    var panicked: Boolean = false,
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
     callStack,
@@ -27,12 +29,19 @@ class GoState(
     targets,
 ) {
     override fun clone(newConstraints: UPathConstraints<GoType>?): GoState {
-        TODO("Not yet implemented")
+        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+        return GoState(
+            ctx,
+            entrypoint,
+            callStack.clone(),
+            clonedConstraints,
+            memory.clone(clonedConstraints.typeConstraints),
+            models,
+            pathNode,
+            targets.clone(),
+            panicked,
+        )
     }
 
-    override val entrypoint: GoMethod
-        get() = TODO("Not yet implemented")
-
-    override val isExceptional: Boolean
-        get() = false // TODO
+    override val isExceptional: Boolean get() = panicked
 }

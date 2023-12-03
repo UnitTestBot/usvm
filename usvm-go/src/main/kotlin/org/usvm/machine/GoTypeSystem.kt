@@ -1,33 +1,39 @@
 package org.usvm.machine
 
+import org.usvm.bridge.GoBridge
+import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import kotlin.time.Duration
 
 class GoTypeSystem(
+    private val bridge: GoBridge,
     override val typeOperationsTimeout: Duration
 ) : UTypeSystem<GoType> {
+    private val anyType = bridge.getAnyType()
+    private val topTypeStream by lazy { USupportTypeStream.from(this, anyType) }
+
     override fun topTypeStream(): UTypeStream<GoType> {
-        TODO("Not yet implemented")
+        return topTypeStream
     }
 
     override fun findSubtypes(type: GoType): Sequence<GoType> {
-        TODO("Not yet implemented")
+        return bridge.findSubTypes(type).asSequence()
     }
 
     override fun isInstantiable(type: GoType): Boolean {
-        TODO("Not yet implemented")
+        return bridge.isInstantiable(type)
     }
 
     override fun isFinal(type: GoType): Boolean {
-        TODO("Not yet implemented")
+        return bridge.isFinal(type)
     }
 
     override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean {
-        TODO("Not yet implemented")
+        return bridge.hasCommonSubtype(type, types)
     }
 
     override fun isSupertype(supertype: GoType, type: GoType): Boolean {
-        TODO("Not yet implemented")
+        return bridge.isSupertype(supertype, type)
     }
 }
