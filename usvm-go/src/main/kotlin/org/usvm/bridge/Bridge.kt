@@ -11,6 +11,7 @@ interface Bridge : Library {
 
     // ------------ region: machine
     fun getMain(): Method.ByValue
+    fun getMethod(name: GoString): Method.ByValue
     // ------------ region: machine
 
     // ------------ region: application graph
@@ -32,6 +33,10 @@ interface Bridge : Library {
     fun hasCommonSubtype(type: TypePointer, types: GoSlice): Boolean
     fun isSupertype(supertype: TypePointer, type: TypePointer): Boolean
     // ------------ region: type system
+
+    // ------------ region: misc
+    fun methodInfo(method: MethodPointer): MethodInfo.ByValue
+    // ------------ region: misc
 
     // ------------ region: test
     fun talk(): Result
@@ -58,6 +63,7 @@ open class GoString(
     @JvmField var n: Int = p.length,
 ) : Structure(), Structure.ByValue
 
+@Suppress("unused")
 @Structure.FieldOrder("data", "len", "cap")
 open class GoSlice(
     @JvmField var data: Pointer = Pointer.NULL,
@@ -101,7 +107,6 @@ open class Inst(
         return "statement: $statement, pointer: $pointer"
     }
 
-    class ByValue : Inst(), Structure.ByValue
     class ByReference : Inst(), Structure.ByReference
 }
 
@@ -118,6 +123,14 @@ open class Method(
 
     class ByValue : Method(), Structure.ByValue
     class ByReference : Method(), Structure.ByReference
+}
+
+@Structure.FieldOrder("parameters", "localsCount")
+open class MethodInfo(
+    @JvmField var parameters: Slice = Slice(),
+    @JvmField var localsCount: Int = 0,
+) : Structure() {
+    class ByValue : MethodInfo(), Structure.ByValue
 }
 
 typealias TypePointer = Long

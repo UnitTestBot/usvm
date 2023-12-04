@@ -7,4 +7,6 @@ class GoMethod(
     override fun toString(): String {
         return "method: $name, pointer: $pointer"
     }
+
+    fun localIdx(i: Int): Int = i
 }

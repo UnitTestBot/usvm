@@ -27,16 +27,16 @@ class GoMachine(
     private val applicationGraph = GoApplicationGraph(bridge)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter(bridge)
+    private val interpreter = GoInterpreter(bridge, ctx)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(file: String) {
+    fun analyze(file: String, entrypoint: String) {
         logger.debug("{}.analyze()", this)
 
         bridge.initialize(file)
 
-        val entryPoint = bridge.getMain()
-        val initialStates = mapOf(entryPoint to GoState(ctx, entryPoint))
+        val entryPoint = bridge.getMethod(entrypoint)
+        val initialStates = mapOf(entryPoint to interpreter.getInitialState(entryPoint))
 
         val timeStatistics = TimeStatistics<GoMethod, GoState>()
         val coverageStats = CoverageStatistics<GoMethod, GoInst, GoState>(setOf(entryPoint), applicationGraph)

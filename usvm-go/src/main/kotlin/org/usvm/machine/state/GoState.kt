@@ -44,4 +44,9 @@ class GoState(
     }
 
     override val isExceptional: Boolean get() = panicked
+
+    val lastStmt get() = pathNode.statement
+    fun newInst(inst: GoInst) {
+        pathNode += inst
+    }
 }

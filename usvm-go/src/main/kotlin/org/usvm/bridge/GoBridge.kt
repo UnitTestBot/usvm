@@ -4,6 +4,7 @@ import com.sun.jna.Native
 import com.sun.jna.Structure
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
+import org.usvm.machine.GoMethodInfo
 import org.usvm.machine.GoType
 import org.usvm.util.GoResult
 
@@ -26,6 +27,8 @@ class GoBridge {
     // ------------ region: machine
 
     fun getMain(): GoMethod = toMethod(bridge.getMain())
+
+    fun getMethod(name: String): GoMethod = toMethod(bridge.getMethod(GoString(name)))
 
     // ------------ region: machine
 
@@ -65,6 +68,12 @@ class GoBridge {
     fun isSupertype(supertype: GoType, type: GoType): Boolean = bridge.isSupertype(supertype.pointer, type.pointer)
 
     // ------------ region: type system
+
+    // ------------ region: misc
+
+    fun methodInfo(method: GoMethod): GoMethodInfo = toMethodInfo(bridge.methodInfo(method.pointer))
+
+    // ------------ region: misc
 
     // ------------ region: util
 
@@ -119,6 +128,11 @@ class GoBridge {
     private fun toInst(inst: Inst): GoInst = GoInst(inst.pointer, inst.statement)
 
     private fun toMethod(method: Method): GoMethod = GoMethod(method.pointer, method.name)
+
+    private fun toMethodInfo(methodInfo: MethodInfo): GoMethodInfo {
+        val parameters = toTypeArray(methodInfo.parameters)
+        return GoMethodInfo(parameters, methodInfo.localsCount)
+    }
 
     private fun toType(type: Type): GoType = GoType(type.pointer, type.name)
 
