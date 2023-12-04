@@ -1,34 +1,44 @@
 package org.usvm.util
 
-import io.ksmt.utils.asExpr
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.*
-import org.jacodb.api.ext.*
+import org.jacodb.api.JcClassType
+import org.jacodb.api.JcClasspath
+import org.jacodb.api.JcField
+import org.jacodb.api.JcType
+import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.LocationType
+import org.jacodb.api.ext.objectType
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
-import org.usvm.*
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.api.typeStreamOf
+import org.usvm.api.StaticFieldValue
 import org.usvm.api.util.JcTestResolver
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.field.UFieldLValue
+import org.usvm.api.util.JcTestStateResolver
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestMethodCall
+import org.usvm.instrumentation.testcase.api.UTestNullExpression
+import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
-import org.usvm.machine.*
-import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
-import org.usvm.machine.interpreter.JcTypeStreamPrioritization
+import org.usvm.machine.JcContext
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
+import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
+import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
-import org.usvm.types.first
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -229,19 +239,16 @@ class JcTestExecutor(
                 resolveLValue(ref, param.type)
             }
 
+            staticsToResolve.forEach { field ->
+                val fieldType = ctx.cp.findTypeOrNull(field.type.typeName)
+                    ?: error("No such type ${field.type} found")
+                val sort = ctx.typeToSort(fieldType)
+                val resolvedValue = resolveLValue(JcStaticFieldLValue(field, sort), fieldType)
+
+                decoderApi.setField(field, instance = decoderApi.createNullConst(ctx.cp.objectType), resolvedValue)
+            }
+
             val initStmts = decoderApi.initializerInstructions()
-            val statics = staticsToResolve.map { field ->
-                        val fieldType = ctx.cp.findTypeOrNull(field.type.typeName)
-                            ?: error("No such type ${field.type} found")
-                        val sort = ctx.typeToSort(fieldType)
-
-                        field to resolveLValue(JcStaticFieldLValue(field, sort), fieldType)
-                }
-
-            val initStmts = thisInstance.second +
-                    parameters.flatMap { it.second } +
-                    statics.map { UTestSetStaticFieldStatement(it.first, it.second.first) } +
-                    statics.flatMap { it.second.second }
 
             val callExpr = if (method.isStatic) {
                 UTestStaticMethodCall(method.method, parameters)

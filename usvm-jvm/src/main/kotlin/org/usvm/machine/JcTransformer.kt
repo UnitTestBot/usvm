@@ -1,6 +1,8 @@
 package org.usvm.machine
 
+import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
+import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
@@ -54,6 +56,7 @@ class JcStaticFieldDecoder<Sort : USort>(
     override fun decodeLazyRegion(
         model: KModel,
         mapping: Map<UHeapRef, UConcreteHeapRef>,
+        assertions: List<KExpr<KBoolSort>>,
     ): UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> =
         JcStaticFieldModel(model, mapping, translated)
 }
