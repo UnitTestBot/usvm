@@ -13,10 +13,14 @@ class NewStateObserverForRunner(
 ): NewStateObserver() {
     private val saver = PickledObjectSaver(communicator)
     private val seedSender = StateSeedSender(saver)
+    private val sentData = mutableSetOf<String>()
     override fun onNewState(state: PythonExecutionState) {
         val data = seedSender.getData(state) ?: return
-        scope.launch {
-            seedSender.sendStateSeeds(data)
+        if (data !in sentData) {
+            sentData.add(data)
+            scope.launch {
+                seedSender.sendStateSeeds(data)
+            }
         }
     }
 }
