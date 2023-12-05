@@ -14,6 +14,8 @@ object SymbolicClonesOfGlobals {
             ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Int)
         clonesMap["float"] =
             ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Float)
+        clonesMap["enumerate"] =
+            ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(null, SymbolicMethodId.Enumerate)
         clonesMap["list"] =
             ConcretePythonInterpreter.constructApproximation(null, ApproximationId.ListConstructor)
         clonesMap["set"] =
