@@ -30,7 +30,6 @@ fun handlerSetContainsKt(
     myFork(ctx, result)
 }
 
-/*
 fun handlerSetAddKt(
     ctx: ConcolicRunContext,
     set: UninterpretedSymbolicPythonObject,
@@ -39,8 +38,22 @@ fun handlerSetAddKt(
     ctx.curState ?: return
     set.addSupertype(ctx, ctx.typeSystem.pythonSet)
     addHashableTypeConstrains(ctx, elem)
+    val elemType = elem.getTypeIfDefined(ctx)
+    val typeSystem = ctx.typeSystem
+    when (elemType) {
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return  // TODO
+        typeSystem.pythonInt, typeSystem.pythonBool -> {
+            val intValue = elem.getToIntContent(ctx) ?: return
+            set.addIntToSet(ctx, intValue)
+        }
+        else -> {
+            if (elemType == null) {
+                forkOnUnknownHashableType(ctx, elem)
+            }
+            set.addRefToSet(ctx, elem)
+        }
+    }
 }
-*/
 
 fun handlerCreateEmptySetKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null

@@ -28,6 +28,7 @@ import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
 import static org.usvm.machine.interpreters.operations.basic.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.basic.RangeKt.*;
+import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerCreateEmptySetKt;
 import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerSetContainsKt;
 import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
 import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
@@ -35,6 +36,7 @@ import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodFloatKt;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodIntKt;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.ListKt.*;
+import static org.usvm.machine.interpreters.operations.symbolicmethods.SetKt.symbolicMethodSetAddKt;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
@@ -599,6 +601,16 @@ public class CPythonAdapter {
         return withTracing(context, event, () -> wrap(handlerCreateDictConstKeyKt(context, keys.obj, Arrays.stream(elements).map(s -> s.obj))));
     }
 
+    @CPythonAdapterJavaMethod(cName = "create_empty_set")
+    @CPythonFunction(
+            argCTypes = {},
+            argConverters = {},
+            addToSymbolicAdapter = false
+    )
+    public static SymbolForCPython handlerCreateEmptySet(ConcolicRunContext context) {
+        return methodWrapper(context, new MethodParameters("create_empty_set", Collections.emptyList()), () -> handlerCreateEmptySetKt(context));
+    }
+
     @CPythonAdapterJavaMethod(cName = "range_iter")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
@@ -784,6 +796,33 @@ public class CPythonAdapter {
         if (dict.obj == null || key.obj == null || value.obj == null)
             return;
         withTracing(context, new MethodParametersNoReturn("dict_set_item", Arrays.asList(dict, key, value)), unit(() -> handlerDictSetItemKt(context, dict.obj, key.obj, value.obj)));
+    }
+
+    @SuppressWarnings("all")
+    @CPythonAdapterJavaMethod(cName = "dict_iter")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerDictIter(ConcolicRunContext context, SymbolForCPython dict) {
+        if (dict.obj == null)
+            return null;
+        withTracing(context, new MethodParametersNoReturn("dict_iter", Collections.singletonList(dict)), unit(() -> handlerDictIterKt(context, dict.obj)));
+        return null;
+    }
+
+    @SuppressWarnings("all")
+    @CPythonAdapterJavaMethod(cName = "dict_get_size")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter},
+            addToSymbolicAdapter = false
+    )
+    public static SymbolForCPython handlerDictSize(ConcolicRunContext context, SymbolForCPython dict) {
+        if (dict.obj == null)
+            return null;
+        withTracing(context, new MethodParametersNoReturn("dict_size", Collections.singletonList(dict)), unit(() -> handlerDictLengthKt(context, dict.obj)));
+        return null;
     }
 
     @CPythonAdapterJavaMethod(cName = "dict_contains")
@@ -1195,6 +1234,15 @@ public class CPythonAdapter {
 
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "reverse")
     public MemberDescriptor listReverseDescriptor = new ApproximationDescriptor(ApproximationId.ListReverse);
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_set_add")
+    @SymbolicMethod(id = SymbolicMethodId.SetAdd)
+    public static SymbolForCPython symbolicMethodSetAdd(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        return withTracing(context, new SymbolicMethodParameters("set_add", self, args), () -> symbolicMethodSetAddKt(context, self, args));
+    }
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PySet_Type", nativeMemberName = "add")
+    public MemberDescriptor setAddDescriptor = new MethodDescriptor(SymbolicMethodId.SetAdd);
 
     @SymbolicMemberDescriptor(nativeTypeName = "PySlice_Type", nativeMemberName = "start")
     public MemberDescriptor sliceStartDescriptor = SliceStartDescriptor.INSTANCE;

@@ -56,8 +56,8 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonInt),
-        "construct_set_with_call",
+        listOf(typeSystem.pythonSet),
+        "empty_check",
         "Sets"
     )
     val functions = listOf(function)
@@ -85,8 +85,8 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    //if (module != "breadth_first_search_shortest_path_2")
-    //    return null
+    if (module != "depth_first_search_2")
+        return null
     //if (name != "bfs_shortest_path_distance")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
