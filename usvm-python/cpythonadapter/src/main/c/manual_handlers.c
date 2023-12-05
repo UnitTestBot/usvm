@@ -85,7 +85,7 @@ handler_approximate_type_call(void *ctx_raw, int *approximated, PyObject *wrappe
         }
     } else if (type == &PySet_Type && PyTuple_Size(args) == 0 && !kwargs) {
         *approximated = 1;
-        PyObject *concrete_result = Py_TYPE(type)->tp_call(type, args, kwargs);
+        PyObject *concrete_result = Py_TYPE(type)->tp_call(type_raw, args, kwargs);
         if (!concrete_result)
             return 0;
         PyObject *symbolic_result = create_empty_set(adapter->handler_param);
