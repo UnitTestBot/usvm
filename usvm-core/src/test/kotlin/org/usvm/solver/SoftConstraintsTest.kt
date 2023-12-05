@@ -2,6 +2,7 @@ package org.usvm.solver
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.utils.cast
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -10,10 +11,12 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.constraints.UPathConstraints
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
@@ -36,7 +39,11 @@ open class SoftConstraintsTest {
 
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkComposer(any()) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+
         softConstraintsProvider = USoftConstraintsProvider(ctx)
+
+        every { components.mkSoftConstraintsProvider(any()) } returns softConstraintsProvider.cast()
 
         translator = UExprTranslator(ctx)
         decoder = ULazyModelDecoder(translator)

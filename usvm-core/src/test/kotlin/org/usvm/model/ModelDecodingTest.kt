@@ -11,6 +11,7 @@ import org.usvm.Field
 import org.usvm.Method
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIndexedMocker
@@ -27,6 +28,7 @@ import org.usvm.collection.set.primitive.setEntries
 import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.URegistersStack
 import org.usvm.memory.key.USizeExprKeyInfo
@@ -58,6 +60,8 @@ class ModelDecodingTest {
 
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+
         val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
