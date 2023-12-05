@@ -74,4 +74,46 @@ class SetsTest: PythonTestRunnerForPrimitiveProgram("Sets", UMachineOptions(step
             )
         )
     }
+
+    @Test
+    fun testConstructSetWithCall() {
+        check1WithConcreteRun(
+            constructFunction("construct_set_with_call", listOf(typeSystem.pythonInt)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testAddStrToSet() {
+        check1WithConcreteRun(
+            constructFunction("add_str_to_set", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testEmptyCheck() {
+        check1WithConcreteRun(
+            constructFunction("empty_check", listOf(typeSystem.pythonSet)),
+            eq(2),
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

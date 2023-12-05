@@ -304,6 +304,7 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
         typeSystem.pythonList, typeSystem.pythonTuple -> readArrayLength(ctx) gt mkIntNum(0)
         typeSystem.pythonNoneType -> falseExpr
         typeSystem.pythonDict -> dictIsEmpty(ctx).not()
+        typeSystem.pythonSet -> setIsEmpty(ctx).not()
         is ConcretePythonType -> {
             if (HasNbBool.accepts(type) && !HasSqLength.accepts(type) && HasMpLength.accepts(type))
                 trueExpr
@@ -710,6 +711,13 @@ fun UninterpretedSymbolicPythonObject.setIsEmpty(ctx: ConcolicRunContext): UBool
     return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, SetContents.isNotEmpty, ctx.ctx.boolSort))
 }
 
+fun UninterpretedSymbolicPythonObject.makeSetNotEmpty(ctx: ConcolicRunContext) {
+    require(ctx.curState != null)
+    val typeSystem = ctx.typeSystem
+    addSupertype(ctx, typeSystem.pythonSet)
+    ctx.curState!!.memory.writeField(address, SetContents.isNotEmpty, ctx.ctx.boolSort, ctx.ctx.trueExpr, ctx.ctx.trueExpr)
+}
+
 fun UninterpretedSymbolicPythonObject.setContainsInt(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>
@@ -719,13 +727,15 @@ fun UninterpretedSymbolicPythonObject.setContainsInt(
     return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
 }
 
-/*
 fun UninterpretedSymbolicPythonObject.addIntToSet(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>
-): UBoolExpr {
+) = with(ctx.ctx) {
+    require(ctx.curState != null)
+    makeSetNotEmpty(ctx)
+    val lvalue = USetEntryLValue(intSort, address, key, IntSetType, USizeExprKeyInfo())
+    ctx.curState!!.memory.write(lvalue, trueExpr, trueExpr)
 }
-*/
 
 fun UninterpretedSymbolicPythonObject.setContainsRef(
     ctx: ConcolicRunContext,
@@ -734,6 +744,16 @@ fun UninterpretedSymbolicPythonObject.setContainsRef(
     require(ctx.curState != null)
     val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
     return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
+}
+
+fun UninterpretedSymbolicPythonObject.addRefToSet(
+    ctx: ConcolicRunContext,
+    key: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    require(ctx.curState != null)
+    makeSetNotEmpty(ctx)
+    val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
+    ctx.curState!!.memory.write(lvalue, trueExpr, trueExpr)
 }
 
 fun InterpretedInputSymbolicPythonObject.setIsEmpty(ctx: UPythonContext): Boolean = with(ctx) {

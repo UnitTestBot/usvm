@@ -10,5 +10,6 @@ enum class SymbolicMethodId(
     ListInsert,
     ListPop,
     ListExtend,
-    ListClear
+    ListClear,
+    SetAdd
 }
