@@ -23,6 +23,8 @@ import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
 import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
 import static org.usvm.machine.interpreters.operations.basic.DictKt.*;
+import static org.usvm.machine.interpreters.operations.basic.EnumerateKt.handlerEnumerateIterKt;
+import static org.usvm.machine.interpreters.operations.basic.EnumerateKt.handlerEnumerateNextKt;
 import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
 import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
@@ -33,8 +35,7 @@ import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerSetCon
 import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
 import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
 import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
-import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodFloatKt;
-import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.symbolicMethodIntKt;
+import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.*;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.ListKt.*;
 import static org.usvm.machine.interpreters.operations.symbolicmethods.SetKt.symbolicMethodSetAddKt;
 import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
@@ -633,6 +634,28 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("range_iterator_next", Collections.singletonList(rangeIterator)), () -> handlerRangeIteratorNextKt(context, rangeIterator.obj));
     }
 
+    @CPythonAdapterJavaMethod(cName = "enumerate_iter")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerEnumerateIter(ConcolicRunContext context, SymbolForCPython enumerate) {
+        if (enumerate.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("enumerate_iter", Collections.singletonList(enumerate)), () -> handlerEnumerateIterKt(context, enumerate.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "enumerate_iternext")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerEnumerateNext(ConcolicRunContext context, SymbolForCPython enumerate) {
+        if (enumerate.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("enumerate_iternext", Collections.singletonList(enumerate)), () -> handlerEnumerateNextKt(context, enumerate.obj));
+    }
+
     @CPythonAdapterJavaMethod(cName = "list_get_item")
     @CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
@@ -1187,6 +1210,13 @@ public class CPythonAdapter {
     public static SymbolForCPython symbolicMethodFloat(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
         assert(self == null);
         return withTracing(context, new SymbolicMethodParameters("float", null, args), () -> symbolicMethodFloatKt(context, args));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "symbolic_method_enumerate")
+    @SymbolicMethod(id = SymbolicMethodId.Enumerate)
+    public static SymbolForCPython symbolicMethodEnumerate(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+        assert(self == null);
+        return withTracing(context, new SymbolicMethodParameters("enumerate", null, args), () -> symbolicMethodEnumerateKt(context, args));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_append")

@@ -6,6 +6,7 @@ enum class SymbolicMethodId(
 ) {
     Int,
     Float,
+    Enumerate,
     ListAppend,
     ListInsert,
     ListPop,

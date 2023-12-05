@@ -2,6 +2,7 @@ package org.usvm.machine.interpreters.operations.symbolicmethods
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.interpreters.operations.basic.handlerCreateEnumerateKt
 import org.usvm.machine.interpreters.operations.basic.handlerFloatCastKt
 import org.usvm.machine.interpreters.operations.basic.handlerIntCastKt
 
@@ -17,4 +18,12 @@ fun symbolicMethodFloatKt(ctx: ConcolicRunContext, args: Array<SymbolForCPython>
         return null
     val value = args[0].obj ?: return null
     return handlerFloatCastKt(ctx, value)?.let { SymbolForCPython(it, 0) }
+}
+
+fun symbolicMethodEnumerateKt(ctx: ConcolicRunContext, args: Array<SymbolForCPython>): SymbolForCPython? {
+    if (args.size != 1)
+        return null
+    val iterable = args[0].obj ?: return null
+    val result = handlerCreateEnumerateKt(ctx, iterable) ?: return null
+    return SymbolForCPython(result, 0)
 }
