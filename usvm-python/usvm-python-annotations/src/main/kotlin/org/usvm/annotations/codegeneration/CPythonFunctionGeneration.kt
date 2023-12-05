@@ -72,12 +72,13 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): Pair<Strin
             "return $returnConverter(ctx, java_return);"
     val cReturnType = description.result.cType.repr
     val failValue = description.failValue
+    val failLine = if (numberOfArgs > 0) "int fail = 0;" else ""
     val implementation = """
         $cReturnType
         $cName(${(listOf("void *arg") + cArgs).joinToString(", ")}) {
             // printf("INSIDE $cName!\n"); fflush(stdout);
             ConcolicContext *ctx = (ConcolicContext *) arg;
-            int fail = 0;
+            $failLine
             ${javaArgsCreation.joinToString("\n            ")}
             // printf("CALLING JAVA METHOD IN $cName!\n"); fflush(stdout);
             $returnValueCreation
