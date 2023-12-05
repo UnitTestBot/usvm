@@ -32,8 +32,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -85,8 +85,8 @@ private fun getFunctionInfo(
         return null
     if (ignoreFunctions.contains(name))
         return null
-    if (module != "depth_first_search_2")
-        return null
+    //if (module != "depth_first_search_2")
+    //    return null
     //if (name != "bfs_shortest_path_distance")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
