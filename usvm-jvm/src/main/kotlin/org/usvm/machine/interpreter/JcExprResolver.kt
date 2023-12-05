@@ -97,6 +97,7 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
@@ -803,6 +804,11 @@ class JcExprResolver(
 
     private fun assertHardMaxArrayLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
+        if (lengthLeThanMaxLength.isFalse) {
+            // TODO hack for known size
+            return@with Unit
+        }
+
         scope.assert(lengthLeThanMaxLength)
     }
 
