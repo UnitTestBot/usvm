@@ -18,8 +18,8 @@ class URLClassPathLoader(private val classPath: List<File>) {
 
     private val urlClassLoader = URLClassLoader(classPath.map { it.toURI().toURL() }.toTypedArray(), null)
 
-    fun getResource(name: String): Resource {
-        val resourceUrl = urlClassLoader.getResource(name) ?: error("Resource $name not found on classpath $classPath")
+    fun getResource(name: String): Resource? {
+        val resourceUrl = urlClassLoader.getResource(name) ?: return null
         return object : Resource {
             override fun getName(): String = name
             override fun getURL(): URL = resourceUrl

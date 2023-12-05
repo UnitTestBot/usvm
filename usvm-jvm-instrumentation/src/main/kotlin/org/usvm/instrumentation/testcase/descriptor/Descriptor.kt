@@ -133,7 +133,7 @@ class UTestObjectDescriptor(
 
 }
 
-class UTestExceptionDescriptor(
+data class UTestExceptionDescriptor(
     override val type: JcType,
     val message: String,
     val stackTrace: List<UTestValueDescriptor>,
