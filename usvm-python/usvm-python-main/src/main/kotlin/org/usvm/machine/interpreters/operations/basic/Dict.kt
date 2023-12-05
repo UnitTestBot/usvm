@@ -141,3 +141,19 @@ fun handlerDictContainsKt(
     }
     myFork(ctx, result)
 }
+
+fun handlerDictIterKt(
+    ctx: ConcolicRunContext,
+    dict: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    myFork(ctx, dict.dictIsEmpty(ctx))
+}
+
+fun handlerDictLengthKt(
+    ctx: ConcolicRunContext,
+    dict: UninterpretedSymbolicPythonObject
+) {
+    ctx.curState ?: return
+    myFork(ctx, dict.dictIsEmpty(ctx))
+}

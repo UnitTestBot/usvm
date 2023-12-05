@@ -26,6 +26,8 @@ Approximation_len(PyObject *o) {
         symbolic = adapter->tuple_get_size(adapter->handler_param, get_symbolic_or_none(o));
     } else if (is_virtual_object(concrete)) {
         symbolic = adapter->symbolic_virtual_unary_fun(adapter->handler_param, get_symbolic_or_none(o));
+    } else if (PyDict_Check(concrete)) {
+        symbolic = dict_get_size(adapter->handler_param, get_symbolic_or_none(o));
     } else {
         sprintf(adapter->msg_buffer, "__len__ of %s", Py_TYPE(concrete)->tp_name);
         if (adapter->lost_symbolic_value(adapter->handler_param, adapter->msg_buffer)) return 0;
