@@ -56,9 +56,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonSet),
-        "empty_check",
-        "Sets"
+        listOf(PythonAnyType),
+        "use_enumerate",
+        "Enumerate"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)

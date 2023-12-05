@@ -777,3 +777,29 @@ fun InterpretedInputSymbolicPythonObject.setContainsRef(
 }
 
 /** enumerate **/
+
+fun UninterpretedSymbolicPythonObject.initializeEnumerate(
+    ctx: ConcolicRunContext,
+    arg: UninterpretedSymbolicPythonObject
+) = with(ctx.ctx) {
+    require(ctx.curState != null)
+    ctx.curState!!.memory.writeField(address, EnumerateContents.iterator, addressSort, arg.address, trueExpr)
+    ctx.curState!!.memory.writeField(address, EnumerateContents.index, intSort, mkIntNum(0), trueExpr)
+}
+
+fun UninterpretedSymbolicPythonObject.getEnumerateIterator(
+    ctx: ConcolicRunContext
+): UninterpretedSymbolicPythonObject {
+    require(ctx.curState != null)
+    val result = ctx.curState!!.memory.readField(address, EnumerateContents.iterator, ctx.ctx.addressSort)
+    return UninterpretedSymbolicPythonObject(result, typeSystem)
+}
+
+fun UninterpretedSymbolicPythonObject.getEnumerateIndexAndIncrement(
+    ctx: ConcolicRunContext
+): UExpr<KIntSort> = with(ctx.ctx) {
+    require(ctx.curState != null)
+    val result = ctx.curState!!.memory.readField(address, EnumerateContents.index, intSort)
+    ctx.curState!!.memory.writeField(address, EnumerateContents.index, intSort, mkArithAdd(result, mkIntNum(1)), trueExpr)
+    return result
+}
