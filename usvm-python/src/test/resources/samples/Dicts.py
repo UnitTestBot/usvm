@@ -49,3 +49,28 @@ def dict_virtual_set_item(x, y):
 
 def dict_empty_check(d: dict):
     assert d
+
+
+def use_get(d: dict):
+    assert d.get(0) == 239
+
+
+def use_get_with_default(d: dict, x):
+    a = d.get(0, 25)
+    b = d.get(0, 24)
+    assert a != b
+    assert a == x
+
+
+def use_setdefault(x, y):
+    d = {}
+    d.setdefault(1)
+    d.setdefault(2, 15)
+    assert x == d[1]
+    assert y == d[2]
+
+
+def use_constructor(x, y):
+    d = dict()
+    d[1] = 15
+    assert d[x] == y

@@ -56,19 +56,15 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "use_enumerate",
-        "Enumerate"
+        listOf(PythonAnyType, PythonAnyType),
+        "use_setdefault",
+        "Dicts"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
 }
 
-private val ignoreFunctions = listOf<String>(
-    // "SegmentTree.build",
-    "get_transitions",
-    "BidirectionalAStar.retrace_bidirectional_path"
-)
+private val ignoreFunctions = listOf<String>()
 private val ignoreModules = listOf<String>(
     "odd_even_transposition_parallel"
 )
@@ -87,7 +83,7 @@ private fun getFunctionInfo(
         return null
     //if (module != "depth_first_search_2")
     //    return null
-    //if (name != "bfs_shortest_path_distance")
+    //if (name != "BidirectionalAStar.search")
     //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null

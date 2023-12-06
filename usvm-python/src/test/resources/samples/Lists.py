@@ -239,3 +239,26 @@ def use_constructor(x):
 def list_from_range(x, y, z):
     a = list(range(x, y, z))
     assert a[0] == -239
+
+
+def use_sort(x: list):
+    assert len(x) == 3
+    assert x != [1, 2, 3]
+    x.sort()
+    assert x == [1, 2, 3]
+
+
+def use_copy(x: list):
+    y = x.copy()
+    assert y[0] == 239
+
+
+def use_remove(x):
+    lst = [1, 2, 3]
+    lst.remove(x)
+    assert lst == [1, 2]
+
+
+def use_count(x):
+    lst = [1, 3, 3, 2]
+    assert lst.count(x) == 2

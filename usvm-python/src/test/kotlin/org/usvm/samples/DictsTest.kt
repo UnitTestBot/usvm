@@ -169,4 +169,60 @@ class DictsTest : PythonTestRunnerForPrimitiveProgram("Dicts", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testUseGet() {
+        check1WithConcreteRun(
+            constructFunction("use_get", listOf(typeSystem.pythonDict)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testUseGetWithDefault() {
+        check2WithConcreteRun(
+            constructFunction("use_get_with_default", listOf(typeSystem.pythonDict, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testUseSetdefault() {
+        check2WithConcreteRun(
+            constructFunction("use_setdefault", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
+    fun testUseConstructor() {
+        check2WithConcreteRun(
+            constructFunction("use_constructor", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }

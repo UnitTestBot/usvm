@@ -493,4 +493,65 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
     }
+
+    @Test
+    fun testUseSort() {
+        val oldOptions = options
+        options = UMachineOptions(stepLimit = 100U)
+        check1WithConcreteRun(
+            constructFunction("use_sort", listOf(typeSystem.pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+        options = oldOptions
+    }
+
+    @Test
+    fun testUseCopy() {
+        check1WithConcreteRun(
+            constructFunction("use_copy", listOf(typeSystem.pythonList)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testUseRemove() {
+        allowPathDiversions = true
+        check1WithConcreteRun(
+            constructFunction("use_remove", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+        allowPathDiversions = false
+    }
+
+    @Test
+    fun testUseCount() {
+        check1WithConcreteRun(
+            constructFunction("use_count", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
 }
