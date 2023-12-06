@@ -28,9 +28,9 @@ def add_str_to_set(x):
     s.add("bbb")
     assert x in s
 
-
-def construct_set_with_syntax(x: int):
-    s = {1, 2, 3}
+# TODO: from frosetset
+def construct_set_with_syntax(x, y):
+    s = {y}
     assert x in s
 
 

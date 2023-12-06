@@ -116,4 +116,18 @@ class SetsTest: PythonTestRunnerForPrimitiveProgram("Sets", UMachineOptions(step
             )
         )
     }
+
+    @Test
+    fun testConstructSetWithSyntax() {
+        check2WithConcreteRun(
+            constructFunction("construct_set_with_syntax", listOf(PythonAnyType, PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.repr == "None" },
+                { _, _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
 }
