@@ -118,3 +118,65 @@ class SliceGetItemApproximation(SpecialApproximation):
             return result
 
     run = slice_get_item_impl
+
+
+class SortApproximation(ApproximationForMethod):
+    @staticmethod
+    def accept(self, *args) -> bool:
+        return len(args) == 0
+
+    @staticmethod
+    def run(self: list, *args) -> Any:
+        for i in range(len(self)):
+            new_elem = self[i]
+            for j in range(i):
+                if new_elem < self[j]:
+                    for k in range(i, j, -1):
+                        self[k] = self[k - 1]
+                    self[j] = new_elem
+                    break
+
+
+class CopyApproximation(ApproximationForMethod):
+    @staticmethod
+    def accept(self, *args) -> bool:
+        return len(args) == 0
+
+    @staticmethod
+    def run(self: list, *args) -> Any:
+        result = []
+        for elem in self:
+            result.append(elem)
+        return result
+
+
+class RemoveApproximation(ApproximationForMethod):
+    @staticmethod
+    def accept(self, *args) -> bool:
+        return len(args) == 1
+
+    @staticmethod
+    def run(self: list, *args) -> Any:
+        elem = args[0]
+        cnt = -1
+        for x in self:
+            cnt += 1
+            if x == elem:
+                self.pop(cnt)
+                return
+        raise ValueError()
+
+
+class CountApproximation(ApproximationForMethod):
+    @staticmethod
+    def accept(self, *args) -> bool:
+        return len(args) == 1
+
+    @staticmethod
+    def run(self: list, *args) -> Any:
+        elem = args[0]
+        result = 0
+        for x in self:
+            if x == elem:
+                result += 1
+        return result

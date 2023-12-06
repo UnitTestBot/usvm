@@ -20,6 +20,8 @@ object SymbolicClonesOfGlobals {
             ConcretePythonInterpreter.constructApproximation(null, ApproximationId.ListConstructor)
         clonesMap["set"] =
             ConcretePythonInterpreter.constructApproximation(null, ApproximationId.SetConstructor)
+        clonesMap["dict"] =
+            ConcretePythonInterpreter.constructApproximation(null, ApproximationId.DictConstructor)
     }
 
     init {

@@ -57,3 +57,12 @@ def get_item_of_input(x, t):
         return 3
     else:
         return 4
+
+
+def use_count(x):
+    lst = (1, 3, 3, 2)
+    assert lst.count(x) == 2
+
+
+def use_index(x: tuple):
+    assert x.index(0) == 1
