@@ -119,4 +119,32 @@ class TupleTest: PythonTestRunnerForPrimitiveProgram("Tuple", UMachineOptions(st
         options = oldOptions
         allowPathDiversions = false
     }
+
+    @Test
+    fun testUseCount() {
+        check1WithConcreteRun(
+            constructFunction("use_count", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
+    fun testUseIndex() {
+        check1WithConcreteRun(
+            constructFunction("use_index", listOf(typeSystem.pythonTuple)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" }
+            )
+        )
+    }
 }

@@ -1265,6 +1265,30 @@ public class CPythonAdapter {
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "reverse")
     public MemberDescriptor listReverseDescriptor = new ApproximationDescriptor(ApproximationId.ListReverse);
 
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "sort")
+    public MemberDescriptor listSortDescriptor = new ApproximationDescriptor(ApproximationId.ListSort);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "copy")
+    public MemberDescriptor listCopyDescriptor = new ApproximationDescriptor(ApproximationId.ListCopy);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "remove")
+    public MemberDescriptor listRemoveDescriptor = new ApproximationDescriptor(ApproximationId.ListRemove);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "count")
+    public MemberDescriptor listCountDescriptor = new ApproximationDescriptor(ApproximationId.ListCount);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyDict_Type", nativeMemberName = "get")
+    public MemberDescriptor dictGetDescriptor = new ApproximationDescriptor(ApproximationId.DictGet);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyDict_Type", nativeMemberName = "setdefault")
+    public MemberDescriptor dictSetdefaultDescriptor = new ApproximationDescriptor(ApproximationId.DictSetdefault);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyTuple_Type", nativeMemberName = "count")
+    public MemberDescriptor tupleCountDescriptor = new ApproximationDescriptor(ApproximationId.TupleCount);
+
+    @SymbolicMethodDescriptor(nativeTypeName = "PyTuple_Type", nativeMemberName = "index")
+    public MemberDescriptor tupleIndexDescriptor = new ApproximationDescriptor(ApproximationId.TupleIndex);
+
     @CPythonAdapterJavaMethod(cName = "symbolic_method_set_add")
     @SymbolicMethod(id = SymbolicMethodId.SetAdd)
     public static SymbolForCPython symbolicMethodSetAdd(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
