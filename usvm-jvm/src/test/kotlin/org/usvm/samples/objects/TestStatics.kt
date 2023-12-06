@@ -3,12 +3,8 @@ package org.usvm.samples.objects
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
-import org.usvm.util.JcTestResolverType
 
 class TestStatics : JavaMethodTestRunner() {
-    override val resolverType: JcTestResolverType
-        get() = JcTestResolverType.CONCRETE_EXECUTOR
-
     @Test
     fun `Test static field access`() {
         checkDiscoveredProperties(
