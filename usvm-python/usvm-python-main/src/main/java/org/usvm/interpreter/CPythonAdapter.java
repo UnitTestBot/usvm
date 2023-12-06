@@ -30,8 +30,7 @@ import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
 import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
 import static org.usvm.machine.interpreters.operations.basic.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.operations.basic.RangeKt.*;
-import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerCreateEmptySetKt;
-import static org.usvm.machine.interpreters.operations.basic.SetKt.handlerSetContainsKt;
+import static org.usvm.machine.interpreters.operations.basic.SetKt.*;
 import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
 import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
 import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
@@ -600,6 +599,18 @@ public class CPythonAdapter {
             return null;
         DictCreationConstKey event = new DictCreationConstKey(keys, Arrays.asList(elements));
         return withTracing(context, event, () -> wrap(handlerCreateDictConstKeyKt(context, keys.obj, Arrays.stream(elements).map(s -> s.obj))));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "create_set")
+    @CPythonFunction(
+            argCTypes = {CType.PyObjectArray},
+            argConverters = {ObjectConverter.ArrayConverter}
+    )
+    public static SymbolForCPython handlerCreateSet(ConcolicRunContext context, SymbolForCPython[] elements) {
+        if (Arrays.stream(elements).anyMatch(elem -> elem.obj == null))
+            return null;
+        SetCreation event = new SetCreation(Arrays.asList(elements));
+        return withTracing(context, event, () -> wrap(handlerCreateSetKt(context, Arrays.stream(elements).map(s -> s.obj))));
     }
 
     @CPythonAdapterJavaMethod(cName = "create_empty_set")
