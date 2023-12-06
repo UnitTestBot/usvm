@@ -20,6 +20,7 @@ data class ListCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEv
 data class DictCreation(val keys: List<SymbolForCPython>, val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class DictCreationConstKey(val keys: SymbolForCPython, val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class TupleCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class SetCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class EmptyObjectCreation(val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodParameters(
