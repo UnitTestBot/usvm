@@ -21,7 +21,7 @@ import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
-import org.usvm.UTrackedMockSymbol
+import org.usvm.UTrackedSymbol
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UArrayRegionDecoder
 import org.usvm.collection.array.UArrayRegionId
@@ -86,7 +86,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }
 
     override fun <Sort : USort> transform(
-        expr: UTrackedMockSymbol<Sort>,
+        expr: UTrackedSymbol<Sort>,
     ): UExpr<Sort> = expr.sort.mkConst(expr.name)
 
     override fun transform(expr: UNullRef): KExpr<UAddressSort> {

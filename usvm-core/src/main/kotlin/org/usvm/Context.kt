@@ -359,13 +359,13 @@ open class UContext<USizeSort : USort>(
         UIndexedMethodReturnValue(this, method.cast(), callIndex, sort)
     }.cast()
 
-    private val trackedMockSymbols = mkAstInterner<UTrackedMockSymbol<out USort>>()
+    private val trackedSymbols = mkAstInterner<UTrackedSymbol<out USort>>()
     private var trackedIndex = 0
 
-    fun <Sort : USort> mkTrackedMockSymbol(
+    fun <Sort : USort> mkTrackedSymbol(
         sort: Sort
-    ): UTrackedMockSymbol<Sort> = trackedMockSymbols.createIfContextActive {
-        UTrackedMockSymbol(this, name = "tracked#${trackedIndex++}", sort)
+    ): UTrackedSymbol<Sort> = trackedSymbols.createIfContextActive {
+        UTrackedSymbol(this, name = "tracked#${trackedIndex++}", sort)
     }.cast()
     
     private val isSubtypeExprCache = mkAstInterner<UIsSubtypeExpr<Any>>()

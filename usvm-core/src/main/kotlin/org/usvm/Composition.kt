@@ -44,7 +44,7 @@ open class UComposer<Type, USizeSort : USort>(
     ): UExpr<Sort> = memory.mocker.eval(expr)
 
     override fun <Sort : USort> transform(
-        expr: UTrackedMockSymbol<Sort>
+        expr: UTrackedSymbol<Sort>
     ): UExpr<Sort> = memory.mocker.eval(expr)
 
     override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr =

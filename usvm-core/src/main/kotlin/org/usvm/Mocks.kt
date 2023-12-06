@@ -12,7 +12,7 @@ interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
-interface MockLiteral
+interface TrackedLiteral
 
 interface UMocker<Method> : UMockEvaluator {
     fun <Sort : USort> call(
@@ -20,18 +20,18 @@ interface UMocker<Method> : UMockEvaluator {
         args: Sequence<UExpr<out USort>>,
         sort: Sort,
     ): UMockSymbol<Sort>
-    val trackedLiterals: Collection<MockLiteral>
+    val trackedLiterals: Collection<TrackedLiteral>
 
-    fun <Sort : USort> createMockSymbol(trackLiteral: MockLiteral?, sort: Sort): UExpr<Sort>
+    fun <Sort : USort> createMockSymbol(trackedLiteral: TrackedLiteral?, sort: Sort): UExpr<Sort>
 
-    fun getTrackedExpression(trackLiteral: MockLiteral): UExpr<USort>
+    fun getTrackedExpression(trackedLiteral: TrackedLiteral): UExpr<USort>
 
     fun clone(): UMocker<Method>
 }
 
 class UIndexedMocker<Method>(
     private var methodMockClauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentHashMapOf(),
-    private var trackedSymbols: PersistentMap<MockLiteral, UExpr<out USort>> = persistentHashMapOf(),
+    private var trackedSymbols: PersistentMap<TrackedLiteral, UExpr<out USort>> = persistentHashMapOf(),
     private var untrackedSymbols: PersistentList<UExpr<out USort>> = persistentListOf(),
 ) : UMocker<Method>, UMergeable<UIndexedMocker<Method>, MergeGuard> {
     override fun <Sort : USort> call(
@@ -49,15 +49,18 @@ class UIndexedMocker<Method>(
 
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol
 
-    override val trackedLiterals: Collection<MockLiteral>
+    override val trackedLiterals: Collection<TrackedLiteral>
         get() = trackedSymbols.keys
 
-    override fun <Sort : USort> createMockSymbol(trackLiteral: MockLiteral?, sort: Sort): UExpr<Sort> {
-        val const = sort.uctx.mkTrackedMockSymbol(sort)
+    /**
+     * Creates a mock symbol. If [trackedLiteral] is not null, created expression
+     * can be retrieved later by this [trackedLiteral] using [getTrackedExpression] method.
+     */
+    override fun <Sort : USort> createMockSymbol(trackedLiteral: TrackedLiteral?, sort: Sort): UExpr<Sort> {
+        val const = sort.uctx.mkTrackedSymbol(sort)
 
-        if (trackLiteral != null) {
-            // TODO check for duplicates
-            trackedSymbols = trackedSymbols.put(trackLiteral, const)
+        if (trackedLiteral != null) {
+            trackedSymbols = trackedSymbols.put(trackedLiteral, const)
         } else {
             untrackedSymbols = untrackedSymbols.add(const)
         }
@@ -65,13 +68,13 @@ class UIndexedMocker<Method>(
         return const
     }
 
-    override fun getTrackedExpression(trackLiteral: MockLiteral): UExpr<USort> {
-        if (trackLiteral !in trackedSymbols) error("Access by unregistered track literal $trackLiteral")
+    override fun getTrackedExpression(trackedLiteral: TrackedLiteral): UExpr<USort> {
+        if (trackedLiteral !in trackedSymbols) error("Access by unregistered track literal $trackedLiteral")
 
-        return trackedSymbols.getValue(trackLiteral).cast()
+        return trackedSymbols.getValue(trackedLiteral).cast()
     }
 
-    override fun clone(): UIndexedMocker<Method> = UIndexedMocker(methodMockClauses, trackedSymbols)
+    override fun clone(): UIndexedMocker<Method> = UIndexedMocker(methodMockClauses, trackedSymbols, untrackedSymbols)
 
     /**
      * Check if this [UIndexedMocker] can be merged with [other] indexed mocker.

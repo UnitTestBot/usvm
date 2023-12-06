@@ -207,7 +207,7 @@ class JcTestExecutor(
         return JcCoverage(emptyMap())
     }
 
-    private fun emptyJcParametersState() = JcParametersState(null, listOf(), emptyMap()) // TODO
+    private fun emptyJcParametersState() = JcParametersState(null, listOf(), emptyMap())
 
     /**
      * An actual class for resolving objects from [UExpr]s.

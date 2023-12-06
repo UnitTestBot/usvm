@@ -18,7 +18,7 @@ class JcStaticFieldReading<Sort : USort> internal constructor(
     override val sort: Sort,
 ) : USymbol<Sort>(ctx) {
     override fun accept(transformer: KTransformerBase): UExpr<Sort> {
-        require(transformer is JcTransformer) { "Expected a UTransformer, but got: $transformer" }
+        require(transformer is JcTransformer) { "Expected a JcTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 

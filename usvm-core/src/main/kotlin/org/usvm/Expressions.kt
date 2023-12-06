@@ -246,7 +246,7 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(method, callIndex, sort)
 }
 
-class UTrackedMockSymbol<Sort : USort> internal constructor(
+class UTrackedSymbol<Sort : USort> internal constructor(
     ctx: UContext<*>,
     val name: String,
     override val sort: Sort

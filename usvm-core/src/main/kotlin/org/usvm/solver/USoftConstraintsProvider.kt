@@ -34,7 +34,7 @@ import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
 import org.usvm.URegisterReading
 import org.usvm.USort
-import org.usvm.UTrackedMockSymbol
+import org.usvm.UTrackedSymbol
 import org.usvm.UTransformer
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
@@ -115,7 +115,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
     ): UExpr<Sort> = transformAppIfPossible(expr)
 
     override fun <Sort : USort> transform(
-        expr: UTrackedMockSymbol<Sort>
+        expr: UTrackedSymbol<Sort>
     ): UExpr<Sort> = transformAppIfPossible(expr)
 
     override fun transform(

@@ -58,7 +58,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun <Method, Sort : USort> transform(expr: UIndexedMethodReturnValue<Method, Sort>): UExpr<Sort>
 
-    fun <Sort : USort> transform(expr: UTrackedMockSymbol<Sort>) : UExpr<Sort>
+    fun <Sort : USort> transform(expr: UTrackedSymbol<Sort>) : UExpr<Sort>
 
     fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr
 
