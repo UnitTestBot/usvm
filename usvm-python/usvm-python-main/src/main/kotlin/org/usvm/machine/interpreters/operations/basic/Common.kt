@@ -87,6 +87,30 @@ fun createIterable(
     }
 }
 
+fun handlerStrEqKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    left.addSupertype(ctx, ctx.typeSystem.pythonStr)
+    right.addSupertype(ctx, ctx.typeSystem.pythonStr)
+    val result = ctx.ctx.mkHeapRefEq(left.address, right.address)
+    return constructBool(ctx, result)
+}
+
+fun handlerStrNeqKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? {
+    ctx.curState ?: return null
+    left.addSupertype(ctx, ctx.typeSystem.pythonStr)
+    right.addSupertype(ctx, ctx.typeSystem.pythonStr)
+    val result = ctx.ctx.mkNot(ctx.ctx.mkHeapRefEq(left.address, right.address))
+    return constructBool(ctx, result)
+}
+
 fun handlerIsOpKt(
     ctx: ConcolicRunContext,
     left: UninterpretedSymbolicPythonObject,
