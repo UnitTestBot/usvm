@@ -9,18 +9,21 @@ import org.usvm.machine.interpreter.GoStepScope
 class GoApi(
     private val ctx: GoContext,
     private val scope: GoStepScope,
-) : MkIntRegisterReading, MkIntSignedGreaterExpr, MkIfInst, MkReturnInst {
+) : MkIntRegisterReading, MkIntSignedLessExpr, MkIntSignedGreaterExpr, MkIfInst, MkReturnInst {
     override fun mkIntRegisterReading(name: String, idx: Int) {
-        println("mkIntRegisterReading: $name $idx")
-
         ctx.vars[name] = ctx.mkRegisterReading(idx, ctx.bv32Sort)
+    }
+
+    override fun mkIntSignedLessExpr(fst: String, snd: String) {
+        val f = ctx.vars[fst] ?: return
+        val s = ctx.vars[snd] ?: return
+        ctx.expressions["$fst < $snd"] = ctx.mkBvSignedLessExpr(f, s)
     }
 
     override fun mkIntSignedGreaterExpr(fst: String, snd: String) {
         val f = ctx.vars[fst] ?: return
         val s = ctx.vars[snd] ?: return
         ctx.expressions["$fst > $snd"] = ctx.mkBvSignedGreaterExpr(f, s)
-        println("mkIntSignedGreaterExpr: $fst $snd")
     }
 
     override fun mkIfInst(expr: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
@@ -34,7 +37,6 @@ class GoApi(
             blockOnTrueState = { newInst(pos) },
             blockOnFalseState = { newInst(neg) }
         )
-        println("mkIfInst: $expr $posInst $negInst")
     }
 
     override fun mkReturnInst(name: String) {
@@ -42,12 +44,15 @@ class GoApi(
         scope.doWithState {
             returnValue(value)
         }
-        println("mkReturnInst: $name $value")
     }
 }
 
 interface MkIntRegisterReading : Callback {
     fun mkIntRegisterReading(name: String, idx: Int)
+}
+
+interface MkIntSignedLessExpr : Callback {
+    fun mkIntSignedLessExpr(fst: String, snd: String)
 }
 
 interface MkIntSignedGreaterExpr : Callback {

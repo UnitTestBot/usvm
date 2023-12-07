@@ -158,6 +158,11 @@ class GoBridge {
                     return api.mkIntRegisterReading(name, idx)
                 }
             },
+            mkIntSignedLessExpr = object : MkIntSignedLessExpr {
+                override fun mkIntSignedLessExpr(fst: String, snd: String) {
+                    return api.mkIntSignedLessExpr(fst, snd)
+                }
+            },
             mkIntSignedGreaterExpr = object : MkIntSignedGreaterExpr {
                 override fun mkIntSignedGreaterExpr(fst: String, snd: String) {
                     return api.mkIntSignedGreaterExpr(fst, snd)

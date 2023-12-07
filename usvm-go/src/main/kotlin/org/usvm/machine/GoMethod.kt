@@ -8,5 +8,16 @@ class GoMethod(
         return "method: $name, pointer: $pointer"
     }
 
-    fun localIdx(i: Int): Int = i
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as GoMethod
+
+        return pointer == other.pointer
+    }
+
+    override fun hashCode(): Int {
+        return pointer.hashCode()
+    }
 }

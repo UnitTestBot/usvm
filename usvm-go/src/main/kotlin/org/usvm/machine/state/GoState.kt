@@ -63,4 +63,10 @@ class GoState(
             newInst(returnSite)
         }
     }
+
+    override fun toString(): String = buildString {
+        appendLine("Instruction: $lastInst")
+        if (isExceptional) appendLine("Exception: $methodResult")
+        appendLine(callStack)
+    }
 }

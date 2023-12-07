@@ -33,7 +33,7 @@ class GoMachine(
     private val interpreter = GoInterpreter(bridge, ctx)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    private fun analyze(methods: List<GoMethod>, targets: List<GoTarget> = emptyList()) {
+    private fun analyze(methods: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
         logger.debug("{}.analyze()", this)
 
         val initialStates = mutableMapOf<GoMethod, GoState>()
@@ -101,20 +101,22 @@ class GoMachine(
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
+
+        return statesCollector.collectedStates
     }
 
-    fun analyze(file: String, entrypoint: String, debug: Boolean) {
+    fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
         bridge.initialize(file, entrypoint, debug)
 
         val entryPoint = bridge.getMethod(entrypoint)
         val initialScope = GoStepScope(GoState(ctx, entryPoint), UForkBlackList.createDefault())
         val code = bridge.start(GoApi(ctx, initialScope))
-        logger.debug("bridge start: code {}", code)
+        logger.debug("Bridge start: code {}", code)
         if (code != 0) {
-            return
+            return emptyList()
         }
 
-        analyze(listOf(entryPoint))
+        return analyze(listOf(entryPoint))
     }
 
     private fun isStateTerminated(state: GoState): Boolean {

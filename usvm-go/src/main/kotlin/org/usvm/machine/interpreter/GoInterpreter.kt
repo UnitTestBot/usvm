@@ -23,7 +23,7 @@ class GoInterpreter(
         val state = GoState(ctx, method, targets = UTargetsSet.from(targets))
         val methodInfo = bridge.methodInfo(method)
 
-        logger.debug("method {} info: {}", method.name, methodInfo)
+        logger.debug("Method: {}, info: {}", method.name, methodInfo)
 
         val solver = ctx.solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
