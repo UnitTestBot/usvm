@@ -32,7 +32,12 @@ open class GeneratorTest {
                 db.classpath(cp)
             }
             generatorRepository = GeneratorRepository()
-            val generatorContext = GeneratorContext(mapOf(), generatorRepository, Random(42), jcClasspath)
+            val generatorContext = GeneratorContext(
+                mapOf(), generatorRepository,
+                Random(42),
+                jcClasspath,
+                userClassLoader
+            )
             generatorRepository.registerGeneratorContext(generatorContext)
         }
     }

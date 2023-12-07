@@ -14,7 +14,7 @@ class CallRandomMethod : Mutation() {
         val pos = seed.positions[position]
         val type = pos.field.type
         val instance = pos.descriptor.instance
-        val jcClasspath = pos.descriptor.type.classpath
+        val jcClasspath = pos.descriptor.type.type.classpath
         val jcClass = type.toJcClassOrInterface(jcClasspath) ?: return null
         val randomMethod = jcClass.declaredMethods.filter { !it.isStatic }.randomOrNull() ?: return null
         val dataGenerator = DataGenerator(jcClasspath)

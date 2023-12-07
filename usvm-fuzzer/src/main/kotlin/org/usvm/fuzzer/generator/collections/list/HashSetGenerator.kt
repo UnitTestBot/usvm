@@ -5,4 +5,8 @@ import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.arrayListType
 import org.usvm.fuzzer.util.hashSetType
 
-class HashSetGenerator(type: JcTypeWrapper): ListGenerator(type.type.classpath.hashSetType(), type.typeArguments) {}
+class HashSetGenerator(type: JcTypeWrapper) :
+    ListGenerator(
+        collectionClass = type.type.classpath.hashSetType().jcClass,
+        realType = type
+    )

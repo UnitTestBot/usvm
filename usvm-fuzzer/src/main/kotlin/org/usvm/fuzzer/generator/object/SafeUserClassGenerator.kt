@@ -1,8 +1,6 @@
 package org.usvm.fuzzer.generator.`object`
 
-import org.jacodb.api.JcClassType
 import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.ext.constructors
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestValueRepresentation
@@ -44,7 +42,7 @@ open class SafeUserClassGenerator(private val jcTypeWrapper: JcTypeWrapper) : Us
         getRandomWeighedConstructor(jcTypeWrapper, ctx.random)?.let { randomConstructor ->
             val initStmts = mutableListOf<UTestInst>()
             val args =
-                jcTypeWrapper.getMethodParametersTypes(randomConstructor).map { paramType ->
+                jcTypeWrapper.getMethodParametersTypes(randomConstructor, listOf()).map { paramType ->
                     val gen = ctx.repository.getGeneratorForType(paramType)
                     gen.generate().let {
                         initStmts.addAll(it.initStmts)
@@ -62,6 +60,7 @@ open class SafeUserClassGenerator(private val jcTypeWrapper: JcTypeWrapper) : Us
         val (maxParams, minParams) = with(type.constructors) {
             maxOf { it.parameters.size } to minOf { it.parameters.size }
         }
+        if (maxParams == minParams) return type.constructors.random()
         val diffOfParams = maxParams - minParams + 1
         var sumOfWeights = 0
         val constructorToWeight =

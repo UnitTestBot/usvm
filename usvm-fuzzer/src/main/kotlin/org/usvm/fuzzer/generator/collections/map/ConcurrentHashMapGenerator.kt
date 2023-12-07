@@ -5,4 +5,7 @@ import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.concurrentHashMapType
 
 class ConcurrentHashMapGenerator(type: JcTypeWrapper):
-    MapGenerator(type.type.classpath.concurrentHashMapType(), type.typeArguments) {}
+    MapGenerator(
+        collectionClass = type.type.classpath.concurrentHashMapType().jcClass,
+        type = type
+    )

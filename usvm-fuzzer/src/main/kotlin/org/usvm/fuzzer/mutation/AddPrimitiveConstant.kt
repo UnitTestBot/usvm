@@ -13,7 +13,7 @@ class AddPrimitiveConstant: Mutation() {
         val pos = seed.positions[position]
         val type = pos.field.type
         val instance = pos.descriptor.instance
-        val jcClasspath = pos.descriptor.type.classpath
+        val jcClasspath = pos.descriptor.type.type.classpath
         val jcField = pos.field
         val utConstExpr =
             when (type) {

@@ -1,6 +1,6 @@
 package org.usvm.fuzzer.generator.arrays
 
-import org.jacodb.api.JcType
+import org.jacodb.api.JcArrayType
 import org.jacodb.api.ext.int
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
@@ -12,11 +12,14 @@ import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestIntExpression
 
-class ArrayGenerator(private val component: JcTypeWrapper) : Generator() {
+class ArrayGenerator(private val arrayType: JcTypeWrapper) : Generator() {
     override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
         val length = random.nextInt(GeneratorSettings.minCollectionSize, GeneratorSettings.maxCollectionSize)
-        val arrayInstance = UTestCreateArrayExpression(component.type, UTestIntExpression(length, jcClasspath.int))
-        val componentGenerator = repository.getGeneratorForType(component) ?: error("Can't find generator for type $component")
+        val jcArrayType = (arrayType.type as JcArrayType)
+        val elementType = jcArrayType.elementType
+        val resolvedElementType = arrayType.resolveJcType(elementType)
+        val arrayInstance = UTestCreateArrayExpression(elementType, UTestIntExpression(length, jcClasspath.int))
+        val componentGenerator = repository.getGeneratorForType(resolvedElementType) ?: error("Can't find generator for type $jcArrayType")
         val initStatements = mutableListOf<UTestInst>()
         val valuesSetters = (0..length).map { index ->
             componentGenerator.generate().let {

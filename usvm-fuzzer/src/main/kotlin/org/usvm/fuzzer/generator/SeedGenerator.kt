@@ -4,49 +4,41 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.toType
 import org.usvm.fuzzer.seed.Seed
-import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestNullExpression
-import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
+import org.usvm.fuzzer.types.JcGenericGeneratorImpl
 import org.usvm.instrumentation.util.toJcType
-import org.usvm.instrumentation.util.typename
+import kotlin.system.exitProcess
 
 class SeedGenerator(
     private val jcClasspath: JcClasspath,
+    private val generatorRepository: GeneratorRepository
 ) {
 
-    val dataGenerator = DataGenerator(jcClasspath)
+    private val dataGenerator = DataGenerator(jcClasspath)
+    private val genericGenerator = JcGenericGeneratorImpl(jcClasspath)
 
     fun generateForMethod(jcMethod: JcMethod): Seed {
-        val instance =
+        val jcClass = jcMethod.enclosingClass.toType()
+        val resolvedClassType = genericGenerator.replaceGenericParametersForType(jcClass)
+        val typedTargetMethod = resolvedClassType.declaredMethods.find { it.method == jcMethod } ?: error("Cant find method")
+        val (resolvedMethod, methodSubstitutions) = genericGenerator.replaceGenericParametersForMethod(resolvedClassType, jcMethod)
+        val classInstance =
             if (!jcMethod.isStatic) {
-                val uTestInstanceScenario =
-                    dataGenerator.generateRandomParameterValue(jcMethod.enclosingClass.typename, 0)
-                val instance =
-                    if (uTestInstanceScenario.first != null) {
-                        uTestInstanceScenario.first
-                    } else {
-                        UTestNullExpression(jcMethod.enclosingClass.toType())
-                    }!!
-                Seed.Descriptor(instance, jcMethod.returnType.toJcType(jcClasspath)!!, uTestInstanceScenario.second)
+                with(generatorRepository.getGeneratorForType(resolvedClassType).generate()) {
+                    Seed.Descriptor(instance, resolvedClassType, initStmts)
+                }
             } else {
                 null
             }
-        val args = jcMethod.parameters.map {
-            val uTestParamScenario = dataGenerator.generateRandomParameterValue(it.type, 0)
-            val paramInstance =
-                if (uTestParamScenario.first == null) {
-                    UTestNullExpression(it.type.toJcType(jcClasspath)!!)
-                } else {
-                    uTestParamScenario.first!!
+        val args =
+            resolvedClassType.getMethodParametersTypes(typedTargetMethod, methodSubstitutions).map {
+                with(generatorRepository.getGeneratorForType(it).generate()) {
+                    Seed.Descriptor(instance, it, initStmts)
                 }
-            Seed.Descriptor(paramInstance, jcMethod.returnType.toJcType(jcClasspath)!!, uTestParamScenario.second)
-        }
+            }
         return if (jcMethod.isStatic) {
             Seed(jcMethod, args, null)
         } else {
-            Seed(jcMethod, listOf(instance!!) + args, null)
+            Seed(jcMethod, listOf(classInstance!!) + args, null)
         }
     }
 }

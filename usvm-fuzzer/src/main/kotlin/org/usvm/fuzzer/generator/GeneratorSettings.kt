@@ -7,7 +7,7 @@ object GeneratorSettings {
 
     val generationMode = GenerationMode.SAFE
     const val mocksEnabled = true
-    const val mockGenerationProbability = 20
+    const val mockGenerationProbability = 0
 
     //Common settings
     private val objectGenerationTimeout = 3.seconds

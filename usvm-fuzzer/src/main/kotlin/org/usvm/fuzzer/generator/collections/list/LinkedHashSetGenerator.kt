@@ -6,4 +6,8 @@ import org.usvm.fuzzer.util.arrayListType
 import org.usvm.fuzzer.util.linkedHashMapType
 import org.usvm.fuzzer.util.linkedHashSetType
 
-class LinkedHashSetGenerator(type: JcTypeWrapper): ListGenerator(type.type.classpath.linkedHashSetType(), type.typeArguments) {}
+class LinkedHashSetGenerator(type: JcTypeWrapper) :
+    ListGenerator(
+        collectionClass = type.type.classpath.linkedHashSetType().jcClass,
+        realType = type
+    )

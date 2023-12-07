@@ -2,7 +2,6 @@ package org.usvm.fuzzer.generator
 
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
-import org.jacodb.impl.types.JcClassTypeImpl
 import org.usvm.fuzzer.generator.arrays.ArrayGenerator
 import org.usvm.fuzzer.generator.collections.list.ArrayListGenerator
 import org.usvm.fuzzer.generator.collections.list.HashSetGenerator
@@ -15,6 +14,7 @@ import org.usvm.fuzzer.generator.collections.map.TreeMapGenerator
 import org.usvm.fuzzer.generator.`object`.*
 import org.usvm.fuzzer.generator.other.StringGenerator
 import org.usvm.fuzzer.generator.primitives.*
+import org.usvm.fuzzer.generator.reflection.ClassGenerator
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.*
 import org.usvm.instrumentation.util.stringType
@@ -35,7 +35,8 @@ class GeneratorRepository {
     fun getGeneratorForUnresolvedType(jcType: JcType) = getGeneratorForType(JcTypeWrapper(jcType, listOf()))
     fun getGeneratorForType(jcType: JcTypeWrapper): Generator = with(jcType.type.unboxIfNeeded()) {
         when (this) {
-            is JcArrayType -> ArrayGenerator(jcType.makeGenericReplacementForSubtype(elementType))
+            //TODO repair
+            is JcArrayType -> ArrayGenerator(jcType)
             is JcPrimitiveType -> getPrimitiveGeneratorForType(this, jcClasspath)
             is JcClassType -> getBuiltInOrUserGenerator(jcType, jcClasspath)
             else -> TODO()
@@ -46,6 +47,7 @@ class GeneratorRepository {
 
     private fun getBuiltInOrUserGenerator(jcType: JcTypeWrapper, jcClasspath: JcClasspath) =
         when (jcType.type.typeNameWOGenerics) {
+            jcClasspath.classType().typeNameWOGenerics -> ClassGenerator()
             jcClasspath.stringType().typeNameWOGenerics -> StringGenerator()
             jcClasspath.arrayListType().typeNameWOGenerics -> ArrayListGenerator(jcType)
             jcClasspath.listType().typeNameWOGenerics -> getRandomFrom(

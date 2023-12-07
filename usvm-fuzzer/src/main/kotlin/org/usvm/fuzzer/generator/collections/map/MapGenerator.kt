@@ -1,9 +1,12 @@
 package org.usvm.fuzzer.generator.collections.map
 
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcType
-import org.usvm.fuzzer.generator.collections.list.CollectionGenerator
+import org.jacodb.api.JcClassOrInterface
+import org.usvm.fuzzer.generator.collections.CollectionGenerator
 import org.usvm.fuzzer.types.JcTypeWrapper
 
-open class MapGenerator(collectionType: JcClassType, componentTypes: List<JcTypeWrapper>) :
-    CollectionGenerator(collectionType, componentTypes, "put")
+open class MapGenerator(collectionClass: JcClassOrInterface, type: JcTypeWrapper) :
+    CollectionGenerator(
+        collectionClass = collectionClass,
+        realType = type,
+        functionNameForAdd = "put"
+    )

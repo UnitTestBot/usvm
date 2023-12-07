@@ -1,8 +1,8 @@
-package org.usvm.fuzzer.generator.collections.list
+package org.usvm.fuzzer.generator.collections
 
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcType
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.ext.constructors
+import org.jacodb.api.ext.methods
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
@@ -13,17 +13,17 @@ import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 
 open class CollectionGenerator(
-    val collectionType: JcClassType,
-    val componentTypes: List<JcTypeWrapper>,
+    val collectionClass: JcClassOrInterface,
+    val realType: JcTypeWrapper,
     val functionNameForAdd: String
 ) : Generator() {
     override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
         val length = random.nextInt(GeneratorSettings.minCollectionSize, GeneratorSettings.maxCollectionSize)
-        val constructor = collectionType.constructors.first { it.parameters.isEmpty() }
-        val constructorCall = UTestConstructorCall(constructor.method, listOf())
-        val componentGenerators = componentTypes.map { repository.getGeneratorForType(it) }
+        val constructor = collectionClass.constructors.first { it.parameters.isEmpty() }
+        val constructorCall = UTestConstructorCall(constructor, listOf())
+        val componentGenerators = realType.substitutions.map { repository.getGeneratorForType(it.substitution) }
         val addFun =
-            collectionType.declaredMethods.find { it.name == functionNameForAdd && it.parameters.size == componentTypes.size }?.method
+            collectionClass.methods.find { it.name == functionNameForAdd && it.parameters.size == componentGenerators.size }
                 ?: error("add fun does not exist")
         val initStatements = mutableListOf<UTestInst>()
         val addInvocations = (0..length).map { index ->

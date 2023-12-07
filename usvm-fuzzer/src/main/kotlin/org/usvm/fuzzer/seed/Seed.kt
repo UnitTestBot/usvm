@@ -11,6 +11,7 @@ import org.usvm.fuzzer.position.PositionTrie
 import org.usvm.fuzzer.strategy.ChoosingStrategy
 import org.usvm.fuzzer.strategy.RandomStrategy
 import org.usvm.fuzzer.strategy.Selectable
+import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestInst
@@ -57,21 +58,21 @@ data class Seed(
         for ((i, arg) in args.withIndex()) {
             val tree = treesForArgs[i]
             val jcClass =
-                if (arg.type is JcClassType) {
-                    arg.type.toJcClass() ?: error("Cant convert ${arg.type.typeName} to class")
+                if (arg.type.type is JcClassType) {
+                    arg.type.type.toJcClass() ?: error("Cant convert ${arg.type.type.typeName} to class")
                 } else {
                     null
                 }
             val type = arg.type
-            tree.addRoot(type)
+            tree.addRoot(type.type)
             val fieldsToHandle = ArrayDeque<List<JcField>>()
-            val thisJcField = JcVirtualFieldImpl("this", Opcodes.ACC_PUBLIC, type.getTypename())
+            val thisJcField = JcVirtualFieldImpl("this", Opcodes.ACC_PUBLIC, type.type.getTypename())
             fieldsToHandle.add(listOf(thisJcField))
             jcClass?.allDeclaredFields?.forEach { jcField -> fieldsToHandle.add(listOf(jcField)) }
-            val cp = type.classpath
+            val cp = type.type.classpath
             while (fieldsToHandle.isNotEmpty()) {
                 val fieldChain = fieldsToHandle.removeFirst()
-                tree.addPosition(type, fieldChain)
+                tree.addPosition(type.type, fieldChain)
                 val addedField = fieldChain.last()
                 if (addedField.type.isClass) {
                     addedField.type.toJcClassOrInterface(cp)?.allDeclaredFields?.forEach { field ->
@@ -113,7 +114,7 @@ data class Seed(
         return UTest(allInitStatements, callStatement)
     }
 
-    class Descriptor(val instance: UTestExpression, val type: JcType, val initialExprs: List<UTestInst>)
+    class Descriptor(val instance: UTestExpression, val type: JcTypeWrapper, val initialExprs: List<UTestInst>)
 
     data class Position(val index: Int, var score: Double, val field: JcField, val descriptor: Descriptor) :
         Selectable()
