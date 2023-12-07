@@ -208,4 +208,32 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
             )
         )
     }
+
+    @Test
+    fun testUseStrEq() {
+        check1WithConcreteRun(
+            constructFunction("use_str_eq", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            compareConcolicAndConcreteReprsIfSuccess,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "AssertionError" },
+                { x, res -> x.typeName == "str" && res.repr == "None" },
+            )
+        )
+    }
+
+    @Test
+    fun testUseStrNeq() {
+        check1WithConcreteRun(
+            constructFunction("use_str_neq", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            compareConcolicAndConcreteReprsIfSuccess,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { x, res -> x.typeName == "str" && res.selfTypeName == "AssertionError" },
+                { _, res -> res.repr == "None" },
+            )
+        )
+    }
 }
