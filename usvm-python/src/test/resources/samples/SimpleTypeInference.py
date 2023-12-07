@@ -96,3 +96,11 @@ def range_loop(x):
 def sum_usage(x):
     s = sum(x)
     assert s == 10
+
+
+def use_str_eq(x):
+    assert x == "aaaaa"
+
+
+def use_str_neq(x):
+    assert x != "aaaa"
