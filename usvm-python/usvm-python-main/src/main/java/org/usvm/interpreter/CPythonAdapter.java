@@ -212,6 +212,28 @@ public class CPythonAdapter {
         withTracing(context, new MethodParametersNoReturn("is_op", Arrays.asList(left, right)), unit(() -> handlerIsOpKt(context, left.obj, right.obj)));
     }
 
+    @CPythonAdapterJavaMethod(cName = "str_eq")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerStrEq(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("str_eq", Arrays.asList(left, right)), () -> handlerStrEqKt(context, left.obj, right.obj));
+    }
+
+    @CPythonAdapterJavaMethod(cName = "str_neq")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static SymbolForCPython handlerStrNeq(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return null;
+        return methodWrapper(context, new MethodParameters("str_neq", Arrays.asList(left, right)), () -> handlerStrNeqKt(context, left.obj, right.obj));
+    }
+
     @CPythonAdapterJavaMethod(cName = "none_check")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
