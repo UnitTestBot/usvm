@@ -26,7 +26,7 @@ open class CollectionGenerator(
             collectionClass.methods.find { it.name == functionNameForAdd && it.parameters.size == componentGenerators.size }
                 ?: error("add fun does not exist")
         val initStatements = mutableListOf<UTestInst>()
-        val addInvocations = (0..length).map { index ->
+        val addInvocations = (0 until length).map { index ->
             val argsForAddInvocation = componentGenerators
                 .map {
                     it.generate().let {

@@ -21,7 +21,7 @@ class ArrayGenerator(private val arrayType: JcTypeWrapper) : Generator() {
         val arrayInstance = UTestCreateArrayExpression(elementType, UTestIntExpression(length, jcClasspath.int))
         val componentGenerator = repository.getGeneratorForType(resolvedElementType) ?: error("Can't find generator for type $jcArrayType")
         val initStatements = mutableListOf<UTestInst>()
-        val valuesSetters = (0..length).map { index ->
+        val valuesSetters = (0 until length).map { index ->
             componentGenerator.generate().let {
                 initStatements.addAll(it.initStmts)
                 UTestArraySetStatement(arrayInstance, UTestIntExpression(index, jcClasspath.int), it.instance)
