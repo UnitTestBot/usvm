@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.expr.KBvSignedLessOrEqualExpr
 import io.ksmt.utils.asExpr
 import mu.KLogging
 import org.jacodb.api.JcArrayType
@@ -75,6 +76,7 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.singleOrNull
+import org.usvm.util.info
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
@@ -147,7 +149,7 @@ class JcInterpreter(
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
 
-        logger.debug("Step: {}", stmt)
+        logger.info("Step: {}", stmt)
 
         val scope = StepScope(state, forkBlackList)
 
@@ -473,6 +475,8 @@ class JcInterpreter(
             .resolveJcExpr(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: return
+
+        logger.info("{} ({}), {} ({})", (boolExpr as KBvSignedLessOrEqualExpr<*>).arg0.javaClass, boolExpr.arg0.sort, boolExpr.arg1.javaClass, boolExpr.arg1.sort)
 
         val instList = stmt.location.method.instList
         val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]

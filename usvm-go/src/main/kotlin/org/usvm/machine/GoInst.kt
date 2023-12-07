@@ -7,4 +7,6 @@ class GoInst(
     override fun toString(): String {
         return "statement: $statement, pointer: $pointer"
     }
+
+    fun isEmpty(): Boolean = pointer == 0L || statement == "nil"
 }

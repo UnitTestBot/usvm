@@ -1,12 +1,11 @@
 package org.usvm.bridge
 
-import com.sun.jna.Library
-import com.sun.jna.Pointer
-import com.sun.jna.Structure
+import com.sun.jna.*
+import org.usvm.machine.GoContext
 
 interface Bridge : Library {
     // ------------ region: init
-    fun initialize(filename: GoString): Result
+    fun initialize(file: GoString, entrypoint: GoString, debug: Boolean): Result
     // ------------ region: init
 
     // ------------ region: machine
@@ -34,9 +33,11 @@ interface Bridge : Library {
     fun isSupertype(supertype: TypePointer, type: TypePointer): Boolean
     // ------------ region: type system
 
-    // ------------ region: misc
+    // ------------ region: interpreter
     fun methodInfo(method: MethodPointer): MethodInfo.ByValue
-    // ------------ region: misc
+    fun start(api: Api): Int
+    fun step(api: Api, inst: InstPointer): Inst.ByValue
+    // ------------ region: interpreter
 
     // ------------ region: test
     fun talk(): Result
@@ -52,6 +53,9 @@ interface Bridge : Library {
     fun methods(): Method.ByReference
     fun slice(): Slice
     fun methodsSlice(): Slice
+    fun callJavaMethod(obj: Object)
+    fun stepRef(api: Object): Boolean
+    fun frameStep(api: Api): Boolean
     // ------------ region: test
 }
 
@@ -107,6 +111,7 @@ open class Inst(
         return "statement: $statement, pointer: $pointer"
     }
 
+    class ByValue : Inst(), Structure.ByValue
     class ByReference : Inst(), Structure.ByReference
 }
 
@@ -146,4 +151,27 @@ open class Type(
 
     class ByValue : Type(), Structure.ByValue
     class ByReference : Type(), Structure.ByReference
+}
+
+@Structure.FieldOrder("name")
+open class Reference(
+    @JvmField var name: String = "reference", // TODO (buraindo) some sensible fields
+) : Structure(), Structure.ByReference
+
+@Structure.FieldOrder("obj", "className", "isArray")
+open class Object(
+    @JvmField var obj: Reference = Empty(),
+    @JvmField var className: String = "",
+    @JvmField var isArray: Boolean = false,
+) : Structure(), Structure.ByValue
+
+class Empty : Reference()
+
+@Suppress("unused")
+class ApiRef(
+    private val ctx: GoContext,
+) : Reference() {
+    fun mkBvRegisterReading(idx: Int) {
+        ctx.mkRegisterReading(idx, ctx.bv32Sort)
+    }
 }

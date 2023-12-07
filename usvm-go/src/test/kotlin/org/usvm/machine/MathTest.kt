@@ -8,7 +8,7 @@ class MathTest {
 
     @Test
     fun testMax() {
-        val results = machine.analyze("/home/buraindo/programs/max2.go", "max2")
+        val results = machine.analyze("/home/buraindo/programs/max2.go", "max2", false)
         println(results)
     }
 }

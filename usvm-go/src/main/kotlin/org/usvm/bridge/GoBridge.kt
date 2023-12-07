@@ -2,6 +2,7 @@ package org.usvm.bridge
 
 import com.sun.jna.Native
 import com.sun.jna.Structure
+import org.usvm.api.*
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoMethodInfo
@@ -18,8 +19,8 @@ class GoBridge {
 
     // ------------ region: init
 
-    fun initialize(filename: String): GoResult {
-        return toResult(bridge.initialize(GoString(filename)))
+    fun initialize(file: String, entrypoint: String, debug: Boolean): GoResult {
+        return toResult(bridge.initialize(GoString(file), GoString(entrypoint), debug))
     }
 
     // ------------ region: init
@@ -69,11 +70,21 @@ class GoBridge {
 
     // ------------ region: type system
 
-    // ------------ region: misc
+    // ------------ region: interpreter
 
     fun methodInfo(method: GoMethod): GoMethodInfo = toMethodInfo(bridge.methodInfo(method.pointer))
 
-    // ------------ region: misc
+    fun stepRef(api: ApiRef): Boolean = bridge.stepRef(toObject(api, api::class.java))
+
+    // ------------ region: interpreter
+
+    // ------------ region: api
+
+    fun start(api: GoApi): Int = bridge.start(toApi(api))
+
+    fun step(api: GoApi, inst: GoInst): GoInst = toInst(bridge.step(toApi(api), inst.pointer))
+
+    // ------------ region: api
 
     // ------------ region: util
 
@@ -140,6 +151,35 @@ class GoBridge {
 
     private fun toResult(result: Result): GoResult = GoResult(result.message, result.code)
 
+    private fun toApi(api: GoApi): Api {
+        return Api(
+            mkIntRegisterReading = object : MkIntRegisterReading {
+                override fun mkIntRegisterReading(name: String, idx: Int) {
+                    return api.mkIntRegisterReading(name, idx)
+                }
+            },
+            mkIntSignedGreaterExpr = object : MkIntSignedGreaterExpr {
+                override fun mkIntSignedGreaterExpr(fst: String, snd: String) {
+                    return api.mkIntSignedGreaterExpr(fst, snd)
+                }
+            },
+            mkIfInst = object : MkIfInst {
+                override fun mkIfInst(expr: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
+                    return api.mkIfInst(expr, posInst, negInst)
+                }
+            },
+            mkReturnInst = object : MkReturnInst {
+                override fun mkReturnInst(name: String) {
+                    return api.mkReturnInst(name)
+                }
+            },
+        )
+    }
+
+    private fun toObject(obj: Reference, clazz: Class<*>): Object {
+        return Object(obj, clazz.name.replace('.', '/'), clazz.isArray)
+    }
+
     // ------------ region: util
 
     // ------------ region: test
@@ -169,6 +209,12 @@ class GoBridge {
     fun slice(): Slice = bridge.slice()
 
     fun methodsSlice(): Array<GoMethod> = toMethodArray(bridge.methodsSlice())
+
+    fun callJavaMethod(obj: Reference, clazz: Class<*>) {
+        bridge.callJavaMethod(toObject(obj, clazz))
+    }
+
+    fun frameStep(api: GoApi): Boolean = bridge.frameStep(toApi(api))
 
     companion object {
         private var i: Int = 0

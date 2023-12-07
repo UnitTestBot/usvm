@@ -16,7 +16,7 @@ class BridgeTest {
         bridge.inc()
         println(bridge.getCalls())
         bridge.interpreter()
-        println(bridge.initialize("/home/buraindo/programs/max2.go"))
+        println(bridge.initialize("/home/buraindo/programs/max2.go", "main", true))
         bridge.interpreter()
         println(GoBridge.getNumber())
         println(bridge.talk())
@@ -54,7 +54,7 @@ class BridgeTest {
     @Test
     fun testBridgeApplicationGraph() {
         val bridge = GoBridge()
-        bridge.initialize("/home/buraindo/programs/max2.go")
+        bridge.initialize("/home/buraindo/programs/max2.go", "main", true)
         val main = bridge.getMain()
 
         val entryPoints = bridge.entryPoints(main)
@@ -82,10 +82,22 @@ class BridgeTest {
     @Test
     fun testBridgeTypeSystem() {
         val bridge = GoBridge()
-        bridge.initialize("/home/buraindo/programs/max2.go")
+        bridge.initialize("/home/buraindo/programs/max2.go", "main", true)
         val any = bridge.getAnyType()
         println(any)
         println(bridge.isSupertype(any, any))
         println(bridge.hasCommonSubtype(any, listOf(any, any)))
+    }
+
+    @Test
+    fun testBridgeCallback() {
+        val bridge = GoBridge()
+        bridge.callJavaMethod(Logger(), Logger::class.java)
+    }
+}
+
+class Logger : Reference() {
+    fun printHello() {
+        println("logger callback worked")
     }
 }

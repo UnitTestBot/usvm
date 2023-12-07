@@ -1,8 +1,6 @@
 package org.usvm.machine.state
 
-import org.usvm.PathNode
-import org.usvm.UCallStack
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.*
 import org.usvm.memory.UMemory
@@ -18,7 +16,7 @@ class GoState(
     models: List<UModelBase<GoType>> = listOf(),
     pathNode: PathNode<GoInst> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
-    var panicked: Boolean = false,
+    var methodResult: GoMethodResult = GoMethodResult.NoCall,
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
     callStack,
@@ -39,14 +37,30 @@ class GoState(
             models,
             pathNode,
             targets.clone(),
-            panicked,
+            methodResult,
         )
     }
 
-    override val isExceptional: Boolean get() = panicked
+    override val isExceptional: Boolean get() = methodResult is GoMethodResult.Panic
 
-    val lastStmt get() = pathNode.statement
+    val lastInst get() = pathNode.statement
+
     fun newInst(inst: GoInst) {
         pathNode += inst
+    }
+
+    fun returnValue(valueToReturn: UExpr<out USort>) {
+        val returnFromMethod = callStack.lastMethod()
+        // TODO: think about it later
+        val returnSite = callStack.pop()
+        if (callStack.isNotEmpty()) {
+            memory.stack.pop()
+        }
+
+        methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn)
+
+        if (returnSite != null) {
+            newInst(returnSite)
+        }
     }
 }
