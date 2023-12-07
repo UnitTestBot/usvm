@@ -84,7 +84,6 @@ internal class StringExamplesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Investigate")
     fun testIntToString() {
         checkDiscoveredProperties(
             StringExamples::intToString,

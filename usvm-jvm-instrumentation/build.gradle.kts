@@ -59,14 +59,6 @@ tasks {
     }
 }
 
-tasks {
-    withType<KotlinCompile> {
-        kotlinOptions {
-            allWarningsAsErrors = false
-        }
-    }
-}
-
 val sourcesBaseDir = projectDir.resolve("src/main/kotlin")
 
 val generatedPackage = "org.usvm.instrumentation.generated"

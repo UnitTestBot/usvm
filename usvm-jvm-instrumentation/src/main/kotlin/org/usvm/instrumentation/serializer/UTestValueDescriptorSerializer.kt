@@ -302,32 +302,6 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         return UTestExceptionDescriptor(jcType, msg, stackTrace, raisedByUserCode)
     }
 
-    private fun AbstractBuffer.serialize(uTestExceptionDescriptor: UTestExceptionDescriptor) =
-        serialize(
-            uTestValueDescriptor = uTestExceptionDescriptor,
-            kind = UTestValueDescriptorKind.EXCEPTION,
-            serializeInternals = {
-                stackTrace.forEach { serializeUTestValueDescriptor(it) }
-            },
-            serialize = {
-                writeJcType(type)
-                writeString(message)
-                writeInt(stackTrace.size)
-                stackTrace.forEach { writeUTestValueDescriptor(it) }
-                writeBoolean(raisedByUserCode)
-            }
-        )
-
-    private fun AbstractBuffer.deserializeException(): UTestExceptionDescriptor {
-        val jcType = readJcType(jcClasspath) ?: jcClasspath.objectType
-        val msg = readString()
-        val stackTraceSize = readInt()
-        val stackTrace = mutableListOf<UTestValueDescriptor>()
-        repeat(stackTraceSize) { stackTrace.add(readUTestValueDescriptor()) }
-        val raisedByUserCode = readBoolean()
-        return UTestExceptionDescriptor(jcType, msg, stackTrace, raisedByUserCode)
-    }
-
     private fun AbstractBuffer.serialize(uTestObjectDescriptor: UTestClassDescriptor) =
         serialize(
             uTestValueDescriptor = uTestObjectDescriptor,

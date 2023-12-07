@@ -23,8 +23,6 @@ object InstrumentationModuleConstants {
 
     const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 
-    const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
-
     //Passes as environment parameter
     val pathToUsvmInstrumentationJar: String
         get() = System.getenv("usvm-jvm-instrumentation-jar")

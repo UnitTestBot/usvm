@@ -1,3 +1,7 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.kotlin.dsl.sourceSets
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id("usvm.kotlin-conventions")
     id("com.jetbrains.rdgen") version Versions.rd
@@ -11,13 +15,10 @@ dependencies {
     implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
 }
 
-//tasks.withType<JavaExec> {
-//    environment(
-//        "usvm-jvm-instrumentation-jar",
-//        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-1.0.jar").absolutePath
-//    )
-//    environment(
-//        "usvm-jvm-collectors-jar",
-//        buildDir.resolve("libs").resolve("usvm-jvm-instrumentation-collectors.jar").absolutePath
-//    )
-//}
+tasks {
+    withType<KotlinCompile> {
+        kotlinOptions {
+            allWarningsAsErrors = false
+        }
+    }
+}

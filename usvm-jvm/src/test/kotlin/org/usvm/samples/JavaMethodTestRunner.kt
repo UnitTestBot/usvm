@@ -1,14 +1,13 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.TestInstance
-import org.usvm.CoverageZone
 import org.junit.jupiter.api.extension.ExtendWith
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.api.util.JcTestResolver
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestInterpreter
 import org.usvm.machine.JcInterpreterObserver
@@ -786,7 +785,6 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
         }
     }
-
 
     override val coverageRunner: (List<JcTest>) -> JcClassCoverage = { _ ->
         JcClassCoverage(visitedStmts = emptySet())
