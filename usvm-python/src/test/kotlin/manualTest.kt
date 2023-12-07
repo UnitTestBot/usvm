@@ -39,7 +39,7 @@ fun main() {
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
+    val (program, typeSystem) = constructPrimitiveProgram(
         """
             def list_concat(x):
                 y = x + [1]
@@ -49,16 +49,12 @@ private fun buildSampleRunConfig(): RunConfig {
 
 
             def f(x):
-                s = 0
-                for i, a in enumerate(x):
-                    s += i + a
-                assert s == 10
+                assert x != "aaaa"
         """.trimIndent()
-    )*/
+    )
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType),
-        "construct_set_with_syntax",
-        "Sets"
+        listOf(PythonAnyType),
+        "f",
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
