@@ -74,11 +74,15 @@ object JcInstructionTracer : Tracer<Trace> {
 
     private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
         val encodedClass = encodeClass(jcClass)
-        val methodIndex = jcClass.declaredMethods
-            .sortedBy { it.description }
-            .indexOf(jcMethod)
-            .also { if (it == -1) error("Encoding error") }
-        return encodedClass.encodedMethods.getOrPut(jcMethod) { EncodedMethod(methodIndex.toLong()) }
+
+        return encodedClass.encodedMethods.getOrPut(jcMethod) {
+            val methodIndex = jcClass.declaredMethods
+                .sortedBy { it.description }
+                .indexOf(jcMethod)
+                .also { if (it == -1) error("Encoding error") }
+
+            EncodedMethod(methodIndex.toLong())
+        }
     }
 
     fun encodeField(jcClass: JcClassOrInterface, jcField: JcField): EncodedField {

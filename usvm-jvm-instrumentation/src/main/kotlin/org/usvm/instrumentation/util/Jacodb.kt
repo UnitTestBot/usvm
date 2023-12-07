@@ -116,7 +116,7 @@ fun findClassInLoader(name: String, classLoader: ClassLoader, initialize: Boolea
     }
 
 fun JcField.toJavaField(classLoader: ClassLoader): Field? =
-    enclosingClass.toType().toJavaClass(classLoader).getFieldByName(name)
+    enclosingClass.toType().toJavaClass(classLoader, initialize = false).getFieldByName(name)
 
 val JcClassOrInterface.allDeclaredFields
     get(): List<JcField> {
