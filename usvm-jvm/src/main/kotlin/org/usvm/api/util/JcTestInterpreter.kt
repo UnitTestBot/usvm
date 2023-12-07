@@ -1,27 +1,18 @@
 package org.usvm.api.util
 
 import org.jacodb.api.JcClassType
-import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
-import org.usvm.api.StaticFieldValue
-import org.usvm.api.decoder.DecoderApi
 import org.usvm.api.util.Reflection.allocateInstance
 import org.usvm.machine.JcContext
-import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
-import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
-import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
-import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 
 /**
@@ -37,26 +28,17 @@ class JcTestInterpreter(
     /**
      * Resolves a [JcTest] from a [method] from a [state].
      */
-    override fun resolve(method: JcTypedMethod, state: JcState, stringConstants: Map<String, UConcreteHeapRef>): JcTest {
+    override fun resolve(method: JcTypedMethod, state: JcState): JcTest {
         val model = state.models.first()
         val memory = state.memory
 
         val ctx = state.ctx
 
-        val initialScope = MemoryScope(ctx, model, model, stringConstants, method, classLoader)
-        val afterScope = MemoryScope(ctx, model, memory, stringConstants, method, classLoader)
+        val initialScope = MemoryScope(ctx, model, model, memory, method, classLoader)
+        val afterScope = MemoryScope(ctx, model, memory, memory, method, classLoader)
 
-        val staticsToResolve = ctx.primitiveTypes
-            .flatMap {
-                val sort = ctx.typeToSort(it)
-                val regionId = JcStaticFieldRegionId(sort)
-                val region = memory.getRegion(regionId) as JcStaticFieldsMemoryRegion<*>
-
-                region.mutableStaticFields
-            }
-
-        val before = with(initialScope) { resolveState(staticsToResolve) }
-        val after = with(afterScope) { resolveState(staticsToResolve) }
+        val before = with(initialScope) { resolveState() }
+        val after = with(afterScope) { resolveState() }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
@@ -65,13 +47,7 @@ class JcTestInterpreter(
         }
         val coverage = resolveCoverage(method, state)
 
-        return JcTest(
-            method,
-            before,
-            after,
-            result,
-            coverage
-        )
+        return JcTest(method, before, after, result, coverage)
     }
 
     private fun resolveException(
@@ -98,37 +74,19 @@ class JcTestInterpreter(
         ctx: JcContext,
         model: UModelBase<JcType>,
         memory: UReadOnlyMemory<JcType>,
-        stringConstants: Map<String, UConcreteHeapRef>,
+        finalStateMemory: UReadOnlyMemory<JcType>,
         method: JcTypedMethod,
         private val classLoader: ClassLoader = JcClassLoader,
-    ) : JcTestStateResolver<Any?>(ctx, model, memory, stringConstants, method) {
-        override val decoderApi: DecoderApi<Any?> = JcTestInterpreterDecoderApi(ctx, classLoader)
+    ) : JcTestStateResolver<Any?>(ctx, model, memory, finalStateMemory, method) {
+        override val decoderApi: JcTestInterpreterDecoderApi = JcTestInterpreterDecoderApi(ctx, classLoader)
 
-        fun resolveState(staticsToResolve: List<JcField>): JcParametersState {
-            // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
-            val thisInstance = if (!method.isStatic) {
-                val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
-                resolveLValue(ref, method.enclosingType)
-            } else {
-                null
-            }
+        fun resolveState(): JcParametersState {
+            val thisInstance = resolveThisInstance()
+            val parameters = resolveParameters()
 
-            val parameters = method.parameters.mapIndexed { idx, param ->
-                val registerIdx = method.method.localIdx(idx)
-                val ref = URegisterStackLValue(ctx.typeToSort(param.type), registerIdx)
-                resolveLValue(ref, param.type)
-            }
+            resolveStatics()
 
-            val statics = staticsToResolve.map { field ->
-                    val fieldType = ctx.cp.findTypeOrNull(field.type.typeName)
-                        ?: error("No such type ${field.type} found")
-                    val sort = ctx.typeToSort(fieldType)
-
-                    StaticFieldValue(field, resolveLValue(JcStaticFieldLValue(field, sort), fieldType))
-                }
-                .groupBy { it.field.enclosingClass }
-
-            return JcParametersState(thisInstance, parameters, statics)
+            return JcParametersState(thisInstance, parameters, decoderApi.staticFields)
         }
 
         override fun allocateClassInstance(type: JcClassType): Any =

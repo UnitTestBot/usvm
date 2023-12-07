@@ -651,9 +651,6 @@ class JcInterpreter(
 
     private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
 
-    val stringConstants: Map<String, UConcreteHeapRef>
-        get() = stringConstantAllocatedRefs
-
     // Equal string constants must have equal references
     private fun stringConstantAllocator(value: String): UConcreteHeapRef =
         stringConstantAllocatedRefs.getOrPut(value) {

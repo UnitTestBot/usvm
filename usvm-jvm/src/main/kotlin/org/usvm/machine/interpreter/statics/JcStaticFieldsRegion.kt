@@ -4,16 +4,26 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
+import org.jacodb.api.JcRefType
+import org.jacodb.api.JcType
+import org.jacodb.api.PredefinedPrimitives
+import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.cfg.util.isPrimitive
+import org.jacodb.impl.types.FieldInfo
 import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.isTrue
+import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.guardedWrite
 import org.usvm.sampleUValue
+import java.lang.reflect.Modifier
 
 data class JcStaticFieldLValue<Sort : USort>(
     val field: JcField,
@@ -36,16 +46,12 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     private var fieldValuesByClass: PersistentMap<JcClassOrInterface, PersistentMap<JcField, UExpr<Sort>>> = persistentHashMapOf(),
 ) : UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     val mutableStaticFields: List<JcField>
-        get() = fieldValuesByClass.values.flatMap { it.keys }.filter(filterPredicate)
+        get() = fieldValuesByClass.values.flatMap { it.keys }.filter(fieldShouldBeSymbolic)
 
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
 
-        // TODO probably, reading by absent class or field must be prohibited, however, at the moment,
-        //      error here leads to unexpected errors during analysis. This happen because
-        //      we make this reading before verifying if we have to initialize a clinit section.
-        //      For more details, replace `sampleUValue` with an error and run ShortWrapperTest.primitiveToWrapperTest
-        return fieldValuesByClass[field.enclosingClass]?.get(field) ?: key.sort.sampleUValue()
+        return fieldValuesByClass[field.enclosingClass]?.get(field) ?: sort.sampleUValue()
     }
 
     override fun write(
@@ -73,7 +79,7 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
 
         val mutablePrimitiveStaticFieldsToSymbolicValues = staticFields
             .entries
-            .filter { (field, _) -> filterPredicate(field) }
+            .filter { (field, _) -> fieldShouldBeSymbolic(field) }
             .associate { (field, value) ->
                 val lvalue = JcStaticFieldLValue(field, value.sort)
                 val regionId = lvalue.memoryRegionId as JcStaticFieldRegionId
@@ -90,6 +96,49 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     }
 
     companion object {
-        val filterPredicate: (JcField) -> Boolean = { field -> field.type.isPrimitive && !field.isFinal }
+        val fieldShouldBeSymbolic: (JcField) -> Boolean = { field ->
+            field.type.isPrimitive && !field.isFinal && field.name != staticFieldsInitializedFlagField.name
+        }
     }
+}
+
+internal fun extractInitialStatics(ctx: JcContext, memory: UReadOnlyMemory<JcType>): List<JcField> =
+    ctx.primitiveTypes.flatMap {
+        val sort = ctx.typeToSort(it)
+
+        if (sort == ctx.voidSort) return@flatMap emptyList()
+
+        val regionId = JcStaticFieldRegionId(sort)
+        val region = memory.getRegion(regionId) as JcStaticFieldsMemoryRegion<*>
+
+        region.mutableStaticFields
+    }
+
+internal fun JcState.isInitialized(type: JcRefType): Boolean {
+    val initializedFlag = staticFieldsInitializedFlag(ctx, type)
+    return memory.read(initializedFlag).isTrue
+}
+
+internal fun JcState.markAsInitialized(type: JcRefType) {
+    val initializedFlag = staticFieldsInitializedFlag(ctx, type)
+    memory.write(initializedFlag, rvalue = ctx.trueExpr, guard = ctx.trueExpr)
+}
+
+private fun staticFieldsInitializedFlag(ctx: JcContext, type: JcRefType): JcStaticFieldLValue<UBoolSort> =
+    JcStaticFieldLValue(
+        sort = ctx.booleanSort,
+        field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
+    )
+
+/**
+ * Synthetic field to track static field initialization state.
+ * */
+private val staticFieldsInitializedFlagField by lazy {
+    FieldInfo(
+        name = "__initialized__",
+        signature = null,
+        access = Modifier.FINAL or Modifier.STATIC or Modifier.PRIVATE,
+        type = PredefinedPrimitives.Boolean,
+        annotations = emptyList()
+    )
 }

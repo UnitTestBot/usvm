@@ -67,7 +67,7 @@ class JcStaticFieldModel<Sort : USort>(
     private val translatedFields: Map<JcField, UExpr<Sort>>,
 ) : UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
-        val translated = translatedFields[key.field] ?: return key.sort.sampleUValue()
+        val translated = translatedFields[key.field] ?: return key.sort.sampleUValue().mapAddress(mapping)
         return model.eval(translated, isComplete = true).mapAddress(mapping)
     }
 }

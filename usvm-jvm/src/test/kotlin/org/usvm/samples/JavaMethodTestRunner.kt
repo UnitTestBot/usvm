@@ -20,9 +20,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.JcTestExecutor
 import org.usvm.util.JcTestResolverType
 import org.usvm.util.UTestRunnerController
+import org.usvm.util.getJcMethodByName
 import org.usvm.util.loadClasspathFromEnv
 import java.io.File
-import org.usvm.util.getJcMethodByName
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
@@ -30,7 +30,6 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlin.time.Duration
@@ -818,7 +817,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
-            states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
+            states.map { testResolver.resolve(jcMethod, it) }
         }
     }
 
