@@ -34,7 +34,7 @@ sealed class PythonTestRunner(
                 saver,
                 options.stepLimit?.toInt() ?: 300,
                 allowPathDiversion = allowPathDiversions,
-                timeoutMs = options.timeoutMs,
+                timeoutMs = options.timeout.inWholeMilliseconds,
                 timeoutPerRunMs = timeoutPerRunMs
             )
             saver.getResults()

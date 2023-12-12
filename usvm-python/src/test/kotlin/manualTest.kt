@@ -23,6 +23,7 @@ import org.utbot.python.newtyping.mypy.MypyBuildDirectory
 import org.utbot.python.newtyping.mypy.buildMypyInfo
 import org.utbot.python.newtyping.mypy.readMypyInfoBuild
 import java.io.File
+import kotlin.time.Duration.Companion.seconds
 
 fun main() {
     /*val venvConfig = VenvConfig(
@@ -161,7 +162,7 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
     val runner = CustomPythonTestRunner(
         program,
         typeSystem,
-        UMachineOptions(stepLimit = 60U, timeoutMs = 60_000),
+        UMachineOptions(stepLimit = 60U, timeout = 60.seconds),
         allowPathDiversions = true
     )
     runner.timeoutPerRunMs = 10_000

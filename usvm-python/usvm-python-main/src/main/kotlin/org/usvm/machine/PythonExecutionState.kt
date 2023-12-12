@@ -60,6 +60,8 @@ class PythonExecutionState(
             mockedObjects.toMutableSet()  // copy
         )
     }
+
+    override val entrypoint = pythonCallable
     override val isExceptional: Boolean = false  // TODO
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModelWrapper

@@ -30,7 +30,7 @@ class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     }
 
     fun getFirstType(ref: UConcreteHeapRef): PythonType? {
-        val typeStream = uModel.types.typeStream(ref).take(1)
+        val typeStream = uModel.types.getTypeStream(ref).take(1)
         if (typeStream !is TypesResult.SuccessfulTypesResult || typeStream.types.isEmpty())
             return null
         val first = typeStream.take(1).first()
@@ -41,7 +41,7 @@ class PyModelWrapper(val uModel: UModelBase<PythonType>) {
     }
 
     fun getConcreteType(ref: UConcreteHeapRef): ConcretePythonType? {
-        val typeStream = uModel.types.typeStream(ref)
+        val typeStream = uModel.types.getTypeStream(ref)
         val prefix = typeStream.take(2)
         if (prefix !is TypesResult.SuccessfulTypesResult || prefix.size > 1)
             return null
