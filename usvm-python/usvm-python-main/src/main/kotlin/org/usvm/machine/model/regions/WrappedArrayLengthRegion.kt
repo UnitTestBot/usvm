@@ -5,11 +5,11 @@ import org.usvm.UExpr
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.isTrue
 import org.usvm.language.types.ArrayType
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 
 class WrappedArrayLengthRegion(
-    val ctx: UPythonContext,
+    val ctx: PyContext,
     val region: UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
 ): UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort> {
     override fun read(key: UArrayLengthLValue<ArrayType, KIntSort>): UExpr<KIntSort> {

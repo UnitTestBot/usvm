@@ -6,7 +6,7 @@ import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.machine.symbolicobjects.TimeOfCreation
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
@@ -21,7 +21,7 @@ abstract class ElementConstraint {
         array: UConcreteHeapRef,
         element: UConcreteHeapRef,
         model: PyModel,
-        ctx: UPythonContext
+        ctx: PyContext
     ): Boolean
 }
 
@@ -44,7 +44,7 @@ object NonRecursiveConstraint: ElementConstraint() {
         array: UConcreteHeapRef,
         element: UConcreteHeapRef,
         model: PyModel,
-        ctx: UPythonContext
+        ctx: PyContext
     ): Boolean = with(ctx) {
         if (element.address == 0 || element.address > 0)
             return true

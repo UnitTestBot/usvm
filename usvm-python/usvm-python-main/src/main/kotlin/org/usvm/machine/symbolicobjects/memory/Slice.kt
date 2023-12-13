@@ -1,0 +1,81 @@
+package org.usvm.machine.symbolicobjects.memory
+
+import io.ksmt.expr.KInterpretedValue
+import io.ksmt.sort.KIntSort
+import org.usvm.UBoolExpr
+import org.usvm.UExpr
+import org.usvm.api.readField
+import org.usvm.api.writeField
+import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isTrue
+import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.PyContext
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.PropertyOfPythonObject
+import org.usvm.machine.symbolicobjects.SliceContents
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+
+
+data class SliceInterpretedContent(
+    val start: KInterpretedValue<KIntSort>?,
+    val stop: KInterpretedValue<KIntSort>?,
+    val step: KInterpretedValue<KIntSort>?
+)
+
+fun InterpretedInputSymbolicPythonObject.getSliceContent(ctx: PyContext, typeSystem: PythonTypeSystem): SliceInterpretedContent {
+    require(getConcreteType() == typeSystem.pythonSlice)
+    val startIsNone = modelHolder.model.readField(address, SliceContents.startIsNone, ctx.boolSort).isTrue
+    val start = if (startIsNone) null else modelHolder.model.readField(address, SliceContents.start, ctx.intSort) as KInterpretedValue<KIntSort>
+    val stopIsNone = modelHolder.model.readField(address, SliceContents.stopIsNone, ctx.boolSort).isTrue
+    val stop = if (stopIsNone) null else modelHolder.model.readField(address, SliceContents.stop, ctx.intSort) as KInterpretedValue<KIntSort>
+    val stepIsNone = modelHolder.model.readField(address, SliceContents.stepIsNone, ctx.boolSort).isTrue
+    val step = if (stepIsNone) null else modelHolder.model.readField(address, SliceContents.step, ctx.intSort) as KInterpretedValue<KIntSort>
+    return SliceInterpretedContent(start, stop, step)
+}
+
+data class SliceUninterpretedField(
+    val isNone: UBoolExpr,
+    val content: UExpr<KIntSort>
+)
+
+private fun UninterpretedSymbolicPythonObject.getSliceField(
+    ctx: ConcolicRunContext,
+    fieldIsNone: PropertyOfPythonObject,
+    field: PropertyOfPythonObject
+): SliceUninterpretedField {
+    require(ctx.curState != null)
+    addSupertype(ctx, ctx.typeSystem.pythonSlice)
+    val isNone = ctx.curState!!.memory.readField(address, fieldIsNone, ctx.ctx.boolSort)
+    val value = ctx.curState!!.memory.readField(address, field, ctx.ctx.intSort)
+    return SliceUninterpretedField(isNone, value)
+}
+
+private fun UninterpretedSymbolicPythonObject.setSliceField(
+    ctx: ConcolicRunContext,
+    fieldIsNone: PropertyOfPythonObject,
+    field: PropertyOfPythonObject,
+    content: SliceUninterpretedField
+) {
+    require(ctx.curState != null)
+    addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
+    ctx.curState!!.memory.writeField(address, fieldIsNone, ctx.ctx.boolSort, content.isNone, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(address, field, ctx.ctx.intSort, content.content, ctx.ctx.trueExpr)
+}
+
+fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.startIsNone, SliceContents.start)
+
+fun UninterpretedSymbolicPythonObject.setSliceStart(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.startIsNone, SliceContents.start, content)
+
+fun UninterpretedSymbolicPythonObject.getSliceStop(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.stopIsNone, SliceContents.stop)
+
+fun UninterpretedSymbolicPythonObject.setSliceStop(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.stopIsNone, SliceContents.stop, content)
+
+fun UninterpretedSymbolicPythonObject.getSliceStep(ctx: ConcolicRunContext): SliceUninterpretedField =
+    getSliceField(ctx, SliceContents.stepIsNone, SliceContents.step)
+
+fun UninterpretedSymbolicPythonObject.setSliceStep(ctx: ConcolicRunContext, content: SliceUninterpretedField) =
+    setSliceField(ctx, SliceContents.stepIsNone, SliceContents.step, content)

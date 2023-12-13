@@ -4,11 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.usvm.language.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
-import org.usvm.machine.interpreters.operations.tracing.SymbolicHandlerEvent;
-import org.usvm.machine.utils.PyModelHolder;
-import org.usvm.machine.PythonExecutionState;
-import org.usvm.machine.UPythonContext;
-import org.usvm.machine.interpreters.operations.tracing.PathDiversionException;
+import org.usvm.machine.interpreters.symbolic.operations.tracing.PathDiversionException;
+import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent;
+import org.usvm.machine.PyState;
+import org.usvm.machine.PyContext;
+import org.usvm.machine.model.PyModelHolder;
 import org.usvm.machine.rendering.ConverterToPythonObject;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
@@ -18,9 +18,9 @@ import java.util.concurrent.Callable;
 
 public class ConcolicRunContext {
     @Nullable
-    public PythonExecutionState curState;
-    public UPythonContext ctx;
-    public ArrayList<PythonExecutionState> forkedStates = new ArrayList<>();
+    public PyState curState;
+    public PyContext ctx;
+    public ArrayList<PyState> forkedStates = new ArrayList<>();
     public List<SymbolicHandlerEvent<Object>> pathPrefix;
     public MockHeader curOperation = null;
     public PyModelHolder modelHolder;
@@ -34,8 +34,8 @@ public class ConcolicRunContext {
     public Callable<Boolean> isCancelled;
 
     public ConcolicRunContext(
-            @NotNull PythonExecutionState curState,
-            UPythonContext ctx,
+            @NotNull PyState curState,
+            PyContext ctx,
             PyModelHolder modelHolder,
             PythonTypeSystem typeSystem,
             boolean allowPathDiversion,

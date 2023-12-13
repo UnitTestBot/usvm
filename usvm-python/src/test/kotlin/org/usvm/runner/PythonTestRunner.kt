@@ -4,9 +4,9 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.*
 import org.usvm.language.*
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.CPythonExecutionException
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.concrete.CPythonExecutionException
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
 import org.usvm.machine.saving.*
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
@@ -20,7 +20,7 @@ sealed class PythonTestRunner(
     abstract val typeSystem: PythonTypeSystem
     protected abstract val program: PythonProgram
     private val machine by lazy {
-        PythonMachine(program, typeSystem)
+        PyMachine(program, typeSystem)
     }
     override val typeTransformer: (Any?) -> PythonType
         get() = { _ -> PythonAnyType }

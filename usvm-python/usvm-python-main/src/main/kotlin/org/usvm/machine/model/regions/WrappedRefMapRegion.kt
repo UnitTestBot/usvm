@@ -5,12 +5,12 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.language.types.PythonType
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 
 class WrappedRefMapRegion<MapType>(
-    private val ctx: UPythonContext,
+    private val ctx: PyContext,
     private val region: UReadOnlyMemoryRegion<URefMapEntryLValue<MapType, UAddressSort>, UAddressSort>,
     private val keys: Set<UConcreteHeapRef>,
     private val underlyingModel: UModelBase<PythonType>

@@ -10,14 +10,15 @@ import org.usvm.language.*
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
+import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 
 fun constructInputObject(
     stackIndex: Int,
     type: PythonType,
-    ctx: UPythonContext,
+    ctx: PyContext,
     memory: UMemory<PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,
@@ -32,7 +33,7 @@ fun constructInputObject(
 }
 
 fun constructEmptyAllocatedObject(
-    ctx: UPythonContext,
+    ctx: PyContext,
     memory: UMemory<PythonType, PythonCallable>,
     typeSystem: PythonTypeSystem,
     type: ConcretePythonType
@@ -44,7 +45,7 @@ fun constructEmptyAllocatedObject(
 }
 
 fun constructEmptyStaticObject(
-    ctx: UPythonContext,
+    ctx: PyContext,
     memory: UMemory<PythonType, PythonCallable>,
     typeSystem: PythonTypeSystem,
     type: ConcretePythonType
@@ -86,7 +87,7 @@ fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSy
 }
 
 fun constructInitialBool(
-    ctx: UPythonContext,
+    ctx: PyContext,
     memory: UMemory<PythonType, PythonCallable>,
     pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,

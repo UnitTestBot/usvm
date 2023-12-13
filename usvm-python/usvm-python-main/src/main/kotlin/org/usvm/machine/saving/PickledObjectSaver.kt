@@ -1,7 +1,7 @@
 package org.usvm.machine.saving
 
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
 import org.usvm.machine.rendering.ConverterToPythonObject
 
 class PickledObjectSaver(

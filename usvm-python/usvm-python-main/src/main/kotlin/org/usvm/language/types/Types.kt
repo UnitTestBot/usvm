@@ -1,6 +1,6 @@
 package org.usvm.language.types
 
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.concrete.PythonObject
 
 sealed class PythonType
 
