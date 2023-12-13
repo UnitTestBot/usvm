@@ -1,7 +1,7 @@
 package org.usvm.runner
 
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.venv.VenvConfig
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.venv.VenvConfig
 import java.io.File
 
 fun main(args: Array<String>) {

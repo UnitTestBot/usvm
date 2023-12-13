@@ -6,12 +6,12 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.key.USizeRegion
 
 class WrappedSetRegion<SetType>(
-    private val ctx: UPythonContext,
+    private val ctx: PyContext,
     private val region: UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort>,
     private val keys: Set<KInterpretedValue<KIntSort>>
 ): UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort> {

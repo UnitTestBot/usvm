@@ -5,9 +5,8 @@ import org.usvm.machine.*
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.IllegalOperationException
-import org.usvm.machine.interpreters.venv.VenvConfig
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.IllegalOperationException
 import org.usvm.machine.saving.Fail
 import org.usvm.machine.saving.Success
 import org.usvm.machine.saving.createDictSaver
@@ -40,7 +39,7 @@ fun main() {
 }
 
 private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructPrimitiveProgram(
+    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
         """
             def list_concat(x):
                 y = x + [1]
@@ -52,10 +51,11 @@ private fun buildSampleRunConfig(): RunConfig {
             def f(x):
                 assert x != "aaaa"
         """.trimIndent()
-    )
+    )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "f",
+        "g",
+        "tricky.CompositeObjects"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -186,7 +186,7 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
 
 private fun analyze(runConfig: RunConfig) {
     val (program, typeSystem, functions) = runConfig
-    val machine = PythonMachine(program, typeSystem, printErrorMsg = false)
+    val machine = PyMachine(program, typeSystem, printErrorMsg = false)
     val emptyCoverage = mutableListOf<String>()
     machine.use { activeMachine ->
         functions.forEach { f ->
@@ -197,11 +197,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 60,
+                    maxIterations = 150,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,
-                    timeoutMs = 30_000
+                    timeoutMs = 60_000
                 )
                 saver.getResults().forEach { (_, inputs, result) ->
                     println("INPUT:")

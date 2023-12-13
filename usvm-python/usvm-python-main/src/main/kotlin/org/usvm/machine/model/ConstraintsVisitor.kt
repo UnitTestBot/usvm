@@ -7,20 +7,18 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.PythonType
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region
 import org.usvm.solver.UExprTranslator
-
 
 data class PathConstraintsInfo(
     val setRefKeys: Set<UConcreteHeapRef>,
     val setIntKeys: Set<KInterpretedValue<KIntSort>>
 )
 
-
 fun getPathConstraintsInfo(
-    ctx: UPythonContext,
+    ctx: PyContext,
     ps: UPathConstraints<PythonType>,
     underlyingModel: UModelBase<PythonType>
 ): PathConstraintsInfo {
@@ -41,7 +39,7 @@ fun getPathConstraintsInfo(
 
 
 @Suppress("unchecked_cast")
-private class ConstraintsVisitor(ctx: UPythonContext): UExprTranslator<PythonType, KIntSort>(ctx) {
+private class ConstraintsVisitor(ctx: PyContext): UExprTranslator<PythonType, KIntSort>(ctx) {
     val refKeys: MutableSet<UHeapRef> = mutableSetOf()
     val intKeys: MutableSet<UExpr<KIntSort>> = mutableSetOf()
 

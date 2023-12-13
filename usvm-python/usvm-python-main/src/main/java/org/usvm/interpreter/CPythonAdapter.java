@@ -10,34 +10,35 @@ import org.usvm.annotations.ids.SymbolicMethodId;
 import org.usvm.annotations.ids.ApproximationId;
 import org.usvm.language.*;
 import org.usvm.machine.MockHeader;
-import org.usvm.machine.interpreters.PythonObject;
-import org.usvm.machine.interpreters.operations.descriptors.*;
-import org.usvm.machine.interpreters.operations.tracing.*;
+import org.usvm.machine.interpreters.concrete.PythonObject;
+import org.usvm.machine.interpreters.symbolic.operations.descriptors.*;
+import org.usvm.machine.interpreters.symbolic.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 
-import static org.usvm.machine.interpreters.operations.basic.CommonKt.*;
-import static org.usvm.machine.interpreters.operations.basic.ConstantsKt.handlerLoadConstKt;
-import static org.usvm.machine.interpreters.operations.basic.ControlKt.handlerForkKt;
-import static org.usvm.machine.interpreters.operations.basic.DictKt.*;
-import static org.usvm.machine.interpreters.operations.basic.EnumerateKt.handlerEnumerateIterKt;
-import static org.usvm.machine.interpreters.operations.basic.EnumerateKt.handlerEnumerateNextKt;
-import static org.usvm.machine.interpreters.operations.basic.FloatKt.*;
-import static org.usvm.machine.interpreters.operations.basic.ListKt.*;
-import static org.usvm.machine.interpreters.operations.basic.LongKt.*;
-import static org.usvm.machine.interpreters.operations.basic.MethodNotificationsKt.*;
-import static org.usvm.machine.interpreters.operations.basic.RangeKt.*;
-import static org.usvm.machine.interpreters.operations.basic.SetKt.*;
-import static org.usvm.machine.interpreters.operations.basic.SliceKt.handlerCreateSliceKt;
-import static org.usvm.machine.interpreters.operations.basic.TupleKt.*;
-import static org.usvm.machine.interpreters.operations.basic.VirtualKt.*;
-import static org.usvm.machine.interpreters.operations.symbolicmethods.BuiltinsKt.*;
-import static org.usvm.machine.interpreters.operations.symbolicmethods.ListKt.*;
-import static org.usvm.machine.interpreters.operations.symbolicmethods.SetKt.symbolicMethodSetAddKt;
-import static org.usvm.machine.interpreters.operations.tracing.PathTracingKt.withTracing;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.CommonKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.ConstantsKt.handlerLoadConstKt;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.ControlKt.handlerForkKt;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.DictKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.EnumerateKt.handlerEnumerateIterKt;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.EnumerateKt.handlerEnumerateNextKt;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.FloatKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.ListKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.LongKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.MethodNotificationsKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.RangeKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.SetKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.SliceKt.handlerCreateSliceKt;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.TupleKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.VirtualKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.symbolicmethods.BuiltinsKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.symbolicmethods.ListKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.symbolicmethods.SetKt.symbolicMethodSetAddKt;
+import static org.usvm.machine.interpreters.symbolic.operations.tracing.PathTracingKt.handlerForkResultKt;
+import static org.usvm.machine.interpreters.symbolic.operations.tracing.PathTracingKt.withTracing;
 
 @SuppressWarnings("unused")
 public class CPythonAdapter {
@@ -187,7 +188,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.IntConverter}
     )
     public static void handlerForkResult(ConcolicRunContext context, SymbolForCPython cond, boolean result) {
-        withTracing(context, new ForkResult(cond, result), unit(() -> PathTracingKt.handlerForkResultKt(context, cond, result)));
+        withTracing(context, new ForkResult(cond, result), unit(() -> handlerForkResultKt(context, cond, result)));
     }
 
     @CPythonAdapterJavaMethod(cName = "unpack")

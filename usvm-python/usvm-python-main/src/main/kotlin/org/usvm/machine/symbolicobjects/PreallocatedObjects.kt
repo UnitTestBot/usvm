@@ -5,9 +5,9 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonCallable
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
-import org.usvm.machine.UPythonContext
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.PyContext
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
 import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
@@ -53,7 +53,7 @@ class PreallocatedObjects(
 
     companion object {
         fun initialize(
-            ctx: UPythonContext,
+            ctx: PyContext,
             initialMemory: UMemory<PythonType, PythonCallable>,
             initialPathConstraints: UPathConstraints<PythonType>,
             typeSystem: PythonTypeSystem

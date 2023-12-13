@@ -1,10 +1,6 @@
 package org.usvm.language.types
 
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.utbot.python.newtyping.PythonAnyTypeDescription
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.pythonDescription
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 
 object PythonAnyType: VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true

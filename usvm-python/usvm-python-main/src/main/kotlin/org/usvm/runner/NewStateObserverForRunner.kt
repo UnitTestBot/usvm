@@ -3,7 +3,7 @@ package org.usvm.runner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.usvm.machine.NewStateObserver
-import org.usvm.machine.PythonExecutionState
+import org.usvm.machine.PyState
 import org.usvm.machine.rendering.StateSeedSender
 import org.usvm.machine.saving.PickledObjectSaver
 
@@ -14,7 +14,7 @@ class NewStateObserverForRunner(
     private val saver = PickledObjectSaver(communicator)
     private val seedSender = StateSeedSender(saver)
     private val sentData = mutableSetOf<String>()
-    override fun onNewState(state: PythonExecutionState) {
+    override fun onNewState(state: PyState) {
         val data = seedSender.getData(state) ?: return
         if (data !in sentData) {
             sentData.add(data)

@@ -1,7 +1,7 @@
 package org.usvm.machine.utils
 
 import org.usvm.language.types.PythonTypeSystem
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import java.io.File
 
 fun <T> withAdditionalPaths(additionalPaths: Collection<File>, typeSystem: PythonTypeSystem?, block: () -> T): T {

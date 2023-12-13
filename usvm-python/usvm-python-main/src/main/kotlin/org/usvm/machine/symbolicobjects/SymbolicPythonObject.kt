@@ -6,10 +6,12 @@ import org.usvm.api.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PythonCallable
-import org.usvm.machine.utils.PyModelHolder
-import org.usvm.machine.interpreters.operations.basic.myAssert
 import org.usvm.language.types.*
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
+import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
+import org.usvm.machine.model.PyModelHolder
+import org.usvm.machine.model.getConcreteType
+import org.usvm.machine.model.getFirstType
 import org.usvm.memory.UMemory
 import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
@@ -59,7 +61,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun evalIs(
-        ctx: UPythonContext,
+        ctx: PyContext,
         typeConstraints: UTypeConstraints<PythonType>,
         type: PythonType
     ): UBoolExpr {
@@ -77,7 +79,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun evalIsSoft(
-        ctx: UPythonContext,
+        ctx: PyContext,
         typeConstraints: UTypeConstraints<PythonType>,
         type: PythonType
     ): UBoolExpr {
@@ -102,7 +104,7 @@ class UninterpretedSymbolicPythonObject(
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
-    fun setMinimalTimeOfCreation(ctx: UPythonContext, memory: UMemory<PythonType, PythonCallable>) {  // must not be called on nullref
+    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PythonCallable>) {  // must not be called on nullref
         memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-1_000_000_000), ctx.trueExpr)
     }
 
@@ -134,6 +136,7 @@ class InterpretedInputSymbolicPythonObject(
             return MockType
         return modelHolder.model.getFirstType(address)
     }
+
     override fun getConcreteType(): ConcretePythonType? {
         if (address.address == 0)
             return null
@@ -143,7 +146,7 @@ class InterpretedInputSymbolicPythonObject(
     override fun getTypeStream(): UTypeStream<PythonType>? {
         if (address.address == 0)
             return null
-        return modelHolder.model.uModel.typeStreamOf(address)
+        return modelHolder.model.typeStreamOf(address)
     }
 }
 
