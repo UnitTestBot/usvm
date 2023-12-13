@@ -2,6 +2,9 @@ package org.usvm.machine.state
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
+import org.usvm.domain.GoInst
+import org.usvm.domain.GoMethod
+import org.usvm.domain.GoType
 import org.usvm.machine.*
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase

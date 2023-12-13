@@ -1,6 +1,7 @@
 package org.usvm.programs
 
 import org.usvm.language.ArrayType
+import org.usvm.language.IntExpr
 import org.usvm.language.IntType
 import org.usvm.language.builders.ProgramDecl
 import org.usvm.language.builders.eq
@@ -44,5 +45,22 @@ object LoopProgram : ProgramDecl() {
             ret(1.expr)
         }
         ret(0.expr)
+    }
+
+    val loopSimple by method(IntType, returnType = IntType) { i ->
+        var idx by i
+        loop(idx lt 10.expr) {
+            idx += 1.expr
+        }
+        ret(0.expr)
+    }
+
+    val loopInfinite by method(IntType, returnType = IntType) { i ->
+        loop(true.expr) {
+            var j by i + 3.expr
+            val k by j + i
+            val l by k + j + 4.expr
+            j = l + 2.expr
+        }
     }
 }

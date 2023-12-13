@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import org.usvm.*
+import org.usvm.domain.GoType
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem

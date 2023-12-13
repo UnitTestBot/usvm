@@ -3,10 +3,10 @@ package org.usvm.bridge
 import com.sun.jna.Native
 import com.sun.jna.Structure
 import org.usvm.api.*
-import org.usvm.machine.GoInst
-import org.usvm.machine.GoMethod
-import org.usvm.machine.GoMethodInfo
-import org.usvm.machine.GoType
+import org.usvm.domain.GoInst
+import org.usvm.domain.GoMethod
+import org.usvm.domain.GoMethodInfo
+import org.usvm.domain.GoType
 import org.usvm.util.GoResult
 
 class GoBridge {
@@ -158,24 +158,29 @@ class GoBridge {
                     return api.mkIntRegisterReading(name, idx)
                 }
             },
-            mkIntSignedLessExpr = object : MkIntSignedLessExpr {
-                override fun mkIntSignedLessExpr(fst: String, snd: String) {
-                    return api.mkIntSignedLessExpr(fst, snd)
+            mkLess = object : MkLess {
+                override fun mkLess(name: String, fst: String, snd: String) {
+                    return api.mkLess(name, fst, snd)
                 }
             },
-            mkIntSignedGreaterExpr = object : MkIntSignedGreaterExpr {
-                override fun mkIntSignedGreaterExpr(fst: String, snd: String) {
-                    return api.mkIntSignedGreaterExpr(fst, snd)
+            mkGreater = object : MkGreater {
+                override fun mkGreater(name: String, fst: String, snd: String) {
+                    return api.mkGreater(name, fst, snd)
                 }
             },
-            mkIfInst = object : MkIfInst {
-                override fun mkIfInst(expr: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
-                    return api.mkIfInst(expr, posInst, negInst)
+            mkAdd = object : MkAdd {
+                override fun mkAdd(name: String, fst: String, snd: String) {
+                    return api.mkAdd(name, fst, snd)
                 }
             },
-            mkReturnInst = object : MkReturnInst {
-                override fun mkReturnInst(name: String) {
-                    return api.mkReturnInst(name)
+            mkIf = object : MkIf {
+                override fun mkIf(name: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
+                    return api.mkIf(name, posInst, negInst)
+                }
+            },
+            mkReturn = object : MkReturn {
+                override fun mkReturn(name: String) {
+                    return api.mkReturn(name)
                 }
             },
         )

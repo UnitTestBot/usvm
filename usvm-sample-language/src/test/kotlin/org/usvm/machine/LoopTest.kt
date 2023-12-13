@@ -7,11 +7,12 @@ import org.usvm.UMachineOptions
 import org.usvm.language.IntConst
 import org.usvm.programs.LoopProgram
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 
 class LoopTest {
     val programDecl = LoopProgram
-    val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))
+    val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.Z3))
 
     @Test
     fun runLoopLowIdx() {
@@ -37,5 +38,26 @@ class LoopTest {
         assertTrue {
             results.any { it is SuccessfulExecutionResult && (it.outputModel.returnExpr as IntConst).const == 1 }
         }
+    }
+
+    @Test
+    fun runLoopSimple() {
+        val results = machine.analyze(programDecl.loopSimple)
+        println(results)
+    }
+
+    @Test
+    fun runLoopInfinite() {
+        val machine = SampleMachine(
+            programDecl.program,
+            UMachineOptions(
+                listOf(PathSelectionStrategy.DFS),
+                stopOnCoverage = -1,
+                timeout = Duration.INFINITE,
+                stepLimit = 1_000_000UL,
+            ),
+        )
+        val results = machine.analyze(programDecl.loopInfinite)
+        println(results)
     }
 }

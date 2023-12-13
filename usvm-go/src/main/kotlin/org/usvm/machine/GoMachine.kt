@@ -6,6 +6,8 @@ import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.GoApi
 import org.usvm.bridge.GoBridge
+import org.usvm.domain.GoInst
+import org.usvm.domain.GoMethod
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.interpreter.GoInterpreter
 import org.usvm.machine.interpreter.GoStepScope
@@ -126,4 +128,6 @@ class GoMachine(
     override fun close() {
         ctx.close()
     }
+
+    fun getCalls() = bridge.getCalls()
 }

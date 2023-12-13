@@ -1,15 +1,21 @@
 package org.usvm.machine
 
-import io.ksmt.sort.KBoolSort
-import io.ksmt.sort.KBv32Sort
-import org.usvm.UBv32Sort
-import org.usvm.UComponents
-import org.usvm.UContext
-import org.usvm.UExpr
+import org.usvm.*
+import org.usvm.domain.GoType
 
 internal typealias USizeSort = UBv32Sort
 
-class GoContext(components: UComponents<*, USizeSort>) : UContext<USizeSort>(components) {
-    val vars = mutableMapOf<String, UExpr<KBv32Sort>>()
-    val expressions = mutableMapOf<String, UExpr<KBoolSort>>()
+class GoContext(
+    components: UComponents<GoType, USizeSort>,
+) : UContext<USizeSort>(components) {
+    private var argsCount: Int = 0
+    fun idx(name: String): Int = when {
+        name.startsWith("t") -> name.removePrefix("t").toInt() + argsCount
+        name.startsWith("p") -> name.removePrefix("p").toInt()
+        else -> -1
+    }
+
+    fun setArgsCount(count: Int) {
+        argsCount = count
+    }
 }

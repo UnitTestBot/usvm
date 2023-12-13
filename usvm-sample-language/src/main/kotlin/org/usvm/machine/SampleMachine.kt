@@ -10,11 +10,7 @@ import org.usvm.language.Program
 import org.usvm.language.SampleType
 import org.usvm.language.Stmt
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.StepsStatistics
-import org.usvm.statistics.TimeStatistics
-import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.*
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
@@ -98,6 +94,19 @@ class SampleMachine(
         observers.add(statesCollector)
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
+
+        if (logger.isInfoEnabled) {
+            observers.add(
+                StatisticsByMethodPrinter(
+                    { methods },
+                    logger::info,
+                    { it.toString() },
+                    coverageStatistics,
+                    timeStatistics,
+                    stepsStatistics
+                )
+            )
+        }
 
         if (options.useSoftConstraints) {
             observers.add(SoftConstraintsObserver())

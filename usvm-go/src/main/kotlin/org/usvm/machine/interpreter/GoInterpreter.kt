@@ -6,6 +6,9 @@ import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.GoApi
 import org.usvm.bridge.GoBridge
+import org.usvm.domain.GoInst
+import org.usvm.domain.GoMethod
+import org.usvm.domain.GoType
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.*
 import org.usvm.machine.state.GoState
@@ -25,6 +28,8 @@ class GoInterpreter(
 
         logger.debug("Method: {}, info: {}", method.name, methodInfo)
 
+        ctx.setArgsCount(methodInfo.parameters.size)
+
         val solver = ctx.solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
@@ -37,8 +42,9 @@ class GoInterpreter(
     }
 
     override fun step(state: GoState): StepResult<GoState> {
+//        logger.debug("Step: {}", state.lastInst)
+
         val inst = state.lastInst
-        logger.debug("Step: {}", inst)
         val scope = GoStepScope(state, forkBlackList)
         val newInst = bridge.step(GoApi(ctx, scope), inst)
         if (!newInst.isEmpty()) {

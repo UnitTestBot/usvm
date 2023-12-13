@@ -1,33 +1,42 @@
 package org.usvm.api
 
 import com.sun.jna.Callback
+import io.ksmt.utils.asExpr
+import org.usvm.*
 import org.usvm.bridge.Inst
 import org.usvm.machine.GoContext
-import org.usvm.machine.GoInst
+import org.usvm.domain.GoInst
 import org.usvm.machine.interpreter.GoStepScope
+import org.usvm.memory.URegisterStackLValue
 
 class GoApi(
     private val ctx: GoContext,
     private val scope: GoStepScope,
-) : MkIntRegisterReading, MkIntSignedLessExpr, MkIntSignedGreaterExpr, MkIfInst, MkReturnInst {
+) : MkIntRegisterReading,
+    MkLess,
+    MkGreater,
+    MkAdd,
+    MkIf,
+    MkReturn {
     override fun mkIntRegisterReading(name: String, idx: Int) {
-        ctx.vars[name] = ctx.mkRegisterReading(idx, ctx.bv32Sort)
+        ctx.mkRegisterReading(idx, ctx.bv32Sort)
     }
 
-    override fun mkIntSignedLessExpr(fst: String, snd: String) {
-        val f = ctx.vars[fst] ?: return
-        val s = ctx.vars[snd] ?: return
-        ctx.expressions["$fst < $snd"] = ctx.mkBvSignedLessExpr(f, s)
+    override fun mkLess(name: String, fst: String, snd: String) {
+        mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.boolSort, ::mkIntConst, ctx::mkBvSignedLessExpr)
     }
 
-    override fun mkIntSignedGreaterExpr(fst: String, snd: String) {
-        val f = ctx.vars[fst] ?: return
-        val s = ctx.vars[snd] ?: return
-        ctx.expressions["$fst > $snd"] = ctx.mkBvSignedGreaterExpr(f, s)
+    override fun mkGreater(name: String, fst: String, snd: String) {
+        mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.boolSort, ::mkIntConst, ctx::mkBvSignedGreaterExpr)
     }
 
-    override fun mkIfInst(expr: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
-        val expression = ctx.expressions[expr] ?: return
+    override fun mkAdd(name: String, fst: String, snd: String) {
+        mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.bv32Sort, ::mkIntConst, ctx::mkBvAddExpr)
+    }
+
+    override fun mkIf(name: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
+        val lvalue = URegisterStackLValue(ctx.boolSort, ctx.idx(name))
+        val expression = scope.calcOnState { memory.read(lvalue) }.asExpr(ctx.boolSort)
         val pos = GoInst(posInst.pointer, posInst.statement)
         val neg = GoInst(negInst.pointer, negInst.statement)
         scope.forkWithBlackList(
@@ -39,10 +48,44 @@ class GoApi(
         )
     }
 
-    override fun mkReturnInst(name: String) {
-        val value = ctx.vars[name] ?: return
+    override fun mkReturn(name: String) {
         scope.doWithState {
+            val value = memory.read(URegisterStackLValue(ctx.bv32Sort, ctx.idx(name)))
             returnValue(value)
+        }
+    }
+
+    private fun <In : USort, Out : USort> mkBinOp(
+        name: String,
+        fst: String,
+        snd: String,
+        inSort: In,
+        outSort: Out,
+        mkConst: (f: String) -> UExpr<In>?,
+        mkExpr: (f: UExpr<In>, s: UExpr<In>) -> UExpr<Out>
+    ) {
+        val f = mkConst(fst) ?: scope.calcOnState {
+            memory.read(URegisterStackLValue(inSort, ctx.idx(fst)))
+        }.asExpr(inSort)
+        val s = mkConst(snd) ?: scope.calcOnState {
+            memory.read(URegisterStackLValue(inSort, ctx.idx(snd)))
+        }.asExpr(inSort)
+        val lvalue = URegisterStackLValue(outSort, ctx.idx(name))
+        scope.doWithState {
+            memory.write(lvalue, mkExpr(f, s).asExpr(outSort), ctx.trueExpr)
+        }
+    }
+
+    private fun mkIntConst(expr: String): UExpr<UBv32Sort>? {
+        expr.split(":").let { s ->
+            if (s.isEmpty()) {
+                return null
+            }
+            try {
+                return ctx.mkBv(s[0].toInt())
+            } catch (e: Exception) {
+                return null
+            }
         }
     }
 }
@@ -51,18 +94,22 @@ interface MkIntRegisterReading : Callback {
     fun mkIntRegisterReading(name: String, idx: Int)
 }
 
-interface MkIntSignedLessExpr : Callback {
-    fun mkIntSignedLessExpr(fst: String, snd: String)
+interface MkLess : Callback {
+    fun mkLess(name: String, fst: String, snd: String)
 }
 
-interface MkIntSignedGreaterExpr : Callback {
-    fun mkIntSignedGreaterExpr(fst: String, snd: String)
+interface MkGreater : Callback {
+    fun mkGreater(name: String, fst: String, snd: String)
 }
 
-interface MkIfInst : Callback {
-    fun mkIfInst(expr: String, posInst: Inst.ByValue, negInst: Inst.ByValue)
+interface MkAdd : Callback {
+    fun mkAdd(name: String, fst: String, snd: String)
 }
 
-interface MkReturnInst : Callback {
-    fun mkReturnInst(name: String)
+interface MkIf : Callback {
+    fun mkIf(name: String, posInst: Inst.ByValue, negInst: Inst.ByValue)
+}
+
+interface MkReturn : Callback {
+    fun mkReturn(name: String)
 }

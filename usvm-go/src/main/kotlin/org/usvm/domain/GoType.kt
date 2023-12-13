@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.domain
 
 class GoType(
     val pointer: Long,

@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.usvm.bridge.GoBridge
+import org.usvm.domain.GoType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
