@@ -1,7 +1,7 @@
 package org.usvm.machine.utils
 
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
 
 fun isGenerator(funcRef: PythonObject): Boolean {
     val namespace = ConcretePythonInterpreter.getNewNamespace()

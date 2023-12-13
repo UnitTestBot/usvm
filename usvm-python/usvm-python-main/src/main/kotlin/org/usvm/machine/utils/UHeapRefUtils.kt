@@ -4,11 +4,12 @@ import org.usvm.*
 import org.usvm.api.typeStreamOf
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.PythonType
+import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.types.UTypeStream
 
-fun getLeafHeapRef(ref: UHeapRef, model: PyModelWrapper): UHeapRef =
+fun getLeafHeapRef(ref: UHeapRef, model: PyModel): UHeapRef =
     when (ref) {
         is UConcreteHeapRef -> ref
         is UNullRef -> ref

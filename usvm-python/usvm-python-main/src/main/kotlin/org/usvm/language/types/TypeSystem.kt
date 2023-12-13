@@ -1,10 +1,10 @@
 package org.usvm.language.types
 
 import org.usvm.language.StructuredPythonProgram
-import org.usvm.machine.interpreters.CPythonExecutionException
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
+import org.usvm.machine.interpreters.concrete.CPythonExecutionException
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem

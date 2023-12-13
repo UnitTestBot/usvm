@@ -3,14 +3,11 @@ package org.usvm.machine.model
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.machine.UPythonContext
-import org.usvm.machine.symbolicobjects.PreallocatedObjects
-import org.usvm.machine.utils.PyModelWrapper
+import org.usvm.machine.PyContext
 import org.usvm.model.UModelBase
 
 class PythonMockEvaluator(
-    ctx: UPythonContext,
+    ctx: PyContext,
     private val baseMockEvaluator: UMockEvaluator,
     val mockSymbol: UMockSymbol<UAddressSort>,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null
@@ -29,28 +26,27 @@ class PythonMockEvaluator(
 }
 
 fun constructModelWithNewMockEvaluator(
-    ctx: UPythonContext,
-    oldModel: PyModelWrapper,
+    ctx: PyContext,
+    oldModel: PyModel,
     mockSymbol: UMockSymbol<UAddressSort>,
     ps: UPathConstraints<PythonType>,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null,
     useOldPossibleRefs: Boolean = false
-): Pair<PyModelWrapper, UBoolExpr> {
-    val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.uModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
+): Pair<PyModel, UBoolExpr> {
+    val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
     val suggestedPsInfo = if (useOldPossibleRefs) {
-        require(oldModel.uModel is PyModel)
-        oldModel.uModel.psInfo
+        oldModel.psInfo
     } else {
         null
     }
     val newModel = UModelBase(
         ctx,
-        oldModel.uModel.stack,
-        oldModel.uModel.types,
+        oldModel.stack,
+        oldModel.types,
         newMockEvaluator,
-        oldModel.uModel.regions,
-        oldModel.uModel.nullRef
+        oldModel.regions,
+        oldModel.nullRef
     ).toPyModel(ctx, ps, suggestedPsInfo)
     val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
-    return PyModelWrapper(newModel) to constraint
+    return newModel to constraint
 }

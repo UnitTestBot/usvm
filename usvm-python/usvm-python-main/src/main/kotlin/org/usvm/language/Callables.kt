@@ -1,8 +1,8 @@
 package org.usvm.language
 
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonNamespace
-import org.usvm.machine.interpreters.PythonObject
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonNamespace
+import org.usvm.machine.interpreters.concrete.PythonObject
 import org.usvm.language.types.PythonType
 
 sealed class PythonCallable

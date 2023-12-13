@@ -5,9 +5,8 @@ import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.language.types.getTypeFromTypeHint
-import org.usvm.machine.PythonMachine
+import org.usvm.machine.PyMachine
 import org.usvm.machine.saving.DummySaver
-import org.usvm.machine.saving.PickledObjectSaver
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.PythonCompositeTypeDescription
 import org.utbot.python.newtyping.general.FunctionType
@@ -28,7 +27,7 @@ class PythonMachineSocketRunner(
     private val communicator = PickledObjectCommunicator(socketIp, socketPort)
     private val program = StructuredPythonProgram(programRoots)
     private val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    private val machine = PythonMachine(program, typeSystem)
+    private val machine = PyMachine(program, typeSystem)
     override fun close() {
         communicator.close()
         machine.close()

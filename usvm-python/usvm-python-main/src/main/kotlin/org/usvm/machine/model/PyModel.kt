@@ -14,17 +14,18 @@ import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
+import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.*
-import org.usvm.machine.UPythonContext
+import org.usvm.machine.PyContext
+import org.usvm.machine.PyState
 import org.usvm.machine.model.regions.*
-import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.key.USizeRegion
 import org.usvm.model.UModelBase
 
 class PyModel(
-    private val ctx: UPythonContext,
+    private val ctx: PyContext,
     private val underlyingModel: UModelBase<PythonType>,
     ps: UPathConstraints<PythonType>,
     suggestedPsInfo: PathConstraintsInfo? = null
@@ -94,14 +95,4 @@ class PyModel(
     override fun hashCode(): Int {
         return underlyingModel.hashCode()
     }
-}
-
-fun UModelBase<PythonType>.toPyModel(
-    ctx: UPythonContext,
-    ps: UPathConstraints<PythonType>,
-    suggestedPsInfo: PathConstraintsInfo? = null
-): PyModel {
-    if (this is PyModel)
-        return this
-    return PyModel(ctx, this, ps, suggestedPsInfo)
 }

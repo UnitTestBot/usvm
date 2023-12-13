@@ -1,11 +1,9 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.usvm.UMachineOptions
 import org.usvm.language.PythonUnpinnedCallable
 import org.usvm.language.types.PythonAnyType
-import org.usvm.machine.interpreters.IllegalOperationException
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults

@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.usvm.machine.interpreters.operations.tracing.PathDiversionException
+import org.usvm.machine.interpreters.symbolic.operations.tracing.PathDiversionException
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 

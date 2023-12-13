@@ -7,20 +7,20 @@ import org.usvm.api.typeStreamOf
 import org.usvm.language.PythonCallable
 import org.usvm.language.VirtualPythonObject
 import org.usvm.language.types.*
-import org.usvm.machine.UPythonContext
-import org.usvm.machine.interpreters.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.PythonObject
-import org.usvm.machine.interpreters.ConcretePythonInterpreter.emptyNamespace
-import org.usvm.machine.interpreters.PythonNamespace
-import org.usvm.machine.model.PyModel
+import org.usvm.machine.PyContext
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
+import org.usvm.machine.interpreters.concrete.PythonNamespace
+import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.machine.utils.MAX_INPUT_ARRAY_LENGTH
-import org.usvm.machine.utils.PyModelHolder
 import org.usvm.memory.UMemory
 import org.usvm.types.first
 
 class ConverterToPythonObject(
-    private val ctx: UPythonContext,
+    private val ctx: PyContext,
     private val typeSystem: PythonTypeSystem,
     val modelHolder: PyModelHolder,
     private val preallocatedObjects: PreallocatedObjects,
@@ -102,8 +102,7 @@ class ConverterToPythonObject(
         ConcretePythonInterpreter.concreteRun(namespace, "x = set()")
         val result = ConcretePythonInterpreter.eval(namespace, "x")
         constructedObjects[obj.address] = result
-        val model = modelHolder.model.uModel
-        require(model is PyModel)
+        val model = modelHolder.model
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
                 val type = memory.typeStreamOf(it).first()
@@ -151,8 +150,7 @@ class ConverterToPythonObject(
         ConcretePythonInterpreter.concreteRun(namespace, "x = dict()")
         val result = ConcretePythonInterpreter.eval(namespace, "x")
         constructedObjects[obj.address] = result
-        val model = modelHolder.model.uModel
-        require(model is PyModel)
+        val model = modelHolder.model
         var addedElems = 0
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
@@ -222,7 +220,7 @@ class ConverterToPythonObject(
             throw LengthOverflowException
         return List(size.value) { index ->
             val indexExpr = ctx.mkSizeExpr(index)
-            val element = obj.modelHolder.model.uModel.readArrayIndex(
+            val element = obj.modelHolder.model.readArrayIndex(
                 obj.address,
                 indexExpr,
                 ArrayType,
