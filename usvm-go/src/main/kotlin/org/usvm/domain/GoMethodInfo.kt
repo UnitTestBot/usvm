@@ -1,10 +1,10 @@
 package org.usvm.domain
 
 class GoMethodInfo(
-    val parameters: Array<GoType>,
+    val parametersCount: Int,
     val localsCount: Int
 ) {
     override fun toString(): String {
-        return "params: ${parameters.contentToString()}, locals: $localsCount"
+        return "params: ${parametersCount}, locals: $localsCount"
     }
 }

@@ -5,7 +5,9 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.GoApi
-import org.usvm.bridge.GoBridge
+import org.usvm.bridge.BridgeType
+import org.usvm.bridge.GoJnaBridge
+import org.usvm.bridge.mkBridge
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.forkblacklists.UForkBlackList
@@ -25,15 +27,39 @@ import org.usvm.stopstrategies.createStopStrategy
 val logger = object : KLogging() {}.logger
 
 class GoMachine(
-    private val options: UMachineOptions
+    private val options: UMachineOptions,
+    bridgeType: BridgeType,
 ) : UMachine<GoState>() {
-    private val bridge = GoBridge()
+    private val bridge = mkBridge(bridgeType)
     private val typeSystem = GoTypeSystem(bridge, options.typeOperationsTimeout)
     private val applicationGraph = GoApplicationGraph(bridge)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
     private val interpreter = GoInterpreter(bridge, ctx)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
+
+    override fun close() {
+        ctx.close()
+    }
+
+    fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
+        bridge.initialize(file, entrypoint, debug)
+
+        val entryPoint = bridge.getMethod(entrypoint)
+        val initialScope = GoStepScope(GoState(ctx, entryPoint), UForkBlackList.createDefault())
+        val code = bridge.start(GoApi(ctx, initialScope))
+        logger.debug("Bridge start: code {}", code)
+        if (code != 0) {
+            return emptyList()
+        }
+
+        return analyze(listOf(entryPoint))
+    }
+
+    fun getCalls() = when (bridge) {
+        is GoJnaBridge -> bridge.getCalls()
+        else -> 0
+    }
 
     private fun analyze(methods: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
         logger.debug("{}.analyze()", this)
@@ -107,27 +133,7 @@ class GoMachine(
         return statesCollector.collectedStates
     }
 
-    fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
-        bridge.initialize(file, entrypoint, debug)
-
-        val entryPoint = bridge.getMethod(entrypoint)
-        val initialScope = GoStepScope(GoState(ctx, entryPoint), UForkBlackList.createDefault())
-        val code = bridge.start(GoApi(ctx, initialScope))
-        logger.debug("Bridge start: code {}", code)
-        if (code != 0) {
-            return emptyList()
-        }
-
-        return analyze(listOf(entryPoint))
-    }
-
     private fun isStateTerminated(state: GoState): Boolean {
         return state.callStack.isEmpty()
     }
-
-    override fun close() {
-        ctx.close()
-    }
-
-    fun getCalls() = bridge.getCalls()
 }

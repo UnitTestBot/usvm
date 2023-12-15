@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import org.usvm.bridge.GoBridge
+import org.usvm.bridge.Bridge
 import org.usvm.domain.GoType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
@@ -8,7 +8,7 @@ import org.usvm.types.UTypeSystem
 import kotlin.time.Duration
 
 class GoTypeSystem(
-    private val bridge: GoBridge,
+    private val bridge: Bridge,
     override val typeOperationsTimeout: Duration
 ) : UTypeSystem<GoType> {
     private val anyType = bridge.getAnyType()

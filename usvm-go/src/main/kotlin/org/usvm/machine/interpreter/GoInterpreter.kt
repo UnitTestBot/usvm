@@ -5,7 +5,9 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.GoApi
-import org.usvm.bridge.GoBridge
+import org.usvm.bridge.Bridge
+import org.usvm.bridge.GoJnaBridge
+import org.usvm.bridge.GoJniBridge
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.domain.GoType
@@ -18,7 +20,7 @@ import org.usvm.targets.UTargetsSet
 typealias GoStepScope = StepScope<GoState, GoType, GoInst, GoContext>
 
 class GoInterpreter(
-    private val bridge: GoBridge,
+    private val bridge: Bridge,
     private val ctx: GoContext,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
@@ -28,7 +30,7 @@ class GoInterpreter(
 
         logger.debug("Method: {}, info: {}", method.name, methodInfo)
 
-        ctx.setArgsCount(methodInfo.parameters.size)
+        ctx.setArgsCount(methodInfo.parametersCount)
 
         val solver = ctx.solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
@@ -36,7 +38,7 @@ class GoInterpreter(
 
         val entrypointInst = bridge.entryPoints(method)[0]
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(methodInfo.parameters.size, methodInfo.localsCount)
+        state.memory.stack.push(methodInfo.parametersCount, methodInfo.localsCount)
         state.newInst(entrypointInst)
         return state
     }

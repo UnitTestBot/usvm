@@ -2,11 +2,12 @@ package org.usvm.bridge
 
 import com.sun.jna.Structure
 import org.junit.jupiter.api.Test
+import org.usvm.util.Path
 
-class BridgeTest {
+class JnaBridgeTest {
     @Test
     fun testBridgePlayground() {
-        val bridge = GoBridge()
+        val bridge = GoJnaBridge()
         bridge.hello()
         bridge.inc()
         bridge.inc()
@@ -16,16 +17,16 @@ class BridgeTest {
         bridge.inc()
         println(bridge.getCalls())
         bridge.interpreter()
-        println(bridge.initialize("/home/buraindo/programs/max2.go", "main", true))
+        println(bridge.initialize(Path.getProgram("max2.go"), "main", true))
         bridge.interpreter()
-        println(GoBridge.getNumber())
+        println(GoJnaBridge.getNumber())
         println(bridge.talk())
         println(bridge.talk())
         println(bridge.talk())
-        println(GoBridge.getNumber())
+        println(GoJnaBridge.getNumber())
         println(bridge.talk())
         println(bridge.talk())
-        println(GoBridge.getNumber())
+        println(GoJnaBridge.getNumber())
         val pointer = bridge.getBridge()
         println("java pointer: $pointer")
         println(bridge.getBridgeCalls(pointer))
@@ -53,8 +54,8 @@ class BridgeTest {
 
     @Test
     fun testBridgeApplicationGraph() {
-        val bridge = GoBridge()
-        bridge.initialize("/home/buraindo/programs/max2.go", "main", true)
+        val bridge = GoJnaBridge()
+        bridge.initialize(Path.getProgram("max2.go"), "main", true)
         val main = bridge.getMain()
 
         val entryPoints = bridge.entryPoints(main)
@@ -81,8 +82,8 @@ class BridgeTest {
 
     @Test
     fun testBridgeTypeSystem() {
-        val bridge = GoBridge()
-        bridge.initialize("/home/buraindo/programs/max2.go", "main", true)
+        val bridge = GoJnaBridge()
+        bridge.initialize(Path.getProgram("max2.go"), "main", true)
         val any = bridge.getAnyType()
         println(any)
         println(bridge.isSupertype(any, any))
@@ -91,7 +92,7 @@ class BridgeTest {
 
     @Test
     fun testBridgeCallback() {
-        val bridge = GoBridge()
+        val bridge = GoJnaBridge()
         bridge.callJavaMethod(Logger(), Logger::class.java)
     }
 }

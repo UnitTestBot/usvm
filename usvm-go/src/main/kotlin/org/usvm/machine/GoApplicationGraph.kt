@@ -1,12 +1,12 @@
 package org.usvm.machine
 
-import org.usvm.bridge.GoBridge
+import org.usvm.bridge.Bridge
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.statistics.ApplicationGraph
 
 class GoApplicationGraph(
-    private val bridge: GoBridge,
+    private val bridge: Bridge,
 ) : ApplicationGraph<GoMethod, GoInst> {
     override fun predecessors(node: GoInst): Sequence<GoInst> {
         return bridge.predecessors(node).asSequence()

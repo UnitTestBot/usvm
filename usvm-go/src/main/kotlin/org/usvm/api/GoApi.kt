@@ -2,39 +2,36 @@ package org.usvm.api
 
 import com.sun.jna.Callback
 import io.ksmt.utils.asExpr
-import org.usvm.*
+import org.usvm.UBv32Sort
+import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.bridge.Inst
-import org.usvm.machine.GoContext
 import org.usvm.domain.GoInst
+import org.usvm.machine.GoContext
 import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 
 class GoApi(
     private val ctx: GoContext,
     private val scope: GoStepScope,
-) : MkIntRegisterReading,
-    MkLess,
-    MkGreater,
-    MkAdd,
-    MkIf,
-    MkReturn {
-    override fun mkIntRegisterReading(name: String, idx: Int) {
+) {
+    fun mkIntRegisterReading(idx: Int) {
         ctx.mkRegisterReading(idx, ctx.bv32Sort)
     }
 
-    override fun mkLess(name: String, fst: String, snd: String) {
+    fun mkLess(name: String, fst: String, snd: String) {
         mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.boolSort, ::mkIntConst, ctx::mkBvSignedLessExpr)
     }
 
-    override fun mkGreater(name: String, fst: String, snd: String) {
+    fun mkGreater(name: String, fst: String, snd: String) {
         mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.boolSort, ::mkIntConst, ctx::mkBvSignedGreaterExpr)
     }
 
-    override fun mkAdd(name: String, fst: String, snd: String) {
+    fun mkAdd(name: String, fst: String, snd: String) {
         mkBinOp(name, fst, snd, ctx.bv32Sort, ctx.bv32Sort, ::mkIntConst, ctx::mkBvAddExpr)
     }
 
-    override fun mkIf(name: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
+    fun mkIf(name: String, posInst: GoInst, negInst: GoInst) {
         val lvalue = URegisterStackLValue(ctx.boolSort, ctx.idx(name))
         val expression = scope.calcOnState { memory.read(lvalue) }.asExpr(ctx.boolSort)
         val pos = GoInst(posInst.pointer, posInst.statement)
@@ -48,7 +45,7 @@ class GoApi(
         )
     }
 
-    override fun mkReturn(name: String) {
+    fun mkReturn(name: String) {
         scope.doWithState {
             val value = memory.read(URegisterStackLValue(ctx.bv32Sort, ctx.idx(name)))
             returnValue(value)

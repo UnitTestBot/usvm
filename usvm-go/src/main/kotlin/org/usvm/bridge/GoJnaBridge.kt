@@ -8,10 +8,11 @@ import org.usvm.domain.GoMethod
 import org.usvm.domain.GoMethodInfo
 import org.usvm.domain.GoType
 import org.usvm.util.GoResult
+import org.usvm.util.Path
 
-class GoBridge {
-    private val path = "/home/buraindo/libs/java_bridge.so"
-    private val bridge = Native.load(path, Bridge::class.java)
+class GoJnaBridge : Bridge {
+    private val path = Path.getLib("java_jna_bridge.so")
+    private val jnaBridge = Native.load(path, JnaBridge::class.java)
 
     init {
         System.load(path)
@@ -19,70 +20,69 @@ class GoBridge {
 
     // ------------ region: init
 
-    fun initialize(file: String, entrypoint: String, debug: Boolean): GoResult {
-        return toResult(bridge.initialize(GoString(file), GoString(entrypoint), debug))
+    override fun initialize(file: String, entrypoint: String, debug: Boolean): GoResult {
+        return toResult(jnaBridge.initialize(GoString(file), GoString(entrypoint), debug))
     }
 
     // ------------ region: init
 
     // ------------ region: machine
 
-    fun getMain(): GoMethod = toMethod(bridge.getMain())
+    override fun getMain(): GoMethod = toMethod(jnaBridge.getMain())
 
-    fun getMethod(name: String): GoMethod = toMethod(bridge.getMethod(GoString(name)))
+    override fun getMethod(name: String): GoMethod = toMethod(jnaBridge.getMethod(GoString(name)))
 
     // ------------ region: machine
 
     // ------------ region: application graph
 
-    fun predecessors(inst: GoInst): Array<GoInst> = toInstArray(bridge.predecessors(inst.pointer))
+    override fun predecessors(inst: GoInst): Array<GoInst> = toInstArray(jnaBridge.predecessors(inst.pointer))
 
-    fun successors(inst: GoInst): Array<GoInst> = toInstArray(bridge.successors(inst.pointer))
+    override fun successors(inst: GoInst): Array<GoInst> = toInstArray(jnaBridge.successors(inst.pointer))
 
-    fun callees(inst: GoInst): Array<GoMethod> = toMethodArray(bridge.callees(inst.pointer))
+    override fun callees(inst: GoInst): Array<GoMethod> = toMethodArray(jnaBridge.callees(inst.pointer))
 
-    fun callers(method: GoMethod): Array<GoInst> = toInstArray(bridge.callers(method.pointer))
+    override fun callers(method: GoMethod): Array<GoInst> = toInstArray(jnaBridge.callers(method.pointer))
 
-    fun entryPoints(method: GoMethod): Array<GoInst> = toInstArray(bridge.entryPoints(method.pointer))
+    override fun entryPoints(method: GoMethod): Array<GoInst> = toInstArray(jnaBridge.entryPoints(method.pointer))
 
-    fun exitPoints(method: GoMethod): Array<GoInst> = toInstArray(bridge.exitPoints(method.pointer))
+    override fun exitPoints(method: GoMethod): Array<GoInst> = toInstArray(jnaBridge.exitPoints(method.pointer))
 
-    fun methodOf(inst: GoInst): GoMethod = toMethod(bridge.methodOf(inst.pointer))
+    override fun methodOf(inst: GoInst): GoMethod = toMethod(jnaBridge.methodOf(inst.pointer))
 
-    fun statementsOf(method: GoMethod): Array<GoInst> = toInstArray(bridge.statementsOf(method.pointer))
+    override fun statementsOf(method: GoMethod): Array<GoInst> = toInstArray(jnaBridge.statementsOf(method.pointer))
 
     // ------------ region: application graph
 
     // ------------ region: type system
 
-    fun getAnyType(): GoType = toType(bridge.getAnyType())
+    override fun getAnyType(): GoType = toType(jnaBridge.getAnyType())
 
-    fun findSubTypes(type: GoType): Array<GoType> = toTypeArray(bridge.findSubTypes(type.pointer))
+    override fun findSubTypes(type: GoType): Array<GoType> = toTypeArray(jnaBridge.findSubTypes(type.pointer))
 
-    fun isInstantiable(type: GoType): Boolean = bridge.isInstantiable(type.pointer)
+    override fun isInstantiable(type: GoType): Boolean = jnaBridge.isInstantiable(type.pointer)
 
-    fun isFinal(type: GoType): Boolean = bridge.isFinal(type.pointer)
+    override fun isFinal(type: GoType): Boolean = jnaBridge.isFinal(type.pointer)
 
-    fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean =
-        bridge.hasCommonSubtype(type.pointer, toTypeGoSlice(types.toTypedArray()))
+    override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean =
+        jnaBridge.hasCommonSubtype(type.pointer, toTypeGoSlice(types.toTypedArray()))
 
-    fun isSupertype(supertype: GoType, type: GoType): Boolean = bridge.isSupertype(supertype.pointer, type.pointer)
+    override fun isSupertype(supertype: GoType, type: GoType): Boolean =
+        jnaBridge.isSupertype(supertype.pointer, type.pointer)
 
     // ------------ region: type system
 
     // ------------ region: interpreter
 
-    fun methodInfo(method: GoMethod): GoMethodInfo = toMethodInfo(bridge.methodInfo(method.pointer))
-
-    fun stepRef(api: ApiRef): Boolean = bridge.stepRef(toObject(api, api::class.java))
+    override fun methodInfo(method: GoMethod): GoMethodInfo = toMethodInfo(jnaBridge.methodInfo(method.pointer))
 
     // ------------ region: interpreter
 
     // ------------ region: api
 
-    fun start(api: GoApi): Int = bridge.start(toApi(api))
+    override fun start(api: GoApi): Int = jnaBridge.start(toApi(api))
 
-    fun step(api: GoApi, inst: GoInst): GoInst = toInst(bridge.step(toApi(api), inst.pointer))
+    override fun step(api: GoApi, inst: GoInst): GoInst = toInst(jnaBridge.step(toApi(api), inst.pointer))
 
     // ------------ region: api
 
@@ -141,8 +141,7 @@ class GoBridge {
     private fun toMethod(method: Method): GoMethod = GoMethod(method.pointer, method.name)
 
     private fun toMethodInfo(methodInfo: MethodInfo): GoMethodInfo {
-        val parameters = toTypeArray(methodInfo.parameters)
-        return GoMethodInfo(parameters, methodInfo.localsCount)
+        return GoMethodInfo(methodInfo.parametersCount, methodInfo.localsCount)
     }
 
     private fun toType(type: Type): GoType = GoType(type.pointer, type.name)
@@ -155,7 +154,7 @@ class GoBridge {
         return Api(
             mkIntRegisterReading = object : MkIntRegisterReading {
                 override fun mkIntRegisterReading(name: String, idx: Int) {
-                    return api.mkIntRegisterReading(name, idx)
+                    return api.mkIntRegisterReading(idx)
                 }
             },
             mkLess = object : MkLess {
@@ -175,7 +174,7 @@ class GoBridge {
             },
             mkIf = object : MkIf {
                 override fun mkIf(name: String, posInst: Inst.ByValue, negInst: Inst.ByValue) {
-                    return api.mkIf(name, posInst, negInst)
+                    return api.mkIf(name, toInst(posInst), toInst(negInst))
                 }
             },
             mkReturn = object : MkReturn {
@@ -194,37 +193,39 @@ class GoBridge {
 
     // ------------ region: test
 
-    fun talk(): GoResult = toResult(bridge.talk())
+    fun talk(): GoResult = toResult(jnaBridge.talk())
 
-    fun getCalls(): Int = bridge.getCalls()
+    fun getCalls(): Int = jnaBridge.getCalls()
 
-    fun inc() = bridge.inc()
+    fun inc() = jnaBridge.inc()
 
-    fun interpreter() = println(bridge.interpreter())
+    fun interpreter() = println(jnaBridge.interpreter())
 
-    fun hello() = bridge.hello()
+    fun hello() = jnaBridge.hello()
 
-    fun getBridge(): Long = bridge.getBridge()
+    fun getBridge(): Long = jnaBridge.getBridge()
 
-    fun getBridgeCalls(pointer: Long): Int = bridge.getBridgeCalls(pointer)
+    fun getBridgeCalls(pointer: Long): Int = jnaBridge.getBridgeCalls(pointer)
 
-    fun getMainPointer(): Long = bridge.getMainPointer()
+    fun getMainPointer(): Long = jnaBridge.getMainPointer()
 
-    fun getMethodName(pointer: Long): String = toString(bridge.getMethodName(pointer))
+    fun getMethodName(pointer: Long): String = toString(jnaBridge.getMethodName(pointer))
 
-    fun countStatementsOf(pointer: Long): Int = bridge.countStatementsOf(pointer)
+    fun countStatementsOf(pointer: Long): Int = jnaBridge.countStatementsOf(pointer)
 
-    fun methods(): Method.ByReference = bridge.methods()
+    fun methods(): Method.ByReference = jnaBridge.methods()
 
-    fun slice(): Slice = bridge.slice()
+    fun slice(): Slice = jnaBridge.slice()
 
-    fun methodsSlice(): Array<GoMethod> = toMethodArray(bridge.methodsSlice())
+    fun methodsSlice(): Array<GoMethod> = toMethodArray(jnaBridge.methodsSlice())
 
     fun callJavaMethod(obj: Reference, clazz: Class<*>) {
-        bridge.callJavaMethod(toObject(obj, clazz))
+        jnaBridge.callJavaMethod(toObject(obj, clazz))
     }
 
-    fun frameStep(api: GoApi): Boolean = bridge.frameStep(toApi(api))
+    fun frameStep(api: GoApi): Boolean = jnaBridge.frameStep(toApi(api))
+
+    fun stepRef(api: ApiRef): Boolean = jnaBridge.stepRef(toObject(api, api::class.java))
 
     companion object {
         private var i: Int = 0
