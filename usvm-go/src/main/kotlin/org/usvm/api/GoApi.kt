@@ -58,32 +58,27 @@ class GoApi(
         snd: String,
         inSort: In,
         outSort: Out,
-        mkConst: (f: String) -> UExpr<In>?,
+        mkConst: (f: String) -> UExpr<In>,
         mkExpr: (f: UExpr<In>, s: UExpr<In>) -> UExpr<Out>
     ) {
-        val f = mkConst(fst) ?: scope.calcOnState {
-            memory.read(URegisterStackLValue(inSort, ctx.idx(fst)))
+        val fIdx = ctx.idx(fst)
+        val f = if (fIdx == -1) mkConst(fst) else scope.calcOnState {
+            memory.read(URegisterStackLValue(inSort, fIdx))
         }.asExpr(inSort)
-        val s = mkConst(snd) ?: scope.calcOnState {
-            memory.read(URegisterStackLValue(inSort, ctx.idx(snd)))
+
+        val sIdx = ctx.idx(snd)
+        val s = if (sIdx == -1) mkConst(snd) else scope.calcOnState {
+            memory.read(URegisterStackLValue(inSort, sIdx))
         }.asExpr(inSort)
+
         val lvalue = URegisterStackLValue(outSort, ctx.idx(name))
         scope.doWithState {
             memory.write(lvalue, mkExpr(f, s).asExpr(outSort), ctx.trueExpr)
         }
     }
 
-    private fun mkIntConst(expr: String): UExpr<UBv32Sort>? {
-        expr.split(":").let { s ->
-            if (s.isEmpty()) {
-                return null
-            }
-            try {
-                return ctx.mkBv(s[0].toInt())
-            } catch (e: Exception) {
-                return null
-            }
-        }
+    private fun mkIntConst(expr: String): UExpr<UBv32Sort> {
+        return ctx.mkBv(expr.toInt())
     }
 }
 

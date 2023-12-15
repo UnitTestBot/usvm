@@ -46,6 +46,14 @@ class GoMachineTest {
     }
 
     @Test
+    fun testAddJni() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNI)
+        val results = machine.analyze(Path.getProgram("add.go"), "add", false)
+        println(results)
+        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
     fun testLoopCrazy() {
         val results = machine.analyze(Path.getProgram("loop_crazy.go"), "loop", false)
         println(results)
