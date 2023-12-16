@@ -58,9 +58,9 @@ object LoopProgram : ProgramDecl() {
     val loopHard by method(IntType, IntType, returnType = IntType) { i, j ->
         var sum by 0.expr
         var k by 0.expr
-        loop(k lt 10.expr) {
+        loop(k lt 100.expr) {
             var l by 0.expr
-            loop(l lt 10.expr) {
+            loop(l lt 100.expr) {
                 branch((k + l) lt (i + j)) {
                     sum += (k + l)
                 }

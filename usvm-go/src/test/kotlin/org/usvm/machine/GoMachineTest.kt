@@ -79,8 +79,11 @@ class GoMachineTest {
 
     @Test
     fun testLoopHardJni() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNI)
-        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", true)
+        val machine = GoMachine(
+            UMachineOptions(listOf(PathSelectionStrategy.BFS), timeout = Duration.INFINITE),
+            BridgeType.JNI,
+        )
+        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", false)
         println(results)
         println("Calls: ${machine.getCalls()}")
     }
