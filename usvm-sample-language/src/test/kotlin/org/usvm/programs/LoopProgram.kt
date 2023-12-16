@@ -47,12 +47,28 @@ object LoopProgram : ProgramDecl() {
         ret(0.expr)
     }
 
-    val loopSimple by method(IntType, returnType = IntType) { i ->
-        var idx by i
+    val loopSimple by method(IntType, returnType = IntType) {
+        var idx by 0.expr
         loop(idx lt 10.expr) {
             idx += 1.expr
         }
         ret(0.expr)
+    }
+
+    val loopHard by method(IntType, IntType, returnType = IntType) { i, j ->
+        var sum by 0.expr
+        var k by 0.expr
+        loop(k lt 10.expr) {
+            var l by 0.expr
+            loop(l lt 10.expr) {
+                branch((k + l) lt (i + j)) {
+                    sum += (k + l)
+                }
+                l += 1.expr
+            }
+            k += 1.expr
+        }
+        ret(sum)
     }
 
     val loopInfinite by method(IntType, returnType = IntType) { i ->

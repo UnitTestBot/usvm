@@ -8,7 +8,7 @@ import org.usvm.util.Path
 import kotlin.time.Duration
 
 class GoMachineTest {
-    private val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNA)
+    private val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNA)
 
     @Test
     fun testMax() {
@@ -19,7 +19,7 @@ class GoMachineTest {
 
     @Test
     fun testMaxJni() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNI)
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("max2.go"), "max2", false)
         println(results)
     }
@@ -33,7 +33,7 @@ class GoMachineTest {
 
     @Test
     fun testMinJni() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNI)
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("min2.go"), "min2", false)
         println(results)
     }
@@ -47,8 +47,40 @@ class GoMachineTest {
 
     @Test
     fun testAddJni() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNI)
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("add.go"), "add", false)
+        println(results)
+        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoop() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNA)
+        val results = machine.analyze(Path.getProgram("loop.go"), "loop", false)
+        println(results)
+        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoopJni() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNI)
+        val results = machine.analyze(Path.getProgram("loop.go"), "loop", true)
+        println(results)
+        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoopHard() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNA)
+        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", false)
+        println(results)
+        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoopHardJni() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNI)
+        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", true)
         println(results)
         println("Calls: ${machine.getCalls()}")
     }
@@ -62,7 +94,7 @@ class GoMachineTest {
 
     @Test
     fun testLoopCrazyJni() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS), stopOnCoverage = -1), BridgeType.JNI)
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("loop_crazy.go"), "loop", false)
         println(results)
         println("Calls: ${machine.getCalls()}")

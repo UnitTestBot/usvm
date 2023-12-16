@@ -7,7 +7,7 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.util.getJcMethodByName
 
 class MathTest: JavaMethodTestRunner() {
-    private val machine = JcMachine(cp, UMachineOptions(stopOnCoverage = -1))
+    private val machine = JcMachine(cp, UMachineOptions())
 
     @Test
     fun testMax() {

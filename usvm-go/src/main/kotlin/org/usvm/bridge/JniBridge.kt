@@ -75,6 +75,18 @@ class JniBridge {
     fun mkReturn(name: ByteArray) {
         api.mkReturn(String(name))
     }
+
+    fun mkVariable(name: ByteArray, value: ByteArray) {
+        api.mkVariable(String(name), String(value))
+    }
+
+    fun getLastBlock(): Int {
+        return api.getLastBlock()
+    }
+
+    fun setLastBlock(block: Int) {
+        api.setLastBlock(block)
+    }
     // ------------ region: api
 
     // ------------ region: test

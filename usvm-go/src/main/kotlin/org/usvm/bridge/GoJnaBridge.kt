@@ -182,6 +182,21 @@ class GoJnaBridge : Bridge {
                     return api.mkReturn(name)
                 }
             },
+            mkVariable = object : MkVariable {
+                override fun mkVariable(name: String, value: String) {
+                    return api.mkVariable(name, value)
+                }
+            },
+            getLastBlock = object : GetLastBlock {
+                override fun getLastBlock(): Int {
+                    return api.getLastBlock()
+                }
+            },
+            setLastBlock = object : SetLastBlock {
+                override fun setLastBlock(block: Int) {
+                    api.setLastBlock(block)
+                }
+            }
         )
     }
 

@@ -6,13 +6,12 @@ import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.GoApi
 import org.usvm.bridge.Bridge
-import org.usvm.bridge.GoJnaBridge
-import org.usvm.bridge.GoJniBridge
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.domain.GoType
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.machine.*
+import org.usvm.machine.GoContext
+import org.usvm.machine.GoTarget
 import org.usvm.machine.state.GoState
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
@@ -44,7 +43,7 @@ class GoInterpreter(
     }
 
     override fun step(state: GoState): StepResult<GoState> {
-//        logger.debug("Step: {}", state.lastInst)
+        logger.debug("Step: {}", state.lastInst)
 
         val inst = state.lastInst
         val scope = GoStepScope(state, forkBlackList)

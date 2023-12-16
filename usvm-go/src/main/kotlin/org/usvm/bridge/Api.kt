@@ -11,6 +11,9 @@ import com.sun.jna.Structure
     "mkAdd",
     "mkIf",
     "mkReturn",
+    "mkVariable",
+    "getLastBlock",
+    "setLastBlock",
 )
 open class Api(
     @JvmField var mkIntRegisterReading: Callback = DiscardCallback(),
@@ -19,6 +22,9 @@ open class Api(
     @JvmField var mkAdd: Callback = DiscardCallback(),
     @JvmField var mkIf: Callback = DiscardCallback(),
     @JvmField var mkReturn: Callback = DiscardCallback(),
+    @JvmField var mkVariable: Callback = DiscardCallback(),
+    @JvmField var getLastBlock: Callback = DiscardCallback(),
+    @JvmField var setLastBlock: Callback = DiscardCallback(),
 ) : Structure(), Structure.ByValue
 
 class DiscardCallback : Callback

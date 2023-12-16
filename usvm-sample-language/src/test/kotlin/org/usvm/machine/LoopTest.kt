@@ -12,7 +12,7 @@ import kotlin.time.Duration
 
 class LoopTest {
     val programDecl = LoopProgram
-    val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.Z3))
+    val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.BFS), solverType = SolverType.Z3))
 
     @Test
     fun runLoopLowIdx() {
@@ -43,6 +43,12 @@ class LoopTest {
     @Test
     fun runLoopSimple() {
         val results = machine.analyze(programDecl.loopSimple)
+        println(results)
+    }
+
+    @Test
+    fun runLoopHard() {
+        val results = machine.analyze(programDecl.loopHard)
         println(results)
     }
 

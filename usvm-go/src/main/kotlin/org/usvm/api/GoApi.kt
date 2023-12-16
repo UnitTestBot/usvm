@@ -47,9 +47,32 @@ class GoApi(
 
     fun mkReturn(name: String) {
         scope.doWithState {
-            val value = memory.read(URegisterStackLValue(ctx.bv32Sort, ctx.idx(name)))
+            val idx = ctx.idx(name)
+            val value = if (idx == -1) mkIntConst(name) else scope.calcOnState {
+                memory.read(URegisterStackLValue(ctx.bv32Sort, idx))
+            }
             returnValue(value)
         }
+    }
+
+    fun mkVariable(name: String, value: String) {
+        val lvalue = URegisterStackLValue(ctx.bv32Sort, ctx.idx(name))
+
+        val idx = ctx.idx(value)
+        val rvalue = if (idx == -1) mkIntConst(value) else scope.calcOnState {
+            memory.read(URegisterStackLValue(ctx.bv32Sort, idx))
+        }
+        scope.doWithState {
+            memory.write(lvalue, rvalue.asExpr(ctx.bv32Sort), ctx.trueExpr)
+        }
+    }
+
+    fun getLastBlock(): Int {
+        return scope.calcOnState { lastBlock }
+    }
+
+    fun setLastBlock(block: Int) {
+        scope.doWithState { lastBlock = block }
     }
 
     private fun <In : USort, Out : USort> mkBinOp(
@@ -104,4 +127,16 @@ interface MkIf : Callback {
 
 interface MkReturn : Callback {
     fun mkReturn(name: String)
+}
+
+interface MkVariable : Callback {
+    fun mkVariable(name: String, value: String)
+}
+
+interface GetLastBlock : Callback {
+    fun getLastBlock(): Int
+}
+
+interface SetLastBlock : Callback {
+    fun setLastBlock(block: Int)
 }

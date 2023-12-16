@@ -7,6 +7,7 @@ import org.usvm.domain.GoMethod
 import org.usvm.domain.GoType
 import org.usvm.machine.*
 import org.usvm.memory.UMemory
+import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
 
@@ -20,6 +21,7 @@ class GoState(
     pathNode: PathNode<GoInst> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
     var methodResult: GoMethodResult = GoMethodResult.NoCall,
+    var lastBlock: Int = -1,
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
     callStack,
@@ -27,7 +29,7 @@ class GoState(
     memory,
     models,
     pathNode,
-    targets,
+    targets
 ) {
     override fun clone(newConstraints: UPathConstraints<GoType>?): GoState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
@@ -41,6 +43,42 @@ class GoState(
             pathNode,
             targets.clone(),
             methodResult,
+            lastBlock
+        )
+    }
+
+    override fun mergeWith(other: GoState, by: Unit): GoState? {
+        require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
+        // TODO: copy-paste
+
+        val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
+
+        val mergeGuard = MutableMergeGuard(ctx)
+        val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
+        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
+            ?: return null
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+            ?: return null
+        val mergedModels = models + other.models
+        val methodResult = if (other.methodResult == GoMethodResult.NoCall && methodResult == GoMethodResult.NoCall) {
+            GoMethodResult.NoCall
+        } else {
+            return null
+        }
+        val mergedTargets = targets.takeIf { it == other.targets } ?: return null
+        mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
+
+        return GoState(
+            ctx,
+            entrypoint,
+            mergedCallStack,
+            mergedPathConstraints,
+            mergedMemory,
+            mergedModels,
+            mergedPathNode,
+            mergedTargets,
+            methodResult,
+            lastBlock
         )
     }
 
