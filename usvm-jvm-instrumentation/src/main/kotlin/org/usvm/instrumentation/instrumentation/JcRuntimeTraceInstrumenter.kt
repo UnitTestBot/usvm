@@ -5,7 +5,6 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.*
 import org.jacodb.api.ext.isEnum
 import org.jacodb.impl.cfg.MethodNodeBuilder
-import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.collector.trace.TraceCollector
@@ -83,17 +82,13 @@ class JcRuntimeTraceInstrumenter(
         } else {
             jcClass.declaredMethods.filterNot { it.isConstructor || it.isClassInitializer }
         }
-
         //Copy of clinit method to be able to rollback statics between executions!
         //We are not able to call <clinit> method directly with reflection
-        if (classNode.access and Opcodes.ACC_INTERFACE == 0) { // Interfaces cannot have static initializers
-            asmMethods.find { it.name == "<clinit>" }?.let { clinitNode ->
-                val clinitCopy = MethodNode(9, GENERATED_CLINIT_NAME, "()V", null, emptyArray())
-                clinitNode.instructions.forEach { clinitCopy.instructions.add(it) }
-                asmMethods.add(0, clinitCopy)
-            }
+        asmMethods.find { it.name == "<clinit>" }?.let { clinitNode ->
+            val clinitCopy = MethodNode(9, GENERATED_CLINIT_NAME, "()V", null, emptyArray())
+            clinitNode.instructions.forEach { clinitCopy.instructions.add(it) }
+            asmMethods.add(0, clinitCopy)
         }
-
         methodsToInstrument.forEach { jcMethod ->
             val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: return@forEach
             val tracedMethod = instrumentMethod(jcMethod)
