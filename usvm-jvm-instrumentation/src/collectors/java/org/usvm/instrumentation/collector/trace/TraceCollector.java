@@ -57,8 +57,8 @@ public class TraceCollector {
         private static final int DEFAULT_CAPACITY = 1024;
         private static final double DEFAULT_LOAD_FACTOR = 0.75;
 
-        public long[] keys;
-        public int size;
+        private long[] keys;
+        private int size;
         private int capacity;
         private final double loadFactor;
         private boolean containsNull;
@@ -76,7 +76,8 @@ public class TraceCollector {
         }
 
         private int hash(long key) {
-            return (int) ((key ^ (key >>> 32)) % capacity);
+            int hash = (int) (key ^ (key >>> 32)) % capacity;
+            return (hash + capacity) % capacity;
         }
 
         public void add(long key) {
@@ -90,47 +91,56 @@ public class TraceCollector {
 
             int index = hash(key);
 
-            if (keys[index] != 0) {
-                while (keys[++index] != 0) {
-                    if (index == capacity - 1) {
-                        index = 0;
-                    }
+            while (keys[index] != 0) {
+                if (index == capacity - 1) {
+                    index = 0;
+                    continue;
                 }
+
+                index++;
             }
             keys[index] = key;
 
             size++;
 
             // Check if rehashing is needed
-            if ((double) size / capacity > loadFactor) {
+            if ((double) size > loadFactor * capacity) {
                 rehash();
             }
         }
 
-        public long[] getAllValues() {
-            long[] res = new long[realSize()];
+        public LongArrayWrapper getAllValues() {
+            LongArrayWrapper res = new LongArrayWrapper();
             int ind = 0;
             if (containsNull) {
-                res[0] = 0;
-                ind++;
+                res.add(0);
             }
             for (long key: keys) {
-                if (key != 0) {
-                    res[ind++] = key;
+                if (key != 0L) {
+                    res.add(key);
                 }
             }
+
             return res;
         }
 
         public boolean contains(long key) {
+            if (key == 0) {
+                return containsNull;
+            }
+
             int index = hash(key);
-            long current = keys[index];
-            if (current == key) return true;
-            while (keys[++index] != 0) {
-                if (keys[index] == key) return true;
+            while (keys[index] != 0) {
+                if (keys[index] == key) {
+                    return true;
+                }
+
                 if (index == capacity - 1) {
                     index = 0;
+                    continue;
                 }
+
+                index++;
             }
             return false;
         }
@@ -146,10 +156,13 @@ public class TraceCollector {
                     newKeys[newIndex] = key;
                     continue;
                 }
-                while (newKeys[++newIndex] != 0) {
+                while (newKeys[newIndex] != 0) {
                     if (newIndex == newCapacity - 1) {
                         newIndex = 0;
+                        continue;
                     }
+
+                    newIndex++;
                 }
                 newKeys[newIndex] = key;
             }
