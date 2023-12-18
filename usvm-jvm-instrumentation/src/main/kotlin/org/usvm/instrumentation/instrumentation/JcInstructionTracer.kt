@@ -24,7 +24,7 @@ object JcInstructionTracer : Tracer<Trace> {
         val traceFromTraceCollector =
             TraceCollector.trace.allValues
         val trace = List(traceFromTraceCollector.size) { idx ->
-            decode(traceFromTraceCollector[idx])
+            decode(traceFromTraceCollector.arr[idx])
         }
         val statics = List(TraceCollector.statics.size) { idx ->
             decodeStatic(TraceCollector.statics.arr[idx])
@@ -35,7 +35,7 @@ object JcInstructionTracer : Tracer<Trace> {
     fun coveredInstructionsIds(): List<Long> {
         val traceFromTraceCollector =
             TraceCollector.trace.allValues
-        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector[idx] }
+        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector.arr[idx] }
     }
 
     fun getEncodedClasses() =
