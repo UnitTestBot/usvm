@@ -11,7 +11,7 @@ class Agent {
     companion object {
         @JvmStatic
         fun premain(arguments: String?, instrumentation: Instrumentation) {
-            val collectorsJarPath = InstrumentationModuleConstants.pathToUsvmCollectorsJar
+            val collectorsJarPath = System.getenv(InstrumentationModuleConstants.envVarForPathToUsvmCollectorsJarPath)
             val collectorsJar = JarFile(File(collectorsJarPath))
             instrumentation.appendToBootstrapClassLoaderSearch(collectorsJar)
             val instrumenterFactoryClassname = arguments ?: JcRuntimeTraceInstrumenterFactory::class.java.name

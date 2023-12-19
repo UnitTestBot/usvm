@@ -4,6 +4,7 @@ import org.jacodb.api.JcClasspath
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
+import org.usvm.instrumentation.executor.InstrumentationProcessPaths
 
 object UTestRunner {
 
@@ -16,7 +17,7 @@ object UTestRunner {
             instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
             testingProjectClasspath = pathToJars,
             jcClasspath = classpath,
-            javaHome = InstrumentationModuleConstants.pathToJava,
+            instrumentationProcessPaths = InstrumentationProcessPaths(),
             jcPersistenceLocation = null,
             timeout = InstrumentationModuleConstants.testExecutionTimeout
         )
