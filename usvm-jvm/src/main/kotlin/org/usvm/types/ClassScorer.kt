@@ -21,7 +21,7 @@ class ScorerIndexer<Result : Comparable<Result>>(
     private val location: RegisteredLocation,
     private val cache: ScoreCache<Result>,
     private val scorer: (RegisteredLocation, ClassNode) -> Result,
-    approximationPaths: ApproximationPaths = ApproximationPaths(),
+    approximationPaths: ApproximationPaths,
 ) : ByteCodeIndexer {
     private val interner = persistence.symbolInterner
 
@@ -59,11 +59,14 @@ class ScorerIndexer<Result : Comparable<Result>>(
 class ClassScorer<Result : Comparable<Result>>(
     val key: Any,
     private val scorer: (RegisteredLocation, ClassNode) -> Result,
+    private val approximationPaths: ApproximationPaths = ApproximationPaths()
 ) : JcFeature<Any?, Any?> {
     private val indexers = ConcurrentHashMap<Long, ScorerIndexer<Result>>()
 
     override fun newIndexer(jcdb: JcDatabase, location: RegisteredLocation): ByteCodeIndexer =
-        indexers.getOrPut(location.id) { ScorerIndexer(jcdb.persistence, location, ConcurrentHashMap(), scorer) }
+        indexers.getOrPut(location.id) {
+            ScorerIndexer(jcdb.persistence, location, ConcurrentHashMap(), scorer, approximationPaths)
+        }
 
     override fun onSignal(signal: JcSignal) {
     }
