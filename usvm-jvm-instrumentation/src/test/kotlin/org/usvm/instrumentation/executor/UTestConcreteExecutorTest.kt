@@ -18,6 +18,7 @@ abstract class UTestConcreteExecutorTest {
         lateinit var jcClasspath: JcClasspath
         lateinit var jcPersistenceLocation: String
         lateinit var uTestConcreteExecutor: UTestConcreteExecutor
+        var instrumentationProcessPaths = InstrumentationProcessPaths()
 
 
         @JvmStatic
@@ -27,7 +28,7 @@ abstract class UTestConcreteExecutorTest {
             val db = jacodb {
                 loadByteCode(cp)
                 installFeatures(InMemoryHierarchy)
-                jre = File(InstrumentationModuleConstants.pathToJava)
+                jre = File(instrumentationProcessPaths.pathToJava)
                 persistent(location = jcPersistenceLocation)
             }
             db.awaitBackgroundJobs()
@@ -40,7 +41,7 @@ abstract class UTestConcreteExecutorTest {
                 instrumentationClassFactory = JcRuntimeTraceInstrumenterFactory::class,
                 testingProjectClasspath = testJarPath,
                 jcClasspath = jcClasspath,
-                javaHome = InstrumentationModuleConstants.pathToJava,
+                instrumentationProcessPaths = instrumentationProcessPaths,
                 jcPersistenceLocation = jcPersistenceLocation,
                 timeout = InstrumentationModuleConstants.testExecutionTimeout
             )

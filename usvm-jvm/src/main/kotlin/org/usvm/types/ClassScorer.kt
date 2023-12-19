@@ -11,24 +11,21 @@ import org.jacodb.impl.fs.className
 import org.jacodb.impl.storage.withoutAutoCommit
 import org.jooq.DSLContext
 import org.objectweb.asm.tree.ClassNode
-import org.usvm.util.USVM_API_JAR_PATH
-import org.usvm.util.USVM_APPROXIMATIONS_JAR_PATH
+import org.usvm.util.ApproximationPaths
 import java.util.concurrent.ConcurrentHashMap
 
 typealias ScoreCache<Result> = ConcurrentHashMap<Long, Result>
-
-private val usvmApiJarPath = System.getenv(USVM_API_JAR_PATH)
-private val usvmApproximationsJarPath = System.getenv(USVM_APPROXIMATIONS_JAR_PATH)
 
 class ScorerIndexer<Result : Comparable<Result>>(
     private val persistence: JcDatabasePersistence,
     private val location: RegisteredLocation,
     private val cache: ScoreCache<Result>,
     private val scorer: (RegisteredLocation, ClassNode) -> Result,
+    approximationPaths: ApproximationPaths = ApproximationPaths(),
 ) : ByteCodeIndexer {
     private val interner = persistence.symbolInterner
 
-    private val bad: Boolean = usvmApiJarPath in location.path || usvmApproximationsJarPath in location.path
+    private val bad: Boolean = approximationPaths.presentPaths.any { it in location.path }
 
     override fun index(classNode: ClassNode) {
         val clazzSymbolId = interner.findOrNew(classNode.name.className)

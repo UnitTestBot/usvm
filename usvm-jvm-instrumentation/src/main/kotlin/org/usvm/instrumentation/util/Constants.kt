@@ -23,14 +23,6 @@ object InstrumentationModuleConstants {
 
     const val nameForExistingButNullString = "USVM_GENERATED_NULL_STRING"
 
-    //Passes as environment parameter
-    val pathToUsvmInstrumentationJar: String
-        get() = System.getenv("usvm-jvm-instrumentation-jar")
-
-    val pathToUsvmCollectorsJar: String
-        get() = System.getenv("usvm-jvm-collectors-jar")
-
-    val pathToJava: String
-        get() = System.getenv()["JAVA_HOME"] ?: System.getProperty("java.home")
-
+    //Environment variable used to pass path to collectors jar from main process to instrumented process
+    val envVarForPathToUsvmCollectorsJarPath = "usvm-jvm-collectors-jar"
 }
