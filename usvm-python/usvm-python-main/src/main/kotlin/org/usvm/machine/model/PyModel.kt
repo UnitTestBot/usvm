@@ -37,6 +37,7 @@ class PyModel(
     underlyingModel.regions,
     underlyingModel.nullRef
 ) {
+    val forcedConcreteTypes: MutableMap<UConcreteHeapRef, PythonType> = mutableMapOf()
     val psInfo = suggestedPsInfo ?: getPathConstraintsInfo(ctx, ps, underlyingModel)
 
     val possibleRefKeys: Set<UConcreteHeapRef>

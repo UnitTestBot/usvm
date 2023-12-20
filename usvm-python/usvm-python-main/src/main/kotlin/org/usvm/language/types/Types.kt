@@ -1,6 +1,7 @@
 package org.usvm.language.types
 
 import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.python.model.PyIdentifier
 
 sealed class PythonType
 
@@ -24,12 +25,15 @@ abstract class VirtualPythonType: PythonType() {
 sealed class ConcretePythonType(
     val owner: PythonTypeSystem,
     val typeName: String,
-    val typeModule: String?,
+    val id: PyIdentifier,
     val isHidden: Boolean = false,
     val addressGetter: () -> PythonObject
 ): PythonType() {
     val asObject: PythonObject
         get() = owner.addressOfConcreteType(this)
+
+    val typeModule: String
+        get() = id.module
 
     override fun toString(): String {
         return "ConcretePythonType(\"$typeName\")"
@@ -39,14 +43,15 @@ sealed class ConcretePythonType(
 class PrimitiveConcretePythonType(
     owner: PythonTypeSystem,
     typeName: String,
-    typeModule: String?,
+    id: PyIdentifier,
     isHidden: Boolean = false,
     addressGetter: () -> PythonObject
-): ConcretePythonType(owner, typeName, typeModule, isHidden, addressGetter)
+): ConcretePythonType(owner, typeName, id, isHidden, addressGetter)
 
 class ArrayLikeConcretePythonType(
     val elementConstraints: Set<ElementConstraint>,
     owner: PythonTypeSystem,
     typeName: String,
+    id: PyIdentifier,
     addressGetter: () -> PythonObject
-): ConcretePythonType(owner, typeName, null, false, addressGetter)
+): ConcretePythonType(owner, typeName, id,false, addressGetter)

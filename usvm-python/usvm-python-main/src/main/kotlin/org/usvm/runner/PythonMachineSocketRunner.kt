@@ -6,7 +6,8 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.language.types.getTypeFromTypeHint
 import org.usvm.machine.PyMachine
-import org.usvm.machine.saving.DummySaver
+import org.usvm.machine.results.DefaultPyMachineResultsReceiver
+import org.usvm.machine.results.PickleObjectSerializer
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.PythonCompositeTypeDescription
 import org.utbot.python.newtyping.general.FunctionType
@@ -16,6 +17,7 @@ import org.utbot.python.newtyping.mypy.readMypyInfoBuild
 import org.utbot.python.newtyping.pythonDescription
 import java.io.File
 
+@Suppress("unused_parameter")
 class PythonMachineSocketRunner(
     mypyDirPath: File,
     programRoots: Set<File>,
@@ -24,12 +26,12 @@ class PythonMachineSocketRunner(
 ): AutoCloseable {
     private val mypyDir = MypyBuildDirectory(mypyDirPath, programRoots.map { it.canonicalPath }.toSet())
     private val mypyBuild = readMypyInfoBuild(mypyDir)
-    private val communicator = PickledObjectCommunicator(socketIp, socketPort)
+    // private val communicator = PickledObjectCommunicator(socketIp, socketPort)
     private val program = StructuredPythonProgram(programRoots)
     private val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     private val machine = PyMachine(program, typeSystem)
     override fun close() {
-        communicator.close()
+        // communicator.close()
         machine.close()
     }
 
@@ -46,14 +48,12 @@ class PythonMachineSocketRunner(
         timeoutPerRunMs: Long,
         timeoutMs: Long
     ) = runBlocking {
-        val newStateObserver = NewStateObserverForRunner(communicator, this)
         machine.analyze(
             callable,
-            DummySaver,
+            saver = DefaultPyMachineResultsReceiver(PickleObjectSerializer),  // TODO: implement newStateObserver
             timeoutMs = timeoutMs,
             timeoutPerRunMs = timeoutPerRunMs,
             maxIterations = 1000,
-            newStateObserver = newStateObserver
         )
     }
 
