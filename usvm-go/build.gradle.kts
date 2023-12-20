@@ -1,16 +1,29 @@
 plugins {
+    id("org.gradle.application")
     id("usvm.kotlin-conventions")
+}
+
+tasks {
+    test {
+        jvmArgs(
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:+EnableJVMCI",
+            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.code=ALL-UNNAMED",
+            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.code.site=ALL-UNNAMED",
+            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED",
+            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.meta=ALL-UNNAMED",
+            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED"
+        )
+    }
 }
 
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-// uncomment for experiments
-//    implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
-//    implementation("io.ksmt:ksmt-bitwuzla:${Versions.ksmt}")
+    implementation(files("libs/nalim.jar"))
 
-    implementation(group =  "org.slf4j", name = "slf4j-simple", version = Versions.slf4j)
+    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
+    implementation(group = "org.slf4j", name = "slf4j-simple", version = Versions.slf4j)
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
     implementation("net.java.dev.jna:jna:${Versions.jna}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")

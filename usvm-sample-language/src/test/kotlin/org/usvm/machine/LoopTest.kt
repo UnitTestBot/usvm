@@ -11,8 +11,8 @@ import kotlin.time.Duration
 
 
 class LoopTest {
-    val programDecl = LoopProgram
-    val machine = SampleMachine(
+    private val programDecl = LoopProgram
+    private val machine = SampleMachine(
         programDecl.program,
         UMachineOptions(listOf(PathSelectionStrategy.BFS), solverType = SolverType.Z3)
     )
@@ -71,6 +71,21 @@ class LoopTest {
             ),
         )
         val results = machine.analyze(programDecl.loopInfinite)
+        println(results)
+    }
+
+    @Test
+    fun runLoopCollatz() {
+        val machine = SampleMachine(
+            programDecl.program,
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                stopOnCoverage = -1,
+                timeout = Duration.INFINITE,
+                stepLimit = 1_000_000UL,
+            ),
+        )
+        val results = machine.analyze(programDecl.loopCollatz)
         println(results)
     }
 }

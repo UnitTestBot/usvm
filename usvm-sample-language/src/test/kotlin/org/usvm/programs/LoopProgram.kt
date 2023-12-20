@@ -1,19 +1,11 @@
 package org.usvm.programs
 
 import org.usvm.language.ArrayType
-import org.usvm.language.IntExpr
 import org.usvm.language.IntType
-import org.usvm.language.builders.ProgramDecl
-import org.usvm.language.builders.eq
-import org.usvm.language.builders.expr
-import org.usvm.language.builders.get
-import org.usvm.language.builders.invoke
-import org.usvm.language.builders.lt
-import org.usvm.language.builders.method
-import org.usvm.language.builders.plus
+import org.usvm.language.builders.*
 
 object LoopProgram : ProgramDecl() {
-    const val CONST = 1_000
+    private const val CONST = 1_000
 
     val loopHighIdx by method(IntType, IntType, returnType = IntType) { _, a ->
         val arr by ArrayType(IntType)(size = CONST.expr)
@@ -78,5 +70,28 @@ object LoopProgram : ProgramDecl() {
             val l by k + j + 4.expr
             j = l + 2.expr
         }
+    }
+
+    val loopCollatz by method(IntType, returnType = IntType) { i ->
+        branch((i le 0.expr) or (i ge 100.expr)) {
+            ret(0.expr)
+        }
+
+        var j by i
+        var loopCount by 0.expr
+
+        loop((j eq 1.expr).not()) {
+            val oldJ by j
+            j = oldJ * 3.expr + 1.expr
+            branch((oldJ % 2.expr) eq 0.expr) {
+                j = oldJ / 2.expr
+            }
+            loopCount += 1.expr
+        }
+
+        branch(loopCount eq 17.expr) {
+            ret(1.expr)
+        }
+        ret(2.expr)
     }
 }

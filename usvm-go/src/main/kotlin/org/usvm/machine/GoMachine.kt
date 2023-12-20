@@ -5,9 +5,8 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.GoApi
-import org.usvm.bridge.BridgeType
-import org.usvm.bridge.GoJnaBridge
-import org.usvm.bridge.mkBridge
+import org.usvm.api.GoNalimApi
+import org.usvm.bridge.*
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.forkblacklists.UForkBlackList
@@ -47,13 +46,16 @@ class GoMachine(
 
         val entryPoint = bridge.getMethod(entrypoint)
         val initialScope = GoStepScope(GoState(ctx, entryPoint), UForkBlackList.createDefault())
-        val code = bridge.start(GoApi(ctx, initialScope))
-        logger.debug("Bridge start: code {}", code)
-        if (code != 0) {
+        val startCode = start(initialScope)
+        logger.debug("Bridge start: code {}", startCode)
+        if (startCode != 0) {
             return emptyList()
         }
 
-        return analyze(listOf(entryPoint))
+        val results = analyze(listOf(entryPoint))
+        val shutdownCode = bridge.shutdown()
+        logger.debug("Bridge shutdown: code {}", shutdownCode)
+        return results
     }
 
     fun getCalls() = when (bridge) {
@@ -93,6 +95,7 @@ class GoMachine(
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<GoState>(coverageStatistics) {
                     it.methodResult is GoMethodResult.Panic
                 }
+
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
             }
         val stepsStatistics = StepsStatistics<GoMethod, GoState>()
@@ -131,6 +134,13 @@ class GoMachine(
         )
 
         return statesCollector.collectedStates
+    }
+
+    private fun start(scope: GoStepScope): Int = when (bridge) {
+        is GoJnaBridge -> bridge.withApi(GoApi(ctx, scope)).start()
+        is GoJniBridge -> bridge.withApi(GoApi(ctx, scope)).start()
+        is GoNalimBridge -> bridge.withApi(GoNalimApi(ctx, scope)).start()
+        else -> 1
     }
 
     private fun isStateTerminated(state: GoState): Boolean {

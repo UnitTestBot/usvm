@@ -15,6 +15,8 @@ class GoContext(
         else -> -1
     }
 
+    fun getArgsCount() = argsCount
+
     fun setArgsCount(count: Int) {
         argsCount = count
     }

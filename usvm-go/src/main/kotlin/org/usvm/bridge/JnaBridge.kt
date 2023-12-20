@@ -8,6 +8,10 @@ interface JnaBridge : Library {
     fun initialize(file: GoString, entrypoint: GoString, debug: Boolean): Result
     // ------------ region: init
 
+    // ------------ region: shutdown
+    fun shutdown(): Result
+    // ------------ region: shutdown
+
     // ------------ region: machine
     fun getMain(): Method.ByValue
     fun getMethod(name: GoString): Method.ByValue
@@ -56,6 +60,7 @@ interface JnaBridge : Library {
     fun callJavaMethod(obj: Object)
     fun stepRef(api: Object): Boolean
     fun frameStep(api: Api): Boolean
+    fun getNumber(): Int
     // ------------ region: test
 }
 
@@ -167,3 +172,29 @@ class ApiRef(
         ctx.mkRegisterReading(idx, ctx.bv32Sort)
     }
 }
+
+@Suppress("unused")
+@Structure.FieldOrder(
+    "mkIntRegisterReading",
+    "mkLess",
+    "mkGreater",
+    "mkAdd",
+    "mkIf",
+    "mkReturn",
+    "mkVariable",
+    "getLastBlock",
+    "setLastBlock",
+)
+open class Api(
+    @JvmField var mkIntRegisterReading: Callback = DiscardCallback(),
+    @JvmField var mkLess: Callback = DiscardCallback(),
+    @JvmField var mkGreater: Callback = DiscardCallback(),
+    @JvmField var mkAdd: Callback = DiscardCallback(),
+    @JvmField var mkIf: Callback = DiscardCallback(),
+    @JvmField var mkReturn: Callback = DiscardCallback(),
+    @JvmField var mkVariable: Callback = DiscardCallback(),
+    @JvmField var getLastBlock: Callback = DiscardCallback(),
+    @JvmField var setLastBlock: Callback = DiscardCallback(),
+) : Structure(), Structure.ByValue
+
+class DiscardCallback : Callback

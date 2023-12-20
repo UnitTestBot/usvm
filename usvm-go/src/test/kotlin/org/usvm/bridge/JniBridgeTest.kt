@@ -9,7 +9,7 @@ class JniBridgeTest {
     fun testBridgePlayground() {
         val bridge = GoJniBridge()
         bridge.initialize(Path.getProgram("add.go"), "add", false)
-        println(bridge.getJniNumber())
+        println(bridge.getNumber())
         println(bridge.getMain())
         println(bridge.getMethod("add"))
     }
@@ -48,7 +48,7 @@ class JniBridgeTest {
         val bridge = GoJniBridge()
 
         for (i in 0 until 1000000) {
-            bridge.getJniNumber()
+            bridge.getNumber()
         }
         val time1 = measureTimeMillis {
             for (i in 0 until 10000000) {

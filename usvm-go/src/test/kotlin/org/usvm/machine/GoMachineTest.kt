@@ -25,6 +25,13 @@ class GoMachineTest {
     }
 
     @Test
+    fun testMaxNalim() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.NALIM)
+        val results = machine.analyze(Path.getProgram("max2.go"), "max2", false)
+        println(results)
+    }
+
+    @Test
     fun testMin() {
         val results = machine.analyze(Path.getProgram("min2.go"), "min2", false)
         println(results)
@@ -50,7 +57,6 @@ class GoMachineTest {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("add.go"), "add", false)
         println(results)
-        println("Calls: ${machine.getCalls()}")
     }
 
     @Test
@@ -66,7 +72,6 @@ class GoMachineTest {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("loop.go"), "loop", true)
         println(results)
-        println("Calls: ${machine.getCalls()}")
     }
 
     @Test
@@ -85,7 +90,16 @@ class GoMachineTest {
         )
         val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", false)
         println(results)
-        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoopHardNalim() {
+        val machine = GoMachine(
+            UMachineOptions(listOf(PathSelectionStrategy.BFS), timeout = Duration.INFINITE),
+            BridgeType.NALIM,
+        )
+        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", false)
+        println(results)
     }
 
     @Test
@@ -100,7 +114,6 @@ class GoMachineTest {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.DFS)), BridgeType.JNI)
         val results = machine.analyze(Path.getProgram("loop_crazy.go"), "loop", false)
         println(results)
-        println("Calls: ${machine.getCalls()}")
     }
 
     @Test
@@ -132,6 +145,35 @@ class GoMachineTest {
         )
         val results = machine.analyze(Path.getProgram("loop_infinite.go"), "loop", false)
         println(results)
-        println("Calls: ${machine.getCalls()}")
+    }
+
+    @Test
+    fun testLoopInfiniteNalim() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.DFS),
+                stopOnCoverage = -1,
+                timeout = Duration.INFINITE,
+                stepLimit = 1_000_000UL,
+            ),
+            BridgeType.NALIM
+        )
+        val results = machine.analyze(Path.getProgram("loop_infinite.go"), "loop", false)
+        println(results)
+    }
+
+    @Test
+    fun testLoopCollatzNalim() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                stopOnCoverage = -1,
+                timeout = Duration.INFINITE,
+                stepLimit = 1_000_000UL,
+            ),
+            BridgeType.NALIM
+        )
+        val results = machine.analyze(Path.getProgram("loop_collatz.go"), "loop", false)
+        println(results)
     }
 }

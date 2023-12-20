@@ -18,6 +18,14 @@ class GoJniBridge : Bridge {
 
     // ------------ region: initialize
 
+    // ------------ region: shutdown
+
+    override fun shutdown(): GoResult {
+        return GoResult("shutdown", jniBridge.shutdown())
+    }
+
+    // ------------ region: shutdown
+
     // ------------ region: machine
 
     override fun getMain(): GoMethod = toMethod(jniBridge.getMain())
@@ -74,9 +82,11 @@ class GoJniBridge : Bridge {
 
     // ------------ region: api
 
-    override fun start(api: GoApi): Int = jniBridge.withApi(api).start()
+    fun withApi(api: GoApi): GoJniBridge = this.also { jniBridge.withApi(api) }
 
-    override fun step(api: GoApi, inst: GoInst): GoInst = toInst(jniBridge.withApi(api).step(inst.pointer))
+    override fun start(): Int = jniBridge.start()
+
+    override fun step(inst: GoInst): GoInst = toInst(jniBridge.step(inst.pointer))
 
     // ------------ region: api
 
@@ -113,7 +123,7 @@ class GoJniBridge : Bridge {
 
     // ------------ region: test
 
-    fun getJniNumber() = jniBridge.getNumber()
+    fun getNumber() = jniBridge.getNumber()
 
     fun initialize2(file: String, entrypoint: String, debug: Boolean): Long {
         return jniBridge.initialize2(file, entrypoint, debug)

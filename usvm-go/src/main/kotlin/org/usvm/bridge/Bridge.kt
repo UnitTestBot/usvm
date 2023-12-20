@@ -12,6 +12,10 @@ interface Bridge {
     fun initialize(file: String, entrypoint: String, debug: Boolean): GoResult
     // ------------ region: initialize
 
+    // ------------ region: initialize
+    fun shutdown(): GoResult
+    // ------------ region: initialize
+
     // ------------ region: machine
     fun getMain(): GoMethod
     fun getMethod(name: String): GoMethod
@@ -42,8 +46,8 @@ interface Bridge {
     // ------------ region: interpreter
 
     // ------------ region: api
-    fun start(api: GoApi): Int
-    fun step(api: GoApi, inst: GoInst): GoInst
+    fun start(): Int
+    fun step(inst: GoInst): GoInst
     // ------------ region: api
 }
 
@@ -53,10 +57,11 @@ typealias MethodPointer = Long
 typealias TypePointer = Long
 
 enum class BridgeType {
-    JNA, JNI
+    JNA, JNI, NALIM
 }
 
-fun mkBridge(type: BridgeType): Bridge = when(type) {
+fun mkBridge(type: BridgeType): Bridge = when (type) {
     BridgeType.JNA -> GoJnaBridge()
     BridgeType.JNI -> GoJniBridge()
+    BridgeType.NALIM -> GoNalimBridge()
 }

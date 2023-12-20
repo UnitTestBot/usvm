@@ -14,6 +14,8 @@ class GoJnaBridge : Bridge {
     private val path = Path.getLib("java_jna_bridge.so")
     private val jnaBridge = Native.load(path, JnaBridge::class.java)
 
+    private lateinit var api: GoApi
+
     init {
         System.load(path)
     }
@@ -25,6 +27,14 @@ class GoJnaBridge : Bridge {
     }
 
     // ------------ region: init
+
+    // ------------ region: shutdown
+
+    override fun shutdown(): GoResult {
+        return toResult(jnaBridge.shutdown())
+    }
+
+    // ------------ region: shutdown
 
     // ------------ region: machine
 
@@ -80,9 +90,11 @@ class GoJnaBridge : Bridge {
 
     // ------------ region: api
 
-    override fun start(api: GoApi): Int = jnaBridge.start(toApi(api))
+    fun withApi(api: GoApi): GoJnaBridge = this.also { it.api = api }
 
-    override fun step(api: GoApi, inst: GoInst): GoInst = toInst(jnaBridge.step(toApi(api), inst.pointer))
+    override fun start(): Int = jnaBridge.start(toApi(api))
+
+    override fun step(inst: GoInst): GoInst = toInst(jnaBridge.step(toApi(api), inst.pointer))
 
     // ------------ region: api
 
@@ -242,6 +254,8 @@ class GoJnaBridge : Bridge {
 
     fun stepRef(api: ApiRef): Boolean = jnaBridge.stepRef(toObject(api, api::class.java))
 
+    fun getNumber(): Int = jnaBridge.getNumber()
+
     companion object {
         private var i: Int = 0
 
@@ -253,7 +267,7 @@ class GoJnaBridge : Bridge {
         }
 
         @JvmStatic
-        fun getNumber(): Int = i
+        fun getStaticNumber(): Int = i
     }
 
     // ------------ region: test

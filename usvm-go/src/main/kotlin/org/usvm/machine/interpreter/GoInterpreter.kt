@@ -5,7 +5,11 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.GoApi
+import org.usvm.api.GoNalimApi
 import org.usvm.bridge.Bridge
+import org.usvm.bridge.GoJnaBridge
+import org.usvm.bridge.GoJniBridge
+import org.usvm.bridge.GoNalimBridge
 import org.usvm.domain.GoInst
 import org.usvm.domain.GoMethod
 import org.usvm.domain.GoType
@@ -47,11 +51,18 @@ class GoInterpreter(
 
         val inst = state.lastInst
         val scope = GoStepScope(state, forkBlackList)
-        val newInst = bridge.step(GoApi(ctx, scope), inst)
+        val newInst = step(scope, inst)
         if (!newInst.isEmpty()) {
             state.newInst(newInst)
         }
         return scope.stepResult()
+    }
+
+    private fun step(scope: GoStepScope, inst: GoInst): GoInst = when (bridge) {
+        is GoJnaBridge -> bridge.withApi(GoApi(ctx, scope)).step(inst)
+        is GoJniBridge -> bridge.withApi(GoApi(ctx, scope)).step(inst)
+        is GoNalimBridge -> bridge.withApi(GoNalimApi(ctx, scope)).step(inst)
+        else -> GoInst(0, "")
     }
 
     companion object {

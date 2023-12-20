@@ -17,6 +17,10 @@ class JniBridge {
     external fun initialize(file: ByteArray, entrypoint: ByteArray, debug: Boolean): Int
     // ------------ region: initialize
 
+    // ------------ region: initialize
+    external fun shutdown(): Int
+    // ------------ region: initialize
+
     // ------------ region: machine
     external fun getMain(): MethodPointer
     external fun getMethod(name: ByteArray): MethodPointer
