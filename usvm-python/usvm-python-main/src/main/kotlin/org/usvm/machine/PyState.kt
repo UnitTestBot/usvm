@@ -4,7 +4,6 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.rendering.ConverterToPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*
@@ -14,15 +13,14 @@ import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.ps.types.SymbolTypeTree
 import org.usvm.machine.ps.types.prioritizeTypes
 import org.usvm.memory.UMemory
-import org.usvm.model.UModelBase
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 
-object PythonTarget: UTarget<SymbolicHandlerEvent<Any>, PythonTarget>()
-private val targets = UTargetsSet.empty<PythonTarget, SymbolicHandlerEvent<Any>>()
+object PyTarget: UTarget<SymbolicHandlerEvent<Any>, PyTarget>()
+private val targets = UTargetsSet.empty<PyTarget, SymbolicHandlerEvent<Any>>()
 
 class PyState(
     ctx: PyContext,
@@ -38,8 +36,16 @@ class PyState(
     pathLocation: PathNode<SymbolicHandlerEvent<Any>> = PathNode.root(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
-    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf()
-): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, PyContext, PythonTarget, PyState>(ctx, callStack, pathConstraints, memory, listOf(uModel), pathLocation, targets) {
+    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
+): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, PyContext, PyTarget, PyState>(
+    ctx,
+    callStack,
+    pathConstraints,
+    memory,
+    listOf(uModel),
+    pathLocation,
+    targets
+) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PyState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
@@ -134,7 +140,6 @@ class PythonExecutionStateMeta {
     var wasExecuted: Boolean = false
     var wasInterrupted: Boolean = false
     var modelDied: Boolean = false
-    var objectsWithoutConcreteTypes: Set<VirtualPythonObject>? = null
-    var lastConverter: ConverterToPythonObject? = null
+    var objectsWithoutConcreteTypes: Collection<VirtualPythonObject>? = null
     var generatedFrom: String = ""  // for debugging only
 }

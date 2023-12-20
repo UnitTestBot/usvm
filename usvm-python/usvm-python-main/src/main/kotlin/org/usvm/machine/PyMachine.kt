@@ -10,7 +10,9 @@ import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.PyVirtualPathSelector
-import org.usvm.machine.saving.PythonAnalysisResultSaver
+import org.usvm.machine.results.PyMachineResultsReceiver
+import org.usvm.machine.results.observers.EmptyNewStateObserver
+import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PyMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
@@ -31,21 +33,17 @@ class PyMachine(
     // private val random = Random(0)
     val statistics = PyMachineStatistics()
 
-    private fun <InputRepr> getInterpreter(
-        target: PythonUnpinnedCallable,
+    private fun <PyObjectRepr> getInterpreter(
         pinnedTarget: PythonPinnedCallable,
-        saver: PythonAnalysisResultSaver<InputRepr>,
+        saver: PyMachineResultsReceiver<PyObjectRepr>,
         allowPathDiversion: Boolean,
-        iterationCounter: IterationCounter,
         maxInstructions: Int,
         isCancelled: (Long) -> Boolean
-    ): USVMPythonInterpreter<InputRepr> =
+    ): USVMPythonInterpreter<PyObjectRepr> =
         USVMPythonInterpreter(
             ctx,
             typeSystem,
-            target,
             pinnedTarget,
-            iterationCounter,
             printErrorMsg,
             PythonMachineStatisticsOnFunction(pinnedTarget).also { statistics.functionStatistics.add(it) },
             maxInstructions,
@@ -104,16 +102,15 @@ class PyMachine(
         return ps
     }
 
-    fun <InputRepr> analyze(
+    fun <PyObjectRepr> analyze(
         pythonCallable: PythonUnpinnedCallable,
-        saver: PythonAnalysisResultSaver<InputRepr>,
+        saver: PyMachineResultsReceiver<PyObjectRepr>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true,
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
         timeoutPerRunMs: Long? = null,
-        unfoldGenerator: Boolean = true,
-        newStateObserver: NewStateObserver = DummyNewStateObserver
+        unfoldGenerator: Boolean = true
     ): Int {
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)
@@ -126,33 +123,30 @@ class PyMachine(
                 val substituted = unfoldGenerator(rawPinnedCallable.asPythonObject)
                 PythonPinnedCallable(substituted)
             }
-            val observer = PythonMachineObserver(newStateObserver)
-            val iterationCounter = IterationCounter()
+            val observer = PythonMachineObserver(saver.newStateObserver)
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
             val interpreter = getInterpreter(
-                pythonCallable,
                 pinnedCallable,
                 saver,
                 allowPathDiversion,
-                iterationCounter,
                 maxInstructions
             ) { startIterationTime ->
                 (timeoutPerRunMs?.let { (System.currentTimeMillis() - startIterationTime) >= it } ?: false) ||
                         (stopTime != null && System.currentTimeMillis() >= stopTime)
             }
-            val pathSelector = getPathSelector(pythonCallable, newStateObserver)
+            val pathSelector = getPathSelector(pythonCallable, saver.newStateObserver)
             run(
                 interpreter,
                 pathSelector,
                 observer = observer,
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
-                    iterationCounter.iterations >= maxIterations ||
+                    observer.iterations >= maxIterations ||
                             (stopTime != null && System.currentTimeMillis() >= stopTime)
                 }
             )
-            iterationCounter.iterations
+            observer.iterations
         }.also {
             ConcretePythonInterpreter.restart()
             ctx.restartSolver()
@@ -167,8 +161,10 @@ class PyMachine(
     private class PythonMachineObserver(
         val newStateObserver: NewStateObserver
     ): UMachineObserver<PyState> {
+        var iterations: Int = 0
         override fun onState(parent: PyState, forks: Sequence<PyState>) {
             super.onState(parent, forks)
+            iterations += 1
             if (!parent.isTerminated())
                 newStateObserver.onNewState(parent)
             forks.forEach {
@@ -177,14 +173,4 @@ class PyMachine(
             }
         }
     }
-}
-
-data class IterationCounter(var iterations: Int = 0)
-
-abstract class NewStateObserver {
-    abstract fun onNewState(state: PyState)
-}
-
-object DummyNewStateObserver: NewStateObserver() {
-    override fun onNewState(state: PyState) = run {}
 }

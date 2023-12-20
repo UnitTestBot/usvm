@@ -31,6 +31,7 @@ repositories {
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(mapOf("path" to ":usvm-python:usvm-python-annotations")))
+    implementation(project(mapOf("path" to ":usvm-python:usvm-python-object-model")))
     annotationProcessor(project(":usvm-python:usvm-python-annotations"))
 
     implementation("org.utbot:utbot-python-types:2023.11-SNAPSHOT")

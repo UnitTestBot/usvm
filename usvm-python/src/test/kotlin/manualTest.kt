@@ -7,14 +7,15 @@ import org.usvm.language.StructuredPythonProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
-import org.usvm.machine.saving.Fail
-import org.usvm.machine.saving.Success
-import org.usvm.machine.saving.createDictSaver
+import org.usvm.machine.results.DefaultPyMachineResultsReceiver
+import org.usvm.machine.results.ObjectWithDictSerializer
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.usvm.machine.utils.withAdditionalPaths
+import org.usvm.python.model.PyResultFailure
+import org.usvm.python.model.PyResultSuccess
 import org.utbot.python.newtyping.*
 import org.utbot.python.newtyping.general.FunctionType
 import org.utbot.python.newtyping.general.UtType
@@ -193,7 +194,7 @@ private fun analyze(runConfig: RunConfig) {
             println("Started analysing function ${f.tag}")
             try {
                 val start = System.currentTimeMillis()
-                val saver = createDictSaver()
+                val saver = DefaultPyMachineResultsReceiver(ObjectWithDictSerializer)
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
@@ -203,13 +204,13 @@ private fun analyze(runConfig: RunConfig) {
                     timeoutPerRunMs = 4_000,
                     timeoutMs = 60_000
                 )
-                saver.getResults().forEach { (_, inputs, result) ->
+                saver.pyTestObserver.tests.forEach { test ->
                     println("INPUT:")
-                    inputs.map { it.reprFromPythonObject }.forEach { println(it) }
+                    test.inputArgs.forEach { println(it) }
                     println("RESULT:")
-                    when (result) {
-                        is Success -> println(result.output)
-                        is Fail -> println(result.exception)
+                    when (val result = test.result) {
+                        is PyResultSuccess -> println(result.output)
+                        is PyResultFailure -> println(result.exception)
                     }
                     println()
                 }

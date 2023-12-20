@@ -2,11 +2,10 @@ package org.usvm.runner
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.usvm.machine.NewStateObserver
 import org.usvm.machine.PyState
-import org.usvm.machine.rendering.StateSeedSender
-import org.usvm.machine.saving.PickledObjectSaver
+import org.usvm.machine.results.observers.NewStateObserver
 
+/*
 class NewStateObserverForRunner(
     communicator: PickledObjectCommunicator,
     private val scope: CoroutineScope
@@ -24,3 +23,4 @@ class NewStateObserverForRunner(
         }
     }
 }
+ */
