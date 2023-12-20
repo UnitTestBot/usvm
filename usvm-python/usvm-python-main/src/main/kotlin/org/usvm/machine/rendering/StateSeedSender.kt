@@ -7,12 +7,11 @@ import org.usvm.language.types.ConcretePythonType
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.saving.GeneratedPythonObject
-import org.usvm.machine.saving.PythonAnalysisResultSaver
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.types.first
 
+/*
 class StateSeedSender<InputRepr>(
     private val saver: PythonAnalysisResultSaver<InputRepr>
 ) {
@@ -56,3 +55,4 @@ class StateSeedSender<InputRepr>(
         saver.saveNextInputs(data)
     }
 }
+ */

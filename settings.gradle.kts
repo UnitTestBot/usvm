@@ -26,3 +26,5 @@ pluginManagement {
         }
     }
 }
+include("usvm-python:usvm-python-object-model")
+findProject(":usvm-python:usvm-python-object-model")?.name = "usvm-python-object-model"

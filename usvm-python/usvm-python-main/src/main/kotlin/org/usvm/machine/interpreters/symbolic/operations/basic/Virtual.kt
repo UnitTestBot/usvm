@@ -15,7 +15,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     ctx.curState ?: throw UnregisteredVirtualOperation
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
-    if(ctx.curOperation?.method != NbBoolMethod || interpretedArg != on.interpretedObj)
+    if (ctx.curOperation?.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef)
         throw UnregisteredVirtualOperation  // path diversion
 
     val oldModel = ctx.modelHolder.model
@@ -50,7 +50,7 @@ fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = w
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     val typeSystem = ctx.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
-    require(ctx.curOperation?.method == SqLengthMethod && interpretedArg == on.interpretedObj)
+    require(ctx.curOperation?.method == SqLengthMethod && interpretedArg.address.address == on.interpretedObjRef)
     val (interpretedObj, symbolic) = internalVirtualCallKt(ctx)
     symbolic.addSupertypeSoft(ctx, typeSystem.pythonInt)
     val intValue = interpretedObj.getIntContent(ctx)
@@ -105,8 +105,8 @@ private fun internalVirtualCallKt(
 fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
     ctx.curState ?: throw UnregisteredVirtualOperation
     val (interpreted, _) = internalVirtualCallKt(ctx)
-    val converter = ctx.converter
-    return converter.convert(interpreted)
+    val objectModel = ctx.builder!!.convert(interpreted)
+    return ctx.renderer!!.convert(objectModel)
 }
 
 fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {

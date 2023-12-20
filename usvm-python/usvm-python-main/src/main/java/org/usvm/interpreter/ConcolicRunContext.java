@@ -9,7 +9,8 @@ import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandler
 import org.usvm.machine.PyState;
 import org.usvm.machine.PyContext;
 import org.usvm.machine.model.PyModelHolder;
-import org.usvm.machine.rendering.ConverterToPythonObject;
+import org.usvm.machine.rendering.PyObjectModelBuilder;
+import org.usvm.machine.rendering.PythonObjectRenderer;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
 import java.util.*;
@@ -25,13 +26,14 @@ public class ConcolicRunContext {
     public MockHeader curOperation = null;
     public PyModelHolder modelHolder;
     public boolean allowPathDiversion;
-    public ConverterToPythonObject converter;
     public PythonTypeSystem typeSystem;
     public PythonMachineStatisticsOnFunction statistics;
     public int maxInstructions;
     public int instructionCounter = 0;
     public boolean usesVirtualInputs = false;
     public Callable<Boolean> isCancelled;
+    public PyObjectModelBuilder builder = null;
+    public PythonObjectRenderer renderer = null;
 
     public ConcolicRunContext(
             @NotNull PyState curState,
@@ -50,11 +52,6 @@ public class ConcolicRunContext {
         this.typeSystem = typeSystem;
         this.pathPrefix = curState.buildPathAsList();
         this.statistics = statistics;
-        if (curState.getMeta().getLastConverter() != null) {
-            this.converter = curState.getMeta().getLastConverter();
-        } else {
-            this.converter = new ConverterToPythonObject(ctx, typeSystem, modelHolder, curState.getPreAllocatedObjects(), curState.getMemory().clone(curState.getPathConstraints().getTypeConstraints()), false);
-        }
         this.maxInstructions = maxInstructions;
         this.isCancelled = isCancelled;
     }

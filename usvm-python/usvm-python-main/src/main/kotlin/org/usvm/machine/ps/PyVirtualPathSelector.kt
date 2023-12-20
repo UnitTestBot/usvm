@@ -3,14 +3,15 @@ package org.usvm.machine.ps
 import mu.KLogging
 import org.usvm.UPathSelector
 import org.usvm.WithSolverStateForker.fork
+import org.usvm.api.typeStreamOf
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
 import org.usvm.machine.DelayedFork
-import org.usvm.machine.NewStateObserver
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.toPyModel
+import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.types.TypesResult
 import kotlin.random.Random
 
@@ -75,8 +76,16 @@ class PyVirtualPathSelector(
             return null
         val state = executionsWithVirtualObjectAndWithoutDelayedForks.random(random)
         executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
-        val objects = state.meta.objectsWithoutConcreteTypes!!.map { it.interpretedObj }
-        val typeStreamsRaw = objects.map { it.getTypeStream() ?: state.possibleTypesForNull }
+        val objects = state.meta.objectsWithoutConcreteTypes!!.map {
+            val addressRaw = it.interpretedObjRef
+            ctx.mkConcreteHeapRef(addressRaw)
+        }
+        val typeStreamsRaw = objects.map {
+            if (it.address == 0)
+                state.possibleTypesForNull
+            else
+                state.pyModel.typeStreamOf(it)
+        }
         val typeStreams = typeStreamsRaw.map {
             @Suppress("unchecked_cast")
             when (val taken = it.take(2)) {
@@ -89,8 +98,8 @@ class PyVirtualPathSelector(
         }
         require(typeStreams.all { it.first() == MockType })
         val types = typeStreams.map {it.take(2).last()}
-        (objects zip types).forEach { (obj, type) ->
-            state.meta.lastConverter!!.forcedConcreteTypes[obj.address] = type
+        (objects zip types).forEach { (objAddress, type) ->
+            state.pyModel.forcedConcreteTypes[objAddress] = type
         }
         state.meta.wasExecuted = false
         state.meta.extractedFrom = null

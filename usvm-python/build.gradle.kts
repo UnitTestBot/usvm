@@ -25,6 +25,7 @@ repositories {
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":usvm-python:usvm-python-main"))
+    implementation(project(":usvm-python:usvm-python-object-model"))
     implementation("org.utbot:utbot-python-types:2023.11-SNAPSHOT")
 
     implementation("ch.qos.logback:logback-classic:${Versions.logback}")
