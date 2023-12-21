@@ -6,6 +6,7 @@ import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorRepository
+import org.usvm.fuzzer.generator.random.FuzzerRandomNormalDistribution
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
 import kotlin.random.Random
@@ -34,7 +35,7 @@ open class GeneratorTest {
             generatorRepository = GeneratorRepository()
             val generatorContext = GeneratorContext(
                 mapOf(), generatorRepository,
-                Random(42),
+                FuzzerRandomNormalDistribution(0, 0.0, 50.0),
                 jcClasspath,
                 userClassLoader
             )

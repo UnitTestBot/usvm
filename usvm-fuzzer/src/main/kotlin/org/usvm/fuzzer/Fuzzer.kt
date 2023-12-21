@@ -1,5 +1,6 @@
 package org.usvm.fuzzer
 
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
@@ -15,27 +16,29 @@ import org.usvm.fuzzer.strategy.RandomStrategy
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
+import org.usvm.instrumentation.util.enclosingMethod
 import kotlin.random.Random
+import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.commons.math3.random.JDKRandomGenerator
+import org.apache.commons.math3.random.RandomGenerator
+import org.usvm.fuzzer.generator.random.FuzzerRandomNormalDistribution
+import kotlin.math.roundToInt
+import kotlin.system.exitProcess
 
 class Fuzzer(
     private val targetMethod: JcMethod,
     classPath: List<String>,
-    private val userClassLoader: ClassLoader
+    private val userClassLoader: ClassLoader,
+    private val runner: UTestConcreteExecutor
 ) {
 
     private val jcClasspath: JcClasspath = targetMethod.enclosingClass.classpath
     private val generatorRepository = GeneratorRepository()
 
-    val runner = UTestConcreteExecutor(
-        JcRuntimeTraceInstrumenterFactory::class,
-        classPath,
-        jcClasspath,
-        InstrumentationModuleConstants.testExecutionTimeout
-    )
-
-    val seedLimit = 10
-    val seedGenerator = SeedGenerator(jcClasspath, generatorRepository)
+    val seedLimit = 100
+    val seedGenerator = SeedGenerator(jcClasspath, generatorRepository, userClassLoader)
     val seedManager = SeedManager(listOf(), seedLimit, RandomStrategy())
     val executionEstimator = ExecutionEstimator()
     val coveredStatements = HashSet<JcInst>()
@@ -44,28 +47,48 @@ class Fuzzer(
     private val mutationManager = MutationManager(mutations, RandomStrategy())
 
     init {
-        val generatorContext = GeneratorContext(mapOf(), generatorRepository, Random(42), jcClasspath, userClassLoader)
+        val generatorContext = GeneratorContext(
+            constants = mapOf(),
+            repository = generatorRepository,
+            random = FuzzerRandomNormalDistribution(42, 0.0, 50.0),
+            jcClasspath = jcClasspath,
+            userClassLoader = userClassLoader
+        )
         generatorRepository.registerGeneratorContext(generatorContext)
     }
 
 
     suspend fun fuzz() {
         generateInitialSeed()
+        val d2vConverter = Descriptor2ValueConverter(userClassLoader)
         //Execute each seed
         for (seed in seedManager.seeds) {
             val res = runner.executeAsync(seed.toUTest())
-            println("RES = $res")
+            println("RES = ${res::class.java.name}")
             executionEstimator.estimate(seed, res)
             when (res) {
-                is UTestExecutionExceptionResult -> coveredStatements.addAll(res.trace ?: listOf())
+                is UTestExecutionExceptionResult -> {
+//                    val exceptionInstance = d2vConverter.buildObjectFromDescriptor(res.cause)
+//                    println(exceptionInstance)
+//                    println("COV = ${res.trace?.size}")
+                    coveredStatements.addAll(res.trace ?: listOf())
+                }
+
                 is UTestExecutionFailedResult -> {}
-                is UTestExecutionInitFailedResult -> coveredStatements.addAll(res.trace ?: listOf())
+                is UTestExecutionInitFailedResult -> {
+//                    val exceptionInstance = d2vConverter.buildObjectFromDescriptor(res.cause)
+//                    println(exceptionInstance)
+                    coveredStatements.addAll(res.trace ?: listOf())
+                }
+
                 is UTestExecutionSuccessResult -> coveredStatements.addAll(res.trace ?: listOf())
                 is UTestExecutionTimedOutResult -> {}
             }
         }
-        val coveragePercents = coveredStatements.size.toDouble() / targetMethod.instList.size * 100
-        println("COVERED ${coveredStatements.size} of ${targetMethod.instList.size} ($coveragePercents%)")
+        val methodCoverage = coveredStatements.filter { it.enclosingMethod == targetMethod }
+        val coveragePercents = methodCoverage.size.toDouble() / targetMethod.instList.size * 100
+        println("Method: ${targetMethod.name} ||| COVERED ${methodCoverage.size} of ${targetMethod.instList.size} ($coveragePercents%)")
+        Cov.coveredStatements.addAll(coveredStatements)
         return
 
         repeat(10) {
@@ -85,6 +108,10 @@ class Fuzzer(
         repeat(seedLimit) {
             seedManager.addSeed(seedGenerator.generateForMethod(targetMethod), it)
         }
+    }
+
+    private fun extractConstants() {
+
     }
 
 

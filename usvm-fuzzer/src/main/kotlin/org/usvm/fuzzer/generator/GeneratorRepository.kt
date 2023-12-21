@@ -32,7 +32,6 @@ class GeneratorRepository {
 
     private fun Generator.appendContext(): Generator = this.also { it.ctx = context }
 
-    fun getGeneratorForUnresolvedType(jcType: JcType) = getGeneratorForType(JcTypeWrapper(jcType, listOf()))
     fun getGeneratorForType(jcType: JcTypeWrapper): Generator = with(jcType.type.unboxIfNeeded()) {
         when (this) {
             //TODO repair

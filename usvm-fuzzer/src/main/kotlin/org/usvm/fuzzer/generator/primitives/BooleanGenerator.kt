@@ -7,7 +7,7 @@ import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestBooleanExpression
 
 class BooleanGenerator: Generator() {
-    override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
+    override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = {
         UTestValueRepresentation(UTestBooleanExpression(random.nextBoolean(), jcClasspath.boolean))
     }
 }

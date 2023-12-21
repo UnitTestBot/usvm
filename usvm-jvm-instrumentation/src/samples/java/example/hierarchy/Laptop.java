@@ -1,7 +1,7 @@
 package example.hierarchy;
 
 // Abstract class for a laptop
-abstract class Laptop implements Computer {
+abstract class Laptop<R> implements Computer<R> {
     protected String brand;
     protected double screenSize;
 

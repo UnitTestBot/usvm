@@ -1,38 +1,37 @@
 @file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
+
 package org.usvm.instrumentation.util
-import jdk.internal.loader.URLClassPath
-import jdk.internal.loader.Resource as InternalResource
 
 import java.io.File
-import java.io.InputStream
 import java.net.URL
-import java.security.AccessController
+import java.net.URLClassLoader
 import java.security.CodeSigner
 
-class URLClassPathLoader(classPath: List<File>) {
+class URLClassPathLoader(private val classPath: List<File>) {
 
     interface Resource {
         fun getName(): String
         fun getURL(): URL
         fun getCodeSourceURL(): URL
-        fun getInputStream(): InputStream
-        fun getContentLength(): Int
         fun getBytes(): ByteArray
         fun getCodeSigners(): Array<CodeSigner>?
     }
 
-    private class InternalResourceWrapper(val resource: InternalResource): Resource {
-        override fun getName(): String = resource.name
-        override fun getURL(): URL = resource.url
-        override fun getCodeSourceURL(): URL = resource.codeSourceURL
-        override fun getInputStream(): InputStream = resource.inputStream
-        override fun getContentLength(): Int = resource.contentLength
-        override fun getBytes(): ByteArray = resource.bytes
-        override fun getCodeSigners(): Array<CodeSigner>? = resource.codeSigners
+    private val urlClassLoader = URLClassLoader(classPath.map { it.toURI().toURL() }.toTypedArray(), null)
+
+    fun getResource(name: String): Resource? {
+        val resourceUrl = urlClassLoader.getResource(name) ?: return null
+        return object : Resource {
+            override fun getName(): String = name
+            override fun getURL(): URL = resourceUrl
+
+            // TODO usvm-sbft-merge: may be incorrect, especially for non-ASCII URLs
+            override fun getCodeSourceURL(): URL = resourceUrl
+            override fun getBytes(): ByteArray = resourceUrl.readBytes()
+
+            // TODO usvm-sbft-merge: figure out the way to get code signers
+            override fun getCodeSigners(): Array<CodeSigner>? = null
+        }
     }
-
-    private val urlClassPath = URLClassPath(classPath.map { it.toURI().toURL() }.toTypedArray(), AccessController.getContext())
-
-    fun getResource(name: String): Resource = InternalResourceWrapper(urlClassPath.getResource(name, false))
 
 }

@@ -1,9 +1,16 @@
 package org.usvm.fuzzer.generators
 
-import org.jacodb.impl.types.JcClassTypeImpl
+import io.leangen.geantyref.GenericTypeReflector
+import io.leangen.geantyref.TypeFactory
+import org.jacodb.api.JcClassType
+import org.jacodb.api.ext.autoboxIfNeeded
+import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.int
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.usvm.fuzzer.util.findResolvedTypeOrNull
+import org.usvm.fuzzer.types.JcTypeWrapper
+import org.usvm.fuzzer.types.Substitution
+import org.usvm.instrumentation.util.toJavaClass
 import java.net.URLClassLoader
 import java.nio.file.Paths
 import kotlin.test.assertNotNull
@@ -23,9 +30,14 @@ class CollectionGeneratorTest: GeneratorTest() {
 
     @Test
     fun generateSimpleArrayList() {
-        val type = jcClasspath.findResolvedTypeOrNull("java.util.ArrayList<java.lang.Integer>")
-        val generator = generatorRepository.getGeneratorForType(type) ?: error("Cant find ArrayList generator")
-        val generatedValue = generator.generate()
+        val type = jcClasspath.findTypeOrNull("java.util.ArrayList") as JcClassType
+        val genericReplacement = jcClasspath.int.autoboxIfNeeded()
+        val jType = type.toJavaClass(userClassLoader)
+        val jReplacement = genericReplacement.toJavaClass(userClassLoader)
+        val jResolvedType = TypeFactory.parameterizedClass(jType, jReplacement)
+        val tw = JcTypeWrapper(type, jResolvedType)
+        val generator = generatorRepository.getGeneratorForType(tw)
+        val generatedValue = generator.generate(0)
         assertNotNull(generatedValue)
     }
 }

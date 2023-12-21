@@ -1,10 +1,13 @@
 package org.usvm.fuzzer.util
 
+import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
+import org.usvm.fuzzer.types.JcTypeWrapper
+import org.usvm.instrumentation.util.toJavaClass
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.ArrayList
@@ -30,6 +33,14 @@ fun JcClasspath.linkedListType(): JcClassType {
 
 fun JcClasspath.listType(): JcClassType {
     return findTypeOrNull<List<*>>() as JcClassType
+}
+
+fun JcClasspath.collectionType(): JcClassType {
+    return findTypeOrNull<java.util.Collection<*>>() as JcClassType
+}
+
+fun JcClasspath.iterableType(): JcClassType {
+    return findTypeOrNull<java.lang.Iterable<*>>() as JcClassType
 }
 
 fun JcClasspath.mapType(): JcClassType {
@@ -86,4 +97,10 @@ fun JcClasspath.priorityQueueType(): JcClassType {
 
 fun JcClasspath.stackType(): JcClassType {
     return findTypeOrNull<Stack<*>>() as JcClassType
+}
+
+fun JcClassOrInterface.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper = toType().createJcTypeWrapper(userClassLoader)
+
+fun JcClassType.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper {
+    return JcTypeWrapper(this, this.toJavaClass(userClassLoader))
 }

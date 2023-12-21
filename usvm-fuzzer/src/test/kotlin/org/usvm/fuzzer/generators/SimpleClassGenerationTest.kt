@@ -1,90 +1,89 @@
 package org.usvm.fuzzer.generators
 
-import org.jacodb.impl.types.JcClassTypeImpl
+import io.leangen.geantyref.TypeFactory
+import org.jacodb.api.JcClassType
+import org.jacodb.api.ext.autoboxIfNeeded
+import org.jacodb.api.ext.int
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.usvm.fuzzer.types.*
-import org.usvm.fuzzer.util.findResolvedTypeOrNull
+import org.usvm.fuzzer.util.createJcTypeWrapper
+import org.usvm.instrumentation.util.toJavaClass
 import java.net.URLClassLoader
 import java.nio.file.Paths
 
-class SimpleClassGenerationTest: GeneratorTest() {
+class SimpleClassGenerationTest : GeneratorTest() {
     companion object {
 
         @BeforeAll
         @JvmStatic
         fun initClasspath() {
             testJarPath =
-                listOf("/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation.jar",
-                    "/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-test.jar")
-            userClassLoader = URLClassLoader(arrayOf(Paths.get(testJarPath.first()).toUri().toURL()), this::class.java.classLoader)
+                listOf(
+                    "/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation.jar",
+                    "/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-test.jar"
+                )
+            userClassLoader =
+                URLClassLoader(testJarPath.map { Paths.get(it).toUri().toURL() }.toTypedArray())
             init()
+            JcClassTable.initClasses(jcClasspath)
         }
     }
 
     @Test
     fun abstractClassGenerationTest() {
-        val type = jcClasspath.findResolvedTypeOrNull("example.hierarchy.Computer")
-        val generator = generatorRepository.getGeneratorForType(type) ?: error("Cant find ArrayList generator")
-        val generatedValue = generator.generate()
+        val type = jcClasspath.findTypeOrNull("example.hierarchy.Computer") as JcClassType
+        val genericReplacement = jcClasspath.int.autoboxIfNeeded().toJavaClass(userClassLoader)
+        val jType = TypeFactory.parameterizedClass(type.toJavaClass(userClassLoader), genericReplacement)
+        val tw = JcTypeWrapper(type, jType)
+        val generator = generatorRepository.getGeneratorForType(tw)
+        val generatedValue = generator.generate(0)
         println("GENERATED VALUE = $generatedValue")
     }
 
     @Test
     fun generateSimpleClass() {
-        val jcType = jcClasspath.findResolvedTypeOrNull("example.GenericClass<java.lang.Integer>")
-        val generator = generatorRepository.getGeneratorForType(jcType) ?: error("Cant find ArrayList generator")
-        val generatedValue = generator.generate()
+        val type = jcClasspath.findTypeOrNull("example.GenericClass") as JcClassType
+        val jType = type.toJavaClass(userClassLoader)
+        val genericReplacement = jcClasspath.int.autoboxIfNeeded()
+        val jRep = genericReplacement.toJavaClass(userClassLoader)
+        val jcType = JcTypeWrapper(type, TypeFactory.parameterizedClass(jType, jRep))
+        val generator = generatorRepository.getGeneratorForType(jcType)
+        val generatedValue = generator.generate(0)
+        println("GENERATED VALUE = $generatedValue")
+    }
+
+    @Test
+    fun `class with complex generics`() {
+        val type = jcClasspath.findTypeOrNull("example.fuzz.ComplexGenerics") as JcClassType
+        val genericGenerator = JcGenericGeneratorImpl(jcClasspath, userClassLoader)
+        val classWithReplacedGenerics = genericGenerator.resolveGenericParametersForType(
+            JcTypeWrapper(type, type.toJavaClass(userClassLoader))
+        )
+        val generator = generatorRepository.getGeneratorForType(classWithReplacedGenerics)
+        val generatedValue = generator.generate(0)
         println("GENERATED VALUE = $generatedValue")
     }
 
     @Test
     fun `class with static fields`() {
-        val jcType = jcClasspath.findResolvedTypeOrNull("example.ClassWithStaticFields")
-        val generator = generatorRepository.getGeneratorForType(jcType) ?: error("Cant find ArrayList generator")
-        val generatedValue = generator.generate()
+        val type = jcClasspath.findTypeOrNull("example.ClassWithStaticFields") as JcClassType
+        val tw = type.createJcTypeWrapper(userClassLoader)
+        val generator = generatorRepository.getGeneratorForType(tw)
+        val generatedValue = generator.generate(0)
         println("GENERATED VALUE = $generatedValue")
     }
 
     @Test
     fun `complex generics`() {
-
-        val t = "example.GenericClassMap<java.util.Map<java.lang.Integer, java.lang.String>>"
-        val jcType = JcType2JvmTypeConverter.convertToJcTypeWrapper(t, jcClasspath)
-        val generator = generatorRepository.getGeneratorForType(jcType)
-        val generatedValue = generator.generate()
-        println(generatedValue)
-
-
-
-//
-//        val type = jcClasspath.findTypeOrNull("example.GenericClassMap") as JcClassTypeImpl
-//        val genericReplacement = jcClasspath.findTypeOrNull("java.util.Map") as JcClassTypeImpl
-//        val mapType = genericReplacement.getResolvedType(listOf(jcClasspath.int.autoboxIfNeeded(), jcClasspath.stringType()))
-//        val newType = type.getResolvedType(listOf(mapType))
-//        val a = newType.constructors.first().parameters.first().type as JcClassTypeImpl
-//        mapType.declaredMethods.map { it.name + " " + it.returnType.typeName }
-//        val r = listOf(jcClasspath.int.autoboxIfNeeded(), jcClasspath.stringType())
-//        val m1 = mapType.typeParameters
-//            .map { it.convertToJvmTypeParameterDeclarationImpl() }
-//            .zipToMap(r.map { it.convertToJvmType() }).toPersistentMap()
-//        val m2 = type.typeParameters
-//            .map { it.convertToJvmTypeParameterDeclarationImpl() }
-//            .zipToMap(listOf(mapType).map { it.convertToJvmType() }).toPersistentMap()
-//        val t = JcClassTypeImpl(
-//            newType.classpath,
-//            newType.name,
-//            newType.outerType,
-//            JcSubstitutorImpl(
-//                (m1 + m2).toPersistentMap()
-//            ),
-//            newType.nullable,
-//            newType.annotations
-//        )
-//        val ttt = t.declaredMethods.first().parameters.first().type
-//        println(ttt)
-//
-//        println("NEW TYPE = $newType")
+        val type = jcClasspath.findTypeOrNull("example.GenericClassMap") as JcClassType
+        val genericGenerator = JcGenericGeneratorImpl(jcClasspath, userClassLoader)
+        val classWithReplacedGenerics = genericGenerator.resolveGenericParametersForType(
+            JcTypeWrapper(type, type.toJavaClass(userClassLoader))
+        )
+        val generator = generatorRepository.getGeneratorForType(classWithReplacedGenerics)
+        val generatedValue = generator.generate(0)
+        println("GENERATED VALUE = $generatedValue")
     }
 
 }

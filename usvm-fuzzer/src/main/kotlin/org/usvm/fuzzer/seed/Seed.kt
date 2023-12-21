@@ -3,7 +3,6 @@ package org.usvm.fuzzer.seed
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
 import org.jacodb.impl.cfg.util.isClass
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualFieldImpl
 import org.objectweb.asm.Opcodes
@@ -19,7 +18,6 @@ import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.util.*
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.full.companionObject
 
 data class Seed(
     val targetMethod: JcMethod,
@@ -31,12 +29,6 @@ data class Seed(
 
     companion object {
         lateinit var treesForArgs: List<PositionTrie>
-
-        fun initTrees(numberOfArgs: Int) {
-            treesForArgs = List(numberOfArgs) { PositionTrie() }
-        }
-
-        fun isInitialized() = this::treesForArgs.isInitialized
     }
 
     val positions: ArrayList<Position> = arrayListOf()
@@ -52,11 +44,14 @@ data class Seed(
     }
 
     init {
-        if (!isInitialized()) {
-            initTrees(args.size)
-        }
         for ((i, arg) in args.withIndex()) {
-            val tree = treesForArgs[i]
+            val tree =
+                try {
+                    treesForArgs[i]
+                } catch (e: Throwable) {
+                    println()
+                    throw e
+                }
             val jcClass =
                 if (arg.type.type is JcClassType) {
                     arg.type.type.toJcClass() ?: error("Cant convert ${arg.type.type.typeName} to class")
@@ -66,16 +61,19 @@ data class Seed(
             val type = arg.type
             tree.addRoot(type.type)
             val fieldsToHandle = ArrayDeque<List<JcField>>()
+            val processedFields = hashSetOf<JcField>()
             val thisJcField = JcVirtualFieldImpl("this", Opcodes.ACC_PUBLIC, type.type.getTypename())
             fieldsToHandle.add(listOf(thisJcField))
             jcClass?.allDeclaredFields?.forEach { jcField -> fieldsToHandle.add(listOf(jcField)) }
             val cp = type.type.classpath
             while (fieldsToHandle.isNotEmpty()) {
                 val fieldChain = fieldsToHandle.removeFirst()
+                val fieldToAdd = fieldChain.last()
+                if (processedFields.contains(fieldToAdd)) continue
+                processedFields.add(fieldToAdd)
                 tree.addPosition(type.type, fieldChain)
-                val addedField = fieldChain.last()
-                if (addedField.type.isClass) {
-                    addedField.type.toJcClassOrInterface(cp)?.allDeclaredFields?.forEach { field ->
+                if (fieldToAdd.type.isClass) {
+                    fieldToAdd.type.toJcClassOrInterface(cp)?.allDeclaredFields?.forEach { field ->
                         fieldsToHandle.add(fieldChain + listOf(field))
                     }
                 }

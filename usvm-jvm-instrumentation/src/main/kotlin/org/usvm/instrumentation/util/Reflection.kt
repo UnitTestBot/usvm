@@ -40,21 +40,26 @@ fun Field.getFieldValue(instance: Any?): Any? = with(ReflectionUtils.UNSAFE) {
 }
 
 fun Method.invokeWithAccessibility(instance: Any?, args: List<Any?>): Any? =
-    executeWithTimeout {
+    executeMethodWithInstrumentationTimeout {
         withAccessibility {
             invoke(instance, *args.toTypedArray())
         }
     }
 
 fun Constructor<*>.newInstanceWithAccessibility(args: List<Any?>): Any =
-    executeWithTimeout {
+    executeMethodWithInstrumentationTimeout {
         withAccessibility {
             newInstance(*args.toTypedArray())
         }
     } ?: error("Cant instantiate class ${this.declaringClass.name}")
 
+fun executeMethodWithInstrumentationTimeout(body: () -> Any?) =
+    executeWithTimeout(
+        InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds,
+        body
+    )
 
-fun executeWithTimeout(body: () -> Any?): Any? {
+fun executeWithTimeout(timeoutInMilliseconds: Long, body: () -> Any?): Any? {
     var result: Any? = null
     val thread = Thread {
         result = try {
@@ -64,7 +69,7 @@ fun executeWithTimeout(body: () -> Any?): Any? {
         }
     }
     thread.start()
-    thread.join(InstrumentationModuleConstants.methodExecutionTimeout.inWholeMilliseconds)
+    thread.join(timeoutInMilliseconds)
     var isThreadStopped = false
     while (thread.isAlive) {
         @Suppress("DEPRECATION")
@@ -77,6 +82,18 @@ fun executeWithTimeout(body: () -> Any?): Any? {
         else -> return result
     }
 }
+
+fun executeWithSoftAndHardTimeouts(
+    softTimeoutInMilliseconds: Long,
+    hardTimeoutInMilliseconds: Long,
+    body: () -> Any?,
+    bodyAfterSoftTimeout: () -> Any?
+): Any? =
+    try {
+        executeWithTimeout(softTimeoutInMilliseconds, body)
+    } catch (e: TimeoutException) {
+        executeWithTimeout(hardTimeoutInMilliseconds - softTimeoutInMilliseconds, bodyAfterSoftTimeout)
+    }
 
 fun Field.setFieldValue(instance: Any?, fieldValue: Any?) = with(ReflectionUtils.UNSAFE) {
     val (fixedInstance, fieldOffset) = getInstanceAndOffset(instance)

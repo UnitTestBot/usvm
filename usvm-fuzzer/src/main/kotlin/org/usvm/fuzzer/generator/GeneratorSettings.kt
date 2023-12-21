@@ -9,8 +9,12 @@ object GeneratorSettings {
     const val mocksEnabled = true
     const val mockGenerationProbability = 0
 
+    //Time for object generation
+    val softTimeoutForObjectGeneration = 2.seconds
+    val hardTimeoutForObjectGeneration = 3.seconds
+
     //Common settings
-    private val objectGenerationTimeout = 3.seconds
+    const val maxDepthOfObjectGeneration = 5
 
     //Random
     private const val RANDOM_SEED = 42

@@ -5,7 +5,7 @@ import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcType
 import org.usvm.fuzzer.types.JcGenericGeneratorImpl
 import org.usvm.fuzzer.util.UTestValueRepresentation
-import kotlin.random.Random
+import java.util.*
 
 data class GeneratorContext(
     val constants: Map<JcType, List<UTestValueRepresentation>>,
@@ -13,7 +13,7 @@ data class GeneratorContext(
     val random: Random,
     val jcClasspath: JcClasspath,
     val userClassLoader: ClassLoader,
-    val genericGenerator: JcGenericGeneratorImpl = JcGenericGeneratorImpl(jcClasspath),
+    val genericGenerator: JcGenericGeneratorImpl = JcGenericGeneratorImpl(jcClasspath, userClassLoader),
 ) {
 
 

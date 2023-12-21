@@ -8,9 +8,9 @@ import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestGetStaticFieldExpression
 
 class EnumClassGenerator(private val jcType: JcTypeWrapper) : UserClassGenerator() {
-    override val generationFun: GeneratorContext.() -> UTestValueRepresentation? = {
+    override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation? = {
         val jcClass = (jcType.type as JcClassType).jcClass
-        jcClass.enumValues?.random()?.let {
+        jcClass.enumValues?.randomOrNull()?.let {
             UTestValueRepresentation(UTestGetStaticFieldExpression(it))
         }
     }

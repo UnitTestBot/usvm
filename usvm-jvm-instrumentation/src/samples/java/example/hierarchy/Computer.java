@@ -1,7 +1,7 @@
 package example.hierarchy;
 
 // Interface for a computer
-interface Computer {
+interface Computer<T> {
     void turnOn();
     void turnOff();
 }

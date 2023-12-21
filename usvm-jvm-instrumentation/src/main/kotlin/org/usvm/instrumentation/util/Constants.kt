@@ -7,7 +7,7 @@ import kotlin.time.Duration.Companion.seconds
 object InstrumentationModuleConstants {
 
     //Timeout for test execution
-    val testExecutionTimeout = 10.seconds
+    val testExecutionTimeout = 4.seconds
     //Timeout for method execution
     val methodExecutionTimeout = 2.seconds
     //Timeout for executor process waiting (should be in seconds)
@@ -31,6 +31,6 @@ object InstrumentationModuleConstants {
         get() = System.getenv("usvm-jvm-collectors-jar")
 
     val pathToJava: String
-        get() = System.getenv()["JAVA_HOME"] ?: System.getProperty("java.home")
+        get() = System.getProperty("java.home") ?: System.getenv()["JAVA_HOME"]!!
 
 }

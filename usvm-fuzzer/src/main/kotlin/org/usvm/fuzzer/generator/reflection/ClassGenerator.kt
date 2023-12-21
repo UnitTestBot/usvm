@@ -9,7 +9,7 @@ import org.usvm.instrumentation.testcase.api.UTestBooleanExpression
 import org.usvm.instrumentation.testcase.api.UTestClassExpression
 
 class ClassGenerator: Generator() {
-    override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
+    override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = {
         UTestValueRepresentation(UTestClassExpression(jcClasspath.objectType))
     }
 }

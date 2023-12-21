@@ -103,7 +103,7 @@ class WorkerClassLoader(
 
     override fun findClass(name: String): Class<*> {
         return foundClasses.getOrPut(name) {
-            val res = getWorkerResource(name)
+            val res = getWorkerResource(name) ?: throw ClassNotFoundException(name)
             val bb = res.getBytes()
             val cs = CodeSource(res.getCodeSourceURL(), res.getCodeSigners())
             val foundClass = defineClass(name, bb, 0, bb.size, cs)
@@ -120,9 +120,9 @@ class WorkerClassLoader(
         }
     }
 
-    private fun getWorkerResource(name: String): URLClassPathLoader.Resource = cachedClasses.getOrPut(name) {
+    private fun getWorkerResource(name: String): URLClassPathLoader.Resource? = cachedClasses.getOrPut(name) {
         val path = name.replace('.', '/') + ".class"
-        val resource = urlClassPath.getResource(path)
+        val resource = urlClassPath.getResource(path) ?: return null
         WorkerResource(resource)
     }
 

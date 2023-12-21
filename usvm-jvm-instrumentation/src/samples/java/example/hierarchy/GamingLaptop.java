@@ -1,7 +1,7 @@
 package example.hierarchy;
 
 // Concrete class for a gaming laptop
-class GamingLaptop extends Laptop {
+class GamingLaptop<E> extends Laptop<E> {
     private int graphicsCardMemory;
 
     public GamingLaptop(String brand, double screenSize, int graphicsCardMemory) {

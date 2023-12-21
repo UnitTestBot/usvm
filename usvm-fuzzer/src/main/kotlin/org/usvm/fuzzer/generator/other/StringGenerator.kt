@@ -3,12 +3,13 @@ package org.usvm.fuzzer.generator.other
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
+import org.usvm.fuzzer.generator.random.nextInt
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.usvm.instrumentation.util.stringType
 
 class StringGenerator: Generator() {
-    override val generationFun: GeneratorContext.() -> UTestValueRepresentation = {
+    override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = {
         val length = random.nextInt(GeneratorSettings.minStringLength, GeneratorSettings.maxStringLength)
         val randomString = buildString {
             repeat(length) {

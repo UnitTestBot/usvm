@@ -2,6 +2,7 @@ package org.usvm.fuzzer.types
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
+import org.jacodb.api.LocationType
 import org.jacodb.api.ext.allSuperHierarchySequence
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
@@ -9,16 +10,23 @@ import kotlin.time.measureTimedValue
 
 object JcClassTable {
     //TODO make in lazy
-    lateinit var classes: List<JcClassOrInterface>
+    var classes = mutableSetOf<JcClassOrInterface>()
 
     @OptIn(ExperimentalTime::class)
     fun initClasses(jcClasspath: JcClasspath) {
         measureTime {
-            classes = jcClasspath.locations
-                .flatMap { it.classNames ?: setOf() }
-                //TODO REMOVE IT
-                .filter { it.contains("java.") || it.contains("example.") }
-                .mapNotNull { jcClasspath.findClassOrNull(it) }
+            val locations = jcClasspath.locations
+            for (location in locations) {
+                val classNames =
+                    if (location.type == LocationType.APP) {
+                        location.classNames
+                    } else {
+                        location.classNames?.filter { it.startsWith("java.util") || it.startsWith("java.lang") || it.startsWith("java.reflect") }
+                    } ?: listOf()
+                classes.addAll(
+                    classNames.mapNotNull { jcClasspath.findClassOrNull(it) }
+                )
+            }
         }.also { println("INIT DURATION = $it") }
     }
 
@@ -37,5 +45,27 @@ object JcClassTable {
                 }
             }
         }
-    }.also { println("TIME = ${it.duration}") }.value
+    }.also { println("TIME = ${it.duration} OF GETTING SUBCLASS OF ${superClasses.firstOrNull()?.name} res = ${it.value?.name}")}.value
+
+    @OptIn(ExperimentalTime::class)
+    fun getRandomTypeSuitableForBounds(lowerBounds: List<JcClassOrInterface>, upperBounds: List<JcClassOrInterface>) = measureTimedValue {
+        classes.shuffled().firstOrNull { jcClass ->
+            if (jcClass.outerClass != null && !jcClass.isStatic) return@firstOrNull false
+            val isSuitableForUpperBounds =
+                if (upperBounds.size == 1 && upperBounds.first().name == "java.lang.Object") {
+                    true
+                } else {
+                    upperBounds.all { superClass -> jcClass.allSuperHierarchySequence.contains(superClass) }
+                }
+            if (!isSuitableForUpperBounds) {
+                false
+            } else {
+                if (lowerBounds.size == 1 && lowerBounds.first() == jcClass) {
+                    true
+                } else {
+                    lowerBounds.all { subClass -> subClass.allSuperHierarchySequence.contains(jcClass) }
+                }
+            }
+        }
+    }.also { println("TIME = ${it.duration} OF GETTING TYPE SUITABLE FOR BOUNDS $lowerBounds $upperBounds res = ${it.value?.name}")}.value
 }

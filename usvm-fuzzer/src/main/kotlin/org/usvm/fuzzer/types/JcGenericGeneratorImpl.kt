@@ -1,176 +1,194 @@
 package org.usvm.fuzzer.types
 
+import io.leangen.geantyref.GenericTypeReflector
+import io.leangen.geantyref.TypeArgumentNotInBoundException
+import io.leangen.geantyref.TypeFactory
 import org.jacodb.api.*
+import org.jacodb.api.ext.objectClass
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
-import org.jacodb.impl.types.asJcDeclaration
-import org.jacodb.impl.types.typeParameters
+import org.usvm.fuzzer.util.createJcTypeWrapper
+import org.usvm.fuzzer.util.simpleTypeName
 import org.usvm.instrumentation.util.toJavaClass
-import org.usvm.instrumentation.util.toJcClass
-import java.lang.reflect.ParameterizedType
-import java.util.*
+import org.usvm.instrumentation.util.toJcClassOrInterface
+import java.lang.IllegalArgumentException
+import java.lang.reflect.*
 
 
 class JcGenericGeneratorImpl(
-    private val jcClasspath: JcClasspath
+    private val jcClasspath: JcClasspath,
+    private val userClassLoader: ClassLoader
 ) : JcGenericGenerator {
 
-    //TODO now we replacing only for bound
-//    override fun replaceGenericParametersForType(type: JcType): JcTypeWrapper =
-//        JcTypeWrapper(
-//            type,
-//            type.getTypeParameters().map {
-//                Substitution(
-//                    it.convertToJvmTypeParameterDeclarationImpl(),
-//                    it.bounds.firstOrNull()?.convertToJvmType() ?: jcClasspath.objectType.convertToJvmType()
-//                )
-//            }
-//        )
+    override fun resolveGenericParametersForType(
+        type: JcTypeWrapper
+    ): JcTypeWrapper = replaceGenericParametersForJType(type.actualJavaType, mutableMapOf())
 
-
-//    override fun replaceGenericParametersForMethod(resolvedClassType: JcTypeWrapper, method: JcMethod): Pair<JcTypedMethod, List<Substitution>> {
-//        val methodSubstitutions = method.typeParameters.map {
-//            Substitution(
-//                it,
-//                it.bounds?.firstOrNull() ?: jcClasspath.objectType.convertToJvmType()
-//            )
-//        }
-//        return JcTypedMethodImpl(
-//            method.enclosingClass.toType(),
-//            method,
-//            JcSubstitutorImpl((methodSubstitutions + resolvedClassType.substitutions).toMap())
-//        ) to methodSubstitutions
-//    }
-
-//private fun List<Substitution>.toMap(): PersistentMap<JvmTypeParameterDeclaration, JvmType> =
-//    associate { it.typeParam to it.substitution }.toPersistentMap()
-
-
-    private fun JcType.getTypeParameters(): List<JcTypeVariableDeclaration> =
-        when (this) {
-            is JcArrayType -> this.elementType.getTypeParameters()
-            is JcClassType -> this.typeParameters
-            else -> listOf()
+    private fun replaceGenericParametersForJType(jType: Type, replacedGenerics: MutableMap<Type, Type>): JcTypeWrapper {
+        if (jType is Class<*>) {
+            val substitutions = jType.typeParameters.map { jGeneric ->
+                replacedGenerics[jGeneric]?.let { return@map it }
+                val bounds =
+                    jGeneric.bounds.map { jcClasspath.findClassOrNull(it.simpleTypeName()) ?: jcClasspath.objectClass }
+                        .ifEmpty { listOf(jType.toJcClassOrInterface(jcClasspath) ?: jcClasspath.objectClass) }
+                val jBounds = jGeneric.bounds
+                val replacement =
+                    JcClassTable.getRandomTypeSuitableForBounds(listOf(), bounds)?.toType() ?: jcClasspath.objectType
+                val jReplacement = replacement.toJavaClass(userClassLoader)
+                if (jReplacement.typeParameters.isEmpty()) {
+                    return@map jReplacement.also { replacedGenerics[jGeneric] = jReplacement }
+                }
+                val jFirstBound = jBounds.first()
+                val jReplacedGeneric =
+                    try {
+                        GenericTypeReflector.getExactSubType(jFirstBound, jReplacement)
+                    } catch (e: Throwable) {
+                        println()
+                        throw e
+                    }
+                if (jReplacedGeneric == null) {
+                    println()
+                    GenericTypeReflector.getExactSubType(jFirstBound, jReplacement)
+                }
+                replaceGenericParametersForJType(jReplacedGeneric, replacedGenerics).actualJavaType
+                    .also { replacedGenerics[jGeneric] = it }
+            }
+            return try {
+                TypeFactory.parameterizedClass(jType, *substitutions.toTypedArray()).createJcTypeWrapper(jcClasspath)
+            } catch (e: TypeArgumentNotInBoundException) {
+                println("Wrong replacement for generics chosen. Return object instead")
+                java.lang.Object::class.java.createJcTypeWrapper(jcClasspath)
+            } catch (e: Throwable) {
+                println()
+                throw e
+            }
+        } else if (jType is ParameterizedType) {
+            val substitutions = jType.actualTypeArguments.map { jGeneric ->
+                replaceTypeVariableOrWildCard(jGeneric, replacedGenerics)
+            }
+            val jTypeAsClass = jType.rawType as? Class<*> ?: return Object::class.java.createJcTypeWrapper(jcClasspath)
+            return try {
+                TypeFactory.parameterizedClass(jTypeAsClass, *substitutions.toTypedArray())
+                    .createJcTypeWrapper(jcClasspath)
+            } catch (e: TypeArgumentNotInBoundException) {
+                println("Wrong replacement for generics chosen. Return object instead")
+                java.lang.Object::class.java.createJcTypeWrapper(jcClasspath)
+            }
+        } else if (jType is TypeVariable<*>) {
+            println("REPLACING GENERIC")
+            return replaceTypeVariableOrWildCard(jType, replacedGenerics).createJcTypeWrapper(jcClasspath)
+        } else if (jType is GenericArrayType) {
+            val replacementForComponent = replaceGenericParametersForJType(jType.genericComponentType, replacedGenerics)
+            return TypeFactory.arrayOf(replacementForComponent.actualJavaType).createJcTypeWrapper(jcClasspath)
         }
-
-    override fun replaceGenericParametersForType(type: JcType): JcTypeWrapper {
-        if (type.getTypeParameters().isEmpty()) return JcTypeWrapper(type, listOf())
-        val substitutions = type.getTypeParameters().map { getSubstitutionForTypeParam(it) }
-        return JcTypeWrapper(
-            type,
-            substitutions
-        )
+        throw IllegalArgumentException("Unexpected argument of type ${jType::class.java}")
     }
 
-    private fun getSubstitutionForTypeParam(jcTypeVariableDeclaration: JcTypeVariableDeclaration): Substitution {
-        val replacementForTypeParam = JcClassTable.getRandomSubclassOf(jcTypeVariableDeclaration.bounds.map { it.jcClass })?.toType() ?: jcClasspath.objectType
-        return Substitution(
-            jcTypeVariableDeclaration,
-            replaceGenericParametersForType(replacementForTypeParam)
-        )
+    private fun replaceTypeVariableOrWildCard(jGeneric: Type, replacedGenerics: MutableMap<Type, Type>): Type {
+        if (jGeneric !is TypeVariable<*> && jGeneric !is WildcardType) return jGeneric
+        replacedGenerics[jGeneric]?.let { return it }
+        val upperBounds =
+            when (jGeneric) {
+                is TypeVariable<*> -> jGeneric.bounds
+                is WildcardType -> jGeneric.upperBounds
+                else -> arrayOf(jGeneric)
+            }
+        val lowerBounds =
+            when (jGeneric) {
+                is WildcardType -> jGeneric.lowerBounds
+                else -> arrayOf()
+            }
+        //TODO lower bounds!!
+        val jcUpperBounds =
+            upperBounds.map { jcClasspath.findClassOrNull(it.simpleTypeName()) ?: jcClasspath.objectClass }
+        val jcLowerBounds =
+            lowerBounds.map { jcClasspath.findClassOrNull(it.simpleTypeName()) ?: jcClasspath.objectClass }
+        val replacement = JcClassTable.getRandomTypeSuitableForBounds(jcLowerBounds, jcUpperBounds)?.toType()
+            ?: jcClasspath.objectType
+        val jReplacement = replacement.toJavaClass(userClassLoader)
+        if (jReplacement.typeParameters.isEmpty()) {
+            return jReplacement.also { replacedGenerics[jGeneric] = jReplacement }
+        }
+        val jFirstBound =
+            if (upperBounds.size == 1 && upperBounds.first() == jcClasspath.objectClass && lowerBounds.isNotEmpty()) {
+                lowerBounds.first()
+            } else {
+                upperBounds.first()
+            }
+        val jReplacedGeneric = GenericTypeReflector.getExactSubType(jFirstBound, jReplacement) ?: jReplacement
+        return replaceGenericParametersForJType(jReplacedGeneric, replacedGenerics).actualJavaType
+            .also { replacedGenerics[jGeneric] = it }
     }
 
-    override fun replaceGenericParametersForMethod(
+    override fun resolveGenericParametersForMethod(
         resolvedClassType: JcTypeWrapper,
-        method: JcMethod
-    ): Pair<JcMethod, List<Substitution>> {
-        if (method.typeParameters.isEmpty()) return method to listOf()
-        val substitutions = method.typeParameters
-            .map { it.asJcDeclaration(method) }
-            .map { getSubstitutionForTypeParam(it) }
-        return method to substitutions
+        method: Method
+    ): Pair<JcTypeWrapper, List<JcTypeWrapper>> {
+        val (resolvedMethodRetType, methodSubstitutions) = resolveMethodRetType(resolvedClassType, method)
+        val concreteParameterTypes = resolveGenericParameterForExecutable(resolvedClassType, method, methodSubstitutions)
+        return resolvedMethodRetType to concreteParameterTypes
     }
 
-    fun replaceGenericsForSubtypeOf(jcClassOrInterface: JcClassOrInterface, subtype: JcTypeWrapper, classLoader: ClassLoader): JcTypeWrapper {
-        //TODO simple scheme is implemented when generics mapping directly
-        //It may work incorrect
-        val implementerTp = jcClassOrInterface.toType().typeParameters
-        val subTypeTp = subtype.type.getTypeParameters()
-        val subs = if (implementerTp.size == subTypeTp.size) {
-            implementerTp.zip(subTypeTp).map { (implementerTp, subtypeTp) ->
-                val substitution = subtype.substitutions.find { it.typeParam.equalTo(subtypeTp) }
-                if (substitution != null) {
-                    Substitution(implementerTp, substitution.substitution)
-                } else {
-                    getSubstitutionForTypeParam(implementerTp)
+    override fun resolveGenericParametersForConstructor(
+        resolvedClassType: JcTypeWrapper,
+        constructor: Constructor<*>
+    ): List<JcTypeWrapper> = resolveGenericParameterForExecutable(resolvedClassType, constructor, mutableMapOf())
+
+    private fun resolveMethodRetType(resolvedClassType: JcTypeWrapper, method: Method): Pair<JcTypeWrapper, MutableMap<Type, Type>> {
+        val methodTypeParameters = method.typeParameters
+        val methodSubstitutions =
+            methodTypeParameters
+                .associate { it as Type to replaceGenericParametersForJType(it, mutableMapOf()).actualJavaType }
+                .toMutableMap()
+        val methodRetType = GenericTypeReflector.getReturnType(method, resolvedClassType.actualJavaType)
+        val resolvedMethodRetType =
+            if (methodRetType is ParameterizedType || methodRetType is TypeVariable<*> || methodRetType is GenericArrayType) {
+                replaceGenericParametersForJType(methodRetType, methodSubstitutions)
+            } else {
+                methodRetType.createJcTypeWrapper(jcClasspath)
+            }
+        return resolvedMethodRetType to methodSubstitutions
+    }
+
+    override fun resolveMethodReturnType(resolvedClassType: JcTypeWrapper, method: Method): JcTypeWrapper =
+        resolveMethodRetType(resolvedClassType, method).first
+
+    private fun resolveGenericParameterForExecutable(
+        resolvedClassType: JcTypeWrapper,
+        executable: Executable,
+        methodSubstitutions: MutableMap<Type, Type>
+    ): List<JcTypeWrapper> {
+        val actualParametersTypes = try {
+            GenericTypeReflector.getParameterTypes(executable, resolvedClassType.actualJavaType)
+        } catch (e: Throwable) {
+            executable.genericParameterTypes
+        }
+        return actualParametersTypes.map {
+                if (it is Class<*>) {
+                    it.createJcTypeWrapper(jcClasspath)
+                }
+                else {
+                    replaceGenericParametersForJType(it, methodSubstitutions)
                 }
             }
-        } else {
-            implementerTp.map { getSubstitutionForTypeParam(it) }
+    }
+
+    override fun getFieldType(resolvedClassType: JcTypeWrapper, field: Field): JcTypeWrapper {
+        val actualType = GenericTypeReflector.getFieldType(field, resolvedClassType.actualJavaType)
+        return replaceGenericParametersForJType(actualType, mutableMapOf())
+    }
+
+    fun replaceGenericsForSubtypeOf(replacement: JcTypeWrapper, subtype: JcTypeWrapper): JcTypeWrapper {
+        val jReplacement = replacement.actualJavaType as Class<*>
+        val jSub = subtype.actualJavaType
+        return try {
+            val actualType =  GenericTypeReflector.getExactSubType(jSub, jReplacement)
+            val concreteType = replaceGenericParametersForJType(actualType, mutableMapOf()).actualJavaType
+            JcTypeWrapper(replacement.type, concreteType)
+        } catch (e: Throwable) {
+            //In case if bounds of subtype and the replacement didn't match
+            resolveGenericParametersForType(replacement)
         }
-        return JcTypeWrapper(jcClassOrInterface.toType(), subs)
-
-//        println("LOLOL")
-//        val pathToSubtype = getPathTo(jcClassOrInterface, (subtype.type as JcClassType).jcClass).dropLast(1).reversed()
-//        //Deal with generics mapping
-//        val generics = mutableListOf<Pair<JcTypeWrapper, MutableList<JcTypeVariableDeclaration>>>()
-//        var prevImplementer = subtype.type.toJavaClass(classLoader)
-//        subtype.type.typeParameters.forEach { tp ->
-//            val substitution = subtype.substitutions.find { it.typeParam.equalTo(tp) }
-//            if (substitution != null) {
-//                generics.add(substitution.substitution to mutableListOf(tp))
-//            }
-//        }
-//        for (implementer in pathToSubtype) {
-//            val jImplementer = implementer.toJavaClass(classLoader)
-//            val typeArgumentsPassedToPrev =
-//                jImplementer.getParamGenericSuperClassAndInterfaces()
-//                    .find { it.rawType == prevImplementer }
-//                    ?.actualTypeArguments ?: break
-//            generics
-//        }
-//        println()
-
-
-        return subtype
     }
-
-    fun Class<*>.getParamGenericSuperClassAndInterfaces() =
-        (this.genericInterfaces + this.genericSuperclass).filterIsInstance<ParameterizedType>()
-
-    fun JcTypeVariableDeclaration.equalTo(other: JcTypeVariableDeclaration): Boolean {
-        if (symbol != other.symbol) return false
-        if (owner != other.owner) return false
-        return true
-    }
-
-    private fun getPathTo(curClass: JcClassOrInterface, targetClass: JcClassOrInterface): List<JcClassOrInterface> {
-        val queue: Queue<JcClassOrInterface> = LinkedList()
-        val visited: MutableSet<JcClassOrInterface> = HashSet()
-        val parentMap: MutableMap<JcClassOrInterface, JcClassOrInterface?> = HashMap()
-
-        queue.offer(curClass)
-        visited.add(curClass)
-        parentMap[curClass] = null
-
-        while (!queue.isEmpty()) {
-            val current = queue.poll()
-            visited.add(current)
-            if (current == targetClass) {
-                return reconstructPath(parentMap, targetClass) ?: emptyList()
-            }
-            (listOf(current.superClass) + current.interfaces).filterNotNull().forEach { parent ->
-                if (!visited.contains(parent)) {
-                    queue.offer(parent)
-                    parentMap[parent] = current
-                }
-            }
-        }
-        return emptyList()
-    }
-
-    private fun reconstructPath(parentMap: Map<JcClassOrInterface, JcClassOrInterface?>, target: JcClassOrInterface): List<JcClassOrInterface>? {
-        val path = ArrayList<JcClassOrInterface>()
-        var current: JcClassOrInterface? = target
-        while (current != null) {
-            path.add(0, current)
-            current = parentMap[current]
-        }
-        return if (path.size > 1) path else null
-    }
-
-    fun getRandomTypeForReplacement(typeVariableDeclaration: JcTypeVariableDeclaration): JcType =
-        typeVariableDeclaration.bounds.firstOrNull() ?: jcClasspath.objectType
-
 
 }
