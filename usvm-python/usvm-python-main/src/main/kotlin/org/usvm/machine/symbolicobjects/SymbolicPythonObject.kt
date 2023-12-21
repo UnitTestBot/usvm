@@ -170,9 +170,17 @@ fun interpretSymbolicPythonObject(
     obj: UninterpretedSymbolicPythonObject
 ): InterpretedSymbolicPythonObject {
     require(ctx.curState != null)
-    val evaluated = ctx.modelHolder.model.eval(obj.address) as UConcreteHeapRef
+    return interpretSymbolicPythonObject(ctx.modelHolder, ctx.curState!!.memory, obj)
+}
+
+fun interpretSymbolicPythonObject(
+    modelHolder: PyModelHolder,
+    memory: UMemory<PythonType, PythonCallable>,
+    obj: UninterpretedSymbolicPythonObject
+): InterpretedSymbolicPythonObject {
+    val evaluated = modelHolder.model.eval(obj.address) as UConcreteHeapRef
     if (isAllocatedConcreteHeapRef(evaluated) || isStaticHeapRef(evaluated)) {
-        val typeStream = ctx.curState!!.memory.typeStreamOf(evaluated)
+        val typeStream = memory.typeStreamOf(evaluated)
         val type = typeStream.first()
         val taken = typeStream.take(2)
         require(taken is TypesResult.SuccessfulTypesResult && taken.types.size == 1 && type is ConcretePythonType) {
@@ -180,5 +188,5 @@ fun interpretSymbolicPythonObject(
         }
         return InterpretedAllocatedOrStaticSymbolicPythonObject(evaluated, type, obj.typeSystem)
     }
-    return InterpretedInputSymbolicPythonObject(evaluated, ctx.modelHolder, obj.typeSystem)
+    return InterpretedInputSymbolicPythonObject(evaluated, modelHolder, obj.typeSystem)
 }

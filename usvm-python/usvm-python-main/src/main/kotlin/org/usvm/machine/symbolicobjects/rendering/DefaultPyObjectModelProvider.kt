@@ -1,4 +1,4 @@
-package org.usvm.machine.rendering
+package org.usvm.machine.symbolicobjects.rendering
 
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonType

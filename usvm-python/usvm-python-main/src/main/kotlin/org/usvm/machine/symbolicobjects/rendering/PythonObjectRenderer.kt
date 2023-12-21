@@ -1,4 +1,4 @@
-package org.usvm.machine.rendering
+package org.usvm.machine.symbolicobjects.rendering
 
 import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter

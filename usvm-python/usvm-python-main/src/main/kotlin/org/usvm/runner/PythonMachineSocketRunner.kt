@@ -7,7 +7,11 @@ import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.language.types.getTypeFromTypeHint
 import org.usvm.machine.PyMachine
 import org.usvm.machine.results.DefaultPyMachineResultsReceiver
-import org.usvm.machine.results.PickleObjectSerializer
+import org.usvm.machine.results.PyMachineResultsReceiver
+import org.usvm.machine.results.observers.*
+import org.usvm.machine.results.serialization.EmptyObjectSerializer
+import org.usvm.machine.results.serialization.PickleObjectSerializer
+import org.usvm.machine.results.serialization.PythonObjectSerializer
 import org.utbot.python.newtyping.PythonCallableTypeDescription
 import org.utbot.python.newtyping.PythonCompositeTypeDescription
 import org.utbot.python.newtyping.general.FunctionType
@@ -17,7 +21,6 @@ import org.utbot.python.newtyping.mypy.readMypyInfoBuild
 import org.utbot.python.newtyping.pythonDescription
 import java.io.File
 
-@Suppress("unused_parameter")
 class PythonMachineSocketRunner(
     mypyDirPath: File,
     programRoots: Set<File>,
@@ -26,12 +29,12 @@ class PythonMachineSocketRunner(
 ): AutoCloseable {
     private val mypyDir = MypyBuildDirectory(mypyDirPath, programRoots.map { it.canonicalPath }.toSet())
     private val mypyBuild = readMypyInfoBuild(mypyDir)
-    // private val communicator = PickledObjectCommunicator(socketIp, socketPort)
+    private val communicator = PickledObjectCommunicator(socketIp, socketPort)
     private val program = StructuredPythonProgram(programRoots)
     private val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     private val machine = PyMachine(program, typeSystem)
     override fun close() {
-        // communicator.close()
+        communicator.close()
         machine.close()
     }
 
@@ -47,15 +50,13 @@ class PythonMachineSocketRunner(
         callable: PythonUnpinnedCallable,
         timeoutPerRunMs: Long,
         timeoutMs: Long
-    ) = runBlocking {
-        machine.analyze(
-            callable,
-            saver = DefaultPyMachineResultsReceiver(PickleObjectSerializer),  // TODO: implement newStateObserver
-            timeoutMs = timeoutMs,
-            timeoutPerRunMs = timeoutPerRunMs,
-            maxIterations = 1000,
-        )
-    }
+    ) = machine.analyze(
+        callable,
+        saver = ResultReceiver(NewStateObserverForRunner(communicator)),
+        timeoutMs = timeoutMs,
+        timeoutPerRunMs = timeoutPerRunMs,
+        maxIterations = 1000,
+    )
 
     fun analyzeFunction(
         module: String,
@@ -101,5 +102,14 @@ class PythonMachineSocketRunner(
             module
         )
         analyze(unpinnedCallable, timeoutPerRunMs, timeoutMs)
+    }
+
+    private class ResultReceiver(
+        override val newStateObserver: NewStateObserver
+    ): PyMachineResultsReceiver<Unit> {
+        override val serializer = EmptyObjectSerializer
+        override val inputModelObserver = EmptyInputModelObserver
+        override val inputPythonObjectObserver = EmptyInputPythonObjectObserver
+        override val pyTestObserver: PyTestObserver<Unit> = EmptyPyTestObserver()
     }
 }
