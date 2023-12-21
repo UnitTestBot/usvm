@@ -3,14 +3,14 @@ package org.usvm.runner
 import java.io.PrintWriter
 import java.net.Socket
 
-/*
 class PickledObjectCommunicator(
     ip: String,
     port: Int
-): AutoCloseable, PickledObjectSender() {
+): AutoCloseable {
     private val clientSocket = Socket(ip, port)
     private val writer = PrintWriter(clientSocket.getOutputStream())
-    override suspend fun sendPickledInputs(pickledInput: String) {
+
+    fun sendPickledInputs(pickledInput: String) {
         writer.println(pickledInput)
         writer.flush()
     }
@@ -20,4 +20,3 @@ class PickledObjectCommunicator(
         clientSocket.close()
     }
 }
-*/

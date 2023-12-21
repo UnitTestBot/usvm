@@ -16,10 +16,11 @@ import org.usvm.machine.interpreters.symbolic.operations.basic.UnregisteredVirtu
 import org.usvm.machine.interpreters.symbolic.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.symbolic.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.rendering.LengthOverflowException
-import org.usvm.machine.rendering.PyObjectModelBuilder
-import org.usvm.machine.rendering.PythonObjectRenderer
+import org.usvm.machine.symbolicobjects.rendering.LengthOverflowException
+import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
+import org.usvm.machine.symbolicobjects.rendering.PythonObjectRenderer
 import org.usvm.machine.results.*
+import org.usvm.machine.results.serialization.ReprObjectSerializer
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.python.model.*
 
@@ -42,7 +43,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         logger.debug("Source of the state: {}", state.meta.generatedFrom)
         val symbols = state.inputSymbols
         val interpreted = symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
-        val builder = PyObjectModelBuilder(concolicRunContext, modelHolder)
+        val builder = PyObjectModelBuilder(state, modelHolder)
         val objectModels = interpreted.map { builder.convert(it) }
         val inputModel = PyInputModel(objectModels)
         resultsReceiver.inputModelObserver.onInputModel(inputModel)

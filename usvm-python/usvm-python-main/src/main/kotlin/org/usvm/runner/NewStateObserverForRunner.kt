@@ -1,26 +1,30 @@
 package org.usvm.runner
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import org.usvm.machine.PyState
+import org.usvm.machine.model.PyModelHolder
+import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
+import org.usvm.machine.symbolicobjects.rendering.PythonObjectRenderer
 import org.usvm.machine.results.observers.NewStateObserver
+import org.usvm.machine.results.serialization.PickleArgsSerializer
+import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 
-/*
 class NewStateObserverForRunner(
-    communicator: PickledObjectCommunicator,
-    private val scope: CoroutineScope
+    private val communicator: PickledObjectCommunicator
 ): NewStateObserver() {
-    private val saver = PickledObjectSaver(communicator)
-    private val seedSender = StateSeedSender(saver)
     private val sentData = mutableSetOf<String>()
     override fun onNewState(state: PyState) {
-        val data = seedSender.getData(state) ?: return
+        val modelHolder = PyModelHolder(state.pyModel)
+        val builder = PyObjectModelBuilder(state, modelHolder)
+        val renderer = PythonObjectRenderer(useNoneInsteadOfMock = true)
+        val interpreted = state.inputSymbols.map {
+            interpretSymbolicPythonObject(modelHolder, state.memory, it)
+        }
+        val models = interpreted.map { builder.convert(it) }
+        val objects = models.map { renderer.convert(it) }
+        val data = PickleArgsSerializer.serialize(objects) ?: return
         if (data !in sentData) {
             sentData.add(data)
-            scope.launch {
-                seedSender.sendStateSeeds(data)
-            }
+            communicator.sendPickledInputs(data)
         }
     }
 }
- */

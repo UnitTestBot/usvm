@@ -1,4 +1,4 @@
-package org.usvm.machine.rendering
+package org.usvm.machine.symbolicobjects.rendering
 
 import io.ksmt.expr.KInt32NumExpr
 import org.usvm.UConcreteHeapRef
@@ -25,11 +25,9 @@ import org.usvm.python.model.*
 import org.usvm.types.first
 
 class PyObjectModelBuilder(
-    private val ctx: ConcolicRunContext,
+    var state: PyState,
     private val modelHolder: PyModelHolder
 ) {
-    private val state: PyState
-        get() = ctx.curState ?: throw UnregisteredVirtualOperation
     init {
         require(state.pyModel == modelHolder.model)
     }
