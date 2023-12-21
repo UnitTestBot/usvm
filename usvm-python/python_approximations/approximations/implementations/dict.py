@@ -7,7 +7,7 @@ class ConstructorApproximation(ApproximationForFunction):
         return len(args) == 0
 
     @staticmethod
-    def run(*args) -> list:
+    def run(*args) -> dict:
         return {}
 
 
