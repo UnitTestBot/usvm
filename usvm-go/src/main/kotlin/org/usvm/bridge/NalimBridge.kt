@@ -99,7 +99,7 @@ object NalimBridge {
     external fun start(): Int
     @JvmStatic
     @Link
-    external fun step(inst: InstPointer, lastBlock: Int, args: LongArray): InstPointer
+    external fun step(inst: InstPointer, lastBlock: Int, args: ByteArray): InstPointer
     // ------------ region: api
 
     // ------------ region: test

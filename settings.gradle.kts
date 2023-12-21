@@ -2,6 +2,7 @@ rootProject.name = "usvm"
 
 include("usvm-core")
 include("usvm-jvm")
+include("usvm-go")
 include("usvm-util")
 include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
@@ -15,4 +16,3 @@ pluginManagement {
         }
     }
 }
-include("usvm-go")

@@ -7,19 +7,25 @@ import org.usvm.domain.GoInst
 import org.usvm.machine.GoContext
 import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
+import java.nio.ByteBuffer
 
 class GoNalimApi(
     private val ctx: GoContext,
     private val scope: GoStepScope,
 ) {
-    fun mk(args: LongArray): Int {
-        return when (Method.valueOf(args[0])) {
-            Method.MK_REGISTER_READING -> mkRegisterReading(args).let { 1 }
-            Method.MK_BIN_OP -> mkBinOp(args).let { 7 }
-            Method.MK_IF -> mkIf(args).let { 4 }
-            Method.MK_RETURN -> mkReturn(args).let { 3 }
-            Method.MK_VARIABLE -> mkVariable(args).let { 4 }
-            Method.UNKNOWN -> 1
+    fun mk(args: ByteArray, setLastBlock: Boolean) {
+        val buf = ByteBuffer.wrap(args)
+        when (Method.valueOf(buf.get())) {
+            Method.MK_REGISTER_READING -> mkRegisterReading(buf)
+            Method.MK_BIN_OP -> mkBinOp(buf)
+            Method.MK_IF -> mkIf(buf)
+            Method.MK_RETURN -> mkReturn(buf)
+            Method.MK_VARIABLE -> mkVariable(buf)
+            Method.UNKNOWN -> buf.rewind()
+        }
+
+        if (setLastBlock) {
+            setLastBlock(buf.int)
         }
     }
 
@@ -27,23 +33,21 @@ class GoNalimApi(
         return scope.calcOnState { lastBlock }
     }
 
-    fun setLastBlock(block: Int) {
+    private fun setLastBlock(block: Int) {
         scope.doWithState { lastBlock = block }
     }
 
-    private fun mkRegisterReading(args: LongArray) {
-        ctx.mkRegisterReading(args[0].toInt(), ctx.bv32Sort)
+    private fun mkRegisterReading(buf: ByteBuffer) {
+        ctx.mkRegisterReading(buf.int, ctx.bv32Sort)
     }
 
-    private fun mkBinOp(args: LongArray) {
-        val op = BinOp.valueOf(args[1])
-        if (op == BinOp.ILLEGAL) {
-            return
-        }
+    private fun mkBinOp(buf: ByteBuffer) {
+        val op = BinOp.valueOf(buf.get())
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val fst = resolveVar(ctx.bv32Sort, VarKind.valueOf(buf.get()), buf.int)
+        val snd = resolveVar(ctx.bv32Sort, VarKind.valueOf(buf.get()), buf.int)
 
-        val fst = resolveVar(ctx.bv32Sort, VarKind.valueOf(args[3]), args[4].toInt())
-        val snd = resolveVar(ctx.bv32Sort, VarKind.valueOf(args[5]), args[6].toInt())
-        if (fst == null || snd == null) {
+        if (op == BinOp.ILLEGAL || fst == null || snd == null) {
             return
         }
 
@@ -107,19 +111,18 @@ class GoNalimApi(
             else -> null
         } ?: return
 
-        val idx = resolveIndex(VarKind.LOCAL, args[2].toInt())
         val lvalue = URegisterStackLValue(outSort, idx)
         scope.doWithState {
             memory.write(lvalue, expr.asExpr(outSort), ctx.trueExpr)
         }
     }
 
-    private fun mkIf(args: LongArray) {
-        val idx = resolveIndex(VarKind.LOCAL, args[1].toInt())
+    private fun mkIf(buf: ByteBuffer) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val lvalue = URegisterStackLValue(ctx.boolSort, idx)
         val expression = scope.calcOnState { memory.read(lvalue) }.asExpr(ctx.boolSort)
-        val pos = GoInst(args[2], "pos")
-        val neg = GoInst(args[3], "neg")
+        val pos = GoInst(buf.long, "pos")
+        val neg = GoInst(buf.long, "neg")
         scope.forkWithBlackList(
             expression,
             pos,
@@ -129,17 +132,17 @@ class GoNalimApi(
         )
     }
 
-    private fun mkReturn(args: LongArray) {
-        val value = resolveVar(ctx.bv32Sort, VarKind.valueOf(args[1]), args[2].toInt()) ?: return
+    private fun mkReturn(buf: ByteBuffer) {
+        val value = resolveVar(ctx.bv32Sort, VarKind.valueOf(buf.get()), buf.int) ?: return
         scope.doWithState {
             returnValue(value)
         }
     }
 
-    private fun mkVariable(args: LongArray) {
-        val idx = resolveIndex(VarKind.LOCAL, args[1].toInt())
+    private fun mkVariable(buf: ByteBuffer) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val lvalue = URegisterStackLValue(ctx.bv32Sort, idx)
-        val rvalue = resolveVar(ctx.bv32Sort, VarKind.valueOf(args[2]), args[3].toInt()) ?: return
+        val rvalue = resolveVar(ctx.bv32Sort, VarKind.valueOf(buf.get()), buf.int) ?: return
         scope.doWithState {
             memory.write(lvalue, rvalue.asExpr(ctx.bv32Sort), ctx.trueExpr)
         }
@@ -162,7 +165,7 @@ class GoNalimApi(
     }
 }
 
-private enum class Method(val value: Long) {
+private enum class Method(val value: Byte) {
     UNKNOWN(0),
     MK_REGISTER_READING(1),
     MK_BIN_OP(2),
@@ -171,11 +174,11 @@ private enum class Method(val value: Long) {
     MK_VARIABLE(5);
 
     companion object {
-        fun valueOf(value: Long) = Method.values().firstOrNull { it.value == value } ?: UNKNOWN
+        fun valueOf(value: Byte) = Method.values().firstOrNull { it.value == value } ?: UNKNOWN
     }
 }
 
-private enum class BinOp(val value: Long) {
+private enum class BinOp(val value: Byte) {
     ILLEGAL(0),
     EQ(1),
     NEQ(2),
@@ -190,17 +193,17 @@ private enum class BinOp(val value: Long) {
     MOD(11);
 
     companion object {
-        fun valueOf(value: Long) = BinOp.values().firstOrNull { it.value == value } ?: ILLEGAL
+        fun valueOf(value: Byte) = BinOp.values().firstOrNull { it.value == value } ?: ILLEGAL
     }
 }
 
-private enum class VarKind(val value: Long) {
+private enum class VarKind(val value: Byte) {
     ILLEGAL(0),
     CONST(1),
     PARAMETER(2),
     LOCAL(3);
 
     companion object {
-        fun valueOf(value: Long) = VarKind.values().firstOrNull { it.value == value } ?: ILLEGAL
+        fun valueOf(value: Byte) = VarKind.values().firstOrNull { it.value == value } ?: ILLEGAL
     }
 }

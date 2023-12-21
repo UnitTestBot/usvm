@@ -8,7 +8,7 @@ import org.usvm.domain.GoType
 import org.usvm.util.GoResult
 
 class GoNalimBridge : Bridge {
-    private val args = LongArray(100)
+    private val args = ByteArray(BUF_SIZE)
 
     private lateinit var api: GoNalimApi
 
@@ -113,12 +113,7 @@ class GoNalimBridge : Bridge {
 
     override fun step(inst: GoInst): GoInst {
         val nextInst = NalimBridge.step(inst.pointer, api.getLastBlock(), args)
-
-        val index = api.mk(args)
-        if (nextInst != 0L) {
-            api.setLastBlock(args[index].toInt())
-        }
-
+        api.mk(args, nextInst != 0L)
         return toInst(nextInst)
     }
 
@@ -159,4 +154,8 @@ class GoNalimBridge : Bridge {
     fun getNumber() = NalimBridge.getNumber()
 
     // ------------ region: test
+
+    companion object {
+        const val BUF_SIZE = 1 shl 8
+    }
 }
