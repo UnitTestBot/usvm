@@ -7,7 +7,7 @@ class ConstructorApproximation(ApproximationForFunction):
         return len(args) == 1
 
     @staticmethod
-    def run(*args) -> list:
+    def run(*args) -> set:
         result = set()
         x = args[0]
         for elem in x:
