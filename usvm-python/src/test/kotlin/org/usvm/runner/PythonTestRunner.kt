@@ -7,8 +7,10 @@ import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PythonObject
-import org.usvm.machine.rendering.PythonObjectRenderer
+import org.usvm.machine.symbolicobjects.rendering.PythonObjectRenderer
 import org.usvm.machine.results.*
+import org.usvm.machine.results.serialization.PythonObjectInfo
+import org.usvm.machine.results.serialization.StandardPythonObjectSerializer
 import org.usvm.python.model.PyResultFailure
 import org.usvm.python.model.PyResultSuccess
 import org.usvm.python.model.PyTest

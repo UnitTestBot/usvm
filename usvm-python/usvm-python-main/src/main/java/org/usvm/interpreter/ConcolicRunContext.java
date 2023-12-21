@@ -9,8 +9,8 @@ import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandler
 import org.usvm.machine.PyState;
 import org.usvm.machine.PyContext;
 import org.usvm.machine.model.PyModelHolder;
-import org.usvm.machine.rendering.PyObjectModelBuilder;
-import org.usvm.machine.rendering.PythonObjectRenderer;
+import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder;
+import org.usvm.machine.symbolicobjects.rendering.PythonObjectRenderer;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
 import java.util.*;

@@ -1,6 +1,7 @@
 package org.usvm.machine.results
 
 import org.usvm.machine.results.observers.*
+import org.usvm.machine.results.serialization.PythonObjectSerializer
 
 interface PyMachineResultsReceiver<PyObjectRepr> {
     val serializer: PythonObjectSerializer<PyObjectRepr>

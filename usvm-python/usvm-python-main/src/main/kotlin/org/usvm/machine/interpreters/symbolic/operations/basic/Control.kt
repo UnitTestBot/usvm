@@ -23,6 +23,7 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         forkResult.negativeState?.models?.first() -> ctx.curState = forkResult.negativeState
         else -> error("Should not be reachable")
     }
+    ctx.builder.state = ctx.curState!!
     val applyToPyModel = { state: PyState ->
         state.models = listOf(state.models.first().toPyModel(ctx.ctx, state.pathConstraints))
     }

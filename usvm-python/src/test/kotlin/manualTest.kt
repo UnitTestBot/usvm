@@ -8,7 +8,7 @@ import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
 import org.usvm.machine.results.DefaultPyMachineResultsReceiver
-import org.usvm.machine.results.ObjectWithDictSerializer
+import org.usvm.machine.results.serialization.ObjectWithDictSerializer
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.getModulesFromFiles
