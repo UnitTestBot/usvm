@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.annotations.ids.NativeId
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
@@ -12,10 +13,13 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.PythonObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.machine.utils.MethodDescription
 import org.utbot.python.newtyping.getPythonAttributeByName
+import java.util.stream.Stream
+import kotlin.streams.asSequence
 
 fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
@@ -298,4 +302,13 @@ fun forkOnUnknownHashableType(
     myFork(ctx, keyIsBool)
     require(ctx.modelHolder.model.eval(keyIsFloat or keyIsNone).isFalse)
     myAssert(ctx, (keyIsFloat or keyIsNone).not())
+}
+
+fun handlerCallOnKt(
+    ctx: ConcolicRunContext,
+    function: PythonObject,
+    args: Stream<UninterpretedSymbolicPythonObject>
+) {
+    ctx.curState ?: return
+    addConstraintsFromNativeId(ctx, function, args.asSequence().toList())
 }

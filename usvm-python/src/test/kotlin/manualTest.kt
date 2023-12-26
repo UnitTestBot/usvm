@@ -54,9 +54,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "g",
-        "tricky.CompositeObjects"
+        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
+        "run",
+        "tricky.UnsafeCode"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -74,15 +74,16 @@ private fun getFunctionInfo(
     typeSystem: PythonTypeSystemWithMypyInfo,
     program: StructuredPythonProgram
 ): PythonUnpinnedCallable? {
+    println("Module: $module, name: $name")
     val description = type.pythonDescription()
     if (description !is PythonCallableTypeDescription)
         return null
     if (ignoreFunctions.contains(name))
         return null
-    //if (module != "depth_first_search_2")
+    //if (module != "requests.cookies")
     //    return null
-    //if (name != "BidirectionalAStar.search")
-    //    return null
+    if (name != "remove_cookie_by_name")
+        return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
@@ -114,10 +115,12 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\Python\\graphs"
+    val projectPath = "D:\\projects\\requests\\src"
     val mypyRoot = "D:\\projects\\mypy_tmp"
-    val files = getPythonFilesFromRoot(projectPath)
+    val files = getPythonFilesFromRoot(projectPath).filter { !it.name.contains("__init__") }
+    println("Files: $files")
     val modules = getModulesFromFiles(projectPath, files)
+    println("Modules: $modules")
     val mypyDir = MypyBuildDirectory(File(mypyRoot), setOf(projectPath))
     buildMypyInfo(
         "D:\\projects\\usvm\\usvm-python\\cpythonadapter\\build\\cpython_build\\python_d.exe",
@@ -129,6 +132,7 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPythonProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val functions = modules.flatMap { module ->
+        println("Module: $module")
         if (module in ignoreModules)
             return@flatMap emptyList()
         runCatching {
@@ -137,6 +141,7 @@ private fun buildProjectRunConfig(): RunConfig {
             }
         }.getOrNull() ?: return@flatMap emptyList()  // skip bad modules
         mypyBuild.definitions[module]!!.flatMap { (defName, def) ->
+            println("Def name: $defName")
             val type = def.getUtBotType()
             val description = type.pythonDescription()
             if (defName.startsWith("__")) {
