@@ -182,6 +182,18 @@ public class CPythonAdapter {
         withTracing(context, new Fork(cond), unit(() -> handlerForkKt(context, cond.obj)));
     }
 
+    @CPythonAdapterJavaMethod(cName = "call_on")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.RefConverter, ObjectConverter.TupleConverter}
+    )
+    public static void handlerCallOn(ConcolicRunContext context, long callable, SymbolForCPython[] args) {
+        if (Arrays.stream(args).anyMatch(elem -> elem.obj == null))
+            return;
+        PythonObject callableObj = new PythonObject(callable);
+        handlerCallOnKt(context, callableObj, Arrays.stream(args).map(s -> s.obj));
+    }
+
     @CPythonAdapterJavaMethod(cName = "fork_result")
     @CPythonFunction(
             argCTypes = {CType.PyObject, CType.CInt},
