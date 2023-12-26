@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.concrete
 
 import org.usvm.annotations.ids.ApproximationId
+import org.usvm.annotations.ids.NativeId
 import org.usvm.annotations.ids.SymbolicMethodId
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
@@ -269,17 +270,27 @@ object ConcretePythonInterpreter {
 
     private val approximationsPath = System.getProperty("approximations.path") ?: error("approximations.path not specified")
 
+    private fun initializeId(module: String, name: String): Long {
+        val namespace = getNewNamespace()
+        concreteRun(namespace, "import $module")
+        val ref = eval(namespace, "$module.$name")
+        incref(ref)
+        decref(namespace)
+        return ref.address
+    }
+
     private fun initializeMethodApproximations() {
         withAdditionalPaths(listOf(File(approximationsPath)), null) {
             ApproximationId.values().forEach {
-                val namespace = getNewNamespace()
-                concreteRun(namespace, "import ${it.pythonModule}")
-                val ref = eval(namespace, "${it.pythonModule}.${it.pythonName}")
-                it.cRef = ref.address
-                incref(ref)
-                decref(namespace)
+                it.cRef = initializeId(it.pythonModule, it.pythonName)
             }
             pythonAdapter.initializeSpecialApproximations()
+        }
+    }
+
+    private fun initializeNativeIds() {
+        NativeId.values().forEach {
+            it.cRef = initializeId(it.pythonModule, it.pythonName)
         }
     }
 
@@ -307,6 +318,7 @@ object ConcretePythonInterpreter {
         pythonAdapter.decref(namespace)
         emptyNamespace = getNewNamespace()
         initializeMethodApproximations()
+        initializeNativeIds()
     }
 
     private fun initializeSysPath(namespace: Long) {

@@ -1,0 +1,27 @@
+package org.usvm.machine.interpreters.symbolic.operations.nativecalls
+
+import org.usvm.annotations.ids.NativeId
+import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+
+fun addConstraintsFromNativeId(
+    ctx: ConcolicRunContext,
+    function: PythonObject,
+    args: List<UninterpretedSymbolicPythonObject>
+) {
+    constraintHolder.forEach {
+        if (function.address == it.id.cRef) {
+            it.apply(ctx, args)
+        }
+    }
+}
+
+abstract class NativeCallConstraint(val id: NativeId) {
+    abstract fun apply(ctx: ConcolicRunContext, args: List<UninterpretedSymbolicPythonObject>)
+}
+
+val constraintHolder = listOf(
+    OsSystemConstraint,
+    EvalConstraint
+)

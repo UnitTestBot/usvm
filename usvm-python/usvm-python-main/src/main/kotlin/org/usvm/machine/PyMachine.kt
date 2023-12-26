@@ -11,7 +11,6 @@ import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.PyVirtualPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
-import org.usvm.machine.results.observers.EmptyNewStateObserver
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.utils.PyMachineStatistics
