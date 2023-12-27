@@ -396,13 +396,14 @@ func start() C.int {
 }
 
 //export step
-func step(pointer C.jlong, lastBlock C.jint, arr *C.jbyte) C.jlong {
+//goland:noinspection GoVetUnsafePointer
+func step(pointer C.jlong, lastBlock C.jint, arr C.jlong) C.jlong {
 	inst := *util.FromPointer[ssa.Instruction](uintptr(pointer))
 	if inst == nil {
 		return 0
 	}
 
-	out := (*[bufSize]byte)(unsafe.Pointer(arr))[:]
+	out := (*[bufSize]byte)(unsafe.Pointer(uintptr(arr)))[:]
 	nextInst := bridge.step(api.NewApi(int(lastBlock), out), inst)
 	if nextInst == nil {
 		return 0

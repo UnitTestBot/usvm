@@ -5,12 +5,22 @@ import org.usvm.machine.GoMethod
 import org.usvm.machine.GoMethodInfo
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoType
+import java.nio.Buffer
+import java.nio.ByteBuffer
 
 class GoBridge {
-    private val mkArgs = ByteArray(BUF_SIZE)
     private val objects = LongArray(BUF_SIZE)
     private val methodInfo = IntArray(2)
     private val single = LongArray(1)
+
+    private val buf: ByteBuffer = ByteBuffer.allocateDirect(BUF_SIZE)
+    private val address: Long
+
+    init {
+        val fieldAddress = Buffer::class.java.getDeclaredField("address")
+        fieldAddress.setAccessible(true)
+        address = fieldAddress.getLong(buf)
+    }
 
     // ------------ region: initialize
 
@@ -104,8 +114,9 @@ class GoBridge {
     fun start(): Int = Bridge.start()
 
     fun step(api: Api, inst: GoInst): GoInst {
-        val nextInst = Bridge.step(inst, api.getLastBlock(), mkArgs)
-        api.mk(mkArgs, nextInst != 0L)
+        val nextInst = Bridge.step(inst, api.getLastBlock(), address)
+        api.mk(buf, nextInst != 0L)
+        buf.rewind()
         return nextInst
     }
 
