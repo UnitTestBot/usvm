@@ -111,6 +111,6 @@ object Bridge {
 
     @JvmStatic
     @Link
-    external fun step(inst: InstPointer, lastBlock: Int, args: ByteArray): InstPointer
+    external fun step(inst: InstPointer, lastBlock: Int, args: Long): InstPointer
     // ------------ region: api
 }
