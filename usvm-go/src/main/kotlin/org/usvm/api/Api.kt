@@ -13,8 +13,7 @@ class Api(
     private val ctx: GoContext,
     private val scope: GoStepScope,
 ) {
-    fun mk(args: ByteArray, setLastBlock: Boolean) {
-        val buf = ByteBuffer.wrap(args)
+    fun mk(buf: ByteBuffer, setLastBlock: Boolean) {
         when (Method.valueOf(buf.get())) {
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
