@@ -28,6 +28,12 @@ class GoMachineTest {
     }
 
     @Test
+    fun testGcd() {
+        val results = machine.analyze(Path.getProgram("gcd.go"), "gcd", false)
+        println(results)
+    }
+
+    @Test
     fun testLoop() {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)))
         val results = machine.analyze(Path.getProgram("loop.go"), "loop", false)
