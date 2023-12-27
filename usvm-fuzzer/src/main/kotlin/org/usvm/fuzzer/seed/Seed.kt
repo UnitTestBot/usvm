@@ -3,78 +3,52 @@ package org.usvm.fuzzer.seed
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
+import org.jacodb.api.cfg.JcInst
 import org.jacodb.impl.cfg.util.isClass
-import org.jacodb.impl.features.classpaths.virtual.JcVirtualFieldImpl
-import org.objectweb.asm.Opcodes
-import org.usvm.fuzzer.position.PositionTrie
-import org.usvm.fuzzer.strategy.ChoosingStrategy
-import org.usvm.fuzzer.strategy.RandomStrategy
+import org.usvm.fuzzer.position.SeedFieldsInfo
 import org.usvm.fuzzer.strategy.Selectable
 import org.usvm.fuzzer.types.JcTypeWrapper
+import org.usvm.fuzzer.util.getPossiblePathsToField
 import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestInst
-import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
+import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.*
-import java.util.concurrent.atomic.AtomicInteger
 
 data class Seed(
     val targetMethod: JcMethod,
 //First arg in args is instance!!
-    val args: List<Descriptor>,
-    private val parent: Seed? = null
+    val args: List<ArgumentDescriptor>,
+    private val parent: Seed? = null,
+    var coverage: List<JcInst>? = null,
+    var argsInitialDescriptors: List<UTestValueDescriptor?>? = null,
+    var argsResDescriptors: List<UTestValueDescriptor?>? = null,
+    var accessedFields: List<JcField?>? = null
 ) : Selectable() {
 
-
     companion object {
-        lateinit var treesForArgs: List<PositionTrie>
-    }
-
-    val positions: ArrayList<Position> = arrayListOf()
-    private var positionChoosingStrategy: ChoosingStrategy<Position> = RandomStrategy()
-    private val curIndex = AtomicInteger(0)
-
-    private fun setChoosingStrategy(newStrategy: ChoosingStrategy<Position>) {
-        positionChoosingStrategy = newStrategy
-    }
-
-    private fun addPosition(field: JcField, descriptor: Descriptor) {
-        positions.add(Position(curIndex.getAndIncrement(), 0.0, field, descriptor))
+        val fieldInfo = SeedFieldsInfo()
     }
 
     init {
         for ((i, arg) in args.withIndex()) {
-            val tree =
-                try {
-                    treesForArgs[i]
-                } catch (e: Throwable) {
-                    println()
-                    throw e
-                }
-            val jcClass =
-                if (arg.type.type is JcClassType) {
-                    arg.type.type.toJcClass() ?: error("Cant convert ${arg.type.type.typeName} to class")
-                } else {
-                    null
-                }
-            val type = arg.type
-            tree.addRoot(type.type)
-            val fieldsToHandle = ArrayDeque<List<JcField>>()
+            val argType = arg.type.type
+            if (argType is JcClassType && fieldInfo.hasClassBeenParsed(argType.jcClass)) continue
+            fieldInfo.addArgInfo(targetMethod, i, argType, 0.0, 0)
+            val jcClass = (argType as? JcClassType)?.jcClass ?: continue
+            val fieldsToHandle = ArrayDeque<JcField>()
             val processedFields = hashSetOf<JcField>()
-            val thisJcField = JcVirtualFieldImpl("this", Opcodes.ACC_PUBLIC, type.type.getTypename())
-            fieldsToHandle.add(listOf(thisJcField))
-            jcClass?.allDeclaredFields?.forEach { jcField -> fieldsToHandle.add(listOf(jcField)) }
-            val cp = type.type.classpath
+            jcClass.allDeclaredFields.forEach { jcField -> fieldsToHandle.add(jcField) }
+            val cp = jcClass.classpath
             while (fieldsToHandle.isNotEmpty()) {
-                val fieldChain = fieldsToHandle.removeFirst()
-                val fieldToAdd = fieldChain.last()
+                val fieldToAdd = fieldsToHandle.removeFirst()
                 if (processedFields.contains(fieldToAdd)) continue
                 processedFields.add(fieldToAdd)
-                tree.addPosition(type.type, fieldChain)
+                fieldInfo.addFieldInfo(targetMethod, fieldToAdd, 0.0, 0)
                 if (fieldToAdd.type.isClass) {
-                    fieldToAdd.type.toJcClassOrInterface(cp)?.allDeclaredFields?.forEach { field ->
-                        fieldsToHandle.add(fieldChain + listOf(field))
+                    fieldToAdd.type.toJcClassOrInterface(cp)?.let { jcFieldType ->
+                        if (!fieldInfo.hasClassBeenParsed(jcFieldType)) {
+                            jcFieldType.declaredFields.forEach { fieldsToHandle.add(it) }
+                        }
                     }
                 }
             }
@@ -84,15 +58,18 @@ data class Seed(
     //fun spawn(): Seed = Seed(args, weight, positions, this)
 
     fun mutate(position: Int, expressionsToAdd: List<UTestInst>): Seed {
-        val descriptor = positions[position].descriptor
-        val newDescriptor = Descriptor(descriptor.instance, descriptor.type, descriptor.initialExprs + expressionsToAdd)
-        val newArgs = args.map { if (it == descriptor) newDescriptor else it }
-        return Seed(targetMethod, newArgs, this)
+//        val descriptor = positions[position].descriptor
+//        val newDescriptor = Descriptor(descriptor.instance, descriptor.type, descriptor.initialExprs + expressionsToAdd)
+//        val newArgs = args.map { if (it == descriptor) newDescriptor else it }
+//        return Seed(targetMethod, newArgs, this)
+        return this.copy()
     }
 
     fun mutate(position: Int, expr: UTestInst) = mutate(position, listOf(expr))
 
-    fun getPositionToMutate(iterationNumber: Int) = positionChoosingStrategy.chooseBest(positions, iterationNumber)
+    fun getPositionToMutate(iterationNumber: Int) {
+        fieldInfo.getBestField().jcField
+    }
 
     fun toUTest(): UTest {
         val allInitStatements = args.flatMap { it.initialExprs }
@@ -112,9 +89,33 @@ data class Seed(
         return UTest(allInitStatements, callStatement)
     }
 
-    class Descriptor(val instance: UTestExpression, val type: JcTypeWrapper, val initialExprs: List<UTestInst>)
+    fun getFieldsInTermsOfUTest(jcTargetField: JcField): List<Pair<ArgumentDescriptor, List<UTestGetFieldExpression>>> {
+        val res = ArrayList<Pair<ArgumentDescriptor, List<UTestGetFieldExpression>>>()
+        for ((ind, arg) in args.withIndex()) {
+            val argDescriptor = argsInitialDescriptors?.getOrNull(ind) ?: continue
+            val pathsToField = argDescriptor.getPossiblePathsToField(jcTargetField)
+            val tmpRes = ArrayList<UTestGetFieldExpression>()
+            var curInstance = arg.instance
+            for (possiblePath in pathsToField) {
+                for (jcField in possiblePath) {
+                    val newInstance = UTestGetFieldExpression(curInstance, jcField)
+                    tmpRes.add(newInstance)
+                    curInstance = newInstance
+                }
+                res.add(arg to tmpRes.toList())
+                tmpRes.clear()
+            }
+        }
+        return res
+    }
 
-    data class Position(val index: Int, var score: Double, val field: JcField, val descriptor: Descriptor) :
+    class ArgumentDescriptor(
+        val instance: UTestExpression,
+        val type: JcTypeWrapper,
+        val initialExprs: List<UTestInst>
+    )
+
+    data class Position(val index: Int, var score: Double, val field: JcField, val argumentDescriptor: ArgumentDescriptor) :
         Selectable()
 
 }

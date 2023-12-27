@@ -197,7 +197,10 @@ class InstrumentedProcess private constructor() {
         val statics = executionState.statics.entries.map { (jcField, descriptor) ->
             SerializedStaticField("${jcField.enclosingClass.name}.${jcField.name}", descriptor)
         }
-        return ExecutionStateSerialized(executionState.instanceDescriptor, executionState.argsDescriptors, statics)
+        val accessedFields = executionState.accessedFields.map { jcField ->
+            "${jcField.enclosingClass.name}.${jcField.name}"
+        }
+        return ExecutionStateSerialized(executionState.instanceDescriptor, executionState.argsDescriptors, statics, accessedFields)
     }
 
     private fun callUTest(uTest: UTest): UTestExecutionResult =

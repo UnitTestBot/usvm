@@ -48,6 +48,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("instanceDescriptor", UTestValueDescriptor.nullable)
         field("argsDescriptors", immutableList(UTestValueDescriptor.nullable))
         field("statics", immutableList(serializedStaticField).nullable)
+        field("accessedFields", immutableList(PredefinedType.string))
     }
 
     private val serializedStaticField = structdef {

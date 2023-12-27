@@ -4,13 +4,13 @@ package org.usvm.instrumentation.collector.trace;
 //USE TRACER
 public class TraceCollector {
     public static LongHashSet trace = new LongHashSet();
-    public static LongArrayWrapper statics = new LongArrayWrapper();
+    public static LongHashSet fieldsAccessed = new LongHashSet();
 
     public static void jcInstructionCovered(long jcInstructionId) {
         trace.add(jcInstructionId);
     }
-    public static void jcStaticFieldAccessed(long jcStaticFieldAccessId) {
-        statics.add(jcStaticFieldAccessId);
+    public static void jcFieldAccessed(long jcFieldAccessId) {
+        fieldsAccessed.add(jcFieldAccessId);
     }
 
     public static class LongArrayWrapper {

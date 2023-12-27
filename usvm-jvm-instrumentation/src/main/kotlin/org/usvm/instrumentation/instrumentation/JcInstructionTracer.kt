@@ -6,9 +6,10 @@ import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.cfg.JcRawFieldRef
+import org.jacodb.api.ext.fields
 import org.jacodb.api.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
-import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.instrumentation.JcInstructionTracer.FieldAccessType
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
 import org.usvm.instrumentation.util.toJcClassOrInterface
@@ -17,7 +18,7 @@ import org.usvm.instrumentation.util.toJcClassOrInterface
 object JcInstructionTracer : Tracer<Trace> {
 
     // We are instrumenting statics access to build descriptors only for accessed while execution statics
-    enum class StaticFieldAccessType {
+    enum class FieldAccessType {
         GET, SET
     }
 
@@ -27,10 +28,12 @@ object JcInstructionTracer : Tracer<Trace> {
         val trace = List(traceFromTraceCollector.size) { idx ->
             decode(traceFromTraceCollector[idx])
         }
-        val statics = List(TraceCollector.statics.size) { idx ->
-            decodeStatic(TraceCollector.statics.arr[idx])
+        val accessedFieldsFromTraceCollector =
+            TraceCollector.fieldsAccessed.allValues
+        val accessedFields = List(accessedFieldsFromTraceCollector.size) { idx ->
+            decodeFieldRef(accessedFieldsFromTraceCollector[idx])
         }
-        return Trace(trace, statics)
+        return Trace(trace, accessedFields.filter { it.first.isStatic }, accessedFields.filter { !it.first.isStatic })
     }
 
     fun coveredInstructionsIds(): List<Long> {
@@ -57,7 +60,7 @@ object JcInstructionTracer : Tracer<Trace> {
     class EncodedInst(val id: Long)
 
     private val encodedJcInstructions = hashMapOf<Long, JcInst>()
-    private val encodedJcStaticFieldRef = hashMapOf<Long, Pair<JcField, StaticFieldAccessType>>()
+    private val encodedJcFieldRef = hashMapOf<Long, Pair<JcField, FieldAccessType>>()
 
     private val encodedClasses = hashMapOf<JcClassOrInterface, EncodedClass>()
     private var currentClassIndex = 0L
@@ -112,39 +115,40 @@ object JcInstructionTracer : Tracer<Trace> {
      *  0000 0000 0000 0000 0000 0000 0000 0000
      * |  class id    |fieldId | accessTypeId |
      */
-    private fun encodeStaticFieldAccessId(classId: Long, fieldId: Long, accessTypeId: Long): Long {
+    private fun encodeFieldAccessId(classId: Long, fieldId: Long, accessTypeId: Long): Long {
         return (classId shl Byte.SIZE_BITS * 5) or (fieldId shl Byte.SIZE_BITS * 3) or accessTypeId
     }
 
-    fun encodeStaticFieldAccess(
+    fun encodeFieldAccess(
         jcRawFieldRef: JcRawFieldRef,
-        accessType: StaticFieldAccessType,
+        accessType: FieldAccessType,
+        isStatic: Boolean,
         jcClasspath: JcClasspath
     ): Long {
         val jcClass =
             jcRawFieldRef.declaringClass.toJcClassOrInterface(jcClasspath) ?: error("Can't find class in classpath")
         val encodedClass = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
         val indexedJcField =
-            jcClass.declaredFields.withIndex()
-                .find { it.value.isStatic && it.value.name == jcRawFieldRef.fieldName }
+            (jcClass.declaredFields + jcClass.fields).withIndex()
+                .find { (!isStatic || it.value.isStatic) && it.value.name == jcRawFieldRef.fieldName }
                 ?: error("Field not found")
         val accessTypeId = accessType.ordinal.toLong()
-        val instId = encodeStaticFieldAccessId(encodedClass.id, indexedJcField.index.toLong(), accessTypeId)
-        encodedJcStaticFieldRef[instId] = indexedJcField.value to accessType
+        val instId = encodeFieldAccessId(encodedClass.id, indexedJcField.index.toLong(), accessTypeId)
+        encodedJcFieldRef[instId] = indexedJcField.value to accessType
         return instId
     }
 
     private fun decode(jcInstructionId: Long): JcInst =
         encodedJcInstructions[jcInstructionId] ?: error("Can't decode inst")
 
-    private fun decodeStatic(jcStaticId: Long): Pair<JcField, StaticFieldAccessType> =
-        encodedJcStaticFieldRef[jcStaticId] ?: error("Can't decode inst")
+    private fun decodeFieldRef(jcFieldId: Long): Pair<JcField, FieldAccessType> =
+        encodedJcFieldRef[jcFieldId] ?: error("Can't decode inst")
 
     override fun reset() {
         TraceCollector.trace.clear()
-        TraceCollector.statics.clear()
+        TraceCollector.fieldsAccessed.clear()
     }
 
 }
 
-data class Trace(val trace: List<JcInst>, val statics: List<Pair<JcField, StaticFieldAccessType>>)
+data class Trace(val trace: List<JcInst>, val statics: List<Pair<JcField, FieldAccessType>>, val fields: List<Pair<JcField, FieldAccessType>>)

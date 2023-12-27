@@ -5,7 +5,7 @@ import org.jacodb.api.JcField
 import org.jacodb.api.ext.enumValues
 import org.jacodb.api.ext.isEnum
 import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.instrumentation.JcInstructionTracer.FieldAccessType
 import org.usvm.instrumentation.util.*
 
 class StaticDescriptorsBuilder(
@@ -31,7 +31,7 @@ class StaticDescriptorsBuilder(
     }
 
     fun buildDescriptorsForExecutedStatics(
-        fields: Set<Pair<JcField, StaticFieldAccessType>>,
+        fields: Set<Pair<JcField, FieldAccessType>>,
         resultValue2DescriptorConverter: Value2DescriptorConverter
     ): Result<Map<JcField, UTestValueDescriptor>> =
         runCatching {

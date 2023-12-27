@@ -182,7 +182,10 @@ class RdProcessRunner(
             val jcFieldDescriptor = it.fieldDescriptor
             jcField to jcFieldDescriptor
         } ?: mapOf()
-        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap())
+        val accessedFields = state.accessedFields.map {
+            jcClasspath.findFieldByFullNameOrNull(it) ?: error("deserialization failed")
+        }
+        return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap(), accessedFields)
     }
 
     private fun deserializeTrace(trace: List<Long>, coveredClasses: List<ClassToId>): List<JcInst> =

@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcClasspath
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
+import org.usvm.instrumentation.instrumentation.JcExtendedRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
@@ -31,7 +32,7 @@ abstract class UTestConcreteExecutorTest {
 
         private fun createUTestConcreteExecutor(): UTestConcreteExecutor {
             return UTestConcreteExecutor(
-                JcRuntimeTraceInstrumenterFactory::class,
+                JcExtendedRuntimeTraceInstrumenterFactory::class,
                 testJarPath,
                 jcClasspath,
                 InstrumentationModuleConstants.testExecutionTimeout

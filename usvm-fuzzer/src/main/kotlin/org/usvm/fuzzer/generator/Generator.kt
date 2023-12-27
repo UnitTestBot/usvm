@@ -28,14 +28,14 @@ abstract class Generator {
                 println("Soft timeout reached! Return null")
                 UTestValueRepresentation(UTestNullExpression(ctx.jcClasspath.objectType))
             } else {
-                println("GENERATION ${this::class.java.name} depth $depth")
+//                println("GENERATION ${this::class.java.name} depth $depth")
                 generationFun.invoke(ctx, depth + 1).let {
                     if (it == null) {
                         println()
                     }
                     it!!
                 }.also {
-                    println("GENERATION FINISHED ${this::class.java.name} depth $depth")
+//                    println("GENERATION FINISHED ${this::class.java.name} depth $depth")
                 }
             }
         }

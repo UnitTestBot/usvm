@@ -36,14 +36,22 @@ class PositionTrie {
     data class Root(
         override val children: MutableList<Position>,
         val jcType: JcType
-    ) : Node
+    ) : Node {
+        override fun toString(): String {
+            return "${this.hashCode()} Root"
+        }
+    }
 
     data class Position(
         var parent: Node,
         override val children: MutableList<Position>,
         val field: JcField,
         var score: Double
-    ) : Node
+    ) : Node {
+        override fun toString(): String {
+            return "${this.hashCode()} Position"
+        }
+    }
 
     //inner class Position(field: JcField, var score: Double)
 

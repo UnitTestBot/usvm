@@ -21,7 +21,6 @@ import org.usvm.instrumentation.util.stringType
 
 class GeneratorRepository {
 
-    private val generators = HashMap<JcType, List<Generator>>()
     lateinit var context: GeneratorContext
     lateinit var jcClasspath: JcClasspath
 

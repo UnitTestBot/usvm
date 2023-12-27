@@ -53,7 +53,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 1434578686845984847L
+        const val serializationHash = 6272372799293203851L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -100,7 +100,7 @@ val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(Instrumented
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:58]
+ * #### Generated from [InstrumentedProcessModel.kt:59]
  */
 data class ClassToId (
     val className: String,
@@ -232,7 +232,7 @@ data class ExecuteParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:63]
+ * #### Generated from [InstrumentedProcessModel.kt:64]
  */
 data class ExecutionResult (
     val type: ExecutionResultType,
@@ -325,7 +325,7 @@ data class ExecutionResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:64]
+ * #### Generated from [InstrumentedProcessModel.kt:65]
  */
 enum class ExecutionResultType {
     UTestExecutionInitFailedResult, 
@@ -347,7 +347,8 @@ enum class ExecutionResultType {
 data class ExecutionStateSerialized (
     val instanceDescriptor: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val argsDescriptors: List<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?>,
-    val statics: List<SerializedStaticField>?
+    val statics: List<SerializedStaticField>?,
+    val accessedFields: List<String>
 ) : IPrintable {
     //companion
     
@@ -359,13 +360,15 @@ data class ExecutionStateSerialized (
             val instanceDescriptor = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val argsDescriptors = buffer.readList { buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) } }
             val statics = buffer.readNullable { buffer.readList { SerializedStaticField.read(ctx, buffer) } }
-            return ExecutionStateSerialized(instanceDescriptor, argsDescriptors, statics)
+            val accessedFields = buffer.readList { buffer.readString() }
+            return ExecutionStateSerialized(instanceDescriptor, argsDescriptors, statics, accessedFields)
         }
         
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionStateSerialized)  {
             buffer.writeNullable(value.instanceDescriptor) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeList(value.argsDescriptors) { v -> buffer.writeNullable(v) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) } }
             buffer.writeNullable(value.statics) { buffer.writeList(it) { v -> SerializedStaticField.write(ctx, buffer, v) } }
+            buffer.writeList(value.accessedFields) { v -> buffer.writeString(v) }
         }
         
         
@@ -384,6 +387,7 @@ data class ExecutionStateSerialized (
         if (instanceDescriptor != other.instanceDescriptor) return false
         if (argsDescriptors != other.argsDescriptors) return false
         if (statics != other.statics) return false
+        if (accessedFields != other.accessedFields) return false
         
         return true
     }
@@ -393,6 +397,7 @@ data class ExecutionStateSerialized (
         __r = __r*31 + if (instanceDescriptor != null) instanceDescriptor.hashCode() else 0
         __r = __r*31 + argsDescriptors.hashCode()
         __r = __r*31 + if (statics != null) statics.hashCode() else 0
+        __r = __r*31 + accessedFields.hashCode()
         return __r
     }
     //pretty print
@@ -402,6 +407,7 @@ data class ExecutionStateSerialized (
             print("instanceDescriptor = "); instanceDescriptor.print(printer); println()
             print("argsDescriptors = "); argsDescriptors.print(printer); println()
             print("statics = "); statics.print(printer); println()
+            print("accessedFields = "); accessedFields.print(printer); println()
         }
         printer.print(")")
     }
@@ -411,7 +417,7 @@ data class ExecutionStateSerialized (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:53]
+ * #### Generated from [InstrumentedProcessModel.kt:54]
  */
 data class SerializedStaticField (
     val fieldName: String,

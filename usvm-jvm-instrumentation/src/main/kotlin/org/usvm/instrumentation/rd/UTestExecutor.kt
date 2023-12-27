@@ -68,7 +68,7 @@ class UTestExecutor(
             else -> {}
         }
         reset()
-        val accessedStatics = mutableSetOf<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>()
+        val accessedStatics = mutableSetOf<Pair<JcField, JcInstructionTracer.FieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
 
         val executor = UTestExpressionExecutor(workerClassLoader, accessedStatics, mockHelper)
@@ -89,7 +89,8 @@ class UTestExecutor(
             callMethodExpr = callMethodExpr,
             executor = executor,
             descriptorBuilder = initStateDescriptorBuilder,
-            accessedStatics = hashSetOf()
+            accessedStatics = hashSetOf(),
+            accessedFields = listOf()
         )
 
         val methodInvocationResult =
@@ -103,11 +104,12 @@ class UTestExecutor(
             }
 
         val trace = JcInstructionTracer.getTrace()
+        val accessedFields = trace.fields.map { it.first }
         accessedStatics.addAll(trace.statics.toSet())
 
         if (unpackedInvocationResult is Throwable) {
             val resultExecutionState =
-                buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
+                buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics, accessedFields)
             return UTestExecutionExceptionResult(
                 cause = buildExceptionDescriptor(
                     builder = resultStateDescriptorBuilder,
@@ -124,7 +126,7 @@ class UTestExecutor(
             resultStateDescriptorBuilder.buildDescriptorResultFromAny(unpackedInvocationResult, callMethodExpr.type)
                 .getOrNull()
         val resultExecutionState =
-            buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics)
+            buildExecutionState(callMethodExpr, executor, resultStateDescriptorBuilder, accessedStatics, accessedFields)
 
         val accessedStaticsFields = accessedStatics.map { it.first }
         val staticsToRemoveFromInitState = initExecutionState.statics.keys.filter { it !in accessedStaticsFields }
@@ -163,7 +165,8 @@ class UTestExecutor(
         callMethodExpr: UTestCall,
         executor: UTestExpressionExecutor,
         descriptorBuilder: Value2DescriptorConverter,
-        accessedStatics: MutableSet<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>
+        accessedStatics: MutableSet<Pair<JcField, JcInstructionTracer.FieldAccessType>>,
+        accessedFields: List<JcField>
     ): UTestExecutionState = with(descriptorBuilder) {
         uTestExecutorCache.addAll(executor.objectToInstructionsCache)
         val instanceDescriptor = callMethodExpr.instance?.let {
@@ -179,6 +182,6 @@ class UTestExecutor(
         } else {
             staticDescriptorsBuilder.buildDescriptorsForExecutedStatics(accessedStatics, descriptorBuilder).getOrThrow()
         }
-        return UTestExecutionState(instanceDescriptor, argsDescriptors, statics.toMutableMap())
+        return UTestExecutionState(instanceDescriptor, argsDescriptors, statics.toMutableMap(), accessedFields)
     }
 }

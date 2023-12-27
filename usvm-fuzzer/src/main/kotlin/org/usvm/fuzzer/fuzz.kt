@@ -10,6 +10,7 @@ import org.jacodb.impl.jacodb
 import org.usvm.fuzzer.Fuzzer
 import org.usvm.fuzzer.types.JcClassTable
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
+import org.usvm.instrumentation.instrumentation.JcExtendedRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.URLClassPathLoader
@@ -30,17 +31,18 @@ fun main() {
     val jcClasspath = initJcdb(testingClassPath)
     JcClassTable.initClasses(jcClasspath)
     val targetClass = jcClasspath.findClass("com.google.common.math.PairedStatsAccumulator")
+//    val targetClass = jcClasspath.findClass("example.fuzz.Simple")
     targetClass.toType()
     println(targetClass)
     val runner = UTestConcreteExecutor(
-        JcRuntimeTraceInstrumenterFactory::class,
+        JcExtendedRuntimeTraceInstrumenterFactory::class,
         testingClassPath.map { it.absolutePath },
         jcClasspath,
         InstrumentationModuleConstants.testExecutionTimeout
     )
 
     val methodsToFilterNot = listOf("<init>", "<clinit>")
-    val methodsToFilter = listOf<String>()
+    val methodsToFilter = listOf<String>("add")
     val filter = { method: JcMethod -> methodsToFilter.isEmpty() || methodsToFilter.any { method.name.contains(it) } }
     val filterNot = { method: JcMethod -> methodsToFilterNot.any { method.name.contains(it) } }
     for (targetMethod in targetClass.declaredMethods.filter(filter).filterNot(filterNot)) {

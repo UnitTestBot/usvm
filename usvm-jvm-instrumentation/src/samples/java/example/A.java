@@ -14,9 +14,9 @@ public class A {
         this.field = field;
     }
 
-    int field = 666;
+    public int field = 666;
 
-    static int staticField2 = 1;
+    public static int staticField2 = 1;
     static int staticField1;
     final static ArrayList<Integer> a = new ArrayList<>();
     final static int staticField3;

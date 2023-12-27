@@ -1,30 +1,58 @@
 package org.usvm.fuzzer.mutation
 
-import org.usvm.fuzzer.generator.DataGenerator
+import io.leangen.geantyref.GenericTypeReflector
+import org.jacodb.api.JcClassType
+import org.jacodb.api.ext.autoboxIfNeeded
+import org.usvm.fuzzer.generator.SeedFactory
+import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.seed.Seed
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestInst
-import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestNullExpression
+import org.usvm.fuzzer.types.JcTypeWrapper
+import org.usvm.fuzzer.util.createJcTypeWrapper
+import org.usvm.instrumentation.testcase.api.*
+import org.usvm.instrumentation.util.toJavaField
+import org.usvm.instrumentation.util.toJavaMethod
 import org.usvm.instrumentation.util.toJcClassOrInterface
 import org.usvm.instrumentation.util.toJcType
 
 class CallRandomMethod : Mutation() {
-    override fun mutate(seed: Seed, position: Int): Seed? {
-        val pos = seed.positions[position]
-        val type = pos.field.type
-        val instance = pos.descriptor.instance
-        val jcClasspath = pos.descriptor.type.type.classpath
-        val jcClass = type.toJcClassOrInterface(jcClasspath) ?: return null
-        val randomMethod = jcClass.declaredMethods.filter { !it.isStatic }.randomOrNull() ?: return null
-        val dataGenerator = DataGenerator(jcClasspath)
-        val initStmts = mutableListOf<UTestInst>()
-        val args = mutableListOf<UTestExpression>()
-        randomMethod.parameters.map {
-            val (inst, init) = dataGenerator.generateRandomParameterValue(it.type)
-            args.add(inst ?: UTestNullExpression(it.type.toJcType(jcClasspath)!!))
-            initStmts.addAll(init)
+    override val mutationFun: SeedFactory.(Seed) -> Seed? = lambda@{ seed ->
+        val randomFieldToMutate = seed.accessedFields?.randomOrNull() ?: return@lambda null
+        val fieldType =
+            randomFieldToMutate.type.toJcType(jcClasspath)?.autoboxIfNeeded() as? JcClassType ?: return@lambda null
+        val (arg, randomAvailableFieldChain) = seed.getFieldsInTermsOfUTest(randomFieldToMutate).randomOrNull()
+            ?: return@lambda null
+        var curType = arg.type.actualJavaType
+        randomAvailableFieldChain.forEach {
+            val jcField = it.field
+            val jField = jcField.toJavaField(userClassLoader)
+            curType = GenericTypeReflector.getFieldType(jField, curType)
         }
-        return seed.mutate(position, initStmts + UTestMethodCall(instance, randomMethod, args))
+        val fieldExpr = randomAvailableFieldChain.lastOrNull() ?: return@lambda null
+        val resolvedFieldType = curType.createJcTypeWrapper(jcClasspath)
+        val randomFunToInvoke = fieldType.declaredMethods.randomOrNull()?.method ?: return@lambda null
+        val argsForMethodInvocation =
+            seedFactory.generateArgsForMethodInvocation(resolvedFieldType, randomFunToInvoke)
+        val invocation = UTestMethodCall(
+            fieldExpr,
+            randomFunToInvoke,
+            argsForMethodInvocation.map { it.instance }
+        )
+        return@lambda seed.copy()
     }
+
+//    override fun mutate(seed: Seed, position: Int): Seed? {
+//        val pos = seed.positions[position]
+//        val type = pos.field.type
+//        val instance = pos.descriptor.instance
+//        val jcClasspath = pos.descriptor.type.type.classpath
+//        val jcClass = type.toJcClassOrInterface(jcClasspath) ?: return null
+//        val randomMethod = jcClass.declaredMethods
+//            .filter { it.isPublic }
+//            .filter { !it.isStatic }.randomOrNull() ?: return null
+//        val args =
+//            seedFactory.generateArgsForMethodInvocation(jcClass.createJcTypeWrapper(seedFactory.userClassLoader), randomMethod)
+//        val initStmts = args.flatMap { it.initStmts }
+//        val inst = args.map { it.instance }
+//        return seed.mutate(position, initStmts + UTestMethodCall(instance, randomMethod, inst))
+//    }
 }

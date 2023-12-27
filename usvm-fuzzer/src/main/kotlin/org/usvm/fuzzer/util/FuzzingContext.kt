@@ -1,6 +1,5 @@
 package org.usvm.fuzzer.util
 
-import org.usvm.fuzzer.generator.DataGenerator
 import java.util.*
 
 object FuzzingContext {
