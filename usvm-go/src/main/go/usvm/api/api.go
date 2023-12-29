@@ -1,5 +1,6 @@
 package api
 
+import "C"
 import (
 	"go/constant"
 	"go/token"
@@ -8,21 +9,27 @@ import (
 
 	"golang.org/x/tools/go/ssa"
 
+	"usvm/graph"
 	"usvm/util"
 )
 
 type Api interface {
 	MkUnOp(inst *ssa.UnOp)
 	MkBinOp(inst *ssa.BinOp)
+	MkCall(inst *ssa.Call)
 	MkIf(inst *ssa.If)
 	MkReturn(inst *ssa.Return)
-	MkVariable(name string, value ssa.Value)
+	MkVariable(inst ssa.Value, value ssa.Value)
 
 	GetLastBlock() int
 	SetLastBlock(block int)
 	WriteLastBlock()
 
 	Log(values ...any)
+}
+
+func SetProgram(program *ssa.Program) {
+	apiInstance.program = program
 }
 
 func NewApi(block int, buf []byte) Api {
@@ -39,6 +46,7 @@ const (
 	_ Method = iota
 	MethodMkUnOp
 	MethodMkBinOp
+	MethodMkCall
 	MethodMkIf
 	MethodMkReturn
 	MethodMkVariable
@@ -156,10 +164,11 @@ var typeMapping = []Type{
 type api struct {
 	lastBlock int
 	buf       *util.ByteBuffer
+	program   *ssa.Program
 }
 
 func (a *api) MkUnOp(inst *ssa.UnOp) {
-	name := resolveRegister(inst.Name())
+	name := resolveRegister(inst)
 	u := byte(unOpMapping[inst.Op])
 	t := byte(typeMapping[inst.Type().Underlying().(*types.Basic).Kind()])
 
@@ -171,7 +180,7 @@ func (a *api) MkUnOp(inst *ssa.UnOp) {
 }
 
 func (a *api) MkBinOp(inst *ssa.BinOp) {
-	name := resolveRegister(inst.Name())
+	name := resolveRegister(inst)
 	b := byte(binOpMapping[inst.Op])
 	t := byte(typeMapping[inst.Type().Underlying().(*types.Basic).Kind()])
 
@@ -181,6 +190,30 @@ func (a *api) MkBinOp(inst *ssa.BinOp) {
 	a.buf.WriteInt32(name)
 	a.writeVar(inst.X)
 	a.writeVar(inst.Y)
+}
+
+func (a *api) MkCall(inst *ssa.Call) {
+	a.buf.Write(byte(MethodMkCall))
+	a.buf.WriteInt32(resolveRegister(inst))
+
+	call := inst.Call
+	args := make([]ssa.Value, 0, len(call.Args)+1)
+	if call.IsInvoke() {
+		args = append(args, call.Value)
+	}
+
+	function := graph.Callee(a.program, &call)
+	a.buf.WriteInt64(int64(util.ToPointer(function)))
+	a.buf.WriteInt64(int64(util.ToPointer(&function.Blocks[0].Instrs[0])))
+
+	parametersCount, localsCount := graph.MethodInfo(function)
+	a.buf.WriteInt32(int32(parametersCount))
+	a.buf.WriteInt32(int32(localsCount))
+
+	args = append(args, call.Args...)
+	for i := range args {
+		a.writeVar(args[i])
+	}
 }
 
 func (a *api) MkIf(inst *ssa.If) {
@@ -208,8 +241,8 @@ func (a *api) MkReturn(inst *ssa.Return) {
 	a.writeVar(value)
 }
 
-func (a *api) MkVariable(name string, value ssa.Value) {
-	nameI := resolveRegister(name)
+func (a *api) MkVariable(inst ssa.Value, value ssa.Value) {
+	nameI := resolveRegister(inst)
 
 	a.buf.Write(byte(MethodMkVariable))
 	a.buf.WriteInt32(nameI)
@@ -246,7 +279,7 @@ func (a *api) writeVar(in ssa.Value) {
 		a.buf.Write(byte(VarKindConst))
 		a.writeConst(in)
 	default:
-		i := resolveRegister(in.Name())
+		i := resolveRegister(in)
 		t := in.Type().Underlying().(*types.Basic)
 		a.buf.Write(byte(VarKindLocal)).Write(byte(typeMapping[t.Kind()])).WriteInt32(i)
 	}
@@ -283,7 +316,7 @@ func (a *api) writeConst(in *ssa.Const) {
 	}
 }
 
-func resolveRegister(in string) int32 {
-	name, _ := strconv.ParseInt(in[1:], 10, 32)
-	return int32(name)
+func resolveRegister(in ssa.Value) int32 {
+	register, _ := strconv.ParseInt(in.Name()[1:], 10, 32)
+	return int32(register)
 }
