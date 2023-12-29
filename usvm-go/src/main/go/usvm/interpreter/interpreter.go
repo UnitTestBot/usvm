@@ -13,6 +13,7 @@ import (
 	"golang.org/x/tools/go/ssa/ssautil"
 
 	"usvm/api"
+	"usvm/util"
 )
 
 type continuation int
@@ -20,6 +21,7 @@ type continuation int
 const (
 	kNext continuation = iota
 	kReturn
+	kNone
 	kJump
 )
 
@@ -32,6 +34,7 @@ type Interpreter struct {
 	program     *ssa.Program
 	mainPackage *ssa.Package
 	types       []types.Type
+	calls       util.Set[ssa.Instruction]
 }
 
 func NewInterpreter(file string, conf Config) (*Interpreter, error) {
@@ -98,6 +101,7 @@ func NewInterpreter(file string, conf Config) (*Interpreter, error) {
 		mainPackage: mainPackage,
 		program:     program,
 		types:       allTypes,
+		calls:       util.NewSet[ssa.Instruction](),
 	}, nil
 }
 
@@ -121,14 +125,14 @@ func (i *Interpreter) Step(api api.Api, inst ssa.Instruction) (out *ssa.Instruct
 			return
 		}
 
-		switch (inst).(type) {
+		switch inst.(type) {
 		case *ssa.Phi, *ssa.If:
 		default:
 			api.SetLastBlock(block.Index)
 		}
 	}()
 
-	switch visit(api, inst) {
+	switch i.visit(api, inst) {
 	case kNext:
 		for j := range block.Instrs {
 			if block.Instrs[j] != inst {
@@ -152,7 +156,7 @@ func (i *Interpreter) Step(api api.Api, inst ssa.Instruction) (out *ssa.Instruct
 	}
 }
 
-func visit(api api.Api, instr ssa.Instruction) continuation {
+func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	switch inst := instr.(type) {
 	case *ssa.DebugRef:
 		// no-op
@@ -164,6 +168,13 @@ func visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkBinOp(inst)
 
 	case *ssa.Call:
+		api.MkCall(inst)
+
+		if i.calls.Contains(inst) {
+			return kNext
+		}
+		i.calls.Insert(inst)
+		return kNone
 
 	case *ssa.ChangeInterface:
 
@@ -193,7 +204,7 @@ func visit(api api.Api, instr ssa.Instruction) continuation {
 
 	case *ssa.If:
 		api.MkIf(inst)
-		return kReturn
+		return kNone
 
 	case *ssa.Jump:
 		return kJump
@@ -240,7 +251,7 @@ func visit(api api.Api, instr ssa.Instruction) continuation {
 			}
 		}
 
-		api.MkVariable(inst.Name(), edge)
+		api.MkVariable(inst, edge)
 
 	case *ssa.Select:
 

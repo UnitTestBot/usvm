@@ -7,11 +7,11 @@ internal typealias USizeSort = UBv32Sort
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
-    private var argsCount: Int = 0
+    private var argsCount: MutableMap<Long, Int> = mutableMapOf()
 
-    fun getArgsCount() = argsCount
+    fun getArgsCount(method: Long): Int = argsCount[method]!!
 
-    fun setArgsCount(count: Int) {
-        argsCount = count
+    fun setArgsCount(method: Long, count: Int) {
+        argsCount[method] = count
     }
 }

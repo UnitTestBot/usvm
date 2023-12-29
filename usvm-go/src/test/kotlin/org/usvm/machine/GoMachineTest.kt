@@ -22,6 +22,12 @@ class GoMachineTest {
     }
 
     @Test
+    fun testMin3() {
+        val results = machine.analyze(Path.getProgram("min3.go"), "min3", false)
+        println(results)
+    }
+
+    @Test
     fun testAdd() {
         val results = machine.analyze(Path.getProgram("add.go"), "add", false)
         println(results)

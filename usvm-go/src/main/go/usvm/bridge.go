@@ -8,7 +8,6 @@ import "C"
 import (
 	"fmt"
 	"go/types"
-	"reflect"
 	"unsafe"
 
 	"golang.org/x/tools/go/callgraph"
@@ -18,6 +17,7 @@ import (
 	"golang.org/x/tools/go/ssa/ssautil"
 
 	"usvm/api"
+	"usvm/graph"
 	"usvm/interpreter"
 	"usvm/util"
 )
@@ -50,6 +50,8 @@ func (b *Bridge) init(file string, debug bool) error {
 	program := b.interpreter.Program()
 	b.callgraph = vta.CallGraph(ssautil.AllFunctions(program), cha.CallGraph(program))
 	b.callgraph.DeleteSyntheticNodes()
+
+	api.SetProgram(program)
 
 	return nil
 }
@@ -181,16 +183,8 @@ func callees(pointer C.jlong, arr *C.jlong) {
 		return
 	}
 
-	if call.Common().IsInvoke() {
-		program := bridge.interpreter.Program()
-		callCommon := call.Common()
-		typ := callCommon.Value.Type()
-		pkg := callCommon.Method.Pkg()
-		name := callCommon.Method.Name()
-		out[0] = C.jlong(util.ToPointer(program.LookupMethod(typ, pkg, name)))
-	} else {
-		out[0] = C.jlong(util.ToPointer(call.Common().StaticCallee()))
-	}
+	function := graph.Callee(bridge.interpreter.Program(), call.Common())
+	out[0] = C.jlong(util.ToPointer(function))
 }
 
 //export callers
@@ -369,18 +363,7 @@ func methodInfo(pointer C.jlong, arr *C.jint) {
 		return
 	}
 
-	parametersCount, localsCount := 0, len(function.Locals)
-	for range function.Params {
-		parametersCount++
-	}
-	for _, b := range function.Blocks {
-		for _, i := range b.Instrs {
-			if reflect.ValueOf(i).Elem().Field(0).Type().Name() == "register" {
-				localsCount++
-			}
-		}
-	}
-
+	parametersCount, localsCount := graph.MethodInfo(function)
 	out := unsafe.Slice(arr, 2)
 	out[0] = C.jint(parametersCount)
 	out[1] = C.jint(localsCount)

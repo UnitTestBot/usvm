@@ -6,6 +6,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.GoContext
 import org.usvm.machine.interpreter.GoStepScope
+import org.usvm.machine.state.GoMethodResult
 import org.usvm.memory.URegisterStackLValue
 import java.nio.ByteBuffer
 
@@ -17,6 +18,7 @@ class Api(
         when (Method.valueOf(buf.get())) {
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
+            Method.MK_CALL -> mkCall(buf)
             Method.MK_IF -> mkIf(buf)
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_VARIABLE -> mkVariable(buf)
@@ -28,23 +30,11 @@ class Api(
         }
     }
 
-    fun getLastBlock(): Int {
-        return scope.calcOnState { lastBlock }
-    }
-
-    private fun setLastBlock(block: Int) {
-        scope.doWithState { lastBlock = block }
-    }
-
     private fun mkUnOp(buf: ByteBuffer) {
         val op = UnOp.valueOf(buf.get())
         val sort = toSort(Type.valueOf(buf.get()))
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val x = resolveVar(buf)
-
-        if (op == UnOp.ILLEGAL || sort == null || x == null) {
-            return
-        }
 
         val expr = when (op) {
             UnOp.RECV -> TODO()
@@ -52,8 +42,8 @@ class Api(
             UnOp.DEREF -> TODO()
             UnOp.NOT -> ctx.mkNot(x.asExpr(ctx.boolSort))
             UnOp.INV -> ctx.mkBvNotExpr(bv(x))
-            else -> null
-        } ?: return
+            else -> throw UnknownUnaryOperationException()
+        }
 
         val lvalue = URegisterStackLValue(sort, idx)
         scope.doWithState {
@@ -69,10 +59,6 @@ class Api(
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val x = resolveVar(buf)
         val y = resolveVar(buf)
-
-        if (op == BinOp.ILLEGAL || sort == null || x == null || y == null) {
-            return
-        }
 
         val expr = when (op) {
             BinOp.ADD -> ctx.mkBvAddExpr(bv(x), bv(y))
@@ -137,8 +123,8 @@ class Api(
                 }
             }
 
-            else -> null
-        } ?: return
+            else -> throw UnknownBinaryOperationException()
+        }
 
         val lvalue = URegisterStackLValue(sort, idx)
         scope.doWithState {
@@ -146,8 +132,36 @@ class Api(
         }
     }
 
+    private fun mkCall(buf: ByteBuffer) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val result = scope.calcOnState { methodResult }
+        if (result is GoMethodResult.Success) {
+            scope.doWithState {
+                val lvalue = URegisterStackLValue(result.value.sort, idx)
+                memory.write(lvalue, result.value, ctx.trueExpr)
+                methodResult = GoMethodResult.NoCall
+            }
+            return
+        }
+
+        val method = buf.long
+        val entrypoint = buf.long
+        val parametersCount = buf.int
+        val localsCount = buf.int
+        val parameters = Array<UExpr<out USort>>(parametersCount) {
+            resolveVar(buf)
+        }
+        ctx.setArgsCount(method, parametersCount)
+
+        scope.doWithState {
+            callStack.push(method, currentStatement)
+            memory.stack.push(parameters, localsCount)
+            newInst(entrypoint)
+        }
+    }
+
     private fun mkIf(buf: ByteBuffer) {
-        val expression = resolveVar(buf) ?: return
+        val expression = resolveVar(buf)
         val pos = buf.long
         val neg = buf.long
         scope.forkWithBlackList(
@@ -160,7 +174,7 @@ class Api(
     }
 
     private fun mkReturn(buf: ByteBuffer) {
-        val value = resolveVar(buf) ?: return
+        val value = resolveVar(buf)
         scope.doWithState {
             returnValue(value)
         }
@@ -168,29 +182,29 @@ class Api(
 
     private fun mkVariable(buf: ByteBuffer) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
-        val rvalue = resolveVar(buf) ?: return
+        val rvalue = resolveVar(buf)
         val lvalue = URegisterStackLValue(rvalue.sort, idx)
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
         }
     }
 
-    private fun resolveVar(buf: ByteBuffer): UExpr<USort>? {
+    private fun resolveVar(buf: ByteBuffer): UExpr<USort> {
         val kind = VarKind.valueOf(buf.get())
         val type = Type.valueOf(buf.get())
-        val sort = toSort(type) ?: return null
+        val sort = toSort(type)
         val expr = when (kind) {
-            VarKind.CONST -> readConst(buf, type)
+            VarKind.CONST -> resolveConst(buf, type)
             VarKind.PARAMETER, VarKind.LOCAL -> scope.calcOnState {
                 memory.read(URegisterStackLValue(sort, resolveIndex(kind, buf.int)))
             }
 
-            else -> null
+            else -> throw UnknownVarKindException()
         }
-        return expr?.asExpr(sort)
+        return expr.asExpr(sort)
     }
 
-    private fun readConst(buf: ByteBuffer, type: Type): UExpr<out USort>? = when (type) {
+    private fun resolveConst(buf: ByteBuffer, type: Type): UExpr<out USort> = when (type) {
         Type.BOOL -> ctx.mkBool(buf.get() == 1.toByte())
         Type.INT8, Type.UINT8 -> ctx.mkBv(buf.get(), ctx.bv8Sort)
         Type.INT16, Type.UINT16 -> ctx.mkBv(buf.short, ctx.bv16Sort)
@@ -198,16 +212,16 @@ class Api(
         Type.INT64, Type.UINT64 -> ctx.mkBv(buf.long, ctx.bv64Sort)
         Type.FLOAT32 -> ctx.mkFp(buf.float, ctx.fp32Sort)
         Type.FLOAT64 -> ctx.mkFp(buf.double, ctx.fp64Sort)
-        else -> null
+        else -> throw UnknownTypeException()
     }
 
     private fun resolveIndex(kind: VarKind, value: Int): Int = when (kind) {
-        VarKind.LOCAL -> value + ctx.getArgsCount()
+        VarKind.LOCAL -> value + ctx.getArgsCount(scope.calcOnState { lastEnteredMethod })
         VarKind.PARAMETER -> value
         else -> -1
     }
 
-    private fun toSort(type: Type): USort? = when (type) {
+    private fun toSort(type: Type): USort = when (type) {
         Type.BOOL -> ctx.boolSort
         Type.INT8, Type.UINT8 -> ctx.bv8Sort
         Type.INT16, Type.UINT16 -> ctx.bv16Sort
@@ -215,11 +229,19 @@ class Api(
         Type.INT64, Type.UINT64 -> ctx.bv64Sort
         Type.FLOAT32 -> ctx.fp32Sort
         Type.FLOAT64 -> ctx.fp64Sort
-        else -> null
+        else -> throw UnknownSortException()
     }
 
     private fun bv(expr: UExpr<USort>): UExpr<UBvSort> {
         return expr.asExpr(expr.sort as UBvSort)
+    }
+
+    fun getLastBlock(): Int {
+        return scope.calcOnState { lastBlock }
+    }
+
+    private fun setLastBlock(block: Int) {
+        scope.doWithState { lastBlock = block }
     }
 }
 
@@ -227,14 +249,15 @@ private enum class Method(val value: Byte) {
     UNKNOWN(0),
     MK_UN_OP(1),
     MK_BIN_OP(2),
-    MK_IF(3),
-    MK_RETURN(4),
-    MK_VARIABLE(5);
+    MK_CALL(3),
+    MK_IF(4),
+    MK_RETURN(5),
+    MK_VARIABLE(6);
 
     companion object {
         private val values = values()
 
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: UNKNOWN
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownMethodException()
     }
 }
 
@@ -249,7 +272,7 @@ private enum class UnOp(val value: Byte) {
     companion object {
         private val values = values()
 
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: ILLEGAL
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownUnaryOperationException()
     }
 }
 
@@ -276,7 +299,7 @@ private enum class BinOp(val value: Byte) {
     companion object {
         private val values = values()
 
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: ILLEGAL
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownBinaryOperationException()
     }
 }
 
@@ -289,7 +312,7 @@ private enum class VarKind(val value: Byte) {
     companion object {
         private val values = values()
 
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: ILLEGAL
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownVarKindException()
     }
 }
 
@@ -316,6 +339,6 @@ private enum class Type(val value: Byte) {
     companion object {
         private val values = values()
 
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: UNKNOWN
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownTypeException()
     }
 }

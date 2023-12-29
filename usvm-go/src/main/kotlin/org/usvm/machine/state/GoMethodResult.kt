@@ -9,7 +9,7 @@ sealed interface GoMethodResult {
 
     class Success(
         val method: GoMethod,
-        val value: UExpr<out USort>,
+        val value: UExpr<USort>,
     ) : GoMethodResult
 
     object Panic : GoMethodResult
