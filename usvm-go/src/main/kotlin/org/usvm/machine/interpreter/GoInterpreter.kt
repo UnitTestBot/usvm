@@ -25,23 +25,23 @@ class GoInterpreter(
 
         logger.debug("Method: {}, info: {}", method, methodInfo)
 
-        ctx.setArgsCount(methodInfo.parametersCount)
+        ctx.setArgsCount(method, methodInfo.parametersCount)
 
         val solver = ctx.solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
-        val entrypointInst = bridge.entryPoints(method).first[0]
+        val entrypoint = bridge.entryPoints(method).first[0]
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(methodInfo.parametersCount, methodInfo.localsCount)
-        state.newInst(entrypointInst)
+        state.newInst(entrypoint)
         return state
     }
 
     override fun step(state: GoState): StepResult<GoState> {
-        logger.debug("Step: {}", state.lastInst)
+        logger.debug("Step: {}", state.currentStatement)
 
-        val inst = state.lastInst
+        val inst = state.currentStatement
         val scope = GoStepScope(state, forkBlackList)
         val newInst = bridge.step(Api(ctx, scope), inst)
         if (newInst != 0L) {

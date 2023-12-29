@@ -81,13 +81,11 @@ class GoState(
 
     override val isExceptional: Boolean get() = methodResult is GoMethodResult.Panic
 
-    val lastInst get() = pathNode.statement
-
     fun newInst(inst: GoInst) {
         pathNode += inst
     }
 
-    fun returnValue(valueToReturn: UExpr<out USort>) {
+    fun returnValue(valueToReturn: UExpr<USort>) {
         val returnFromMethod = callStack.lastMethod()
         // TODO: think about it later
         val returnSite = callStack.pop()
@@ -103,7 +101,7 @@ class GoState(
     }
 
     override fun toString(): String = buildString {
-        appendLine("Instruction: $lastInst")
+        appendLine("Instruction: $currentStatement")
         if (isExceptional) appendLine("Exception: $methodResult")
         appendLine(callStack)
     }
