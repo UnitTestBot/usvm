@@ -4,12 +4,12 @@ import "C"
 import (
 	"go/constant"
 	"go/token"
-	"go/types"
 	"strconv"
 
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/graph"
+	"usvm/types"
 	"usvm/util"
 )
 
@@ -32,9 +32,9 @@ func SetProgram(program *ssa.Program) {
 	apiInstance.program = program
 }
 
-func NewApi(block int, buf []byte) Api {
-	apiInstance.lastBlock = block
-	apiInstance.buf = util.NewByteBuffer(buf)
+func NewApi(lastBlock int, buf *util.ByteBuffer) Api {
+	apiInstance.lastBlock = lastBlock
+	apiInstance.buf = buf
 	return apiInstance
 }
 
@@ -123,44 +123,6 @@ const (
 	VarKindLocal
 )
 
-type Type byte
-
-const (
-	_ Type = iota
-	TypeBool
-	TypeInt8
-	TypeUint8
-	TypeInt16
-	TypeUint16
-	TypeInt32
-	TypeUint32
-	TypeInt64
-	TypeUint64
-	TypeFloat32
-	TypeFloat64
-)
-
-var typeMapping = []Type{
-	types.Bool:         TypeBool,
-	types.UntypedBool:  TypeBool,
-	types.Int8:         TypeInt8,
-	types.Uint8:        TypeUint8,
-	types.Int16:        TypeInt16,
-	types.Uint16:       TypeUint16,
-	types.Int:          TypeInt32,
-	types.Uint:         TypeUint32,
-	types.UntypedInt:   TypeInt32,
-	types.Int32:        TypeInt32,
-	types.Uint32:       TypeUint32,
-	types.UntypedRune:  TypeInt32,
-	types.Int64:        TypeInt64,
-	types.Uint64:       TypeUint64,
-	types.Uintptr:      TypeUint64,
-	types.Float32:      TypeFloat32,
-	types.Float64:      TypeFloat64,
-	types.UntypedFloat: TypeFloat64,
-}
-
 type api struct {
 	lastBlock int
 	buf       *util.ByteBuffer
@@ -170,7 +132,7 @@ type api struct {
 func (a *api) MkUnOp(inst *ssa.UnOp) {
 	name := resolveRegister(inst)
 	u := byte(unOpMapping[inst.Op])
-	t := byte(typeMapping[inst.Type().Underlying().(*types.Basic).Kind()])
+	t := byte(types.GetType(inst))
 
 	a.buf.Write(byte(MethodMkUnOp))
 	a.buf.Write(u)
@@ -182,7 +144,7 @@ func (a *api) MkUnOp(inst *ssa.UnOp) {
 func (a *api) MkBinOp(inst *ssa.BinOp) {
 	name := resolveRegister(inst)
 	b := byte(binOpMapping[inst.Op])
-	t := byte(typeMapping[inst.Type().Underlying().(*types.Basic).Kind()])
+	t := byte(types.GetType(inst))
 
 	a.buf.Write(byte(MethodMkBinOp))
 	a.buf.Write(b)
@@ -196,19 +158,18 @@ func (a *api) MkCall(inst *ssa.Call) {
 	a.buf.Write(byte(MethodMkCall))
 	a.buf.WriteInt32(resolveRegister(inst))
 
-	call := inst.Call
+	call := inst.Common()
 	args := make([]ssa.Value, 0, len(call.Args)+1)
 	if call.IsInvoke() {
 		args = append(args, call.Value)
 	}
 
-	function := graph.Callee(a.program, &call)
+	function := graph.Callee(a.program, call)
 	a.buf.WriteInt64(int64(util.ToPointer(function)))
 	a.buf.WriteInt64(int64(util.ToPointer(&function.Blocks[0].Instrs[0])))
 
-	parametersCount, localsCount := graph.MethodInfo(function)
-	a.buf.WriteInt32(int32(parametersCount))
-	a.buf.WriteInt32(int32(localsCount))
+	a.buf.WriteInt32(int32(graph.LocalsCount(function)))
+	a.buf.WriteInt32(int32(len(function.Params)))
 
 	args = append(args, call.Args...)
 	for i := range args {
@@ -271,8 +232,7 @@ func (a *api) writeVar(in ssa.Value) {
 		f := in.Parent()
 		for i, p := range f.Params {
 			if p == in {
-				t := in.Type().Underlying().(*types.Basic)
-				a.buf.Write(byte(VarKindParameter)).Write(byte(typeMapping[t.Kind()])).WriteInt32(int32(i))
+				a.buf.Write(byte(VarKindParameter)).Write(byte(types.GetType(in))).WriteInt32(int32(i))
 			}
 		}
 	case *ssa.Const:
@@ -280,39 +240,37 @@ func (a *api) writeVar(in ssa.Value) {
 		a.writeConst(in)
 	default:
 		i := resolveRegister(in)
-		t := in.Type().Underlying().(*types.Basic)
-		a.buf.Write(byte(VarKindLocal)).Write(byte(typeMapping[t.Kind()])).WriteInt32(i)
+		a.buf.Write(byte(VarKindLocal)).Write(byte(types.GetType(in))).WriteInt32(i)
 	}
 }
 
 func (a *api) writeConst(in *ssa.Const) {
-	if t, ok := in.Type().Underlying().(*types.Basic); ok {
-		a.buf.Write(byte(typeMapping[t.Kind()]))
-		switch t.Kind() {
-		case types.Bool, types.UntypedBool:
-			a.buf.WriteBool(constant.BoolVal(in.Value))
-		case types.Int8:
-			a.buf.WriteInt8(int8(in.Int64()))
-		case types.Int16:
-			a.buf.WriteInt16(int16(in.Int64()))
-		case types.Int, types.UntypedInt, types.Int32, types.UntypedRune:
-			a.buf.WriteInt32(int32(in.Int64()))
-		case types.Int64:
-			a.buf.WriteInt64(in.Int64())
-		case types.Uint8:
-			a.buf.WriteUint8(uint8(in.Uint64()))
-		case types.Uint16:
-			a.buf.WriteUint16(uint16(in.Uint64()))
-		case types.Uint, types.Uint32:
-			a.buf.WriteUint32(uint32(in.Uint64()))
-		case types.Uint64, types.Uintptr:
-			a.buf.WriteUint64(in.Uint64())
-		case types.Float32:
-			a.buf.WriteFloat32(float32(in.Float64()))
-		case types.Float64, types.UntypedFloat:
-			a.buf.WriteFloat64(in.Float64())
-		default:
-		}
+	t := types.GetType(in)
+	a.buf.Write(byte(t))
+	switch t {
+	case types.TypeBool:
+		a.buf.WriteBool(constant.BoolVal(in.Value))
+	case types.TypeInt8:
+		a.buf.WriteInt8(int8(in.Int64()))
+	case types.TypeInt16:
+		a.buf.WriteInt16(int16(in.Int64()))
+	case types.TypeInt32:
+		a.buf.WriteInt32(int32(in.Int64()))
+	case types.TypeInt64:
+		a.buf.WriteInt64(in.Int64())
+	case types.TypeUint8:
+		a.buf.WriteUint8(uint8(in.Uint64()))
+	case types.TypeUint16:
+		a.buf.WriteUint16(uint16(in.Uint64()))
+	case types.TypeUint32:
+		a.buf.WriteUint32(uint32(in.Uint64()))
+	case types.TypeUint64:
+		a.buf.WriteUint64(in.Uint64())
+	case types.TypeFloat32:
+		a.buf.WriteFloat32(float32(in.Float64()))
+	case types.TypeFloat64:
+		a.buf.WriteFloat64(in.Float64())
+	default:
 	}
 }
 

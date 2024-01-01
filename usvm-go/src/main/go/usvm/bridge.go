@@ -19,11 +19,8 @@ import (
 	"usvm/api"
 	"usvm/graph"
 	"usvm/interpreter"
+	typeslocal "usvm/types"
 	"usvm/util"
-)
-
-const (
-	bufSize = 1 << 16
 )
 
 var anyType = types.Type(types.NewInterfaceType(nil, nil).Complete())
@@ -242,12 +239,12 @@ func exitPoints(pointer C.jlong, arr *C.jlong, size C.jint) C.jint {
 
 //export methodOf
 func methodOf(pointer C.jlong) C.jlong {
-	method := *util.FromPointer[ssa.Instruction](uintptr(pointer))
-	if method == nil {
+	inst := *util.FromPointer[ssa.Instruction](uintptr(pointer))
+	if inst == nil {
 		return 0
 	}
 
-	return C.jlong(util.ToPointer(method.Parent()))
+	return C.jlong(util.ToPointer(inst.Parent()))
 }
 
 //export statementsOf
@@ -357,16 +354,34 @@ func isSupertype(supertypePointer, typePointer C.jlong) C.jboolean {
 // ---------------- region: interpreter
 
 //export methodInfo
-func methodInfo(pointer C.jlong, arr *C.jint) {
+func methodInfo(pointer C.jlong, arr C.jlong) {
 	function := util.FromPointer[ssa.Function](uintptr(pointer))
 	if function == nil {
 		return
 	}
 
-	parametersCount, localsCount := graph.MethodInfo(function)
-	out := unsafe.Slice(arr, 2)
-	out[0] = C.jint(parametersCount)
-	out[1] = C.jint(localsCount)
+	buf := util.NewByteBuffer(uintptr(arr))
+	buf.Write(byte(typeslocal.MapType(function.Signature.Results().At(0).Type())))
+	buf.WriteInt32(int32(graph.LocalsCount(function)))
+	buf.WriteInt32(int32(len(function.Params)))
+	for i := range function.Params {
+		buf.Write(byte(typeslocal.GetType(function.Params[i])))
+	}
+}
+
+//export instInfo
+func instInfo(pointer C.jlong, arr C.jlong) {
+	inst := *util.FromPointer[ssa.Instruction](uintptr(pointer))
+	if inst == nil {
+		return
+	}
+
+	expression := inst.String()
+	buf := util.NewByteBuffer(uintptr(arr))
+	buf.WriteInt32(int32(len(expression)))
+	for i := range expression {
+		buf.Write(expression[i])
+	}
 }
 
 // ---------------- region: interpreter
@@ -379,15 +394,13 @@ func start() C.int {
 }
 
 //export step
-//goland:noinspection GoVetUnsafePointer
 func step(pointer C.jlong, lastBlock C.jint, arr C.jlong) C.jlong {
 	inst := *util.FromPointer[ssa.Instruction](uintptr(pointer))
 	if inst == nil {
 		return 0
 	}
 
-	out := (*[bufSize]byte)(unsafe.Pointer(uintptr(arr)))[:]
-	nextInst := bridge.step(api.NewApi(int(lastBlock), out), inst)
+	nextInst := bridge.step(api.NewApi(int(lastBlock), util.NewByteBuffer(uintptr(arr))), inst)
 	if nextInst == nil {
 		return 0
 	}

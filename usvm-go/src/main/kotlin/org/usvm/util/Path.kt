@@ -1,7 +1,7 @@
 package org.usvm.util
 
 import java.nio.file.Path
-import java.util.*
+import java.util.Locale
 
 class Path {
     companion object {

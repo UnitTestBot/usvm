@@ -13,7 +13,6 @@ import (
 	"golang.org/x/tools/go/ssa/ssautil"
 
 	"usvm/api"
-	"usvm/util"
 )
 
 type continuation int
@@ -34,7 +33,6 @@ type Interpreter struct {
 	program     *ssa.Program
 	mainPackage *ssa.Package
 	types       []types.Type
-	calls       util.Set[ssa.Instruction]
 }
 
 func NewInterpreter(file string, conf Config) (*Interpreter, error) {
@@ -101,7 +99,6 @@ func NewInterpreter(file string, conf Config) (*Interpreter, error) {
 		mainPackage: mainPackage,
 		program:     program,
 		types:       allTypes,
-		calls:       util.NewSet[ssa.Instruction](),
 	}, nil
 }
 
@@ -169,12 +166,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 
 	case *ssa.Call:
 		api.MkCall(inst)
-
-		if i.calls.Contains(inst) {
-			return kNext
-		}
-		i.calls.Insert(inst)
-		return kNone
+		return kNext
 
 	case *ssa.ChangeInterface:
 

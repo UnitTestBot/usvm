@@ -1,15 +1,25 @@
 package org.usvm.machine
 
 import mu.KLogging
+import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.bridge.GoBridge
 import org.usvm.machine.interpreter.GoInterpreter
+import org.usvm.machine.interpreter.GoTestInterpreter
+import org.usvm.machine.interpreter.ProgramExecutionResult
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
+import org.usvm.machine.type.GoTypeSystem
 import org.usvm.ps.createPathSelector
-import org.usvm.statistics.*
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StatisticsByMethodPrinter
+import org.usvm.statistics.StepsStatistics
+import org.usvm.statistics.TimeStatistics
+import org.usvm.statistics.TransitiveCoverageZoneObserver
+import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.CallGraphStatisticsImpl
@@ -29,9 +39,14 @@ class GoMachine(
     private val ctx = GoContext(components)
     private val interpreter = GoInterpreter(bridge, ctx)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
+    private val testInterpreter = GoTestInterpreter(bridge, ctx)
 
     override fun close() {
         ctx.close()
+    }
+
+    fun analyzeAndResolve(file: String, entrypoint: String, debug: Boolean): Collection<ProgramExecutionResult> {
+        return analyze(file, entrypoint, debug).map { testInterpreter.resolve(it, bridge.getMethod(entrypoint)) }
     }
 
     fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
@@ -99,6 +114,16 @@ class GoMachine(
         observers.add(statesCollector)
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
+        if (options.coverageZone != CoverageZone.METHOD) {
+            observers.add(
+                TransitiveCoverageZoneObserver(
+                    initialMethods = methods,
+                    methodExtractor = { state -> applicationGraph.methodOf(state.currentStatement) },
+                    addCoverageZone = { coverageStatistics.addCoverageZone(it) },
+                    ignoreMethod = { false }
+                )
+            )
+        }
         if (logger.isInfoEnabled) {
             observers.add(
                 StatisticsByMethodPrinter(
