@@ -1,8 +1,16 @@
 package org.usvm.machine.state
 
-import org.usvm.*
+import org.usvm.PathNode
+import org.usvm.UCallStack
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.*
+import org.usvm.machine.GoContext
+import org.usvm.machine.GoInst
+import org.usvm.machine.GoMethod
+import org.usvm.machine.GoTarget
+import org.usvm.machine.GoType
 import org.usvm.memory.UMemory
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase

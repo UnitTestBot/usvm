@@ -4,13 +4,14 @@ import org.usvm.api.Api
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoMethodInfo
 import org.usvm.machine.GoInst
+import org.usvm.machine.GoInstInfo
 import org.usvm.machine.GoType
+import org.usvm.machine.type.Type
 import java.nio.Buffer
 import java.nio.ByteBuffer
 
 class GoBridge {
     private val objects = LongArray(BUF_SIZE)
-    private val methodInfo = IntArray(2)
     private val single = LongArray(1)
 
     private val buf: ByteBuffer = ByteBuffer.allocateDirect(BUF_SIZE)
@@ -103,8 +104,21 @@ class GoBridge {
     // ------------ region: interpreter
 
     fun methodInfo(method: GoMethod): GoMethodInfo {
-        Bridge.methodInfo(method, methodInfo)
-        return GoMethodInfo(methodInfo[0], methodInfo[1])
+        Bridge.methodInfo(method, address)
+        val returnType = buf.get()
+        val localsCount = buf.int
+        val parametersCount = buf.int
+        val parametersTypes = Array(parametersCount) { Type.valueOf(buf.get()) }
+        buf.rewind()
+        return GoMethodInfo(Type.valueOf(returnType), localsCount, parametersCount, parametersTypes)
+    }
+
+    fun instInfo(inst: GoInst): GoInstInfo {
+        Bridge.instInfo(inst, address)
+        val length = buf.int
+        val bytes = ByteArray(length) { buf.get() }
+        buf.rewind()
+        return GoInstInfo(String(bytes))
     }
 
     // ------------ region: interpreter
@@ -114,8 +128,7 @@ class GoBridge {
     fun start(): Int = Bridge.start()
 
     fun step(api: Api, inst: GoInst): GoInst {
-        val nextInst = Bridge.step(inst, api.getLastBlock(), address)
-        api.mk(buf, nextInst != 0L)
+        val nextInst = Bridge.step(inst, api.getLastBlock(), address).let { api.mk(buf, it) }
         buf.rewind()
         return nextInst
     }
