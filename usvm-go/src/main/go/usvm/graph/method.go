@@ -6,11 +6,8 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-func MethodInfo(function *ssa.Function) (int, int) {
-	parametersCount, localsCount := 0, len(function.Locals)
-	for range function.Params {
-		parametersCount++
-	}
+func LocalsCount(function *ssa.Function) int {
+	localsCount := len(function.Locals)
 	for _, b := range function.Blocks {
 		for _, i := range b.Instrs {
 			if reflect.ValueOf(i).Elem().Field(0).Type().Name() == "register" {
@@ -19,7 +16,7 @@ func MethodInfo(function *ssa.Function) (int, int) {
 		}
 	}
 
-	return parametersCount, localsCount
+	return localsCount
 }
 
 func Callee(program *ssa.Program, call *ssa.CallCommon) *ssa.Function {

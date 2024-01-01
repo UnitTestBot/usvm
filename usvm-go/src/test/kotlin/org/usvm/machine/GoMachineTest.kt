@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import org.junit.jupiter.api.Test
+import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.util.Path
@@ -11,31 +12,32 @@ class GoMachineTest {
 
     @Test
     fun testMax() {
-        val results = machine.analyze(Path.getProgram("max2.go"), "max2", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("max2.go"), "max2", false)
         println(results)
     }
 
     @Test
     fun testMin() {
-        val results = machine.analyze(Path.getProgram("min2.go"), "min2", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("min2.go"), "min2", true)
         println(results)
     }
 
     @Test
     fun testMin3() {
-        val results = machine.analyze(Path.getProgram("min3.go"), "min3", false)
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val results = machine.analyzeAndResolve(Path.getProgram("min3.go"), "min3", true)
         println(results)
     }
 
     @Test
     fun testAdd() {
-        val results = machine.analyze(Path.getProgram("add.go"), "add", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("add.go"), "add", false)
         println(results)
     }
 
     @Test
     fun testGcd() {
-        val results = machine.analyze(Path.getProgram("gcd.go"), "gcd", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("gcd.go"), "gcd", false)
         println(results)
     }
 
@@ -85,7 +87,7 @@ class GoMachineTest {
                 stepLimit = 1_000_000UL,
             ),
         )
-        val results = machine.analyze(Path.getProgram("loop_collatz.go"), "loop", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("loop_collatz.go"), "loop", false)
         println(results)
     }
 }
