@@ -101,7 +101,10 @@ object Bridge {
     // ------------ region: interpreter
     @JvmStatic
     @Link
-    external fun methodInfo(method: MethodPointer, out: IntArray)
+    external fun methodInfo(method: MethodPointer, args: Long)
+    @JvmStatic
+    @Link
+    external fun instInfo(inst: InstPointer, args: Long)
     // ------------ region: interpreter
 
     // ------------ region: api

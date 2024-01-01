@@ -5,8 +5,10 @@ import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.GoContext
+import org.usvm.machine.GoInst
 import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.machine.state.GoMethodResult
+import org.usvm.machine.type.Type
 import org.usvm.memory.URegisterStackLValue
 import java.nio.ByteBuffer
 
@@ -14,27 +16,29 @@ class Api(
     private val ctx: GoContext,
     private val scope: GoStepScope,
 ) {
-    fun mk(buf: ByteBuffer, setLastBlock: Boolean) {
+    fun mk(buf: ByteBuffer, inst: GoInst): GoInst {
+        var nextInst = inst
         when (Method.valueOf(buf.get())) {
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
-            Method.MK_CALL -> mkCall(buf)
+            Method.MK_CALL -> mkCall(buf).let { if (it) nextInst = 0L }
             Method.MK_IF -> mkIf(buf)
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_VARIABLE -> mkVariable(buf)
             Method.UNKNOWN -> buf.rewind()
         }
 
-        if (setLastBlock) {
+        if (nextInst != 0L) {
             setLastBlock(buf.int)
         }
+        return nextInst
     }
 
     private fun mkUnOp(buf: ByteBuffer) {
         val op = UnOp.valueOf(buf.get())
-        val sort = toSort(Type.valueOf(buf.get()))
+        val sort = ctx.typeToSort(Type.valueOf(buf.get()))
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
-        val x = resolveVar(buf)
+        val x = readVar(buf)
 
         val expr = when (op) {
             UnOp.RECV -> TODO()
@@ -55,10 +59,10 @@ class Api(
         val op = BinOp.valueOf(buf.get())
         val type = Type.valueOf(buf.get())
         val signed = type.isSigned()
-        val sort = toSort(type)
+        val sort = ctx.typeToSort(type)
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
-        val x = resolveVar(buf)
-        val y = resolveVar(buf)
+        val x = readVar(buf)
+        val y = readVar(buf)
 
         val expr = when (op) {
             BinOp.ADD -> ctx.mkBvAddExpr(bv(x), bv(y))
@@ -132,7 +136,7 @@ class Api(
         }
     }
 
-    private fun mkCall(buf: ByteBuffer) {
+    private fun mkCall(buf: ByteBuffer): Boolean {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
@@ -141,15 +145,15 @@ class Api(
                 memory.write(lvalue, result.value, ctx.trueExpr)
                 methodResult = GoMethodResult.NoCall
             }
-            return
+            return false
         }
 
         val method = buf.long
         val entrypoint = buf.long
-        val parametersCount = buf.int
         val localsCount = buf.int
+        val parametersCount = buf.int
         val parameters = Array<UExpr<out USort>>(parametersCount) {
-            resolveVar(buf)
+            readVar(buf)
         }
         ctx.setArgsCount(method, parametersCount)
 
@@ -158,10 +162,12 @@ class Api(
             memory.stack.push(parameters, localsCount)
             newInst(entrypoint)
         }
+
+        return true
     }
 
     private fun mkIf(buf: ByteBuffer) {
-        val expression = resolveVar(buf)
+        val expression = readVar(buf)
         val pos = buf.long
         val neg = buf.long
         scope.forkWithBlackList(
@@ -174,7 +180,7 @@ class Api(
     }
 
     private fun mkReturn(buf: ByteBuffer) {
-        val value = resolveVar(buf)
+        val value = readVar(buf)
         scope.doWithState {
             returnValue(value)
         }
@@ -182,19 +188,19 @@ class Api(
 
     private fun mkVariable(buf: ByteBuffer) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
-        val rvalue = resolveVar(buf)
+        val rvalue = readVar(buf)
         val lvalue = URegisterStackLValue(rvalue.sort, idx)
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
         }
     }
 
-    private fun resolveVar(buf: ByteBuffer): UExpr<USort> {
+    private fun readVar(buf: ByteBuffer): UExpr<USort> {
         val kind = VarKind.valueOf(buf.get())
         val type = Type.valueOf(buf.get())
-        val sort = toSort(type)
+        val sort = ctx.typeToSort(type)
         val expr = when (kind) {
-            VarKind.CONST -> resolveConst(buf, type)
+            VarKind.CONST -> readConst(buf, type)
             VarKind.PARAMETER, VarKind.LOCAL -> scope.calcOnState {
                 memory.read(URegisterStackLValue(sort, resolveIndex(kind, buf.int)))
             }
@@ -204,7 +210,7 @@ class Api(
         return expr.asExpr(sort)
     }
 
-    private fun resolveConst(buf: ByteBuffer, type: Type): UExpr<out USort> = when (type) {
+    private fun readConst(buf: ByteBuffer, type: Type): UExpr<out USort> = when (type) {
         Type.BOOL -> ctx.mkBool(buf.get() == 1.toByte())
         Type.INT8, Type.UINT8 -> ctx.mkBv(buf.get(), ctx.bv8Sort)
         Type.INT16, Type.UINT16 -> ctx.mkBv(buf.short, ctx.bv16Sort)
@@ -219,17 +225,6 @@ class Api(
         VarKind.LOCAL -> value + ctx.getArgsCount(scope.calcOnState { lastEnteredMethod })
         VarKind.PARAMETER -> value
         else -> -1
-    }
-
-    private fun toSort(type: Type): USort = when (type) {
-        Type.BOOL -> ctx.boolSort
-        Type.INT8, Type.UINT8 -> ctx.bv8Sort
-        Type.INT16, Type.UINT16 -> ctx.bv16Sort
-        Type.INT32, Type.UINT32 -> ctx.bv32Sort
-        Type.INT64, Type.UINT64 -> ctx.bv64Sort
-        Type.FLOAT32 -> ctx.fp32Sort
-        Type.FLOAT64 -> ctx.fp64Sort
-        else -> throw UnknownSortException()
     }
 
     private fun bv(expr: UExpr<USort>): UExpr<UBvSort> {
@@ -313,32 +308,5 @@ private enum class VarKind(val value: Byte) {
         private val values = values()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownVarKindException()
-    }
-}
-
-private enum class Type(val value: Byte) {
-    UNKNOWN(0),
-    BOOL(1),
-    INT8(2),
-    UINT8(3),
-    INT16(4),
-    UINT16(5),
-    INT32(6),
-    UINT32(7),
-    INT64(8),
-    UINT64(9),
-    FLOAT32(10),
-    FLOAT64(11);
-
-    fun isSigned(): Boolean = when (this) {
-        BOOL, INT8, INT16, INT32, INT64, FLOAT32, FLOAT64 -> true
-        UINT8, UINT16, UINT32, UINT64 -> false
-        else -> false
-    }
-
-    companion object {
-        private val values = values()
-
-        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownTypeException()
     }
 }

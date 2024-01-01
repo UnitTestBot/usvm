@@ -2,7 +2,10 @@ package util
 
 import (
 	"math"
+	"unsafe"
 )
+
+const bufSize = 1 << 16
 
 type ByteBuffer struct {
 	buf []byte
@@ -11,9 +14,10 @@ type ByteBuffer struct {
 
 var bufferInstance = &ByteBuffer{}
 
-func NewByteBuffer(buf []byte) *ByteBuffer {
+//goland:noinspection GoVetUnsafePointer
+func NewByteBuffer(addr uintptr) *ByteBuffer {
 	bufferInstance.i = 0
-	bufferInstance.buf = buf
+	bufferInstance.buf = (*[bufSize]byte)(unsafe.Pointer(addr))[:]
 	return bufferInstance
 }
 
