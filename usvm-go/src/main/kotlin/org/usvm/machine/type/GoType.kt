@@ -14,7 +14,9 @@ enum class Type(val value: Byte) {
     UINT32(8),
     UINT64(9),
     FLOAT32(10),
-    FLOAT64(11);
+    FLOAT64(11),
+    ARRAY(12),
+    STRUCT(13);
 
     fun isSigned(): Boolean = when (this) {
         BOOL, INT8, INT16, INT32, INT64, FLOAT32, FLOAT64 -> true
