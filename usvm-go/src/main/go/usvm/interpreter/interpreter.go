@@ -165,8 +165,12 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkBinOp(inst)
 
 	case *ssa.Call:
-		api.MkCall(inst)
-		return kNext
+		switch f := inst.Call.Value.(type) {
+		case *ssa.Builtin:
+			api.MkCallBuiltin(inst, f.Name())
+		default:
+			api.MkCall(inst)
+		}
 
 	case *ssa.ChangeInterface:
 
@@ -222,6 +226,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.Field:
 
 	case *ssa.IndexAddr:
+		api.MkPointerArrayReading(inst)
 
 	case *ssa.Index:
 

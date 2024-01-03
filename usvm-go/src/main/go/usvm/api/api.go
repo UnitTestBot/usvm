@@ -9,7 +9,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/graph"
-	"usvm/types"
+	typeslocal "usvm/types"
 	"usvm/util"
 )
 
@@ -17,9 +17,11 @@ type Api interface {
 	MkUnOp(inst *ssa.UnOp)
 	MkBinOp(inst *ssa.BinOp)
 	MkCall(inst *ssa.Call)
+	MkCallBuiltin(inst *ssa.Call, name string)
 	MkIf(inst *ssa.If)
 	MkReturn(inst *ssa.Return)
 	MkVariable(inst ssa.Value, value ssa.Value)
+	MkPointerArrayReading(inst *ssa.IndexAddr)
 
 	GetLastBlock() int
 	SetLastBlock(block int)
@@ -47,9 +49,11 @@ const (
 	MethodMkUnOp
 	MethodMkBinOp
 	MethodMkCall
+	MethodMkCallBuiltin
 	MethodMkIf
 	MethodMkReturn
 	MethodMkVariable
+	MethodMkPointerArrayReading
 )
 
 type UnOp byte
@@ -132,7 +136,7 @@ type api struct {
 func (a *api) MkUnOp(inst *ssa.UnOp) {
 	name := resolveRegister(inst)
 	u := byte(unOpMapping[inst.Op])
-	t := byte(types.GetType(inst))
+	t := byte(typeslocal.GetType(inst))
 
 	a.buf.Write(byte(MethodMkUnOp))
 	a.buf.Write(u)
@@ -144,7 +148,7 @@ func (a *api) MkUnOp(inst *ssa.UnOp) {
 func (a *api) MkBinOp(inst *ssa.BinOp) {
 	name := resolveRegister(inst)
 	b := byte(binOpMapping[inst.Op])
-	t := byte(types.GetType(inst))
+	t := byte(typeslocal.GetType(inst))
 
 	a.buf.Write(byte(MethodMkBinOp))
 	a.buf.Write(b)
@@ -177,6 +181,41 @@ func (a *api) MkCall(inst *ssa.Call) {
 	}
 }
 
+type BuiltinFunc byte
+
+const (
+	_ BuiltinFunc = iota
+	Len
+)
+
+func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
+	a.buf.Write(byte(MethodMkCallBuiltin))
+	a.buf.WriteInt32(resolveRegister(inst))
+
+	switch name {
+	case "append":
+	case "copy":
+	case "close":
+	case "delete":
+	case "print", "println":
+	case "len":
+		a.buf.Write(byte(Len))
+	case "cap":
+	case "min":
+	case "max":
+	case "real":
+	case "imag":
+	case "complex":
+	case "panic":
+	case "recover":
+	}
+
+	args := inst.Call.Args
+	for i := range args {
+		a.writeVar(args[i])
+	}
+}
+
 func (a *api) MkIf(inst *ssa.If) {
 	pos := int64(util.ToPointer(&inst.Block().Succs[0].Instrs[0]))
 	neg := int64(util.ToPointer(&inst.Block().Succs[1].Instrs[0]))
@@ -203,11 +242,17 @@ func (a *api) MkReturn(inst *ssa.Return) {
 }
 
 func (a *api) MkVariable(inst ssa.Value, value ssa.Value) {
-	nameI := resolveRegister(inst)
-
 	a.buf.Write(byte(MethodMkVariable))
-	a.buf.WriteInt32(nameI)
+	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(value)
+}
+
+func (a *api) MkPointerArrayReading(inst *ssa.IndexAddr) {
+	a.buf.Write(byte(MethodMkPointerArrayReading))
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.Write(byte(typeslocal.GetType(inst)))
+	a.writeVar(inst.X)
+	a.writeVar(inst.Index)
 }
 
 func (a *api) GetLastBlock() int {
@@ -232,7 +277,7 @@ func (a *api) writeVar(in ssa.Value) {
 		f := in.Parent()
 		for i, p := range f.Params {
 			if p == in {
-				a.buf.Write(byte(VarKindParameter)).Write(byte(types.GetType(in))).WriteInt32(int32(i))
+				a.buf.Write(byte(VarKindParameter)).Write(byte(typeslocal.GetType(in))).WriteInt32(int32(i))
 			}
 		}
 	case *ssa.Const:
@@ -240,35 +285,35 @@ func (a *api) writeVar(in ssa.Value) {
 		a.writeConst(in)
 	default:
 		i := resolveRegister(in)
-		a.buf.Write(byte(VarKindLocal)).Write(byte(types.GetType(in))).WriteInt32(i)
+		a.buf.Write(byte(VarKindLocal)).Write(byte(typeslocal.GetType(in))).WriteInt32(i)
 	}
 }
 
 func (a *api) writeConst(in *ssa.Const) {
-	t := types.GetType(in)
+	t := typeslocal.GetType(in)
 	a.buf.Write(byte(t))
 	switch t {
-	case types.TypeBool:
+	case typeslocal.TypeBool:
 		a.buf.WriteBool(constant.BoolVal(in.Value))
-	case types.TypeInt8:
+	case typeslocal.TypeInt8:
 		a.buf.WriteInt8(int8(in.Int64()))
-	case types.TypeInt16:
+	case typeslocal.TypeInt16:
 		a.buf.WriteInt16(int16(in.Int64()))
-	case types.TypeInt32:
+	case typeslocal.TypeInt32:
 		a.buf.WriteInt32(int32(in.Int64()))
-	case types.TypeInt64:
+	case typeslocal.TypeInt64:
 		a.buf.WriteInt64(in.Int64())
-	case types.TypeUint8:
+	case typeslocal.TypeUint8:
 		a.buf.WriteUint8(uint8(in.Uint64()))
-	case types.TypeUint16:
+	case typeslocal.TypeUint16:
 		a.buf.WriteUint16(uint16(in.Uint64()))
-	case types.TypeUint32:
+	case typeslocal.TypeUint32:
 		a.buf.WriteUint32(uint32(in.Uint64()))
-	case types.TypeUint64:
+	case typeslocal.TypeUint64:
 		a.buf.WriteUint64(in.Uint64())
-	case types.TypeFloat32:
+	case typeslocal.TypeFloat32:
 		a.buf.WriteFloat32(float32(in.Float64()))
-	case types.TypeFloat64:
+	case typeslocal.TypeFloat64:
 		a.buf.WriteFloat64(in.Float64())
 	default:
 	}

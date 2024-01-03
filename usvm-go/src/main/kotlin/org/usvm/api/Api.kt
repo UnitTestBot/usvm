@@ -3,13 +3,17 @@ package org.usvm.api
 import io.ksmt.utils.asExpr
 import org.usvm.UBvSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
+import org.usvm.machine.USizeSort
 import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.type.Type
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.mkSizeExpr
+import org.usvm.sizeSort
 import java.nio.ByteBuffer
 
 class Api(
@@ -22,9 +26,11 @@ class Api(
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
             Method.MK_CALL -> mkCall(buf).let { if (it) nextInst = 0L }
+            Method.MK_CALL_BUILTIN -> mkCallBuiltin(buf)
             Method.MK_IF -> mkIf(buf)
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_VARIABLE -> mkVariable(buf)
+            Method.MK_POINTER_ARRAY_READING -> mkPointerArrayReading(buf)
             Method.UNKNOWN -> buf.rewind()
         }
 
@@ -43,7 +49,7 @@ class Api(
         val expr = when (op) {
             UnOp.RECV -> TODO()
             UnOp.NEG -> ctx.mkBvNegationExpr(bv(x))
-            UnOp.DEREF -> TODO()
+            UnOp.DEREF -> x
             UnOp.NOT -> ctx.mkNot(x.asExpr(ctx.boolSort))
             UnOp.INV -> ctx.mkBvNotExpr(bv(x))
             else -> throw UnknownUnaryOperationException()
@@ -166,6 +172,27 @@ class Api(
         return true
     }
 
+    private fun mkCallBuiltin(buf: ByteBuffer) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val builtin = BuiltinFunction.valueOf(buf.get())
+        val rvalue: UExpr<USort> = when (builtin) {
+            BuiltinFunction.LEN -> {
+                val kind = VarKind.valueOf(buf.get())
+                val type = Type.valueOf(buf.get())
+                scope.calcOnState {
+                    val array = memory.read(URegisterStackLValue(ctx.addressSort, resolveIndex(kind, buf.int)))
+                    memory.readArrayLength(array.asExpr(ctx.addressSort), type, ctx.sizeSort)
+                }
+            }
+            else -> throw UnknownFunctionException()
+        }
+        val lvalue = URegisterStackLValue(rvalue.sort, idx)
+
+        scope.doWithState {
+            memory.write(lvalue, rvalue, ctx.trueExpr)
+        }
+    }
+
     private fun mkIf(buf: ByteBuffer) {
         val expression = readVar(buf)
         val pos = buf.long
@@ -190,6 +217,29 @@ class Api(
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val rvalue = readVar(buf)
         val lvalue = URegisterStackLValue(rvalue.sort, idx)
+        scope.doWithState {
+            memory.write(lvalue, rvalue, ctx.trueExpr)
+        }
+    }
+
+    private fun mkPointerArrayReading(buf: ByteBuffer) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val arrayType = Type.ARRAY
+        val elementType = Type.valueOf(buf.get())
+        val sort = ctx.typeToSort(elementType)
+        val lvalue = URegisterStackLValue(sort, idx)
+
+        val array = readVar(buf).asExpr(ctx.addressSort)
+        val index = readVar(buf).asExpr(ctx.sizeSort)
+        val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
+
+        checkNotNull(array) ?: throw IllegalStateException()
+        checkIndex(index, length) ?: throw IndexOutOfBoundsException()
+        checkMaxLength(length) ?: throw IllegalStateException()
+
+        val rvalue = scope.calcOnState {
+            memory.readArrayIndex(array, index, arrayType, sort)
+        }
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
         }
@@ -231,6 +281,20 @@ class Api(
         return expr.asExpr(expr.sort as UBvSort)
     }
 
+    private fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
+        scope.assert(mkHeapRefEq(obj, ctx.nullRef).not())
+    }
+
+    private fun checkIndex(index: UExpr<USizeSort>, length: UExpr<USizeSort>): Unit? = with(ctx) {
+        val indexLtLength = mkBvSignedLessExpr(index, length)
+        scope.assert(indexLtLength)
+    }
+
+    private fun checkMaxLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
+        val lengthLeMaxLength = mkBvSignedLessExpr(length, ctx.mkSizeExpr(10_000)) //TODO buraindo magic number
+        scope.assert(lengthLeMaxLength)
+    }
+
     fun getLastBlock(): Int {
         return scope.calcOnState { lastBlock }
     }
@@ -245,9 +309,11 @@ private enum class Method(val value: Byte) {
     MK_UN_OP(1),
     MK_BIN_OP(2),
     MK_CALL(3),
-    MK_IF(4),
-    MK_RETURN(5),
-    MK_VARIABLE(6);
+    MK_CALL_BUILTIN(4),
+    MK_IF(5),
+    MK_RETURN(6),
+    MK_VARIABLE(7),
+    MK_POINTER_ARRAY_READING(8);
 
     companion object {
         private val values = values()
@@ -308,5 +374,16 @@ private enum class VarKind(val value: Byte) {
         private val values = values()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownVarKindException()
+    }
+}
+
+private enum class BuiltinFunction(val value: Byte) {
+    UNKNOWN(0),
+    LEN(1);
+
+    companion object {
+        private val values = values()
+
+        fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownFunctionException()
     }
 }

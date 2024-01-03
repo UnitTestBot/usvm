@@ -22,6 +22,7 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
@@ -123,6 +124,9 @@ class GoMachine(
                     ignoreMethod = { false }
                 )
             )
+        }
+        if (options.useSoftConstraints) {
+            observers.add(SoftConstraintsObserver())
         }
         if (logger.isInfoEnabled) {
             observers.add(
