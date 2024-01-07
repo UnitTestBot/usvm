@@ -28,8 +28,7 @@ class GoContext(
         Type.INT64, Type.UINT64 -> bv64Sort
         Type.FLOAT32 -> fp32Sort
         Type.FLOAT64 -> fp64Sort
-        Type.ARRAY -> addressSort
-        Type.STRUCT -> TODO()
+        Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE -> addressSort
         else -> throw UnknownSortException()
     }
 }
