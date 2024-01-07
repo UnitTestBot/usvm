@@ -5,6 +5,10 @@ import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.USizeSort
@@ -12,7 +16,10 @@ import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.type.Type
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
+import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import java.nio.ByteBuffer
 
@@ -31,6 +38,9 @@ class Api(
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_VARIABLE -> mkVariable(buf)
             Method.MK_POINTER_ARRAY_READING -> mkPointerArrayReading(buf)
+            Method.MK_ARRAY_READING -> mkPointerArrayReading(buf) // TODO(buraindo): change after pointers support
+            Method.MK_MAP_LOOKUP -> mkMapLookup(buf, nextInst)
+            Method.MK_MAP_UPDATE -> mkMapUpdate(buf)
             Method.UNKNOWN -> buf.rewind()
         }
 
@@ -184,6 +194,7 @@ class Api(
                     memory.readArrayLength(array.asExpr(ctx.addressSort), type, ctx.sizeSort)
                 }
             }
+
             else -> throw UnknownFunctionException()
         }
         val lvalue = URegisterStackLValue(rvalue.sort, idx)
@@ -225,23 +236,74 @@ class Api(
     private fun mkPointerArrayReading(buf: ByteBuffer) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val arrayType = Type.ARRAY
-        val elementType = Type.valueOf(buf.get())
-        val sort = ctx.typeToSort(elementType)
-        val lvalue = URegisterStackLValue(sort, idx)
+        val valueType = Type.valueOf(buf.get())
 
         val array = readVar(buf).asExpr(ctx.addressSort)
         val index = readVar(buf).asExpr(ctx.sizeSort)
         val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
 
-        checkNotNull(array) ?: throw IllegalStateException()
-        checkIndex(index, length) ?: throw IndexOutOfBoundsException()
-        checkMaxLength(length) ?: throw IllegalStateException()
+        checkNotNull(array) ?: return
+        checkIndex(index, length) ?: return
 
+        val valueSort = ctx.typeToSort(valueType)
+        val lvalue = URegisterStackLValue(valueSort, idx)
         val rvalue = scope.calcOnState {
-            memory.readArrayIndex(array, index, arrayType, sort)
+            memory.readArrayIndex(array, index, arrayType, valueSort)
         }
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
+        }
+    }
+
+    private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val mapType = Type.MAP.value.toLong()
+        val valueType = Type.valueOf(buf.get())
+
+        val map = readVar(buf).asExpr(ctx.addressSort)
+        val key = readVar(buf)
+
+        checkNotNull(map) ?: return
+
+        val valueSort = ctx.typeToSort(valueType)
+        val lvalue = URegisterStackLValue(valueSort, idx)
+        val rvalue = scope.calcOnState {
+            memory.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
+        }
+        val contains = scope.calcOnState { memory.setContainsElement(map, key, mapType, USizeExprKeyInfo()) }
+
+        scope.fork(
+            contains,
+            blockOnTrueState = {
+                memory.write(lvalue, rvalue, ctx.trueExpr)
+            },
+            blockOnFalseState = {
+                memory.write(lvalue, valueSort.sampleUValue(), ctx.trueExpr)
+                newInst(nextInst)
+            }
+        )
+    }
+
+    private fun mkMapUpdate(buf: ByteBuffer) = with(ctx) {
+        val mapType = Type.MAP.value.toLong()
+        val map = readVar(buf).asExpr(ctx.addressSort)
+        val key = readVar(buf)
+        val value = readVar(buf)
+
+        checkNotNull(map) ?: return
+
+        scope.doWithState {
+            val mapContainsLValue = USetEntryLValue(value.sort, map, key, mapType, USizeExprKeyInfo())
+            val currentSize = symbolicObjectMapSize(map, mapType)
+
+            val keyIsInMap = memory.read(mapContainsLValue)
+            val keyIsNew = mkNot(keyIsInMap)
+
+            memory.write(UMapEntryLValue(key.sort, value.sort, map, key, mapType, USizeExprKeyInfo()), value, guard = trueExpr)
+            memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
+
+            val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
+            memory.write(UMapLengthLValue(map, mapType, sizeSort), updatedSize, keyIsNew)
         }
     }
 
@@ -282,17 +344,15 @@ class Api(
     }
 
     private fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
-        scope.assert(mkHeapRefEq(obj, ctx.nullRef).not())
+        scope.fork(mkHeapRefEq(obj, nullRef).not(), blockOnFalseState = {
+            methodResult = GoMethodResult.Panic
+        })
     }
 
     private fun checkIndex(index: UExpr<USizeSort>, length: UExpr<USizeSort>): Unit? = with(ctx) {
-        val indexLtLength = mkBvSignedLessExpr(index, length)
-        scope.assert(indexLtLength)
-    }
-
-    private fun checkMaxLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
-        val lengthLeMaxLength = mkBvSignedLessExpr(length, ctx.mkSizeExpr(10_000)) //TODO buraindo magic number
-        scope.assert(lengthLeMaxLength)
+        scope.fork(mkBvSignedLessExpr(index, length), blockOnFalseState = {
+            methodResult = GoMethodResult.Panic
+        })
     }
 
     fun getLastBlock(): Int {
@@ -313,7 +373,10 @@ private enum class Method(val value: Byte) {
     MK_IF(5),
     MK_RETURN(6),
     MK_VARIABLE(7),
-    MK_POINTER_ARRAY_READING(8);
+    MK_POINTER_ARRAY_READING(8),
+    MK_ARRAY_READING(9),
+    MK_MAP_LOOKUP(10),
+    MK_MAP_UPDATE(11);
 
     companion object {
         private val values = values()

@@ -8,13 +8,15 @@ import io.ksmt.expr.KFp32Value
 import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.usvm.NULL_ADDRESS
-import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.bridge.GoBridge
+import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.set.primitive.setEntries
 import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.machine.GoContext
@@ -24,6 +26,7 @@ import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.Type
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
@@ -69,31 +72,59 @@ class GoTestInterpreter(
                 Type.INT64, Type.UINT64 -> resolveBv64(expr)
                 Type.FLOAT32 -> resolveFp32(expr)
                 Type.FLOAT64 -> resolveFp64(expr)
-                Type.ARRAY -> resolveArray(expr.asExpr(ctx.addressSort))
+                Type.ARRAY, Type.SLICE -> resolveArray(expr.asExpr(ctx.addressSort))
+                Type.MAP -> resolveMap(expr.asExpr(ctx.addressSort))
                 else -> null
             }
 
         fun resolveBool(expr: UExpr<UBoolSort>) = model.eval(expr).asExpr(ctx.boolSort).isTrue
+
         fun resolveBv8(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec8Value).byteValue
+
         fun resolveBv16(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec16Value).shortValue
+
         fun resolveBv32(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec32Value).intValue
+
         fun resolveBv64(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec64Value).longValue
+
         fun resolveFp32(expr: UExpr<out USort>) = (model.eval(expr) as KFp32Value).value
+
         fun resolveFp64(expr: UExpr<out USort>) = (model.eval(expr) as KFp64Value).value
-        fun resolveArray(ref: UExpr<UAddressSort>): List<Any?> {
-            if (ref == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
-                return emptyList()
+
+        fun resolveArray(array: UHeapRef): List<Any?>? {
+            if (array == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
             }
 
             val arrayType = Type.ARRAY
             val elementType = Type.INT32
-            val lengthUExpr = model.readArrayLength(ref, arrayType, ctx.sizeSort)
+            val lengthUExpr = model.readArrayLength(array, arrayType, ctx.sizeSort)
             val length = clipArrayLength(convertExpr(lengthUExpr, elementType) as Int)
             val result = (0 until length).map { idx ->
-                val indexUExpr = model.readArrayIndex(ref, ctx.mkSizeExpr(idx), arrayType, ctx.typeToSort(elementType))
+                val indexUExpr =
+                    model.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, ctx.typeToSort(elementType))
                 convertExpr(indexUExpr, elementType)
             }
             return result
+        }
+
+        fun resolveMap(map: UHeapRef): Map<Any?, Any?>? {
+            if (map == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            val mapType = Type.MAP.value.toLong()
+            val keyType = Type.INT32
+            val keySort = ctx.typeToSort(keyType)
+            val valueType = Type.INT32
+            val valueSort = ctx.typeToSort(valueType)
+            val entries = model.setEntries(map, mapType, keySort, USizeExprKeyInfo()).entries
+
+            return entries.associate { entry ->
+                val key = entry.setElement
+                val value = model.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
+                convertExpr(key, keyType) to convertExpr(value, valueType)
+            }
         }
     }
 

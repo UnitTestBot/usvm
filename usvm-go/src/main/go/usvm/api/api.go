@@ -20,10 +20,12 @@ type Api interface {
 	MkCallBuiltin(inst *ssa.Call, name string)
 	MkIf(inst *ssa.If)
 	MkReturn(inst *ssa.Return)
-	MkVariable(inst ssa.Value, value ssa.Value)
+	MkPhi(inst *ssa.Phi)
 	MkPointerArrayReading(inst *ssa.IndexAddr)
+	MkArrayReading(inst *ssa.Index)
+	MkMapLookup(inst *ssa.Lookup)
+	MkMapUpdate(inst *ssa.MapUpdate)
 
-	GetLastBlock() int
 	SetLastBlock(block int)
 	WriteLastBlock()
 
@@ -54,6 +56,9 @@ const (
 	MethodMkReturn
 	MethodMkVariable
 	MethodMkPointerArrayReading
+	MethodMkArrayReading
+	MethodMkMapLookup
+	MethodMkMapUpdate
 )
 
 type UnOp byte
@@ -217,13 +222,10 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 }
 
 func (a *api) MkIf(inst *ssa.If) {
-	pos := int64(util.ToPointer(&inst.Block().Succs[0].Instrs[0]))
-	neg := int64(util.ToPointer(&inst.Block().Succs[1].Instrs[0]))
-
 	a.buf.Write(byte(MethodMkIf))
 	a.writeVar(inst.Cond)
-	a.buf.WriteInt64(pos)
-	a.buf.WriteInt64(neg)
+	a.buf.WriteUintptr(util.ToPointer(&inst.Block().Succs[0].Instrs[0]))
+	a.buf.WriteUintptr(util.ToPointer(&inst.Block().Succs[1].Instrs[0]))
 }
 
 func (a *api) MkReturn(inst *ssa.Return) {
@@ -241,22 +243,41 @@ func (a *api) MkReturn(inst *ssa.Return) {
 	a.writeVar(value)
 }
 
-func (a *api) MkVariable(inst ssa.Value, value ssa.Value) {
-	a.buf.Write(byte(MethodMkVariable))
-	a.buf.WriteInt32(resolveRegister(inst))
-	a.writeVar(value)
+func (a *api) MkPhi(inst *ssa.Phi) {
+	var edge ssa.Value
+	for i, pred := range inst.Block().Preds {
+		if a.lastBlock == pred.Index {
+			edge = inst.Edges[i]
+			break
+		}
+	}
+
+	a.mkVariable(inst, edge)
 }
 
 func (a *api) MkPointerArrayReading(inst *ssa.IndexAddr) {
 	a.buf.Write(byte(MethodMkPointerArrayReading))
+	a.mkArrayReading(inst, inst.X, inst.Index)
+}
+
+func (a *api) MkArrayReading(inst *ssa.Index) {
+	a.buf.Write(byte(MethodMkArrayReading))
+	a.mkArrayReading(inst, inst.X, inst.Index)
+}
+
+func (a *api) MkMapLookup(inst *ssa.Lookup) {
+	a.buf.Write(byte(MethodMkMapLookup))
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.buf.Write(byte(typeslocal.GetType(inst)))
 	a.writeVar(inst.X)
 	a.writeVar(inst.Index)
 }
 
-func (a *api) GetLastBlock() int {
-	return a.lastBlock
+func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
+	a.buf.Write(byte(MethodMkMapUpdate))
+	a.writeVar(inst.Map)
+	a.writeVar(inst.Key)
+	a.writeVar(inst.Value)
 }
 
 func (a *api) SetLastBlock(block int) {
@@ -269,6 +290,19 @@ func (a *api) WriteLastBlock() {
 
 func (a *api) Log(values ...any) {
 	util.Log(values...)
+}
+
+func (a *api) mkArrayReading(inst, array, index ssa.Value) {
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.Write(byte(typeslocal.GetType(inst)))
+	a.writeVar(array)
+	a.writeVar(index)
+}
+
+func (a *api) mkVariable(inst ssa.Value, value ssa.Value) {
+	a.buf.Write(byte(MethodMkVariable))
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.writeVar(value)
 }
 
 func (a *api) writeVar(in ssa.Value) {

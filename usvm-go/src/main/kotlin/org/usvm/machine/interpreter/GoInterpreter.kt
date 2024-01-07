@@ -12,6 +12,7 @@ import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoTarget
 import org.usvm.machine.GoType
+import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
@@ -47,6 +48,11 @@ class GoInterpreter(
 
         val inst = state.currentStatement
         val scope = GoStepScope(state, forkBlackList)
+        if (state.methodResult is GoMethodResult.Panic) {
+            state.panic()
+            return scope.stepResult()
+        }
+
         val newInst = bridge.step(Api(ctx, scope), inst)
         if (newInst != 0L) {
             state.newInst(newInst)

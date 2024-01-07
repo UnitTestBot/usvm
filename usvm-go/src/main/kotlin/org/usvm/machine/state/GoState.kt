@@ -108,6 +108,19 @@ class GoState(
         }
     }
 
+    fun panic() {
+        require(methodResult is GoMethodResult.Panic)
+
+        val returnSite = callStack.pop()
+        if (callStack.isNotEmpty()) {
+            memory.stack.pop()
+        }
+
+        if (returnSite != null) {
+            newInst(returnSite)
+        }
+    }
+
     override fun toString(): String = buildString {
         appendLine("Instruction: $currentStatement")
         if (isExceptional) appendLine("Exception: $methodResult")
