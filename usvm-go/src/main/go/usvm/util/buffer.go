@@ -73,6 +73,10 @@ func (b *ByteBuffer) WriteInt64(i int64) *ByteBuffer {
 	return b.WriteUint64(uint64(i))
 }
 
+func (b *ByteBuffer) WriteUintptr(i uintptr) *ByteBuffer {
+	return b.WriteUint64(uint64(i))
+}
+
 func (b *ByteBuffer) WriteUint64(i uint64) *ByteBuffer {
 	b.buf[b.i] = byte(i >> 56)
 	b.buf[b.i+1] = byte(i >> 48)
