@@ -93,21 +93,32 @@ class GoMachineTest {
 
     @Test
     fun testSumArray() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH)))
         val results = machine.analyzeAndResolve(Path.getProgram("sum_array.go"), "sumArray", false)
         println(results)
     }
 
     @Test
     fun testFirstArray() {
-        val machine = GoMachine(
-            UMachineOptions(
-                listOf(PathSelectionStrategy.BFS),
-                stopOnCoverage = -1,
-                timeout = Duration.INFINITE,
-                stepLimit = 1_000_000UL,
-            ),
-        )
-        val results = machine.analyzeAndResolve(Path.getProgram("first_array.go"), "first", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("first_array.go"), "first", false)
+        println(results)
+    }
+
+    @Test
+    fun testStruct() {
+        val results = machine.analyzeAndResolve(Path.getProgram("struct.go"), "isOld", false)
+        println(results)
+    }
+
+    @Test
+    fun testMapLookup() {
+        val results = machine.analyzeAndResolve(Path.getProgram("map_lookup.go"), "lookup", false)
+        println(results)
+    }
+
+    @Test
+    fun testMapUpdate() {
+        val results = machine.analyzeAndResolve(Path.getProgram("map_update.go"), "update", true)
         println(results)
     }
 }

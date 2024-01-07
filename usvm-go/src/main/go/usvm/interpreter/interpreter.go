@@ -229,26 +229,20 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkPointerArrayReading(inst)
 
 	case *ssa.Index:
+		api.MkArrayReading(inst)
 
 	case *ssa.Lookup:
+		api.MkMapLookup(inst)
 
 	case *ssa.MapUpdate:
+		api.MkMapUpdate(inst)
 
 	case *ssa.TypeAssert:
 
 	case *ssa.MakeClosure:
 
 	case *ssa.Phi:
-		var edge ssa.Value
-		block := api.GetLastBlock()
-		for i, pred := range inst.Block().Preds {
-			if block == pred.Index {
-				edge = inst.Edges[i]
-				break
-			}
-		}
-
-		api.MkVariable(inst, edge)
+		api.MkPhi(inst)
 
 	case *ssa.Select:
 

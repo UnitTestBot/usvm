@@ -22,7 +22,10 @@ const (
 	TypeFloat32
 	TypeFloat64
 	TypeArray
+	TypeSlice
+	TypeMap
 	TypeStruct
+	TypeInterface
 )
 
 var typeMapping = []Type{
@@ -54,10 +57,16 @@ func MapType(t types.Type) Type {
 	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		return typeMapping[t.Kind()]
-	case *types.Array, *types.Slice:
+	case *types.Array:
 		return TypeArray
+	case *types.Slice:
+		return TypeSlice
+	case *types.Map:
+		return TypeMap
 	case *types.Struct:
 		return TypeStruct
+	case *types.Interface:
+		return TypeInterface
 	case *types.Pointer:
 		return MapType(t.Elem())
 	default:

@@ -16,7 +16,7 @@ func main() {
 		dir = "/home/buraindo/programs"
 	}
 
-	_, err := interpreter.NewInterpreter(fmt.Sprintf("%s/min3.go", dir), interpreter.Config{
+	_, err := interpreter.NewInterpreter(fmt.Sprintf("%s/playground.go", dir), interpreter.Config{
 		DumpSsa: true,
 	})
 	if err != nil {
