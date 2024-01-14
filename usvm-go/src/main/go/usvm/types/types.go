@@ -26,6 +26,7 @@ const (
 	TypeMap
 	TypeStruct
 	TypeInterface
+	TypePointer
 )
 
 var typeMapping = []Type{
@@ -49,11 +50,11 @@ var typeMapping = []Type{
 	types.UntypedFloat: TypeFloat64,
 }
 
-func GetType(v ssa.Value) Type {
-	return MapType(v.Type())
+func GetType(v ssa.Value, unwrap bool) Type {
+	return MapType(v.Type(), unwrap)
 }
 
-func MapType(t types.Type) Type {
+func MapType(t types.Type, unwrap bool) Type {
 	switch t := t.Underlying().(type) {
 	case *types.Basic:
 		return typeMapping[t.Kind()]
@@ -68,7 +69,10 @@ func MapType(t types.Type) Type {
 	case *types.Interface:
 		return TypeInterface
 	case *types.Pointer:
-		return MapType(t.Elem())
+		if unwrap {
+			return MapType(t.Elem(), false)
+		}
+		return TypePointer
 	default:
 		return TypeUnknown
 	}

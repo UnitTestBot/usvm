@@ -106,11 +106,18 @@ class GoBridge {
     fun methodInfo(method: GoMethod): GoMethodInfo {
         Bridge.methodInfo(method, address)
         val returnType = buf.get()
-        val localsCount = buf.int
+        val variablesCount = buf.int
+        val allocationsCount = buf.int
         val parametersCount = buf.int
         val parametersTypes = Array(parametersCount) { Type.valueOf(buf.get()) }
         buf.rewind()
-        return GoMethodInfo(Type.valueOf(returnType), localsCount, parametersCount, parametersTypes)
+        return GoMethodInfo(
+            Type.valueOf(returnType),
+            variablesCount,
+            allocationsCount,
+            parametersCount,
+            parametersTypes
+        )
     }
 
     fun instInfo(inst: GoInst): GoInstInfo {

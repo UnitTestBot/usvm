@@ -21,6 +21,7 @@ import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KUninterpretedSort
+import org.usvm.memory.ULValue
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import kotlin.contracts.ExperimentalContracts
@@ -46,6 +47,7 @@ typealias UNotExpr = KNotExpr
 typealias UIntepretedValue<Sort> = KInterpretedValue<Sort>
 
 typealias UAddressSort = KUninterpretedSort
+typealias UPointerSort = KUninterpretedSort
 
 //endregion
 
@@ -311,6 +313,30 @@ class UIsSupertypeExpr<Type> internal constructor(
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { subtype })
 
     override fun internHashCode(): Int = hash(ref, subtype)
+}
+
+//endregion
+
+//region Pointer Semantics
+
+class UPointer(
+    ctx: UContext<*>,
+    var target: ULValue<*, *>
+) : UExpr<UPointerSort>(ctx) {
+    override val sort: UPointerSort = ctx.pointerSort
+
+    override fun accept(transformer: KTransformerBase): KExpr<UPointerSort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) { target }
+
+    override fun internHashCode(): Int = hash(target)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("&$target")
+    }
 }
 
 //endregion
