@@ -18,9 +18,13 @@ type Api interface {
 	MkBinOp(inst *ssa.BinOp)
 	MkCall(inst *ssa.Call)
 	MkCallBuiltin(inst *ssa.Call, name string)
+	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
+	MkAlloc(inst *ssa.Alloc)
 	MkReturn(inst *ssa.Return)
 	MkPhi(inst *ssa.Phi)
+	MkPointerFieldReading(inst *ssa.FieldAddr)
+	MkFieldReading(inst *ssa.Field)
 	MkPointerArrayReading(inst *ssa.IndexAddr)
 	MkArrayReading(inst *ssa.Index)
 	MkMapLookup(inst *ssa.Lookup)
@@ -52,9 +56,13 @@ const (
 	MethodMkBinOp
 	MethodMkCall
 	MethodMkCallBuiltin
+	MethodMkStore
 	MethodMkIf
+	MethodMkAlloc
 	MethodMkReturn
 	MethodMkVariable
+	MethodMkPointerFieldReading
+	MethodMkFieldReading
 	MethodMkPointerArrayReading
 	MethodMkArrayReading
 	MethodMkMapLookup
@@ -141,7 +149,7 @@ type api struct {
 func (a *api) MkUnOp(inst *ssa.UnOp) {
 	name := resolveRegister(inst)
 	u := byte(unOpMapping[inst.Op])
-	t := byte(typeslocal.GetType(inst))
+	t := byte(typeslocal.GetType(inst, false))
 
 	a.buf.Write(byte(MethodMkUnOp))
 	a.buf.Write(u)
@@ -153,7 +161,7 @@ func (a *api) MkUnOp(inst *ssa.UnOp) {
 func (a *api) MkBinOp(inst *ssa.BinOp) {
 	name := resolveRegister(inst)
 	b := byte(binOpMapping[inst.Op])
-	t := byte(typeslocal.GetType(inst))
+	t := byte(typeslocal.GetType(inst, false))
 
 	a.buf.Write(byte(MethodMkBinOp))
 	a.buf.Write(b)
@@ -176,9 +184,7 @@ func (a *api) MkCall(inst *ssa.Call) {
 	function := graph.Callee(a.program, call)
 	a.buf.WriteInt64(int64(util.ToPointer(function)))
 	a.buf.WriteInt64(int64(util.ToPointer(&function.Blocks[0].Instrs[0])))
-
-	a.buf.WriteInt32(int32(graph.LocalsCount(function)))
-	a.buf.WriteInt32(int32(len(function.Params)))
+	a.buf.WriteMethodInfo(graph.MethodInfo(function))
 
 	args = append(args, call.Args...)
 	for i := range args {
@@ -221,11 +227,24 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	}
 }
 
+func (a *api) MkStore(inst *ssa.Store) {
+	a.buf.Write(byte(MethodMkStore))
+	a.writeVar(inst.Addr)
+	a.writeVar(inst.Val)
+}
+
 func (a *api) MkIf(inst *ssa.If) {
 	a.buf.Write(byte(MethodMkIf))
 	a.writeVar(inst.Cond)
 	a.buf.WriteUintptr(util.ToPointer(&inst.Block().Succs[0].Instrs[0]))
 	a.buf.WriteUintptr(util.ToPointer(&inst.Block().Succs[1].Instrs[0]))
+}
+
+func (a *api) MkAlloc(inst *ssa.Alloc) {
+	a.buf.Write(byte(MethodMkAlloc))
+	a.buf.Write(byte(VarKindLocal))
+	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteInt32(resolveRegister(inst))
 }
 
 func (a *api) MkReturn(inst *ssa.Return) {
@@ -255,6 +274,16 @@ func (a *api) MkPhi(inst *ssa.Phi) {
 	a.mkVariable(inst, edge)
 }
 
+func (a *api) MkPointerFieldReading(inst *ssa.FieldAddr) {
+	a.buf.Write(byte(MethodMkPointerFieldReading))
+	a.mkFieldReading(inst, inst.X, inst.Field)
+}
+
+func (a *api) MkFieldReading(inst *ssa.Field) {
+	a.buf.Write(byte(MethodMkFieldReading))
+	a.mkFieldReading(inst, inst.X, inst.Field)
+}
+
 func (a *api) MkPointerArrayReading(inst *ssa.IndexAddr) {
 	a.buf.Write(byte(MethodMkPointerArrayReading))
 	a.mkArrayReading(inst, inst.X, inst.Index)
@@ -268,7 +297,7 @@ func (a *api) MkArrayReading(inst *ssa.Index) {
 func (a *api) MkMapLookup(inst *ssa.Lookup) {
 	a.buf.Write(byte(MethodMkMapLookup))
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.Write(byte(typeslocal.GetType(inst)))
+	a.buf.Write(byte(typeslocal.GetType(inst, false)))
 	a.writeVar(inst.X)
 	a.writeVar(inst.Index)
 }
@@ -292,9 +321,16 @@ func (a *api) Log(values ...any) {
 	util.Log(values...)
 }
 
+func (a *api) mkFieldReading(inst, object ssa.Value, index int) {
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.writeVar(object)
+	a.buf.WriteInt32(int32(index))
+}
+
 func (a *api) mkArrayReading(inst, array, index ssa.Value) {
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.Write(byte(typeslocal.GetType(inst)))
+	a.buf.Write(byte(typeslocal.GetType(inst, true)))
 	a.writeVar(array)
 	a.writeVar(index)
 }
@@ -311,20 +347,19 @@ func (a *api) writeVar(in ssa.Value) {
 		f := in.Parent()
 		for i, p := range f.Params {
 			if p == in {
-				a.buf.Write(byte(VarKindParameter)).Write(byte(typeslocal.GetType(in))).WriteInt32(int32(i))
+				a.buf.Write(byte(VarKindParameter)).Write(byte(typeslocal.GetType(in, false))).WriteInt32(int32(i))
 			}
 		}
 	case *ssa.Const:
 		a.buf.Write(byte(VarKindConst))
 		a.writeConst(in)
 	default:
-		i := resolveRegister(in)
-		a.buf.Write(byte(VarKindLocal)).Write(byte(typeslocal.GetType(in))).WriteInt32(i)
+		a.buf.Write(byte(VarKindLocal)).Write(byte(typeslocal.GetType(in, false))).WriteInt32(resolveRegister(in))
 	}
 }
 
 func (a *api) writeConst(in *ssa.Const) {
-	t := typeslocal.GetType(in)
+	t := typeslocal.GetType(in, false)
 	a.buf.Write(byte(t))
 	switch t {
 	case typeslocal.TypeBool:

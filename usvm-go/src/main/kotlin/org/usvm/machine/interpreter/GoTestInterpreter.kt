@@ -14,6 +14,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
+import org.usvm.api.readField
 import org.usvm.bridge.GoBridge
 import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.set.primitive.setEntries
@@ -74,6 +75,7 @@ class GoTestInterpreter(
                 Type.FLOAT64 -> resolveFp64(expr)
                 Type.ARRAY, Type.SLICE -> resolveArray(expr.asExpr(ctx.addressSort))
                 Type.MAP -> resolveMap(expr.asExpr(ctx.addressSort))
+                Type.STRUCT -> resolveStruct(expr.asExpr(ctx.addressSort))
                 else -> null
             }
 
@@ -125,6 +127,16 @@ class GoTestInterpreter(
                 val value = model.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
                 convertExpr(key, keyType) to convertExpr(value, valueType)
             }
+        }
+
+        fun resolveStruct(struct: UHeapRef): List<Any?>? {
+            if (struct == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            val age = model.readField(struct, 0, ctx.bv32Sort)
+            val gender = model.readField(struct, 1, ctx.boolSort)
+            return listOf(convertExpr(age, Type.INT32), convertExpr(gender, Type.BOOL))
         }
     }
 
