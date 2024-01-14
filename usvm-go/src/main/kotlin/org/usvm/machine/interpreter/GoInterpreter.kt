@@ -30,7 +30,7 @@ class GoInterpreter(
 
         logger.debug("Method: {}, info: {}", method, methodInfo)
 
-        ctx.setArgsCount(method, methodInfo.parametersCount)
+        ctx.setMethodInfo(method, methodInfo)
 
         val solver = ctx.solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
@@ -38,7 +38,7 @@ class GoInterpreter(
 
         val entrypoint = bridge.entryPoints(method).first[0]
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(methodInfo.parametersCount, methodInfo.localsCount)
+        state.memory.stack.push(methodInfo.parametersCount, methodInfo.variablesCount + methodInfo.allocationsCount)
         state.newInst(entrypoint)
         return state
     }

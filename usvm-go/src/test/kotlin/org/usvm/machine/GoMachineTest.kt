@@ -24,7 +24,8 @@ class GoMachineTest {
 
     @Test
     fun testMin3() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val machine =
+            GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
         val results = machine.analyzeAndResolve(Path.getProgram("min3.go"), "min3", false)
         println(results)
     }
@@ -111,6 +112,18 @@ class GoMachineTest {
     }
 
     @Test
+    fun testStructFieldSet() {
+        val results = machine.analyzeAndResolve(Path.getProgram("struct_field_set.go"), "setPerfectAge", false)
+        println(results)
+    }
+
+    @Test
+    fun testStructPointer() {
+        val results = machine.analyzeAndResolve(Path.getProgram("struct_pointer.go"), "setPerfectAge", false)
+        println(results)
+    }
+
+    @Test
     fun testMapLookup() {
         val results = machine.analyzeAndResolve(Path.getProgram("map_lookup.go"), "lookup", false)
         println(results)
@@ -118,7 +131,19 @@ class GoMachineTest {
 
     @Test
     fun testMapUpdate() {
-        val results = machine.analyzeAndResolve(Path.getProgram("map_update.go"), "update", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("map_update.go"), "update", false)
+        println(results)
+    }
+
+    @Test
+    fun testPointer() {
+        val results = machine.analyzeAndResolve(Path.getProgram("pointer.go"), "pointer", false)
+        println(results)
+    }
+
+    @Test
+    fun testPointerArray() {
+        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", false)
         println(results)
     }
 }
