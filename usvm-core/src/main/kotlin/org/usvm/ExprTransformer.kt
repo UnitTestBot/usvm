@@ -67,6 +67,9 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
     fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort>
 
     fun transform(expr: UNullRef): UExpr<UAddressSort>
+
+//    fun <Key, Sort : USort> transform(expr: UPointer<Key, Sort>): UExpr<UPointerSort>
+    fun transform(expr: UPointer): UExpr<UPointerSort>
 }
 
 abstract class UExprTransformer<Type, USizeSort : USort>(

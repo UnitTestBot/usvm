@@ -197,6 +197,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.Send:
 
 	case *ssa.Store:
+		api.MkStore(inst)
 
 	case *ssa.If:
 		api.MkIf(inst)
@@ -212,6 +213,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.MakeChan:
 
 	case *ssa.Alloc:
+		api.MkAlloc(inst)
 
 	case *ssa.MakeSlice:
 
@@ -222,8 +224,10 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.Next:
 
 	case *ssa.FieldAddr:
+		api.MkPointerFieldReading(inst)
 
 	case *ssa.Field:
+		api.MkFieldReading(inst)
 
 	case *ssa.IndexAddr:
 		api.MkPointerArrayReading(inst)

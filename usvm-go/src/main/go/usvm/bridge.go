@@ -19,7 +19,6 @@ import (
 	"usvm/api"
 	"usvm/graph"
 	"usvm/interpreter"
-	typeslocal "usvm/types"
 	"usvm/util"
 )
 
@@ -360,13 +359,7 @@ func methodInfo(pointer C.jlong, arr C.jlong) {
 		return
 	}
 
-	buf := util.NewByteBuffer(uintptr(arr))
-	buf.Write(byte(typeslocal.MapType(function.Signature.Results().At(0).Type())))
-	buf.WriteInt32(int32(graph.LocalsCount(function)))
-	buf.WriteInt32(int32(len(function.Params)))
-	for i := range function.Params {
-		buf.Write(byte(typeslocal.GetType(function.Params[i])))
-	}
+	util.NewByteBuffer(uintptr(arr)).WriteMethodInfo(graph.MethodInfo(function))
 }
 
 //export instInfo

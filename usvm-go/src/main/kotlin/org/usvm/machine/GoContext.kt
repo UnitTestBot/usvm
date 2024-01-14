@@ -13,11 +13,26 @@ class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
     private var argsCount: MutableMap<Long, Int> = mutableMapOf()
+    private var allocationIndex: MutableMap<Long, MutableMap<Int, Int>> = mutableMapOf()
+    private var allocationOffset: MutableMap<Long, Int> = mutableMapOf()
 
     fun getArgsCount(method: Long): Int = argsCount[method]!!
 
-    fun setArgsCount(method: Long, count: Int) {
-        argsCount[method] = count
+    fun getAllocationIndex(method: Long, index: Int): Int {
+        val offset = allocationOffset[method]!!
+        val indices = allocationIndex[method]!!
+        if (index in indices) {
+            return indices[index]!!
+        }
+        indices[index] = offset
+        allocationOffset[method] = offset + 1
+        return offset
+    }
+
+    fun setMethodInfo(method: Long, info: GoMethodInfo) {
+        argsCount[method] = info.parametersCount
+        allocationIndex[method] = mutableMapOf()
+        allocationOffset[method] = info.parametersCount + info.variablesCount
     }
 
     fun typeToSort(type: Type): USort = when (type) {
@@ -29,6 +44,7 @@ class GoContext(
         Type.FLOAT32 -> fp32Sort
         Type.FLOAT64 -> fp64Sort
         Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE -> addressSort
+        Type.POINTER -> pointerSort
         else -> throw UnknownSortException()
     }
 }
