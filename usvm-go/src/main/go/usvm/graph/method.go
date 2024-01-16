@@ -13,13 +13,8 @@ func MethodInfo(function *ssa.Function) domain.MethodInfo {
 	returnType := types.MapType(function.Signature.Results().At(0).Type(), false)
 
 	variablesCount := 0
-	allocationsCount := 0
 	for _, b := range function.Blocks {
 		for _, i := range b.Instrs {
-			switch i.(type) {
-			case *ssa.Alloc:
-				allocationsCount++
-			}
 			if reflect.ValueOf(i).Elem().Field(0).Type().Name() == "register" {
 				variablesCount++
 			}
@@ -33,11 +28,10 @@ func MethodInfo(function *ssa.Function) domain.MethodInfo {
 	}
 
 	return domain.MethodInfo{
-		ReturnType:       returnType,
-		VariablesCount:   variablesCount,
-		AllocationsCount: allocationsCount,
-		ParametersCount:  parametersCount,
-		ParametersTypes:  parametersTypes,
+		ReturnType:      returnType,
+		VariablesCount:  variablesCount,
+		ParametersCount: parametersCount,
+		ParametersTypes: parametersTypes,
 	}
 }
 

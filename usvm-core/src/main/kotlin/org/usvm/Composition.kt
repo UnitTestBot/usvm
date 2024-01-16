@@ -121,8 +121,7 @@ open class UComposer<Type, USizeSort : USort>(
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
 
-//    override fun <Key, Sort : USort> transform(expr: UPointer<Key, Sort>): UExpr<UPointerSort> = expr
-    override fun transform(expr: UPointer): UExpr<UPointerSort> = expr
+    override fun transform(expr: UPointer): UExpr<UAddressSort> = expr
 }
 
 @Suppress("NOTHING_TO_INLINE")

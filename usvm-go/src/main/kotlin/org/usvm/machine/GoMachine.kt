@@ -63,6 +63,9 @@ class GoMachine(
         val results = analyze(listOf(entryPoint))
         val shutdownCode = bridge.shutdown()
         logger.debug("Bridge shutdown: code {}", shutdownCode)
+        if (shutdownCode != 0) {
+            return emptyList()
+        }
         return results
     }
 

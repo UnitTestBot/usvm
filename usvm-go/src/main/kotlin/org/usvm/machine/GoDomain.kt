@@ -9,12 +9,11 @@ typealias GoType = Long
 class GoMethodInfo(
     val returnType: Type,
     val variablesCount: Int,
-    val allocationsCount: Int,
     val parametersCount: Int,
     val parametersTypes: Array<Type>
 ) {
     override fun toString(): String {
-        return "returnType: $returnType, variables: $variablesCount, allocations: $allocationsCount, params: $parametersCount"
+        return "returnType: $returnType, variables: $variablesCount, params: $parametersCount"
     }
 }
 

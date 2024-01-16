@@ -1,8 +1,13 @@
 package org.usvm.machine
 
+import io.ksmt.utils.asExpr
+import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UPointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
 import org.usvm.machine.type.Type
@@ -13,26 +18,11 @@ class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
     private var argsCount: MutableMap<Long, Int> = mutableMapOf()
-    private var allocationIndex: MutableMap<Long, MutableMap<Int, Int>> = mutableMapOf()
-    private var allocationOffset: MutableMap<Long, Int> = mutableMapOf()
 
     fun getArgsCount(method: Long): Int = argsCount[method]!!
 
-    fun getAllocationIndex(method: Long, index: Int): Int {
-        val offset = allocationOffset[method]!!
-        val indices = allocationIndex[method]!!
-        if (index in indices) {
-            return indices[index]!!
-        }
-        indices[index] = offset
-        allocationOffset[method] = offset + 1
-        return offset
-    }
-
     fun setMethodInfo(method: Long, info: GoMethodInfo) {
         argsCount[method] = info.parametersCount
-        allocationIndex[method] = mutableMapOf()
-        allocationOffset[method] = info.parametersCount + info.variablesCount
     }
 
     fun typeToSort(type: Type): USort = when (type) {
@@ -46,5 +36,9 @@ class GoContext(
         Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE -> addressSort
         Type.POINTER -> pointerSort
         else -> throw UnknownSortException()
+    }
+
+    fun mkPointer(address: UConcreteHeapAddress): UExpr<USort> {
+        return UPointer(this, address).asExpr(pointerSort)
     }
 }

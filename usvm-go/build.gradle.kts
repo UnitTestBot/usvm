@@ -24,7 +24,7 @@ dependencies {
     implementation(files("libs/nalim.jar"))
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-    implementation(group = "org.slf4j", name = "slf4j-simple", version = Versions.slf4j)
+    implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
