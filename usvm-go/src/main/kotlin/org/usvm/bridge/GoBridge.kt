@@ -107,14 +107,12 @@ class GoBridge {
         Bridge.methodInfo(method, address)
         val returnType = buf.get()
         val variablesCount = buf.int
-        val allocationsCount = buf.int
         val parametersCount = buf.int
         val parametersTypes = Array(parametersCount) { Type.valueOf(buf.get()) }
         buf.rewind()
         return GoMethodInfo(
             Type.valueOf(returnType),
             variablesCount,
-            allocationsCount,
             parametersCount,
             parametersTypes
         )

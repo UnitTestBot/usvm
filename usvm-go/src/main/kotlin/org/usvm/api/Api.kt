@@ -19,7 +19,7 @@ import org.usvm.machine.USizeSort
 import org.usvm.machine.interpreter.GoStepScope
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.type.Type
-import org.usvm.memory.ULValue
+import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeAddExpr
@@ -68,7 +68,7 @@ class Api(
         val expr = when (op) {
             UnOp.RECV -> TODO()
             UnOp.NEG -> ctx.mkBvNegationExpr(bv(x))
-            UnOp.DEREF -> scope.calcOnState { memory.read((x as UPointer).target) }
+            UnOp.DEREF -> deref(x, sort)
             UnOp.NOT -> ctx.mkNot(x.asExpr(ctx.boolSort))
             UnOp.INV -> ctx.mkBvNotExpr(bv(x))
             else -> throw UnknownUnaryOperationException()
@@ -183,7 +183,7 @@ class Api(
 
         scope.doWithState {
             callStack.push(method, currentStatement)
-            memory.stack.push(parameters, methodInfo.variablesCount + methodInfo.allocationsCount)
+            memory.stack.push(parameters, methodInfo.variablesCount)
             newInst(entrypoint)
         }
 
@@ -213,19 +213,9 @@ class Api(
     }
 
     private fun mkStore(buf: ByteBuffer) {
-        val kind = VarKind.valueOf(buf.get())
-        Type.valueOf(buf.get())
-        val idx = resolveIndex(kind, buf.int)
-
-        val pointer = scope.calcOnState {
-            memory.read(URegisterStackLValue(ctx.pointerSort, idx)).asExpr(ctx.pointerSort)
-        }
-        if (pointer !is UPointer) {
-            throw IllegalStateException()
-        }
-
+        val ref = ctx.mkConcreteHeapRef((readVar(buf) as UPointer).address)
         val rvalue = readVar(buf)
-        val lvalue = pointer.target.withSort(rvalue.sort)
+        val lvalue = GoPointerLValue(ref, rvalue.sort)
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
         }
@@ -246,17 +236,13 @@ class Api(
 
     private fun mkHeapAlloc(buf: ByteBuffer) {
         val kind = VarKind.valueOf(buf.get())
-        val type = Type.valueOf(buf.get())
-        val sort = ctx.typeToSort(type)
+        val type = Type.valueOf(buf.get()).value.toLong()
         val idx = resolveIndex(kind, buf.int)
 
-        val method = scope.calcOnState { lastEnteredMethod }
-        val allocationIdx = ctx.getAllocationIndex(method, idx)
-
         val lvalue = URegisterStackLValue(ctx.pointerSort, idx)
-        val rvalue = UPointer(ctx, URegisterStackLValue(sort, allocationIdx))
         scope.doWithState {
-            memory.write(lvalue, rvalue.asExpr(ctx.pointerSort), ctx.trueExpr)
+            val ref = memory.allocConcrete(type)
+            memory.write(lvalue, ctx.mkPointer(ref.address), ctx.trueExpr)
         }
     }
 
@@ -279,9 +265,11 @@ class Api(
     private fun mkPointerFieldReading(buf: ByteBuffer) {
         val obj = readFieldReading(buf) ?: return
         val lvalue = URegisterStackLValue(ctx.pointerSort, obj.varIndex)
-        val rvalue = UPointer(ctx, UFieldLValue(obj.sort, obj.ref, obj.field))
         scope.doWithState {
-            memory.write(lvalue, rvalue.asExpr(ctx.pointerSort), ctx.trueExpr)
+            val ref = memory.allocConcrete(obj.type.value.toLong())
+            val field = memory.read(UFieldLValue(obj.sort, obj.ref, obj.field))
+            memory.write(GoPointerLValue(ref, obj.sort), field, ctx.trueExpr)
+            memory.write(lvalue, ctx.mkPointer(ref.address), ctx.trueExpr)
         }
     }
 
@@ -299,9 +287,11 @@ class Api(
     private fun mkPointerArrayReading(buf: ByteBuffer) {
         val arr = readArrayReading(buf) ?: return
         val lvalue = URegisterStackLValue(ctx.pointerSort, arr.varIndex)
-        val rvalue = UPointer(ctx, UArrayIndexLValue(arr.sort, arr.ref, arr.index, Type.ARRAY))
         scope.doWithState {
-            memory.write(lvalue, rvalue.asExpr(ctx.pointerSort), ctx.trueExpr)
+            val ref = memory.allocConcrete(arr.type.value.toLong())
+            val element = memory.read(UArrayIndexLValue(arr.sort, arr.ref, arr.index, Type.ARRAY))
+            memory.write(GoPointerLValue(ref, arr.sort), element, ctx.trueExpr)
+            memory.write(lvalue, ctx.mkPointer(ref.address), ctx.trueExpr)
         }
     }
 
@@ -409,14 +399,12 @@ class Api(
     private fun readMethodInfo(buf: ByteBuffer): GoMethodInfo {
         val returnType = buf.get()
         val variablesCount = buf.int
-        val allocationsCount = buf.int
         val parametersCount = buf.int
         val parametersTypes = Array(parametersCount) { Type.valueOf(buf.get()) }
 
         return GoMethodInfo(
             Type.valueOf(returnType),
             variablesCount,
-            allocationsCount,
             parametersCount,
             parametersTypes
         )
@@ -435,7 +423,7 @@ class Api(
         checkNotNull(array) ?: return null
         checkIndex(index, length) ?: return null
 
-        return ArrayReading(array, valueSort, varIndex, index)
+        return ArrayReading(array, valueType, valueSort, varIndex, index)
     }
 
     private fun readFieldReading(buf: ByteBuffer): FieldReading? {
@@ -443,26 +431,18 @@ class Api(
         val valueType = Type.valueOf(buf.get())
         val valueSort = ctx.typeToSort(valueType)
 
-        val variable = readVar(buf)
-        val obj = when (variable.sort) {
-            ctx.pointerSort -> {
-                variable as UPointer
-                scope.calcOnState {
-                    memory.read(variable.target).asExpr(ctx.addressSort)
-                }
+        val obj = readVar(buf).let {
+            if (it.sort == ctx.pointerSort) {
+                deref(it, ctx.addressSort)
+            } else {
+                it.asExpr(ctx.addressSort)
             }
-
-            ctx.addressSort -> {
-                variable.asExpr(ctx.addressSort)
-            }
-
-            else -> return null
         }
         val field = buf.int
 
         checkNotNull(obj) ?: return null
 
-        return FieldReading(obj, valueSort, varIndex, field)
+        return FieldReading(obj, valueType, valueSort, varIndex, field)
     }
 
     private fun resolveIndex(kind: VarKind, value: Int): Int = when (kind) {
@@ -475,6 +455,13 @@ class Api(
         return expr.asExpr(expr.sort as UBvSort)
     }
 
+    private fun <Sort : USort> deref(expr: UExpr<USort>, sort: Sort): UExpr<Sort> {
+        return scope.calcOnState {
+            expr as UPointer
+            memory.read(GoPointerLValue(ctx.mkConcreteHeapRef(expr.address), sort))
+        }
+    }
+
     private fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
         scope.fork(mkHeapRefEq(obj, nullRef).not(), blockOnFalseState = {
             methodResult = GoMethodResult.Panic
@@ -485,13 +472,6 @@ class Api(
         scope.fork(mkBvSignedLessExpr(index, length), blockOnFalseState = {
             methodResult = GoMethodResult.Panic
         })
-    }
-
-    private fun <T : USort> ULValue<*, *>.withSort(sort: T): ULValue<*, T> {
-        check(this@withSort.sort == sort) { "Sort mismatch" }
-
-        @Suppress("UNCHECKED_CAST")
-        return this@withSort as ULValue<*, T>
     }
 }
 
@@ -588,6 +568,7 @@ private enum class BuiltinFunction(val value: Byte) {
 
 private data class ArrayReading(
     val ref: UHeapRef,
+    val type: Type,
     val sort: USort,
     val varIndex: Int,
     val index: UExpr<USizeSort>,
@@ -595,6 +576,7 @@ private data class ArrayReading(
 
 private data class FieldReading(
     val ref: UHeapRef,
+    val type: Type,
     val sort: USort,
     val varIndex: Int,
     val field: Int,

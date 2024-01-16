@@ -38,7 +38,7 @@ class GoInterpreter(
 
         val entrypoint = bridge.entryPoints(method).first[0]
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(methodInfo.parametersCount, methodInfo.variablesCount + methodInfo.allocationsCount)
+        state.memory.stack.push(methodInfo.parametersCount, methodInfo.variablesCount)
         state.newInst(entrypoint)
         return state
     }

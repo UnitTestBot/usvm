@@ -11,8 +11,8 @@ class GoTypeSystem(
     private val bridge: GoBridge,
     override val typeOperationsTimeout: Duration
 ) : UTypeSystem<GoType> {
-    private val anyType = bridge.getAnyType()
-    private val topTypeStream by lazy { USupportTypeStream.from(this, anyType) }
+    private val goAnyType = bridge.getAnyType()
+    private val topTypeStream by lazy { USupportTypeStream.from(this, goAnyType) }
 
     override fun topTypeStream(): UTypeStream<GoType> {
         return topTypeStream

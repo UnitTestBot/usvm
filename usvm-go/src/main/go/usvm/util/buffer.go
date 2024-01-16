@@ -103,7 +103,6 @@ func (b *ByteBuffer) WriteFloat64(i float64) *ByteBuffer {
 func (b *ByteBuffer) WriteMethodInfo(i domain.MethodInfo) *ByteBuffer {
 	b.Write(byte(i.ReturnType))
 	b.WriteInt32(int32(i.VariablesCount))
-	b.WriteInt32(int32(i.AllocationsCount))
 	b.WriteInt32(int32(i.ParametersCount))
 	for _, t := range i.ParametersTypes {
 		b.Write(byte(t))

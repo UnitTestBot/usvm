@@ -89,7 +89,7 @@ open class UContext<USizeSort : USort>(
     fun <Type> composer(memory: UReadOnlyMemory<Type>): UComposer<Type, USizeSort> = composerBuilder(memory).cast()
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
-    val pointerSort: UPointerSort = mkUninterpretedSort("Pointer")
+    val pointerSort: UAddressSort = mkUninterpretedSort("Pointer")
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {

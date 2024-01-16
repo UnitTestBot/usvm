@@ -54,7 +54,6 @@ typealias UConcreteInt64 = KBitVec64Value
 typealias UConcreteSize = KBitVec32Value
 
 typealias UAddressSort = KUninterpretedSort
-typealias UPointerSort = KUninterpretedSort
 
 typealias USizeType = Int
 
@@ -330,21 +329,21 @@ class UIsSupertypeExpr<Type> internal constructor(
 
 class UPointer(
     ctx: UContext<*>,
-    var target: ULValue<*, *>
-) : UExpr<UPointerSort>(ctx) {
-    override val sort: UPointerSort = ctx.pointerSort
+    var address: UConcreteHeapAddress
+) : UExpr<UAddressSort>(ctx) {
+    override val sort: UAddressSort = ctx.pointerSort
 
-    override fun accept(transformer: KTransformerBase): KExpr<UPointerSort> {
+    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other) { target }
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) { address }
 
-    override fun internHashCode(): Int = hash(target)
+    override fun internHashCode(): Int = hash(address)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("&$target")
+        printer.append("&0x$address")
     }
 }
 

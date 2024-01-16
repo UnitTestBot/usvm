@@ -5,9 +5,8 @@ import (
 )
 
 type MethodInfo struct {
-	ReturnType       types.Type
-	VariablesCount   int
-	AllocationsCount int
-	ParametersCount  int
-	ParametersTypes  []types.Type
+	ReturnType      types.Type
+	VariablesCount  int
+	ParametersCount int
+	ParametersTypes []types.Type
 }
