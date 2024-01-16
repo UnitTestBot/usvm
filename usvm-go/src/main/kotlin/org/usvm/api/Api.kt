@@ -26,6 +26,7 @@ import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
+import org.usvm.util.bool
 import java.nio.ByteBuffer
 
 class Api(
@@ -319,29 +320,40 @@ class Api(
     }
 
     private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) {
-        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val value = readVar(buf)
         val mapType = Type.MAP.value.toLong()
-        val valueType = Type.valueOf(buf.get())
-
         val map = readVar(buf).expr.asExpr(ctx.addressSort)
         val key = readVar(buf).expr
+        val mapValueSort = ctx.typeToSort(Type.valueOf(buf.get()))
+        val commaOk = buf.bool
 
         checkNotNull(map) ?: return
 
-        val valueSort = ctx.typeToSort(valueType)
-        val lvalue = URegisterStackLValue(valueSort, idx)
-        val rvalue = scope.calcOnState {
-            memory.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
-        }
+        val lvalue = URegisterStackLValue(value.sort, value.index)
         val contains = scope.calcOnState { memory.setContainsElement(map, key, mapType, USizeExprKeyInfo()) }
 
         scope.fork(
             contains,
             blockOnTrueState = {
-                memory.write(lvalue, rvalue, ctx.trueExpr)
+                val entry = UMapEntryLValue(key.sort, mapValueSort, map, key, mapType, USizeExprKeyInfo())
+                val rvalue = memory.read(entry).let {
+                    if (commaOk) {
+                        mkTuple(it, ctx.trueExpr)
+                    } else {
+                        it
+                    }
+                }
+                memory.write(lvalue, rvalue.asExpr(value.sort), ctx.trueExpr)
             },
             blockOnFalseState = {
-                memory.write(lvalue, valueSort.sampleUValue(), ctx.trueExpr)
+                val rvalue = value.sort.sampleUValue().let {
+                    if (commaOk) {
+                        mkTuple(it, ctx.falseExpr)
+                    } else {
+                        it
+                    }
+                }
+                memory.write(lvalue, rvalue.asExpr(value.sort), ctx.trueExpr)
                 newInst(nextInst)
             }
         )
@@ -362,16 +374,20 @@ class Api(
             val keyIsInMap = memory.read(mapContainsLValue)
             val keyIsNew = mkNot(keyIsInMap)
 
-            memory.write(
-                UMapEntryLValue(key.sort, value.sort, map, key, mapType, USizeExprKeyInfo()),
-                value,
-                guard = trueExpr
-            )
-            memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
+            memory.write(UMapEntryLValue(key.sort, value.sort, map, key, mapType, USizeExprKeyInfo()), value, trueExpr)
+            memory.write(mapContainsLValue, trueExpr, trueExpr)
 
             val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
             memory.write(UMapLengthLValue(map, mapType, sizeSort), updatedSize, keyIsNew)
         }
+    }
+
+    private fun mkTuple(vararg fields: UExpr<out USort>): UHeapRef = scope.calcOnState {
+        val ref = memory.allocConcrete(Type.TUPLE.value.toLong())
+        for ((index, field) in fields.withIndex()) {
+            memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), ctx.trueExpr)
+        }
+        ref
     }
 
     fun getLastBlock(): Int {
@@ -400,7 +416,7 @@ class Api(
     }
 
     private fun readConst(buf: ByteBuffer, type: Type): UExpr<out USort> = when (type) {
-        Type.BOOL -> ctx.mkBool(buf.get() == 1.toByte())
+        Type.BOOL -> ctx.mkBool(buf.bool)
         Type.INT8, Type.UINT8 -> ctx.mkBv(buf.get(), ctx.bv8Sort)
         Type.INT16, Type.UINT16 -> ctx.mkBv(buf.short, ctx.bv16Sort)
         Type.INT32, Type.UINT32 -> ctx.mkBv(buf.int, ctx.bv32Sort)

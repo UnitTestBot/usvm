@@ -303,10 +303,11 @@ func (a *api) MkArrayReading(inst *ssa.Index) {
 
 func (a *api) MkMapLookup(inst *ssa.Lookup) {
 	a.buf.Write(byte(MethodMkMapLookup))
-	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.Write(byte(typeslocal.GetType(inst, false)))
+	a.writeVar(inst)
 	a.writeVar(inst.X)
 	a.writeVar(inst.Index)
+	a.buf.Write(byte(typeslocal.GetMapElemType(inst.X)))
+	a.buf.WriteBool(inst.CommaOk)
 }
 
 func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {

@@ -27,6 +27,7 @@ const (
 	TypeStruct
 	TypeInterface
 	TypePointer
+	TypeTuple
 )
 
 var typeMapping = []Type{
@@ -73,7 +74,13 @@ func MapType(t types.Type, unwrap bool) Type {
 			return MapType(t.Elem(), false)
 		}
 		return TypePointer
+	case *types.Tuple:
+		return TypeTuple
 	default:
 		return TypeUnknown
 	}
+}
+
+func GetMapElemType(v ssa.Value) Type {
+	return MapType(v.Type().Underlying().(*types.Map).Elem(), false)
 }
