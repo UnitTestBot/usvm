@@ -146,4 +146,10 @@ class GoMachineTest {
         val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", false)
         println(results)
     }
+
+    @Test
+    fun testPanic() {
+        val results = machine.analyzeAndResolve(Path.getProgram("panic.go"), "panicSimple", false)
+        println(results)
+    }
 }

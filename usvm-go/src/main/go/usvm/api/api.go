@@ -21,7 +21,9 @@ type Api interface {
 	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
 	MkAlloc(inst *ssa.Alloc)
+	MkExtract(inst *ssa.Extract)
 	MkReturn(inst *ssa.Return)
+	MkPanic(inst *ssa.Panic)
 	MkPhi(inst *ssa.Phi)
 	MkPointerFieldReading(inst *ssa.FieldAddr)
 	MkFieldReading(inst *ssa.Field)
@@ -59,7 +61,9 @@ const (
 	MethodMkStore
 	MethodMkIf
 	MethodMkAlloc
+	MethodMkExtract
 	MethodMkReturn
+	MethodMkPanic
 	MethodMkVariable
 	MethodMkPointerFieldReading
 	MethodMkFieldReading
@@ -147,27 +151,17 @@ type api struct {
 }
 
 func (a *api) MkUnOp(inst *ssa.UnOp) {
-	name := resolveRegister(inst)
-	u := byte(unOpMapping[inst.Op])
-	t := byte(typeslocal.GetType(inst, false))
-
 	a.buf.Write(byte(MethodMkUnOp))
-	a.buf.Write(u)
-	a.buf.Write(t)
-	a.buf.WriteInt32(name)
+	a.writeVar(inst)
+	a.buf.Write(byte(unOpMapping[inst.Op]))
 	a.writeVar(inst.X)
 }
 
 func (a *api) MkBinOp(inst *ssa.BinOp) {
-	name := resolveRegister(inst)
-	b := byte(binOpMapping[inst.Op])
-	t := byte(typeslocal.GetType(inst, false))
-
 	a.buf.Write(byte(MethodMkBinOp))
-	a.buf.Write(b)
-	a.buf.Write(t)
-	a.buf.WriteInt32(name)
+	a.writeVar(inst)
 	a.writeVar(inst.X)
+	a.buf.Write(byte(binOpMapping[inst.Op]))
 	a.writeVar(inst.Y)
 }
 
@@ -247,7 +241,16 @@ func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.WriteInt32(resolveRegister(inst))
 }
 
+func (a *api) MkExtract(inst *ssa.Extract) {
+	a.buf.Write(byte(MethodMkExtract))
+	a.writeVar(inst)
+	a.writeVar(inst.Tuple)
+	a.buf.WriteInt32(int32(inst.Index))
+}
+
 func (a *api) MkReturn(inst *ssa.Return) {
+	a.buf.Write(byte(MethodMkReturn))
+
 	var value ssa.Value
 	switch len(inst.Results) {
 	case 0:
@@ -258,8 +261,12 @@ func (a *api) MkReturn(inst *ssa.Return) {
 		return
 	}
 
-	a.buf.Write(byte(MethodMkReturn))
 	a.writeVar(value)
+}
+
+func (a *api) MkPanic(inst *ssa.Panic) {
+	a.buf.Write(byte(MethodMkPanic))
+	a.writeVar(inst.X)
 }
 
 func (a *api) MkPhi(inst *ssa.Phi) {
