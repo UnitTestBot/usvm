@@ -33,7 +33,7 @@ class GoContext(
         Type.INT64, Type.UINT64 -> bv64Sort
         Type.FLOAT32 -> fp32Sort
         Type.FLOAT64 -> fp64Sort
-        Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE -> addressSort
+        Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE, Type.TUPLE -> addressSort
         Type.POINTER -> pointerSort
         else -> throw UnknownSortException()
     }

@@ -130,6 +130,12 @@ class GoMachineTest {
     }
 
     @Test
+    fun testMapLookupCommaOk() {
+        val results = machine.analyzeAndResolve(Path.getProgram("map_lookup.go"), "lookupComma", false)
+        println(results)
+    }
+
+    @Test
     fun testMapUpdate() {
         val results = machine.analyzeAndResolve(Path.getProgram("map_update.go"), "update", false)
         println(results)
