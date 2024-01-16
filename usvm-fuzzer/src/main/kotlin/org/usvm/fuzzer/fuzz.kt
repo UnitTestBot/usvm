@@ -2,23 +2,18 @@ import kotlinx.coroutines.runBlocking
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.toType
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.features.Usages
 import org.jacodb.impl.jacodb
-import org.usvm.fuzzer.Fuzzer
+import org.usvm.fuzzer.fuzzing.Fuzzer
 import org.usvm.fuzzer.types.JcClassTable
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcExtendedRuntimeTraceInstrumenterFactory
-import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
-import org.usvm.instrumentation.util.URLClassPathLoader
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
-import java.util.ArrayList
-import kotlin.system.exitProcess
 
 fun main() {
     val testingJars =
@@ -26,7 +21,7 @@ fun main() {
     val testingClassPath = testingJars.split(":").map { File(it) }
     val testingClassloader = URLClassLoader(
         /* p0 = */ testingJars.split(":").map { Paths.get(it).toUri().toURL() }.toTypedArray(),
-        /* p1 = */ org.usvm.fuzzer.Fuzzer::class.java.classLoader.parent
+        /* p1 = */ Fuzzer::class.java.classLoader.parent
     )
     val jcClasspath = initJcdb(testingClassPath)
     JcClassTable.initClasses(jcClasspath)
@@ -42,7 +37,7 @@ fun main() {
     )
 
     val methodsToFilterNot = listOf("<init>", "<clinit>")
-    val methodsToFilter = listOf<String>("add")
+    val methodsToFilter = listOf<String>("addAll")
     val filter = { method: JcMethod -> methodsToFilter.isEmpty() || methodsToFilter.any { method.name.contains(it) } }
     val filterNot = { method: JcMethod -> methodsToFilterNot.any { method.name.contains(it) } }
     for (targetMethod in targetClass.declaredMethods.filter(filter).filterNot(filterNot)) {

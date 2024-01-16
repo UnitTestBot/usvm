@@ -1,12 +1,83 @@
 package org.usvm.fuzzer.mutation
 
-import org.jacodb.api.ext.*
+import org.jacodb.api.JcPrimitiveType
+import org.jacodb.api.JcType
+import org.jacodb.impl.cfg.util.isPrimitive
+import org.usvm.fuzzer.generator.DataFactory
+import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.seed.Seed
-import org.usvm.fuzzer.util.FuzzingContext
+import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.util.getTypename
-import org.usvm.instrumentation.util.stringType
 
+class AddPrimitiveConstant : Mutation() {
+    override val mutationFun: DataFactory.(Seed) -> Pair<Seed?, MutationInfo>? = lambda@{ seed ->
+        //TODO add mutation for random field
+        val argForMutation =
+//            if (random.getTrueWithProb(50)) {
+            seed.getArgForMutation { it.type.type is JcPrimitiveType } ?: return@lambda null
+//            } else {
+//                val fieldForMutation = Seed.fieldInfo.getBestField { it.type.isPrimitive } ?: return@lambda null
+//                seed.getFieldsInTermsOfUTest(fieldForMutation).randomOrNull()
+//            } ?: return@lambda null
+        val newValue =
+            when (val uTestForMutation = argForMutation.instance) {
+                is UTestByteExpression -> UTestByteExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toByte(), uTestForMutation.type)
+                is UTestShortExpression -> UTestShortExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toShort(), uTestForMutation.type)
+                is UTestIntExpression -> UTestIntExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+                is UTestLongExpression -> UTestLongExpression(generateNewLongNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+                is UTestCharExpression -> UTestCharExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.code).toChar(), uTestForMutation.type)
+                is UTestFloatExpression -> UTestFloatExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value.toDouble()).toFloat(), uTestForMutation.type)
+                is UTestDoubleExpression -> UTestDoubleExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+                else -> return@lambda null
+            }
+        val newArgDescriptor =
+            Seed.ArgumentDescriptor(newValue, JcTypeWrapper(newValue.type!!, newValue.value::class.java), listOf())
+        return@lambda seed.mutate(argForMutation, newArgDescriptor) to MutationInfo(argForMutation, null)
+    }
+
+    private fun generateNewIntNumericValue(dataFactory: DataFactory, oldValue: Int): Int = with(dataFactory) {
+        if (random.getTrueWithProb(30)) {
+            oldValue + 1
+        } else if (random.getTrueWithProb(30)) {
+            oldValue - 1
+        } else if (random.getTrueWithProb(1)) {
+            Int.MIN_VALUE
+        } else if (random.getTrueWithProb(1)) {
+            Int.MAX_VALUE
+        } else {
+            random.nextInt()
+        }
+    }
+
+    private fun generateNewLongNumericValue(dataFactory: DataFactory, oldValue: Long): Long = with(dataFactory) {
+        if (random.getTrueWithProb(30)) {
+            oldValue + 1
+        } else if (random.getTrueWithProb(30)) {
+            oldValue - 1
+        } else if (random.getTrueWithProb(1)) {
+            Long.MIN_VALUE
+        } else if (random.getTrueWithProb(1)) {
+            Long.MAX_VALUE
+        } else {
+            random.nextLong()
+        }
+    }
+
+    private fun generateNewDoubleNumericValue(dataFactory: DataFactory, oldValue: Double): Double = with(dataFactory) {
+        if (random.getTrueWithProb(30)) {
+            oldValue + 1
+        } else if (random.getTrueWithProb(30)) {
+            oldValue - 1
+        } else if (random.getTrueWithProb(1)) {
+            Double.MIN_VALUE
+        } else if (random.getTrueWithProb(1)) {
+            Double.MAX_VALUE
+        } else {
+            random.nextDouble()
+        }
+    }
+
+}
 //class AddPrimitiveConstant : Mutation() {
 //
 //    override fun mutate(seed: Seed, position: Int): Seed? {

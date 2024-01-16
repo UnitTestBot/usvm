@@ -2,7 +2,7 @@ package org.usvm.fuzzer.strategy
 
 abstract class Selectable {
 
-    var averageScore: Double = 0.0
-    var numberOfChooses: Int = 0
+    open var averageScore: Double = 0.0
+    open var numberOfChooses: Int = 0
 
 }

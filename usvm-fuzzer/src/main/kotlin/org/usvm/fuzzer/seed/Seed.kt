@@ -6,6 +6,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.impl.cfg.util.isClass
 import org.usvm.fuzzer.position.SeedFieldsInfo
+import org.usvm.fuzzer.strategy.ChoosingStrategy
 import org.usvm.fuzzer.strategy.Selectable
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.getPossiblePathsToField
@@ -18,6 +19,7 @@ data class Seed(
     val targetMethod: JcMethod,
 //First arg in args is instance!!
     val args: List<ArgumentDescriptor>,
+    val argsChoosingStrategy: ChoosingStrategy<ArgumentDescriptor>,
     private val parent: Seed? = null,
     var coverage: List<JcInst>? = null,
     var argsInitialDescriptors: List<UTestValueDescriptor?>? = null,
@@ -55,20 +57,69 @@ data class Seed(
         }
     }
 
-    //fun spawn(): Seed = Seed(args, weight, positions, this)
+    fun getArgForMutation() = argsChoosingStrategy.chooseBest(args, 0)
 
-    fun mutate(position: Int, expressionsToAdd: List<UTestInst>): Seed {
-//        val descriptor = positions[position].descriptor
-//        val newDescriptor = Descriptor(descriptor.instance, descriptor.type, descriptor.initialExprs + expressionsToAdd)
-//        val newArgs = args.map { if (it == descriptor) newDescriptor else it }
-//        return Seed(targetMethod, newArgs, this)
-        return this.copy()
+    fun getArgForMutation(condition: (ArgumentDescriptor) -> Boolean): ArgumentDescriptor? {
+        val filteredArgs = args.filter(condition)
+        return if (filteredArgs.isEmpty()) null
+        else argsChoosingStrategy.chooseBest(filteredArgs, 0)
     }
 
-    fun mutate(position: Int, expr: UTestInst) = mutate(position, listOf(expr))
+    fun getFieldForMutation() = fieldInfo.getBestField()
+    fun getFieldForMutation(condition: (JcField) -> Boolean) =
+        fieldInfo.getBestField(condition)
 
-    fun getPositionToMutate(iterationNumber: Int) {
-        fieldInfo.getBestField().jcField
+    fun addSeedExecutionInfo(execResult: UTestExecutionResult) = with(execResult) {
+//        val score =
+//            when (this) {
+//                is UTestExecutionExceptionResult -> trace?.size ?: 0
+//                is UTestExecutionFailedResult -> 0
+//                is UTestExecutionInitFailedResult -> 0
+//                is UTestExecutionSuccessResult -> trace?.size ?: 0
+//                is UTestExecutionTimedOutResult -> 0
+//            }
+//        val newAverageScore = ((averageScore * numberOfChooses) + score) / (numberOfChooses + 1)
+//        averageScore = newAverageScore
+//        numberOfChooses += 1
+
+        when (this) {
+            is UTestExecutionExceptionResult -> {
+                coverage = trace
+                argsInitialDescriptors = listOf(initialState.instanceDescriptor) + initialState.argsDescriptors
+                argsResDescriptors = listOf(resultState.instanceDescriptor) + resultState.argsDescriptors
+                accessedFields = resultState.accessedFields
+            }
+
+            is UTestExecutionFailedResult -> {}
+            is UTestExecutionInitFailedResult -> {
+                coverage = trace
+            }
+
+            is UTestExecutionSuccessResult -> {
+                coverage = trace
+                argsInitialDescriptors = listOf(initialState.instanceDescriptor) + initialState.argsDescriptors
+                argsResDescriptors = listOf(resultState.instanceDescriptor) + resultState.argsDescriptors
+                accessedFields = resultState.accessedFields
+            }
+
+            is UTestExecutionTimedOutResult -> {}
+        }
+    }
+
+    fun mutate(
+        replace: ArgumentDescriptor,
+        replacement: ArgumentDescriptor
+    ): Seed {
+        return Seed(
+            targetMethod = targetMethod,
+            args = args.map { if (it == replace) replacement else it },
+            argsChoosingStrategy = argsChoosingStrategy,
+            parent = this,
+            coverage = null,
+            argsInitialDescriptors = null,
+            argsResDescriptors = null,
+            accessedFields = null
+        )
     }
 
     fun toUTest(): UTest {
@@ -113,10 +164,7 @@ data class Seed(
         val instance: UTestExpression,
         val type: JcTypeWrapper,
         val initialExprs: List<UTestInst>
-    )
-
-    data class Position(val index: Int, var score: Double, val field: JcField, val argumentDescriptor: ArgumentDescriptor) :
-        Selectable()
+    ): Selectable()
 
 }
 

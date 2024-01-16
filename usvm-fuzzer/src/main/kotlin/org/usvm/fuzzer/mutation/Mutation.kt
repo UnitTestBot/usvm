@@ -1,19 +1,18 @@
 package org.usvm.fuzzer.mutation
 
-import org.usvm.fuzzer.generator.SeedFactory
+import org.usvm.fuzzer.generator.DataFactory
 import org.usvm.fuzzer.seed.Seed
 import org.usvm.fuzzer.strategy.Selectable
-import org.usvm.fuzzer.util.UTestValueRepresentation
 
 abstract class Mutation : Selectable() {
-    protected lateinit var seedFactory: SeedFactory
+    protected lateinit var dataFactory: DataFactory
 
-    fun appendSeedFactory(seedFactory: SeedFactory): Mutation =
-        also { this.seedFactory = seedFactory }
+    fun appendSeedFactory(dataFactory: DataFactory): Mutation =
+        also { this.dataFactory = dataFactory }
 
-    protected abstract val mutationFun: SeedFactory.(Seed) -> Seed?
+    protected abstract val mutationFun: DataFactory.(Seed) -> Pair<Seed?, MutationInfo>?
 
-    fun mutate(seed: Seed): Seed? =
-        mutationFun.invoke(seedFactory, seed)
+    fun mutate(seed: Seed): Pair<Seed?, MutationInfo>? =
+        mutationFun.invoke(dataFactory, seed)
 
 }

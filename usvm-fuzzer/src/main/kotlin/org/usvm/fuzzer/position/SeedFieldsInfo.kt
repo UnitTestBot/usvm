@@ -43,17 +43,25 @@ class SeedFieldsInfo() {
         )
     }
 
+    fun getFieldInfo(jcField: JcField) = info.find { it.jcField == jcField }
+
     fun getBestField() = info.random()
+
+    fun getBestField(condition: (JcField) -> Boolean): JcField? {
+        val filteredFields = info.filter { condition(it.jcField) }
+        return filteredFields.randomOrNull()?.jcField
+    }
+
     fun getWorstField() = info.random()
 
     open class FieldInfo(
         val jcTargetMethod: JcMethod,
         val jcField: JcField,
-        var score: Double,
-        var numberOfChooses: Int
-    ) {
+        override var averageScore: Double,
+        override var numberOfChooses: Int
+    ): Selectable() {
 
-        override fun toString(): String = "Field: ${jcField.name} || Score: $score || NumberOfChoices: $numberOfChooses"
+        override fun toString(): String = "Field: ${jcField.name} || Score: $averageScore || NumberOfChoices: $numberOfChooses"
 
 
         override fun equals(other: Any?): Boolean {
@@ -64,7 +72,7 @@ class SeedFieldsInfo() {
 
             if (jcField.name != other.jcField.name) return false
             if (jcField.enclosingClass.name != other.jcField.enclosingClass.name) return false
-            if (score != other.score) return false
+            if (averageScore != other.averageScore) return false
             if (numberOfChooses != other.numberOfChooses) return false
 
             return true
@@ -73,7 +81,7 @@ class SeedFieldsInfo() {
         override fun hashCode(): Int {
             var result = jcTargetMethod.hashCode()
             result = 31 * result + jcField.hashCode()
-            result = 31 * result + score.hashCode()
+            result = 31 * result + averageScore.hashCode()
             result = 31 * result + numberOfChooses
             return result
         }

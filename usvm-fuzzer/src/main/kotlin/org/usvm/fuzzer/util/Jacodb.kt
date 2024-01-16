@@ -4,6 +4,8 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClassType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcType
+import org.jacodb.api.cfg.JcIfInst
+import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
 import org.usvm.fuzzer.types.JcTypeWrapper
@@ -104,3 +106,9 @@ fun JcClassOrInterface.createJcTypeWrapper(userClassLoader: ClassLoader): JcType
 fun JcClassType.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper {
     return JcTypeWrapper(this, this.toJavaClass(userClassLoader))
 }
+
+fun JcIfInst.getTrueBranchInst(): JcInst =
+    location.method.instList[trueBranch.index]
+
+fun JcIfInst.getFalseBranchInst(): JcInst =
+    location.method.instList[falseBranch.index]

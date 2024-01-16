@@ -5,6 +5,7 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.ext.toType
 import org.usvm.fuzzer.mutation.MutationRepository
 import org.usvm.fuzzer.seed.Seed
+import org.usvm.fuzzer.strategy.ChoosingStrategy
 import org.usvm.fuzzer.strategy.RandomStrategy
 import org.usvm.fuzzer.types.JcGenericGeneratorImpl
 import org.usvm.fuzzer.types.JcTypeWrapper
@@ -13,27 +14,15 @@ import org.usvm.instrumentation.util.toJavaClass
 import org.usvm.instrumentation.util.toJavaMethod
 import java.util.Random
 
-class SeedFactory(
+class DataFactory(
     val jcClasspath: JcClasspath,
     val generatorRepository: GeneratorRepository,
     val userClassLoader: ClassLoader,
-    val random: Random
+    val random: Random,
+    val seedArgsChoosingStrategy: ChoosingStrategy<Seed.ArgumentDescriptor>
 ) {
-
     private val genericGenerator = JcGenericGeneratorImpl(jcClasspath, userClassLoader)
-    private val mutationRepository = MutationRepository(RandomStrategy(), this)
-
-    fun init(jcMethod: JcMethod) {
-        val numberOfArgs =
-            if (jcMethod.isStatic) {
-                jcMethod.parameters.size
-            } else {
-                jcMethod.parameters.size + 1
-            }
-//        Seed.treesForArgs = List(numberOfArgs) { org.usvm.fuzzer.position.PositionTrie() }
-    }
-
-    fun generateArgsForMethodInvocation(
+    fun generateValuesForMethodInvocation(
         resolvedClassType: JcTypeWrapper,
         jcMethod: JcMethod
     ): List<UTestValueRepresentation> {
@@ -47,8 +36,7 @@ class SeedFactory(
     fun generateValueOfType(jcTypeWrapper: JcTypeWrapper): UTestValueRepresentation =
         generatorRepository.getGeneratorForType(jcTypeWrapper).generate()
 
-    fun generateForMethod(jcMethod: JcMethod): Seed {
-        init(jcMethod)
+    fun generateSeedsForMethod(jcMethod: JcMethod): Seed {
         val jcClass = jcMethod.enclosingClass.toType()
         val resolvedClassType = genericGenerator.resolveGenericParametersForType(
             JcTypeWrapper(
@@ -66,13 +54,13 @@ class SeedFactory(
                 null
             }
         val args =
-            generateArgsForMethodInvocation(resolvedClassType, jcMethod)
+            generateValuesForMethodInvocation(resolvedClassType, jcMethod)
                 .map { Seed.ArgumentDescriptor(it.instance, resolvedClassType, it.initStmts) }
         println("BUILDING SEED FROM GENERATED ARGS!!")
         return if (jcMethod.isStatic) {
-            Seed(jcMethod, args, null)
+            Seed(jcMethod, args, seedArgsChoosingStrategy)
         } else {
-            Seed(jcMethod, listOf(classInstance!!) + args, null)
+            Seed(jcMethod, listOf(classInstance!!) + args, seedArgsChoosingStrategy)
         }.also { println("SEED IS BUILT") }
     }
 
