@@ -183,6 +183,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.MakeInterface:
 
 	case *ssa.Extract:
+		api.MkExtract(inst)
 
 	case *ssa.Slice:
 
@@ -193,6 +194,8 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	case *ssa.RunDefers:
 
 	case *ssa.Panic:
+		api.MkPanic(inst)
+		return kReturn
 
 	case *ssa.Send:
 
