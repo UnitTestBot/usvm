@@ -11,6 +11,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
@@ -321,21 +322,33 @@ class Api(
 
     private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) {
         val value = readVar(buf)
+
         val mapType = Type.MAP.value.toLong()
         val map = readVar(buf).expr.asExpr(ctx.addressSort)
+        checkNotNull(map) ?: return
+
         val key = readVar(buf).expr
+        val isRefKey = key.sort == ctx.addressSort
+
         val mapValueSort = ctx.typeToSort(Type.valueOf(buf.get()))
         val commaOk = buf.bool
 
-        checkNotNull(map) ?: return
-
+        val contains = scope.calcOnState {
+            if (isRefKey) {
+                memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), mapType)
+            } else {
+                memory.setContainsElement(map, key, mapType, USizeExprKeyInfo())
+            }
+        }
         val lvalue = URegisterStackLValue(value.sort, value.index)
-        val contains = scope.calcOnState { memory.setContainsElement(map, key, mapType, USizeExprKeyInfo()) }
-
         scope.fork(
             contains,
             blockOnTrueState = {
-                val entry = UMapEntryLValue(key.sort, mapValueSort, map, key, mapType, USizeExprKeyInfo())
+                val entry = if (isRefKey) {
+                    URefMapEntryLValue(mapValueSort, map, key.asExpr(ctx.addressSort), mapType)
+                } else {
+                    UMapEntryLValue(key.sort, mapValueSort, map, key, mapType, USizeExprKeyInfo())
+                }
                 val rvalue = memory.read(entry).let {
                     if (commaOk) {
                         mkTuple(it, ctx.trueExpr)
