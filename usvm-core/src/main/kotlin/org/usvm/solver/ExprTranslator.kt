@@ -19,7 +19,6 @@ import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
 import org.usvm.UPointer
-import org.usvm.UPointerSort
 import org.usvm.URegisterReading
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
@@ -96,14 +95,10 @@ open class UExprTranslator<Type, USizeSort : USort>(
         return const
     }
 
-    override fun transform(expr: UPointer): KExpr<UPointerSort> {
-        val const = expr.sort.mkConst("&${expr.target}")
+    override fun transform(expr: UPointer): KExpr<UAddressSort> {
+        val const = expr.sort.mkConst("&0x${expr.address}")
         return const
     }
-//    override fun <Key, Sort : USort> transform(expr: UPointer<Key, Sort>): KExpr<UPointerSort> {
-//        val const = expr.sort.mkConst("&${expr.target}")
-//        return const
-//    }
 
     override fun transform(expr: UConcreteHeapRef): KExpr<UAddressSort> {
         require(isStaticHeapRef(expr)) { "Unexpected ref: $expr" }
