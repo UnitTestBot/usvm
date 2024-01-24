@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
         System.err.println("No VenvConfig.")
     }
     val programRoots = args.drop(prefixNumberOfArgs)
-    val runner = PythonMachineSocketRunner(
+    val runner = PyMachineSocketRunner(
         File(mypyDirPath),
         programRoots.map { File(it) }.toSet(),
         "localhost",

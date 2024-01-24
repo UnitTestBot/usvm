@@ -6,7 +6,7 @@ import org.usvm.*
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
@@ -25,12 +25,12 @@ private fun readBoolFieldWithSoftConstraint(field: ContentOfType, model: PyModel
     return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.bound))
 }
 
-private fun readBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PythonCallable>, address: UHeapRef, ctx: PyContext): UBoolExpr {
+private fun readBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext): UBoolExpr {
     val value = memory.readField(address, field, ctx.intSort)
     return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.bound))
 }
 
-private fun writeBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PythonCallable>, address: UHeapRef, ctx: PyContext, value: UBoolExpr) {
+private fun writeBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext, value: UBoolExpr) {
     val intValue = ctx.mkIte(value, ctx.mkIntNum(FloatContents.bound + 1), ctx.mkIntNum(0))
     memory.writeField(address, field, ctx.intSort, intValue, ctx.trueExpr)
 }
@@ -50,7 +50,7 @@ fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatI
     return FloatNormalValue(floatValue.value)
 }
 
-fun InterpretedSymbolicPythonObject.getFloatContent(ctx: PyContext, memory: UMemory<PythonType, PythonCallable>): FloatInterpretedContent {
+fun InterpretedSymbolicPythonObject.getFloatContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): FloatInterpretedContent {
     if (this is InterpretedInputSymbolicPythonObject)
         return getFloatContent(ctx)
     val isNan = memory.readField(address, FloatContents.isNan, ctx.boolSort)

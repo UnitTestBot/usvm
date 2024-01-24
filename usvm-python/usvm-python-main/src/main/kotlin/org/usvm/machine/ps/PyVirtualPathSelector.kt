@@ -4,78 +4,152 @@ import mu.KLogging
 import org.usvm.UPathSelector
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.api.typeStreamOf
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.PythonType
 import org.usvm.language.types.MockType
+import org.usvm.language.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.toPyModel
+import org.usvm.machine.ps.strategies.*
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.types.TypesResult
-import kotlin.random.Random
 
-class PyVirtualPathSelector(
+class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>>(
     private val ctx: PyContext,
-    private val basePathSelector: UPathSelector<PyState>,
-    private val pathSelectorForStatesWithDelayedForks: UPathSelector<PyState>,
-    private val pathSelectorForStatesWithConcretizedTypes: UPathSelector<PyState>,
+    private val actionStrategy: PyPathSelectorActionStrategy<DFState, DFGraph>,
+    private val delayedForkStrategy: DelayedForkStrategy<DFState>,
+    private val graphCreation: DelayedForkGraphCreation<DFState, DFGraph>,
     private val newStateObserver: NewStateObserver
-) : UPathSelector<PyState> {
-    private val unservedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
-    private val servedDelayedForks = mutableSetOf<DelayedForkWithTypeRating>()
-    private val executionsWithVirtualObjectAndWithoutDelayedForks = mutableSetOf<PyState>()
-    private val triedTypesForDelayedForks = mutableSetOf<Pair<DelayedFork, ConcretePythonType>>()
-    private val random = Random(0)
+): UPathSelector<PyState> {
+    private val graph = graphCreation.createOneVertexGraph(DelayedForkGraphRootVertex())
+    override fun isEmpty(): Boolean = nullablePeek() == null
 
-    override fun isEmpty(): Boolean {
-        return nullablePeek() == null
+    override fun peek(): PyState = nullablePeek()!!
+
+    override fun update(state: PyState) {
+        logger.debug("Updating state {}", state)
+        removeNotExecutedState(state)
+        add(state)
     }
 
-    private fun generateStateWithConcretizedTypeFromDelayedFork(
-        delayedForkStorage: MutableSet<DelayedForkWithTypeRating>
-    ): PyState? = with(ctx) {
-        if (delayedForkStorage.isEmpty())
-            return null
-        val delayedFork = delayedForkStorage.random(random)
-        val state = delayedFork.delayedFork.state
-        val symbol = delayedFork.delayedFork.symbol
-        val typeRating = delayedFork.typeRating
-        if (typeRating.isEmpty()) {
-            delayedForkStorage.remove(delayedFork)
-            return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
-        }
-        val concreteType = typeRating.first()
-        require(concreteType is ConcretePythonType)
-        typeRating.removeFirst()
-        if (triedTypesForDelayedForks.contains(delayedFork.delayedFork to concreteType))
-            return generateStateWithConcretizedTypeFromDelayedFork(delayedForkStorage)
-        triedTypesForDelayedForks.add(delayedFork.delayedFork to concreteType)
+    override fun add(states: Collection<PyState>) {
+        states.forEach { add(it) }
+    }
 
-        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, concreteType).not())
+    override fun remove(state: PyState) {
+        logger.debug("Removing state {}", state)
+        removeNotExecutedState(state)
+        addDelayedForkVertices(state)
+        processExecutedState(state)
+    }
+
+    private fun removeNotExecutedState(state: PyState) {
+        peekCache = null
+        state.meta.extractedFrom?.remove(state)
+    }
+
+    private fun add(state: PyState) {
+        addDelayedForkVertices(state)
+        if (state.isTerminated()) {
+            processExecutedState(state)
+            return
+        }
+        if (state.delayedForks.isEmpty() && state.meta.objectsWithoutConcreteTypes != null) {
+            require(state.meta.wasExecuted)
+            val newState = generateStateWithConcreteTypeWithoutDelayedFork(state) ?: return
+            graph.addExecutedStateWithConcreteTypes(newState)
+        } else if (state.delayedForks.isEmpty()) {
+            graph.addStateToVertex(graph.root, state)
+        } else {
+            val lastDelayedFork = state.delayedForks.last()
+            val vertex = graph.getVertexByDelayedFork(lastDelayedFork)
+                ?: error("DelayedForkVertex must already be in the graph")
+            graph.addStateToVertex(vertex, state)
+        }
+    }
+
+    private fun addDelayedForkVertices(state: PyState) {
+        var parent: DelayedForkGraphVertex<DFState> = graph.root
+        state.delayedForks.forEach { delayedFork ->
+            val vertex = graph.getVertexByDelayedFork(delayedFork) ?: let {
+                val dfState = graphCreation.createEmptyDelayedForkState()
+                DelayedForkGraphInnerVertex(dfState, delayedFork, parent).also {
+                    graph.addVertex(delayedFork, it)
+                }
+            }
+            parent = vertex
+        }
+    }
+
+    private var peekCache: PyState? = null
+
+    private fun nullablePeek(): PyState? {
+        if (peekCache != null)
+            return peekCache
+        while (true) {
+            when (val action = actionStrategy.chooseAction(graph)) {
+                null -> {
+                    peekCache = null
+                    break
+                }
+                is Peek -> {
+                    val ps = action.pathSelector
+                    require(!ps.isEmpty()) {
+                        "Cannot peek object from empty path selector"
+                    }
+                    peekCache = ps.peek().also { it.meta.extractedFrom = ps }
+                    break
+                }
+                is MakeDelayedFork -> {
+                    require(!action.vertex.delayedForkState.isDead) {
+                        "Cannot make delayed fork from dead state"
+                    }
+                    require(action.vertex.delayedForkState.size != 0) {
+                        "Cannot make delayed fork from state without type ratings"
+                    }
+                    val state = generateStateWithConcreteType(action.vertex.delayedFork, action.vertex.delayedForkState)
+                    if (state != null) {
+                        graph.addStateToVertex(action.vertex.parent, state)
+                    } else {
+                        logger.debug("Could not make state with concrete type for {}", action.vertex.delayedFork)
+                    }
+                    graph.updateVertex(action.vertex)
+                }
+            }
+        }
+        return peekCache
+    }
+
+    private fun generateStateWithConcreteType(delayedFork: DelayedFork, delayedForkState: DFState): PyState? = with(ctx) {
+        val typeRating = delayedForkStrategy.chooseTypeRating(delayedForkState)
+        while (typeRating.types.isNotEmpty() && typeRating.types.first() in delayedForkState.usedTypes) {
+            typeRating.types.removeAt(0)
+        }
+        if (typeRating.types.isEmpty()) {
+            delayedForkState.isDead = true
+            return null
+        }
+        val type = typeRating.types.removeAt(0)
+        delayedForkState.usedTypes.add(type)
+        val state = delayedFork.state
+        val symbol = delayedFork.symbol
+        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, type).not())
         if (forkResult.positiveState != state) {
-            require(typeRating.isEmpty() && forkResult.positiveState == null)
-            unservedDelayedForks.removeIf { it.delayedFork.state == state }
-            servedDelayedForks.removeIf { it.delayedFork.state == state }
-        }
-        if (forkResult.negativeState == null)
+            require(typeRating.types.isEmpty())
+            delayedForkState.isDead = true
             return null
-        val stateWithConcreteType = forkResult.negativeState!!
-        stateWithConcreteType.models = listOf(stateWithConcreteType.models.first().toPyModel(ctx, stateWithConcreteType.pathConstraints))
-        if (unservedDelayedForks.remove(delayedFork))
-            servedDelayedForks.add(delayedFork)
-
-        return stateWithConcreteType.also {
-            it.delayedForks = delayedFork.delayedFork.delayedForkPrefix
-            it.meta.generatedFrom = "From delayed fork"
         }
+        val result = forkResult.negativeState ?: return null
+        result.models = listOf(result.models.first().toPyModel(ctx, result.pathConstraints))
+        newStateObserver.onNewState(result)
+        require(result.delayedForks == delayedFork.delayedForkPrefix)
+        result.meta.generatedFrom = "from delayed fork"
+        delayedForkState.successfulTypes.add(type)
+        return result
     }
 
-    private fun generateStateWithConcretizedTypeWithoutDelayedForks(): PyState? {
-        if (executionsWithVirtualObjectAndWithoutDelayedForks.isEmpty())
-            return null
-        val state = executionsWithVirtualObjectAndWithoutDelayedForks.random(random)
-        executionsWithVirtualObjectAndWithoutDelayedForks.remove(state)
+    private fun generateStateWithConcreteTypeWithoutDelayedFork(state: PyState): PyState? {
+        require(state.meta.wasExecuted && state.meta.objectsWithoutConcreteTypes != null)
         val objects = state.meta.objectsWithoutConcreteTypes!!.map {
             val addressRaw = it.interpretedObjRef
             ctx.mkConcreteHeapRef(addressRaw)
@@ -94,7 +168,7 @@ class PyVirtualPathSelector(
             }
         }
         if (typeStreams.any { it.size < 2 }) {
-            return generateStateWithConcretizedTypeWithoutDelayedForks()
+            return null
         }
         require(typeStreams.all { it.first() == MockType })
         val types = typeStreams.map {it.take(2).last()}
@@ -106,122 +180,18 @@ class PyVirtualPathSelector(
         return state
     }
 
-    private var peekCache: PyState? = null
-
-    private fun nullablePeek(): PyState? {
-        if (peekCache != null)
-            return peekCache
-        if (!pathSelectorForStatesWithConcretizedTypes.isEmpty()) {
-            val result = pathSelectorForStatesWithConcretizedTypes.peek()
-            result.meta.extractedFrom = pathSelectorForStatesWithConcretizedTypes
-            peekCache = result
-            return result
-        }
-        val stateWithConcreteType = generateStateWithConcretizedTypeWithoutDelayedForks()
-        if (stateWithConcreteType != null) {
-            newStateObserver.onNewState(stateWithConcreteType)
-            pathSelectorForStatesWithConcretizedTypes.add(listOf(stateWithConcreteType))
-            return nullablePeek()
-        }
-
-        val zeroCoin = random.nextDouble()
-        val firstCoin = random.nextDouble()
-        val secondCoin = random.nextDouble()
-        if (!basePathSelector.isEmpty() && (zeroCoin < 0.6 || (unservedDelayedForks.isEmpty() && pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty()))) {
-            val result = basePathSelector.peek()
-            result.meta.extractedFrom = basePathSelector
-            peekCache = result
-            return result
-
-        } else if (unservedDelayedForks.isNotEmpty() && (firstCoin < 0.9 || pathSelectorForStatesWithDelayedForks.isEmpty() && servedDelayedForks.isEmpty())) {
-            logger.debug("Trying to make delayed fork")
-            val newState = generateStateWithConcretizedTypeFromDelayedFork(unservedDelayedForks)
-            newState?.let {
-                add(listOf(it))
-                newStateObserver.onNewState(it)
-            }
-            return nullablePeek()
-
-        } else if (!pathSelectorForStatesWithDelayedForks.isEmpty()  && (secondCoin < 0.7 || servedDelayedForks.isEmpty())) {
-            val result = pathSelectorForStatesWithDelayedForks.peek()
-            result.meta.extractedFrom = pathSelectorForStatesWithDelayedForks
-            peekCache = result
-            return result
-
-        } else if (servedDelayedForks.isNotEmpty()) {
-            val newState = generateStateWithConcretizedTypeFromDelayedFork(servedDelayedForks)
-            newState?.let {
-                add(listOf(it))
-                newStateObserver.onNewState(it)
-            }
-            return nullablePeek()
-
-        } else {
-            peekCache = null
-            return null
-        }
-    }
-
-    override fun peek(): PyState {
-        val result = nullablePeek()!!
-        val source = when (result.meta.extractedFrom) {
-            basePathSelector -> "basePathSelector"
-            pathSelectorForStatesWithDelayedForks -> "pathSelectorForStatesWithDelayedForks"
-            pathSelectorForStatesWithConcretizedTypes -> "pathSelectorForStatesWithConcretizedTypes"
-            else -> error("Not reachable")
-        }
-        logger.debug("Extracted from {} state {}", source, result)
-        return result
-    }
-
-    private fun processDelayedForksOfExecutedState(state: PyState) {
+    private fun processExecutedState(state: PyState) {
+        logger.debug("Processing executed state {}", state)
         require(state.isTerminated())
-        state.delayedForks.firstOrNull()?.let {
-            unservedDelayedForks.add(
-                DelayedForkWithTypeRating(
-                    it,
-                    state.makeTypeRating(it).toMutableList()
-                )
-            )
+        state.delayedForks.forEach {
+            val vertex = graph.getVertexByDelayedFork(it)
+                ?: error("DelayedForkVertex must already be in the graph")
+            val typeRating = state.makeTypeRating(it) ?: return@forEach
+            vertex.delayedForkState.addTypeRating(typeRating)
         }
-    }
-
-    override fun update(state: PyState) {
-        peekCache = null
-        state.meta.extractedFrom?.remove(state)
-        add(listOf(state))
-    }
-
-    override fun add(states: Collection<PyState>) {
-        peekCache = null
-        states.forEach { state ->
-            if (state.isTerminated()) {
-                processDelayedForksOfExecutedState(state)
-                return@forEach
-            }
-            if (state.meta.objectsWithoutConcreteTypes != null) {
-                require(state.meta.wasExecuted)
-                executionsWithVirtualObjectAndWithoutDelayedForks.add(state)
-            } else if (state.delayedForks.isEmpty()) {
-                basePathSelector.add(listOf(state))
-            } else {
-                pathSelectorForStatesWithDelayedForks.add(listOf(state))
-            }
-        }
-    }
-
-    override fun remove(state: PyState) {
-        peekCache = null
-        state.meta.extractedFrom?.remove(state)
-        processDelayedForksOfExecutedState(state)
     }
 
     companion object {
         val logger = object : KLogging() {}.logger
     }
 }
-
-class DelayedForkWithTypeRating(
-    val delayedFork: DelayedFork,
-    val typeRating: MutableList<PythonType>
-)

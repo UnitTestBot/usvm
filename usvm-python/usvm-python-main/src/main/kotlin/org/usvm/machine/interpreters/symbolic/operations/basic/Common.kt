@@ -3,7 +3,6 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
-import org.usvm.annotations.ids.NativeId
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
@@ -11,7 +10,7 @@ import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.types.*
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
 import org.usvm.machine.symbolicobjects.*
@@ -21,7 +20,7 @@ import org.utbot.python.newtyping.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PyObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
@@ -268,7 +267,7 @@ fun resolveSequenceIndex(
 
 fun handlerCreateEmptyObjectKt(
     ctx: ConcolicRunContext,
-    typeRef: PythonObject
+    typeRef: PyObject
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
@@ -306,7 +305,7 @@ fun forkOnUnknownHashableType(
 
 fun handlerCallOnKt(
     ctx: ConcolicRunContext,
-    function: PythonObject,
+    function: PyObject,
     args: Stream<UninterpretedSymbolicPythonObject>
 ) {
     ctx.curState ?: return

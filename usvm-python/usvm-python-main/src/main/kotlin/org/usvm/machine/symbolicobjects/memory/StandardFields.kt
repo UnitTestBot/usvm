@@ -8,7 +8,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.ObjectDictType
 import org.usvm.language.types.PythonType
@@ -60,7 +60,7 @@ fun InterpretedInputSymbolicPythonObject.containsField(
 fun InterpretedInputSymbolicPythonObject.getFieldValue(
     ctx: PyContext,
     name: InterpretedSymbolicPythonObject,
-    memory: UMemory<PythonType, PythonCallable>
+    memory: UMemory<PythonType, PyCallable>
 ): InterpretedSymbolicPythonObject {
     require(!isAllocatedConcreteHeapRef(name.address))
     val result = modelHolder.model.read(URefMapEntryLValue(ctx.addressSort, address, name.address, ObjectDictType))

@@ -41,7 +41,7 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
     @Test
     fun testMatmulAddAndSub() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 4U)
+        options = UMachineOptions(stepLimit = 6U)
         check1WithConcreteRun(
             constructFunction("matmul_add_and_sub", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,

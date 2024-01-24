@@ -2,12 +2,12 @@ package org.usvm.machine.symbolicobjects
 
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
@@ -16,10 +16,10 @@ class PreallocatedObjects(
     val falseObject: UninterpretedSymbolicPythonObject,
     private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>,
     private val symbolToConcreteStr: MutableMap<UninterpretedSymbolicPythonObject, String>,
-    private val refOfString: MutableMap<String, PythonObject>
+    private val refOfString: MutableMap<String, PyObject>
 ) {
 
-    fun allocateStr(ctx: ConcolicRunContext, string: String, ref: PythonObject): UninterpretedSymbolicPythonObject {
+    fun allocateStr(ctx: ConcolicRunContext, string: String, ref: PyObject): UninterpretedSymbolicPythonObject {
         require(ctx.curState != null)
         val cached = concreteStrToSymbol[string]
         if (cached != null)
@@ -35,7 +35,7 @@ class PreallocatedObjects(
     fun concreteString(symbol: UninterpretedSymbolicPythonObject): String? =
         symbolToConcreteStr[symbol]
 
-    fun refOfString(string: String): PythonObject? =
+    fun refOfString(string: String): PyObject? =
         refOfString[string]
 
     fun listAllocatedStrs(): List<UninterpretedSymbolicPythonObject> =
@@ -54,7 +54,7 @@ class PreallocatedObjects(
     companion object {
         fun initialize(
             ctx: PyContext,
-            initialMemory: UMemory<PythonType, PythonCallable>,
+            initialMemory: UMemory<PythonType, PyCallable>,
             initialPathConstraints: UPathConstraints<PythonType>,
             typeSystem: PythonTypeSystem
         ): PreallocatedObjects =

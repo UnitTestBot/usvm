@@ -9,6 +9,7 @@ import org.usvm.language.*
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
+import org.usvm.machine.ps.strategies.TypeRating
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
 import org.usvm.machine.ps.types.SymbolTypeTree
 import org.usvm.machine.ps.types.prioritizeTypes
@@ -19,25 +20,26 @@ import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 
-object PyTarget: UTarget<SymbolicHandlerEvent<Any>, PyTarget>()
-private val targets = UTargetsSet.empty<PyTarget, SymbolicHandlerEvent<Any>>()
+object PyTarget: UTarget<PyInstruction, PyTarget>()
+private val targets = UTargetsSet.empty<PyTarget, PyInstruction>()
 
 class PyState(
     ctx: PyContext,
-    private val pythonCallable: PythonUnpinnedCallable,
+    private val pythonCallable: PyUnpinnedCallable,
     val inputSymbols: List<UninterpretedSymbolicPythonObject>,
     pathConstraints: UPathConstraints<PythonType>,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     uModel: PyModel,
     val typeSystem: PythonTypeSystem,
     val preAllocatedObjects: PreallocatedObjects,
     var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
-    callStack: UCallStack<PythonCallable, SymbolicHandlerEvent<Any>> = UCallStack(),
-    pathLocation: PathNode<SymbolicHandlerEvent<Any>> = PathNode.root(),
+    callStack: UCallStack<PyCallable, PyInstruction> = UCallStack(),
+    pathLocation: PathNode<PyInstruction> = PathNode.root(),
+    var concolicQueries: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
-): UState<PythonType, PythonCallable, SymbolicHandlerEvent<Any>, PyContext, PyTarget, PyState>(
+): UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
     ctx,
     callStack,
     pathConstraints,
@@ -61,6 +63,7 @@ class PyState(
             possibleTypesForNull,
             callStack,
             pathNode,
+            concolicQueries,
             delayedForks,
             mocks.toMutableMap(),  // copy
             mockedObjects.toMutableSet()  // copy
@@ -72,20 +75,21 @@ class PyState(
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
         get() = models.first() as? PyModel ?: error("Model PyState must be PyModel")
-    fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> =
-        pathNode.allStatements.toList().reversed()
+    fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> = concolicQueries
 
-    fun makeTypeRating(delayedFork: DelayedFork): List<PythonType> {
+    fun makeTypeRating(delayedFork: DelayedFork): TypeRating? {
         val candidates = when (val types = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER)) {
             is TypesResult.SuccessfulTypesResult -> types.mapNotNull { it as? ConcretePythonType }
             is TypesResult.TypesResultWithExpiredTimeout, is TypesResult.EmptyTypesResult ->
-                return emptyList()
+                return null
         }
-        if (typeSystem is PythonTypeSystemWithMypyInfo) {
+        val resultList = if (typeSystem is PythonTypeSystemWithMypyInfo) {
             val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, delayedFork.symbol)
-            return prioritizeTypes(candidates, typeGraph, typeSystem)
+            prioritizeTypes(candidates, typeGraph, typeSystem)
+        } else {
+            candidates
         }
-        return candidates
+        return TypeRating(resultList.toMutableList())
     }
 
     fun mock(what: MockHeader): MockResult {

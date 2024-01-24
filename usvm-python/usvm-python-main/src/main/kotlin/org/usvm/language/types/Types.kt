@@ -1,6 +1,6 @@
 package org.usvm.language.types
 
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.python.model.PyIdentifier
 
 sealed class PythonType
@@ -27,9 +27,9 @@ sealed class ConcretePythonType(
     val typeName: String,
     val id: PyIdentifier,
     val isHidden: Boolean = false,
-    val addressGetter: () -> PythonObject
+    val addressGetter: () -> PyObject
 ): PythonType() {
-    val asObject: PythonObject
+    val asObject: PyObject
         get() = owner.addressOfConcreteType(this)
 
     val typeModule: String
@@ -45,7 +45,7 @@ class PrimitiveConcretePythonType(
     typeName: String,
     id: PyIdentifier,
     isHidden: Boolean = false,
-    addressGetter: () -> PythonObject
+    addressGetter: () -> PyObject
 ): ConcretePythonType(owner, typeName, id, isHidden, addressGetter)
 
 class ArrayLikeConcretePythonType(
@@ -53,5 +53,5 @@ class ArrayLikeConcretePythonType(
     owner: PythonTypeSystem,
     typeName: String,
     id: PyIdentifier,
-    addressGetter: () -> PythonObject
+    addressGetter: () -> PyObject
 ): ConcretePythonType(owner, typeName, id,false, addressGetter)

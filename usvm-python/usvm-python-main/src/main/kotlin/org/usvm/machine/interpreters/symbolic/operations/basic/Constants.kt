@@ -2,11 +2,11 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedFloatWithValue
 
-fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
     if (ConcretePythonInterpreter.pythonExceptionOccurred())
         return null
     return when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
@@ -27,14 +27,14 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PythonObject): Uninte
     }
 }
 
-fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
     val str = ConcretePythonInterpreter.getPythonObjectStr(value)
     return context.curState!!.preAllocatedObjects.allocateStr(context, str, value)
 }
 
-fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
     val str = runCatching {
@@ -48,7 +48,7 @@ fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PythonObject): Un
     return constructInt(context, context.ctx.mkIntNum(str))
 }
 
-fun handlerLoadConstFloatKt(ctx: ConcolicRunContext, value: PythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerLoadConstFloatKt(ctx: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
     val str = ConcretePythonInterpreter.getPythonObjectRepr(value)
