@@ -3,12 +3,12 @@ package org.usvm.machine.symbolicobjects.rendering
 import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.python.model.*
 
-class PythonObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
-    private val converted = mutableMapOf<PyObjectModel, PythonObject>()
-    fun convert(model: PyObjectModel): PythonObject {
+class PyObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
+    private val converted = mutableMapOf<PyObjectModel, PyObject>()
+    fun convert(model: PyObjectModel): PyObject {
         if (model in converted)
             return converted[model]!!
         val result = when (model) {
@@ -22,17 +22,17 @@ class PythonObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
         return result
     }
 
-    fun getPythonVirtualObjects(): List<PythonObject> =
+    fun getPythonVirtualObjects(): List<PyObject> =
         virtualObjects.map { it.second }
 
     fun getUSVMVirtualObjects(): List<VirtualPythonObject> =
         virtualObjects.map { it.first }
 
-    private fun convertPrimitive(model: PyPrimitive): PythonObject {
+    private fun convertPrimitive(model: PyPrimitive): PyObject {
         return ConcretePythonInterpreter.eval(emptyNamespace, model.repr)
     }
 
-    private fun convertIdentifier(model: PyIdentifier): PythonObject {
+    private fun convertIdentifier(model: PyIdentifier): PyObject {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.concreteRun(namespace, "import ${model.module}")
         val result = ConcretePythonInterpreter.eval(namespace, "${model.module}.${model.name}")
@@ -40,7 +40,7 @@ class PythonObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
         return result
     }
 
-    private fun convertCompositeObject(model: PyCompositeObject): PythonObject {
+    private fun convertCompositeObject(model: PyCompositeObject): PyObject {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         val constructorRef = convert(model.constructor)
         val argsRef = model.constructorArgs.map { convert(it) }
@@ -80,7 +80,7 @@ class PythonObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
         return result
     }
 
-    private fun convertTuple(model: PyTupleObject): PythonObject {
+    private fun convertTuple(model: PyTupleObject): PyObject {
         val size = model.items.size
         val result = ConcretePythonInterpreter.allocateTuple(size)
         converted[model] = result
@@ -91,8 +91,8 @@ class PythonObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
         return result
     }
 
-    private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PythonObject>>()
-    private fun convertMock(model: PyMockObject): PythonObject {
+    private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PyObject>>()
+    private fun convertMock(model: PyMockObject): PyObject {
         if (useNoneInsteadOfMock)
             return ConcretePythonInterpreter.eval(emptyNamespace, "None")
         val virtual = VirtualPythonObject(model.id)

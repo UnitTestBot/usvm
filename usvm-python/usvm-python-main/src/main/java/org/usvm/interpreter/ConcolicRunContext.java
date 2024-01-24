@@ -10,7 +10,7 @@ import org.usvm.machine.PyState;
 import org.usvm.machine.PyContext;
 import org.usvm.machine.model.PyModelHolder;
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder;
-import org.usvm.machine.symbolicobjects.rendering.PythonObjectRenderer;
+import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
 import java.util.*;
@@ -33,7 +33,7 @@ public class ConcolicRunContext {
     public boolean usesVirtualInputs = false;
     public Callable<Boolean> isCancelled;
     public PyObjectModelBuilder builder = null;
-    public PythonObjectRenderer renderer = null;
+    public PyObjectRenderer renderer = null;
 
     public ConcolicRunContext(
             @NotNull PyState curState,

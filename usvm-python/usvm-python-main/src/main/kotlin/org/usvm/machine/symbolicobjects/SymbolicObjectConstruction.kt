@@ -19,7 +19,7 @@ fun constructInputObject(
     stackIndex: Int,
     type: PythonType,
     ctx: PyContext,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,
     // preallocatedObjects: PreallocatedObjects
@@ -34,7 +34,7 @@ fun constructInputObject(
 
 fun constructEmptyAllocatedObject(
     ctx: PyContext,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     typeSystem: PythonTypeSystem,
     type: ConcretePythonType
 ): UninterpretedSymbolicPythonObject {
@@ -46,7 +46,7 @@ fun constructEmptyAllocatedObject(
 
 fun constructEmptyStaticObject(
     ctx: PyContext,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     typeSystem: PythonTypeSystem,
     type: ConcretePythonType
 ): UninterpretedSymbolicPythonObject {
@@ -88,7 +88,7 @@ fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSy
 
 fun constructInitialBool(
     ctx: PyContext,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,
     expr: UExpr<KBoolSort>

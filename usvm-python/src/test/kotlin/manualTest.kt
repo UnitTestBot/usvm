@@ -1,9 +1,9 @@
 import org.usvm.UMachineOptions
-import org.usvm.language.PrimitivePythonProgram
-import org.usvm.language.PythonProgram
+import org.usvm.language.PrimitivePyProgram
+import org.usvm.language.PyProgram
 import org.usvm.machine.*
-import org.usvm.language.PythonUnpinnedCallable
-import org.usvm.language.StructuredPythonProgram
+import org.usvm.language.PyUnpinnedCallable
+import org.usvm.language.StructuredPyProgram
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
@@ -53,10 +53,10 @@ private fun buildSampleRunConfig(): RunConfig {
                 assert x != "aaaa"
         """.trimIndent()
     )*/
-    val function = PythonUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType, PythonAnyType, PythonAnyType),
-        "run",
-        "tricky.UnsafeCode"
+    val function = PyUnpinnedCallable.constructCallableFromName(
+        listOf(PythonAnyType),
+        "matmul_add_and_sub",
+        "SimpleCustomClasses"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -72,8 +72,8 @@ private fun getFunctionInfo(
     name: String,
     module: String,
     typeSystem: PythonTypeSystemWithMypyInfo,
-    program: StructuredPythonProgram
-): PythonUnpinnedCallable? {
+    program: StructuredPyProgram
+): PyUnpinnedCallable? {
     println("Module: $module, name: $name")
     val description = type.pythonDescription()
     if (description !is PythonCallableTypeDescription)
@@ -99,7 +99,7 @@ private fun getFunctionInfo(
     }.getOrNull() ?: return null
     println("$module.$name: ${type.pythonTypeRepresentation()}")
     val callableType = type as FunctionType
-    return PythonUnpinnedCallable.constructCallableFromName(
+    return PyUnpinnedCallable.constructCallableFromName(
         callableType.arguments.map {
             getTypeFromTypeHint(it, typeSystem)
         },
@@ -129,7 +129,7 @@ private fun buildProjectRunConfig(): RunConfig {
         mypyDir
     )
     val mypyBuild = readMypyInfoBuild(mypyDir)
-    val program = StructuredPythonProgram(setOf(File(projectPath)))
+    val program = StructuredPyProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val functions = modules.flatMap { module ->
         println("Module: $module")
@@ -239,27 +239,27 @@ private fun analyze(runConfig: RunConfig) {
 }
 
 private data class RunConfig(
-    val program: PythonProgram,
+    val program: PyProgram,
     val typeSystem: PythonTypeSystem,
-    val functions: List<PythonUnpinnedCallable>
+    val functions: List<PyUnpinnedCallable>
 )
 
 @Suppress("SameParameterValue")
-private fun constructPrimitiveProgram(asString: String): Pair<PythonProgram, PythonTypeSystem> {
-    val program = PrimitivePythonProgram.fromString(asString)
+private fun constructPrimitiveProgram(asString: String): Pair<PyProgram, PythonTypeSystem> {
+    val program = PrimitivePyProgram.fromString(asString)
     val typeSystem = BasicPythonTypeSystem()
     return Pair(program, typeSystem)
 }
 
 @Suppress("SameParameterValue")
-private fun constructPrimitiveProgramFromStructured(module: String): Pair<PythonProgram, PythonTypeSystem> {
+private fun constructPrimitiveProgramFromStructured(module: String): Pair<PyProgram, PythonTypeSystem> {
     val program = SamplesBuild.program.getPrimitiveProgram(module)
     val typeSystem = BasicPythonTypeSystem()
     return Pair(program, typeSystem)
 }
 
 @Suppress("SameParameterValue")
-private fun constructStructuredProgram(): Pair<PythonProgram, PythonTypeSystem> {
+private fun constructStructuredProgram(): Pair<PyProgram, PythonTypeSystem> {
     val program = SamplesBuild.program
     val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
     return Pair(program, typeSystem)

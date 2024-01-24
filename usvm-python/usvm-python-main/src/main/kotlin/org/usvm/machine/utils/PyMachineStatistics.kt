@@ -1,8 +1,8 @@
 package org.usvm.machine.utils
 
-import org.usvm.language.PythonPinnedCallable
+import org.usvm.language.PyPinnedCallable
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.symbolic.operations.tracing.NextInstruction
 
 fun writeLostSymbolicValuesReport(lostValues: Map<MethodDescription, Int>): String {
@@ -78,7 +78,7 @@ class PyMachineStatistics {
     }
 }
 
-class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallable) {
+class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) {
     internal val lostSymbolicValues = mutableMapOf<MethodDescription, Int>()
     internal var numberOfUnregisteredVirtualOperations = 0
     fun addLostSymbolicValue(descr: MethodDescription) {
@@ -91,7 +91,7 @@ class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallab
 
     private val instructionOffsets: List<Int> by lazy {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPythonObject, "f")
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPyObject, "f")
         ConcretePythonInterpreter.concreteRun(namespace, "import dis")
         val raw = ConcretePythonInterpreter.eval(
             namespace,
@@ -106,19 +106,19 @@ class PythonMachineStatisticsOnFunction(private val function: PythonPinnedCallab
     var coverageNoVirtual: Double = 0.0
     private val coveredInstructions = mutableSetOf<Int>()
     private val coveredInstructionsNoVirtual = mutableSetOf<Int>()
-    private val functionCode: PythonObject by lazy {
+    private val functionCode: PyObject by lazy {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPythonObject, "f")
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPyObject, "f")
         ConcretePythonInterpreter.eval(namespace, "f.__code__").also {
             ConcretePythonInterpreter.decref(namespace)
         }
     }
     fun updateCoverage(cmd: NextInstruction, usesVirtual: Boolean) {
-        if (cmd.code != functionCode)
+        if (cmd.pyInstruction.code != functionCode)
             return
-        coveredInstructions += cmd.pythonInstruction.numberInBytecode
+        coveredInstructions += cmd.pyInstruction.numberInBytecode
         if (!usesVirtual)
-            coveredInstructionsNoVirtual += cmd.pythonInstruction.numberInBytecode
+            coveredInstructionsNoVirtual += cmd.pyInstruction.numberInBytecode
         coverage = coveredInstructions.size.toDouble() / instructionOffsets.size
         coverageNoVirtual = coveredInstructionsNoVirtual.size.toDouble() / instructionOffsets.size
     }

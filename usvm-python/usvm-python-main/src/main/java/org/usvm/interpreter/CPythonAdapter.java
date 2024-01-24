@@ -10,7 +10,7 @@ import org.usvm.annotations.ids.SymbolicMethodId;
 import org.usvm.annotations.ids.ApproximationId;
 import org.usvm.language.*;
 import org.usvm.machine.MockHeader;
-import org.usvm.machine.interpreters.concrete.PythonObject;
+import org.usvm.machine.interpreters.concrete.PyObject;
 import org.usvm.machine.interpreters.symbolic.operations.descriptors.*;
 import org.usvm.machine.interpreters.symbolic.operations.tracing.*;
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject;
@@ -128,8 +128,8 @@ public class CPythonAdapter {
         context.curOperation = null;
         int instruction = getInstructionFromFrame(frameRef);
         long codeRef = getCodeFromFrame(frameRef);
-        PythonObject code = new PythonObject(codeRef);
-        withTracing(context, new NextInstruction(new PythonInstruction(instruction), code), () -> Unit.INSTANCE);
+        PyObject code = new PyObject(codeRef);
+        withTracing(context, new NextInstruction(new PyInstruction(instruction, code)), () -> Unit.INSTANCE);
     }
 
     private static SymbolForCPython wrap(UninterpretedSymbolicPythonObject obj) {
@@ -167,7 +167,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.RefConverter}
     )
     public static SymbolForCPython handlerLoadConst(ConcolicRunContext context, long ref) {
-        PythonObject obj = new PythonObject(ref);
+        PyObject obj = new PyObject(ref);
         return withTracing(context, new LoadConstParameters(obj), () -> wrap(handlerLoadConstKt(context, obj)));
     }
 
@@ -190,7 +190,7 @@ public class CPythonAdapter {
     public static void handlerCallOn(ConcolicRunContext context, long callable, SymbolForCPython[] args) {
         if (Arrays.stream(args).anyMatch(elem -> elem.obj == null))
             return;
-        PythonObject callableObj = new PythonObject(callable);
+        PyObject callableObj = new PyObject(callable);
         handlerCallOnKt(context, callableObj, Arrays.stream(args).map(s -> s.obj));
     }
 
@@ -924,7 +924,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.RefConverter}
     )
     public static void handlerFunctionCall(ConcolicRunContext context, long codeRef) {
-        PythonObject code = new PythonObject(codeRef);
+        PyObject code = new PyObject(codeRef);
         withTracing(context, new PythonFunctionCall(code), () -> Unit.INSTANCE);
     }
 
@@ -934,7 +934,7 @@ public class CPythonAdapter {
             argConverters = {ObjectConverter.RefConverter}
     )
     public static void handlerReturn(ConcolicRunContext context, long codeRef) {
-        withTracing(context, new PythonReturn(new PythonObject(codeRef)), () -> Unit.INSTANCE);
+        withTracing(context, new PythonReturn(new PyObject(codeRef)), () -> Unit.INSTANCE);
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_virtual_unary_fun")
@@ -965,7 +965,7 @@ public class CPythonAdapter {
     public static SymbolForCPython handlerIsinstance(ConcolicRunContext context, SymbolForCPython obj, long typeRef) {
         if (obj.obj == null)
             return null;
-        PythonObject type = new PythonObject(typeRef);
+        PyObject type = new PyObject(typeRef);
         return methodWrapper(context, new IsinstanceCheck(obj, type), () -> handlerIsinstanceKt(context, obj.obj, type));
     }
 
@@ -1240,7 +1240,7 @@ public class CPythonAdapter {
             addToSymbolicAdapter = false
     )
     public static SymbolForCPython handlerCreateEmptyObject(ConcolicRunContext context, long type_ref) {
-        PythonObject ref = new PythonObject(type_ref);
+        PyObject ref = new PyObject(type_ref);
         return methodWrapper(context, new EmptyObjectCreation(ref), () -> handlerCreateEmptyObjectKt(context, ref));
     }
 

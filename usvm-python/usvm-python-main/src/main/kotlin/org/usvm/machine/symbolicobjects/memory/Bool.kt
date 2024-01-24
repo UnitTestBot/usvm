@@ -6,7 +6,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
@@ -43,7 +43,7 @@ fun InterpretedInputSymbolicPythonObject.getBoolContent(ctx: PyContext): UBoolEx
     return modelHolder.model.readField(address, BoolContents.content, ctx.boolSort)
 }
 
-fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemory<PythonType, PythonCallable>): UBoolExpr {
+fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): UBoolExpr {
     return when (this) {
         is InterpretedInputSymbolicPythonObject -> {
             getBoolContent(ctx)
