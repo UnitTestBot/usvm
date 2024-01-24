@@ -14,7 +14,7 @@ import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.IntDictType
 import org.usvm.language.types.PythonType
@@ -125,7 +125,7 @@ fun InterpretedInputSymbolicPythonObject.dictIsEmpty(ctx: PyContext): Boolean {
 
 private fun InterpretedInputSymbolicPythonObject.constructResultObject(
     resultAddress: UConcreteHeapRef,
-    memory: UMemory<PythonType, PythonCallable>
+    memory: UMemory<PythonType, PyCallable>
 ): InterpretedSymbolicPythonObject =
     if (isStaticHeapRef(resultAddress)) {
         val type = memory.typeStreamOf(resultAddress).first()
@@ -138,7 +138,7 @@ private fun InterpretedInputSymbolicPythonObject.constructResultObject(
 fun InterpretedInputSymbolicPythonObject.readDictRefElement(
     ctx: PyContext,
     key: InterpretedSymbolicPythonObject,
-    memory: UMemory<PythonType, PythonCallable>
+    memory: UMemory<PythonType, PyCallable>
 ): InterpretedSymbolicPythonObject {
     val lvalue = URefMapEntryLValue(ctx.addressSort, address, key.address, RefDictType)
     val elemAddress = modelHolder.model.read(lvalue) as UConcreteHeapRef
@@ -157,7 +157,7 @@ fun InterpretedInputSymbolicPythonObject.dictContainsRef(
 fun InterpretedInputSymbolicPythonObject.readDictIntElement(
     ctx: PyContext,
     key: KInterpretedValue<KIntSort>,
-    memory: UMemory<PythonType, PythonCallable>
+    memory: UMemory<PythonType, PyCallable>
 ): InterpretedSymbolicPythonObject {
     val lvalue = UMapEntryLValue(ctx.intSort, ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
     val resultAddress = modelHolder.model.read(lvalue) as UConcreteHeapRef

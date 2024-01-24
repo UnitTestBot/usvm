@@ -18,20 +18,20 @@ import java.io.File
 object ConcretePythonInterpreter {
     private val pythonAdapter = CPythonAdapter()
 
-    fun getNewNamespace(): PythonNamespace {
+    fun getNewNamespace(): PyNamespace {
         val result = pythonAdapter.newNamespace
         if (result == 0L)
             throw CPythonExecutionException()
-        return PythonNamespace(result)
+        return PyNamespace(result)
     }
 
     fun pythonExceptionOccurred(): Boolean = CPythonAdapter.pythonExceptionOccurred() != 0
 
-    fun addObjectToNamespace(namespace: PythonNamespace, pythonObject: PythonObject, name: String) {
-        pythonAdapter.addName(namespace.address, pythonObject.address, name)
+    fun addObjectToNamespace(namespace: PyNamespace, pyObject: PyObject, name: String) {
+        pythonAdapter.addName(namespace.address, pyObject.address, name)
     }
 
-    fun concreteRun(globals: PythonNamespace, code: String, printErrorMsg: Boolean = false, setHook: Boolean = false) {
+    fun concreteRun(globals: PyNamespace, code: String, printErrorMsg: Boolean = false, setHook: Boolean = false) {
         val result = pythonAdapter.concreteRun(globals.address, code, printErrorMsg, setHook)
         if (result != 0) {
             val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
@@ -42,7 +42,7 @@ object ConcretePythonInterpreter {
         }
     }
 
-    fun eval(globals: PythonNamespace, expr: String, printErrorMsg: Boolean = false, setHook: Boolean = false): PythonObject {
+    fun eval(globals: PyNamespace, expr: String, printErrorMsg: Boolean = false, setHook: Boolean = false): PyObject {
         val result = pythonAdapter.eval(globals.address, expr, printErrorMsg, setHook)
         if (result == 0L) {
             val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
@@ -51,20 +51,20 @@ object ConcretePythonInterpreter {
             else
                 throw CPythonExecutionException()
         }
-        return PythonObject(result)
+        return PyObject(result)
     }
 
-    private fun wrap(address: Long): PythonObject? {
+    private fun wrap(address: Long): PyObject? {
         if (address == 0L)
             return null
-        return PythonObject(address)
+        return PyObject(address)
     }
 
     fun concreteRunOnFunctionRef(
-        functionRef: PythonObject,
-        concreteArgs: Collection<PythonObject>,
+        functionRef: PyObject,
+        concreteArgs: Collection<PyObject>,
         setHook: Boolean = false
-    ): PythonObject {
+    ): PyObject {
         pythonAdapter.thrownException = 0L
         pythonAdapter.thrownExceptionType = 0L
         val result = pythonAdapter.concreteRunOnFunctionRef(
@@ -73,7 +73,7 @@ object ConcretePythonInterpreter {
             setHook
         )
         if (result != 0L)
-            return PythonObject(result)
+            return PyObject(result)
 
         val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
         if (op != null)
@@ -86,13 +86,13 @@ object ConcretePythonInterpreter {
     }
 
     fun concolicRun(
-        functionRef: PythonObject,
-        concreteArgs: List<PythonObject>,
-        virtualArgs: Collection<PythonObject>,
+        functionRef: PyObject,
+        concreteArgs: List<PyObject>,
+        virtualArgs: Collection<PyObject>,
         symbolicArgs: List<SymbolForCPython>,
         ctx: ConcolicRunContext,
         printErrorMsg: Boolean = false
-    ): PythonObject {
+    ): PyObject {
         pythonAdapter.thrownException = 0L
         pythonAdapter.thrownExceptionType = 0L
         val result = pythonAdapter.concolicRun(
@@ -105,7 +105,7 @@ object ConcretePythonInterpreter {
             printErrorMsg
         )
         if (result != 0L)
-            return PythonObject(result)
+            return PyObject(result)
 
         val op = pythonAdapter.checkForIllegalOperation()
         if (op != null)
@@ -115,85 +115,85 @@ object ConcretePythonInterpreter {
     }
 
 
-    fun printPythonObject(pythonObject: PythonObject) {
-        pythonAdapter.printPythonObject(pythonObject.address)
+    fun printPythonObject(pyObject: PyObject) {
+        pythonAdapter.printPythonObject(pyObject.address)
     }
 
-    fun getPythonObjectRepr(pythonObject: PythonObject, printErrorMsg: Boolean = false): String {
-        return pythonAdapter.getPythonObjectRepr(pythonObject.address, printErrorMsg) ?: throw CPythonExecutionException()
+    fun getPythonObjectRepr(pyObject: PyObject, printErrorMsg: Boolean = false): String {
+        return pythonAdapter.getPythonObjectRepr(pyObject.address, printErrorMsg) ?: throw CPythonExecutionException()
     }
 
-    fun getPythonObjectStr(pythonObject: PythonObject): String {
-        return pythonAdapter.getPythonObjectStr(pythonObject.address) ?: throw CPythonExecutionException()
+    fun getPythonObjectStr(pyObject: PyObject): String {
+        return pythonAdapter.getPythonObjectStr(pyObject.address) ?: throw CPythonExecutionException()
     }
 
-    fun getAddressOfReprFunction(pythonObject: PythonObject): Long {
-        return pythonAdapter.getAddressOfReprFunction(pythonObject.address)
+    fun getAddressOfReprFunction(pyObject: PyObject): Long {
+        return pythonAdapter.getAddressOfReprFunction(pyObject.address)
     }
 
-    fun getPythonObjectTypeName(pythonObject: PythonObject): String {
-        return pythonAdapter.getPythonObjectTypeName(pythonObject.address)
+    fun getPythonObjectTypeName(pyObject: PyObject): String {
+        return pythonAdapter.getPythonObjectTypeName(pyObject.address)
     }
 
-    fun getNameOfPythonType(pythonObject: PythonObject): String {
-        return pythonAdapter.getNameOfPythonType(pythonObject.address)
+    fun getNameOfPythonType(pyObject: PyObject): String {
+        return pythonAdapter.getNameOfPythonType(pyObject.address)
     }
 
-    fun getPythonObjectType(pythonObject: PythonObject): PythonObject {
-        return PythonObject(pythonAdapter.getPythonObjectType(pythonObject.address))
+    fun getPythonObjectType(pyObject: PyObject): PyObject {
+        return PyObject(pythonAdapter.getPythonObjectType(pyObject.address))
     }
 
-    fun isJavaException(pythonObject: PythonObject): Boolean {
-        return pythonAdapter.javaExceptionType == pythonAdapter.getPythonObjectType(pythonObject.address)
+    fun isJavaException(pyObject: PyObject): Boolean {
+        return pythonAdapter.javaExceptionType == pythonAdapter.getPythonObjectType(pyObject.address)
     }
 
-    fun extractException(pythonObject: PythonObject): Throwable {
-        require(isJavaException(pythonObject))
-        return pythonAdapter.extractException(pythonObject.address)
+    fun extractException(pyObject: PyObject): Throwable {
+        require(isJavaException(pyObject))
+        return pythonAdapter.extractException(pyObject.address)
     }
 
-    fun allocateVirtualObject(virtualObject: VirtualPythonObject): PythonObject {
+    fun allocateVirtualObject(virtualObject: VirtualPythonObject): PyObject {
         val ref = pythonAdapter.allocateVirtualObject(virtualObject)
         if (ref == 0L)
             throw CPythonExecutionException()
-        return PythonObject(ref)
+        return PyObject(ref)
     }
 
-    fun makeList(elements: List<PythonObject>): PythonObject {
-        return PythonObject(pythonAdapter.makeList(elements.map { it.address }.toLongArray()))
+    fun makeList(elements: List<PyObject>): PyObject {
+        return PyObject(pythonAdapter.makeList(elements.map { it.address }.toLongArray()))
     }
 
-    fun allocateTuple(size: Int): PythonObject {
-        return PythonObject(pythonAdapter.allocateTuple(size))
+    fun allocateTuple(size: Int): PyObject {
+        return PyObject(pythonAdapter.allocateTuple(size))
     }
 
-    fun setTupleElement(tuple: PythonObject, index: Int, elem: PythonObject) {
+    fun setTupleElement(tuple: PyObject, index: Int, elem: PyObject) {
         pythonAdapter.setTupleElement(tuple.address, index, elem.address)
     }
 
-    fun getIterableElements(iterable: PythonObject): List<PythonObject> {
+    fun getIterableElements(iterable: PyObject): List<PyObject> {
         val addresses = pythonAdapter.getIterableElements(iterable.address)
-        return addresses.map { PythonObject(it) }
+        return addresses.map { PyObject(it) }
     }
 
-    fun decref(obj: PythonObject) {
+    fun decref(obj: PyObject) {
         pythonAdapter.decref(obj.address)
     }
 
-    fun incref(obj: PythonObject) {
+    fun incref(obj: PyObject) {
         pythonAdapter.incref(obj.address)
     }
 
-    fun decref(namespace: PythonNamespace) {
+    fun decref(namespace: PyNamespace) {
         pythonAdapter.decref(namespace.address)
     }
 
-    fun typeLookup(type: PythonObject, name: String): PythonObject? {
+    fun typeLookup(type: PyObject, name: String): PyObject? {
         val result = pythonAdapter.typeLookup(type.address, name)
-        return if (result == 0L) null else PythonObject(result)
+        return if (result == 0L) null else PyObject(result)
     }
 
-    fun getSymbolicDescriptor(concreteDescriptor: PythonObject): MemberDescriptor? {
+    fun getSymbolicDescriptor(concreteDescriptor: PyObject): MemberDescriptor? {
         return pythonAdapter.getSymbolicDescriptor(concreteDescriptor.address)
     }
 
@@ -215,7 +215,7 @@ object ConcretePythonInterpreter {
         return SymbolForCPython(null, ref)
     }
 
-    private fun createTypeQuery(checkMethod: (Long) -> Int): (PythonObject) -> Boolean = { pythonObject ->
+    private fun createTypeQuery(checkMethod: (Long) -> Int): (PyObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
         if (result < 0)
             error("Given Python object is not a type")
@@ -247,11 +247,11 @@ object ConcretePythonInterpreter {
     val typeHasStandardTpGetattro = createTypeQuery { pythonAdapter.typeHasStandardTpGetattro(it) }
     val typeHasStandardTpSetattro = createTypeQuery { pythonAdapter.typeHasStandardTpSetattro(it) }
 
-    fun callStandardNew(type: PythonObject): PythonObject {
-        return PythonObject(pythonAdapter.callStandardNew(type.address))
+    fun callStandardNew(type: PyObject): PyObject {
+        return PyObject(pythonAdapter.callStandardNew(type.address))
     }
 
-    fun typeHasStandardDict(type: PythonObject): Boolean {
+    fun typeHasStandardDict(type: PyObject): Boolean {
         return typeHasStandardTpGetattro(type) && typeHasStandardTpSetattro(type) && typeHasStandardNew(type)
     }
 
@@ -324,10 +324,10 @@ object ConcretePythonInterpreter {
     private fun initializeSysPath(namespace: Long) {
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
-        initialSysPath = PythonObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true, false))
+        initialSysPath = PyObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true, false))
         if (initialSysPath.address == 0L)
             throw CPythonExecutionException()
-        initialSysModulesKeys = PythonObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true, false))
+        initialSysModulesKeys = PyObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true, false))
         if (initialSysModulesKeys.address == 0L)
             throw CPythonExecutionException()
     }
@@ -341,8 +341,8 @@ object ConcretePythonInterpreter {
     }
 
     private var venvConfig: VenvConfig? = null
-    lateinit var initialSysPath: PythonObject
-    lateinit var  initialSysModulesKeys: PythonObject
+    lateinit var initialSysPath: PyObject
+    lateinit var  initialSysModulesKeys: PyObject
     var pyEQ: Int = 0
     var pyNE: Int = 0
     var pyLT: Int = 0
@@ -350,7 +350,7 @@ object ConcretePythonInterpreter {
     var pyGT: Int = 0
     var pyGE: Int = 0
     var pyNoneRef: Long = 0L
-    lateinit var emptyNamespace: PythonNamespace
+    lateinit var emptyNamespace: PyNamespace
 
     init {
         initialize()
@@ -372,15 +372,17 @@ object ConcretePythonInterpreter {
 }
 
 class CPythonExecutionException(
-    val pythonExceptionValue: PythonObject? = null,
-    val pythonExceptionType: PythonObject? = null
+    val pythonExceptionValue: PyObject? = null,
+    val pythonExceptionType: PyObject? = null
 ): Exception()
-data class PythonObject(val address: Long) {
+
+data class PyObject(val address: Long) {
     init {
         require(address != 0L)
     }
 }
-data class PythonNamespace(val address: Long) {
+
+data class PyNamespace(val address: Long) {
     init {
         require(address != 0L)
     }

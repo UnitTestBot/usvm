@@ -5,7 +5,7 @@ import org.usvm.*
 import org.usvm.api.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
@@ -104,7 +104,7 @@ class UninterpretedSymbolicPythonObject(
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
-    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PythonCallable>) {  // must not be called on nullref
+    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PyCallable>) {  // must not be called on nullref
         memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-1_000_000_000), ctx.trueExpr)
     }
 
@@ -175,7 +175,7 @@ fun interpretSymbolicPythonObject(
 
 fun interpretSymbolicPythonObject(
     modelHolder: PyModelHolder,
-    memory: UMemory<PythonType, PythonCallable>,
+    memory: UMemory<PythonType, PyCallable>,
     obj: UninterpretedSymbolicPythonObject
 ): InterpretedSymbolicPythonObject {
     val evaluated = modelHolder.model.eval(obj.address) as UConcreteHeapRef

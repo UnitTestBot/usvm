@@ -1,18 +1,17 @@
 package org.usvm.machine.interpreters.symbolic.operations.tracing
 
-import org.usvm.machine.interpreters.concrete.PythonObject
-import org.usvm.language.PythonInstruction
+import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.language.PyInstruction
 import org.usvm.language.SymbolForCPython
 
 sealed class SymbolicHandlerEventParameters<out T>
 
 data class LoadConstParameters(val constToLoad: Any): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class NextInstruction(
-    val pythonInstruction: PythonInstruction,
-    val code: PythonObject
+    val pyInstruction: PyInstruction
 ): SymbolicHandlerEventParameters<Unit>()
-data class PythonFunctionCall(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
-data class PythonReturn(val code: PythonObject): SymbolicHandlerEventParameters<Unit>()
+data class PythonFunctionCall(val code: PyObject): SymbolicHandlerEventParameters<Unit>()
+data class PythonReturn(val code: PyObject): SymbolicHandlerEventParameters<Unit>()
 data class Fork(val condition: SymbolForCPython): SymbolicHandlerEventParameters<Unit>()
 data class ForkResult(val condition: SymbolForCPython, val expectedResult: Boolean): SymbolicHandlerEventParameters<Unit>()
 data class Unpack(val iterable: SymbolForCPython, val count: Int): SymbolicHandlerEventParameters<Unit>()
@@ -21,8 +20,8 @@ data class DictCreation(val keys: List<SymbolForCPython>, val elements: List<Sym
 data class DictCreationConstKey(val keys: SymbolForCPython, val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class TupleCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class SetCreation(val elements: List<SymbolForCPython>): SymbolicHandlerEventParameters<SymbolForCPython>()
-data class IsinstanceCheck(val on: SymbolForCPython, val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
-data class EmptyObjectCreation(val type: PythonObject): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class IsinstanceCheck(val on: SymbolForCPython, val type: PyObject): SymbolicHandlerEventParameters<SymbolForCPython>()
+data class EmptyObjectCreation(val type: PyObject): SymbolicHandlerEventParameters<SymbolForCPython>()
 data class MethodParameters(
     val name: String,
     val operands: List<SymbolForCPython>

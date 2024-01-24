@@ -1,9 +1,9 @@
 package org.usvm.language.types
 
-import org.usvm.language.StructuredPythonProgram
+import org.usvm.language.StructuredPyProgram
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
@@ -59,14 +59,14 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
-    protected val addressToConcreteType = mutableMapOf<PythonObject, ConcretePythonType>()
-    private val concreteTypeToAddress = mutableMapOf<ConcretePythonType, PythonObject>()
-    private fun addType(type: ConcretePythonType, address: PythonObject) {
+    protected val addressToConcreteType = mutableMapOf<PyObject, ConcretePythonType>()
+    private val concreteTypeToAddress = mutableMapOf<ConcretePythonType, PyObject>()
+    private fun addType(type: ConcretePythonType, address: PyObject) {
         addressToConcreteType[address] = type
         concreteTypeToAddress[type] = address
         ConcretePythonInterpreter.incref(address)
     }
-    protected fun addPrimitiveType(isHidden: Boolean, id: PyIdentifier, getter: () -> PythonObject): ConcretePythonType {
+    protected fun addPrimitiveType(isHidden: Boolean, id: PyIdentifier, getter: () -> PyObject): ConcretePythonType {
         val address = getter()
         require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
         val type = PrimitiveConcretePythonType(
@@ -80,7 +80,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return type
     }
 
-    private fun addArrayLikeType(constraints: Set<ElementConstraint>, id: PyIdentifier, getter: () -> PythonObject): ArrayLikeConcretePythonType {
+    private fun addArrayLikeType(constraints: Set<ElementConstraint>, id: PyIdentifier, getter: () -> PyObject): ArrayLikeConcretePythonType {
         val address = getter()
         require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
         val type = ArrayLikeConcretePythonType(
@@ -94,12 +94,12 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         return type
     }
 
-    fun addressOfConcreteType(type: ConcretePythonType): PythonObject {
+    fun addressOfConcreteType(type: ConcretePythonType): PyObject {
         require(type.owner == this)
         return concreteTypeToAddress[type]!!
     }
 
-    fun concreteTypeOnAddress(address: PythonObject): ConcretePythonType? {
+    fun concreteTypeOnAddress(address: PyObject): ConcretePythonType? {
         return addressToConcreteType[address]
     }
 
@@ -139,7 +139,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     protected val basicTypes: List<ConcretePythonType> by lazy {
         concreteTypeToAddress.keys.filter { !it.isHidden }
     }
-    protected val basicTypeRefs: List<PythonObject> by lazy {
+    protected val basicTypeRefs: List<PyObject> by lazy {
         basicTypes.map(::addressOfConcreteType)
     }
 
@@ -161,13 +161,13 @@ class BasicPythonTypeSystem: PythonTypeSystem() {
 
 class PythonTypeSystemWithMypyInfo(
     mypyBuild: MypyInfoBuild,
-    private val program: StructuredPythonProgram
+    private val program: StructuredPyProgram
 ): PythonTypeSystem() {
     val typeHintsStorage = PythonTypeHintsStorage.get(mypyBuild)
 
-    private fun typeAlreadyInStorage(typeRef: PythonObject): Boolean = addressToConcreteType.keys.contains(typeRef)
+    private fun typeAlreadyInStorage(typeRef: PyObject): Boolean = addressToConcreteType.keys.contains(typeRef)
 
-    private fun isWorkableType(typeRef: PythonObject): Boolean {
+    private fun isWorkableType(typeRef: PyObject): Boolean {
         return ConcretePythonInterpreter.getPythonObjectTypeName(typeRef) == "type" &&
                 (ConcretePythonInterpreter.typeHasStandardNew(typeRef) || basicTypeRefs.contains(typeRef))
     }

@@ -1,12 +1,11 @@
 package org.usvm.machine.symbolicobjects.memory
 
-import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.PythonCallable
+import org.usvm.language.PyCallable
 import org.usvm.language.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
@@ -38,7 +37,7 @@ fun InterpretedInputSymbolicPythonObject.getIntContent(ctx: PyContext): UExpr<KI
     return modelHolder.model.readField(address, IntContents.content, ctx.intSort)
 }
 
-fun InterpretedSymbolicPythonObject.getIntContent(ctx: PyContext, memory: UMemory<PythonType, PythonCallable>): UExpr<KIntSort> {
+fun InterpretedSymbolicPythonObject.getIntContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): UExpr<KIntSort> {
     return when (this) {
         is InterpretedInputSymbolicPythonObject -> {
             getIntContent(ctx)

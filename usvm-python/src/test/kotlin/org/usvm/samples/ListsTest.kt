@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
-import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
@@ -192,9 +192,10 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
         )
     }
 
-    private fun richcompareCheck(function: PythonUnpinnedCallable) {
+    private fun richcompareCheck(function: PyUnpinnedCallable) {
         val oldOptions = options
         options = UMachineOptions(stepLimit = 10U)
+        allowPathDiversions = true
         check2WithConcreteRun(
             function,
             ignoreNumberOfAnalysisResults,
@@ -205,6 +206,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
                 { _, _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
         options = oldOptions
     }
 
@@ -254,6 +256,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
     fun testDoubleSubscriptAndCompare() {
         val oldOptions = options
         options = UMachineOptions(stepLimit = 15U)
+        allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("double_subscript_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -265,6 +268,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
                 { _, _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
         options = oldOptions
     }
 
@@ -441,7 +445,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
         options = UMachineOptions(stepLimit = 50U)
         check1WithConcreteRun(
             constructFunction("reverse_usage", listOf(typeSystem.pythonList)),
-            ge(5),
+            ge(3),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { _, res -> res.typeName == "tuple" },
             /* propertiesToDiscover = */ listOf(

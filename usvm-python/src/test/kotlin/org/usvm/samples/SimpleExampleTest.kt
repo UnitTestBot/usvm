@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
-import org.usvm.language.PythonUnpinnedCallable
+import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
@@ -136,7 +136,7 @@ class SimpleExampleTest : PythonTestRunnerForPrimitiveProgram("SimpleExample") {
     @Test
     fun testSimpleLambda() {
         check1WithConcreteRun(
-            PythonUnpinnedCallable.constructLambdaFunction(listOf(typeSystem.pythonInt), "lambda x: 1 if x == 157 else 0"),
+            PyUnpinnedCallable.constructLambdaFunction(listOf(typeSystem.pythonInt), "lambda x: 1 if x == 157 else 0"),
             eq(2),
             standardConcolicAndConcreteChecks,
             /* invariants = */ listOf { x, res -> x.typeName == "int" && res.typeName == "int" },

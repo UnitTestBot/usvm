@@ -31,8 +31,10 @@ fun <T : Any> withTracing(
         if (context.curState == null)
             return null
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
-        // logger.debug("Depth: {}", context.curState!!.pathLocation.depth + 1)
-        context.curState!!.pathNode += eventRecord
+        context.curState!!.concolicQueries = context.curState!!.concolicQueries.add(eventRecord)
+        if (newEventParameters is NextInstruction) {
+            context.curState!!.pathNode += newEventParameters.pyInstruction
+        }
         return result
     }
     val event = context.pathPrefix.first()

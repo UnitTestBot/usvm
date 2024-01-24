@@ -9,7 +9,7 @@ import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
-import org.usvm.machine.ps.PyVirtualPathSelector
+import org.usvm.machine.ps.createBaselinePyPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.*
@@ -18,22 +18,23 @@ import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.machine.utils.isGenerator
 import org.usvm.machine.utils.unfoldGenerator
 import org.usvm.memory.UMemory
-import org.usvm.ps.DfsPathSelector
 import org.usvm.solver.USatResult
+import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.UMachineObserver
+import kotlin.random.Random
 
 class PyMachine(
-    private val program: PythonProgram,
+    private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
     private val printErrorMsg: Boolean = false
 ): UMachine<PyState>() {
     private val ctx = PyContext(typeSystem)
 
-    // private val random = Random(0)
+    private val random = Random(0)
     val statistics = PyMachineStatistics()
 
     private fun <PyObjectRepr> getInterpreter(
-        pinnedTarget: PythonPinnedCallable,
+        pinnedTarget: PyPinnedCallable,
         saver: PyMachineResultsReceiver<PyObjectRepr>,
         allowPathDiversion: Boolean,
         maxInstructions: Int,
@@ -51,9 +52,9 @@ class PyMachine(
             allowPathDiversion
         )
 
-    private fun getInitialState(target: PythonUnpinnedCallable): PyState {
+    private fun getInitialState(target: PyUnpinnedCallable): PyState {
         val pathConstraints = UPathConstraints<PythonType>(ctx)
-        val memory = UMemory<PythonType, PythonCallable>(
+        val memory = UMemory<PythonType, PyCallable>(
             ctx,
             pathConstraints.typeConstraints
         ).apply {
@@ -81,28 +82,22 @@ class PyMachine(
     }
 
     private fun getPathSelector(
-        target: PythonUnpinnedCallable,
+        target: PyUnpinnedCallable,
         newStateObserver: NewStateObserver
     ): UPathSelector<PyState> {
-        val pathSelectorCreation = {
+        /*val pathSelectorCreation = {
             DfsPathSelector<PyState>()
             // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
-        }
+        }*/
         val initialState = getInitialState(target)
         newStateObserver.onNewState(initialState)
-        val ps = PyVirtualPathSelector(
-            ctx,
-            pathSelectorCreation(),
-            pathSelectorForStatesWithDelayedForks = DfsPathSelector(),
-            pathSelectorCreation(),
-            newStateObserver
-        )
+        val ps = createBaselinePyPathSelector(ctx, random, newStateObserver)
         ps.add(listOf(initialState))
         return ps
     }
 
     fun <PyObjectRepr> analyze(
-        pythonCallable: PythonUnpinnedCallable,
+        pythonCallable: PyUnpinnedCallable,
         saver: PyMachineResultsReceiver<PyObjectRepr>,
         maxIterations: Int = 300,
         allowPathDiversion: Boolean = true,
@@ -116,13 +111,19 @@ class PyMachine(
         }
         return program.withPinnedCallable(pythonCallable, typeSystem) { rawPinnedCallable ->
             typeSystem.restart()
-            val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.asPythonObject)) {
+            val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.asPyObject)) {
                 rawPinnedCallable
             } else {
-                val substituted = unfoldGenerator(rawPinnedCallable.asPythonObject)
-                PythonPinnedCallable(substituted)
+                val substituted = unfoldGenerator(rawPinnedCallable.asPyObject)
+                PyPinnedCallable(substituted)
             }
-            val observer = PythonMachineObserver(saver.newStateObserver)
+            val pyObserver = PythonMachineObserver(saver.newStateObserver)
+            /*val coverageStatistics =
+                CoverageStatistics<PyCallable, PyInstruction, PyState>(
+                    setOf(pinnedCallable),
+                    PyApplicationGraph()
+                )*/
+            val observer = CompositeUMachineObserver(pyObserver)
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
             val interpreter = getInterpreter(
@@ -141,11 +142,11 @@ class PyMachine(
                 observer = observer,
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
-                    observer.iterations >= maxIterations ||
+                    pyObserver.iterations >= maxIterations ||
                             (stopTime != null && System.currentTimeMillis() >= stopTime)
                 }
             )
-            observer.iterations
+            pyObserver.iterations
         }.also {
             ConcretePythonInterpreter.restart()
             ctx.restartSolver()

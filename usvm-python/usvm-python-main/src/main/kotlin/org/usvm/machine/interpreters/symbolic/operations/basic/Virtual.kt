@@ -3,7 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.model.substituteModel
@@ -102,7 +102,7 @@ private fun internalVirtualCallKt(
     return concrete to symbolic
 }
 
-fun virtualCallKt(ctx: ConcolicRunContext): PythonObject {
+fun virtualCallKt(ctx: ConcolicRunContext): PyObject {
     ctx.curState ?: throw UnregisteredVirtualOperation
     val (interpreted, _) = internalVirtualCallKt(ctx)
     val objectModel = ctx.builder!!.convert(interpreted)

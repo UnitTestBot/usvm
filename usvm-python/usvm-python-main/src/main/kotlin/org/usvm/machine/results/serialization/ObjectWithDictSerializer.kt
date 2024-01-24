@@ -1,11 +1,11 @@
 package org.usvm.machine.results.serialization
 
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PythonObject
+import org.usvm.machine.interpreters.concrete.PyObject
 
 
 object ObjectWithDictSerializer: PythonObjectSerializer<String>() {
-    override fun serialize(obj: PythonObject): String {
+    override fun serialize(obj: PyObject): String {
         val objRepr = ReprObjectSerializer.serialize(obj)
         val namespace = ConcretePythonInterpreter.getNewNamespace()
         ConcretePythonInterpreter.addObjectToNamespace(namespace, obj, "obj")
