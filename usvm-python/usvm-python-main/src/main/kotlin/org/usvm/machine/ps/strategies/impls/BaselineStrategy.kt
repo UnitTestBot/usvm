@@ -57,7 +57,7 @@ class BaselineActionStrategy(
 
     private object ServeNewDelayedFork: Action(0.3) {
         override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
-            graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isEmpty() }
+            graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isEmpty() && it.delayedForkState.size > 0 }
 
         override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> {
             val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isEmpty() }
@@ -76,7 +76,7 @@ class BaselineActionStrategy(
 
     private object ServeOldDelayedFork: Action(0.012) {
         override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
-            graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isNotEmpty() }
+            graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isNotEmpty() && it.delayedForkState.size > 0 }
 
         override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> {
             val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isNotEmpty() }

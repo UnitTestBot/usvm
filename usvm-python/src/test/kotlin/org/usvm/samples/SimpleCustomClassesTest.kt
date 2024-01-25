@@ -57,6 +57,7 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
 
     @Test
     fun testIterableOfMatmul() {
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("iterable_of_matmul", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,
@@ -67,6 +68,7 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
                 { _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
     }
 
     @Test

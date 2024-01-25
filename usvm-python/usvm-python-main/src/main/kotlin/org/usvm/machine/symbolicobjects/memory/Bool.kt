@@ -16,7 +16,7 @@ import org.usvm.memory.UMemory
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
     require(ctx.curState != null)
     addSupertype(ctx, typeSystem.pythonBool)
-    return ctx.curState!!.memory.readField(address, BoolContents.content, ctx.ctx.boolSort)
+    return ctx.curState!!.memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx.ctx))
 }
 
 fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
@@ -40,7 +40,7 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
 
 fun InterpretedInputSymbolicPythonObject.getBoolContent(ctx: PyContext): UBoolExpr {
     require(getConcreteType() == typeSystem.pythonBool)
-    return modelHolder.model.readField(address, BoolContents.content, ctx.boolSort)
+    return modelHolder.model.readField(address, BoolContents.content, BoolContents.content.sort(ctx))
 }
 
 fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): UBoolExpr {
@@ -49,7 +49,7 @@ fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemo
             getBoolContent(ctx)
         }
         is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
-            memory.readField(address, BoolContents.content, ctx.boolSort) as KInterpretedValue<KBoolSort>
+            memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx)) as KInterpretedValue<KBoolSort>
         }
     }
 }

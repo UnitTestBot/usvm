@@ -9,8 +9,8 @@ import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 
 class WrappedArrayLengthRegion(
-    val ctx: PyContext,
-    val region: UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
+    private val ctx: PyContext,
+    private val region: UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
 ): UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort> {
     override fun read(key: UArrayLengthLValue<ArrayType, KIntSort>): UExpr<KIntSort> {
         val underlyingResult = region.read(key)

@@ -17,6 +17,7 @@ import org.usvm.memory.UMemory
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
+import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 
@@ -29,7 +30,7 @@ class PyState(
     val inputSymbols: List<UninterpretedSymbolicPythonObject>,
     pathConstraints: UPathConstraints<PythonType>,
     memory: UMemory<PythonType, PyCallable>,
-    uModel: PyModel,
+    uModel: UModelBase<PythonType>,
     val typeSystem: PythonTypeSystem,
     val preAllocatedObjects: PreallocatedObjects,
     var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
@@ -57,7 +58,7 @@ class PyState(
             inputSymbols,
             newPathConstraints,
             newMemory,
-            pyModel,
+            models.first(),
             typeSystem,
             preAllocatedObjects.clone(),
             possibleTypesForNull,

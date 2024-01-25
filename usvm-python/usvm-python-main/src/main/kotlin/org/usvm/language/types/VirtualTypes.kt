@@ -12,7 +12,7 @@ object ArrayType: VirtualPythonType() {
     }
 }
 
-class HasElementConstraint(private val constraint: ElementConstraint): VirtualPythonType() {
+data class HasElementConstraint(private val constraint: ElementConstraint): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type == this)
             return true
@@ -22,7 +22,7 @@ class HasElementConstraint(private val constraint: ElementConstraint): VirtualPy
     }
 }
 
-class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
+data class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type is MockType || type == this)
             return true

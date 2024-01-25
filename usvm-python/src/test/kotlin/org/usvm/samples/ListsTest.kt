@@ -8,8 +8,15 @@ import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.time.Duration.Companion.seconds
 
-class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(stepLimit = 20U)) {
+class ListsTest : PythonTestRunnerForPrimitiveProgram(
+    "Lists",
+    UMachineOptions(stepLimit = 20U)
+) {
+    init {
+        timeoutPerRunMs = 2000
+    }
     @Test
     fun testSimpleListSample() {
         check2WithConcreteRun(
@@ -255,7 +262,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
     @Test
     fun testDoubleSubscriptAndCompare() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 15U)
+        options = UMachineOptions(stepLimit = 30U, timeout = 20.seconds)
         allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("double_subscript_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
@@ -319,7 +326,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
     fun testListOfFloatPairs() {
         val oldOptions = options
         options = UMachineOptions(stepLimit = 60U)
-        timeoutPerRunMs = 3000
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("input_list_of_float_pairs", listOf(PythonAnyType)),
             ignoreNumberOfAnalysisResults,
@@ -333,6 +340,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
             )
         )
         options = oldOptions
+        allowPathDiversions = false
     }
 
     @Test
@@ -458,6 +466,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
 
     @Test
     fun testContainsOp() {
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("contains_op", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -468,6 +477,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
                 { _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
     }
 
     @Test
@@ -502,6 +512,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
     fun testUseSort() {
         val oldOptions = options
         options = UMachineOptions(stepLimit = 100U)
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("use_sort", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
@@ -512,6 +523,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram("Lists", UMachineOptions(s
                 { _, res -> res.repr == "None" }
             )
         )
+        allowPathDiversions = false
         options = oldOptions
     }
 

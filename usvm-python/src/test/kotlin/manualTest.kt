@@ -54,9 +54,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "matmul_add_and_sub",
-        "SimpleCustomClasses"
+        listOf(typeSystem.pythonList),
+        "use_enumerate",
+        "Enumerate"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -203,7 +203,7 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 150,
+                    maxIterations = 10,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,

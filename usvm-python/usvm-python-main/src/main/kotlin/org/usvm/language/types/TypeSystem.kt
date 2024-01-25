@@ -22,12 +22,12 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     override val typeOperationsTimeout: Duration
         get() = 1000.milliseconds
 
-    override fun isSupertype(supertype: PythonType, type: PythonType): Boolean {
-        require(supertype !is IntDictType)
-        if (supertype is VirtualPythonType)
-            return supertype.accepts(type)
-        return supertype == type
-    }
+    override fun isSupertype(supertype: PythonType, type: PythonType): Boolean =
+        when (supertype) {
+            is InternalType -> error("Should not be reachable")
+            is VirtualPythonType -> supertype.accepts(type)
+            is MockType, is ConcretePythonType -> supertype == type
+        }
 
     override fun isFinal(type: PythonType): Boolean {
         return isInstantiable(type)

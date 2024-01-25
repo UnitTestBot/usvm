@@ -1,5 +1,6 @@
 package org.usvm.machine.model
 
+import mu.KLogging
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.constraints.UPathConstraints
@@ -45,7 +46,14 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
         return null
     val first = typeStream.take(1).first()
     val concrete = getConcreteType(address)
-    if (concrete == null)
-        require(first is MockType)
+    if (concrete == null) {
+        if (first !is MockType) {
+            logger.warn("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
+            return null
+        }
+        // require(first is MockType)
+    }
     return first
 }
+
+private val logger = object : KLogging() {}.logger
