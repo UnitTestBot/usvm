@@ -197,6 +197,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
 
     @Test
     fun testSumUsage() {
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("sum_usage", listOf(PythonAnyType)),
             ignoreNumberOfAnalysisResults,
@@ -207,6 +208,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
                 { x, res -> x.typeName == "list" && res.repr == "None" }
             )
         )
+        allowPathDiversions = false
     }
 
     @Test

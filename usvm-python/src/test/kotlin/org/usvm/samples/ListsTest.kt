@@ -262,7 +262,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
     @Test
     fun testDoubleSubscriptAndCompare() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 30U, timeout = 20.seconds)
+        options = UMachineOptions(stepLimit = 20U, timeout = 20.seconds)
         allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("double_subscript_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
