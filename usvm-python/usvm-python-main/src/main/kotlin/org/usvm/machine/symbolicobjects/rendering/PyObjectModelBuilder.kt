@@ -1,18 +1,16 @@
 package org.usvm.machine.symbolicobjects.rendering
 
 import io.ksmt.expr.KInt32NumExpr
+import io.ksmt.expr.KInterpretedValue
+import io.ksmt.sort.KIntSort
 import org.usvm.UConcreteHeapRef
-import org.usvm.api.readArrayIndex
 import org.usvm.api.typeStreamOf
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
-import org.usvm.language.types.ArrayType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.MockType
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.symbolic.operations.basic.UnregisteredVirtualOperation
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
@@ -44,7 +42,8 @@ class PyObjectModelBuilder(
         if (obj.address in converted)
             return converted[obj.address]!!
         val typeSystem = state.typeSystem
-        val result: PyObjectModel = when (val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")) {
+        val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")
+        val result: PyObjectModel = when (type) {
             MockType -> convertMockType(obj)
             typeSystem.pythonInt -> convertInt(obj)
             typeSystem.pythonBool -> convertBool(obj)
@@ -281,21 +280,8 @@ class PyObjectModelBuilder(
         if (size.value > MAX_INPUT_ARRAY_LENGTH)
             throw LengthOverflowException
         return List(size.value) { index ->
-            val indexExpr = state.ctx.mkSizeExpr(index)
-            val element = obj.modelHolder.model.readArrayIndex(
-                obj.address,
-                indexExpr,
-                ArrayType,
-                state.ctx.addressSort
-            ) as UConcreteHeapRef
-            val elemInterpretedObject =
-                if (isStaticHeapRef(element)) {
-                    val type = state.memory.typeStreamOf(element).first()
-                    require(type is ConcretePythonType)
-                    InterpretedAllocatedOrStaticSymbolicPythonObject(element, type, state.typeSystem)
-                } else {
-                    InterpretedInputSymbolicPythonObject(element, obj.modelHolder, state.typeSystem)
-                }
+            val indexExpr = state.ctx.mkSizeExpr(index) as KInterpretedValue<KIntSort>
+            val elemInterpretedObject = obj.readArrayElement(indexExpr, state)
             convert(elemInterpretedObject)
         }
     }
