@@ -1,6 +1,7 @@
 package org.usvm.machine.symbolicobjects.memory
 
 import io.ksmt.expr.KFp64Value
+import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
 import org.usvm.*
 import org.usvm.api.readField
@@ -20,19 +21,19 @@ object FloatPlusInfinity: FloatInterpretedContent()
 object FloatMinusInfinity: FloatInterpretedContent()
 data class FloatNormalValue(val value: Double): FloatInterpretedContent()
 
-private fun readBoolFieldWithSoftConstraint(field: ContentOfType, model: PyModel, address: UConcreteHeapRef, ctx: PyContext): UBoolExpr {
-    val value = model.readField(address, field, ctx.intSort)
-    return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.bound))
+private fun readBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, model: PyModel, address: UConcreteHeapRef, ctx: PyContext): UBoolExpr {
+    val value = model.readField(address, field, field.sort(ctx))
+    return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.BOUND))
 }
 
-private fun readBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext): UBoolExpr {
-    val value = memory.readField(address, field, ctx.intSort)
-    return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.bound))
+private fun readBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext): UBoolExpr {
+    val value = memory.readField(address, field, field.sort(ctx))
+    return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.BOUND))
 }
 
-private fun writeBoolFieldWithSoftConstraint(field: ContentOfType, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext, value: UBoolExpr) {
-    val intValue = ctx.mkIte(value, ctx.mkIntNum(FloatContents.bound + 1), ctx.mkIntNum(0))
-    memory.writeField(address, field, ctx.intSort, intValue, ctx.trueExpr)
+private fun writeBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext, value: UBoolExpr) {
+    val intValue = ctx.mkIte(value, ctx.mkIntNum(FloatContents.BOUND + 1), ctx.mkIntNum(0))
+    memory.writeField(address, field, field.sort(ctx), intValue, ctx.trueExpr)
 }
 
 fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatInterpretedContent {
@@ -42,10 +43,10 @@ fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatI
         return FloatNan
     val isInf = readBoolFieldWithSoftConstraint(FloatContents.isInf, modelHolder.model, address, ctx)
     if (isInf.isTrue) {
-        val isPositive = modelHolder.model.readField(address, FloatContents.infSign, ctx.boolSort)
+        val isPositive = modelHolder.model.readField(address, FloatContents.infSign, FloatContents.infSign.sort(ctx))
         return if (isPositive.isTrue) FloatPlusInfinity else FloatMinusInfinity
     }
-    val realValue = modelHolder.model.readField(address, FloatContents.content, ctx.realSort)
+    val realValue = modelHolder.model.readField(address, FloatContents.content, FloatContents.content.sort(ctx))
     val floatValue = ctx.mkRealToFpExpr(ctx.fp64Sort, ctx.floatRoundingMode, realValue) as KFp64Value
     return FloatNormalValue(floatValue.value)
 }

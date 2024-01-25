@@ -21,7 +21,7 @@ fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
     if (ctx.curState == null)
         return null
     val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return null
-   return list.readArrayElement(ctx, indexInt)
+    return list.readArrayElement(ctx, indexInt)
 }
 
 fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {

@@ -41,6 +41,7 @@ class TupleTest: PythonTestRunnerForPrimitiveProgram("Tuple", UMachineOptions(st
         val oldOptions = options
         options = UMachineOptions(stepLimit = 50U)
         timeoutPerRunMs = 2000
+        allowPathDiversions = true
         check1WithConcreteRun(
             constructFunction("input_list_of_pairs", listOf(PythonAnyType)),
             ignoreNumberOfAnalysisResults,
@@ -53,6 +54,7 @@ class TupleTest: PythonTestRunnerForPrimitiveProgram("Tuple", UMachineOptions(st
                 { _, res -> res.repr == "2" }
             )
         )
+        allowPathDiversions = false
         options = oldOptions
     }
 

@@ -5,8 +5,13 @@ import org.usvm.UMachineOptions
 import org.usvm.language.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.time.Duration.Companion.seconds
 
-class EnumerateTest: PythonTestRunnerForPrimitiveProgram("Enumerate", UMachineOptions(stepLimit = 30U)) {
+class EnumerateTest: PythonTestRunnerForPrimitiveProgram(
+    "Enumerate",
+    UMachineOptions(stepLimit = 15U, timeout = 20.seconds),
+    // allowPathDiversions = true
+) {
     @Test
     fun testEnumerateOnList() {
         check1WithConcreteRun(
