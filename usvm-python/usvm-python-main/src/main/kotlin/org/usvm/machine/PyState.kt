@@ -78,21 +78,6 @@ class PyState(
         get() = models.first() as? PyModel ?: error("Model PyState must be PyModel")
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> = concolicQueries
 
-    fun makeTypeRating(delayedFork: DelayedFork): TypeRating? {
-        val candidates = when (val types = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER)) {
-            is TypesResult.SuccessfulTypesResult -> types.mapNotNull { it as? ConcretePythonType }
-            is TypesResult.TypesResultWithExpiredTimeout, is TypesResult.EmptyTypesResult ->
-                return null
-        }
-        val resultList = if (typeSystem is PythonTypeSystemWithMypyInfo) {
-            val typeGraph = SymbolTypeTree(this, typeSystem.typeHintsStorage, delayedFork.symbol)
-            prioritizeTypes(candidates, typeGraph, typeSystem)
-        } else {
-            candidates
-        }
-        return TypeRating(resultList.toMutableList())
-    }
-
     fun mock(what: MockHeader): MockResult {
         val cached = mocks[what]
         if (cached != null)

@@ -11,6 +11,7 @@ import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.strategies.*
+import org.usvm.machine.ps.types.makeTypeRating
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.types.TypesResult
 
@@ -186,7 +187,7 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
         state.delayedForks.forEach {
             val vertex = graph.getVertexByDelayedFork(it)
                 ?: error("DelayedForkVertex must already be in the graph")
-            val typeRating = state.makeTypeRating(it) ?: return@forEach
+            val typeRating = makeTypeRating(state, it) ?: return@forEach
             vertex.delayedForkState.addTypeRating(typeRating)
         }
     }
