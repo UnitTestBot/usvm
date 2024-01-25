@@ -55,8 +55,8 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
         listOf(typeSystem.pythonList),
-        "use_enumerate",
-        "Enumerate"
+        "reverse_usage",
+        "Lists"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -203,7 +203,7 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 10,
+                    maxIterations = 100,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,

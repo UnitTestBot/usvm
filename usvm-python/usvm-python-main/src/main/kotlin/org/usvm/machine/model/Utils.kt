@@ -48,7 +48,7 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
     val concrete = getConcreteType(address)
     if (concrete == null) {
         if (first !is MockType) {
-            logger.warn("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
+            logger.error("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
             return null
         }
         // require(first is MockType)
