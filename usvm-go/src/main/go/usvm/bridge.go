@@ -370,6 +370,12 @@ func instInfo(pointer C.jlong, arr C.jlong) {
 	}
 
 	expression := inst.String()
+	switch inst := inst.(type) {
+	case ssa.Value:
+		name := inst.Name()
+		expression = name + " = " + expression
+	}
+
 	buf := util.NewByteBuffer(uintptr(arr))
 	buf.WriteInt32(int32(len(expression)))
 	for i := range expression {

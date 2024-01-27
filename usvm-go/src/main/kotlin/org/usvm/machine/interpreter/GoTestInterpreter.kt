@@ -27,6 +27,7 @@ import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.Type
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
@@ -39,7 +40,8 @@ class GoTestInterpreter(
     fun resolve(state: GoState, method: GoMethod): ProgramExecutionResult {
         val model = state.models.first()
 
-        val inputScope = InputScope(ctx, model)
+        val inputScope = MemoryScope(ctx, model, model)
+        val outputScope = MemoryScope(ctx, model, state.memory)
         val methodInfo = bridge.methodInfo(method)
 
         val inputValues = methodInfo.parametersTypes.mapIndexed { idx, type ->
@@ -50,19 +52,20 @@ class GoTestInterpreter(
         val inputModel = InputModel(inputValues)
 
         return if (state.isExceptional) {
-            UnsuccessfulExecutionResult(inputModel)
+            UnsuccessfulExecutionResult(inputModel, (state.methodResult as GoMethodResult.Panic).value)
         } else {
             val returnUExpr = state.methodResult as GoMethodResult.Success
-            val returnExpr = returnUExpr.let { inputScope.convertExpr(it.value, methodInfo.returnType) }
+            val returnExpr = returnUExpr.let { outputScope.convertExpr(it.value, methodInfo.returnType) }
             val outputModel = OutputModel(returnExpr)
 
             SuccessfulExecutionResult(inputModel, outputModel)
         }
     }
 
-    private class InputScope(
+    private class MemoryScope(
         private val ctx: GoContext,
         private val model: UModelBase<GoType>,
+        private val memory: UWritableMemory<GoType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: Type): Any? =
             when (type) {
@@ -93,24 +96,25 @@ class GoTestInterpreter(
 
         fun resolveFp64(expr: UExpr<out USort>) = (model.eval(expr) as KFp64Value).value
 
-        fun resolveArray(array: UHeapRef): List<Any?>? {
+        fun resolveArray(expr: UHeapRef): List<Any?>? {
+            val array = model.eval(expr)
             if (array == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
 
-            val arrayType = Type.ARRAY
+            val arrayType = Type.SLICE.value.toLong()
             val elementType = Type.INT32
-            val lengthUExpr = model.readArrayLength(array, arrayType, ctx.sizeSort)
+            val lengthUExpr = memory.readArrayLength(array, arrayType, ctx.sizeSort)
             val length = clipArrayLength(convertExpr(lengthUExpr, elementType) as Int)
             val result = (0 until length).map { idx ->
-                val indexUExpr =
-                    model.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, ctx.typeToSort(elementType))
-                convertExpr(indexUExpr, elementType)
+                val element = memory.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, ctx.typeToSort(elementType))
+                convertExpr(element, elementType)
             }
             return result
         }
 
-        fun resolveMap(map: UHeapRef): Map<Any?, Any?>? {
+        fun resolveMap(expr: UHeapRef): Map<Any?, Any?>? {
+            val map = model.eval(expr)
             if (map == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
@@ -120,22 +124,23 @@ class GoTestInterpreter(
             val keySort = ctx.typeToSort(keyType)
             val valueType = Type.INT32
             val valueSort = ctx.typeToSort(valueType)
-            val entries = model.setEntries(map, mapType, keySort, USizeExprKeyInfo()).entries
+            val entries = memory.setEntries(map, mapType, keySort, USizeExprKeyInfo()).entries
 
             return entries.associate { entry ->
                 val key = entry.setElement
-                val value = model.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
+                val value = memory.read(UMapEntryLValue(key.sort, valueSort, map, key, mapType, USizeExprKeyInfo()))
                 convertExpr(key, keyType) to convertExpr(value, valueType)
             }
         }
 
-        fun resolveStruct(struct: UHeapRef): List<Any?>? {
+        fun resolveStruct(expr: UHeapRef): List<Any?>? {
+            val struct = model.eval(expr)
             if (struct == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
 
-            val age = model.readField(struct, 0, ctx.bv32Sort)
-            val gender = model.readField(struct, 1, ctx.boolSort)
+            val age = memory.readField(struct, 0, ctx.bv32Sort)
+            val gender = memory.readField(struct, 1, ctx.boolSort)
             return listOf(convertExpr(age, Type.INT32), convertExpr(gender, Type.BOOL))
         }
     }
@@ -205,6 +210,7 @@ class SuccessfulExecutionResult(
 
 class UnsuccessfulExecutionResult(
     private val inputModel: InputModel,
+    private val result: Any,
 ) : ProgramExecutionResult {
     override fun toString(): String {
         return buildString {
@@ -212,6 +218,8 @@ class UnsuccessfulExecutionResult(
             appendLine("Unsuccessful Execution")
             appendLine("----------------------------------------------------------------")
             appendLine(inputModel.toString())
+            appendLine("----------------------------------------------------------------")
+            appendLine(result)
             appendLine("================================================================")
         }
     }

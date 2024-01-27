@@ -1,16 +1,17 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
-import org.usvm.UAddressSort
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UPointer
+import org.usvm.UAddressPointer
+import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
 import org.usvm.machine.type.Type
+import org.usvm.memory.ULValue
 
 internal typealias USizeSort = UBv32Sort
 
@@ -38,7 +39,11 @@ class GoContext(
         else -> throw UnknownSortException()
     }
 
-    fun mkPointer(address: UConcreteHeapAddress): UExpr<USort> {
-        return UPointer(this, address).asExpr(pointerSort)
+    fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
+        return UAddressPointer(this, address).asExpr(pointerSort)
+    }
+
+    fun mkLValuePointer(lvalue: ULValue<*, *>): UExpr<USort> {
+        return ULValuePointer(this, lvalue).asExpr(pointerSort)
     }
 }
