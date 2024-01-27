@@ -22,6 +22,7 @@ type Api interface {
 	MkIf(inst *ssa.If)
 	MkAlloc(inst *ssa.Alloc)
 	MkMakeSlice(inst *ssa.MakeSlice)
+	MkMakeMap(inst *ssa.MakeMap)
 	MkExtract(inst *ssa.Extract)
 	MkReturn(inst *ssa.Return)
 	MkPanic(inst *ssa.Panic)
@@ -63,6 +64,7 @@ const (
 	MethodMkIf
 	MethodMkAlloc
 	MethodMkMakeSlice
+	MethodMkMakeMap
 	MethodMkExtract
 	MethodMkReturn
 	MethodMkPanic
@@ -250,6 +252,13 @@ func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Len)
 	a.writeVar(inst.Cap)
+}
+
+func (a *api) MkMakeMap(inst *ssa.MakeMap) {
+	a.buf.Write(byte(MethodMkMakeMap))
+	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.writeVar(inst.Reserve)
 }
 
 func (a *api) MkExtract(inst *ssa.Extract) {
