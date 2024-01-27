@@ -327,7 +327,7 @@ class UIsSupertypeExpr<Type> internal constructor(
 
 //region Pointer Semantics
 
-class UPointer(
+class UAddressPointer(
     ctx: UContext<*>,
     var address: UConcreteHeapAddress
 ) : UExpr<UAddressSort>(ctx) {
@@ -344,6 +344,26 @@ class UPointer(
 
     override fun print(printer: ExpressionPrinter) {
         printer.append("&0x$address")
+    }
+}
+
+class ULValuePointer(
+    ctx: UContext<*>,
+    var lvalue: ULValue<*, *>
+) : UExpr<UAddressSort>(ctx) {
+    override val sort: UAddressSort = ctx.pointerSort
+
+    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) { lvalue }
+
+    override fun internHashCode(): Int = hash(lvalue)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("&$lvalue")
     }
 }
 

@@ -21,6 +21,7 @@ type Api interface {
 	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
 	MkAlloc(inst *ssa.Alloc)
+	MkMakeSlice(inst *ssa.MakeSlice)
 	MkExtract(inst *ssa.Extract)
 	MkReturn(inst *ssa.Return)
 	MkPanic(inst *ssa.Panic)
@@ -61,6 +62,7 @@ const (
 	MethodMkStore
 	MethodMkIf
 	MethodMkAlloc
+	MethodMkMakeSlice
 	MethodMkExtract
 	MethodMkReturn
 	MethodMkPanic
@@ -191,6 +193,7 @@ type BuiltinFunc byte
 const (
 	_ BuiltinFunc = iota
 	Len
+	Cap
 )
 
 func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
@@ -206,6 +209,7 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	case "len":
 		a.buf.Write(byte(Len))
 	case "cap":
+		a.buf.Write(byte(Cap))
 	case "min":
 	case "max":
 	case "real":
@@ -236,9 +240,16 @@ func (a *api) MkIf(inst *ssa.If) {
 
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
-	a.buf.Write(byte(VarKindLocal))
 	a.buf.Write(byte(typeslocal.GetType(inst, true)))
 	a.buf.WriteInt32(resolveRegister(inst))
+}
+
+func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
+	a.buf.Write(byte(MethodMkMakeSlice))
+	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.writeVar(inst.Len)
+	a.writeVar(inst.Cap)
 }
 
 func (a *api) MkExtract(inst *ssa.Extract) {

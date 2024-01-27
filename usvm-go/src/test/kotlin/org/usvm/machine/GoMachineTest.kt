@@ -149,13 +149,32 @@ class GoMachineTest {
 
     @Test
     fun testPointerArray() {
-        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", true)
         println(results)
     }
 
     @Test
     fun testPanic() {
         val results = machine.analyzeAndResolve(Path.getProgram("panic.go"), "panicSimple", false)
+        println(results)
+    }
+
+    @Test
+    fun testCountSort() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), timeout = Duration.INFINITE))
+        val results = machine.analyzeAndResolve(Path.getProgram("count_sort.go"), "count", false)
+        println(results)
+    }
+
+    @Test
+    fun testMakeSlice() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "alloc", false)
+        println(results)
+    }
+
+    @Test
+    fun testArrayOverwrite() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "overwrite", false)
         println(results)
     }
 }

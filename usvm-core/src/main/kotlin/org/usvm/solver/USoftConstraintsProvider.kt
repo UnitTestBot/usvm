@@ -32,7 +32,8 @@ import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
-import org.usvm.UPointer
+import org.usvm.UAddressPointer
+import org.usvm.ULValuePointer
 import org.usvm.URegisterReading
 import org.usvm.USort
 import org.usvm.UTrackedSymbol
@@ -125,7 +126,9 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = expr
 
-    override fun transform(expr: UPointer): UExpr<UAddressSort> = expr
+    override fun transform(expr: UAddressPointer): UExpr<UAddressSort> = expr
+
+    override fun transform(expr: ULValuePointer): UExpr<UAddressSort> = expr
 
     override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr = expr
 
