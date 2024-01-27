@@ -18,7 +18,8 @@ import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.UNullRef
-import org.usvm.UPointer
+import org.usvm.UAddressPointer
+import org.usvm.ULValuePointer
 import org.usvm.URegisterReading
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
@@ -95,8 +96,13 @@ open class UExprTranslator<Type, USizeSort : USort>(
         return const
     }
 
-    override fun transform(expr: UPointer): KExpr<UAddressSort> {
+    override fun transform(expr: UAddressPointer): KExpr<UAddressSort> {
         val const = expr.sort.mkConst("&0x${expr.address}")
+        return const
+    }
+
+    override fun transform(expr: ULValuePointer): KExpr<UAddressSort> {
+        val const = expr.sort.mkConst("&${expr.lvalue}")
         return const
     }
 
