@@ -222,6 +222,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkMakeSlice(inst)
 
 	case *ssa.MakeMap:
+		api.MkMakeMap(inst)
 
 	case *ssa.Range:
 

@@ -48,6 +48,7 @@ class Api(
             Method.MK_IF -> mkIf(buf)
             Method.MK_ALLOC -> mkAlloc(buf)
             Method.MK_MAKE_SLICE -> mkMakeSlice(buf)
+            Method.MK_MAKE_MAP -> mkMakeMap(buf)
             Method.MK_EXTRACT -> mkExtract(buf)
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_PANIC -> mkPanic(buf)
@@ -264,6 +265,22 @@ class Api(
         scope.doWithState {
             val ref = memory.allocConcrete(type)
             memory.writeArrayLength(ref, len, type, ctx.sizeSort)
+            memory.write(lvalue, ref.asExpr(ctx.addressSort), ctx.trueExpr)
+        }
+    }
+
+    private fun mkMakeMap(buf: ByteBuffer) {
+        val kind = VarKind.LOCAL
+        val type = Type.valueOf(buf.get()).value.toLong()
+        val idx = resolveIndex(kind, buf.int)
+        val reserve = readVar(buf).expr.asExpr(ctx.sizeSort)
+
+        checkLength(reserve) ?: throw IllegalStateException()
+
+        val lvalue = URegisterStackLValue(ctx.addressSort, idx)
+        scope.doWithState {
+            val ref = memory.allocConcrete(type)
+            memory.write(UMapLengthLValue(ref, type, ctx.sizeSort), reserve, ctx.trueExpr)
             memory.write(lvalue, ref.asExpr(ctx.addressSort), ctx.trueExpr)
         }
     }
@@ -575,16 +592,17 @@ private enum class Method(val value: Byte) {
     MK_IF(6),
     MK_ALLOC(7),
     MK_MAKE_SLICE(8),
-    MK_EXTRACT(9),
-    MK_RETURN(10),
-    MK_PANIC(11),
-    MK_VARIABLE(12),
-    MK_POINTER_FIELD_READING(13),
-    MK_FIELD_READING(14),
-    MK_POINTER_ARRAY_READING(15),
-    MK_ARRAY_READING(16),
-    MK_MAP_LOOKUP(17),
-    MK_MAP_UPDATE(18);
+    MK_MAKE_MAP(9),
+    MK_EXTRACT(10),
+    MK_RETURN(11),
+    MK_PANIC(12),
+    MK_VARIABLE(13),
+    MK_POINTER_FIELD_READING(14),
+    MK_FIELD_READING(15),
+    MK_POINTER_ARRAY_READING(16),
+    MK_ARRAY_READING(17),
+    MK_MAP_LOOKUP(18),
+    MK_MAP_UPDATE(19);
 
     companion object {
         private val values = values()
