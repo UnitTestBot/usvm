@@ -149,7 +149,7 @@ class GoMachineTest {
 
     @Test
     fun testPointerArray() {
-        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", false)
         println(results)
     }
 
@@ -169,6 +169,12 @@ class GoMachineTest {
     @Test
     fun testMakeSlice() {
         val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "alloc", false)
+        println(results)
+    }
+
+    @Test
+    fun testMakeMap() {
+        val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "alloc", false)
         println(results)
     }
 
