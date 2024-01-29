@@ -88,6 +88,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
             this,
             ConcretePythonInterpreter.getNameOfPythonType(address),
             id,
+            null,
             getter
         )
         addType(type, address)

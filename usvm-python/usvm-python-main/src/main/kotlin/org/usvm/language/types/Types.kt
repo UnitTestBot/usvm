@@ -53,5 +53,6 @@ class ArrayLikeConcretePythonType(
     owner: PythonTypeSystem,
     typeName: String,
     id: PyIdentifier,
+    val innerType: PythonType? = null,
     addressGetter: () -> PyObject
 ): ConcretePythonType(owner, typeName, id,false, addressGetter)
