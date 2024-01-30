@@ -12,6 +12,7 @@ import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.WeightedPathSelector
+import org.usvm.python.model.PyTupleObject
 import org.usvm.python.model.calculateNumberOfMocks
 import kotlin.math.max
 import kotlin.random.Random
@@ -70,9 +71,10 @@ fun createBaselineWeightedByNumberOfVirtualPyPathSelector(
                         val interpreted = interpretSymbolicPythonObject(modelHolder, it.memory, symbol)
                         builder.convert(interpreted)
                     }
-                    val mocks = models.fold(0) { acc, obj -> acc + calculateNumberOfMocks(obj) }
+                    val tupleOfModels = PyTupleObject(models)
+                    val mocks = calculateNumberOfMocks(tupleOfModels)
                     logger.debug { "Mocks of state $it: $mocks" }
-                    1.0 / max(1, 4 * mocks * mocks)
+                    1.0 / max(1, 10 * mocks)
                 }
             )
         },
