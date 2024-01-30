@@ -9,7 +9,8 @@ import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
-import org.usvm.machine.ps.createBaselinePyPathSelector
+import org.usvm.machine.ps.PyPathSelectorType
+import org.usvm.machine.ps.createPyPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.*
@@ -26,6 +27,7 @@ import kotlin.random.Random
 class PyMachine(
     private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
+    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.BaselineDfs,
     private val printErrorMsg: Boolean = false
 ): UMachine<PyState>() {
     private val ctx = PyContext(typeSystem)
@@ -85,13 +87,9 @@ class PyMachine(
         target: PyUnpinnedCallable,
         newStateObserver: NewStateObserver
     ): UPathSelector<PyState> {
-        /*val pathSelectorCreation = {
-            DfsPathSelector<PyState>()
-            // createForkDepthPathSelector<PythonCallable, SymbolicHandlerEvent<Any>, PythonExecutionState>(random)
-        }*/
         val initialState = getInitialState(target)
         newStateObserver.onNewState(initialState)
-        val ps = createBaselinePyPathSelector(ctx, random, newStateObserver)
+        val ps = createPyPathSelector(pathSelectorType, ctx, random, newStateObserver)
         ps.add(listOf(initialState))
         return ps
     }

@@ -203,7 +203,7 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 100,
+                    maxIterations = 20,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
                     timeoutPerRunMs = 4_000,
