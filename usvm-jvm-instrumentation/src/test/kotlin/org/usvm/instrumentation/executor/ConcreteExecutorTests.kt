@@ -71,6 +71,18 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     }
 
     @Test
+    @Disabled
+    fun `annotated method test`() = executeTest {
+        val uTest = UTestCreator.AnnotatedMethodClass.getClassAnnotationCount(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(1, result.value)
+    }
+
+    @Test
     fun `static fields test`() = executeTest {
         val uTest = UTestCreator.A.isA(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
