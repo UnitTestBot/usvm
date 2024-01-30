@@ -53,6 +53,8 @@ class BaselineActionStrategy(
 
         override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> =
             Peek(graph.pathSelectorWithoutDelayedForks)
+
+        override fun toString(): String = "PeekFromRoot"
     }
 
     private object ServeNewDelayedFork: Action(0.3) {
@@ -63,6 +65,8 @@ class BaselineActionStrategy(
             val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isEmpty() }
             return MakeDelayedFork(chooseAvailableVertex(available, random))
         }
+
+        override fun toString(): String = "ServeNewDelayedFork"
     }
 
     private object PeekFromStateWithDelayedFork: Action(0.088) {
@@ -72,6 +76,8 @@ class BaselineActionStrategy(
         override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> {
             return Peek(graph.pathSelectorWithDelayedForks)
         }
+
+        override fun toString(): String = "PeekFromStateWithDelayedFork"
     }
 
     private object ServeOldDelayedFork: Action(0.012) {
@@ -82,6 +88,8 @@ class BaselineActionStrategy(
             val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isNotEmpty() }
             return MakeDelayedFork(chooseAvailableVertex(available, random))
         }
+
+        override fun toString(): String = "ServeOldDelayedFork"
     }
 
     companion object {
