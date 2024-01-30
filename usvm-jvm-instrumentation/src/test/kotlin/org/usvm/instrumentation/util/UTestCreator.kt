@@ -487,4 +487,12 @@ object UTestCreator {
             return UTest(listOf(), methodCall)
         }
     }
+
+    object StaticInterfaceMethodCall {
+        fun callStaticInterfaceMethod(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.StaticInterfaceMethodCall>()
+            val jcMethod = jcClass.declaredMethods.find { it.name == "callStaticInterfaceMethod" }!!
+            return UTest(listOf(), UTestStaticMethodCall(jcMethod, listOf()))
+        }
+    }
 }
