@@ -5,6 +5,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.MockType
 import org.usvm.language.types.PythonType
@@ -47,6 +48,9 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
     val first = typeStream.take(1).first()
     val concrete = getConcreteType(address)
     if (concrete == null) {
+        if (first is ArrayLikeConcretePythonType) {
+            logger.info("Here! (ArrayLikeConcretePythonType)")
+        }
         if (first !is MockType) {
             logger.error("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
             return null
