@@ -1,5 +1,27 @@
 # Developer notes
 
+## Getting started
+
+First, you need to activate Gradle tasks for `usvm-python` module. Since it has dependecies from Github Packages, you need to generate Github access token with permission to read packages (more on Github tokens [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)).
+
+There are 2 ways to specify your token:
+
+1. Specify the following properties in `gradle.properties` in your GRADLE_USER_HOME directory ([about](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home)):
+
+    - `githubUserFromHome`
+    - `githubTokenFromHome`
+
+2. Specify the following environment variables:
+
+    - `GITHUB_ACTOR`
+    - `GITHUB_TOKEN`
+
+Secondly, you need to clone `CPython` as repository submodule ([refer to the section about submodules](#working-with-git-submodule)).
+
+If you are using Unix, you also need to install optional dependencies  ([refer to the section about CPython build](#cpython-build)).
+
+Now, you should be able to run Gradle task `:usvm-python:test`.
+
 ## Documentation on module `usvm-python`
 
 See folder `usvm-python/docs`.
