@@ -1,6 +1,6 @@
 package org.usvm.instrumentation.agent
 
-import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenter
+import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
 import java.lang.instrument.Instrumentation
@@ -14,8 +14,8 @@ class Agent {
             val collectorsJarPath = InstrumentationModuleConstants.pathToUsvmCollectorsJar
             val collectorsJar = JarFile(File(collectorsJarPath))
             instrumentation.appendToBootstrapClassLoaderSearch(collectorsJar)
-            val instrumenterClassname = arguments ?: JcRuntimeTraceInstrumenter::class.java.name
-            val transformer = ClassTransformer(instrumenterClassname, instrumentation)
+            val instrumenterFactoryClassname = arguments ?: JcRuntimeTraceInstrumenterFactory::class.java.name
+            val transformer = ClassTransformer(instrumenterFactoryClassname, instrumentation)
             instrumentation.addTransformer(transformer)
         }
     }

@@ -9,12 +9,12 @@ import java.lang.instrument.Instrumentation
 import java.security.ProtectionDomain
 
 class ClassTransformer(
-    instrumenterClassName: String,
+    instrumenterFactoryClassName: String,
     val instrumentation: Instrumentation
 ) : ClassFileTransformer {
 
     private val instrumenterFactoryInstance =
-        Class.forName(instrumenterClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
+        Class.forName(instrumenterFactoryClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
     private val instrumenterCache = HashMap<String, ByteArray>()
 
     override fun transform(
