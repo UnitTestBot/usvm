@@ -269,6 +269,9 @@ internal class LabelFilterer(private val mn: MethodNode) {
         new.visibleAnnotableParameterCount = mn.visibleAnnotableParameterCount
         new.invisibleAnnotableParameterCount = mn.invisibleAnnotableParameterCount
 
+        new.visibleAnnotations = mn.visibleAnnotations?.toList()
+        new.invisibleAnnotations = mn.invisibleAnnotations?.toList()
+
         new.parameters = mn.parameters?.toList().orEmpty()
 
         new.maxStack = mn.maxStack

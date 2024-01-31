@@ -71,7 +71,6 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     }
 
     @Test
-    @Disabled
     fun `annotated method test`() = executeTest {
         val uTest = UTestCreator.AnnotatedMethodClass.getClassAnnotationCount(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
