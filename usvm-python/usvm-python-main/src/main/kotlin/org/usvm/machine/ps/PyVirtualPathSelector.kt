@@ -1,18 +1,22 @@
 package org.usvm.machine.ps
 
 import mu.KLogging
+import org.usvm.UConcreteHeapRef
 import org.usvm.UPathSelector
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.api.typeStreamOf
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.MockType
 import org.usvm.language.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
+import org.usvm.machine.interpreters.symbolic.operations.basic.myAssertOnState
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.strategies.*
 import org.usvm.machine.ps.types.makeTypeRating
 import org.usvm.machine.results.observers.NewStateObserver
+import org.usvm.machine.symbolicobjects.memory.makeDefaultElementAsserts
 import org.usvm.types.TypesResult
 
 class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>>(
@@ -122,6 +126,7 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
     }
 
     private fun generateStateWithConcreteType(delayedFork: DelayedFork, delayedForkState: DFState): PyState? = with(ctx) {
+        logger.debug("Delayed fork symbol address: {}", delayedFork.symbol.address)
         val typeRating = delayedForkStrategy.chooseTypeRating(delayedForkState)
         while (typeRating.types.isNotEmpty() && typeRating.types.first() in delayedForkState.usedTypes) {
             typeRating.types.removeAt(0)
@@ -132,18 +137,30 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
             return null
         }
         val type = typeRating.types.removeAt(0)
+        logger.debug { "Chosen type: $type" }
         typeRating.numberOfUsed++
         delayedForkState.usedTypes.add(type)
         val state = delayedFork.state
         val symbol = delayedFork.symbol
-        val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, type).not())
-        if (forkResult.positiveState != state) {
-            require(typeRating.types.isEmpty())
-            delayedForkState.isDead = true
-            return null
+        val concreteAddress = delayedFork.state.pyModel.eval(symbol.address) as UConcreteHeapRef
+        logger.debug { "Concrete address in DelayedFork state: $concreteAddress" }
+        var newState = state.clone()
+        if (concreteAddress.address == 0) {
+            myAssertOnState(newState, symbol.evalIs(ctx, newState.pathConstraints.typeConstraints, type))
+        } else {
+            val newModel = state.pyModel.clone()
+            newState.models = listOf(newModel)
+            newState = myAssertOnState(newState, symbol.evalIsSoft(ctx, state.pathConstraints.typeConstraints, type))
+                ?: return null
         }
-        val result = forkResult.negativeState ?: return null
-        result.models = listOf(result.models.first().toPyModel(ctx, result.pathConstraints))
+        val result =
+            if (type is ArrayLikeConcretePythonType && type.innerType != null) {
+                symbol.makeDefaultElementAsserts(newState)?.also {
+                    logger.debug { "Made defaultElementAsserts" }
+                } ?: return null
+            } else {
+                newState
+            }
         newStateObserver.onNewState(result)
         require(result.delayedForks == delayedFork.delayedForkPrefix)
         result.meta.generatedFrom = "from delayed fork"
@@ -173,7 +190,12 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
         if (typeStreams.any { it.size < 2 }) {
             return null
         }
-        require(typeStreams.all { it.first() == MockType })
+        require(
+            typeStreams.all {
+                val first = it.first()
+                first == MockType || first is ArrayLikeConcretePythonType && first.innerType != null
+            }
+        )
         val types = typeStreams.map {it.take(2).last()}
         (objects zip types).forEach { (objAddress, type) ->
             state.pyModel.forcedConcreteTypes[objAddress] = type
@@ -195,6 +217,6 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
     }
 
     companion object {
-        val logger = object : KLogging() {}.logger
+        private val logger = object : KLogging() {}.logger
     }
 }

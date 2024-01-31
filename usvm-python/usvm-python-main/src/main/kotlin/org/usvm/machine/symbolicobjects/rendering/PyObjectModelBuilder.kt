@@ -7,6 +7,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.MockType
 import org.usvm.machine.PyState
@@ -51,8 +52,13 @@ class PyObjectModelBuilder(
             typeSystem.pythonSlice -> convertSlice(obj)
             typeSystem.pythonFloat -> convertFloat(obj)
             typeSystem.pythonStr -> convertString(obj)
-            typeSystem.pythonList -> convertList(obj)
-            typeSystem.pythonTuple -> convertTuple(obj)
+            is ArrayLikeConcretePythonType -> {
+                when (type.id) {
+                    typeSystem.pythonList.id -> convertList(obj)
+                    typeSystem.pythonTuple.id -> convertTuple(obj)
+                    else -> error("Could not construct instance of generic type $type")
+                }
+            }
             typeSystem.pythonDict -> convertDict(obj)
             typeSystem.pythonSet -> convertSet(obj)
             else -> {

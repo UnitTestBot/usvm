@@ -2,6 +2,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.HasTpIter
+import org.usvm.language.types.MockType
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIndexAndIncrement
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIterator
@@ -17,7 +18,7 @@ fun handlerCreateEnumerateKt(
     val typeSystem = ctx.typeSystem
     val iterator: UninterpretedSymbolicPythonObject = when (iterable.getTypeIfDefined(ctx)) {
         null -> {
-            addDelayedFork(ctx, iterable, ctx.curState!!.clone())
+            addDelayedFork(ctx, iterable, ctx.curState!!.clone(), null)
             return null
         }
         typeSystem.pythonList -> {

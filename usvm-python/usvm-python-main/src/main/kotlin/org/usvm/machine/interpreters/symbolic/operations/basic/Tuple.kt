@@ -2,6 +2,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.getTupleIteratorContent
 import org.usvm.machine.symbolicobjects.memory.increaseTupleIteratorCounter
@@ -17,7 +18,7 @@ fun handlerTupleIterKt(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPyth
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
-    tuple.addSupertype(ctx, typeSystem.pythonTuple)
+    makeConcreteInnerType(ctx, tuple, typeSystem.pythonTuple)
     return constructTupleIterator(ctx, tuple)
 }
 
@@ -36,6 +37,7 @@ fun handlerTupleIteratorNextKt(
         return null
     iterator.increaseTupleIteratorCounter(ctx)
     val tupleObject = UninterpretedSymbolicPythonObject(tuple, typeSystem)
+    typeCheck(ctx, tupleObject, typeSystem.pythonTuple)
     return tupleObject.readArrayElement(ctx, index)
 }
 
@@ -43,10 +45,13 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
     if (ctx.curState == null)
         return
     val typeSystem = ctx.typeSystem
-    if (iterable.getTypeIfDefined(ctx) != typeSystem.pythonTuple) {
-        myFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
+    val type = iterable.getTypeIfDefined(ctx)
+    if (type != null && type !is ArrayLikeConcretePythonType)
         return
+    if (type == null) {
+        makeConcreteInnerType(ctx, iterable, typeSystem.pythonTuple)
     }
+    require(iterable.getTypeIfDefined(ctx) != null)
     val tupleSize = iterable.readArrayLength(ctx)
     val sizeCond = tupleSize eq mkIntNum(count)
     if (ctx.modelHolder.model.eval(sizeCond).isTrue) {
@@ -66,6 +71,7 @@ fun handlerTupleGetItemKt(
 ): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    val indexInt = resolveSequenceIndex(ctx, tuple, index, ctx.typeSystem.pythonTuple) ?: return null
+    makeConcreteInnerType(ctx, tuple, ctx.typeSystem.pythonTuple)
+    val indexInt = resolveSequenceIndex(ctx, tuple, index, ctx.typeSystem.pythonTuple.id) ?: return null
     return tuple.readArrayElement(ctx, indexInt)
 }

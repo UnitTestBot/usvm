@@ -17,7 +17,7 @@ import org.usvm.types.TypesResult
 
 fun UModelBase<PythonType>.toPyModel(
     ctx: PyContext,
-    ps: UPathConstraints<PythonType>,
+    ps: UPathConstraints<PythonType>?,
     suggestedPsInfo: PathConstraintsInfo? = null
 ): PyModel {
     if (this is PyModel)
@@ -49,7 +49,8 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
     val concrete = getConcreteType(address)
     if (concrete == null) {
         if (first is ArrayLikeConcretePythonType) {
-            logger.info("Here! (ArrayLikeConcretePythonType)")
+            require(first.innerType is MockType)
+            return first
         }
         if (first !is MockType) {
             logger.error("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
@@ -58,6 +59,14 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
         // require(first is MockType)
     }
     return first
+}
+
+fun PyModel.isAlreadyMocked(address: UConcreteHeapRef): Boolean {
+    val typeStream = types.getTypeStream(address)
+    val prefix = typeStream.take(2)
+    if (prefix !is TypesResult.SuccessfulTypesResult || prefix.size > 1)
+        return false
+    return prefix.first() is MockType
 }
 
 private val logger = object : KLogging() {}.logger

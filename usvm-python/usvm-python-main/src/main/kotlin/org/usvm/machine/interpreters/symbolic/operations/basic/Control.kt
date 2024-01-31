@@ -5,6 +5,8 @@ import org.usvm.UExpr
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.WithSolverStateForker.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.MockType
+import org.usvm.language.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.model.toPyModel
@@ -58,14 +60,20 @@ fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         throw BadModelException
 }
 
-fun addDelayedFork(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, clonedState: PyState) {
+fun addDelayedFork(
+    ctx: ConcolicRunContext,
+    on: UninterpretedSymbolicPythonObject,
+    clonedState: PyState,
+    forbiddenType: PythonType?
+) {
     if (ctx.curState == null)
         return
+    val stream = getTypeStreamForDelayedFork(on, ctx)
     ctx.curState!!.delayedForks = ctx.curState!!.delayedForks.add(
         DelayedFork(
             clonedState,
             on,
-            getTypeStreamForDelayedFork(on, ctx),
+            forbiddenType?.let { stream.filterByNotSupertype(it) } ?: stream,
             ctx.curState!!.delayedForks
         )
     )
@@ -75,7 +83,7 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     if (ctx.curState == null)
         return
     if (cond.getTypeIfDefined(ctx) == null) {
-        addDelayedFork(ctx, cond, ctx.curState!!.clone())
+        addDelayedFork(ctx, cond, ctx.curState!!.clone(), null)
     }
     val expr = cond.getToBoolValue(ctx) ?: return
     myFork(ctx, expr)

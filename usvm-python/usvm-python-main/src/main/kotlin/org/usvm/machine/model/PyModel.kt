@@ -23,11 +23,12 @@ import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.key.USizeRegion
 import org.usvm.model.UModelBase
+import org.usvm.model.UTypeModel
 
 class PyModel(
     private val ctx: PyContext,
     private val underlyingModel: UModelBase<PythonType>,
-    ps: UPathConstraints<PythonType>,
+    ps: UPathConstraints<PythonType>?,
     suggestedPsInfo: PathConstraintsInfo? = null
 ) : UModelBase<PythonType>(
     ctx,
@@ -38,7 +39,12 @@ class PyModel(
     underlyingModel.nullRef
 ) {
     val forcedConcreteTypes: MutableMap<UConcreteHeapRef, PythonType> = mutableMapOf()
-    val psInfo = suggestedPsInfo ?: getPathConstraintsInfo(ctx, ps, underlyingModel)
+    val psInfo = suggestedPsInfo
+        ?: getPathConstraintsInfo(
+            ctx,
+            ps ?: error("Either ps or suggestedPsInfo must be identified"),
+            underlyingModel
+        )
 
     val possibleRefKeys: Set<UConcreteHeapRef>
         get() = psInfo.setRefKeys
@@ -96,4 +102,14 @@ class PyModel(
     override fun hashCode(): Int {
         return underlyingModel.hashCode()
     }
+
+    fun clone(): PyModel =
+        UModelBase(
+            ctx,
+            stack,
+            UTypeModel(types.typeSystem, types.typeRegions),
+            mocker,
+            regions,
+            nullRef
+        ).toPyModel(ctx, null, psInfo)
 }

@@ -5,22 +5,18 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.api.*
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.ArrayLikeConcretePythonType
-import org.usvm.language.types.ArrayType
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.HasElementConstraint
+import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
-import org.usvm.machine.model.getConcreteType
+import org.usvm.machine.interpreters.symbolic.operations.basic.myAssertOnState
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.types.first
-
 
 const val DEFAULT_ELEMENT_INDEX = -1
 
 fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): UExpr<KIntSort> {
-    val type = getTypeIfDefined(ctx)
+    val type = getFirstTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     val result = ctx.curState!!.memory.readArrayLength(address, ArrayType, ctx.ctx.intSort)
     myAssert(ctx, ctx.ctx.mkArithGe(result, ctx.ctx.mkIntNum(0)))
@@ -28,37 +24,61 @@ fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): 
 }
 
 fun InterpretedInputSymbolicPythonObject.readArrayLength(ctx: PyContext): UExpr<KIntSort> {
-    require(getConcreteType() != null && getConcreteType() is ArrayLikeConcretePythonType)
+    require(getFirstType() != null && getFirstType() is ArrayLikeConcretePythonType)
     return modelHolder.model.readArrayLength(address, ArrayType, ctx.intSort)
 }
 
-fun UninterpretedSymbolicPythonObject.defaultElement(ctx: ConcolicRunContext): UHeapRef {
-    val type = getTypeIfDefined(ctx)
-    require(ctx.curState != null && type != null && type is ArrayLikeConcretePythonType && type.innerType != null)
-    val result = ctx.curState!!.memory.readArrayIndex(
-        address,
-        ctx.ctx.mkIntNum(DEFAULT_ELEMENT_INDEX),
-        ArrayType,
-        ctx.ctx.addressSort
-    )
-    val obj = UninterpretedSymbolicPythonObject(result, ctx.typeSystem)
-    val array = this
-    val cond = with(ctx.ctx) {
-        type.elementConstraints.fold(trueExpr as UBoolExpr) { acc, constraint ->
-            acc and constraint.applyUninterpreted(array, obj, ctx)
-        }
+private fun makeElementConstraint(
+    ctx: PyContext,
+    type: ArrayLikeConcretePythonType,
+    array: UninterpretedSymbolicPythonObject,
+    elem: UninterpretedSymbolicPythonObject,
+    state: PyState
+): UBoolExpr {
+    val typeSystem = type.owner
+    var cond = type.elementConstraints.fold(ctx.trueExpr as UBoolExpr) { acc, constraint ->
+        ctx.mkAnd(acc, constraint.applyUninterpreted(array, elem, state))
     }
-    myAssert(ctx, cond)
-    return result
+    if (type.innerType != null && typeSystem.isNonNullType(type.innerType)) {
+        cond = with(ctx) { cond and mkHeapRefEq(elem.address, nullRef).not() }
+    }
+    return cond
 }
 
-fun InterpretedInputSymbolicPythonObject.defaultElement(ctx: PyContext): UConcreteHeapRef =
+private fun UninterpretedSymbolicPythonObject.defaultElementAsserts(state: PyState): UBoolExpr {
+    val type = getTypeIfDefined(state)
+    require(type != null && type is ArrayLikeConcretePythonType && type.innerType != null)
+    val ctx = state.ctx
+    val result = state.memory.readArrayIndex(
+        address,
+        ctx.mkIntNum(DEFAULT_ELEMENT_INDEX),
+        ArrayType,
+        ctx.addressSort
+    )
+    val obj = UninterpretedSymbolicPythonObject(result, state.typeSystem)
+    val array = this
+    return makeElementConstraint(ctx, type, array, obj, state)
+}
+
+fun UninterpretedSymbolicPythonObject.makeDefaultElementAsserts(state: PyState): PyState? {
+    val cond = defaultElementAsserts(state)
+    return myAssertOnState(state, cond)
+}
+
+fun UninterpretedSymbolicPythonObject.makeDefaultElementAsserts(ctx: ConcolicRunContext) {
+    require(ctx.curState != null)
+    val cond = defaultElementAsserts(ctx.curState!!)
+    return myAssert(ctx, cond)
+}
+
+/*fun InterpretedInputSymbolicPythonObject.defaultElement(ctx: PyContext): UConcreteHeapRef =
     modelHolder.model.readArrayIndex(
         address,
         ctx.mkIntNum(DEFAULT_ELEMENT_INDEX),
         ArrayType,
         ctx.addressSort
     ) as UConcreteHeapRef
+*/
 
 fun UninterpretedSymbolicPythonObject.readArrayElement(
     ctx: ConcolicRunContext,
@@ -71,18 +91,16 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
     val elem = UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
     if (isAllocatedObject(ctx))
         return elem
-    val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
-        ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, elem, ctx))
-    }
+    val cond = makeElementConstraint(ctx.ctx, type, this, elem, ctx.curState!!)
     myAssert(ctx, cond)
-    val actualAddress = if (type.innerType != null) {
+    /*val actualAddress = if (type.innerType != null) {
         with(ctx.ctx) {
             mkIte(mkHeapRefEq(elemAddress, nullRef), defaultElement(ctx), elemAddress)
         }
     } else {
         elemAddress
-    }
-    return UninterpretedSymbolicPythonObject(actualAddress, typeSystem)
+    }*/
+    return UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
 }
 
 fun InterpretedInputSymbolicPythonObject.readArrayElement(
@@ -96,7 +114,7 @@ fun InterpretedInputSymbolicPythonObject.readArrayElement(
         ArrayType,
         ctx.addressSort
     ) as UConcreteHeapRef
-    val actualAddress = if (element.address == 0) {
+    /*val actualAddress = if (element.address == 0) {
         val type = modelHolder.model.getConcreteType(address)
         if (type != null && type is ArrayLikeConcretePythonType && type.innerType != null) {
             defaultElement(ctx)
@@ -105,13 +123,13 @@ fun InterpretedInputSymbolicPythonObject.readArrayElement(
         }
     } else {
         element
-    }
-    return if (isStaticHeapRef(actualAddress)) {
-        val type = state.memory.typeStreamOf(actualAddress).first()
+    }*/
+    return if (isStaticHeapRef(element)) {
+        val type = state.memory.typeStreamOf(element).first()
         require(type is ConcretePythonType)
-        InterpretedAllocatedOrStaticSymbolicPythonObject(actualAddress, type, typeSystem)
+        InterpretedAllocatedOrStaticSymbolicPythonObject(element, type, typeSystem)
     } else {
-        InterpretedInputSymbolicPythonObject(actualAddress, modelHolder, typeSystem)
+        InterpretedInputSymbolicPythonObject(element, modelHolder, typeSystem)
     }
 }
 
@@ -124,17 +142,15 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     if (!isAllocatedObject(ctx)) {
-        val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
-            ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
-        }
+        val cond = makeElementConstraint(ctx.ctx, type, this, value, ctx.curState!!)
         myAssert(ctx, cond)
     }
-    if (type.innerType != null) {
+    /*if (type.innerType != null) {
         myAssert(
             ctx,
             with(ctx.ctx) { mkHeapRefEq(value.address, nullRef).not() or mkHeapRefEq(defaultElement(ctx), nullRef) }
         )
-    }
+    }*/
     ctx.curState!!.memory.writeArrayIndex(
         address,
         index,

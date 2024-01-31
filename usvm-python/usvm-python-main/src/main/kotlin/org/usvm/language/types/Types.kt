@@ -29,7 +29,7 @@ sealed class ConcretePythonType(
     val isHidden: Boolean = false,
     val addressGetter: () -> PyObject
 ): PythonType() {
-    val asObject: PyObject
+    open val asObject: PyObject
         get() = owner.addressOfConcreteType(this)
 
     val typeModule: String
@@ -53,6 +53,52 @@ class ArrayLikeConcretePythonType(
     owner: PythonTypeSystem,
     typeName: String,
     id: PyIdentifier,
+    val original: ArrayLikeConcretePythonType? = null,
     val innerType: PythonType? = null,
     addressGetter: () -> PyObject
-): ConcretePythonType(owner, typeName, id,false, addressGetter)
+): ConcretePythonType(owner, typeName, id,false, addressGetter) {
+    override val asObject: PyObject
+        get() = original?.let {
+            owner.addressOfConcreteType(it)
+        } ?: owner.addressOfConcreteType(this)
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is ArrayLikeConcretePythonType)
+            return false
+        return id == other.id && innerType == other.innerType
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + (innerType?.hashCode() ?: 0)
+        return result
+    }
+
+    init {
+        require(innerType == null || owner.isInstantiable(innerType)) {
+            "innerType must be instantiable"
+        }
+        if (original == null) {
+            require(innerType == null)
+        } else {
+            require(original.original == null && innerType != null)
+        }
+    }
+
+    override fun toString(): String = "$id[$innerType]"
+
+    fun substitute(innerType: PythonType): ArrayLikeConcretePythonType {
+        require(original == null) {
+            "Can substitute only from original"
+        }
+        return ArrayLikeConcretePythonType(
+            elementConstraints + GenericConstraint(innerType),
+            owner,
+            typeName,
+            id,
+            this,
+            innerType,
+            addressGetter
+        )
+    }
+}

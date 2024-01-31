@@ -15,10 +15,10 @@ import org.utbot.python.newtyping.inference.addEdge
 class SymbolTypeTree(
     private val state: PyState,
     private val typeHintsStorage: PythonTypeHintsStorage,
-    rootSymbol: UninterpretedSymbolicPythonObject,
+    rootSymbols: List<UninterpretedSymbolicPythonObject>,
     private val maxDepth: Int = 5
 ) {
-    private val root = SymbolTreeNode(rootSymbol)
+    private val roots = rootSymbols.map { SymbolTreeNode(it) }
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
         state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
             val protocol =
@@ -109,12 +109,14 @@ class SymbolTypeTree(
     }
 
     private fun propagateBounds() {
-        dfs(root) { edge ->
-            edge.from.upperBounds.forEach {
-                val newBounds = edge.dependency(it).filter { type ->
-                    type.pythonDescription() !is PythonAnyTypeDescription
+        roots.forEach { root ->
+            dfs(root) { edge ->
+                edge.from.upperBounds.forEach {
+                    val newBounds = edge.dependency(it).filter { type ->
+                        type.pythonDescription() !is PythonAnyTypeDescription
+                    }
+                    edge.to.upperBounds += newBounds
                 }
-                edge.to.upperBounds += newBounds
             }
         }
     }
@@ -126,11 +128,11 @@ class SymbolTypeTree(
         }
     }
 
-    val boundsForRoot: List<UtType>
-        get() = root.upperBounds
+    val boundsForRoots: List<UtType>
+        get() = roots.flatMap { it.upperBounds }
 
     init {
-        generateNodes(root, 0)
+        roots.forEach { generateNodes(it, 0) }
         propagateBounds()
     }
 }

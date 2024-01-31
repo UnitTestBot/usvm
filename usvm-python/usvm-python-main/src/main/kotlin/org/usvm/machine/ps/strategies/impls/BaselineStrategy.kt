@@ -97,6 +97,7 @@ object PeekExecutedStateWithConcreteType: BaselineAction(100.0) {
     ): PyPathSelectorAction<DelayedForkState> =
         Peek(graph.pathSelectorForExecutedStatesWithConcreteTypes)
 
+    override fun toString(): String = "PeekExecutedStateWithConcreteType"
 }
 
 class BaselineDelayedForkStrategy: DelayedForkStrategy<DelayedForkState> {

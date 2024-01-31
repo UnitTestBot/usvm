@@ -4,7 +4,7 @@ sealed class PyObjectModel {
     abstract fun accept(visitor: PyObjectModelVisitor)
 }
 
-class PyPrimitive(
+data class PyPrimitive(
     val repr: String
 ): PyObjectModel() {
     override fun accept(visitor: PyObjectModelVisitor) {
@@ -19,6 +19,8 @@ data class PyIdentifier(
     override fun accept(visitor: PyObjectModelVisitor) {
         visitor.visit(this)
     }
+
+    override fun toString(): String = "$module.$name"
 }
 
 class PyCompositeObject(

@@ -16,6 +16,8 @@ class UTypeModel<Type>(
     typeRegionByAddr: Map<UConcreteHeapAddress, UTypeRegion<Type>>,
 ) : UTypeEvaluator<Type> {
     private val typeStreamByAddr = typeRegionByAddr.toMutableMap()
+    val typeRegions: Map<UConcreteHeapAddress, UTypeRegion<Type>>
+        get() = typeStreamByAddr
 
     private fun typeRegion(ref: UConcreteHeapRef): UTypeRegion<Type> =
         typeStreamByAddr[ref.address] ?: UTypeRegion(typeSystem, typeSystem.topTypeStream())

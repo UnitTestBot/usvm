@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.*
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.*
+import org.usvm.language.types.MockType
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
@@ -66,14 +67,17 @@ private fun internalVirtualCallKt(
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     ctx.curState ?: throw UnregisteredVirtualOperation
     val owner = ctx.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
-    val ownerIsAlreadyMocked = ctx.curState!!.mockedObjects.contains(owner)
+    val ownerIsAlreadyMocked = owner.isAlreadyMocked(ctx)
+    if (ownerIsAlreadyMocked) {
+        owner.addSupertypeSoft(ctx, MockType)
+    }
     var clonedState = if (!ownerIsAlreadyMocked) ctx.curState!!.clone() else null
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
     val (symbolic, isNew, mockSymbol) = ctx.curState!!.mock(ctx.curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
-        addDelayedFork(ctx, owner, clonedState)
+        addDelayedFork(ctx, owner, clonedState, null)
     }
     if (ctx.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
         val customNewModels = customNewModelsCreation(mockSymbol)

@@ -16,11 +16,16 @@ import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstrai
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.machine.utils.MethodDescription
+import org.usvm.python.model.PyIdentifier
 import org.utbot.python.newtyping.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PyObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+fun handlerIsinstanceKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+    typeRef: PyObject
+): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
@@ -32,7 +37,10 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
     return if (concreteType == null) {
         if (type == typeSystem.pythonInt) {  //  this is a common case, TODO: better solution
             val cond =
-                obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonInt)) and obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonBool))
+                obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonInt)) and obj.evalIs(
+                    ctx,
+                    ConcreteTypeNegation(typeSystem.pythonBool)
+                )
             myFork(ctx, cond)
         } else {
             myFork(ctx, obj.evalIs(ctx, type))
@@ -56,7 +64,11 @@ fun fixateTypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject
     obj.addSupertype(ctx, type)
 }
 
-fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+fun handlerAndKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject
+): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     left.addSupertype(ctx, typeSystem.pythonBool)
@@ -81,7 +93,7 @@ fun createIterable(
     val addresses = elements.map { it.address }.asSequence()
     val typeSystem = ctx.typeSystem
     val size = elements.size
-    with (ctx.ctx) {
+    with(ctx.ctx) {
         val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
         ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
         ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
@@ -135,10 +147,13 @@ fun handlerIsOpKt(
     when (leftType) {
         ctx.typeSystem.pythonBool ->
             myFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
+
         ctx.typeSystem.pythonInt ->
             myFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
+
         ctx.typeSystem.pythonNoneType ->
             return
+
         else ->
             myFork(ctx, mkHeapRefEq(left.address, right.address))
     }
@@ -220,10 +235,15 @@ fun handlerStandardTpSetattroKt(
     obj.setFieldValue(ctx, name, value)
 }
 
-fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
+fun getArraySize(
+    context: ConcolicRunContext,
+    array: UninterpretedSymbolicPythonObject,
+    type: ArrayLikeConcretePythonType
+): UninterpretedSymbolicPythonObject? {
     if (context.curState == null)
         return null
-    if (array.getTypeIfDefined(context) != type)
+    val firstType = array.getFirstTypeIfDefined(context)
+    if (firstType !is ArrayLikeConcretePythonType || firstType.id != type.id)
         return null
     val listSize = array.readArrayLength(context)
     return constructInt(context, listSize)
@@ -234,14 +254,17 @@ fun resolveSequenceIndex(
     ctx: ConcolicRunContext,
     seq: UninterpretedSymbolicPythonObject,
     index: UninterpretedSymbolicPythonObject,
-    type: ArrayLikeConcretePythonType
+    typeId: PyIdentifier
 ): UExpr<KIntSort>? {
     if (ctx.curState == null)
         return null
-    with (ctx.ctx) {
+    val type = seq.getTypeIfDefined(ctx)
+    require(type != null && type is ArrayLikeConcretePythonType && type.id == typeId) {
+        "Type not resolved yet"
+    }
+    with(ctx.ctx) {
         val typeSystem = ctx.typeSystem
         index.addSupertypeSoft(ctx, typeSystem.pythonInt)
-        seq.addSupertypeSoft(ctx, type)
 
         val listSize = seq.readArrayLength(ctx)
         val indexValue = index.getIntContent(ctx)
@@ -310,4 +333,46 @@ fun handlerCallOnKt(
 ) {
     ctx.curState ?: return
     addConstraintsFromNativeId(ctx, function, args.asSequence().toList())
+}
+
+fun makeConcreteInnerType(
+    ctx: ConcolicRunContext,
+    array: UninterpretedSymbolicPythonObject,
+    arrayType: ArrayLikeConcretePythonType
+) {
+    val isNonGenericListCond = array.evalIsSoft(ctx, arrayType)
+    if (ctx.modelHolder.model.eval(isNonGenericListCond).isFalse && getTopLevelTypeStreamConfig(arrayType) == ArrayLikeTypeConfig.Homogeneous) {
+        array.addSupertypeSoft(ctx, GenericType(arrayType))
+        myAssert(ctx, array.evalIsSoft(ctx, GenericType(arrayType)))
+        val isNonEmptyCond = ctx.ctx.mkArithGt(array.readArrayLength(ctx), ctx.ctx.mkIntNum(0))
+        myFork(ctx, isNonEmptyCond)
+        val mockType = arrayType.substitute(MockType)
+        if (ctx.modelHolder.model.eval(isNonEmptyCond).isTrue) {
+            val currentType = array.getTypeIfDefined(ctx)
+            if (currentType == null) {
+                val clonedState = ctx.curState!!.clone()
+                clonedState.models = listOf(clonedState.pyModel.clone())
+                addDelayedFork(ctx, array, clonedState, mockType)
+                array.addSupertypeSoft(ctx, mockType)
+            } else {
+                array.addSupertypeSoft(ctx, currentType)
+            }
+            array.makeDefaultElementAsserts(ctx)
+        } else {
+            array.addSupertypeSoft(ctx, mockType)
+        }
+    } else {
+        myAssert(ctx, isNonGenericListCond)
+    }
+}
+
+fun typeCheck(
+    ctx: ConcolicRunContext,
+    array: UninterpretedSymbolicPythonObject,
+    arrayType: ArrayLikeConcretePythonType
+) {
+    val type = array.getTypeIfDefined(ctx)
+    require(type != null && type is ArrayLikeConcretePythonType && type.id == arrayType.id) {
+        "At this moment the type must be resolved"
+    }
 }

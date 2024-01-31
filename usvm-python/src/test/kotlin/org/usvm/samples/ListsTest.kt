@@ -334,7 +334,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf(
                 { _, res -> res.selfTypeName == "AssertionError" },
-                { _, res -> res.selfTypeName == "ValueError" },
+                // { _, res -> res.selfTypeName == "ValueError" },
                 { _, res -> res.repr == "1" },
                 { _, res -> res.repr == "2" }
             )

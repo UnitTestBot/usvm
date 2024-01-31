@@ -1,11 +1,12 @@
 package org.usvm.language.types
 
 import org.usvm.language.StructuredPyProgram
+import org.usvm.language.types.streams.PyMockTypeStream
+import org.usvm.language.types.streams.TypeFilter
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
-import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.machine.utils.withAdditionalPaths
@@ -30,11 +31,11 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
         }
 
     override fun isFinal(type: PythonType): Boolean {
-        return isInstantiable(type)
+        return type is ConcretePythonType || type is MockType
     }
 
     override fun isInstantiable(type: PythonType): Boolean {
-        return type is ConcretePythonType || type is MockType
+        return type is ConcretePythonType || type is MockType || type is GenericType
     }
 
     override fun hasCommonSubtype(type: PythonType, types: Collection<PythonType>): Boolean {
@@ -89,6 +90,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
             ConcretePythonInterpreter.getNameOfPythonType(address),
             id,
             null,
+            null,
             getter
         )
         addType(type, address)
@@ -111,7 +113,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     override fun topTypeStream(): UTypeStream<PythonType> {
-        return USupportTypeStream.from(this, PythonAnyType)
+        return PyMockTypeStream(this, TypeFilter.empty(this))
     }
 
     private fun createConcreteTypeByName(name: String, isHidden: Boolean = false): ConcretePythonType =
@@ -152,6 +154,9 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
             ConcretePythonInterpreter.incref(newAddress)
         }
     }
+
+    fun isNonNullType(type: PythonType): Boolean =
+        type is ConcretePythonType || type is GenericType
 }
 
 class BasicPythonTypeSystem: PythonTypeSystem() {
@@ -175,8 +180,10 @@ class PythonTypeSystemWithMypyInfo(
 
     private val utTypeOfConcretePythonType = mutableMapOf<ConcretePythonType, UtType>()
     private val concreteTypeOfUtType = mutableMapOf<PythonTypeWrapperForEqualityCheck, ConcretePythonType>()
+    private val rawUtTypeOfArrayLikeType = mutableMapOf<ArrayLikeConcretePythonType, UtType>()
 
     fun typeHintOfConcreteType(type: ConcretePythonType): UtType? = utTypeOfConcretePythonType[type]
+    fun rawTypeHintOfConcreteType(type: ArrayLikeConcretePythonType): UtType? = rawUtTypeOfArrayLikeType[type]
     fun concreteTypeFromTypeHint(type: UtType): ConcretePythonType? {
         val wrappedType = PythonTypeWrapperForEqualityCheck(type)
         return concreteTypeOfUtType[wrappedType]
@@ -217,7 +224,11 @@ class PythonTypeSystemWithMypyInfo(
                     return@mapNotNull null
 
                 if (typeAlreadyInStorage(ref)) {
-                    utTypeOfConcretePythonType[concreteTypeOnAddress(ref)!!] = utType
+                    val concreteType = concreteTypeOnAddress(ref)!!
+                    utTypeOfConcretePythonType[concreteType] = utType
+                    if (concreteType is ArrayLikeConcretePythonType) {
+                        rawUtTypeOfArrayLikeType[concreteType] = utTypeRaw
+                    }
                     return@mapNotNull null
                 }
 

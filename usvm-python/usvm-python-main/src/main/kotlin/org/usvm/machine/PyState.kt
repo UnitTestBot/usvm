@@ -3,23 +3,19 @@ package org.usvm.machine
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import org.usvm.*
+import org.usvm.collection.array.UInputArrayReading
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
-import org.usvm.machine.ps.strategies.TypeRating
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
-import org.usvm.machine.ps.types.SymbolTypeTree
-import org.usvm.machine.ps.types.prioritizeTypes
 import org.usvm.memory.UMemory
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
-import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
-import org.usvm.types.TypesResult
 
 object PyTarget: UTarget<PyInstruction, PyTarget>()
 private val targets = UTargetsSet.empty<PyTarget, PyInstruction>()
@@ -39,7 +35,7 @@ class PyState(
     var concolicQueries: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
-    val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
+    private val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
 ): UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
     ctx,
     callStack,
@@ -75,7 +71,7 @@ class PyState(
     override val isExceptional: Boolean = false  // TODO
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
-        get() = models.first() as? PyModel ?: error("Model PyState must be PyModel")
+        get() = models.first() as? PyModel ?: error("Model in PyState must be PyModel")
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> = concolicQueries
 
     fun mock(what: MockHeader): MockResult {
@@ -96,6 +92,16 @@ class PyState(
             else
                 null
         }
+
+    fun getMockOwnersForArrayReadingsOfSymbol(symbol: UninterpretedSymbolicPythonObject): Set<UninterpretedSymbolicPythonObject> =
+        mocks.mapNotNull { (mockHeader, _) ->
+            val owner = mockHeader.methodOwner ?: return@mapNotNull null
+            if (owner.address is UInputArrayReading<*, *, *> && owner.address.address == symbol.address) {
+                owner
+            } else {
+                null
+            }
+        }.toSet()
 
     fun isTerminated(): Boolean {
         return meta.modelDied || meta.wasInterrupted || meta.wasExecuted && meta.objectsWithoutConcreteTypes == null

@@ -22,7 +22,31 @@ data class HasElementConstraint(private val constraint: ElementConstraint): Virt
     }
 }
 
-data class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
+data class GenericType(
+    val typeWithoutInner: ArrayLikeConcretePythonType
+): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        if (type == this)
+            return true
+        if (type !is ArrayLikeConcretePythonType || type.innerType == null)
+            return false
+        return type.id == typeWithoutInner.id
+    }
+}
+
+/*data class VirtualTypeForGenericInnerType(
+    val innerType: VirtualPythonType
+): VirtualPythonType() {
+    override fun accepts(type: PythonType): Boolean {
+        if (type == this)
+            return true
+        if (type !is ArrayLikeConcretePythonType || type.innerType == null)
+            return false
+        return innerType.accepts(type.innerType)
+    }
+}*/
+
+data class ConcreteTypeNegation(val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type is MockType || type == this)
             return true

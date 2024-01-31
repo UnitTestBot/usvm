@@ -66,16 +66,20 @@ class USVMPythonInterpreter<PyObjectRepr>(
                 concolicRunContext,
                 printErrorMsg
             )
-        } catch (exception: CPythonExecutionException) {
-            val realCPythonException = processCPythonExceptionDuringConcolicRun(
-                concolicRunContext,
-                exception,
-                renderer,
-                inputModel,
-                inputRepr
-            )
-            if (!realCPythonException) {
-                return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+        } catch (exception: Throwable) {
+            if (exception is CPythonExecutionException) {
+                val realCPythonException = processCPythonExceptionDuringConcolicRun(
+                    concolicRunContext,
+                    exception,
+                    renderer,
+                    inputModel,
+                    inputRepr
+                )
+                if (!realCPythonException) {
+                    return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                }
+            } else {
+                processJavaException(concolicRunContext, exception, renderer)
             }
             null
         }
@@ -136,6 +140,20 @@ class USVMPythonInterpreter<PyObjectRepr>(
         }
     }
 
+    private fun processJavaException(
+        concolicRunContext: ConcolicRunContext,
+        exception: Throwable,
+        renderer: PyObjectRenderer
+    ) {
+        when (exception) {
+            is UnregisteredVirtualOperation -> processUnregisteredVirtualOperation(concolicRunContext, renderer)
+            is BadModelException -> logger.debug("Step result: Bad model")
+            is InstructionLimitExceededException -> processInstructionLimitExceeded(concolicRunContext)
+            is CancelledExecutionException -> processCancelledException(concolicRunContext)
+            else -> throw exception
+        }
+    }
+
     private fun processCPythonExceptionDuringConcolicRun(
         concolicRunContext: ConcolicRunContext,
         exception: CPythonExecutionException,
@@ -146,13 +164,8 @@ class USVMPythonInterpreter<PyObjectRepr>(
         require(exception.pythonExceptionType != null)
         require(exception.pythonExceptionValue != null)
         if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
-            when (val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)) {
-                is UnregisteredVirtualOperation -> processUnregisteredVirtualOperation(concolicRunContext, renderer)
-                is BadModelException -> logger.debug("Step result: Bad model")
-                is InstructionLimitExceededException -> processInstructionLimitExceeded(concolicRunContext)
-                is CancelledExecutionException -> processCancelledException(concolicRunContext)
-                else -> throw javaException
-            }
+            val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
+            processJavaException(concolicRunContext, javaException, renderer)
             return false
         }
         logger.debug(

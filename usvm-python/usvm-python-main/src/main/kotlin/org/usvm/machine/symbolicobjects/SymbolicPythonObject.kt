@@ -8,10 +8,12 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
+import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.model.getConcreteType
 import org.usvm.machine.model.getFirstType
+import org.usvm.machine.model.isAlreadyMocked
 import org.usvm.memory.UMemory
 import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
@@ -84,7 +86,7 @@ class UninterpretedSymbolicPythonObject(
         type: PythonType
     ): UBoolExpr {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
-        if (type is ConcretePythonType)
+        if (typeSystem.isNonNullType(type))
             result = with(ctx) { result and mkHeapRefEq(address, nullRef).not() }
         return result
     }
@@ -94,6 +96,22 @@ class UninterpretedSymbolicPythonObject(
         return interpreted.getConcreteType()
     }
 
+    fun getTypeIfDefined(state: PyState): PythonType? {
+        val holder = PyModelHolder(state.pyModel)
+        val interpreted = interpretSymbolicPythonObject(holder, state.memory, this)
+        return interpreted.getConcreteType()
+    }
+
+    fun getFirstTypeIfDefined(ctx: ConcolicRunContext): PythonType? {
+        val interpreted = interpretSymbolicPythonObject(ctx, this)
+        return interpreted.getFirstType()
+    }
+
+    fun isAlreadyMocked(ctx: ConcolicRunContext): Boolean {
+        val interpreted = interpretSymbolicPythonObject(ctx, this)
+        return interpreted.isAlreadyMocked()
+    }
+
     private fun resolvesToNullInCurrentModel(ctx: ConcolicRunContext): Boolean {
         val interpreted = interpretSymbolicPythonObject(ctx, this)
         return interpreted.address.address == 0
@@ -101,7 +119,11 @@ class UninterpretedSymbolicPythonObject(
 
     fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> {  // must not be called on nullref
         require(ctx.curState != null)
-        return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
+        return getTimeOfCreation(ctx.curState!!)
+    }
+
+    fun getTimeOfCreation(state: PyState): UExpr<KIntSort> {  // must not be called on nullref
+        return state.memory.readField(address, TimeOfCreation, state.ctx.intSort)
     }
 
     fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PyCallable>) {  // must not be called on nullref
@@ -121,6 +143,7 @@ sealed class InterpretedSymbolicPythonObject(
     abstract fun getConcreteType(): ConcretePythonType?
     abstract fun getFirstType(): PythonType?
     abstract fun getTypeStream(): UTypeStream<PythonType>?
+    abstract fun isAlreadyMocked(): Boolean
 }
 
 class InterpretedInputSymbolicPythonObject(
@@ -148,6 +171,12 @@ class InterpretedInputSymbolicPythonObject(
             return null
         return modelHolder.model.typeStreamOf(address)
     }
+
+    override fun isAlreadyMocked(): Boolean {
+        if (address.address == 0)
+            return false  // TODO
+        return modelHolder.model.isAlreadyMocked(address)
+    }
 }
 
 class InterpretedAllocatedOrStaticSymbolicPythonObject(
@@ -163,6 +192,8 @@ class InterpretedAllocatedOrStaticSymbolicPythonObject(
     override fun getFirstType(): PythonType = type
 
     override fun getTypeStream(): UTypeStream<PythonType> = USingleTypeStream(typeSystem, type)
+
+    override fun isAlreadyMocked(): Boolean = false
 }
 
 fun interpretSymbolicPythonObject(

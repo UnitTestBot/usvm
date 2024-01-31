@@ -1,6 +1,7 @@
 package org.usvm.machine.symbolicobjects.rendering
 
 import org.usvm.language.types.ConcretePythonType
+import org.usvm.language.types.GenericType
 import org.usvm.language.types.PythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
@@ -11,6 +12,10 @@ import org.usvm.python.model.PyPrimitive
 
 class DefaultPyObjectModelProvider(private val typeSystem: PythonTypeSystem) {
     fun provide(type: PythonType): PyObjectModel {
+        if (type is GenericType) {
+            return provide(type.typeWithoutInner)
+        }
+
         require(type is ConcretePythonType)
 
         return when (type) {

@@ -2,6 +2,7 @@ package org.usvm.machine.ps.strategies
 
 import org.usvm.UPathSelector
 import org.usvm.language.types.ConcretePythonType
+import org.usvm.language.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 
@@ -19,8 +20,8 @@ interface DelayedForkGraphCreation<DFState: DelayedForkState, DFGraph: DelayedFo
 }
 
 open class DelayedForkState {
-    val usedTypes: MutableSet<ConcretePythonType> = mutableSetOf()
-    val successfulTypes: MutableSet<ConcretePythonType> = mutableSetOf()
+    val usedTypes: MutableSet<PythonType> = mutableSetOf()
+    val successfulTypes: MutableSet<PythonType> = mutableSetOf()
     var isDead: Boolean = false
     private val typeRatings = mutableListOf<TypeRating>()
     open fun addTypeRating(typeRating: TypeRating) {
@@ -70,7 +71,7 @@ class MakeDelayedFork<DFState: DelayedForkState>(
 ): PyPathSelectorAction<DFState>()
 
 class TypeRating(
-    val types: MutableList<ConcretePythonType>,
+    val types: MutableList<PythonType>,
     val numberOfHints: Int,
     var numberOfUsed: Int = 0
 )

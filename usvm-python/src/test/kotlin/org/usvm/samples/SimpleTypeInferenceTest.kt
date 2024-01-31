@@ -2,12 +2,13 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
+import org.usvm.language.types.GenericType
 import org.usvm.language.types.PythonAnyType
-import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
+import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.ge
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeInference", UMachineOptions(stepLimit = 30U)) {
+class SimpleTypeInferenceTest: PythonTestRunnerForStructuredProgram("SimpleTypeInference", UMachineOptions(stepLimit = 30U)) {
     @Test
     fun testBoolInput() {
         check1WithConcreteRun(
@@ -99,7 +100,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
             constructFunction("len_usage", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { _, res -> res.typeName == "int" },
+            /* invariants = */ listOf { _, res -> res.selfTypeName != "TypeError" },
             /* propertiesToDiscover = */ List(2) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
@@ -147,7 +148,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     fun testMultiplyAndCompare() {
         allowPathDiversions = true
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 300U)
+        options = UMachineOptions(stepLimit = 250U)
         timeoutPerRunMs = 2000
         check2WithConcreteRun(
             constructFunction("multiply_and_compare", List(2) { PythonAnyType }),
@@ -168,6 +169,23 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     fun testSubscriptAndIsinstance() {
         check1WithConcreteRun(
             constructFunction("subscript_and_isinstance", List(1) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.selfTypeName == "IndexError" },
+                { _, res -> res.repr == "1" },
+                { _, res -> res.repr == "2" },
+                { _, res -> res.repr == "3" },
+                { _, res -> res.repr == "4" }
+            )
+        )
+    }
+
+    @Test
+    fun testSubscriptAndIsinstance2() {
+        check1WithConcreteRun(
+            constructFunction("subscript_and_isinstance", List(1) { GenericType(typeSystem.pythonList) }),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),

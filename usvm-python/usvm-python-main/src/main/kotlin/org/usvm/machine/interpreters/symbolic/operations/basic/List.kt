@@ -5,6 +5,7 @@ import org.usvm.*
 import org.usvm.api.*
 import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.language.types.ArrayLikeConcretePythonType
 import org.usvm.language.types.ArrayType
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
@@ -20,14 +21,16 @@ fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymboli
 fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return null
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
+    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList.id) ?: return null
     return list.readArrayElement(ctx, indexInt)
 }
 
 fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {
     if (ctx.curState == null)
         return
-    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList) ?: return
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
+    val indexInt = resolveSequenceIndex(ctx, list, index, ctx.typeSystem.pythonList.id) ?: return
     list.writeArrayElement(ctx, indexInt, value)
 }
 
@@ -51,8 +54,7 @@ private fun listConcat(
 
 fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, iterable: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    val typeSystem = ctx.typeSystem
-    list.addSupertypeSoft(ctx, typeSystem.pythonList)
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
     iterable.addSupertypeSoft(ctx, ArrayType)
     listConcat(ctx, list, iterable, list)
     return list
@@ -62,8 +64,8 @@ fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPyth
     if (ctx.curState == null)
         return null
     val typeSystem = ctx.typeSystem
-    if (right.getTypeIfDefined(ctx) != typeSystem.pythonList || left.getTypeIfDefined(ctx) != typeSystem.pythonList)
-        return null
+    makeConcreteInnerType(ctx, left, ctx.typeSystem.pythonList)
+    makeConcreteInnerType(ctx, right, ctx.typeSystem.pythonList)
     with (ctx.ctx) {
         val resultAddress = ctx.curState!!.memory.allocateArray(ArrayType, intSort, mkIntNum(0))
         ctx.curState!!.memory.types.allocate(resultAddress.address, typeSystem.pythonList)
@@ -76,9 +78,8 @@ fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPyth
 fun handlerListInplaceConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    val typeSystem = ctx.typeSystem
-    if (right.getTypeIfDefined(ctx) != typeSystem.pythonList || left.getTypeIfDefined(ctx) != typeSystem.pythonList)
-        return null
+    makeConcreteInnerType(ctx, left, ctx.typeSystem.pythonList)
+    makeConcreteInnerType(ctx, right, ctx.typeSystem.pythonList)
     listConcat(ctx, left, right, left)
     return left
 }
@@ -86,9 +87,7 @@ fun handlerListInplaceConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbo
 fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, elem: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    val typeSystem = ctx.typeSystem
-    if (list.getTypeIfDefined(ctx) != typeSystem.pythonList)
-        return null
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
     with (ctx.ctx) {
         val currentSize = list.readArrayLength(ctx)
         list.writeArrayElement(ctx, currentSize, elem)
@@ -100,8 +99,10 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
 fun handlerListIterKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null)
         return null
-    val typeSystem = ctx.typeSystem
-    list.addSupertype(ctx, typeSystem.pythonList)
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
+    require(list.getTypeIfDefined(ctx) != null) {
+        "Type must be already resolved"
+    }
     return constructListIterator(ctx, list)
 }
 
@@ -119,6 +120,7 @@ fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSy
 
     iterator.increaseListIteratorCounter(ctx)
     val list = UninterpretedSymbolicPythonObject(listAddress, typeSystem)
+    typeCheck(ctx, list, typeSystem.pythonList)
     return list.readArrayElement(ctx, index)
 }
 
@@ -142,16 +144,13 @@ private fun listPop(
 
 fun handlerListPopKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
-        return null
-
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
     return listPop(ctx, list)
 }
 
 fun handlerListPopIndKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, ind: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
-        return null
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
     ind.addSupertype(ctx, ctx.typeSystem.pythonInt)
     return listPop(ctx, list, ind.getIntContent(ctx))
 }
@@ -163,8 +162,7 @@ fun handlerListInsertKt(
     value: UninterpretedSymbolicPythonObject
 ) {
     ctx.curState ?: return
-    if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList)
-        return
+    makeConcreteInnerType(ctx, list, ctx.typeSystem.pythonList)
     ind.addSupertype(ctx, ctx.typeSystem.pythonInt)
 
     with(ctx.ctx) {
