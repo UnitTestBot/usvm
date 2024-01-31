@@ -76,7 +76,7 @@ public class TraceCollector {
         }
 
         private int hash(long key) {
-            return (int) (key ^ (key >>> 32)) % capacity;
+            return (int) ((key ^ (key >>> 32)) % capacity);
         }
 
         public void add(long key) {
