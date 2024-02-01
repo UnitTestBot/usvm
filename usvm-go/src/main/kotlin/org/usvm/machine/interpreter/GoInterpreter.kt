@@ -11,17 +11,17 @@ import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoTarget
-import org.usvm.machine.GoType
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
+import org.usvm.machine.type.GoType
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 
 typealias GoStepScope = StepScope<GoState, GoType, GoInst, GoContext>
 
 class GoInterpreter(
-    private val bridge: GoBridge,
     private val ctx: GoContext,
+    private val bridge: GoBridge,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
     fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState {

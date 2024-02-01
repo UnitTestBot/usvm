@@ -1,16 +1,16 @@
 package graph
 
 import (
+	"go/types"
 	"reflect"
 
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/domain"
-	"usvm/types"
 )
 
 func MethodInfo(function *ssa.Function) domain.MethodInfo {
-	returnType := types.MapType(function.Signature.Results().At(0).Type(), false)
+	returnType := function.Signature.Results().At(0).Type()
 
 	variablesCount := 0
 	for _, b := range function.Blocks {
@@ -24,7 +24,7 @@ func MethodInfo(function *ssa.Function) domain.MethodInfo {
 	parametersCount := len(function.Params)
 	parametersTypes := make([]types.Type, parametersCount)
 	for i := range parametersTypes {
-		parametersTypes[i] = types.GetType(function.Params[i], false)
+		parametersTypes[i] = function.Params[i].Type()
 	}
 
 	return domain.MethodInfo{
