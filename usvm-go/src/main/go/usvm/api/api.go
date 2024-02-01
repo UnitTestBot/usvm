@@ -1,6 +1,5 @@
 package api
 
-import "C"
 import (
 	"go/constant"
 	"go/token"
@@ -9,7 +8,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/graph"
-	typeslocal "usvm/types"
+	"usvm/sort"
 	"usvm/util"
 )
 
@@ -210,8 +209,10 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	case "print", "println":
 	case "len":
 		a.buf.Write(byte(Len))
+		a.buf.WriteValueTypeHash(inst.Call.Args[0])
 	case "cap":
 		a.buf.Write(byte(Cap))
+		a.buf.WriteValueTypeHash(inst.Call.Args[0])
 	case "min":
 	case "max":
 	case "real":
@@ -242,13 +243,14 @@ func (a *api) MkIf(inst *ssa.If) {
 
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
-	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteValueType(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 }
 
 func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 	a.buf.Write(byte(MethodMkMakeSlice))
-	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteValueType(inst)
+	a.buf.WriteValueTypeHash(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Len)
 	a.writeVar(inst.Cap)
@@ -256,7 +258,8 @@ func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 
 func (a *api) MkMakeMap(inst *ssa.MakeMap) {
 	a.buf.Write(byte(MethodMkMakeMap))
-	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteValueType(inst)
+	a.buf.WriteValueTypeHash(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Reserve)
 }
@@ -325,14 +328,16 @@ func (a *api) MkMapLookup(inst *ssa.Lookup) {
 	a.buf.Write(byte(MethodMkMapLookup))
 	a.writeVar(inst)
 	a.writeVar(inst.X)
+	a.buf.WriteValueTypeHash(inst.X)
 	a.writeVar(inst.Index)
-	a.buf.Write(byte(typeslocal.GetMapElemType(inst.X)))
+	a.buf.Write(byte(sort.GetMapElemSort(inst.X)))
 	a.buf.WriteBool(inst.CommaOk)
 }
 
 func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
 	a.buf.Write(byte(MethodMkMapUpdate))
 	a.writeVar(inst.Map)
+	a.buf.WriteValueTypeHash(inst.Map)
 	a.writeVar(inst.Key)
 	a.writeVar(inst.Value)
 }
@@ -351,14 +356,17 @@ func (a *api) Log(values ...any) {
 
 func (a *api) mkFieldReading(inst, object ssa.Value, index int) {
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteValueType(inst)
+	a.buf.Write(byte(sort.GetSort(inst, true)))
 	a.writeVar(object)
 	a.buf.WriteInt32(int32(index))
 }
 
 func (a *api) mkArrayReading(inst, array, index ssa.Value) {
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.Write(byte(typeslocal.GetType(inst, true)))
+	a.buf.WriteValueTypeHash(array)
+	a.buf.WriteValueType(inst)
+	a.buf.Write(byte(sort.GetSort(inst, true)))
 	a.writeVar(array)
 	a.writeVar(index)
 }
@@ -369,48 +377,56 @@ func (a *api) mkVariable(inst ssa.Value, value ssa.Value) {
 	a.writeVar(value)
 }
 
-func (a *api) writeVar(in ssa.Value) {
-	switch in := in.(type) {
+func (a *api) writeVar(v ssa.Value) {
+	switch in := v.(type) {
 	case *ssa.Parameter:
 		f := in.Parent()
 		for i, p := range f.Params {
-			if p == in {
-				a.buf.Write(byte(VarKindParameter)).Write(byte(typeslocal.GetType(in, false))).WriteInt32(int32(i))
+			if p != in {
+				continue
 			}
+			a.buf.Write(byte(VarKindParameter)).
+				WriteValueType(v).
+				Write(byte(sort.GetSort(in, false))).
+				WriteInt32(int32(i))
 		}
 	case *ssa.Const:
 		a.buf.Write(byte(VarKindConst))
 		a.writeConst(in)
 	default:
-		a.buf.Write(byte(VarKindLocal)).Write(byte(typeslocal.GetType(in, false))).WriteInt32(resolveRegister(in))
+		a.buf.Write(byte(VarKindLocal)).
+			WriteValueType(v).
+			Write(byte(sort.GetSort(in, false))).
+			WriteInt32(resolveRegister(in))
 	}
 }
 
 func (a *api) writeConst(in *ssa.Const) {
-	t := typeslocal.GetType(in, false)
-	a.buf.Write(byte(t))
-	switch t {
-	case typeslocal.TypeBool:
+	s := sort.GetSort(in, false)
+	a.buf.WriteValueType(in)
+	a.buf.Write(byte(s))
+	switch s {
+	case sort.Bool:
 		a.buf.WriteBool(constant.BoolVal(in.Value))
-	case typeslocal.TypeInt8:
+	case sort.Int8:
 		a.buf.WriteInt8(int8(in.Int64()))
-	case typeslocal.TypeInt16:
+	case sort.Int16:
 		a.buf.WriteInt16(int16(in.Int64()))
-	case typeslocal.TypeInt32:
+	case sort.Int32:
 		a.buf.WriteInt32(int32(in.Int64()))
-	case typeslocal.TypeInt64:
+	case sort.Int64:
 		a.buf.WriteInt64(in.Int64())
-	case typeslocal.TypeUint8:
+	case sort.Uint8:
 		a.buf.WriteUint8(uint8(in.Uint64()))
-	case typeslocal.TypeUint16:
+	case sort.Uint16:
 		a.buf.WriteUint16(uint16(in.Uint64()))
-	case typeslocal.TypeUint32:
+	case sort.Uint32:
 		a.buf.WriteUint32(uint32(in.Uint64()))
-	case typeslocal.TypeUint64:
+	case sort.Uint64:
 		a.buf.WriteUint64(in.Uint64())
-	case typeslocal.TypeFloat32:
+	case sort.Float32:
 		a.buf.WriteFloat32(float32(in.Float64()))
-	case typeslocal.TypeFloat64:
+	case sort.Float64:
 		a.buf.WriteFloat64(in.Float64())
 	default:
 	}
