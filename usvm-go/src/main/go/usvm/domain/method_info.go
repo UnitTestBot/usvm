@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"usvm/types"
+	"go/types"
 )
 
 type MethodInfo struct {

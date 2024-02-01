@@ -10,6 +10,7 @@ import (
 	"go/types"
 	"unsafe"
 
+	"github.com/cespare/xxhash"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/callgraph/cha"
 	"golang.org/x/tools/go/callgraph/vta"
@@ -19,6 +20,7 @@ import (
 	"usvm/api"
 	"usvm/graph"
 	"usvm/interpreter"
+	"usvm/sort"
 	"usvm/util"
 )
 
@@ -346,6 +348,53 @@ func isSupertype(supertypePointer, typePointer C.jlong) C.jboolean {
 	v := *util.FromPointer[types.Type](uintptr(typePointer))
 	result := types.Identical(v, t) || types.AssignableTo(v, t)
 	return toJBool(result)
+}
+
+//export typeToSort
+func typeToSort(pointer C.jlong) C.jbyte {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	return C.jbyte(sort.MapSort(t, false))
+}
+
+//export arrayElementType
+func arrayElementType(pointer C.jlong) C.jlong {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	switch arrayType := t.Underlying().(type) {
+	case *types.Array:
+		t = arrayType.Elem()
+	case *types.Slice:
+		t = arrayType.Elem()
+	}
+	return C.jlong(util.ToPointer(&t))
+}
+
+//export mapKeyValueTypes
+func mapKeyValueTypes(pointer C.jlong, arr C.jlong) {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	switch mapType := t.Underlying().(type) {
+	case *types.Map:
+		util.NewByteBuffer(uintptr(arr)).WriteType(mapType.Key()).WriteType(mapType.Elem())
+	}
+}
+
+//export structFieldTypes
+func structFieldTypes(pointer C.jlong, arr C.jlong) {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	switch structType := t.Underlying().(type) {
+	case *types.Struct:
+		l := structType.NumFields()
+		buf := util.NewByteBuffer(uintptr(arr))
+		buf.WriteInt32(int32(l))
+		for i := 0; i < l; i++ {
+			buf.WriteType(structType.Field(i).Type())
+		}
+	}
+}
+
+//export typeHash
+func typeHash(pointer C.jlong) C.jlong {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	return C.jlong(xxhash.Sum64String(t.String()))
 }
 
 // ---------------- region: type system

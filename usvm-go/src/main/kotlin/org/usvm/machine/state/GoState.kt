@@ -10,7 +10,7 @@ import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoTarget
-import org.usvm.machine.GoType
+import org.usvm.machine.type.GoType
 import org.usvm.memory.UMemory
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase

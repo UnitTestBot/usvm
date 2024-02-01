@@ -8,6 +8,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
+import org.usvm.machine.type.GoType
 import org.usvm.machine.type.GoTypeSystem
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver

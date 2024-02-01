@@ -5,8 +5,8 @@ import org.usvm.machine.GoMethod
 import org.usvm.machine.GoMethodInfo
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoInstInfo
-import org.usvm.machine.GoType
-import org.usvm.machine.type.Type
+import org.usvm.machine.type.GoType
+import org.usvm.machine.type.GoSort
 import java.nio.Buffer
 import java.nio.ByteBuffer
 
@@ -95,9 +95,29 @@ class GoBridge {
         return Bridge.hasCommonSubtype(type, types.map { it }.toLongArray(), types.size)
     }
 
-    fun isSupertype(supertype: GoType, type: GoType): Boolean {
-        return Bridge.isSupertype(supertype, type)
+    fun isSupertype(supertype: GoType, type: GoType): Boolean = Bridge.isSupertype(supertype, type)
+
+    fun typeToSort(type: GoType): GoSort = GoSort.valueOf(Bridge.typeToSort(type))
+
+    fun arrayElementType(type: GoType): GoType = Bridge.arrayElementType(type)
+
+    fun mapKeyValueTypes(type: GoType): Pair<GoType, GoType> {
+        Bridge.mapKeyValueTypes(type, address)
+        val keyType = buf.long
+        val valueType = buf.long
+        buf.rewind()
+        return keyType to valueType
     }
+
+    fun structFieldTypes(type: GoType): LongArray {
+        Bridge.structFieldTypes(type, address)
+        val length = buf.int
+        val types = LongArray(length) { buf.long }
+        buf.rewind()
+        return types
+    }
+
+    fun typeHash(type: GoType): Long = Bridge.typeHash(type)
 
     // ------------ region: type system
 
@@ -105,13 +125,13 @@ class GoBridge {
 
     fun methodInfo(method: GoMethod): GoMethodInfo {
         Bridge.methodInfo(method, address)
-        val returnType = buf.get()
+        val returnType = buf.long
         val variablesCount = buf.int
         val parametersCount = buf.int
-        val parametersTypes = Array(parametersCount) { Type.valueOf(buf.get()) }
+        val parametersTypes = Array(parametersCount) { buf.long }
         buf.rewind()
         return GoMethodInfo(
-            Type.valueOf(returnType),
+            returnType,
             variablesCount,
             parametersCount,
             parametersTypes

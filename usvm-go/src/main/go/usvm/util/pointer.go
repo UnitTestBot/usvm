@@ -11,7 +11,11 @@ func FromPointer[T any](in uintptr) *T {
 }
 
 func ToPointer[T any](in *T) uintptr {
-	out := uintptr(unsafe.Pointer(in))
+	return PutPointer(unsafe.Pointer(in), in)
+}
+
+func PutPointer[T any](pointer unsafe.Pointer, in *T) uintptr {
+	out := uintptr(pointer)
 	registry[out] = in
 	return out
 }

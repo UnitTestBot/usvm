@@ -96,6 +96,26 @@ object Bridge {
     @JvmStatic
     @Link
     external fun isSupertype(supertype: TypePointer, type: TypePointer): Boolean
+
+    @JvmStatic
+    @Link
+    external fun typeToSort(type: TypePointer): Byte
+
+    @JvmStatic
+    @Link
+    external fun arrayElementType(type: TypePointer): TypePointer
+
+    @JvmStatic
+    @Link
+    external fun mapKeyValueTypes(type: TypePointer, args: Long)
+
+    @JvmStatic
+    @Link
+    external fun structFieldTypes(type: TypePointer, args: Long)
+
+    @JvmStatic
+    @Link
+    external fun typeHash(type: TypePointer): Long
     // ------------ region: type system
 
     // ------------ region: interpreter
