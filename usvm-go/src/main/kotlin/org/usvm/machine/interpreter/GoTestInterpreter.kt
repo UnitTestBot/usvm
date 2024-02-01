@@ -22,10 +22,10 @@ import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.machine.GoContext
 import org.usvm.machine.GoMethod
-import org.usvm.machine.GoType
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
-import org.usvm.machine.type.Type
+import org.usvm.machine.type.GoType
+import org.usvm.machine.type.GoSort
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.USizeExprKeyInfo
@@ -34,29 +34,29 @@ import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 
 class GoTestInterpreter(
-    private val bridge: GoBridge,
     private val ctx: GoContext,
+    private val bridge: GoBridge,
 ) {
     fun resolve(state: GoState, method: GoMethod): ProgramExecutionResult {
         val model = state.models.first()
 
-        val inputScope = MemoryScope(ctx, model, model)
-        val outputScope = MemoryScope(ctx, model, state.memory)
+        val inputScope = MemoryScope(ctx, bridge, model, model)
+        val outputScope = MemoryScope(ctx, bridge, model, state.memory)
         val methodInfo = bridge.methodInfo(method)
 
         val inputValues = methodInfo.parametersTypes.mapIndexed { idx, type ->
-            val sort = ctx.typeToSort(type)
-            val uExpr = model.read(URegisterStackLValue(sort, idx))
-            inputScope.convertExpr(uExpr, type)
+            val sort = ctx.mapSort(bridge.typeToSort(type))
+            val expr = model.read(URegisterStackLValue(sort, idx))
+            inputScope.convertExpr(expr, type)
         }
         val inputModel = InputModel(inputValues)
 
         return if (state.isExceptional) {
             UnsuccessfulExecutionResult(inputModel, (state.methodResult as GoMethodResult.Panic).value)
         } else {
-            val returnUExpr = state.methodResult as GoMethodResult.Success
-            val returnExpr = returnUExpr.let { outputScope.convertExpr(it.value, methodInfo.returnType) }
-            val outputModel = OutputModel(returnExpr)
+            val result = state.methodResult as GoMethodResult.Success
+            val expr = result.let { outputScope.convertExpr(it.value, methodInfo.returnType) }
+            val outputModel = OutputModel(expr)
 
             SuccessfulExecutionResult(inputModel, outputModel)
         }
@@ -64,23 +64,26 @@ class GoTestInterpreter(
 
     private class MemoryScope(
         private val ctx: GoContext,
+        private val bridge: GoBridge,
         private val model: UModelBase<GoType>,
         private val memory: UWritableMemory<GoType>,
     ) {
-        fun convertExpr(expr: UExpr<out USort>, type: Type): Any? =
-            when (type) {
-                Type.BOOL -> resolveBool(expr.asExpr(ctx.boolSort))
-                Type.INT8, Type.UINT8 -> resolveBv8(expr)
-                Type.INT16, Type.UINT16 -> resolveBv16(expr)
-                Type.INT32, Type.UINT32 -> resolveBv32(expr)
-                Type.INT64, Type.UINT64 -> resolveBv64(expr)
-                Type.FLOAT32 -> resolveFp32(expr)
-                Type.FLOAT64 -> resolveFp64(expr)
-                Type.ARRAY, Type.SLICE -> resolveArray(expr.asExpr(ctx.addressSort))
-                Type.MAP -> resolveMap(expr.asExpr(ctx.addressSort))
-                Type.STRUCT -> resolveStruct(expr.asExpr(ctx.addressSort))
+        fun convertExpr(expr: UExpr<out USort>, type: GoType): Any? {
+            val sort = bridge.typeToSort(type)
+            return when (sort) {
+                GoSort.BOOL -> resolveBool(expr.asExpr(ctx.boolSort))
+                GoSort.INT8, GoSort.UINT8 -> resolveBv8(expr)
+                GoSort.INT16, GoSort.UINT16 -> resolveBv16(expr)
+                GoSort.INT32, GoSort.UINT32 -> resolveBv32(expr)
+                GoSort.INT64, GoSort.UINT64 -> resolveBv64(expr)
+                GoSort.FLOAT32 -> resolveFp32(expr)
+                GoSort.FLOAT64 -> resolveFp64(expr)
+                GoSort.ARRAY, GoSort.SLICE -> resolveArray(expr.asExpr(ctx.addressSort), type)
+                GoSort.MAP -> resolveMap(expr.asExpr(ctx.addressSort), type)
+                GoSort.STRUCT -> resolveStruct(expr.asExpr(ctx.addressSort), type)
                 else -> null
             }
+        }
 
         fun resolveBool(expr: UExpr<UBoolSort>) = model.eval(expr).asExpr(ctx.boolSort).isTrue
 
@@ -96,34 +99,34 @@ class GoTestInterpreter(
 
         fun resolveFp64(expr: UExpr<out USort>) = (model.eval(expr) as KFp64Value).value
 
-        fun resolveArray(expr: UHeapRef): List<Any?>? {
+        fun resolveArray(expr: UHeapRef, type: GoType): List<Any?>? {
             val array = model.eval(expr)
             if (array == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
 
-            val arrayType = Type.SLICE.value.toLong()
-            val elementType = Type.INT32
+            val arrayType = bridge.typeHash(type)
+            val elementType = bridge.arrayElementType(type)
             val lengthUExpr = memory.readArrayLength(array, arrayType, ctx.sizeSort)
             val length = clipArrayLength(convertExpr(lengthUExpr, elementType) as Int)
             val result = (0 until length).map { idx ->
-                val element = memory.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, ctx.typeToSort(elementType))
+                val sort = ctx.mapSort(bridge.typeToSort(elementType))
+                val element = memory.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, sort)
                 convertExpr(element, elementType)
             }
             return result
         }
 
-        fun resolveMap(expr: UHeapRef): Map<Any?, Any?>? {
+        fun resolveMap(expr: UHeapRef, type: GoType): Map<Any?, Any?>? {
             val map = model.eval(expr)
             if (map == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
 
-            val mapType = Type.MAP.value.toLong()
-            val keyType = Type.INT32
-            val keySort = ctx.typeToSort(keyType)
-            val valueType = Type.INT32
-            val valueSort = ctx.typeToSort(valueType)
+            val mapType = bridge.typeHash(type)
+            val (keyType, valueType) = bridge.mapKeyValueTypes(type)
+            val keySort = ctx.mapSort(bridge.typeToSort(keyType))
+            val valueSort = ctx.mapSort(bridge.typeToSort(valueType))
             val entries = memory.setEntries(map, mapType, keySort, USizeExprKeyInfo()).entries
 
             return entries.associate { entry ->
@@ -133,15 +136,17 @@ class GoTestInterpreter(
             }
         }
 
-        fun resolveStruct(expr: UHeapRef): List<Any?>? {
+        fun resolveStruct(expr: UHeapRef, type: GoType): List<Any?>? {
             val struct = model.eval(expr)
             if (struct == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
 
-            val age = memory.readField(struct, 0, ctx.bv32Sort)
-            val gender = memory.readField(struct, 1, ctx.boolSort)
-            return listOf(convertExpr(age, Type.INT32), convertExpr(gender, Type.BOOL))
+            val types = bridge.structFieldTypes(type)
+            return List(types.size) {
+                val sort = ctx.mapSort(bridge.typeToSort(types[it]))
+                convertExpr(memory.readField(struct, it, sort), types[it])
+            }
         }
     }
 

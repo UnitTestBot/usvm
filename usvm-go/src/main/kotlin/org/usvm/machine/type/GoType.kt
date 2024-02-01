@@ -2,7 +2,9 @@ package org.usvm.machine.type
 
 import org.usvm.api.UnknownTypeException
 
-enum class Type(val value: Byte) {
+typealias GoType = Long
+
+enum class GoSort(val value: Byte) {
     UNKNOWN(0),
     BOOL(1),
     INT8(2),

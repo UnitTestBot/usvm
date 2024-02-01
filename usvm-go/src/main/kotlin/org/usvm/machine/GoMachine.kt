@@ -38,9 +38,9 @@ class GoMachine(
     private val applicationGraph = GoApplicationGraph(bridge)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter(bridge, ctx)
+    private val interpreter = GoInterpreter(ctx, bridge)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
-    private val testInterpreter = GoTestInterpreter(bridge, ctx)
+    private val testInterpreter = GoTestInterpreter(ctx, bridge)
 
     override fun close() {
         ctx.close()

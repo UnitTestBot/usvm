@@ -1,16 +1,15 @@
 package org.usvm.machine
 
-import org.usvm.machine.type.Type
+import org.usvm.machine.type.GoType
 
 typealias GoInst = Long
 typealias GoMethod = Long
-typealias GoType = Long
 
 class GoMethodInfo(
-    val returnType: Type,
+    val returnType: GoType,
     val variablesCount: Int,
     val parametersCount: Int,
-    val parametersTypes: Array<Type>
+    val parametersTypes: Array<GoType>
 ) {
     override fun toString(): String {
         return "returnType: $returnType, variables: $variablesCount, params: $parametersCount"

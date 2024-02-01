@@ -10,7 +10,8 @@ import org.usvm.UAddressPointer
 import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
-import org.usvm.machine.type.Type
+import org.usvm.machine.type.GoType
+import org.usvm.machine.type.GoSort
 import org.usvm.memory.ULValue
 
 internal typealias USizeSort = UBv32Sort
@@ -26,16 +27,16 @@ class GoContext(
         argsCount[method] = info.parametersCount
     }
 
-    fun typeToSort(type: Type): USort = when (type) {
-        Type.BOOL -> boolSort
-        Type.INT8, Type.UINT8 -> bv8Sort
-        Type.INT16, Type.UINT16 -> bv16Sort
-        Type.INT32, Type.UINT32 -> bv32Sort
-        Type.INT64, Type.UINT64 -> bv64Sort
-        Type.FLOAT32 -> fp32Sort
-        Type.FLOAT64 -> fp64Sort
-        Type.ARRAY, Type.SLICE, Type.MAP, Type.STRUCT, Type.INTERFACE, Type.TUPLE -> addressSort
-        Type.POINTER -> pointerSort
+    fun mapSort(sort: GoSort): USort = when (sort) {
+        GoSort.BOOL -> boolSort
+        GoSort.INT8, GoSort.UINT8 -> bv8Sort
+        GoSort.INT16, GoSort.UINT16 -> bv16Sort
+        GoSort.INT32, GoSort.UINT32 -> bv32Sort
+        GoSort.INT64, GoSort.UINT64 -> bv64Sort
+        GoSort.FLOAT32 -> fp32Sort
+        GoSort.FLOAT64 -> fp64Sort
+        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE -> addressSort
+        GoSort.POINTER -> pointerSort
         else -> throw UnknownSortException()
     }
 
