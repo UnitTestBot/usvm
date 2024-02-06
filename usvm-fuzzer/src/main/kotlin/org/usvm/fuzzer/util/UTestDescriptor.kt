@@ -1,9 +1,12 @@
 package org.usvm.fuzzer.util
 
 import org.jacodb.api.JcField
+import org.jacodb.api.ext.fields
+import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestEnumValueDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
+import org.usvm.instrumentation.util.toJcClass
 import java.util.Stack
 
 fun UTestValueDescriptor.getPossiblePathsToField(jcField: JcField): List<List<JcField>> {
@@ -17,7 +20,7 @@ private fun dfsFieldSearch(
     targetField: JcField,
     visited: MutableSet<UTestValueDescriptor>,
     path: MutableList<JcField>,
-    res: MutableList<List<JcField>>
+    res: MutableList<List<JcField>>,
 ) {
     visited.add(curDescriptor)
     val fields =

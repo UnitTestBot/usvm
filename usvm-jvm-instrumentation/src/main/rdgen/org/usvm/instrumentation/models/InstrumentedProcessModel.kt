@@ -61,6 +61,11 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
         field("classId", PredefinedType.long)
     }
 
+    private val tracedInstruction = structdef {
+        field("instructionId", PredefinedType.long)
+        field("numberOfTouches", PredefinedType.long)
+    }
+
     private val executionResult = structdef {
         field("type", enum("ExecutionResultType") {
             +"UTestExecutionInitFailedResult"
@@ -70,7 +75,7 @@ object InstrumentedProcessModel : Ext(InstrumentedProcessRoot) {
             +"UTestExecutionTimedOutResult"
         })
         field("classes", immutableList(classToId).nullable)
-        field("trace", immutableList(PredefinedType.long).nullable)
+        field("trace", immutableList(tracedInstruction).nullable)
         field("cause", UTestValueDescriptor.nullable)
         field("result", UTestValueDescriptor.nullable)
         field("initialState", executionStateSerialized.nullable)

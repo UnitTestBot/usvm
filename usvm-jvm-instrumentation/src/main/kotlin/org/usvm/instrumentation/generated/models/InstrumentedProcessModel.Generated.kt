@@ -31,6 +31,7 @@ class InstrumentedProcessModel private constructor(
             serializers.register(ExecutionStateSerialized)
             serializers.register(SerializedStaticField)
             serializers.register(ClassToId)
+            serializers.register(TracedInstruction)
             serializers.register(ExecutionResult)
             serializers.register(ExecutionResultType.marshaller)
         }
@@ -53,7 +54,7 @@ class InstrumentedProcessModel private constructor(
         }
         
         
-        const val serializationHash = 6272372799293203851L
+        const val serializationHash = 7846459557831785804L
         
     }
     override val serializersOwner: ISerializersOwner get() = InstrumentedProcessModel
@@ -232,12 +233,12 @@ data class ExecuteParams (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:64]
+ * #### Generated from [InstrumentedProcessModel.kt:69]
  */
 data class ExecutionResult (
     val type: ExecutionResultType,
     val classes: List<ClassToId>?,
-    val trace: List<Long>?,
+    val trace: List<TracedInstruction>?,
     val cause: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val result: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?,
     val initialState: ExecutionStateSerialized?,
@@ -252,7 +253,7 @@ data class ExecutionResult (
         override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecutionResult  {
             val type = buffer.readEnum<ExecutionResultType>()
             val classes = buffer.readNullable { buffer.readList { ClassToId.read(ctx, buffer) } }
-            val trace = buffer.readNullable { buffer.readList { buffer.readLong() } }
+            val trace = buffer.readNullable { buffer.readList { TracedInstruction.read(ctx, buffer) } }
             val cause = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val result = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).read(ctx, buffer) }
             val initialState = buffer.readNullable { ExecutionStateSerialized.read(ctx, buffer) }
@@ -263,7 +264,7 @@ data class ExecutionResult (
         override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionResult)  {
             buffer.writeEnum(value.type)
             buffer.writeNullable(value.classes) { buffer.writeList(it) { v -> ClassToId.write(ctx, buffer, v) } }
-            buffer.writeNullable(value.trace) { buffer.writeList(it) { v -> buffer.writeLong(v) } }
+            buffer.writeNullable(value.trace) { buffer.writeList(it) { v -> TracedInstruction.write(ctx, buffer, v) } }
             buffer.writeNullable(value.cause) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeNullable(value.result) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller<org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor>).write(ctx,buffer, it) }
             buffer.writeNullable(value.initialState) { ExecutionStateSerialized.write(ctx, buffer, it) }
@@ -325,7 +326,7 @@ data class ExecutionResult (
 
 
 /**
- * #### Generated from [InstrumentedProcessModel.kt:65]
+ * #### Generated from [InstrumentedProcessModel.kt:70]
  */
 enum class ExecutionResultType {
     UTestExecutionInitFailedResult, 
@@ -534,6 +535,69 @@ data class SerializedUTest (
         printer.indent {
             print("initStatements = "); initStatements.print(printer); println()
             print("callMethodExpression = "); callMethodExpression.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [InstrumentedProcessModel.kt:64]
+ */
+data class TracedInstruction (
+    val instructionId: Long,
+    val numberOfTouches: Long
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<TracedInstruction> {
+        override val _type: KClass<TracedInstruction> = TracedInstruction::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): TracedInstruction  {
+            val instructionId = buffer.readLong()
+            val numberOfTouches = buffer.readLong()
+            return TracedInstruction(instructionId, numberOfTouches)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: TracedInstruction)  {
+            buffer.writeLong(value.instructionId)
+            buffer.writeLong(value.numberOfTouches)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as TracedInstruction
+        
+        if (instructionId != other.instructionId) return false
+        if (numberOfTouches != other.numberOfTouches) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + instructionId.hashCode()
+        __r = __r*31 + numberOfTouches.hashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("TracedInstruction (")
+        printer.indent {
+            print("instructionId = "); instructionId.print(printer); println()
+            print("numberOfTouches = "); numberOfTouches.print(printer); println()
         }
         printer.print(")")
     }

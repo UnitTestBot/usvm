@@ -42,7 +42,7 @@ open class SafeUserClassGenerator(private val jcType: JcTypeWrapper) : UserClass
 
     protected fun callRandomConstructor(ctx: GeneratorContext, depth: Int): UTestValueRepresentation? =
         getRandomWeighedConstructor(jcType, ctx.random)?.let { randomConstructor ->
-            val jConstructor = randomConstructor.method.toJavaConstructor(ctx.userClassLoader)
+            val jConstructor = randomConstructor.method.toJavaConstructor(ctx.userClassLoader) ?: return@let null
             val initStmts = mutableListOf<UTestInst>()
             val args =
                 ctx.genericGenerator.resolveGenericParametersForConstructor(jcType, jConstructor)

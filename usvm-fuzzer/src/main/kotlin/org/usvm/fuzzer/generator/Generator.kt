@@ -30,10 +30,7 @@ abstract class Generator {
             } else {
 //                println("GENERATION ${this::class.java.name} depth $depth")
                 generationFun.invoke(ctx, depth + 1).let {
-                    if (it == null) {
-                        println()
-                    }
-                    it!!
+                    it ?: UTestValueRepresentation(UTestNullExpression(ctx.jcClasspath.objectType))
                 }.also {
 //                    println("GENERATION FINISHED ${this::class.java.name} depth $depth")
                 }

@@ -39,8 +39,8 @@ class ExecutionEstimator {
     }
 
     private fun calcAndAssignNewAverageScore(el: Selectable, score: Double) {
-        val newScore = ((el.averageScore * el.numberOfChooses) + score) / (el.numberOfChooses + 1)
-        el.averageScore = newScore
+        val newScore = ((el.score * el.numberOfChooses) + score) / (el.numberOfChooses + 1)
+        el.score = newScore
         el.numberOfChooses++
     }
 

@@ -139,6 +139,14 @@ public class A {
         return -1;
     }
 
+    public int loop(int n) {
+        int numOfIterations = 0;
+        for (int i = 0; i < n; i++) {
+            numOfIterations++;
+        }
+        return numOfIterations;
+    }
+
     public <T> int indexOfT(T[] arr, T el) {
         for (int i = 0; i < arr.length; i++) {
             if (el.equals(arr[i])) return i;

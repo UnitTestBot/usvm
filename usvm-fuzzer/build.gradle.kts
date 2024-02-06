@@ -24,3 +24,16 @@ tasks {
         }
     }
 }
+
+tasks {
+    register<Jar>("testJar") {
+        group = "jar"
+        shouldRunAfter("compileTestKotlin")
+        archiveClassifier.set("test")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        val contents = sourceSets.getByName("test").output
+
+        from(contents)
+    }
+}

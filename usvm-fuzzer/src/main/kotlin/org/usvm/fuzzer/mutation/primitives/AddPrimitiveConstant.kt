@@ -1,10 +1,10 @@
-package org.usvm.fuzzer.mutation
+package org.usvm.fuzzer.mutation.primitives
 
 import org.jacodb.api.JcPrimitiveType
-import org.jacodb.api.JcType
-import org.jacodb.impl.cfg.util.isPrimitive
 import org.usvm.fuzzer.generator.DataFactory
 import org.usvm.fuzzer.generator.random.getTrueWithProb
+import org.usvm.fuzzer.mutation.Mutation
+import org.usvm.fuzzer.mutation.MutationInfo
 import org.usvm.fuzzer.seed.Seed
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.instrumentation.testcase.api.*

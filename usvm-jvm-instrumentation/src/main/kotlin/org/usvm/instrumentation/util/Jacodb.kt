@@ -116,7 +116,11 @@ fun findClassInLoader(name: String, classLoader: ClassLoader): Class<*> =
     try {
         Class.forName(name, true, classLoader)
     } catch (e: Throwable) {
-        throw TestExecutorException("Something gone wrong with $name loading. Exception: ${e::class.java.name}")
+        try {
+            Class.forName(name, false, classLoader)
+        } catch (e: Throwable) {
+            throw TestExecutorException("Something gone wrong with $name loading. Exception: ${e::class.java.name}")
+        }
     }
 
 fun JcField.toJavaField(classLoader: ClassLoader): Field? =
@@ -139,16 +143,18 @@ fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeO
 fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? = jcClasspath.findClassOrNull(typeName)
 
 fun JcMethod.toJavaMethod(classLoader: ClassLoader): Method {
-    val klass = Class.forName(enclosingClass.name, false, classLoader)
+    val klass = findClassInLoader(enclosingClass.name, classLoader)
     return (klass.methods + klass.declaredMethods).find { it.isSameSignatures(this) }
         ?: throw TestExecutorException("Can't find method $name in classpath")
 }
 
-fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*> {
+fun JcMethod.toJavaConstructor(classLoader: ClassLoader): Constructor<*>? = try {
     require(isConstructor) { "Can't convert not constructor to constructor" }
-    val klass = Class.forName(enclosingClass.name, true, classLoader)
-    return (klass.constructors + klass.declaredConstructors).find { it.jcdbSignature == this.jcdbSignature }
+    val klass = findClassInLoader(enclosingClass.name, classLoader)
+    (klass.constructors + klass.declaredConstructors).find { it.jcdbSignature == this.jcdbSignature }
         ?: throw TestExecutorException("Can't find constructor of class ${enclosingClass.name}")
+} catch (e: Throwable) {
+    null
 }
 
 val Method.jcdbSignature: String

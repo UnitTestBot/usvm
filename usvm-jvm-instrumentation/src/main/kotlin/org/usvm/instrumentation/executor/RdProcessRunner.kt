@@ -188,8 +188,8 @@ class RdProcessRunner(
         return UTestExecutionState(state.instanceDescriptor, state.argsDescriptors, statics.toMutableMap(), accessedFields)
     }
 
-    private fun deserializeTrace(trace: List<Long>, coveredClasses: List<ClassToId>): List<JcInst> =
-        trace.map { encodedInst ->
+    private fun deserializeTrace(trace: List<TracedInstruction>, coveredClasses: List<ClassToId>): Map<JcInst, Long> =
+        trace.associate { (encodedInst, numberOfTouches) ->
             deserializedInstructionsCache.getOrPut(encodedInst) {
                 val classIdOffset = (2.0.pow(Byte.SIZE_BITS * 3).toLong() - 1) shl (Byte.SIZE_BITS * 5 - 1)
                 val classId = encodedInst and classIdOffset shr (Byte.SIZE_BITS * 5)
@@ -206,7 +206,7 @@ class RdProcessRunner(
                 jcMethod.instList
                     .find { it.location.index == instructionId }
                     ?: error("Deserialization error")
-            }
+            } to numberOfTouches
         }
 
     fun destroy() {

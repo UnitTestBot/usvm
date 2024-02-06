@@ -3,6 +3,7 @@ package org.usvm.fuzzer.generator
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcType
+import org.usvm.fuzzer.helpers.JcdbConstantsCollector
 import org.usvm.fuzzer.types.JcGenericGeneratorImpl
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import java.util.*
@@ -13,8 +14,6 @@ data class GeneratorContext(
     val random: Random,
     val jcClasspath: JcClasspath,
     val userClassLoader: ClassLoader,
+    val extractedConstants: MutableMap<JcType, MutableSet<Any>>,
     val genericGenerator: JcGenericGeneratorImpl = JcGenericGeneratorImpl(jcClasspath, userClassLoader),
-) {
-
-
-}
+) {}

@@ -1,6 +1,7 @@
 package org.usvm.fuzzer.generator.primitives
 
 import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.int
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
@@ -20,9 +21,11 @@ class IntegerGenerator : Generator() {
                 Int.MAX_VALUE,
                 Int.MIN_VALUE
             ).random()
+        } else if (random.getTrueWithProb(30)) {
+            extractedConstants[jcClasspath.int]?.randomOrNull() as? Int ?: random.nextInt()
         } else {
             random.nextInt()
         }
-        UTestValueRepresentation(UTestIntExpression(randomInt, jcClasspath.boolean))
+        UTestValueRepresentation(UTestIntExpression(randomInt, jcClasspath.int))
     }
 }

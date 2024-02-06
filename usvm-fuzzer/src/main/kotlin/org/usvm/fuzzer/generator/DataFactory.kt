@@ -21,16 +21,16 @@ class DataFactory(
     val random: Random,
     val seedArgsChoosingStrategy: ChoosingStrategy<Seed.ArgumentDescriptor>
 ) {
-    private val genericGenerator = JcGenericGeneratorImpl(jcClasspath, userClassLoader)
+    val genericGenerator = JcGenericGeneratorImpl(jcClasspath, userClassLoader)
     fun generateValuesForMethodInvocation(
         resolvedClassType: JcTypeWrapper,
         jcMethod: JcMethod
-    ): List<UTestValueRepresentation> {
+    ): List<Pair<JcTypeWrapper, UTestValueRepresentation>> {
         val jTargetMethod = jcMethod.toJavaMethod(userClassLoader)
         return genericGenerator
             .resolveGenericParametersForMethod(resolvedClassType, jTargetMethod)
             .second
-            .map { generateValueOfType(it) }
+            .map { it to generateValueOfType(it) }
     }
 
     fun generateValueOfType(jcTypeWrapper: JcTypeWrapper): UTestValueRepresentation =
@@ -55,7 +55,7 @@ class DataFactory(
             }
         val args =
             generateValuesForMethodInvocation(resolvedClassType, jcMethod)
-                .map { Seed.ArgumentDescriptor(it.instance, resolvedClassType, it.initStmts) }
+                .map { Seed.ArgumentDescriptor(it.second.instance, it.first, it.second.initStmts) }
         println("BUILDING SEED FROM GENERATED ARGS!!")
         return if (jcMethod.isStatic) {
             Seed(jcMethod, args, seedArgsChoosingStrategy)

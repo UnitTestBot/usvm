@@ -308,10 +308,10 @@ class UTestExpressionExecutor(
     private fun executeUTestClassExpression(uTestClassExpression: UTestClassExpression): Any =
         uTestClassExpression.type.toJavaClass(workerClassLoader)
 
-    private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
+    private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any? {
         val jConstructor = uConstructorCall.method.toJavaConstructor(workerClassLoader)
         val args = uConstructorCall.args.map { exec(it) }
-        return jConstructor.newInstanceWithAccessibility(args)
+        return jConstructor?.newInstanceWithAccessibility(args)
     }
 
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {
@@ -319,7 +319,7 @@ class UTestExpressionExecutor(
         val args = uMethodCall.args.map { exec(it) }
         return with(uMethodCall.method) {
             if (isConstructor) {
-                toJavaConstructor(workerClassLoader).newInstanceWithAccessibility(args)
+                toJavaConstructor(workerClassLoader)?.newInstanceWithAccessibility(args)
             } else {
                 toJavaMethod(workerClassLoader).invokeWithAccessibility(instance, args)
             }

@@ -4,32 +4,34 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
 import org.usvm.fuzzer.generator.DataFactory
-import org.usvm.fuzzer.strategy.ChoosingStrategy
-import org.usvm.fuzzer.strategy.fitness.BranchCoverageFitness
-import org.usvm.fuzzer.strategy.fitness.TestFitness
+import org.usvm.fuzzer.mutation.MutationRepository
+import org.usvm.fuzzer.strategy.seed.MOSA
 import org.usvm.fuzzer.util.getFalseBranchInst
 import org.usvm.fuzzer.util.getTrace
 import org.usvm.fuzzer.util.getTrueBranchInst
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
-import kotlin.math.sqrt
+import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 
 class SeedManager(
     private val targetMethod: JcMethod,
     private val seedExecutor: UTestConcreteExecutor,
     private val dataFactory: DataFactory,
     private val seedsLimit: Int,
-    private val seedSelectionStrategy: ChoosingStrategy<Seed>
+    private val mutationRepository: MutationRepository,
 ) {
 
+    val seedSelectionStrategy = MOSA(this)
     val seeds = mutableListOf<Seed>()
-    val coveredInstructions: MutableSet<JcInst> = mutableSetOf()
-    val unCoveredBranches: MutableSet<Branch> = mutableSetOf()
+    val coveredInstructions: MutableSet<JcInst> = HashSet()
+    val unCoveredBranches: MutableSet<Branch> = HashSet()
+    val coveredMethodInstructions: List<JcInst>
+        get() = coveredInstructions.filter { it in targetMethod.instList }
 
     //Will fill after initial seed generation
-    val targetBranches: MutableSet<Branch> = mutableSetOf()
+    val targetBranches: MutableSet<Branch> = HashSet()
+    val random = dataFactory.random
 
     val testSuite: MutableList<Seed> = mutableListOf()
-    val fitness: TestFitness = BranchCoverageFitness()
 
     init {
         targetMethod.instList
@@ -37,70 +39,49 @@ class SeedManager(
             .forEach { unCoveredBranches.add(Branch(it, it.getTrueBranchInst(), it.getFalseBranchInst())) }
     }
 
-    suspend fun generateInitialSeed(size: Int) {
+    suspend fun generateAndExecuteInitialSeed(size: Int) {
         repeat(size) {
             val seed = dataFactory.generateSeedsForMethod(targetMethod)
-            addSeed(seed, it)
-            val seedExecutionResult = seedExecutor.executeAsync(seed.toUTest())
-            seed.addSeedExecutionInfo(seedExecutionResult)
-            val seedCoverage = seedExecutionResult.getTrace()
-            coveredInstructions.addAll(seedCoverage)
-            updateBranchInfo()
+            executeSeed(seed)
         }
     }
 
-    fun calculateFronts(): List<List<Seed>> {
-        val targetInstructions = targetBranches.map {
-            if (it.trueBranchCovered) it.falseBranch
-            else it.trueBranch
-        }
-        val fronts = ArrayList<HashSet<Seed>>()
-        val curFront = HashSet<Seed>()
-        val availableSeeds = mutableMapOf<Seed, MutableList<Double>>()
-        for (targetInstruction in targetInstructions) {
-            val fitnessOfSeeds = seeds.map { it to fitness.getFitness(it, listOf(targetInstruction)) }
-            val minDistance = fitnessOfSeeds.minOf { it.second }
-            val nonDominatedSeeds = fitnessOfSeeds.filter { it.second == minDistance }
-            fitnessOfSeeds
-                .filter { it.second >= minDistance }
-                .forEach { availableSeeds.getOrPut(it.first) { mutableListOf(it.second) }.add(it.second) }
-            nonDominatedSeeds.forEach {
-                curFront.add(it.first)
-                availableSeeds.remove(it.first)
+    suspend fun executeSeed(seed: Seed): UTestExecutionResult {
+        val seedExecutionResult = seedExecutor.executeAsync(seed.toUTest())
+        seed.addSeedExecutionInfo(seedExecutionResult)
+        addSeed(seed, 0)
+        val seedCoverage = seedExecutionResult.getTrace()
+        coveredInstructions.addAll(seedCoverage.keys)
+        updateBranchInfo()
+        return seedExecutionResult
+    }
+
+    suspend fun mutateAndExecuteSeed() {
+        val seedToMutate = getSeed(0)
+        val mutationToApply = mutationRepository.getMutation(0)
+        val mutationResult = mutationToApply.mutate(seedToMutate) ?: return
+        val mutatedSeed = mutationResult.first ?: return
+        val prevCoverageSize = coveredInstructions.size
+        val seedExecutionResult = executeSeed(mutatedSeed)
+        //Add execution info to mutation
+        val newCoverageSize = coveredInstructions.size
+        mutationToApply.numberOfChooses += 1
+        mutationResult.second.mutatedField?.let { mutatedField ->
+            Seed.fieldInfo.getFieldInfo(mutatedField)?.let { fieldInfo ->
+                fieldInfo.numberOfChooses += 1
             }
         }
-        fronts.add(curFront.toHashSet())
-        curFront.clear()
-        while (availableSeeds.isNotEmpty()) {
-            val availableSeedsAsList = availableSeeds.toList()
-            val nonDominatedSeeds = availableSeeds.keys.toMutableList()
-            for (i in 0 until availableSeedsAsList.size) {
-                val seed1 = availableSeedsAsList[i].first
-                for (j in i + 1 until availableSeedsAsList.size) {
-                    val seed2 = availableSeedsAsList[j].first
-                    var isDominates1 = false
-                    var isDominates2 = false
-                    for ((ind, _) in targetInstructions.withIndex()) {
-                        val f1 = availableSeedsAsList[i].second[ind]
-                        val f2 = availableSeedsAsList[j].second[ind]
-                        if (f1 < f2) {
-                            isDominates1 = true
-                        }
-                        if (f2 < f1) {
-                            isDominates2 = true
-                        }
-                        if (isDominates1 && isDominates2) {
-                            break
-                        }
-                    }
-                    when {
-                        isDominates1 -> nonDominatedSeeds.remove(seed2)
-                        else -> nonDominatedSeeds.remove(seed1)
-                    }
+        if (newCoverageSize > prevCoverageSize) {
+            println("INCREASE SCORE OF ${mutationToApply::class.java.name}")
+            mutationToApply.score++
+            if (mutationResult.second.mutatedField != null) {
+                val fieldInfo = Seed.fieldInfo.getFieldInfo(mutationResult.second.mutatedField!!)
+                if (fieldInfo != null) {
+                    println("INCREASE SCORE OF FIELD ${fieldInfo.jcField.name}")
+                    fieldInfo.score++
                 }
             }
         }
-        return emptyList()
     }
 
     private fun updateBranchInfo() {
@@ -120,7 +101,7 @@ class SeedManager(
     fun addSeed(seed: Seed, iterationNumber: Int) {
         if (seeds.size >= seedsLimit) {
             seeds.add(seed)
-            val worstSeed = seedSelectionStrategy.chooseWorst(seeds, iterationNumber)
+            val worstSeed = seedSelectionStrategy.chooseWorstAndRemove()
             seeds.remove(worstSeed)
         } else {
             seeds.add(seed)
@@ -128,7 +109,7 @@ class SeedManager(
         //TODO update test suite
     }
 
-    fun getSeed(iterationNumber: Int) = seedSelectionStrategy.chooseBest(seeds, iterationNumber)
+    fun getSeed(iterationNumber: Int) = seedSelectionStrategy.chooseBest()
 
     data class Branch(
         val ifInst: JcIfInst,
@@ -136,7 +117,37 @@ class SeedManager(
         val falseBranch: JcInst,
         var trueBranchCovered: Boolean = false,
         var falseBranchCovered: Boolean = false,
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
 
+            other as Branch
+
+            return ifInst == other.ifInst
+        }
+
+        override fun hashCode(): Int {
+            return ifInst.hashCode()
+        }
+    }
+
+    fun printStats() {
+        println(
+            """
+            Method ${targetMethod.name} fuzzing stats:
+            Generated seeds: ${seeds.size}
+            Covered instructions: ${coveredMethodInstructions.size} from ${targetMethod.instList.size} ${coveredMethodInstructions.size / targetMethod.instList.size.toDouble() * 100}%
+            Covered lines: ${
+                coveredMethodInstructions.map { it.lineNumber }.toSet().size
+            } from ${targetMethod.instList.map { it.lineNumber }.toSet().size}
+        """.trimIndent()
+        )
+    }
+
+    fun isMethodCovered(): Boolean {
+        val coveredMethodInstructions = coveredMethodInstructions.filter { it in targetMethod.instList }
+        return coveredMethodInstructions.size == targetMethod.instList.size
+    }
 
 }

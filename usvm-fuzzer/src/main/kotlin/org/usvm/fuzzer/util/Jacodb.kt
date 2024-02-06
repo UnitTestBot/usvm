@@ -103,9 +103,8 @@ fun JcClasspath.stackType(): JcClassType {
 
 fun JcClassOrInterface.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper = toType().createJcTypeWrapper(userClassLoader)
 
-fun JcClassType.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper {
-    return JcTypeWrapper(this, this.toJavaClass(userClassLoader))
-}
+fun JcType.createJcTypeWrapper(userClassLoader: ClassLoader): JcTypeWrapper =
+    JcTypeWrapper(this, toJavaClass(userClassLoader))
 
 fun JcIfInst.getTrueBranchInst(): JcInst =
     location.method.instList[trueBranch.index]

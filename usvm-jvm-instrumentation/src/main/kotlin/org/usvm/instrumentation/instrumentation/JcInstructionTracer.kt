@@ -9,6 +9,7 @@ import org.jacodb.api.cfg.JcRawFieldRef
 import org.jacodb.api.ext.fields
 import org.jacodb.api.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
+import org.usvm.instrumentation.generated.models.TracedInstruction
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.FieldAccessType
 import org.usvm.instrumentation.util.enclosingClass
 import org.usvm.instrumentation.util.enclosingMethod
@@ -23,11 +24,11 @@ object JcInstructionTracer : Tracer<Trace> {
     }
 
     override fun getTrace(): Trace {
-        val traceFromTraceCollector =
+        val (traceFromTraceCollector, numberOfTouches) =
             TraceCollector.trace.allValues
         val trace = List(traceFromTraceCollector.size) { idx ->
-            decode(traceFromTraceCollector[idx])
-        }
+            decode(traceFromTraceCollector[idx]) to numberOfTouches[idx]
+        }.toMap()
         val accessedFieldsFromTraceCollector =
             TraceCollector.fieldsAccessed.allValues
         val accessedFields = List(accessedFieldsFromTraceCollector.size) { idx ->
@@ -36,10 +37,11 @@ object JcInstructionTracer : Tracer<Trace> {
         return Trace(trace, accessedFields.filter { it.first.isStatic }, accessedFields.filter { !it.first.isStatic })
     }
 
-    fun coveredInstructionsIds(): List<Long> {
-        val traceFromTraceCollector =
+    fun coveredInstructionsIds(): List<TracedInstruction> {
+        val (traceFromTraceCollector, numberOfTouches) =
             TraceCollector.trace.allValues
-        return List(traceFromTraceCollector.size) { idx -> traceFromTraceCollector[idx] }
+        return List(traceFromTraceCollector.size) { idx ->
+            TracedInstruction(traceFromTraceCollector[idx], numberOfTouches[idx]) }
     }
 
     fun getEncodedClasses() =
@@ -151,4 +153,4 @@ object JcInstructionTracer : Tracer<Trace> {
 
 }
 
-data class Trace(val trace: List<JcInst>, val statics: List<Pair<JcField, FieldAccessType>>, val fields: List<Pair<JcField, FieldAccessType>>)
+data class Trace(val trace: Map<JcInst, Long>, val statics: List<Pair<JcField, FieldAccessType>>, val fields: List<Pair<JcField, FieldAccessType>>)

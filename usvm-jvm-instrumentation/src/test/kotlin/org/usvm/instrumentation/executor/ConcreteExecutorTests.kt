@@ -1,12 +1,16 @@
 package org.usvm.instrumentation.executor
 
+import example.Arrays
+import org.jacodb.api.ext.constructors
+import org.jacodb.api.ext.findClass
 import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.ext.int
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
-import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.UTest
+import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.util.UTestCreator
 import kotlin.test.assertEquals
@@ -48,6 +52,14 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
         val result = res.result
         assertIs<UTestConstantDescriptor.Int>(result)
         assertEquals(239, result.value)
+    }
+
+    @Test
+    fun `loop`() = executeTest {
+        val uTest = UTestCreator.A.loop(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        assertTrue { res.trace!!.values.any { it == 10L } }
     }
 
     @Test

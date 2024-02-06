@@ -3,7 +3,7 @@ package org.usvm.instrumentation.collector.trace;
 //DO NOT EDIT!
 //USE TRACER
 public class TraceCollector {
-    public static LongHashSet trace = new LongHashSet();
+    public static LongIntHashMap trace = new LongIntHashMap();
     public static LongHashSet fieldsAccessed = new LongHashSet();
 
     public static void jcInstructionCovered(long jcInstructionId) {
@@ -76,7 +76,7 @@ public class TraceCollector {
         }
 
         private int hash(long key) {
-            return (int) (key ^ (key >>> 32)) % capacity;
+            return (int) ((key ^ (key >>> 32)) % capacity);
         }
 
         public void add(long key) {
@@ -124,10 +124,9 @@ public class TraceCollector {
 
         public boolean contains(long key) {
             int index = hash(key);
-            long current = keys[index];
-            if (current == key) return true;
-            while (keys[++index] != 0) {
+            while (keys[index] != 0) {
                 if (keys[index] == key) return true;
+                index++;
                 if (index == capacity - 1) {
                     index = 0;
                 }
@@ -174,4 +173,143 @@ public class TraceCollector {
         }
     }
 
+    public static class LongIntHashMap {
+        private static final int DEFAULT_CAPACITY = 1024;
+        private static final double DEFAULT_LOAD_FACTOR = 0.75;
+
+        public long[] keys;
+        public int[] values;
+        public int size;
+        private int capacity;
+        private final double loadFactor;
+        private boolean containsNull;
+        private int nullValue;
+
+        public LongIntHashMap() {
+            this(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR);
+        }
+
+        public LongIntHashMap(int initialCapacity, double loadFactor) {
+            this.capacity = initialCapacity;
+            this.loadFactor = loadFactor;
+            this.size = 0;
+            this.keys = new long[capacity];
+            this.values = new int[capacity];
+            containsNull = false;
+            nullValue = 0;
+        }
+
+        private int hash(long key) {
+            return (int) ((key ^ (key >>> 32)) % capacity);
+        }
+
+        public void add(long key) {
+            if (key == 0) {
+                containsNull = true;
+                nullValue++;
+                return;
+            }
+
+            if (contains(key)) {
+                return; // Avoid duplicates
+            }
+
+            int index = hash(key);
+
+            if (keys[index] != 0) {
+                while (keys[++index] != 0) {
+                    if (index == capacity - 1) {
+                        index = 0;
+                    }
+                }
+            }
+            keys[index] = key;
+            values[index] = 1;
+
+            size++;
+
+            // Check if rehashing is needed
+            if ((double) size / capacity > loadFactor) {
+                rehash();
+            }
+        }
+
+        public long[][] getAllValues() {
+            long[] resKeys = new long[realSize()];
+            long[] resValues = new long[realSize()];
+            int ind = 0;
+            if (containsNull) {
+                resKeys[0] = 0;
+                resValues[0] = nullValue;
+                ind++;
+            }
+            for (int i = 0; i < this.keys.length; i++) {
+                long key = this.keys[i];
+                if (key != 0) {
+                    resKeys[ind] = key;
+                    resValues[ind] = values[i];
+                    ind++;
+                }
+            }
+            return new long[][]{resKeys, resValues};
+        }
+
+        public boolean contains(long key) {
+            int index = hash(key);
+            while (keys[index] != 0) {
+                if (keys[index] == key) {
+                    values[index] = values[index] + 1;
+                    return true;
+                }
+                index++;
+                if (index == capacity - 1) {
+                    index = 0;
+                }
+            }
+            return false;
+        }
+
+        private void rehash() {
+            int newCapacity = capacity * 2;
+            long[] newKeys = new long[newCapacity];
+            int[] newValues = new int[newCapacity];
+
+            for (int i = 0; i < keys.length; i++) {
+                long key = keys[i];
+                if (key == 0) continue;
+                int newIndex = hash(key);
+                if (newKeys[newIndex] == 0) {
+                    newKeys[newIndex] = key;
+                    newValues[newIndex] = values[i];
+                    continue;
+                }
+                while (newKeys[++newIndex] != 0) {
+                    if (newIndex == newCapacity - 1) {
+                        newIndex = 0;
+                    }
+                }
+                newKeys[newIndex] = key;
+                newValues[newIndex] = values[i];
+            }
+            keys = newKeys;
+            values = newValues;
+            capacity = newCapacity;
+        }
+
+        public int realSize() {
+            return containsNull ? size + 1 : size;
+        }
+
+        public boolean isEmpty() {
+            return realSize() == 0;
+        }
+
+        public void clear() {
+            size = 0;
+            capacity = DEFAULT_CAPACITY;
+            keys = new long[capacity];
+            values = new int[capacity];
+            containsNull = false;
+        }
+    }
 }

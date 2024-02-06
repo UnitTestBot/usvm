@@ -12,6 +12,7 @@ import org.usvm.fuzzer.generator.collections.map.HashMapGenerator
 import org.usvm.fuzzer.generator.collections.map.LinkedHashMapGenerator
 import org.usvm.fuzzer.generator.collections.map.TreeMapGenerator
 import org.usvm.fuzzer.generator.`object`.*
+import org.usvm.fuzzer.generator.other.ObjectGenerator
 import org.usvm.fuzzer.generator.other.StringGenerator
 import org.usvm.fuzzer.generator.primitives.*
 import org.usvm.fuzzer.generator.reflection.ClassGenerator
@@ -59,6 +60,7 @@ class GeneratorRepository {
             jcClasspath.hashMapType().typeNameWOGenerics -> HashMapGenerator(jcType)
             jcClasspath.linkedHashMapType().typeNameWOGenerics -> LinkedHashMapGenerator(jcType)
             jcClasspath.treeMapType().typeNameWOGenerics -> TreeMapGenerator(jcType)
+            jcClasspath.objectType.typeNameWOGenerics -> ObjectGenerator()
             else -> getSuitableGeneratorForType(jcType)
         }
 

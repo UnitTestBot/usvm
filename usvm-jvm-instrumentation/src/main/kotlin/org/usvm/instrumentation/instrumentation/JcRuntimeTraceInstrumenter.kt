@@ -18,7 +18,7 @@ import org.usvm.instrumentation.util.replace
  */
 open class JcRuntimeTraceInstrumenter(
     override val jcClasspath: JcClasspath,
-    val isExtended: Boolean = false
+    private val isExtended: Boolean = false
 ) : JcInstrumenter, AbstractFullRawExprSetCollector() {
 
     private val rawStaticsGet = hashSetOf<JcRawFieldRef>()

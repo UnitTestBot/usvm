@@ -1,19 +1,24 @@
 package org.usvm.fuzzer.seed
 
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
+import io.leangen.geantyref.GenericTypeReflector
+import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.autoboxIfNeeded
+import org.jacodb.api.ext.boolean
 import org.jacodb.impl.cfg.util.isClass
 import org.usvm.fuzzer.position.SeedFieldsInfo
 import org.usvm.fuzzer.strategy.ChoosingStrategy
+import org.usvm.fuzzer.strategy.FairStrategy
 import org.usvm.fuzzer.strategy.Selectable
 import org.usvm.fuzzer.types.JcTypeWrapper
+import org.usvm.fuzzer.util.UTestChildrenCollectVisitor
+import org.usvm.fuzzer.util.createJcTypeWrapper
 import org.usvm.fuzzer.util.getPossiblePathsToField
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 import org.usvm.instrumentation.util.*
+import kotlin.collections.ArrayDeque
 
 data class Seed(
     val targetMethod: JcMethod,
@@ -21,14 +26,14 @@ data class Seed(
     val args: List<ArgumentDescriptor>,
     val argsChoosingStrategy: ChoosingStrategy<ArgumentDescriptor>,
     private val parent: Seed? = null,
-    var coverage: List<JcInst>? = null,
+    var coverage: Map<JcInst, Long>? = null,
     var argsInitialDescriptors: List<UTestValueDescriptor?>? = null,
     var argsResDescriptors: List<UTestValueDescriptor?>? = null,
     var accessedFields: List<JcField?>? = null
 ) : Selectable() {
 
     companion object {
-        val fieldInfo = SeedFieldsInfo()
+        val fieldInfo = SeedFieldsInfo(FairStrategy())
     }
 
     init {
@@ -57,6 +62,27 @@ data class Seed(
         }
     }
 
+    //    fun getUTestForMutation(
+//        classLoader: ClassLoader,
+//        cp: JcClasspath,
+//        condition: (SeedFieldsInfo.FieldInfo) -> Boolean,
+//    ): ArgumentFieldDescriptor? {
+//        val fieldForMutation = fieldInfo.getBestField(condition)!!
+//        return if (fieldForMutation.isArg()) {
+//            val argPosition = fieldForMutation.getArgPosition()
+//            val actualArg = args[argPosition]
+//            ArgumentFieldDescriptor(
+//                parentArgument = actualArg,
+//                instance = actualArg.instance,
+//                actualType = actualArg.type,
+//                isActualArg = true
+//            )
+//        } else {
+//            getFieldsInTermsOfUTest(fieldForMutation.jcField, classLoader, cp)
+//        }
+//    }
+//
+//
     fun getArgForMutation() = argsChoosingStrategy.chooseBest(args, 0)
 
     fun getArgForMutation(condition: (ArgumentDescriptor) -> Boolean): ArgumentDescriptor? {
@@ -64,30 +90,21 @@ data class Seed(
         return if (filteredArgs.isEmpty()) null
         else argsChoosingStrategy.chooseBest(filteredArgs, 0)
     }
-
-    fun getFieldForMutation() = fieldInfo.getBestField()
-    fun getFieldForMutation(condition: (JcField) -> Boolean) =
-        fieldInfo.getBestField(condition)
+//
+//    fun getFieldForMutation() = fieldInfo.getBestField()
+//    fun getFieldForMutation(condition: (JcField) -> Boolean) =
+//        fieldInfo.getBestField(condition)
 
     fun addSeedExecutionInfo(execResult: UTestExecutionResult) = with(execResult) {
-//        val score =
-//            when (this) {
-//                is UTestExecutionExceptionResult -> trace?.size ?: 0
-//                is UTestExecutionFailedResult -> 0
-//                is UTestExecutionInitFailedResult -> 0
-//                is UTestExecutionSuccessResult -> trace?.size ?: 0
-//                is UTestExecutionTimedOutResult -> 0
-//            }
-//        val newAverageScore = ((averageScore * numberOfChooses) + score) / (numberOfChooses + 1)
-//        averageScore = newAverageScore
-//        numberOfChooses += 1
-
         when (this) {
             is UTestExecutionExceptionResult -> {
                 coverage = trace
                 argsInitialDescriptors = listOf(initialState.instanceDescriptor) + initialState.argsDescriptors
                 argsResDescriptors = listOf(resultState.instanceDescriptor) + resultState.argsDescriptors
-                accessedFields = resultState.accessedFields
+                accessedFields = resultState.accessedFields + resultState.statics.keys
+                resultState.statics.keys.forEach { staticJcField ->
+                    fieldInfo.addFieldInfo(targetMethod, staticJcField, 0.0, 0)
+                }
             }
 
             is UTestExecutionFailedResult -> {}
@@ -99,7 +116,10 @@ data class Seed(
                 coverage = trace
                 argsInitialDescriptors = listOf(initialState.instanceDescriptor) + initialState.argsDescriptors
                 argsResDescriptors = listOf(resultState.instanceDescriptor) + resultState.argsDescriptors
-                accessedFields = resultState.accessedFields
+                accessedFields = resultState.accessedFields + resultState.statics.keys
+                resultState.statics.keys.forEach { staticJcField ->
+                    fieldInfo.addFieldInfo(targetMethod, staticJcField, 0.0, 0)
+                }
             }
 
             is UTestExecutionTimedOutResult -> {}
@@ -114,13 +134,103 @@ data class Seed(
             targetMethod = targetMethod,
             args = args.map { if (it == replace) replacement else it },
             argsChoosingStrategy = argsChoosingStrategy,
-            parent = this,
+            parent = null,
             coverage = null,
             argsInitialDescriptors = null,
             argsResDescriptors = null,
             accessedFields = null
         )
     }
+
+    fun mutate(newArgs: List<ArgumentDescriptor>): Seed {
+        return Seed(
+            targetMethod = targetMethod,
+            args = newArgs,
+            argsChoosingStrategy = argsChoosingStrategy,
+            parent = null,
+            coverage = null,
+            argsInitialDescriptors = null,
+            argsResDescriptors = null,
+            accessedFields = null
+        )
+    }
+
+    fun replace(
+        argument: ArgumentDescriptor,
+        replacedInst: UTestInst,
+        replacement: UTestInst,
+        replacementInitialExpr: List<UTestInst>,
+    ): ArgumentDescriptor {
+        if (replacedInst == argument.instance) {
+            return ArgumentDescriptor(
+                replacement as UTestExpression,
+                argument.type,
+                replacementInitialExpr
+            )
+        }
+        val argInitialExpressions = argument.initialExprs
+        val instructionToRemove = mutableSetOf(replacedInst)
+        var newSize = -1
+        var oldSize = instructionToRemove.size
+        while (oldSize != newSize) {
+            oldSize = newSize
+            argInitialExpressions.reversed().forEach {
+                it.accept(UTestInstsSimplifier(instructionToRemove))
+            }
+            newSize = instructionToRemove.size
+        }
+        val newInitInstructions = argInitialExpressions.filter { it !in instructionToRemove }
+        val remappedInstructions = mutableMapOf(replacedInst to replacement)
+        val remapped = newInitInstructions.map {
+            it.accept(UTestInstRemapper(remappedInstructions))
+        }
+        return ArgumentDescriptor(
+            argument.instance,
+            argument.type,
+            remapped + replacementInitialExpr + replacement
+        )
+    }
+
+//    fun replace(
+//        argument: ArgumentDescriptor,
+//        mutatedUTestInst: UTestInst?,
+//        replacedUTest: UTestInst?,
+//        replacement: UTestInst,
+//        replacementInitialExpr: List<UTestInst>
+//    ): ArgumentDescriptor {
+//        if (mutatedUTestInst == argument.instance) {
+//            return ArgumentDescriptor(
+//                replacement as UTestExpression,
+//                argument.type,
+//                replacementInitialExpr
+//            )
+//        } else {
+//            val removedInst = Collections.newSetFromMap(IdentityHashMap<UTestInst, Boolean>())
+//            removedInst.add(replacedUTest)
+//            val allInstructions =
+//                argument.initialExprs.map { it to it.accept(UTestChildrenCollectVisitor()) }.toMutableList()
+//            while (true) {
+//                val prevSize = allInstructions.size
+//                val allInstructionsIterator = allInstructions.listIterator()
+//                while (allInstructionsIterator.hasNext()) {
+//                    val (parentInst, instructions) = allInstructionsIterator.next()
+//                    if (parentInst == mutatedUTestInst) {
+//                        allInstructionsIterator.remove()
+//                    } else if (instructions.any { it in removedInst }) {
+//                        removedInst.addAll(instructions)
+//                        allInstructionsIterator.remove()
+//                    }
+//                }
+//                val newSize = allInstructions.size
+//                if (prevSize == newSize || newSize == 0) break
+//            }
+//            return ArgumentDescriptor(
+//                argument.instance,
+//                argument.type,
+//                allInstructions.map { it.first } + replacement + replacementInitialExpr
+//            )
+//        }
+//    }
 
     fun toUTest(): UTest {
         val allInitStatements = args.flatMap { it.initialExprs }
@@ -140,31 +250,101 @@ data class Seed(
         return UTest(allInitStatements, callStatement)
     }
 
-    fun getFieldsInTermsOfUTest(jcTargetField: JcField): List<Pair<ArgumentDescriptor, List<UTestGetFieldExpression>>> {
-        val res = ArrayList<Pair<ArgumentDescriptor, List<UTestGetFieldExpression>>>()
+    fun getFieldInTermsOfUTest(
+        jcTargetField: JcField,
+        userClassLoader: ClassLoader,
+        cp: JcClasspath
+    ): ArgumentFieldDescriptor? {
         for ((ind, arg) in args.withIndex()) {
             val argDescriptor = argsInitialDescriptors?.getOrNull(ind) ?: continue
-            val pathsToField = argDescriptor.getPossiblePathsToField(jcTargetField)
-            val tmpRes = ArrayList<UTestGetFieldExpression>()
+            val pathToField = argDescriptor.getPossiblePathsToField(jcTargetField).randomOrNull() ?: continue
             var curInstance = arg.instance
-            for (possiblePath in pathsToField) {
-                for (jcField in possiblePath) {
-                    val newInstance = UTestGetFieldExpression(curInstance, jcField)
-                    tmpRes.add(newInstance)
-                    curInstance = newInstance
-                }
-                res.add(arg to tmpRes.toList())
-                tmpRes.clear()
+            var curType = arg.type.actualJavaType
+            for (jcField in pathToField) {
+                val newInstance =
+                    if (jcField.isPublic || jcField.isPackagePrivate) {
+                        UTestGetFieldExpression(curInstance, jcField)
+                    } else {
+                        val getter = jcField.enclosingClass.declaredMethods.find { jcMethod ->
+                            if (jcField.type == cp.boolean || jcField.type == cp.boolean.autoboxIfNeeded()) {
+                                jcMethod.name.equals("is${jcField.name}", true) ||
+                                        jcMethod.name.equals("get${jcField.name}", true)
+                            } else {
+                                jcMethod.name.equals("get${jcField.name}", true)
+                            } && jcMethod.parameters.isEmpty()
+                        } ?: return null
+                        UTestMethodCall(curInstance, getter, listOf())
+                    }
+                val jField = jcField.toJavaField(userClassLoader) ?: return null
+                curType = GenericTypeReflector.getFieldType(jField, curType)
+                curInstance = newInstance
             }
+            return ArgumentFieldDescriptor(
+                parentArgument = arg,
+                instance = curInstance,
+                actualType = curType.createJcTypeWrapper(cp),
+                isActualArg = false
+            )
         }
-        return res
+        return null
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Seed
+
+        if (targetMethod != other.targetMethod) return false
+        if (args != other.args) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = targetMethod.hashCode()
+        result = 31 * result + args.hashCode()
+        return result
+    }
+
 
     class ArgumentDescriptor(
         val instance: UTestExpression,
         val type: JcTypeWrapper,
         val initialExprs: List<UTestInst>
-    ): Selectable()
+    ) : Selectable() {
+        fun getChildrenExpressions(parent: UTestInst) =
+            parent.accept(UTestChildrenCollectVisitor()).filter { it == parent }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as ArgumentDescriptor
+
+            if (instance != other.instance) return false
+            if (type != other.type) return false
+            if (initialExprs != other.initialExprs) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = instance.hashCode()
+            result = 31 * result + type.hashCode()
+            result = 31 * result + initialExprs.hashCode()
+            return result
+        }
+
+
+    }
+
+    class ArgumentFieldDescriptor(
+        val parentArgument: ArgumentDescriptor,
+        val instance: UTestExpression,
+        val actualType: JcTypeWrapper,
+        val isActualArg: Boolean
+    )
 
 }
 
