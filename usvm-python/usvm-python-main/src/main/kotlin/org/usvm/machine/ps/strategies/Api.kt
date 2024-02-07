@@ -70,5 +70,7 @@ class MakeDelayedFork<DFState: DelayedForkState>(
 ): PyPathSelectorAction<DFState>()
 
 class TypeRating(
-    val types: MutableList<ConcretePythonType>
+    val types: MutableList<ConcretePythonType>,
+    val numberOfHints: Int,
+    var numberOfUsed: Int = 0
 )

@@ -125,12 +125,14 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
         val typeRating = delayedForkStrategy.chooseTypeRating(delayedForkState)
         while (typeRating.types.isNotEmpty() && typeRating.types.first() in delayedForkState.usedTypes) {
             typeRating.types.removeAt(0)
+            typeRating.numberOfUsed++
         }
         if (typeRating.types.isEmpty()) {
             delayedForkState.isDead = true
             return null
         }
         val type = typeRating.types.removeAt(0)
+        typeRating.numberOfUsed++
         delayedForkState.usedTypes.add(type)
         val state = delayedFork.state
         val symbol = delayedFork.symbol
