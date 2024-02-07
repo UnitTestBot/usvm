@@ -4,9 +4,7 @@ import mu.KLogging
 import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.ps.strategies.impls.BaselineActionStrategy
-import org.usvm.machine.ps.strategies.impls.BaselineDFGraphCreation
-import org.usvm.machine.ps.strategies.impls.BaselineDelayedForkStrategy
+import org.usvm.machine.ps.strategies.impls.*
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
@@ -21,7 +19,8 @@ private val logger = object : KLogging() {}.logger
 
 enum class PyPathSelectorType {
     BaselineDfs,
-    BaselineWeightedByNumberOfVirtual
+    BaselineWeightedByNumberOfVirtual,
+    DelayedForkByInstructionDfs
 }
 
 fun createPyPathSelector(
@@ -35,6 +34,8 @@ fun createPyPathSelector(
             createBaselineDfsPyPathSelector(ctx, random, newStateObserver)
         PyPathSelectorType.BaselineWeightedByNumberOfVirtual ->
             createBaselineWeightedByNumberOfVirtualPyPathSelector(ctx, random, newStateObserver)
+        PyPathSelectorType.DelayedForkByInstructionDfs ->
+            createDelayedForkByInstructionDfsPyPathSelector(ctx, random, newStateObserver)
     }
 
 fun createBaselineDfsPyPathSelector(
@@ -44,7 +45,7 @@ fun createBaselineDfsPyPathSelector(
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
-        BaselineActionStrategy(random),
+        makeBaselineActionStrategy(random),
         BaselineDelayedForkStrategy,
         BaselineDFGraphCreation { DfsPathSelector() },
         newStateObserver
@@ -57,7 +58,7 @@ fun createBaselineWeightedByNumberOfVirtualPyPathSelector(
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
-        BaselineActionStrategy(random),
+        makeBaselineActionStrategy(random),
         BaselineDelayedForkStrategy,
         BaselineDFGraphCreation {
             WeightedPathSelector(
@@ -78,5 +79,18 @@ fun createBaselineWeightedByNumberOfVirtualPyPathSelector(
                 }
             )
         },
+        newStateObserver
+    )
+
+fun createDelayedForkByInstructionDfsPyPathSelector(
+    ctx: PyContext,
+    random: Random,
+    newStateObserver: NewStateObserver
+): PyVirtualPathSelector<*, *> =
+    PyVirtualPathSelector(
+        ctx,
+        makeDelayedForkByInstructionActionStrategy(random),
+        BaselineDelayedForkStrategy,
+        DelayedForkByInstructionGraphCreation { DfsPathSelector() },
         newStateObserver
     )
