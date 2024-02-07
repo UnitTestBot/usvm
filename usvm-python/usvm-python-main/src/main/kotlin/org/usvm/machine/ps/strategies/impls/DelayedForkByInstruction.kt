@@ -63,6 +63,8 @@ object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction(ServeNew
         random: Random
     ): PyPathSelectorAction<BaselineDelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
+
+    override fun toString(): String = "ServeNewDelayedForkByInstruction"
 }
 
 object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction(ServeOldDelayedFork.weight) {
@@ -78,6 +80,8 @@ object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction(ServeOld
         random: Random
     ): PyPathSelectorAction<BaselineDelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
+
+    override fun toString(): String = "ServeOldDelayedForkByInstruction"
 }
 
 class DelayedForkByInstructionGraph(
