@@ -45,11 +45,15 @@ object PeekFromRoot: BaselineAction(0.6) {
 }
 
 object ServeNewDelayedFork: BaselineAction(0.3) {
+    private val predicate = { node: DelayedForkGraphInnerVertex<BaselineDelayedForkState> ->
+        node.delayedForkState.successfulTypes.isEmpty() && node.delayedForkState.size > 0
+    }
+
     override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
-        graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isEmpty() && it.delayedForkState.size > 0 }
+        graph.aliveNodesAtDistanceOne.any(predicate)
 
     override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> {
-        val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isEmpty() }
+        val available = graph.aliveNodesAtDistanceOne.filter(predicate)
         return MakeDelayedFork(chooseAvailableVertex(available, random))
     }
 
@@ -68,11 +72,15 @@ object PeekFromStateWithDelayedFork: BaselineAction(0.088) {
 }
 
 object ServeOldDelayedFork: BaselineAction(0.012) {
+    private val predicate = { node: DelayedForkGraphInnerVertex<BaselineDelayedForkState> ->
+        node.delayedForkState.successfulTypes.isNotEmpty() && node.delayedForkState.size > 0
+    }
+
     override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
-        graph.aliveNodesAtDistanceOne.any { it.delayedForkState.successfulTypes.isNotEmpty() && it.delayedForkState.size > 0 }
+        graph.aliveNodesAtDistanceOne.any(predicate)
 
     override fun makeAction(graph: BaselineDelayedForkGraph, random: Random): PyPathSelectorAction<BaselineDelayedForkState> {
-        val available = graph.aliveNodesAtDistanceOne.filter { it.delayedForkState.successfulTypes.isNotEmpty() }
+        val available = graph.aliveNodesAtDistanceOne.filter(predicate)
         return MakeDelayedFork(chooseAvailableVertex(available, random))
     }
 
