@@ -540,7 +540,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.serialize(uTestSetStaticFieldStatement: UTestSetStaticFieldStatement) =
         serialize(
             uTestExpression = uTestSetStaticFieldStatement,
-            kind = UTestExpressionKind.SET_FIELD,
+            kind = UTestExpressionKind.SET_STATIC_FIELD,
             serializeInternals = {
                 serializeUTestInst(value)
             },
