@@ -16,13 +16,13 @@ fun makeTypeRating(state: PyState, delayedFork: DelayedFork): TypeRating? {
         is TypesResult.TypesResultWithExpiredTimeout, is TypesResult.EmptyTypesResult ->
             return null
     }
-    val resultList = if (state.typeSystem is PythonTypeSystemWithMypyInfo) {
+    val (resultList, hints) = if (state.typeSystem is PythonTypeSystemWithMypyInfo) {
         val typeGraph = SymbolTypeTree(state, state.typeSystem.typeHintsStorage, delayedFork.symbol)
-        prioritizeTypes(candidates, typeGraph, state.typeSystem)
+        prioritizeTypes(candidates, typeGraph, state.typeSystem) to typeGraph.boundsForRoot.size
     } else {
-        candidates
+        candidates to 0
     }
-    return TypeRating(resultList.toMutableList())
+    return TypeRating(resultList.toMutableList(), hints)
 }
 
 fun prioritizeTypes(types: List<ConcretePythonType>, graph: SymbolTypeTree, typeSystem: PythonTypeSystemWithMypyInfo): List<ConcretePythonType> {

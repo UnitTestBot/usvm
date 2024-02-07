@@ -90,7 +90,10 @@ class SymbolTypeTree(
                             )
                     }
                 }
-            node.upperBounds.add(protocol(pythonAnyType))
+            val originalHint = protocol(pythonAnyType)
+            if (originalHint.pythonDescription() !is PythonAnyTypeDescription) {
+                node.upperBounds.add(originalHint)
+            }
             val newNode = SymbolTreeNode(resultSymbol)
             val edge = SymbolTreeEdge(newNode, node) { type -> listOf(protocol(type)) }
             addEdge(edge)
@@ -108,7 +111,9 @@ class SymbolTypeTree(
     private fun propagateBounds() {
         dfs(root) { edge ->
             edge.from.upperBounds.forEach {
-                val newBounds = edge.dependency(it)
+                val newBounds = edge.dependency(it).filter { type ->
+                    type.pythonDescription() !is PythonAnyTypeDescription
+                }
                 edge.to.upperBounds += newBounds
             }
         }
