@@ -68,7 +68,7 @@ class JcTestExecutor(
 
         val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, model, state.memory, method)
+        val memoryScope = MemoryScope(ctx, model, state.memory, method)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -192,15 +192,14 @@ class JcTestExecutor(
      * An actual class for resolving objects from [UExpr]s.
      *
      * @param model a model to which compose expressions.
-     * @param memory a read-only memory to read [ULValue]s from.
+     * @param finalStateMemory a read-only memory to read [ULValue]s from.
      */
     private class MemoryScope(
         ctx: JcContext,
         model: UModelBase<JcType>,
-        memory: UReadOnlyMemory<JcType>,
         finalStateMemory: UReadOnlyMemory<JcType>,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, memory, finalStateMemory, method) {
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 

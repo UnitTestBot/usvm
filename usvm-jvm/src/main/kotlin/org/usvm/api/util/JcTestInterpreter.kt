@@ -7,6 +7,8 @@ import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.util.JcTestStateResolver.ResolveMode.CURRENT
+import org.usvm.api.util.JcTestStateResolver.ResolveMode.MODEL
 import org.usvm.api.util.Reflection.allocateInstance
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
@@ -34,16 +36,21 @@ class JcTestInterpreter(
 
         val ctx = state.ctx
 
-        val initialScope = MemoryScope(ctx, model, model, memory, method, classLoader)
-        val afterScope = MemoryScope(ctx, model, memory, memory, method, classLoader)
+        // Note that we cannot use the same MemoryScope due to their caches
+        val beforeMemoryScope = MemoryScope(ctx, model, memory, method, classLoader)
+        val afterMemoryScope = MemoryScope(ctx, model, memory, method, classLoader)
 
-        val before = with(initialScope) { resolveState() }
-        val after = with(afterScope) { resolveState() }
+        val before = beforeMemoryScope.withMode(MODEL) { (this as MemoryScope).resolveState() }
+        val after = afterMemoryScope.withMode(CURRENT) { (this as MemoryScope).resolveState() }
 
         val result = when (val res = state.methodResult) {
             is JcMethodResult.NoCall -> error("No result found")
-            is JcMethodResult.Success -> with(afterScope) { Result.success(resolveExpr(res.value, method.returnType)) }
-            is JcMethodResult.JcException -> Result.failure(resolveException(res, afterScope))
+            is JcMethodResult.Success -> Result.success(
+                afterMemoryScope.withMode(CURRENT) {
+                    resolveExpr(res.value, method.returnType)
+                }
+            )
+            is JcMethodResult.JcException -> Result.failure(resolveException(res, afterMemoryScope))
         }
         val coverage = resolveCoverage(method, state)
 
@@ -53,7 +60,7 @@ class JcTestInterpreter(
     private fun resolveException(
         exception: JcMethodResult.JcException,
         afterMemory: MemoryScope
-    ): Throwable = with(afterMemory) {
+    ): Throwable = afterMemory.withMode(CURRENT) {
         resolveExpr(exception.address, exception.type) as Throwable
     }
 
@@ -67,17 +74,16 @@ class JcTestInterpreter(
      * An actual class for resolving objects from [UExpr]s.
      *
      * @param model a model to which compose expressions.
-     * @param memory a read-only memory to read [ULValue]s from.
+     * @param finalStateMemory a read-only memory to read [ULValue]s from.
      * @param classLoader a class loader to load target classes.
      */
     private class MemoryScope(
         ctx: JcContext,
         model: UModelBase<JcType>,
-        memory: UReadOnlyMemory<JcType>,
         finalStateMemory: UReadOnlyMemory<JcType>,
         method: JcTypedMethod,
         private val classLoader: ClassLoader = JcClassLoader,
-    ) : JcTestStateResolver<Any?>(ctx, model, memory, finalStateMemory, method) {
+    ) : JcTestStateResolver<Any?>(ctx, model, finalStateMemory, method) {
         override val decoderApi: JcTestInterpreterDecoderApi = JcTestInterpreterDecoderApi(ctx, classLoader)
 
         fun resolveState(): JcParametersState {

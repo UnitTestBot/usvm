@@ -80,12 +80,34 @@ import org.usvm.types.first
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
-    val model: UModelBase<JcType>,
-    val memory: UReadOnlyMemory<JcType>,
-    val finalStateMemory: UReadOnlyMemory<JcType>,
+    private val model: UModelBase<JcType>,
+    private val finalStateMemory: UReadOnlyMemory<JcType>,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
+
+    private var resolveMode: ResolveMode = ResolveMode.ERROR
+
+    fun <R> withMode(resolveMode: ResolveMode, body: JcTestStateResolver<T>.() -> R): R {
+        val prevValue = this.resolveMode
+        try {
+            this.resolveMode = resolveMode
+            return this.body()
+        } finally {
+            this.resolveMode = prevValue
+        }
+    }
+
+    enum class ResolveMode {
+        MODEL, CURRENT, ERROR
+    }
+
+    val memory: UReadOnlyMemory<JcType>
+        get() = when (resolveMode) {
+            ResolveMode.MODEL -> model
+            ResolveMode.CURRENT -> finalStateMemory
+            ResolveMode.ERROR -> error("You must explicitly specify type of the required memory")
+        }
 
     val resolvedCache = mutableMapOf<UConcreteHeapAddress, T>()
     val decoders = JcTestDecoders(ctx.cp)
