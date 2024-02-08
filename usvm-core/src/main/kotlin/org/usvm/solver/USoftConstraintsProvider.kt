@@ -326,7 +326,7 @@ private class SortPreferredValuesProvider : KSortVisitor<(KExpr<*>) -> KExpr<KBo
         sort: KArraySort<D, R>,
     ): (KExpr<*>) -> KExpr<KBoolSort> = sort.range.accept(this)
 
-    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { it.asExpr(sort) } // TODO remove it
+    override fun visit(sort: KBoolSort): (KExpr<*>) -> KExpr<KBoolSort> = { sort.ctx.trueExpr } // ignore bool values
 
     override fun visit(sort: KFpRoundingModeSort): (KExpr<*>) -> KExpr<KBoolSort> =
         caches.getOrPut(sort) {
