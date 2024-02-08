@@ -199,7 +199,7 @@ abstract class JcTestStateResolver<T>(
             model.typeStreamOf(ref)
         } else {
             // allocated object
-            memory.typeStreamOf(ref)
+            finalStateMemory.typeStreamOf(ref)
         }.filterBySupertype(type)
 
         // We filter allocated object type stream, because it could be stored in the input array,
@@ -335,7 +335,7 @@ abstract class JcTestStateResolver<T>(
         val classTypeField = ctx.classTypeSyntheticField
         val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
 
-        val memoryToResolveClassType = if (isStaticHeapRef(ref)) finalStateMemory else memory
+        val memoryToResolveClassType = if (isStaticHeapRef(ref)) finalStateMemory else model
 
         val classTypeRef = memoryToResolveClassType.read(classTypeLValue) as? UConcreteHeapRef
             ?: error("No type for allocated class")
@@ -352,8 +352,10 @@ abstract class JcTestStateResolver<T>(
         val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
 
         val strValue = if (isStaticHeapRef(ref)) {
-            val expr = finalStateMemory.read(strValueLValue)
-            resolveExpr(expr, valueField.fieldType)
+            withMode(ResolveMode.CURRENT) {
+                val expr = memory.read(strValueLValue)
+                resolveExpr(expr, valueField.fieldType)
+            }
         } else {
             resolveLValue(strValueLValue, valueField.fieldType)
         }
