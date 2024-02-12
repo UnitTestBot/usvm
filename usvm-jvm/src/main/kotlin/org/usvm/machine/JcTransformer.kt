@@ -19,7 +19,6 @@ import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.mapAddress
-import org.usvm.sampleUValue
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.USoftConstraintsProvider
@@ -39,12 +38,13 @@ class JcComposer(
 class JcExprTranslator(ctx: UContext<USizeSort>) : UExprTranslator<JcType, USizeSort>(ctx), JcTransformer {
     override fun <Sort : USort> transform(expr: JcStaticFieldReading<Sort>): UExpr<Sort> =
         getOrPutRegionDecoder(expr.regionId) {
-            JcStaticFieldDecoder(expr.regionId)
+            JcStaticFieldDecoder(expr.regionId, this)
         }.translate(expr)
 }
 
 class JcStaticFieldDecoder<Sort : USort>(
     private val regionId: JcStaticFieldRegionId<Sort>,
+    private val translator: UExprTranslator<*, *>,
 ) : URegionDecoder<JcStaticFieldLValue<Sort>, Sort> {
     private val translated = mutableMapOf<JcField, UExpr<Sort>>()
 
@@ -58,16 +58,20 @@ class JcStaticFieldDecoder<Sort : USort>(
         mapping: Map<UHeapRef, UConcreteHeapRef>,
         assertions: List<KExpr<KBoolSort>>,
     ): UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> =
-        JcStaticFieldModel(model, mapping, translated)
+        JcStaticFieldModel(model, mapping, translated, translator)
 }
 
 class JcStaticFieldModel<Sort : USort>(
     private val model: KModel,
     private val mapping: Map<UHeapRef, UConcreteHeapRef>,
     private val translatedFields: Map<JcField, UExpr<Sort>>,
+    private val translator: UExprTranslator<*, *>
 ) : UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
-        val translated = translatedFields[key.field] ?: return key.sort.sampleUValue().mapAddress(mapping)
+        val translated = translatedFields[key.field]
+            ?: translator.translate(
+                key.sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, key.field, key.sort)
+            )
         return model.eval(translated, isComplete = true).mapAddress(mapping)
     }
 }
