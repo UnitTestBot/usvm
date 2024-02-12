@@ -48,7 +48,7 @@ class PyMachineSocketRunner(
         timeoutMs: Long
     ) = machine.analyze(
         callable,
-        saver = ResultReceiver(NewStateObserverForRunner(communicator)),
+        saver = ResultReceiver(communicator),
         timeoutMs = timeoutMs,
         timeoutPerRunMs = timeoutPerRunMs,
         maxIterations = 1000,
@@ -100,11 +100,10 @@ class PyMachineSocketRunner(
         analyze(unpinnedCallable, timeoutPerRunMs, timeoutMs)
     }
 
-    private class ResultReceiver(
-        override val newStateObserver: NewStateObserver
-    ): PyMachineResultsReceiver<Unit> {
+    private class ResultReceiver(communicator: PickledObjectCommunicator): PyMachineResultsReceiver<Unit> {
+        override val newStateObserver: NewStateObserver = EmptyNewStateObserver
         override val serializer = EmptyObjectSerializer
-        override val inputModelObserver = EmptyInputModelObserver
+        override val inputModelObserver = InputModelObserverForRunner(communicator)
         override val inputPythonObjectObserver = EmptyInputPythonObjectObserver
         override val pyTestObserver: PyTestObserver<Unit> = EmptyPyTestObserver()
     }
