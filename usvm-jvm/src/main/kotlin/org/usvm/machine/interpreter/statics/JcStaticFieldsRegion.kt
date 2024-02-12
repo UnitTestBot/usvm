@@ -16,6 +16,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
+import org.usvm.machine.jctx
 import org.usvm.machine.state.JcState
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
@@ -50,8 +51,8 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
 
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
-
-        return fieldValuesByClass[field.enclosingClass]?.get(field) ?: sort.sampleUValue()
+        return fieldValuesByClass[field.enclosingClass]?.get(field)
+            ?: sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, field, sort)
     }
 
     override fun write(

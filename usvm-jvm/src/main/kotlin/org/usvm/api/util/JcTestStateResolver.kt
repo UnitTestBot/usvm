@@ -199,7 +199,7 @@ abstract class JcTestStateResolver<T>(
             model.typeStreamOf(ref)
         } else {
             // allocated object
-            finalStateMemory.typeStreamOf(ref)
+            memory.typeStreamOf(ref)
         }.filterBySupertype(type)
 
         // We filter allocated object type stream, because it could be stored in the input array,
