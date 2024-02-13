@@ -2,13 +2,10 @@ package org.usvm.solver
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.UMemoryUpdatesVisitor
 import org.usvm.memory.UPinpointUpdateNode
@@ -17,6 +14,7 @@ import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UUpdateNode
+import org.usvm.model.UModelEvaluator
 import org.usvm.uctx
 
 /**
@@ -29,14 +27,13 @@ interface URegionTranslator<CollectionId : USymbolicCollectionId<Key, Sort, Coll
 
 interface URegionDecoder<Key, Sort : USort> {
     fun decodeLazyRegion(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>,
     ): UReadOnlyMemoryRegion<Key, Sort>?
 }
 
 interface UCollectionDecoder<Key, Sort : USort> {
-    fun decodeCollection(model: KModel, mapping: Map<UHeapRef, UConcreteHeapRef>): UReadOnlyMemoryRegion<Key, Sort>
+    fun decodeCollection(model: UModelEvaluator<*>): UReadOnlyMemoryRegion<Key, Sort>
 }
 
 /**

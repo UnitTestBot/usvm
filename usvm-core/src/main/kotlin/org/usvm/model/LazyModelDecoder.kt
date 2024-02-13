@@ -4,6 +4,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.solver.KModel
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KUninterpretedSort
+import io.ksmt.utils.uncheckedCast
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.NULL_ADDRESS
@@ -12,6 +13,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UMockEvaluator
+import org.usvm.USort
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.solver.UExprTranslator
@@ -70,6 +72,14 @@ open class ULazyModelDecoder<Type>(
     }
 
     /**
+     * Creates a [UModelEvaluator] for the provided [model].
+     *
+     * See [UModelEvaluator] for the model completion and expression evaluation details.
+     * */
+    open fun buildModelEvaluator(model: KModel, addressesMapping: AddressesMapping): UModelEvaluator<*> =
+        UModelEvaluator(ctx, model, addressesMapping)
+
+    /**
      * Decodes a [model] into a [UModelBase].
      *
      * @param model should be detached.
@@ -81,45 +91,56 @@ open class ULazyModelDecoder<Type>(
         val nullRef = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         val addressesMapping = buildMapping(model, nullRef)
 
-        val stack = decodeStack(model, addressesMapping)
-        val regions = decodeHeap(model, addressesMapping, assertions)
+        val evaluator = buildModelEvaluator(model, addressesMapping)
+        val stack = decodeStack(evaluator)
+        val regions = decodeHeap(evaluator, assertions)
         val types = UTypeModel<Type>(ctx.typeSystem(), typeRegionByAddr = emptyMap())
-        val mocks = decodeMocker(model, addressesMapping)
+        val mocks = decodeMocker(evaluator)
 
         return UModelBase(ctx, stack, types, mocks, regions, nullRef)
     }
 
-    private fun decodeStack(
-        model: KModel,
-        addressesMapping: AddressesMapping,
-    ): ULazyRegistersStackModel = ULazyRegistersStackModel(
-        model,
-        addressesMapping,
-        translator
-    )
+    private fun decodeStack(model: UModelEvaluator<*>): ULazyRegistersStackModel =
+        ULazyRegistersStackModel(model, translator)
 
     /**
      * Constructs a [ULazyHeapModel] for a heap by provided [model] and [addressesMapping].
      */
     private fun decodeHeap(
-        model: KModel,
-        addressesMapping: AddressesMapping,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>,
     ): Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>> {
-        val result = mutableMapOf<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>()
+        val result = hashMapOf<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>()
         for ((regionId, decoder) in translator.regionIdToDecoder) {
-            val modelRegion = decoder.decodeLazyRegion(model, addressesMapping, assertions) ?: continue
+            val modelRegion = decoder.decodeLazyRegion(model, assertions) ?: continue
             result[regionId] = modelRegion
         }
-        return result
+        return UHeapModelWithCompletion(result, model)
     }
 
-    private fun decodeMocker(
-        model: KModel,
-        addressesMapping: AddressesMapping,
-    ): UMockEvaluator = ULazyIndexedMockModel(
-        model,
-        addressesMapping,
-        translator
-    )
+    private fun decodeMocker(model: UModelEvaluator<*>): UMockEvaluator =
+        ULazyIndexedMockModel(model, translator)
+
+    private class UHeapModelWithCompletion(
+        val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
+        val model: UModelEvaluator<*>
+    ) : Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>> by regions {
+        override fun get(key: UMemoryRegionId<*, *>): UReadOnlyMemoryRegion<*, *> =
+            regions[key] ?: completeRegion(key)
+
+        private val completedRegions = hashMapOf<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>()
+
+        private fun <Key, Sort : USort> completeRegion(
+            regionId: UMemoryRegionId<Key, Sort>
+        ): UReadOnlyMemoryRegion<Key, Sort> = completedRegions.getOrPut(regionId) {
+            DefaultRegion(regionId, regionId.sort.accept(model).uncheckedCast())
+        }.uncheckedCast()
+    }
+
+    private class DefaultRegion<Key, Sort : USort>(
+        private val regionId: UMemoryRegionId<Key, Sort>,
+        private val value: UExpr<Sort>
+    ) : UReadOnlyMemoryRegion<Key, Sort> {
+        override fun read(key: Key): UExpr<Sort> = value
+    }
 }

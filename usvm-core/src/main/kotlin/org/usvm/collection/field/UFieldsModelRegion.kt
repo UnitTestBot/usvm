@@ -1,13 +1,11 @@
 package org.usvm.collection.field
 
-import io.ksmt.solver.KModel
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.AddressesMapping
+import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 
 abstract class UFieldsModelRegion<Field, Sort : USort>(
@@ -23,12 +21,11 @@ abstract class UFieldsModelRegion<Field, Sort : USort>(
 
 class UFieldsLazyModelRegion<Field, Sort : USort>(
     regionId: UFieldsRegionId<Field, Sort>,
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val inputFieldsDecoder: UCollectionDecoder<UHeapRef, Sort>
 ) : UFieldsModelRegion<Field, Sort>(regionId) {
     override val inputFields: UReadOnlyMemoryRegion<UHeapRef, Sort> by lazy {
-        inputFieldsDecoder.decodeCollection(model, addressesMapping)
+        inputFieldsDecoder.decodeCollection(model)
     }
 }
 

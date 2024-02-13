@@ -1,7 +1,7 @@
 package org.usvm.collection.field
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
@@ -39,7 +39,7 @@ interface UFieldsRegion<Field, Sort : USort> : UMemoryRegion<UFieldLValue<Field,
 internal class UFieldsMemoryRegion<Field, Sort : USort>(
     private val sort: Sort,
     private val field: Field,
-    private val allocatedFields: PersistentMap<UConcreteHeapAddress, UExpr<Sort>> = persistentMapOf(),
+    private val allocatedFields: PersistentMap<UConcreteHeapAddress, UExpr<Sort>> = persistentHashMapOf(),
     private var inputFields: UInputFields<Field, Sort>? = null
 ) : UFieldsRegion<Field, Sort> {
 

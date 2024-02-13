@@ -1,7 +1,6 @@
 package org.usvm.collection.set.primitive
 
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KBoolSort
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
@@ -11,8 +10,8 @@ import org.usvm.USort
 import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.AddressesMapping
 import org.usvm.model.UMemory2DArray
+import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
 import org.usvm.regions.Region
 
@@ -45,13 +44,12 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
 
 class USetLazyModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
     regionId: USetRegionId<SetType, ElementSort, Reg>,
-    model: KModel,
-    addressesMapping: AddressesMapping,
+    model: UModelEvaluator<*>,
     assertions: List<KExpr<KBoolSort>>,
     inputSetDecoder: USetCollectionDecoder<ElementSort>
 ) : USetModelRegion<SetType, ElementSort, Reg>(regionId) {
     override val inputSet: UMemory2DArray<UAddressSort, ElementSort, UBoolSort> by lazy {
-        inputSetDecoder.decodeCollection(model, addressesMapping, assertions)
+        inputSetDecoder.decodeCollection(model, assertions)
     }
 }
 
