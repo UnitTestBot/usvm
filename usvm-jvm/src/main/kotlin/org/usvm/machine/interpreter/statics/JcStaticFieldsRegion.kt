@@ -98,7 +98,10 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
 
     companion object {
         val fieldShouldBeSymbolic: (JcField) -> Boolean = { field ->
-            field.type.isPrimitive && !field.isFinal && field.name != staticFieldsInitializedFlagField.name
+            field.type.isPrimitive
+                    && !field.isFinal
+                    && field.name != staticFieldsInitializedFlagField.name
+                    && !field.enclosingClass.declaration.location.isRuntime
         }
     }
 }
