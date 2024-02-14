@@ -3,6 +3,7 @@ package api
 import (
 	"go/constant"
 	"go/token"
+	"go/types"
 	"strconv"
 
 	"golang.org/x/tools/go/ssa"
@@ -17,8 +18,13 @@ type Api interface {
 	MkBinOp(inst *ssa.BinOp)
 	MkCall(inst *ssa.Call)
 	MkCallBuiltin(inst *ssa.Call, name string)
+	MkChangeInterface(inst *ssa.ChangeInterface)
+	MkChangeType(inst *ssa.ChangeType)
+	MkConvert(inst *ssa.Convert)
+	MkMakeInterface(inst *ssa.MakeInterface)
 	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
+	MkJump(inst *ssa.Jump)
 	MkAlloc(inst *ssa.Alloc)
 	MkMakeSlice(inst *ssa.MakeSlice)
 	MkMakeMap(inst *ssa.MakeMap)
@@ -54,11 +60,15 @@ var apiInstance = &api{}
 type Method byte
 
 const (
-	_ Method = iota
+	MethodUnknown Method = iota
 	MethodMkUnOp
 	MethodMkBinOp
 	MethodMkCall
 	MethodMkCallBuiltin
+	MethodMkChangeInterface
+	MethodMkChangeType
+	MethodMkConvert
+	MethodMkMakeInterface
 	MethodMkStore
 	MethodMkIf
 	MethodMkAlloc
@@ -103,7 +113,7 @@ const (
 	BinOpSub
 	BinOpMul
 	BinOpDiv
-	BinOpMod
+	BinOpRem
 	BinOpAnd
 	BinOpOr
 	BinOpXor
@@ -123,7 +133,7 @@ var binOpMapping = []BinOp{
 	token.SUB:     BinOpSub,
 	token.MUL:     BinOpMul,
 	token.QUO:     BinOpDiv,
-	token.REM:     BinOpMod,
+	token.REM:     BinOpRem,
 	token.AND:     BinOpAnd,
 	token.OR:      BinOpOr,
 	token.XOR:     BinOpXor,
@@ -177,15 +187,20 @@ func (a *api) MkCall(inst *ssa.Call) {
 	if call.IsInvoke() {
 		args = append(args, call.Value)
 	}
-
-	function := graph.Callee(a.program, call)
-	a.buf.WriteInt64(int64(util.ToPointer(function)))
-	a.buf.WriteInt64(int64(util.ToPointer(&function.Blocks[0].Instrs[0])))
-	a.buf.WriteMethodInfo(graph.MethodInfo(function))
-
 	args = append(args, call.Args...)
+
+	a.buf.WriteInt32(int32(len(args)))
 	for i := range args {
 		a.writeVar(args[i])
+	}
+
+	a.buf.WriteBool(call.IsInvoke())
+	if call.IsInvoke() {
+		a.buf.WriteUintptr(util.ToPointer(call.Method))
+	} else {
+		function := graph.Callee(a.program, call)
+		a.buf.WriteUintptr(util.ToPointer(function))
+		a.buf.WriteUintptr(util.ToPointer(&function.Blocks[0].Instrs[0]))
 	}
 }
 
@@ -209,10 +224,8 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	case "print", "println":
 	case "len":
 		a.buf.Write(byte(Len))
-		a.buf.WriteValueTypeHash(inst.Call.Args[0])
 	case "cap":
 		a.buf.Write(byte(Cap))
-		a.buf.WriteValueTypeHash(inst.Call.Args[0])
 	case "min":
 	case "max":
 	case "real":
@@ -228,6 +241,30 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	}
 }
 
+func (a *api) MkChangeInterface(inst *ssa.ChangeInterface) {
+	a.buf.Write(byte(MethodMkChangeInterface))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+}
+
+func (a *api) MkChangeType(inst *ssa.ChangeType) {
+	a.buf.Write(byte(MethodMkChangeType))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+}
+
+func (a *api) MkConvert(inst *ssa.Convert) {
+	a.buf.Write(byte(MethodMkConvert))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+}
+
+func (a *api) MkMakeInterface(inst *ssa.MakeInterface) {
+	a.buf.Write(byte(MethodMkMakeInterface))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+}
+
 func (a *api) MkStore(inst *ssa.Store) {
 	a.buf.Write(byte(MethodMkStore))
 	a.writeVar(inst.Addr)
@@ -241,6 +278,10 @@ func (a *api) MkIf(inst *ssa.If) {
 	a.buf.WriteUintptr(util.ToPointer(&inst.Block().Succs[1].Instrs[0]))
 }
 
+func (a *api) MkJump(_ *ssa.Jump) {
+	a.buf.Write(byte(MethodUnknown))
+}
+
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
 	a.buf.WriteValueType(inst)
@@ -250,7 +291,6 @@ func (a *api) MkAlloc(inst *ssa.Alloc) {
 func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 	a.buf.Write(byte(MethodMkMakeSlice))
 	a.buf.WriteValueType(inst)
-	a.buf.WriteValueTypeHash(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Len)
 	a.writeVar(inst.Cap)
@@ -259,7 +299,6 @@ func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 func (a *api) MkMakeMap(inst *ssa.MakeMap) {
 	a.buf.Write(byte(MethodMkMakeMap))
 	a.buf.WriteValueType(inst)
-	a.buf.WriteValueTypeHash(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Reserve)
 }
@@ -273,18 +312,22 @@ func (a *api) MkExtract(inst *ssa.Extract) {
 
 func (a *api) MkReturn(inst *ssa.Return) {
 	a.buf.Write(byte(MethodMkReturn))
+	a.buf.WriteInt32(int32(len(inst.Results)))
 
-	var value ssa.Value
 	switch len(inst.Results) {
 	case 0:
+		a.buf.Write(byte(VarKindConst))
+		a.buf.WriteType(types.Typ[types.UntypedNil])
+		a.buf.Write(byte(sort.Void))
 		return
 	case 1:
-		value = inst.Results[0]
+		a.writeVar(inst.Results[0])
 	default:
-		return
+		for _, v := range inst.Results {
+			a.writeVar(v)
+		}
 	}
 
-	a.writeVar(value)
 }
 
 func (a *api) MkPanic(inst *ssa.Panic) {
@@ -328,7 +371,6 @@ func (a *api) MkMapLookup(inst *ssa.Lookup) {
 	a.buf.Write(byte(MethodMkMapLookup))
 	a.writeVar(inst)
 	a.writeVar(inst.X)
-	a.buf.WriteValueTypeHash(inst.X)
 	a.writeVar(inst.Index)
 	a.buf.Write(byte(sort.GetMapElemSort(inst.X)))
 	a.buf.WriteBool(inst.CommaOk)
@@ -337,7 +379,6 @@ func (a *api) MkMapLookup(inst *ssa.Lookup) {
 func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
 	a.buf.Write(byte(MethodMkMapUpdate))
 	a.writeVar(inst.Map)
-	a.buf.WriteValueTypeHash(inst.Map)
 	a.writeVar(inst.Key)
 	a.writeVar(inst.Value)
 }
@@ -364,7 +405,7 @@ func (a *api) mkFieldReading(inst, object ssa.Value, index int) {
 
 func (a *api) mkArrayReading(inst, array, index ssa.Value) {
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.WriteValueTypeHash(array)
+	a.buf.WriteValueType(array)
 	a.buf.WriteValueType(inst)
 	a.buf.Write(byte(sort.GetSort(inst, true)))
 	a.writeVar(array)
@@ -428,6 +469,8 @@ func (a *api) writeConst(in *ssa.Const) {
 		a.buf.WriteFloat32(float32(in.Float64()))
 	case sort.Float64:
 		a.buf.WriteFloat64(in.Float64())
+	case sort.String:
+		a.buf.WriteString(constant.StringVal(in.Value))
 	default:
 	}
 }

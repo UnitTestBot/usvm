@@ -61,6 +61,10 @@ object Bridge {
 
     @JvmStatic
     @Link
+    external fun methodImplementation(method: MethodPointer, type: TypePointer): MethodPointer
+
+    @JvmStatic
+    @Link
     external fun exitPoints(method: MethodPointer, instructions: LongArray, len: Int): Int
 
     @JvmStatic
@@ -112,6 +116,10 @@ object Bridge {
     @JvmStatic
     @Link
     external fun structFieldTypes(type: TypePointer, args: Long)
+
+    @JvmStatic
+    @Link
+    external fun tupleTypes(type: TypePointer, args: Long)
 
     @JvmStatic
     @Link

@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.utils.asExpr
 import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -14,6 +15,7 @@ import org.usvm.machine.GoTarget
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoType
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 
@@ -30,6 +32,14 @@ class GoInterpreter(
 
         logger.debug("Method: {}, info: {}", method, methodInfo)
 
+//        methodInfo.parametersTypes.forEachIndexed { i, type ->
+//            val sort = ctx.mapSort(bridge.typeToSort(type))
+//            if (sort == ctx.addressSort) {
+//                val lvalue = URegisterStackLValue(sort, i)
+//                val ref = state.memory.read(lvalue).asExpr(ctx.addressSort)
+//                state.pathConstraints += ctx.mkIsSubtypeExpr(ref, type)
+//            }
+//        }
         ctx.setMethodInfo(method, methodInfo)
 
         val solver = ctx.solver<GoType>()
@@ -53,7 +63,7 @@ class GoInterpreter(
             return scope.stepResult()
         }
 
-        val newInst = bridge.step(Api(ctx, scope), inst)
+        val newInst = bridge.step(Api(ctx, bridge, scope), inst)
         if (newInst != 0L) {
             state.newInst(newInst)
         }
