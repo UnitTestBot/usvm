@@ -1,6 +1,10 @@
 package org.usvm.fuzzer.generator.`object`
 
 import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.ext.constructors
+import org.usvm.fuzzer.api.UTypedTestConstructorCall
+import org.usvm.fuzzer.api.UTypedTestInst
+import org.usvm.fuzzer.api.UTypedTestNullExpression
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.random.nextInt
 import org.usvm.fuzzer.types.JcTypeWrapper
@@ -9,6 +13,7 @@ import org.usvm.instrumentation.testcase.api.UTestConstructorCall
 import org.usvm.instrumentation.testcase.api.UTestInst
 import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.util.toJavaConstructor
+import org.usvm.instrumentation.util.toJcClass
 import java.util.Random
 
 open class SafeUserClassGenerator(private val jcType: JcTypeWrapper) : UserClassGenerator() {
@@ -33,17 +38,17 @@ open class SafeUserClassGenerator(private val jcType: JcTypeWrapper) : UserClass
 
 
     protected fun callRandomStaticMethod(ctx: GeneratorContext): UTestValueRepresentation {
-        return UTestValueRepresentation(UTestNullExpression(jcType.type))
+        return UTestValueRepresentation(UTypedTestNullExpression(jcType))
     }
 
     protected fun getRandomStaticFieldValue(ctx: GeneratorContext): UTestValueRepresentation {
-        return UTestValueRepresentation(UTestNullExpression(jcType.type))
+        return UTestValueRepresentation(UTypedTestNullExpression(jcType))
     }
 
     protected fun callRandomConstructor(ctx: GeneratorContext, depth: Int): UTestValueRepresentation? =
         getRandomWeighedConstructor(jcType, ctx.random)?.let { randomConstructor ->
             val jConstructor = randomConstructor.method.toJavaConstructor(ctx.userClassLoader) ?: return@let null
-            val initStmts = mutableListOf<UTestInst>()
+            val initStmts = mutableListOf<UTypedTestInst>()
             val args =
                 ctx.genericGenerator.resolveGenericParametersForConstructor(jcType, jConstructor)
                 .map { paramType ->
@@ -53,7 +58,7 @@ open class SafeUserClassGenerator(private val jcType: JcTypeWrapper) : UserClass
                         it.instance
                     }
                 }
-            val instance = UTestConstructorCall(randomConstructor.method, args)
+            val instance = UTypedTestConstructorCall(randomConstructor.method, args, jcType)
             UTestValueRepresentation(instance, initStmts)
         }
 

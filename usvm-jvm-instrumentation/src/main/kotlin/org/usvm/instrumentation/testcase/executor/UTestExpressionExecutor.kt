@@ -1,4 +1,5 @@
 @file:Suppress("UNCHECKED_CAST")
+
 package org.usvm.instrumentation.testcase.executor
 
 import org.jacodb.api.JcArrayType
@@ -13,6 +14,7 @@ import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrap
 import org.usvm.instrumentation.util.*
 import java.lang.ClassCastException
 import java.lang.IllegalArgumentException
+import java.lang.reflect.Proxy
 
 class UTestExpressionExecutor(
     private val workerClassLoader: WorkerClassLoader,
@@ -74,6 +76,7 @@ class UTestExpressionExecutor(
             is UTestSetStaticFieldStatement -> executeUTestSetStaticFieldStatement(uTestExpression)
             is UTestArithmeticExpression -> executeUTestArithmeticExpression(uTestExpression)
             is UTestClassExpression -> executeUTestClassExpression(uTestExpression)
+            is UTestLambdaMock -> executeUTestLambdaMock(uTestExpression)
         }
     }.also {
         it?.let {
@@ -188,9 +191,14 @@ class UTestExpressionExecutor(
             ArithmeticOperationType.GEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
             ArithmeticOperationType.LT -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
             ArithmeticOperationType.LEQ -> lhvAsDouble?.compareTo(rhvAsDouble!!) ?: (lhvAsLong.compareTo(rhvAsLong))
-            ArithmeticOperationType.OR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong or rhvAsLong)
-            ArithmeticOperationType.AND -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong and rhvAsLong)
-            ArithmeticOperationType.XOR -> lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong xor rhvAsLong)
+            ArithmeticOperationType.OR -> lhvAsDouble?.let { error("Bit operation on double impossible") }
+                ?: (lhvAsLong or rhvAsLong)
+
+            ArithmeticOperationType.AND -> lhvAsDouble?.let { error("Bit operation on double impossible") }
+                ?: (lhvAsLong and rhvAsLong)
+
+            ArithmeticOperationType.XOR -> lhvAsDouble?.let { error("Bit operation on double impossible") }
+                ?: (lhvAsLong xor rhvAsLong)
         }
         return when (lhv::class) {
             Byte::class -> res.toByte()
@@ -227,6 +235,14 @@ class UTestExpressionExecutor(
             jField.setFieldValue(mockInstance, fieldValue)
         }
         return mockInstance
+    }
+
+    //TODO now it only choosing random value as a result of lambda invocation
+    //Use bytebuddy or smth similar for more smart generation of mock
+    private fun executeUTestLambdaMock(uTestLambdaMock: UTestLambdaMock): Any? {
+        val values = uTestLambdaMock.values.map { exec(it) }
+        val lambdaType = uTestLambdaMock.type.toJavaClass(workerClassLoader)
+        return Proxy.newProxyInstance(workerClassLoader, arrayOf(lambdaType)) { _, _, _ -> values.randomOrNull() }
     }
 
     private fun executeUTestSetFieldStatement(uTestSetFieldStatement: UTestSetFieldStatement) {

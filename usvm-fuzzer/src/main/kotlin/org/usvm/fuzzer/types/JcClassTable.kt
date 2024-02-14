@@ -33,7 +33,7 @@ object JcClassTable {
     @OptIn(ExperimentalTime::class)
     fun getRandomSubclassOf(superClasses: List<JcClassOrInterface>): JcClassOrInterface? = measureTimedValue {
         classes.shuffled().firstOrNull { jcClass ->
-            if (jcClass.isInterface || jcClass.isAbstract) {
+            if (jcClass.isInterface || jcClass.isAbstract || jcClass.isAnnotation) {
                 false
             } else {
                 if (superClasses.size == 1 && jcClass == superClasses.first()) return@firstOrNull true
@@ -48,9 +48,11 @@ object JcClassTable {
     }.also { println("TIME = ${it.duration} OF GETTING SUBCLASS OF ${superClasses.firstOrNull()?.name} res = ${it.value?.name}")}.value
 
     @OptIn(ExperimentalTime::class)
-    fun getRandomTypeSuitableForBounds(lowerBounds: List<JcClassOrInterface>, upperBounds: List<JcClassOrInterface>) = measureTimedValue {
+    fun getRandomTypeSuitableForBounds(lowerBounds: List<JcClassOrInterface>, upperBounds: List<JcClassOrInterface>, onlyClasses: Boolean) = measureTimedValue {
         classes.shuffled().firstOrNull { jcClass ->
             if (jcClass.outerClass != null && !jcClass.isStatic) return@firstOrNull false
+            if (onlyClasses && (jcClass.isInterface || jcClass.isAbstract)) return@firstOrNull false
+            if (jcClass.name == "java.lang.Object") return@firstOrNull false
             val isSuitableForUpperBounds =
                 if (upperBounds.size == 1 && upperBounds.first().name == "java.lang.Object") {
                     true

@@ -3,16 +3,17 @@ package org.usvm.fuzzer.seed
 import io.leangen.geantyref.GenericTypeReflector
 import org.jacodb.api.*
 import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.autoboxIfNeeded
-import org.jacodb.api.ext.boolean
 import org.jacodb.impl.cfg.util.isClass
+import org.usvm.fuzzer.api.*
 import org.usvm.fuzzer.position.SeedFieldsInfo
+import org.usvm.fuzzer.position.SeedMethodsInfo
 import org.usvm.fuzzer.strategy.ChoosingStrategy
 import org.usvm.fuzzer.strategy.FairStrategy
 import org.usvm.fuzzer.strategy.Selectable
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestChildrenCollectVisitor
 import org.usvm.fuzzer.util.createJcTypeWrapper
+import org.usvm.fuzzer.util.findGetter
 import org.usvm.fuzzer.util.getPossiblePathsToField
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
@@ -25,15 +26,17 @@ data class Seed(
 //First arg in args is instance!!
     val args: List<ArgumentDescriptor>,
     val argsChoosingStrategy: ChoosingStrategy<ArgumentDescriptor>,
-    private val parent: Seed? = null,
+    val parent: Seed? = null,
     var coverage: Map<JcInst, Long>? = null,
     var argsInitialDescriptors: List<UTestValueDescriptor?>? = null,
     var argsResDescriptors: List<UTestValueDescriptor?>? = null,
-    var accessedFields: List<JcField?>? = null
+    var accessedFields: List<JcField?>? = null,
+    var executionResultType: Class<*>? = null
 ) : Selectable() {
 
     companion object {
         val fieldInfo = SeedFieldsInfo(FairStrategy())
+        val methodInfo = SeedMethodsInfo(FairStrategy())
     }
 
     init {
@@ -42,9 +45,18 @@ data class Seed(
             if (argType is JcClassType && fieldInfo.hasClassBeenParsed(argType.jcClass)) continue
             fieldInfo.addArgInfo(targetMethod, i, argType, 0.0, 0)
             val jcClass = (argType as? JcClassType)?.jcClass ?: continue
+
+            //Add method info
+            val allMethods =
+                (jcClass.allDeclaredMethods + jcClass.innerClasses.flatMap { it.allDeclaredMethods }).toSet().toList()
+            allMethods.forEach { jcMethod ->
+                methodInfo.addMethodInfo(targetMethod, jcMethod, 0.0, 0)
+            }
+
             val fieldsToHandle = ArrayDeque<JcField>()
             val processedFields = hashSetOf<JcField>()
-            jcClass.allDeclaredFields.forEach { jcField -> fieldsToHandle.add(jcField) }
+            val allFields = jcClass.allDeclaredFields + jcClass.innerClasses.flatMap { it.allDeclaredFields }
+            allFields.forEach { jcField -> fieldsToHandle.add(jcField) }
             val cp = jcClass.classpath
             while (fieldsToHandle.isNotEmpty()) {
                 val fieldToAdd = fieldsToHandle.removeFirst()
@@ -124,6 +136,7 @@ data class Seed(
 
             is UTestExecutionTimedOutResult -> {}
         }
+        executionResultType = execResult::class.java
     }
 
     fun mutate(
@@ -157,13 +170,13 @@ data class Seed(
 
     fun replace(
         argument: ArgumentDescriptor,
-        replacedInst: UTestInst,
-        replacement: UTestInst,
-        replacementInitialExpr: List<UTestInst>,
+        replacedInst: UTypedTestInst,
+        replacement: UTypedTestInst,
+        replacementInitialExpr: List<UTypedTestInst>,
     ): ArgumentDescriptor {
         if (replacedInst == argument.instance) {
             return ArgumentDescriptor(
-                replacement as UTestExpression,
+                replacement as UTypedTestExpression,
                 argument.type,
                 replacementInitialExpr
             )
@@ -175,14 +188,14 @@ data class Seed(
         while (oldSize != newSize) {
             oldSize = newSize
             argInitialExpressions.reversed().forEach {
-                it.accept(UTestInstsSimplifier(instructionToRemove))
+                it.accept(UTypedTestInstsSimplifier(instructionToRemove))
             }
             newSize = instructionToRemove.size
         }
         val newInitInstructions = argInitialExpressions.filter { it !in instructionToRemove }
         val remappedInstructions = mutableMapOf(replacedInst to replacement)
         val remapped = newInitInstructions.map {
-            it.accept(UTestInstRemapper(remappedInstructions))
+            it.accept(UTypedTestInstRemapper(remappedInstructions))
         }
         return ArgumentDescriptor(
             argument.instance,
@@ -233,17 +246,18 @@ data class Seed(
 //    }
 
     fun toUTest(): UTest {
-        val allInitStatements = args.flatMap { it.initialExprs }
+        val converter = UTypedTest2UTestConverter()
+        val allInitStatements = args.flatMap { it.initialExprs }.map { it.accept(converter) }
         val callStatement =
             if (targetMethod.isStatic) {
-                UTestStaticMethodCall(targetMethod, args.map { it.instance })
+                UTestStaticMethodCall(targetMethod, args.map { it.instance.accept(converter) as UTestExpression })
             } else {
-                val instance = args.first().instance
+                val instance = args.first().instance.accept(converter) as UTestExpression
                 val args =
                     if (args.size == 1) {
                         listOf()
                     } else {
-                        args.drop(1).map { it.instance }
+                        args.drop(1).map { it.instance.accept(converter) as UTestExpression }
                     }
                 UTestMethodCall(instance, targetMethod, args)
             }
@@ -263,17 +277,10 @@ data class Seed(
             for (jcField in pathToField) {
                 val newInstance =
                     if (jcField.isPublic || jcField.isPackagePrivate) {
-                        UTestGetFieldExpression(curInstance, jcField)
+                        UTypedTestGetFieldExpression(curInstance, jcField, curType.createJcTypeWrapper(cp))
                     } else {
-                        val getter = jcField.enclosingClass.declaredMethods.find { jcMethod ->
-                            if (jcField.type == cp.boolean || jcField.type == cp.boolean.autoboxIfNeeded()) {
-                                jcMethod.name.equals("is${jcField.name}", true) ||
-                                        jcMethod.name.equals("get${jcField.name}", true)
-                            } else {
-                                jcMethod.name.equals("get${jcField.name}", true)
-                            } && jcMethod.parameters.isEmpty()
-                        } ?: return null
-                        UTestMethodCall(curInstance, getter, listOf())
+                        val getter = jcField.findGetter() ?: return null
+                        UTypedTestMethodCall(curInstance, getter, listOf())
                     }
                 val jField = jcField.toJavaField(userClassLoader) ?: return null
                 curType = GenericTypeReflector.getFieldType(jField, curType)
@@ -309,9 +316,9 @@ data class Seed(
 
 
     class ArgumentDescriptor(
-        val instance: UTestExpression,
+        val instance: UTypedTestExpression,
         val type: JcTypeWrapper,
-        val initialExprs: List<UTestInst>
+        val initialExprs: List<UTypedTestInst>
     ) : Selectable() {
         fun getChildrenExpressions(parent: UTestInst) =
             parent.accept(UTestChildrenCollectVisitor()).filter { it == parent }
@@ -341,7 +348,7 @@ data class Seed(
 
     class ArgumentFieldDescriptor(
         val parentArgument: ArgumentDescriptor,
-        val instance: UTestExpression,
+        val instance: UTypedTestExpression,
         val actualType: JcTypeWrapper,
         val isActualArg: Boolean
     )

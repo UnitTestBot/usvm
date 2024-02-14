@@ -7,6 +7,7 @@ import org.usvm.instrumentation.testcase.api.UTestInst
 sealed class UTestValueDescriptor {
     abstract val type: JcType
     abstract fun structurallyEqual(other: UTestValueDescriptor): Boolean
+    abstract fun areEqual(other: UTestValueDescriptor): Boolean
 
     companion object {
 
@@ -48,6 +49,9 @@ sealed class UTestConstantDescriptor : UTestValueDescriptor() {
 
     override fun structurallyEqual(other: UTestValueDescriptor): kotlin.Boolean = this == other
 
+    override fun areEqual(other: UTestValueDescriptor): kotlin.Boolean = this == other
+
+
 }
 
 class UTestArrayDescriptor(
@@ -69,6 +73,16 @@ class UTestArrayDescriptor(
         return true
     }
 
+    override fun areEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestArrayDescriptor) return false
+        if (length != other.length) return false
+        if (elementType != other.elementType) return false
+        for (i in value.indices) {
+            if (!value[i].areEqual(other.value[i])) return false
+        }
+        return true
+    }
+
     override fun toString(): String {
         return "UTestArrayDescriptor(elementType=$elementType, length=$length, value=${value.joinToString(",")})"
     }
@@ -79,6 +93,8 @@ data class UTestCyclicReferenceDescriptor(
     override val type: JcType
 ) : UTestValueDescriptor() {
     override fun structurallyEqual(other: UTestValueDescriptor): Boolean = this == other
+    override fun areEqual(other: UTestValueDescriptor): Boolean = this == other
+
 }
 
 class UTestEnumValueDescriptor(
@@ -97,12 +113,26 @@ class UTestEnumValueDescriptor(
         }
         return true
     }
+
+    override fun areEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestEnumValueDescriptor) return false
+        if (type != other.type) return false
+        if (enumValueName != other.enumValueName) return false
+        for ((key, value) in fields) {
+            val otherFieldValue = other.fields[key] ?: return false
+            if (!value.areEqual(otherFieldValue)) return false
+        }
+        return true
+    }
 }
 
 class UTestClassDescriptor(
     val classType: JcType, override val type: JcType
 ) : UTestValueDescriptor() {
     override fun structurallyEqual(other: UTestValueDescriptor): Boolean =
+        other is UTestClassDescriptor && classType == other.classType
+
+    override fun areEqual(other: UTestValueDescriptor): Boolean =
         other is UTestClassDescriptor && classType == other.classType
 
     override fun toString(): String =
@@ -131,6 +161,17 @@ class UTestObjectDescriptor(
         return true
     }
 
+    override fun areEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestObjectDescriptor) return false
+        if (type != other.type) return false
+        if (fields.keys != other.fields.keys) return false
+        for ((key, value) in fields) {
+            val otherFieldValue = other.fields[key] ?: return false
+            if (!value.areEqual(otherFieldValue)) return false
+        }
+        return true
+    }
+
 }
 
 class UTestExceptionDescriptor(
@@ -147,6 +188,19 @@ class UTestExceptionDescriptor(
         if (message != other.message) return false
         for (i in stackTrace.indices) {
             if (!descriptorsAreEqual(stackTrace[i], other.stackTrace[i])) {
+                return false
+            }
+        }
+        return true
+    }
+
+    override fun areEqual(other: UTestValueDescriptor): Boolean {
+        if (other !is UTestExceptionDescriptor) return false
+        if (type != other.type) return false
+        if (stackTrace.size != other.stackTrace.size) return false
+        if (message != other.message) return false
+        for (i in stackTrace.indices) {
+            if (!stackTrace[i].areEqual(other.stackTrace[i])) {
                 return false
             }
         }

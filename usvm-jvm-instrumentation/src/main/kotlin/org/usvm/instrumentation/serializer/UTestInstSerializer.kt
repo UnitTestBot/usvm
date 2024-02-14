@@ -50,6 +50,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
             is UTestShortExpression -> serialize(uTestInst)
             is UTestArithmeticExpression -> serialize(uTestInst)
             is UTestClassExpression -> serialize(uTestInst)
+            is UTestLambdaMock -> serialize(uTestInst)
         }
 
     }
@@ -92,7 +93,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
                     UTestExpressionKind.SHORT -> deserializeShort()
                     UTestExpressionKind.ARITHMETIC -> deserializeUTestArithmeticExpression()
                     UTestExpressionKind.CLASS -> deserializeUTestClassExpression()
-
+                    UTestExpressionKind.LAMBDA_MOCK -> deserializeUTestLambdaMock()
                 }
             ctx.deserializedUTestInstructions[id] = deserializedExpression
         }
@@ -435,6 +436,31 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         return UTestGlobalMock(type, fieldsToExpr, methodsToExpr)
     }
 
+    private fun AbstractBuffer.serialize(uTestMockObject: UTestLambdaMock) =
+        serialize(
+            uTestExpression = uTestMockObject,
+            kind = UTestExpressionKind.LAMBDA_MOCK,
+            serializeInternals = {
+                values.map { serializeUTestInst(it) }
+            },
+            serialize = {
+                writeInt(values.size)
+                values.map {
+                    writeUTestInst(it)
+                }
+                writeJcType(type)
+            }
+        )
+
+    private fun AbstractBuffer.deserializeUTestLambdaMock(): UTestLambdaMock {
+        val values = mutableListOf<UTestExpression>()
+        repeat(readInt()) {
+            values.add(readUTestExpression())
+        }
+        val type = readJcType(jcClasspath) ?: error("Type should be not null")
+        return UTestLambdaMock(type, values)
+    }
+
     private fun AbstractBuffer.serialize(uTestBinaryConditionExpression: UTestBinaryConditionExpression) =
         serialize(
             uTestExpression = uTestBinaryConditionExpression,
@@ -712,7 +738,8 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         STATIC_METHOD_CALL,
         STRING,
         ARITHMETIC,
-        CLASS
+        CLASS,
+        LAMBDA_MOCK
     }
 
     companion object {

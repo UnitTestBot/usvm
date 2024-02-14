@@ -11,6 +11,7 @@ import org.usvm.fuzzer.util.createJcTypeWrapper
 import org.usvm.fuzzer.util.simpleTypeName
 import org.usvm.instrumentation.util.toJavaClass
 import org.usvm.instrumentation.util.toJcClassOrInterface
+import org.usvm.instrumentation.util.toJcType
 import java.lang.IllegalArgumentException
 import java.lang.reflect.*
 
@@ -33,7 +34,7 @@ class JcGenericGeneratorImpl(
                         .ifEmpty { listOf(jType.toJcClassOrInterface(jcClasspath) ?: jcClasspath.objectClass) }
                 val jBounds = jGeneric.bounds
                 val replacement =
-                    JcClassTable.getRandomTypeSuitableForBounds(listOf(), bounds)?.toType() ?: jcClasspath.objectType
+                    JcClassTable.getRandomTypeSuitableForBounds(listOf(), bounds, true)?.toType() ?: jcClasspath.objectType
                 val jReplacement = replacement.toJavaClass(userClassLoader)
                 if (jReplacement.typeParameters.isEmpty()) {
                     return@map jReplacement.also { replacedGenerics[jGeneric] = jReplacement }
@@ -103,19 +104,36 @@ class JcGenericGeneratorImpl(
             upperBounds.map { jcClasspath.findClassOrNull(it.simpleTypeName()) ?: jcClasspath.objectClass }
         val jcLowerBounds =
             lowerBounds.map { jcClasspath.findClassOrNull(it.simpleTypeName()) ?: jcClasspath.objectClass }
-        val replacement = JcClassTable.getRandomTypeSuitableForBounds(jcLowerBounds, jcUpperBounds)?.toType()
-            ?: jcClasspath.objectType
+        val replacement = JcClassTable.getRandomTypeSuitableForBounds(jcLowerBounds, jcUpperBounds, true)?.toType()
+            ?: run {
+                if (upperBounds.size == 1) {
+                    val rawType = when(val ub = upperBounds.first()) {
+                        is ParameterizedType -> (ub.rawType as? Class<*>) ?: java.lang.Object::class.java
+                        is Class<*> -> ub
+                        else -> java.lang.Object::class.java
+                    }
+                    if (!rawType.isInterface) {
+                        rawType.toJcType(jcClasspath) ?: jcClasspath.objectType
+                    } else {
+                        jcClasspath.objectType
+                    }
+                } else {
+                    jcClasspath.objectType
+                }
+            }
         val jReplacement = replacement.toJavaClass(userClassLoader)
         if (jReplacement.typeParameters.isEmpty()) {
             return jReplacement.also { replacedGenerics[jGeneric] = jReplacement }
         }
         val jFirstBound =
-            if (upperBounds.size == 1 && upperBounds.first() == jcClasspath.objectClass && lowerBounds.isNotEmpty()) {
+            if (upperBounds.size == 1 && upperBounds.first() == Object::class.java && lowerBounds.isNotEmpty()) {
                 lowerBounds.first()
             } else {
                 upperBounds.first()
             }
-        val jReplacedGeneric = GenericTypeReflector.getExactSubType(jFirstBound, jReplacement) ?: jReplacement
+        val jReplacedGeneric = GenericTypeReflector.getExactSubType(jFirstBound, jReplacement)
+            ?: GenericTypeReflector.getExactSuperType(jFirstBound, jReplacement)
+            ?: jReplacement
         return replaceGenericParametersForJType(jReplacedGeneric, replacedGenerics).actualJavaType
             .also { replacedGenerics[jGeneric] = it }
     }

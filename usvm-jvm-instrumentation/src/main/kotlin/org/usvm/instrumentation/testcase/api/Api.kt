@@ -51,6 +51,15 @@ class UTestGlobalMock(
     }
 }
 
+class UTestLambdaMock(
+    override val type: JcType,
+    val values: List<UTestExpression>
+): UTestExpression {
+
+    override fun <T> accept(visitor: UTestInstVisitor<T>): T {
+        return visitor.visitUTestLambdaMock(this)
+    }
+}
 
 sealed interface UTestCall : UTestExpression {
     val instance: UTestExpression?

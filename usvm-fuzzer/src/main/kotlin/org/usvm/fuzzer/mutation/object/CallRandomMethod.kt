@@ -4,6 +4,7 @@ import io.leangen.geantyref.GenericTypeReflector
 import org.jacodb.api.JcClassType
 import org.jacodb.api.ext.autoboxIfNeeded
 import org.jacodb.impl.cfg.util.isPrimitive
+import org.usvm.fuzzer.api.UTypedTestMethodCall
 import org.usvm.fuzzer.generator.DataFactory
 import org.usvm.fuzzer.mutation.Mutation
 import org.usvm.fuzzer.mutation.MutationInfo
@@ -12,10 +13,29 @@ import org.usvm.fuzzer.util.createJcTypeWrapper
 import org.usvm.fuzzer.util.unroll
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.util.toJavaField
+import org.usvm.instrumentation.util.toJavaMethod
 import org.usvm.instrumentation.util.toJcType
 
 class CallRandomMethod : Mutation() {
-    override val mutationFun: DataFactory.(Seed) -> Pair<Seed?, MutationInfo>? = lambda@{ seed ->
+    override val mutationFun: DataFactory.(Seed) -> Pair<Seed?, MutationInfo>? = mutation@{ seed ->
+        //TODO call method to arg random public field aka: arg.field.method(...)
+        val argForMutation = seed.getArgForMutation()
+        val randomMethodToCall =
+            argForMutation.type.declaredMethods
+                .filter { it.isPublic || it.isPackagePrivate }
+                .filter { !it.method.isConstructor && !it.method.isClassInitializer && !it.isStatic }
+                .randomOrNull() ?: return@mutation null
+        val args =
+            dataFactory.generateValuesForMethodInvocation(argForMutation.type, randomMethodToCall.method).map { it.second }
+        val call = UTypedTestMethodCall(argForMutation.instance, randomMethodToCall.method, args.map { it.instance })
+        val newArg = Seed.ArgumentDescriptor(
+            argForMutation.instance,
+            argForMutation.type,
+            argForMutation.initialExprs + args.flatMap { it.initStmts } + call
+        )
+        return@mutation seed.mutate(argForMutation, newArg) to MutationInfo(argForMutation, null)
+
+//        UTestMethodCall()
 //        //TODO add field rating
 //        val randomFieldToMutate =
 //            seed.accessedFields
@@ -55,6 +75,6 @@ class CallRandomMethod : Mutation() {
 //            )
 //        }
 //        return@lambda seed.mutate(arg, newArg) to MutationInfo(arg, randomFieldToMutate)
-        return@lambda null
+        return@mutation null
     }
 }

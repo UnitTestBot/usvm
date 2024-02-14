@@ -7,4 +7,5 @@ interface SeedChoosingStrategy {
     fun chooseWorst(): Seed
     fun chooseBest(): Seed
     fun chooseWorstAndRemove(): Seed
+    fun chooseWorstAndRemove(recentlyAddedSeed: Seed): Seed
 }

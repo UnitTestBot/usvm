@@ -55,6 +55,16 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     }
 
     @Test
+    fun `lambda mock`() = executeTest {
+        val uTest = UTestCreator.A.lambdaMock(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(0, result.value)
+    }
+
+    @Test
     fun `loop`() = executeTest {
         val uTest = UTestCreator.A.loop(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)

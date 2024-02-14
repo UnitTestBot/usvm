@@ -38,6 +38,14 @@ class JcTypeWrapper(
         }
     }
 
+    val methods: List<JcTypedMethod> by lazy {
+        if (type is JcClassType) {
+            type.methods
+        } else {
+            listOf()
+        }
+    }
+
     val declaredFields: List<JcTypedField> by lazy {
         if (type is JcClassType) {
             type.declaredFields

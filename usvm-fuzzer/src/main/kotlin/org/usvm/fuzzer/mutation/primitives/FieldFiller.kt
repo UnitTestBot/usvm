@@ -1,12 +1,14 @@
 package org.usvm.fuzzer.mutation.primitives
 
 import org.jacodb.api.JcField
+import org.usvm.fuzzer.api.*
 import org.usvm.fuzzer.generator.DataFactory
 import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.mutation.Mutation
 import org.usvm.fuzzer.mutation.MutationInfo
 import org.usvm.fuzzer.seed.Seed
 import org.usvm.fuzzer.util.createJcTypeWrapper
+import org.usvm.fuzzer.util.findSetter
 import org.usvm.fuzzer.util.unroll
 import org.usvm.instrumentation.testcase.api.UTestGetFieldExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
@@ -36,32 +38,42 @@ class FieldFiller : Mutation() {
         val newFieldValue = dataFactory.generateValueOfType(fieldDescriptor.actualType)
         val fieldParentUTestInstance =
             when (val uTestFieldInstance = fieldDescriptor.instance) {
-                is UTestGetFieldExpression -> uTestFieldInstance.instance
-                is UTestMethodCall -> uTestFieldInstance.instance
+                is UTypedTestGetFieldExpression -> uTestFieldInstance.instance
+                is UTypedTestMethodCall -> uTestFieldInstance.instance
                 else -> return@mutation null
             }
         val newUTestInst =
-            UTestSetFieldStatement(fieldParentUTestInstance, randomFieldForMutation, newFieldValue.instance)
+            if (randomFieldForMutation.isPublic || randomFieldForMutation.isPackagePrivate) {
+                UTypedTestSetFieldStatement(fieldParentUTestInstance, randomFieldForMutation, newFieldValue.instance)
+            } else {
+                val setter = randomFieldForMutation.findSetter() ?: return@mutation null
+                UTypedTestMethodCall(fieldParentUTestInstance, setter, listOf(newFieldValue.instance))
+            }
 
-        val previousUTestSetFieldStatement =
-            fieldDescriptor.parentArgument.initialExprs.filterIsInstance<UTestSetFieldStatement>()
-                .find { uTestSetFieldStatement ->
-                    val instance = uTestSetFieldStatement.instance
+        val previousModificationUTest =
+            fieldDescriptor.parentArgument.initialExprs
+                .find { uTest ->
+                    val instance =
+                        when (uTest) {
+                            is UTypedTestSetFieldStatement -> uTest.instance
+                            is UTypedTestMethodCall -> uTest.instance
+                            else -> return@find false
+                        }
                     if (instance == fieldParentUTestInstance) {
                         true
-                    } else if (instance is UTestGetFieldExpression && fieldParentUTestInstance is UTestGetFieldExpression) {
+                    } else if (instance is UTypedTestGetFieldExpression && fieldParentUTestInstance is UTypedTestGetFieldExpression) {
                         instance.field == fieldParentUTestInstance.field && instance.unroll().size == fieldParentUTestInstance.unroll().size
-                    } else if (instance is UTestMethodCall && fieldParentUTestInstance is UTestMethodCall) {
+                    } else if (instance is UTypedTestMethodCall && fieldParentUTestInstance is UTypedTestMethodCall) {
                         instance.method == fieldParentUTestInstance.method && instance.unroll().size == fieldParentUTestInstance.unroll().size
                     } else {
                         false
                     }
                 }
         val newArg =
-            if (previousUTestSetFieldStatement != null) {
+            if (previousModificationUTest != null) {
                 seed.replace(
                     fieldDescriptor.parentArgument,
-                    previousUTestSetFieldStatement,
+                    previousModificationUTest,
                     newUTestInst,
                     newFieldValue.initStmts
                 )
@@ -84,8 +96,8 @@ class FieldFiller : Mutation() {
             val newFieldValue = dataFactory.generateValueOfType(fieldType)
             val arg = seed.args.first()
             val previousUTestSameFieldStatement =
-                arg.initialExprs.find { it is UTestSetStaticFieldStatement && it.field == jcField }
-            val newUTestSetStatement = UTestSetStaticFieldStatement(jcField, newFieldValue.instance)
+                arg.initialExprs.find { it is UTypedTestSetStaticFieldStatement && it.field == jcField }
+            val newUTestSetStatement = UTypedTestSetStaticFieldStatement(jcField, newFieldValue.instance)
             val newArg =
                 if (previousUTestSameFieldStatement != null) {
                     seed.replace(

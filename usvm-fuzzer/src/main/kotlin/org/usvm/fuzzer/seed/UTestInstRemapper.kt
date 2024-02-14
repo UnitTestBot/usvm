@@ -1,314 +1,335 @@
 package org.usvm.fuzzer.seed
 
+import org.usvm.fuzzer.api.*
 import org.usvm.instrumentation.testcase.api.*
 
-class UTestInstRemapper(
-    private val remappedInstructions: MutableMap<UTestInst, UTestInst>
-) : UTestInstVisitor<UTestInst> {
+class UTypedTestInstRemapper(
+    private val remappedInstructions: MutableMap<UTypedTestInst, UTypedTestInst>
+) : UTypedTestInstVisitor<UTypedTestInst> {
 
-    override fun visitUTestMockObject(uTestInst: UTestMockObject): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newFieldValues = uTestInst.fields.mapValues { it.value.accept(this) as UTestExpression }
-        val newMethodValues = uTestInst.methods.mapValues { it.value.map { it.accept(this) as UTestExpression } }
-        return if (newFieldValues == uTestInst.fields && newMethodValues == uTestInst.methods) {
-            uTestInst
+    override fun visitUTypedTestMockObject(uTypedTestInst: UTypedTestMockObject): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newFieldValues = uTypedTestInst.fields.mapValues { it.value.accept(this) as UTypedTestExpression }
+        val newMethodValues = uTypedTestInst.methods.mapValues { it.value.map { it.accept(this) as UTypedTestExpression } }
+        return if (newFieldValues == uTypedTestInst.fields && newMethodValues == uTypedTestInst.methods) {
+            uTypedTestInst
         } else {
-            val newMock = UTestMockObject(
-                uTestInst.type,
+            val newMock = UTypedTestMockObject(
+                uTypedTestInst.type,
                 newFieldValues,
                 newMethodValues
             )
-            remappedInstructions[uTestInst] = newMock
+            remappedInstructions[uTypedTestInst] = newMock
             newMock
         }
     }
 
-    override fun visitUTestGlobalMock(uTestInst: UTestGlobalMock): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newFieldValues = uTestInst.fields.mapValues { it.value.accept(this) as UTestExpression }
-        val newMethodValues = uTestInst.methods.mapValues { it.value.map { it.accept(this) as UTestExpression } }
-        return if (newFieldValues == uTestInst.fields && newMethodValues == uTestInst.methods) {
-            uTestInst
+    override fun visitUTypedTestGlobalMock(uTypedTestInst: UTypedTestGlobalMock): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newFieldValues = uTypedTestInst.fields.mapValues { it.value.accept(this) as UTypedTestExpression }
+        val newMethodValues = uTypedTestInst.methods.mapValues { it.value.map { it.accept(this) as UTypedTestExpression } }
+        return if (newFieldValues == uTypedTestInst.fields && newMethodValues == uTypedTestInst.methods) {
+            uTypedTestInst
         } else {
-            val newMock = UTestGlobalMock(
-                uTestInst.type,
+            val newMock = UTypedTestGlobalMock(
+                uTypedTestInst.type,
                 newFieldValues,
                 newMethodValues
             )
-            remappedInstructions[uTestInst] = newMock
+            remappedInstructions[uTypedTestInst] = newMock
             newMock
         }
     }
 
-    override fun visitUTestMethodCall(uTestInst: UTestMethodCall): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newInstanceValue = uTestInst.instance.accept(this) as UTestExpression
-        val newArgsValues = uTestInst.args.map { it.accept(this) as UTestExpression }
-        return if (newInstanceValue == uTestInst.instance && newArgsValues == uTestInst.args) {
-            uTestInst
+    override fun visitUTypedTestLambdaMock(uTypedTestInst: UTypedTestLambdaMock): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newValues = uTypedTestInst.values.map { it.accept(this) as UTypedTestExpression }
+        return if (newValues == uTypedTestInst.values) {
+            uTypedTestInst
         } else {
-            val newMethodCall = UTestMethodCall(
+            val newMock = UTypedTestLambdaMock(
+                uTypedTestInst.type,
+                newValues
+            )
+            remappedInstructions[uTypedTestInst] = newMock
+            newMock
+        }
+    }
+
+    override fun visitUTypedTestMethodCall(uTypedTestInst: UTypedTestMethodCall): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newInstanceValue = uTypedTestInst.instance.accept(this) as UTypedTestExpression
+        val newArgsValues = uTypedTestInst.args.map { it.accept(this) as UTypedTestExpression }
+        return if (newInstanceValue == uTypedTestInst.instance && newArgsValues == uTypedTestInst.args) {
+            uTypedTestInst
+        } else {
+            val newMethodCall = UTypedTestMethodCall(
                 newInstanceValue,
-                uTestInst.method,
+                uTypedTestInst.method,
                 newArgsValues
             )
-            remappedInstructions[uTestInst] = newMethodCall
+            remappedInstructions[uTypedTestInst] = newMethodCall
             newMethodCall
         }
     }
 
-    override fun visitUTestStaticMethodCall(uTestInst: UTestStaticMethodCall): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArgsValues = uTestInst.args.map { it.accept(this) as UTestExpression }
-        return if (newArgsValues == uTestInst.args) {
-            uTestInst
+    override fun visitUTypedTestStaticMethodCall(uTypedTestInst: UTypedTestStaticMethodCall): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArgsValues = uTypedTestInst.args.map { it.accept(this) as UTypedTestExpression }
+        return if (newArgsValues == uTypedTestInst.args) {
+            uTypedTestInst
         } else {
-            val newMethodCall = UTestStaticMethodCall(
-                uTestInst.method,
+            val newMethodCall = UTypedTestStaticMethodCall(
+                uTypedTestInst.method,
                 newArgsValues
             )
-            remappedInstructions[uTestInst] = newMethodCall
+            remappedInstructions[uTypedTestInst] = newMethodCall
             newMethodCall
         }
     }
 
-    override fun visitUTestConstructorCall(uTestInst: UTestConstructorCall): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArgsValues = uTestInst.args.map { it.accept(this) as UTestExpression }
-        return if (newArgsValues == uTestInst.args) {
-            uTestInst
+    override fun visitUTypedTestConstructorCall(uTypedTestInst: UTypedTestConstructorCall): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArgsValues = uTypedTestInst.args.map { it.accept(this) as UTypedTestExpression }
+        return if (newArgsValues == uTypedTestInst.args) {
+            uTypedTestInst
         } else {
-            val newMethodCall = UTestConstructorCall(
-                uTestInst.method,
-                newArgsValues
+            val newMethodCall = UTypedTestConstructorCall(
+                uTypedTestInst.method,
+                newArgsValues,
+                uTypedTestInst.type
             )
-            remappedInstructions[uTestInst] = newMethodCall
+            remappedInstructions[uTypedTestInst] = newMethodCall
             newMethodCall
         }
     }
 
-    override fun visitUTestAllocateMemoryCall(uTestInst: UTestAllocateMemoryCall): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestAllocateMemoryCall(uTypedTestInst: UTypedTestAllocateMemoryCall): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestSetFieldStatement(uTestInst: UTestSetFieldStatement): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newInstanceValue = uTestInst.instance.accept(this) as UTestExpression
-        val newArgValue = uTestInst.value.accept(this) as UTestExpression
-        return if (newInstanceValue == uTestInst.instance && newArgValue == uTestInst.value) {
-            uTestInst
+    override fun visitUTypedTestSetFieldStatement(uTypedTestInst: UTypedTestSetFieldStatement): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newInstanceValue = uTypedTestInst.instance.accept(this) as UTypedTestExpression
+        val newArgValue = uTypedTestInst.value.accept(this) as UTypedTestExpression
+        return if (newInstanceValue == uTypedTestInst.instance && newArgValue == uTypedTestInst.value) {
+            uTypedTestInst
         } else {
-            val newUTestSetFieldStmt = UTestSetFieldStatement(
+            val newUTypedTestSetFieldStmt = UTypedTestSetFieldStatement(
                 newInstanceValue,
-                uTestInst.field,
+                uTypedTestInst.field,
                 newArgValue
             )
-            remappedInstructions[uTestInst] = newUTestSetFieldStmt
-            newUTestSetFieldStmt
+            remappedInstructions[uTypedTestInst] = newUTypedTestSetFieldStmt
+            newUTypedTestSetFieldStmt
         }
     }
 
-    override fun visitUTestSetStaticFieldStatement(uTestInst: UTestSetStaticFieldStatement): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArgValue = uTestInst.value.accept(this) as UTestExpression
-        return if (newArgValue == uTestInst.value) {
-            uTestInst
+    override fun visitUTypedTestSetStaticFieldStatement(uTypedTestInst: UTypedTestSetStaticFieldStatement): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArgValue = uTypedTestInst.value.accept(this) as UTypedTestExpression
+        return if (newArgValue == uTypedTestInst.value) {
+            uTypedTestInst
         } else {
-            val newUTestSetFieldStmt = UTestSetStaticFieldStatement(
-                uTestInst.field,
+            val newUTypedTestSetFieldStmt = UTypedTestSetStaticFieldStatement(
+                uTypedTestInst.field,
                 newArgValue
             )
-            remappedInstructions[uTestInst] = newUTestSetFieldStmt
-            newUTestSetFieldStmt
+            remappedInstructions[uTypedTestInst] = newUTypedTestSetFieldStmt
+            newUTypedTestSetFieldStmt
         }
     }
 
-    override fun visitUTestBinaryConditionExpression(uTestInst: UTestBinaryConditionExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
+    override fun visitUTypedTestBinaryConditionExpression(uTypedTestInst: UTypedTestBinaryConditionExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
         TODO()
-//        return UTestBinaryConditionExpression(
-//            uTestInst.conditionType,
-//            uTestInst.lhv.accept(this) as UTestExpression,
-//            uTestInst.rhv.accept(this) as UTestExpression,
-//            uTestInst.trueBranch.accept(this) as UTestExpression,
-//            uTestInst.elseBranch.accept(this) as UTestExpression,
+//        return UTypedTestBinaryConditionExpression(
+//            UTypedTestInst.conditionType,
+//            UTypedTestInst.lhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.rhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.trueBranch.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.elseBranch.accept(this) as UTypedTestExpression,
 //        )
     }
 
-    override fun visitUTestBinaryConditionStatement(uTestInst: UTestBinaryConditionStatement): UTestInst {
+    override fun visitUTypedTestBinaryConditionStatement(uTypedTestInst: UTypedTestBinaryConditionStatement): UTypedTestInst {
         TODO()
-//        if (oldInst == uTestInst) return newInst
-//        return UTestBinaryConditionStatement(
-//            uTestInst.conditionType,
-//            uTestInst.lhv.accept(this) as UTestExpression,
-//            uTestInst.rhv.accept(this) as UTestExpression,
-//            uTestInst.trueBranch.map { it.accept(this) as UTestStatement },
-//            uTestInst.elseBranch.map { it.accept(this) as UTestStatement }
+//        if (oldInst == uTypedTestInst) return newInst
+//        return UTypedTestBinaryConditionStatement(
+//            UTypedTestInst.conditionType,
+//            UTypedTestInst.lhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.rhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.trueBranch.map { it.accept(this) as UTypedTestStatement },
+//            UTypedTestInst.elseBranch.map { it.accept(this) as UTypedTestStatement }
 //        )
     }
 
-    override fun visitUTestArithmeticExpression(uTestInst: UTestArithmeticExpression): UTestInst {
+    override fun visitUTypedTestArithmeticExpression(uTypedTestInst: UTypedTestArithmeticExpression): UTypedTestInst {
         TODO()
-//        if (oldInst == uTestInst) return newInst
-//        return UTestArithmeticExpression(
-//            uTestInst.operationType,
-//            uTestInst.lhv.accept(this) as UTestExpression,
-//            uTestInst.rhv.accept(this) as UTestExpression,
-//            uTestInst.type
+//        if (oldInst == uTypedTestInst) return newInst
+//        return UTypedTestArithmeticExpression(
+//            UTypedTestInst.operationType,
+//            UTypedTestInst.lhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.rhv.accept(this) as UTypedTestExpression,
+//            UTypedTestInst.type
 //        )
     }
 
-    override fun visitUTestGetStaticFieldExpression(uTestInst: UTestGetStaticFieldExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestGetStaticFieldExpression(uTypedTestInst: UTypedTestGetStaticFieldExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestBooleanExpression(uTestInst: UTestBooleanExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestBooleanExpression(uTypedTestInst: UTypedTestBooleanExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestByteExpression(uTestInst: UTestByteExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestByteExpression(uTypedTestInst: UTypedTestByteExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestShortExpression(uTestInst: UTestShortExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestShortExpression(uTypedTestInst: UTypedTestShortExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestIntExpression(uTestInst: UTestIntExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestIntExpression(uTypedTestInst: UTypedTestIntExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestLongExpression(uTestInst: UTestLongExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestLongExpression(uTypedTestInst: UTypedTestLongExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestFloatExpression(uTestInst: UTestFloatExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestFloatExpression(uTypedTestInst: UTypedTestFloatExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestDoubleExpression(uTestInst: UTestDoubleExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestDoubleExpression(uTypedTestInst: UTypedTestDoubleExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestCharExpression(uTestInst: UTestCharExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestCharExpression(uTypedTestInst: UTypedTestCharExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestStringExpression(uTestInst: UTestStringExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestStringExpression(uTypedTestInst: UTypedTestStringExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestNullExpression(uTestInst: UTestNullExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestNullExpression(uTypedTestInst: UTypedTestNullExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 
-    override fun visitUTestGetFieldExpression(uTestInst: UTestGetFieldExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newInstanceValue = uTestInst.instance.accept(this) as UTestExpression
-        return if (newInstanceValue == uTestInst.instance) {
-            uTestInst
+    override fun visitUTypedTestGetFieldExpression(uTypedTestInst: UTypedTestGetFieldExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newInstanceValue = uTypedTestInst.instance.accept(this) as UTypedTestExpression
+        return if (newInstanceValue == uTypedTestInst.instance) {
+            uTypedTestInst
         } else {
-            val newUTestGetField = UTestGetFieldExpression(
+            val newUTypedTestGetField = UTypedTestGetFieldExpression(
                 newInstanceValue,
-                uTestInst.field
+                uTypedTestInst.field,
+                uTypedTestInst.type
             )
-            remappedInstructions[uTestInst] = newUTestGetField
-            newUTestGetField
+            remappedInstructions[uTypedTestInst] = newUTypedTestGetField
+            newUTypedTestGetField
         }
     }
 
-    override fun visitUTestArrayLengthExpression(uTestInst: UTestArrayLengthExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArrayInstance = uTestInst.arrayInstance.accept(this) as UTestExpression
-        return if (newArrayInstance == uTestInst.arrayInstance) {
-            uTestInst
+    override fun visitUTypedTestArrayLengthExpression(uTypedTestInst: UTypedTestArrayLengthExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArrayInstance = uTypedTestInst.arrayInstance.accept(this) as UTypedTestExpression
+        return if (newArrayInstance == uTypedTestInst.arrayInstance) {
+            uTypedTestInst
         } else {
-            val newUTestArrayLength = UTestArrayLengthExpression(
-                newArrayInstance
-            )
-            remappedInstructions[uTestInst] = newUTestArrayLength
-            newUTestArrayLength
-        }
-    }
-
-    override fun visitUTestArrayGetExpression(uTestInst: UTestArrayGetExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArrayInstance = uTestInst.arrayInstance.accept(this) as UTestExpression
-        val newIndex = uTestInst.arrayInstance.accept(this) as UTestExpression
-        return if (newArrayInstance == uTestInst.arrayInstance && newIndex == uTestInst.index) {
-            uTestInst
-        } else {
-            val newUTestArrayGet = UTestArrayGetExpression(
+            val newUTypedTestArrayLength = UTypedTestArrayLengthExpression(
                 newArrayInstance,
-                newIndex
+                uTypedTestInst.type
             )
-            remappedInstructions[uTestInst] = newUTestArrayGet
-            newUTestArrayGet
+            remappedInstructions[uTypedTestInst] = newUTypedTestArrayLength
+            newUTypedTestArrayLength
         }
     }
 
-    override fun visitUTestArraySetStatement(uTestInst: UTestArraySetStatement): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newArrayInstance = uTestInst.arrayInstance.accept(this) as UTestExpression
-        val newIndex = uTestInst.index.accept(this) as UTestExpression
-        val newValue = uTestInst.setValueExpression.accept(this) as UTestExpression
-        return if (newArrayInstance == uTestInst.arrayInstance && newIndex == uTestInst.index && newValue == uTestInst.setValueExpression) {
-            uTestInst
+    override fun visitUTypedTestArrayGetExpression(uTypedTestInst: UTypedTestArrayGetExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArrayInstance = uTypedTestInst.arrayInstance.accept(this) as UTypedTestExpression
+        val newIndex = uTypedTestInst.arrayInstance.accept(this) as UTypedTestExpression
+        return if (newArrayInstance == uTypedTestInst.arrayInstance && newIndex == uTypedTestInst.index) {
+            uTypedTestInst
         } else {
-            val newUTestArraySet = UTestArraySetStatement(
+            val newUTypedTestArrayGet = UTypedTestArrayGetExpression(
+                newArrayInstance,
+                newIndex,
+                uTypedTestInst.type
+            )
+            remappedInstructions[uTypedTestInst] = newUTypedTestArrayGet
+            newUTypedTestArrayGet
+        }
+    }
+
+    override fun visitUTypedTestArraySetStatement(uTypedTestInst: UTypedTestArraySetStatement): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newArrayInstance = uTypedTestInst.arrayInstance.accept(this) as UTypedTestExpression
+        val newIndex = uTypedTestInst.index.accept(this) as UTypedTestExpression
+        val newValue = uTypedTestInst.setValueExpression.accept(this) as UTypedTestExpression
+        return if (newArrayInstance == uTypedTestInst.arrayInstance && newIndex == uTypedTestInst.index && newValue == uTypedTestInst.setValueExpression) {
+            uTypedTestInst
+        } else {
+            val newUTypedTestArraySet = UTypedTestArraySetStatement(
                 newArrayInstance,
                 newIndex,
                 newValue
             )
-            remappedInstructions[uTestInst] = newUTestArraySet
-            newUTestArraySet
+            remappedInstructions[uTypedTestInst] = newUTypedTestArraySet
+            newUTypedTestArraySet
         }
     }
 
-    override fun visitUTestCreateArrayExpression(uTestInst: UTestCreateArrayExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newSize = uTestInst.size.accept(this) as UTestExpression
-        return if (newSize == uTestInst.size) {
-            uTestInst
+    override fun visitUTypedTestCreateArrayExpression(uTypedTestInst: UTypedTestCreateArrayExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newSize = uTypedTestInst.size.accept(this) as UTypedTestExpression
+        return if (newSize == uTypedTestInst.size) {
+            uTypedTestInst
         } else {
-            val newUTestCreate = UTestCreateArrayExpression(
-                uTestInst.elementType,
-                newSize
+            val newUTypedTestCreate = UTypedTestCreateArrayExpression(
+                uTypedTestInst.elementType,
+                newSize,
+                uTypedTestInst.type
             )
-            remappedInstructions[uTestInst] = newUTestCreate
-            newUTestCreate
+            remappedInstructions[uTypedTestInst] = newUTypedTestCreate
+            newUTypedTestCreate
         }
     }
 
-    override fun visitUTestCastExpression(uTestInst: UTestCastExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        val newExpr = uTestInst.expr.accept(this) as UTestExpression
-        return if (newExpr == uTestInst.expr) {
-            uTestInst
+    override fun visitUTypedTestCastExpression(uTypedTestInst: UTypedTestCastExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        val newExpr = uTypedTestInst.expr.accept(this) as UTypedTestExpression
+        return if (newExpr == uTypedTestInst.expr) {
+            uTypedTestInst
         } else {
-            val newCast = UTestCastExpression(
+            val newCast = UTypedTestCastExpression(
                 newExpr,
-                uTestInst.type
+                uTypedTestInst.type
             )
-            remappedInstructions[uTestInst] = newCast
+            remappedInstructions[uTypedTestInst] = newCast
             newCast
         }
     }
 
-    override fun visitUTestClassExpression(uTestInst: UTestClassExpression): UTestInst {
-        if (uTestInst in remappedInstructions) return remappedInstructions[uTestInst]!!
-        return uTestInst
+    override fun visitUTypedTestClassExpression(uTypedTestInst: UTypedTestClassExpression): UTypedTestInst {
+        if (uTypedTestInst in remappedInstructions) return remappedInstructions[uTypedTestInst]!!
+        return uTypedTestInst
     }
 }

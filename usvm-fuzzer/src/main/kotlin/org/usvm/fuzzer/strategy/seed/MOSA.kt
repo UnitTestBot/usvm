@@ -19,18 +19,46 @@ class MOSA(private val seedManager: SeedManager) : SeedChoosingStrategy {
     private val seedsDistancesCache =
         IdentityHashMap<Seed, MutableMap<JcInst, Double>>()//mutableMapOf<Seed, List<Pair<JcInst, Double>>>()
 
+    fun replace(seed: Seed, replacement: Seed) {
+        mosaFronts.forEach {
+            if (it.contains(seed)) {
+                it.remove(seed)
+                it.add(replacement)
+            }
+        }
+    }
+
     override fun chooseWorst(): Seed {
         recalculateFrontsIfNeed()
         return mosaFronts.last().random()
     }
 
+
     override fun chooseWorstAndRemove(): Seed {
         recalculateFrontsIfNeed()
-        val worstSeed = mosaFronts.last().random()
+        val worstSeed =
+            mosaFronts.last().random()
         mosaFronts.last().remove(worstSeed)
         if (mosaFronts.last().isEmpty()) {
             mosaFronts.removeLast()
         }
+        seedsDistancesCache.remove(worstSeed)
+        return worstSeed
+    }
+
+    override fun chooseWorstAndRemove(recentlyAddedSeed: Seed): Seed {
+        recalculateFrontsIfNeed()
+        val worstSeed =
+            if (mosaFronts.last().contains(recentlyAddedSeed)) {
+                recentlyAddedSeed
+            } else {
+                mosaFronts.last().random()
+            }
+        mosaFronts.last().remove(worstSeed)
+        if (mosaFronts.last().isEmpty()) {
+            mosaFronts.removeLast()
+        }
+        seedsDistancesCache.remove(worstSeed)
         return worstSeed
     }
 

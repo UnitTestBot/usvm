@@ -81,7 +81,7 @@ class UTestExecutor(
                         exception = it,
                         raisedByUserCode = false
                     ),
-                    trace = JcInstructionTracer.getTrace().trace
+                    trace = mapOf()//JcInstructionTracer.getTrace().trace
                 )
             }
 
@@ -93,6 +93,7 @@ class UTestExecutor(
             accessedFields = listOf()
         )
 
+        TraceCollector.trace.clear()
         val methodInvocationResult =
             executor.executeUTestInst(callMethodExpr)
         val resultStateDescriptorBuilder =

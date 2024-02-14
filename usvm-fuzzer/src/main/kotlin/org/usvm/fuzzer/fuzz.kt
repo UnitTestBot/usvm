@@ -27,7 +27,7 @@ fun main() {
     )
     val jcClasspath = initJcdb(testingClassPath)
     JcClassTable.initClasses(jcClasspath)
-    val targetClass = jcClasspath.findClass("org.usvm.fuzzer.test.Arrays")
+    val targetClass = jcClasspath.findClass("org.usvm.fuzzer.test.Strings")
 //    val targetClass = jcClasspath.findClass("example.fuzz.Simple")
     targetClass.toType()
     println(targetClass)
@@ -39,7 +39,7 @@ fun main() {
     )
 
     val methodsToFilterNot = listOf("<init>", "<clinit>")
-    val methodsToFilter = listOf<String>("isIdentityMatrix")
+    val methodsToFilter = listOf<String>("test")
     val filter = { method: JcMethod -> methodsToFilter.isEmpty() || methodsToFilter.any { method.name.contains(it) } }
     val filterNot = { method: JcMethod -> methodsToFilterNot.any { method.name.contains(it) } }
     for (targetMethod in targetClass.declaredMethods.filter(filter).filterNot(filterNot)) {

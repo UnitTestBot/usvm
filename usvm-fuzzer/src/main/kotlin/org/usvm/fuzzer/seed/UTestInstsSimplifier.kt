@@ -1,133 +1,141 @@
 package org.usvm.fuzzer.seed
 
+import org.usvm.fuzzer.api.UTypedTestInst
+import org.usvm.fuzzer.api.UTypedTestInstVisitor
+import org.usvm.fuzzer.api.*
 import org.usvm.instrumentation.testcase.api.*
 
-class UTestInstsSimplifier(private val instructionsToRemove: MutableSet<UTestInst>): UTestInstVisitor<Unit> {
-    override fun visitUTestMockObject(uTestInst: UTestMockObject) {
+class UTypedTestInstsSimplifier(private val instructionsToRemove: MutableSet<UTypedTestInst>):
+    UTypedTestInstVisitor<Unit> {
+    override fun visitUTypedTestMockObject(uTypedTestInst: UTypedTestMockObject) {
         return
     }
 
-    override fun visitUTestGlobalMock(uTestInst: UTestGlobalMock) {
+    override fun visitUTypedTestGlobalMock(uTypedTestInst: UTypedTestGlobalMock) {
         return
     }
 
-    override fun visitUTestMethodCall(uTestInst: UTestMethodCall) {
-        if (uTestInst in instructionsToRemove || uTestInst.instance in instructionsToRemove) {
-            instructionsToRemove.add(uTestInst)
-            instructionsToRemove.addAll(uTestInst.args)
+    override fun visitUTypedTestLambdaMock(uTypedTestInst: UTypedTestLambdaMock) {
+        return
+    }
+
+    override fun visitUTypedTestMethodCall(uTypedTestInst: UTypedTestMethodCall) {
+        if (uTypedTestInst in instructionsToRemove || uTypedTestInst.instance in instructionsToRemove) {
+            instructionsToRemove.add(uTypedTestInst)
+            instructionsToRemove.addAll(uTypedTestInst.args)
         }
     }
 
-    override fun visitUTestStaticMethodCall(uTestInst: UTestStaticMethodCall) {
+    override fun visitUTypedTestStaticMethodCall(uTypedTestInst: UTypedTestStaticMethodCall) {
         return
     }
 
-    override fun visitUTestConstructorCall(uTestInst: UTestConstructorCall) {
+    override fun visitUTypedTestConstructorCall(uTypedTestInst: UTypedTestConstructorCall) {
         return
     }
 
-    override fun visitUTestAllocateMemoryCall(uTestInst: UTestAllocateMemoryCall) {
+    override fun visitUTypedTestAllocateMemoryCall(uTypedTestInst: UTypedTestAllocateMemoryCall) {
         return
     }
 
-    override fun visitUTestSetFieldStatement(uTestInst: UTestSetFieldStatement) {
-        if (uTestInst in instructionsToRemove || uTestInst.instance in instructionsToRemove) {
-            instructionsToRemove.add(uTestInst)
-            instructionsToRemove.add(uTestInst.value)
+    override fun visitUTypedTestSetFieldStatement(uTypedTestInst: UTypedTestSetFieldStatement) {
+        if (uTypedTestInst in instructionsToRemove || uTypedTestInst.instance in instructionsToRemove) {
+            instructionsToRemove.add(uTypedTestInst)
+            instructionsToRemove.add(uTypedTestInst.value)
         }
     }
 
-    override fun visitUTestSetStaticFieldStatement(uTestInst: UTestSetStaticFieldStatement) {
-        if (uTestInst in instructionsToRemove) {
-            instructionsToRemove.add(uTestInst.value)
+    override fun visitUTypedTestSetStaticFieldStatement(uTypedTestInst: UTypedTestSetStaticFieldStatement) {
+        if (uTypedTestInst in instructionsToRemove) {
+            instructionsToRemove.add(uTypedTestInst.value)
         }
     }
 
-    override fun visitUTestBinaryConditionExpression(uTestInst: UTestBinaryConditionExpression) {
+    override fun visitUTypedTestBinaryConditionExpression(uTypedTestInst: UTypedTestBinaryConditionExpression) {
         TODO("Not yet implemented")
     }
 
-    override fun visitUTestBinaryConditionStatement(uTestInst: UTestBinaryConditionStatement) {
+    override fun visitUTypedTestBinaryConditionStatement(uTypedTestInst: UTypedTestBinaryConditionStatement) {
         TODO("Not yet implemented")
     }
 
-    override fun visitUTestArithmeticExpression(uTestInst: UTestArithmeticExpression) {
+    override fun visitUTypedTestArithmeticExpression(uTypedTestInst: UTypedTestArithmeticExpression) {
         TODO("Not yet implemented")
     }
 
-    override fun visitUTestGetStaticFieldExpression(uTestInst: UTestGetStaticFieldExpression) {
+    override fun visitUTypedTestGetStaticFieldExpression(uTypedTestInst: UTypedTestGetStaticFieldExpression) {
         return
     }
 
-    override fun visitUTestBooleanExpression(uTestInst: UTestBooleanExpression) {
+    override fun visitUTypedTestBooleanExpression(uTypedTestInst: UTypedTestBooleanExpression) {
         return
     }
 
-    override fun visitUTestByteExpression(uTestInst: UTestByteExpression) {
+    override fun visitUTypedTestByteExpression(uTypedTestInst: UTypedTestByteExpression) {
         return
     }
 
-    override fun visitUTestShortExpression(uTestInst: UTestShortExpression) {
+    override fun visitUTypedTestShortExpression(uTypedTestInst: UTypedTestShortExpression) {
         return
     }
 
-    override fun visitUTestIntExpression(uTestInst: UTestIntExpression) {
+    override fun visitUTypedTestIntExpression(uTypedTestInst: UTypedTestIntExpression) {
         return
     }
 
-    override fun visitUTestLongExpression(uTestInst: UTestLongExpression) {
+    override fun visitUTypedTestLongExpression(uTypedTestInst: UTypedTestLongExpression) {
         return
     }
 
-    override fun visitUTestFloatExpression(uTestInst: UTestFloatExpression) {
+    override fun visitUTypedTestFloatExpression(uTypedTestInst: UTypedTestFloatExpression) {
         return
     }
 
-    override fun visitUTestDoubleExpression(uTestInst: UTestDoubleExpression) {
+    override fun visitUTypedTestDoubleExpression(uTypedTestInst: UTypedTestDoubleExpression) {
         return
     }
 
-    override fun visitUTestCharExpression(uTestInst: UTestCharExpression) {
+    override fun visitUTypedTestCharExpression(uTypedTestInst: UTypedTestCharExpression) {
         return
     }
 
-    override fun visitUTestStringExpression(uTestInst: UTestStringExpression) {
+    override fun visitUTypedTestStringExpression(uTypedTestInst: UTypedTestStringExpression) {
         return
     }
 
-    override fun visitUTestNullExpression(uTestInst: UTestNullExpression) {
+    override fun visitUTypedTestNullExpression(uTypedTestInst: UTypedTestNullExpression) {
         return
     }
 
-    override fun visitUTestGetFieldExpression(uTestInst: UTestGetFieldExpression) {
+    override fun visitUTypedTestGetFieldExpression(uTypedTestInst: UTypedTestGetFieldExpression) {
         return
     }
 
-    override fun visitUTestArrayLengthExpression(uTestInst: UTestArrayLengthExpression) {
+    override fun visitUTypedTestArrayLengthExpression(uTypedTestInst: UTypedTestArrayLengthExpression) {
         return
     }
 
-    override fun visitUTestArrayGetExpression(uTestInst: UTestArrayGetExpression) {
+    override fun visitUTypedTestArrayGetExpression(uTypedTestInst: UTypedTestArrayGetExpression) {
         return
     }
 
-    override fun visitUTestArraySetStatement(uTestInst: UTestArraySetStatement) {
-        if (uTestInst in instructionsToRemove || uTestInst.arrayInstance in instructionsToRemove) {
-            instructionsToRemove.add(uTestInst)
-            instructionsToRemove.add(uTestInst.index)
-            instructionsToRemove.add(uTestInst.setValueExpression)
+    override fun visitUTypedTestArraySetStatement(uTypedTestInst: UTypedTestArraySetStatement) {
+        if (uTypedTestInst in instructionsToRemove || uTypedTestInst.arrayInstance in instructionsToRemove) {
+            instructionsToRemove.add(uTypedTestInst)
+            instructionsToRemove.add(uTypedTestInst.index)
+            instructionsToRemove.add(uTypedTestInst.setValueExpression)
         }
     }
 
-    override fun visitUTestCreateArrayExpression(uTestInst: UTestCreateArrayExpression) {
+    override fun visitUTypedTestCreateArrayExpression(uTypedTestInst: UTypedTestCreateArrayExpression) {
         return
     }
 
-    override fun visitUTestCastExpression(uTestInst: UTestCastExpression) {
+    override fun visitUTypedTestCastExpression(uTypedTestInst: UTypedTestCastExpression) {
         return
     }
 
-    override fun visitUTestClassExpression(uTestInst: UTestClassExpression) {
+    override fun visitUTypedTestClassExpression(uTypedTestInst: UTypedTestClassExpression) {
         return
     }
 }

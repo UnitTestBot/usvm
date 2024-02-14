@@ -3,6 +3,7 @@ package org.usvm.instrumentation.testcase.api
 interface UTestInstVisitor<T> {
     fun visitUTestMockObject(uTestInst: UTestMockObject): T
     fun visitUTestGlobalMock(uTestInst: UTestGlobalMock): T
+    fun visitUTestLambdaMock(uTestInst: UTestLambdaMock): T
     fun visitUTestMethodCall(uTestInst: UTestMethodCall): T
     fun visitUTestStaticMethodCall(uTestInst: UTestStaticMethodCall): T
     fun visitUTestConstructorCall(uTestInst: UTestConstructorCall): T

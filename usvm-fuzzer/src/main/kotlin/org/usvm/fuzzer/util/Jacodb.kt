@@ -1,11 +1,10 @@
 package org.usvm.fuzzer.util
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcType
+import org.jacodb.api.*
 import org.jacodb.api.cfg.JcIfInst
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.autoboxIfNeeded
+import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
 import org.usvm.fuzzer.types.JcTypeWrapper
@@ -72,6 +71,14 @@ fun JcClasspath.treeSetType(): JcClassType {
     return findTypeOrNull<TreeSet<*>>() as JcClassType
 }
 
+fun JcClasspath.navigableSetType(): JcClassType {
+    return findTypeOrNull<NavigableSet<*>>() as JcClassType
+}
+
+fun JcClasspath.sortedSetType(): JcClassType {
+    return findTypeOrNull<SortedSet<*>>() as JcClassType
+}
+
 fun JcClasspath.hashMapType(): JcClassType {
     return findTypeOrNull<HashMap<*, *>>() as JcClassType
 }
@@ -111,3 +118,23 @@ fun JcIfInst.getTrueBranchInst(): JcInst =
 
 fun JcIfInst.getFalseBranchInst(): JcInst =
     location.method.instList[falseBranch.index]
+
+fun JcField.findGetter(): JcMethod? {
+    val cp = enclosingClass.classpath
+    return enclosingClass.declaredMethods.find { jcMethod ->
+        if (type == cp.boolean || type == cp.boolean.autoboxIfNeeded()) {
+            jcMethod.name.equals("is${name}", true) ||
+                    jcMethod.name.equals("get${name}", true)
+        } else {
+            jcMethod.name.equals("get${name}", true)
+        } && jcMethod.parameters.isEmpty()
+    }
+}
+
+fun JcField.findSetter(): JcMethod? =
+    enclosingClass.declaredMethods.find { jcMethod ->
+        jcMethod.name.equals("set${name}", true)
+    }
+
+val JcClassOrInterface.isFunctionalInterface
+    get() = isInterface && annotations.any { it.name == "java.lang.FunctionalInterface" }

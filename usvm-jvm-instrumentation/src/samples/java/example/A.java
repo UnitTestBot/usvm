@@ -2,6 +2,7 @@ package example;
 
 import java.util.*;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 public class A {
 
@@ -130,6 +131,15 @@ public class A {
     private int methodWithBug() {
         int[] array = new int[3];
         return array[4];
+    }
+
+    private int lambdaTest(Predicate<Integer> predicate) {
+        ArrayList<Integer> arr = new ArrayList<>();
+        arr.add(0);
+        arr.add(1);
+        arr.add(2);
+        arr.removeIf(predicate);
+        return arr.size();
     }
 
     public int indexOf(int[] arr, int el) {

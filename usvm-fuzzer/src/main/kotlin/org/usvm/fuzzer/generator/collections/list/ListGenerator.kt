@@ -4,7 +4,7 @@ import org.jacodb.api.JcClassOrInterface
 import org.usvm.fuzzer.generator.collections.CollectionGenerator
 import org.usvm.fuzzer.types.JcTypeWrapper
 
-sealed class ListGenerator(
+open class ListGenerator(
     collectionClass: JcClassOrInterface,
     realType: JcTypeWrapper,
 ) :

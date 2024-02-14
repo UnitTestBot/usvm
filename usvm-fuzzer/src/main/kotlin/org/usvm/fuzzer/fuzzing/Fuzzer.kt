@@ -3,9 +3,11 @@ package org.usvm.fuzzer.fuzzing
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.ext.methods
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorRepository
 import org.usvm.fuzzer.generator.DataFactory
+import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.seed.SeedManager
 import org.usvm.fuzzer.strategy.ExecutionEstimator
 import org.usvm.fuzzer.strategy.RandomStrategy
@@ -15,8 +17,15 @@ import org.usvm.fuzzer.generator.random.FuzzerRandomNormalDistribution
 import org.usvm.fuzzer.helpers.JcdbConstantsCollector
 import org.usvm.fuzzer.mutation.`object`.CallRandomMethod
 import org.usvm.fuzzer.mutation.MutationRepository
+import org.usvm.fuzzer.seed.SeedShrinker
 import org.usvm.fuzzer.strategy.FairStrategy
 import org.usvm.fuzzer.util.getTrace
+import java.lang.reflect.InvocationHandler
+import java.lang.reflect.Method
+import java.lang.reflect.Proxy
+import java.util.Comparator
+import java.util.function.Consumer
+import kotlin.system.exitProcess
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTimedValue
@@ -56,7 +65,9 @@ class Fuzzer(
 
     init {
         val constantsCollector = JcdbConstantsCollector(jcClasspath)
-        constantsCollector.collect(targetMethod)
+        targetMethod.enclosingClass.methods.forEach {
+            constantsCollector.collect(it)
+        }
         val generatorContext = GeneratorContext(
             constants = mapOf(),
             repository = generatorRepository,
@@ -67,7 +78,6 @@ class Fuzzer(
         )
         generatorRepository.registerGeneratorContext(generatorContext)
     }
-
 
     @OptIn(ExperimentalTime::class)
     suspend fun fuzz() {
@@ -80,6 +90,7 @@ class Fuzzer(
 //            println("RES = ${res::class.java.name} TRACE SIZE = ${res.getTrace().size}")
 //            seed.addSeedExecutionInfo(res)
 //        }
+        Generator.debugMode = true
         seedManager.generateAndExecuteInitialSeed(seedLimit)
         seedManager.printStats()
 
@@ -144,7 +155,6 @@ class Fuzzer(
 //            seedManager.addSeed(mutatedSeed, it)
 //        }
     }
-
 
 
     private fun generateInitialSeed() {

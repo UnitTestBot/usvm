@@ -1,6 +1,9 @@
 package org.usvm.fuzzer.generator.`object`
 
 import org.jacodb.impl.types.JcClassTypeImpl
+import org.usvm.fuzzer.api.UTypedTestAllocateMemoryCall
+import org.usvm.fuzzer.api.UTypedTestInst
+import org.usvm.fuzzer.api.UTypedTestSetFieldStatement
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestValueRepresentation
@@ -12,8 +15,8 @@ import org.usvm.instrumentation.util.toJavaField
 class UnsafeUserClassGenerator(private val jcTypeWrapper: JcTypeWrapper) : UserClassGenerator() {
     override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = { depth ->
         val jcClass = (jcTypeWrapper.type as JcClassTypeImpl).jcClass
-        val fieldInitStmts = mutableListOf<UTestInst>()
-        val instance = UTestAllocateMemoryCall(jcClass)
+        val fieldInitStmts = mutableListOf<UTypedTestInst>()
+        val instance = UTypedTestAllocateMemoryCall(jcClass, jcTypeWrapper)
         val fields = jcTypeWrapper.declaredFields
             .filterNot { it.isStatic }
             .mapNotNull { jcField ->
@@ -22,7 +25,7 @@ class UnsafeUserClassGenerator(private val jcTypeWrapper: JcTypeWrapper) : UserC
                 val generatorForField = repository.getGeneratorForType(fieldType)
                 val fieldValue = generatorForField.generate(depth)
                 fieldInitStmts.addAll(fieldValue.initStmts)
-                UTestSetFieldStatement(instance, jcField.field, fieldValue.instance)
+                UTypedTestSetFieldStatement(instance, jcField.field, fieldValue.instance)
             }
         UTestValueRepresentation(instance, fieldInitStmts + fields)
     }

@@ -11,28 +11,29 @@ import org.usvm.instrumentation.testcase.api.*
 
 class AddPrimitiveConstant : Mutation() {
     override val mutationFun: DataFactory.(Seed) -> Pair<Seed?, MutationInfo>? = lambda@{ seed ->
+        TODO()
         //TODO add mutation for random field
-        val argForMutation =
-//            if (random.getTrueWithProb(50)) {
-            seed.getArgForMutation { it.type.type is JcPrimitiveType } ?: return@lambda null
-//            } else {
-//                val fieldForMutation = Seed.fieldInfo.getBestField { it.type.isPrimitive } ?: return@lambda null
-//                seed.getFieldsInTermsOfUTest(fieldForMutation).randomOrNull()
-//            } ?: return@lambda null
-        val newValue =
-            when (val uTestForMutation = argForMutation.instance) {
-                is UTestByteExpression -> UTestByteExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toByte(), uTestForMutation.type)
-                is UTestShortExpression -> UTestShortExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toShort(), uTestForMutation.type)
-                is UTestIntExpression -> UTestIntExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
-                is UTestLongExpression -> UTestLongExpression(generateNewLongNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
-                is UTestCharExpression -> UTestCharExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.code).toChar(), uTestForMutation.type)
-                is UTestFloatExpression -> UTestFloatExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value.toDouble()).toFloat(), uTestForMutation.type)
-                is UTestDoubleExpression -> UTestDoubleExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
-                else -> return@lambda null
-            }
-        val newArgDescriptor =
-            Seed.ArgumentDescriptor(newValue, JcTypeWrapper(newValue.type!!, newValue.value::class.java), listOf())
-        return@lambda seed.mutate(argForMutation, newArgDescriptor) to MutationInfo(argForMutation, null)
+//        val argForMutation =
+////            if (random.getTrueWithProb(50)) {
+//            seed.getArgForMutation { it.type.type is JcPrimitiveType } ?: return@lambda null
+////            } else {
+////                val fieldForMutation = Seed.fieldInfo.getBestField { it.type.isPrimitive } ?: return@lambda null
+////                seed.getFieldsInTermsOfUTest(fieldForMutation).randomOrNull()
+////            } ?: return@lambda null
+//        val newValue =
+//            when (val uTestForMutation = argForMutation.instance) {
+//                is UTestByteExpression -> UTestByteExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toByte(), uTestForMutation.type)
+//                is UTestShortExpression -> UTestShortExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.toInt()).toShort(), uTestForMutation.type)
+//                is UTestIntExpression -> UTestIntExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+//                is UTestLongExpression -> UTestLongExpression(generateNewLongNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+//                is UTestCharExpression -> UTestCharExpression(generateNewIntNumericValue(dataFactory, uTestForMutation.value.code).toChar(), uTestForMutation.type)
+//                is UTestFloatExpression -> UTestFloatExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value.toDouble()).toFloat(), uTestForMutation.type)
+//                is UTestDoubleExpression -> UTestDoubleExpression(generateNewDoubleNumericValue(dataFactory, uTestForMutation.value), uTestForMutation.type)
+//                else -> return@lambda null
+//            }
+//        val newArgDescriptor =
+//            Seed.ArgumentDescriptor(newValue, JcTypeWrapper(newValue.type!!, newValue.value::class.java), listOf())
+//        return@lambda seed.mutate(argForMutation, newArgDescriptor) to MutationInfo(argForMutation, null)
     }
 
     private fun generateNewIntNumericValue(dataFactory: DataFactory, oldValue: Int): Int = with(dataFactory) {

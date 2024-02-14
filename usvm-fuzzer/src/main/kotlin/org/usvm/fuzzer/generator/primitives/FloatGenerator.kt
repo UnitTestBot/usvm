@@ -2,6 +2,7 @@ package org.usvm.fuzzer.generator.primitives
 
 import org.jacodb.api.ext.float
 import org.jacodb.api.ext.long
+import org.usvm.fuzzer.api.UTypedTestFloatExpression
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
@@ -9,6 +10,7 @@ import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestFloatExpression
 import org.usvm.fuzzer.generator.random.nextDouble
+import org.usvm.fuzzer.util.floatTypeWrapper
 
 class FloatGenerator(): Generator() {
     override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = {
@@ -29,6 +31,6 @@ class FloatGenerator(): Generator() {
             } else  {
                 random.nextDouble().toFloat()
             }
-        UTestValueRepresentation(UTestFloatExpression(randomFloat, jcClasspath.float))
+        UTestValueRepresentation(UTypedTestFloatExpression(randomFloat, jcClasspath.floatTypeWrapper()))
     }
 }

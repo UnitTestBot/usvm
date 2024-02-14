@@ -1,6 +1,9 @@
 package org.usvm.fuzzer.util
 
 import org.jacodb.api.cfg.JcInst
+import org.usvm.fuzzer.api.UTypedTestExpression
+import org.usvm.fuzzer.api.UTypedTestGetFieldExpression
+import org.usvm.fuzzer.api.UTypedTestMethodCall
 import org.usvm.instrumentation.testcase.api.*
 
 fun UTestExecutionResult.getTrace(): Map<JcInst, Long> = when (this) {
@@ -11,20 +14,20 @@ fun UTestExecutionResult.getTrace(): Map<JcInst, Long> = when (this) {
     is UTestExecutionTimedOutResult -> emptyMap()
 }
 
-fun UTestExpression.unroll(): List<UTestExpression> {
+fun UTypedTestExpression.unroll(): List<UTypedTestExpression> {
     val res = mutableListOf(this)
     var curInstance =
         when (this) {
-            is UTestGetFieldExpression -> instance
-            is UTestMethodCall -> instance
+            is UTypedTestGetFieldExpression -> instance
+            is UTypedTestMethodCall -> instance
             else -> return emptyList()
         }
-    while (curInstance is UTestGetFieldExpression || curInstance is UTestMethodCall) {
+    while (curInstance is UTypedTestGetFieldExpression || curInstance is UTypedTestMethodCall) {
         res.add(curInstance)
         curInstance =
             when (curInstance) {
-                is UTestGetFieldExpression -> curInstance.instance
-                is UTestMethodCall -> curInstance.instance
+                is UTypedTestGetFieldExpression -> curInstance.instance
+                is UTypedTestMethodCall -> curInstance.instance
                 else -> return emptyList()
             }
     }
@@ -44,6 +47,11 @@ class UTestChildrenCollectVisitor : UTestInstVisitor<List<UTestInst>> {
         val childrenFields = uTestInst.fields.values.flatMap { it.accept(this) }
         val childrenMethods = uTestInst.methods.values.flatMap { it.map { it.accept(this) } }.flatten()
         return childrenFields + childrenMethods + uTestInst
+    }
+
+    override fun visitUTestLambdaMock(uTestInst: UTestLambdaMock): List<UTestInst> {
+        val values = uTestInst.values.flatMap { it.accept(this) }
+        return values + uTestInst
     }
 
 

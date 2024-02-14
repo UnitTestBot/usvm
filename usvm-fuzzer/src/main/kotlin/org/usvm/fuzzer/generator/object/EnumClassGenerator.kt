@@ -2,6 +2,7 @@ package org.usvm.fuzzer.generator.`object`
 
 import org.jacodb.api.JcClassType
 import org.jacodb.api.ext.enumValues
+import org.usvm.fuzzer.api.UTypedTestGetStaticFieldExpression
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestValueRepresentation
@@ -11,7 +12,7 @@ class EnumClassGenerator(private val jcType: JcTypeWrapper) : UserClassGenerator
     override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation? = {
         val jcClass = (jcType.type as JcClassType).jcClass
         jcClass.enumValues?.randomOrNull()?.let {
-            UTestValueRepresentation(UTestGetStaticFieldExpression(it))
+            UTestValueRepresentation(UTypedTestGetStaticFieldExpression(it, jcType))
         }
     }
 }

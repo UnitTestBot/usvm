@@ -2,12 +2,14 @@ package org.usvm.fuzzer.generator.primitives
 
 import org.jacodb.api.ext.long
 import org.jacodb.api.ext.short
+import org.usvm.fuzzer.api.UTypedTestShortExpression
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
 import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.generator.random.nextInt
 import org.usvm.fuzzer.util.UTestValueRepresentation
+import org.usvm.fuzzer.util.shortTypeWrapper
 import org.usvm.instrumentation.testcase.api.UTestShortExpression
 
 class ShortGenerator(): Generator() {
@@ -26,6 +28,6 @@ class ShortGenerator(): Generator() {
             } else  {
                 random.nextLong().toShort()
             }
-        UTestValueRepresentation(UTestShortExpression(randomShort, jcClasspath.short))
+        UTestValueRepresentation(UTypedTestShortExpression(randomShort, jcClasspath.shortTypeWrapper()))
     }
 }

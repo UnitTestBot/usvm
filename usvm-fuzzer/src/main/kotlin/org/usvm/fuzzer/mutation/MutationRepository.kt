@@ -1,6 +1,7 @@
 package org.usvm.fuzzer.mutation
 
 import org.usvm.fuzzer.generator.DataFactory
+import org.usvm.fuzzer.mutation.`object`.CallRandomMethod
 import org.usvm.fuzzer.mutation.`object`.RandomValueRegenerator
 import org.usvm.fuzzer.mutation.primitives.FieldFiller
 import org.usvm.fuzzer.strategy.ChoosingStrategy
@@ -11,11 +12,9 @@ class MutationRepository(
 ) {
 
     private val mutations = mutableListOf<Mutation>(
-//        AddPrimitiveConstant(),
-//        CallRandomMethod()
-//        ArrayMutator()
         RandomValueRegenerator(),
-        FieldFiller()
+        FieldFiller(),
+        CallRandomMethod()
     )
 
     fun getMutation(iterationNumber: Int): Mutation =

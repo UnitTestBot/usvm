@@ -5,6 +5,7 @@ import org.jacodb.api.ext.*
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import java.lang.IllegalArgumentException
+import java.util.function.Predicate
 import kotlin.random.Random
 
 object UTestCreator {
@@ -47,6 +48,16 @@ object UTestCreator {
                 setStatement
             )
             return UTest(statements, UTestMethodCall(instance, jcMethod, listOf(arg1, arg2)))
+        }
+
+        fun lambdaMock(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.A>()
+            val jcMethod = jcClass.findDeclaredMethodOrNull("lambdaTest") ?: error("Cant find method lambdaTest in class A")
+            val constructor = jcClass.constructors.first()
+            val instance = UTestConstructorCall(constructor, listOf())
+            val predicateType = jcClasspath.findClass<Predicate<*>>().toType()
+            val arg1 = UTestLambdaMock(predicateType, listOf(UTestBooleanExpression(true, jcClasspath.boolean)))
+            return UTest(listOf(), UTestMethodCall(instance, jcMethod, listOf(arg1)))
         }
 
         fun loop(jcClasspath: JcClasspath): UTest {

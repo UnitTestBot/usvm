@@ -37,3 +37,14 @@ tasks {
         from(contents)
     }
 }
+
+tasks.withType<Test> {
+    environment(
+        "usvm-jvm-instrumentation-jar",
+        "/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-1.0.jar"
+    )
+    environment(
+        "usvm-jvm-collectors-jar",
+        "/home/zver/IdeaProjects/usvm/usvm-jvm-instrumentation/build/libs/usvm-jvm-instrumentation-collectors.jar"
+    )
+}

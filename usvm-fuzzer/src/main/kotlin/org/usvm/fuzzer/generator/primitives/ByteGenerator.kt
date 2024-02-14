@@ -3,12 +3,14 @@ package org.usvm.fuzzer.generator.primitives
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.int
+import org.usvm.fuzzer.api.UTypedTestByteExpression
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
 import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.generator.random.nextInt
 import org.usvm.fuzzer.util.UTestValueRepresentation
+import org.usvm.fuzzer.util.byteTypeWrapper
 import org.usvm.instrumentation.testcase.api.UTestByteExpression
 
 class ByteGenerator: Generator() {
@@ -26,6 +28,6 @@ class ByteGenerator: Generator() {
         } else {
             random.nextInt().toByte()
         }
-        UTestValueRepresentation(UTestByteExpression(randomByte, jcClasspath.byte))
+        UTestValueRepresentation(UTypedTestByteExpression(randomByte, jcClasspath.byteTypeWrapper()))
     }
 }

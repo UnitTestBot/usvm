@@ -11,6 +11,7 @@ import org.usvm.fuzzer.util.getTrace
 import org.usvm.fuzzer.util.getTrueBranchInst
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
 
 class SeedManager(
     private val targetMethod: JcMethod,
@@ -20,6 +21,7 @@ class SeedManager(
     private val mutationRepository: MutationRepository,
 ) {
 
+    private val seedShrinker: SeedShrinker = SeedShrinker(seedExecutor)
     val seedSelectionStrategy = MOSA(this)
     val seeds = mutableListOf<Seed>()
     val coveredInstructions: MutableSet<JcInst> = HashSet()
@@ -46,14 +48,15 @@ class SeedManager(
         }
     }
 
-    suspend fun executeSeed(seed: Seed): UTestExecutionResult {
+    suspend fun executeSeed(seed: Seed): Pair<UTestExecutionResult, Boolean> {
         val seedExecutionResult = seedExecutor.executeAsync(seed.toUTest())
+        if (seedExecutionResult.getTrace().isEmpty()) return seedExecutionResult to false
         seed.addSeedExecutionInfo(seedExecutionResult)
-        addSeed(seed, 0)
+        val isAdded = addSeed(seed, 0)
         val seedCoverage = seedExecutionResult.getTrace()
         coveredInstructions.addAll(seedCoverage.keys)
         updateBranchInfo()
-        return seedExecutionResult
+        return seedExecutionResult to isAdded
     }
 
     suspend fun mutateAndExecuteSeed() {
@@ -62,7 +65,13 @@ class SeedManager(
         val mutationResult = mutationToApply.mutate(seedToMutate) ?: return
         val mutatedSeed = mutationResult.first ?: return
         val prevCoverageSize = coveredInstructions.size
-        val seedExecutionResult = executeSeed(mutatedSeed)
+        val (seedExecutionResult, isAdded) = executeSeed(mutatedSeed)
+        if (isAdded) {
+            val shrinkedSeed = seedShrinker.shrink(mutatedSeed) ?: mutatedSeed
+            val executionResult = seedExecutor.executeAsync(shrinkedSeed.toUTest())
+            shrinkedSeed.addSeedExecutionInfo(executionResult)
+            replaceSeed(mutatedSeed, shrinkedSeed)
+        }
         //Add execution info to mutation
         val newCoverageSize = coveredInstructions.size
         mutationToApply.numberOfChooses += 1
@@ -98,18 +107,27 @@ class SeedManager(
         targetBranches.addAll(unCoveredBranches.filter { it.trueBranchCovered || it.falseBranchCovered })
     }
 
-    fun addSeed(seed: Seed, iterationNumber: Int) {
-        if (seeds.size >= seedsLimit) {
+    fun addSeed(seed: Seed, iterationNumber: Int): Boolean {
+
+        return if (seeds.size >= seedsLimit) {
             seeds.add(seed)
-            val worstSeed = seedSelectionStrategy.chooseWorstAndRemove()
+            val worstSeed = seedSelectionStrategy.chooseWorstAndRemove(seed)
             seeds.remove(worstSeed)
+            worstSeed !== seed
         } else {
             seeds.add(seed)
+            true
         }
         //TODO update test suite
     }
 
-    fun getSeed(iterationNumber: Int) = seedSelectionStrategy.chooseBest()
+    private fun replaceSeed(seed: Seed, replacement: Seed) {
+        seeds.remove(seed)
+        seeds.add(replacement)
+        seedSelectionStrategy.replace(seed, replacement)
+    }
+
+    private fun getSeed(iterationNumber: Int) = seedSelectionStrategy.chooseBest()
 
     data class Branch(
         val ifInst: JcIfInst,

@@ -2,6 +2,8 @@ package org.usvm.fuzzer.generator.`object`
 
 import org.jacodb.api.JcClassType
 import org.jacodb.api.ext.void
+import org.usvm.fuzzer.api.UTypedTestInst
+import org.usvm.fuzzer.api.UTypedTestMockObject
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.types.JcTypeWrapper
 import org.usvm.fuzzer.util.UTestValueRepresentation
@@ -12,7 +14,7 @@ import org.usvm.instrumentation.util.toJavaMethod
 
 class MockClassGenerator(private val jcType: JcTypeWrapper): UserClassGenerator() {
     override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = { depth ->
-        val initStmts = mutableListOf<UTestInst>()
+        val initStmts = mutableListOf<UTypedTestInst>()
         val fields = jcType.declaredFields.mapNotNull { jcField ->
             val jField = jcField.field.toJavaField(userClassLoader) ?: return@mapNotNull null
             val fieldType = genericGenerator.getFieldType(jcType, jField)
@@ -37,7 +39,7 @@ class MockClassGenerator(private val jcType: JcTypeWrapper): UserClassGenerator(
             initStmts.addAll(methodValue.initStmts)
             jcMethod.method to listOf(methodValue.instance)
         }.toMap().filterValues { it.isNotEmpty() }
-        val mock = UTestMockObject(jcType.type, fields, methods)
+        val mock = UTypedTestMockObject(jcType, fields, methods)
         UTestValueRepresentation(mock, initStmts)
     }
 }

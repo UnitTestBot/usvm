@@ -2,6 +2,7 @@ package org.usvm.fuzzer.generator.primitives
 
 import org.jacodb.api.ext.boolean
 import org.jacodb.api.ext.long
+import org.usvm.fuzzer.api.UTypedTestLongExpression
 import org.usvm.fuzzer.generator.Generator
 import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorSettings
@@ -9,6 +10,7 @@ import org.usvm.fuzzer.generator.random.getTrueWithProb
 import org.usvm.fuzzer.util.UTestValueRepresentation
 import org.usvm.instrumentation.testcase.api.UTestLongExpression
 import org.usvm.fuzzer.generator.random.nextLong
+import org.usvm.fuzzer.util.longTypeWrapper
 
 class LongGenerator(): Generator() {
     override val generationFun: GeneratorContext.(Int) -> UTestValueRepresentation = {
@@ -26,6 +28,6 @@ class LongGenerator(): Generator() {
             } else  {
                 random.nextLong()
             }
-        UTestValueRepresentation(UTestLongExpression(randomLong, jcClasspath.long))
+        UTestValueRepresentation(UTypedTestLongExpression(randomLong, jcClasspath.longTypeWrapper()))
     }
 }

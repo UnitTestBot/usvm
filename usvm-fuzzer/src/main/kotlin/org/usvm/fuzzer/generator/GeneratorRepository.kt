@@ -3,14 +3,19 @@ package org.usvm.fuzzer.generator
 import org.jacodb.api.*
 import org.jacodb.api.ext.*
 import org.usvm.fuzzer.generator.arrays.ArrayGenerator
+import org.usvm.fuzzer.generator.collections.StackGenerator
+import org.usvm.fuzzer.generator.collections.deque.ArrayDequeGenerator
 import org.usvm.fuzzer.generator.collections.list.ArrayListGenerator
-import org.usvm.fuzzer.generator.collections.list.HashSetGenerator
-import org.usvm.fuzzer.generator.collections.list.LinkedHashSetGenerator
+import org.usvm.fuzzer.generator.collections.set.HashSetGenerator
+import org.usvm.fuzzer.generator.collections.set.LinkedHashSetGenerator
 import org.usvm.fuzzer.generator.collections.list.LinkedListGenerator
 import org.usvm.fuzzer.generator.collections.map.ConcurrentHashMapGenerator
 import org.usvm.fuzzer.generator.collections.map.HashMapGenerator
 import org.usvm.fuzzer.generator.collections.map.LinkedHashMapGenerator
 import org.usvm.fuzzer.generator.collections.map.TreeMapGenerator
+import org.usvm.fuzzer.generator.collections.queue.PriorityQueueGenerator
+import org.usvm.fuzzer.generator.collections.set.TreeSetGenerator
+import org.usvm.fuzzer.generator.lambdas.LambdaGenerator
 import org.usvm.fuzzer.generator.`object`.*
 import org.usvm.fuzzer.generator.other.ObjectGenerator
 import org.usvm.fuzzer.generator.other.StringGenerator
@@ -49,17 +54,38 @@ class GeneratorRepository {
             jcClasspath.classType().typeNameWOGenerics -> ClassGenerator()
             jcClasspath.stringType().typeNameWOGenerics -> StringGenerator()
             jcClasspath.arrayListType().typeNameWOGenerics -> ArrayListGenerator(jcType)
+            jcClasspath.collectionType().typeNameWOGenerics -> getRandomFrom(
+                ArrayListGenerator(jcType), LinkedListGenerator(jcType), HashSetGenerator(jcType), LinkedHashSetGenerator(jcType)
+            )
+            jcClasspath.iterableType().typeNameWOGenerics -> getRandomFrom(
+                ArrayListGenerator(jcType), LinkedListGenerator(jcType), HashSetGenerator(jcType), LinkedHashSetGenerator(jcType)
+            )
             jcClasspath.listType().typeNameWOGenerics -> getRandomFrom(
                 ArrayListGenerator(jcType), LinkedListGenerator(jcType), HashSetGenerator(jcType), LinkedHashSetGenerator(jcType)
             )
+            jcClasspath.setType().typeNameWOGenerics -> getRandomFrom(
+                HashSetGenerator(jcType), LinkedListGenerator(jcType), TreeSetGenerator(jcType)
+            )
             jcClasspath.hashSetType().typeNameWOGenerics -> HashSetGenerator(jcType)
             jcClasspath.linkedHashMapType().typeNameWOGenerics -> LinkedListGenerator(jcType)
+            jcClasspath.treeSetType().typeNameWOGenerics -> TreeSetGenerator(jcType)
+            jcClasspath.sortedSetType().typeNameWOGenerics -> TreeSetGenerator(jcType)
             jcClasspath.mapType().typeNameWOGenerics -> getRandomFrom(
                 HashMapGenerator(jcType), LinkedHashMapGenerator(jcType), TreeMapGenerator(jcType), ConcurrentHashMapGenerator(jcType)
             )
             jcClasspath.hashMapType().typeNameWOGenerics -> HashMapGenerator(jcType)
             jcClasspath.linkedHashMapType().typeNameWOGenerics -> LinkedHashMapGenerator(jcType)
             jcClasspath.treeMapType().typeNameWOGenerics -> TreeMapGenerator(jcType)
+            jcClasspath.dequeType().typeNameWOGenerics -> getRandomFrom(
+                ArrayDequeGenerator(jcType), LinkedListGenerator(jcType)
+            )
+            jcClasspath.arrayDequeType().typeNameWOGenerics -> ArrayDequeGenerator(jcType)
+            jcClasspath.queueType().typeNameWOGenerics -> getRandomFrom(
+                ArrayDequeGenerator(jcType), LinkedListGenerator(jcType), PriorityQueueGenerator(jcType)
+            )
+            jcClasspath.stackType().typeNameWOGenerics -> StackGenerator(jcType)
+            jcClasspath.priorityQueueType().typeNameWOGenerics -> PriorityQueueGenerator(jcType)
+            jcClasspath.navigableSetType().typeNameWOGenerics -> TreeSetGenerator(jcType)
             jcClasspath.objectType.typeNameWOGenerics -> ObjectGenerator()
             else -> getSuitableGeneratorForType(jcType)
         }
@@ -67,6 +93,7 @@ class GeneratorRepository {
     private fun getSuitableGeneratorForType(jcType: JcTypeWrapper): Generator {
         val jcClass = (jcType.type as JcClassType).jcClass
         return when {
+            jcClass.isFunctionalInterface -> LambdaGenerator(jcType)
             jcClass.isAbstract || jcClass.isInterface -> SafeAbstractClassGenerator(jcType)
             jcClass.isEnum -> EnumClassGenerator(jcType)
             GeneratorSettings.generationMode == GenerationMode.SAFE -> SafeUserClassGenerator(jcType)

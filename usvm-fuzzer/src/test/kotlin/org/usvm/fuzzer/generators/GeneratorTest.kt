@@ -8,6 +8,9 @@ import org.usvm.fuzzer.generator.GeneratorContext
 import org.usvm.fuzzer.generator.GeneratorRepository
 import org.usvm.fuzzer.generator.random.FuzzerRandomNormalDistribution
 import org.usvm.fuzzer.helpers.JcdbConstantsCollector
+import org.usvm.fuzzer.seed.SeedManager
+import org.usvm.instrumentation.executor.UTestConcreteExecutor
+import org.usvm.instrumentation.instrumentation.JcExtendedRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.io.File
 import kotlin.random.Random
@@ -20,6 +23,7 @@ open class GeneratorTest {
         lateinit var jcClasspath: JcClasspath
         lateinit var generatorRepository: GeneratorRepository
         lateinit var userClassLoader: ClassLoader
+        lateinit var executor: UTestConcreteExecutor
 
         fun init() {
             val cp = testJarPath.map { File(it) }
@@ -42,6 +46,12 @@ open class GeneratorTest {
                 mutableMapOf()
             )
             generatorRepository.registerGeneratorContext(generatorContext)
+            executor = UTestConcreteExecutor(
+                JcExtendedRuntimeTraceInstrumenterFactory::class,
+                testJarPath,
+                jcClasspath,
+                InstrumentationModuleConstants.testExecutionTimeout
+            )
         }
     }
 

@@ -139,6 +139,19 @@ val JcClassOrInterface.allDeclaredFields
         return result.values.toList()
     }
 
+val JcClassOrInterface.allDeclaredMethods
+    get(): List<JcMethod> {
+        val result = HashSet<JcMethod>()
+        var current: JcClassOrInterface? = this
+        do {
+            current!!.declaredMethods.forEach {
+                result.add(it)
+            }
+            current = current.superClass
+        } while (current != null)
+        return result.toList()
+    }
+
 fun TypeName.toJcType(jcClasspath: JcClasspath): JcType? = jcClasspath.findTypeOrNull(typeName)
 fun TypeName.toJcClassOrInterface(jcClasspath: JcClasspath): JcClassOrInterface? = jcClasspath.findClassOrNull(typeName)
 
