@@ -1,11 +1,10 @@
 package org.usvm.collection.array.length
 
-import io.ksmt.solver.KModel
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.AddressesMapping
+import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
 import org.usvm.solver.UCollectionDecoder
 
@@ -22,12 +21,11 @@ abstract class UArrayLengthModelRegion<ArrayType, USizeSort : USort>(
 
 class UArrayLengthLazyModelRegion<ArrayType, USizeSort : USort>(
     regionId: UArrayLengthsRegionId<ArrayType, USizeSort>,
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val inputArrayLengthDecoder: UCollectionDecoder<UHeapRef, USizeSort>,
 ) : UArrayLengthModelRegion<ArrayType, USizeSort>(regionId) {
     override val inputArrayLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort> by lazy {
-        inputArrayLengthDecoder.decodeCollection(model, addressesMapping)
+        inputArrayLengthDecoder.decodeCollection(model)
     }
 }
 

@@ -1,7 +1,7 @@
 package org.usvm.collection.set.ref
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -82,9 +82,9 @@ interface URefSetRegion<SetType> :
 internal class URefSetMemoryRegion<SetType>(
     private val setType: SetType,
     private val sort: UBoolSort,
-    private var allocatedSetWithAllocatedElements: PersistentMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr> = persistentMapOf(),
-    private var allocatedSetWithInputElements: PersistentMap<UAllocatedRefSetWithInputElementsId<SetType>, UAllocatedRefSetWithInputElements<SetType>> = persistentMapOf(),
-    private var inputSetWithAllocatedElements: PersistentMap<UInputRefSetWithAllocatedElementsId<SetType>, UInputRefSetWithAllocatedElements<SetType>> = persistentMapOf(),
+    private var allocatedSetWithAllocatedElements: PersistentMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr> = persistentHashMapOf(),
+    private var allocatedSetWithInputElements: PersistentMap<UAllocatedRefSetWithInputElementsId<SetType>, UAllocatedRefSetWithInputElements<SetType>> = persistentHashMapOf(),
+    private var inputSetWithAllocatedElements: PersistentMap<UInputRefSetWithAllocatedElementsId<SetType>, UInputRefSetWithAllocatedElements<SetType>> = persistentHashMapOf(),
     private var inputSetWithInputElements: UInputRefSetWithInputElements<SetType>? = null
 ) : URefSetRegion<SetType> {
     private fun updateAllocatedSetWithAllocatedElements(

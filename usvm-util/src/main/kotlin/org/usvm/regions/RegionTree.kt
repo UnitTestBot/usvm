@@ -292,4 +292,7 @@ private typealias CompletelyCoveredRegionTree<Reg, Value> = RegionTree<Reg, Valu
 private typealias RegionTreeMapEntry<Reg, Value> = Map.Entry<Reg, Pair<Value, RegionTree<Reg, Value>>>
 private typealias RegionTreeEntryIterator<Reg, Value> = Iterator<RegionTreeMapEntry<Value, Reg>>
 
-fun <Reg : Region<Reg>, Value> emptyRegionTree() = RegionTree<Reg, Value>(persistentMapOf())
+private val EMPTY_REGION = RegionTree<Nothing, Nothing>(persistentMapOf())
+
+@Suppress("UNCHECKED_CAST")
+fun <Reg : Region<Reg>, Value> emptyRegionTree(): RegionTree<Reg, Value> = EMPTY_REGION as RegionTree<Reg, Value>

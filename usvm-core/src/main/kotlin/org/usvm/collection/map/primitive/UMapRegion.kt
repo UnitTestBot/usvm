@@ -1,7 +1,7 @@
 package org.usvm.collection.map.primitive
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -67,7 +67,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     private val valueSort: ValueSort,
     private val mapType: MapType,
     private val keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
-    private var allocatedMaps: PersistentMap<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UAllocatedMap<MapType, KeySort, ValueSort, Reg>> = persistentMapOf(),
+    private var allocatedMaps: PersistentMap<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UAllocatedMap<MapType, KeySort, ValueSort, Reg>> = persistentHashMapOf(),
     private var inputMap: UInputMap<MapType, KeySort, ValueSort, Reg>? = null,
 ) : UMapRegion<MapType, KeySort, ValueSort, Reg> {
     init {

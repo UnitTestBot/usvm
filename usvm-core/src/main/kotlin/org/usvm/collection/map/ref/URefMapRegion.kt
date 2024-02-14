@@ -1,7 +1,7 @@
 package org.usvm.collection.map.ref
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
@@ -73,9 +73,9 @@ internal data class UAllocatedRefMapWithAllocatedKeysId(
 internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     private val valueSort: ValueSort,
     private val mapType: MapType,
-    private var allocatedMapWithAllocatedKeys: PersistentMap<UAllocatedRefMapWithAllocatedKeysId, UExpr<ValueSort>> = persistentMapOf(),
-    private var inputMapWithAllocatedKeys: PersistentMap<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UInputRefMapWithAllocatedKeys<MapType, ValueSort>> = persistentMapOf(),
-    private var allocatedMapWithInputKeys: PersistentMap<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UAllocatedRefMapWithInputKeys<MapType, ValueSort>> = persistentMapOf(),
+    private var allocatedMapWithAllocatedKeys: PersistentMap<UAllocatedRefMapWithAllocatedKeysId, UExpr<ValueSort>> = persistentHashMapOf(),
+    private var inputMapWithAllocatedKeys: PersistentMap<UInputRefMapWithAllocatedKeysId<MapType, ValueSort>, UInputRefMapWithAllocatedKeys<MapType, ValueSort>> = persistentHashMapOf(),
+    private var allocatedMapWithInputKeys: PersistentMap<UAllocatedRefMapWithInputKeysId<MapType, ValueSort>, UAllocatedRefMapWithInputKeys<MapType, ValueSort>> = persistentHashMapOf(),
     private var inputMapWithInputKeys: UInputRefMap<MapType, ValueSort>? = null,
 ) : URefMapRegion<MapType, ValueSort> {
 
