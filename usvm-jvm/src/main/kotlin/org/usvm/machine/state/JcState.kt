@@ -22,6 +22,7 @@ class JcState(
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     pathNode: PathNode<JcInst> = PathNode.root(),
+    forkPoints: PathNode<PathNode<JcInst>> = PathNode.root(),
     var methodResult: JcMethodResult = JcMethodResult.NoCall,
     targets: UTargetsSet<JcTarget, JcInst> = UTargetsSet.empty(),
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
@@ -31,6 +32,7 @@ class JcState(
     memory,
     models,
     pathNode,
+    forkPoints,
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
@@ -43,6 +45,7 @@ class JcState(
             memory.clone(clonedConstraints.typeConstraints),
             models,
             pathNode,
+            forkPoints,
             methodResult,
             targets.clone(),
         )
@@ -58,6 +61,7 @@ class JcState(
         // TODO: copy-paste
 
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
+        val mergedForkPoints = forkPoints.mergeWith(other.forkPoints, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
@@ -82,6 +86,7 @@ class JcState(
             mergedMemory,
             mergedModels,
             mergedPathNode,
+            mergedForkPoints,
             methodResult,
             mergedTargets
         )

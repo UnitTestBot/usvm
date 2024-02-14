@@ -68,7 +68,7 @@ abstract class SymbolicCollectionTestBase {
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
     ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<USizeSort>, TargetStub, StateStub>(
         ctx, UCallStack(),
-        pathConstraints, memory, emptyList(), PathNode.root(), UTargetsSet.empty()
+        pathConstraints, memory, emptyList(), PathNode.root(), PathNode.root(), UTargetsSet.empty()
     ) {
         override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
             val clonedConstraints = newConstraints ?: pathConstraints.clone()
