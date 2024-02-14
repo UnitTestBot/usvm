@@ -55,9 +55,7 @@ func (b *Bridge) init(file string, debug bool) error {
 }
 
 func (b *Bridge) step(api api.Api, inst ssa.Instruction) *ssa.Instruction {
-	newInst := b.interpreter.Step(api, inst)
-	api.WriteLastBlock()
-	return newInst
+	return b.interpreter.Step(api, inst)
 }
 
 // ---------------- region: initialize
@@ -216,6 +214,25 @@ func entryPoints(pointer C.jlong, arr *C.jlong) {
 	out[0] = C.jlong(util.ToPointer(&function.Blocks[0].Instrs[0]))
 }
 
+//export methodImplementation
+func methodImplementation(methodPointer, typePointer C.jlong) C.jlong {
+	method := util.FromPointer[types.Func](uintptr(methodPointer))
+	if method == nil {
+		return 0
+	}
+
+	typ := *util.FromPointer[types.Type](uintptr(typePointer))
+	if typ == nil {
+		return 0
+	}
+
+	pkg := method.Pkg()
+	name := method.Name()
+
+	function := bridge.interpreter.Program().LookupMethod(typ, pkg, name)
+	return C.jlong(util.ToPointer(function))
+}
+
 //export exitPoints
 func exitPoints(pointer C.jlong, arr *C.jlong, size C.jint) C.jint {
 	function := util.FromPointer[ssa.Function](uintptr(pointer))
@@ -286,7 +303,7 @@ func findSubTypes(pointer C.jlong, arr *C.jlong, size C.jint) C.jint {
 		return 0
 	}
 
-	i := t.(*types.Interface).Complete()
+	i := t.Underlying().(*types.Interface).Complete()
 	index := 0
 	out := unsafe.Slice(arr, int(size))
 	allTypes := bridge.interpreter.Types()
@@ -333,10 +350,12 @@ func hasCommonSubtype(pointer C.jlong, arr *C.jlong, size C.jint) C.jboolean {
 	}
 
 	result := true
-	for _, t := range allTypes {
-		if !types.IsInterface(t) {
-			result = false
-			break
+	if len(allTypes) > 1 {
+		for _, t := range allTypes {
+			if !types.IsInterface(t) {
+				result = false
+				break
+			}
 		}
 	}
 	return toJBool(result)
@@ -387,6 +406,20 @@ func structFieldTypes(pointer C.jlong, arr C.jlong) {
 		buf.WriteInt32(int32(l))
 		for i := 0; i < l; i++ {
 			buf.WriteType(structType.Field(i).Type())
+		}
+	}
+}
+
+//export tupleTypes
+func tupleTypes(pointer C.jlong, arr C.jlong) {
+	t := *util.FromPointer[types.Type](uintptr(pointer))
+	switch tupleType := t.Underlying().(type) {
+	case *types.Tuple:
+		l := tupleType.Len()
+		buf := util.NewByteBuffer(uintptr(arr))
+		buf.WriteInt32(int32(l))
+		for i := 0; i < l; i++ {
+			buf.WriteType(tupleType.At(i).Type())
 		}
 	}
 }

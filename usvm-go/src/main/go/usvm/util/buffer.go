@@ -5,7 +5,6 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/cespare/xxhash"
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/domain"
@@ -104,6 +103,14 @@ func (b *ByteBuffer) WriteFloat64(i float64) *ByteBuffer {
 	return b.WriteUint64(math.Float64bits(i))
 }
 
+func (b *ByteBuffer) WriteString(i string) *ByteBuffer {
+	b.WriteInt32(int32(len(i)))
+	for _, e := range []byte(i) {
+		b.Write(e)
+	}
+	return b
+}
+
 func (b *ByteBuffer) WriteMethodInfo(i domain.MethodInfo) *ByteBuffer {
 	b.WriteType(i.ReturnType)
 	b.WriteInt32(int32(i.VariablesCount))
@@ -115,21 +122,11 @@ func (b *ByteBuffer) WriteMethodInfo(i domain.MethodInfo) *ByteBuffer {
 }
 
 func (b *ByteBuffer) WriteValueType(v ssa.Value) *ByteBuffer {
-	b.WriteType(v.Type().Underlying())
-	return b
-}
-
-func (b *ByteBuffer) WriteValueTypeHash(v ssa.Value) *ByteBuffer {
-	b.WriteUint64(xxhash.Sum64String(v.Type().String()))
+	b.WriteType(v.Type())
 	return b
 }
 
 func (b *ByteBuffer) WriteType(t types.Type) *ByteBuffer {
-	p := *(*iface)(unsafe.Pointer(&t))
-	b.WriteUintptr(PutPointer(p.Data, &t))
+	b.WriteUintptr(ToPointer(&t))
 	return b
-}
-
-type iface struct {
-	Type, Data unsafe.Pointer
 }

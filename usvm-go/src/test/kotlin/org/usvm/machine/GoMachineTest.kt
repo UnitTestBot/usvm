@@ -12,13 +12,13 @@ class GoMachineTest {
 
     @Test
     fun testMax() {
-        val results = machine.analyzeAndResolve(Path.getProgram("max2.go"), "max2", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("if.go"), "max2", false)
         println(results)
     }
 
     @Test
     fun testMin() {
-        val results = machine.analyzeAndResolve(Path.getProgram("min2.go"), "min2", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("if.go"), "min2", false)
         println(results)
     }
 
@@ -26,19 +26,19 @@ class GoMachineTest {
     fun testMin3() {
         val machine =
             GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
-        val results = machine.analyzeAndResolve(Path.getProgram("min3.go"), "min3", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "min3", false)
         println(results)
     }
 
     @Test
     fun testAdd() {
-        val results = machine.analyzeAndResolve(Path.getProgram("add.go"), "add", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("if.go"), "add", false)
         println(results)
     }
 
     @Test
     fun testGcd() {
-        val results = machine.analyzeAndResolve(Path.getProgram("gcd.go"), "gcd", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("if.go"), "gcd", false)
         println(results)
     }
 
@@ -54,13 +54,7 @@ class GoMachineTest {
         val machine = GoMachine(
             UMachineOptions(listOf(PathSelectionStrategy.BFS), timeout = Duration.INFINITE),
         )
-        val results = machine.analyze(Path.getProgram("loop_hard.go"), "loop", false)
-        println(results)
-    }
-
-    @Test
-    fun testLoopCrazy() {
-        val results = machine.analyze(Path.getProgram("loop_crazy.go"), "loop", false)
+        val results = machine.analyze(Path.getProgram("loop.go"), "loop2", false)
         println(results)
     }
 
@@ -74,7 +68,7 @@ class GoMachineTest {
                 stepLimit = 1_000_000UL,
             ),
         )
-        val results = machine.analyze(Path.getProgram("loop_infinite.go"), "loop", false)
+        val results = machine.analyze(Path.getProgram("loop.go"), "infinite", false)
         println(results)
     }
 
@@ -88,20 +82,20 @@ class GoMachineTest {
                 stepLimit = 1_000_000UL,
             ),
         )
-        val results = machine.analyzeAndResolve(Path.getProgram("loop_collatz.go"), "loop", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "collatz", false)
         println(results)
     }
 
     @Test
     fun testSumArray() {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH)))
-        val results = machine.analyzeAndResolve(Path.getProgram("sum_array.go"), "sumArray", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sumArray", false)
         println(results)
     }
 
     @Test
     fun testFirstArray() {
-        val results = machine.analyzeAndResolve(Path.getProgram("first_array.go"), "first", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "first", false)
         println(results)
     }
 
@@ -113,7 +107,7 @@ class GoMachineTest {
 
     @Test
     fun testStructFieldSet() {
-        val results = machine.analyzeAndResolve(Path.getProgram("struct_field_set.go"), "setPerfectAge", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("struct.go"), "setPerfectAge", false)
         println(results)
     }
 
@@ -125,19 +119,25 @@ class GoMachineTest {
 
     @Test
     fun testMapLookup() {
-        val results = machine.analyzeAndResolve(Path.getProgram("map_lookup.go"), "lookup", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "lookup", false)
         println(results)
     }
 
     @Test
     fun testMapLookupCommaOk() {
-        val results = machine.analyzeAndResolve(Path.getProgram("map_lookup.go"), "lookupComma", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "lookupComma", false)
+        println(results)
+    }
+
+    @Test
+    fun testMapLookupCommaOkReturn() {
+        val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "lookupCommaReturn", false)
         println(results)
     }
 
     @Test
     fun testMapUpdate() {
-        val results = machine.analyzeAndResolve(Path.getProgram("map_update.go"), "update", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "update", false)
         println(results)
     }
 
@@ -181,6 +181,38 @@ class GoMachineTest {
     @Test
     fun testArrayOverwrite() {
         val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "overwrite", false)
+        println(results)
+    }
+
+    @Test
+    fun testArrayCompare() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "compare", false)
+        println(results)
+    }
+
+    @Test
+    fun testCastSlice() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE
+            )
+        )
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "castSlice", true)
+        println(results)
+    }
+
+    @Test
+    fun testStdSort() {
+        val machine =
+            GoMachine(
+                UMachineOptions(
+                    listOf(PathSelectionStrategy.FORK_DEPTH),
+                    timeout = Duration.INFINITE,
+                    stepLimit = 100000u,
+                    coverageZone = CoverageZone.TRANSITIVE
+                )
+            )
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "stdSort", true)
         println(results)
     }
 }

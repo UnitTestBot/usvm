@@ -77,6 +77,8 @@ class GoBridge {
         Bridge.statementsOf(method, arr, len)
     }
 
+    fun methodImplementation(method: GoMethod, type: GoType): GoMethod = Bridge.methodImplementation(method, type)
+
     // ------------ region: application graph
 
     // ------------ region: type system
@@ -111,6 +113,14 @@ class GoBridge {
 
     fun structFieldTypes(type: GoType): LongArray {
         Bridge.structFieldTypes(type, address)
+        val length = buf.int
+        val types = LongArray(length) { buf.long }
+        buf.rewind()
+        return types
+    }
+
+    fun tupleTypes(type: GoType): LongArray {
+        Bridge.tupleTypes(type, address)
         val length = buf.int
         val types = LongArray(length) { buf.long }
         buf.rewind()
