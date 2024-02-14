@@ -2,14 +2,12 @@ package org.usvm.collection.map.ref
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapAddress
-import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
@@ -17,7 +15,7 @@ import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.model.UMemory2DArray
+import org.usvm.model.UModelEvaluator
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.U2DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
@@ -63,10 +61,9 @@ class URefMapRegionDecoder<MapType, ValueSort : USort>(
     }
 
     override fun decodeLazyRegion(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>
-    ) = inputRegionTranslator?.let { URefMapLazyModelRegion(regionId, model, mapping, it) }
+    ) = inputRegionTranslator?.let { URefMapLazyModelRegion(regionId, model, it) }
 }
 
 private class UAllocatedRefMapWithInputKeysTranslator<MapType, ValueSort : USort>(
@@ -134,10 +131,9 @@ private class UInputRefMapTranslator<MapType, ValueSort : USort>(
     }
 
     override fun decodeCollection(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
+        model: UModelEvaluator<*>
     ): UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort> =
-        UMemory2DArray(initialValue, model, mapping)
+        model.evalAndCompleteArray2DMemoryRegion(initialValue.decl)
 }
 
 private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(

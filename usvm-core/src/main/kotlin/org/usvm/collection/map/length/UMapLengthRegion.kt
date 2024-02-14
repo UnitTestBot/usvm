@@ -1,7 +1,7 @@
 package org.usvm.collection.map.length
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
@@ -43,7 +43,7 @@ interface UMapLengthRegion<MapType, USizeSort : USort> : UMemoryRegion<UMapLengt
 internal class UMapLengthMemoryRegion<MapType, USizeSort : USort>(
     private val sort: USizeSort,
     private val mapType: MapType,
-    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>> = persistentMapOf(),
+    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>> = persistentHashMapOf(),
     private var inputLengths: UInputMapLength<MapType, USizeSort>? = null
 ) : UMapLengthRegion<MapType, USizeSort> {
 

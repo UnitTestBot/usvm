@@ -2,18 +2,16 @@ package org.usvm.collection.map.length
 
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.usvm.UAddressSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.memory.URangedUpdateNode
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
-import org.usvm.model.UMemory1DArray
+import org.usvm.model.UModelEvaluator
 import org.usvm.sizeSort
 import org.usvm.solver.U1DUpdatesTranslator
 import org.usvm.solver.UCollectionDecoder
@@ -39,10 +37,9 @@ class UMapLengthRegionDecoder<MapType, USizeSort : USort>(
     }
 
     override fun decodeLazyRegion(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>
-    ) = inputRegionTranslator?.let { UMapLengthLazyModelRegion(regionId, model, mapping, it) }
+    ) = inputRegionTranslator?.let { UMapLengthLazyModelRegion(regionId, model, it) }
 }
 
 private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
@@ -66,10 +63,9 @@ private class UInputMapLengthRegionTranslator<MapType, USizeSort : USort>(
     }
 
     override fun decodeCollection(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>
+        model: UModelEvaluator<*>
     ): UReadOnlyMemoryRegion<UHeapRef, USizeSort> =
-        UMemory1DArray(initialValue, model, mapping)
+        model.evalAndCompleteArray1DMemoryRegion(initialValue.decl)
 }
 
 private class UInputMapLengthUpdateTranslator<USizeSort : USort>(

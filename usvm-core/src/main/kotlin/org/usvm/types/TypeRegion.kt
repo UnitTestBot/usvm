@@ -1,7 +1,7 @@
 package org.usvm.types
 
 import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.persistentHashSetOf
 import org.usvm.regions.Region
 
 /**
@@ -10,10 +10,10 @@ import org.usvm.regions.Region
 class UTypeRegion<Type>(
     val typeSystem: UTypeSystem<Type>,
     val typeStream: UTypeStream<Type>,
-    val supertypes: PersistentSet<Type> = persistentSetOf(),
-    val notSupertypes: PersistentSet<Type> = persistentSetOf(),
-    val subtypes: PersistentSet<Type> = persistentSetOf(),
-    val notSubtypes: PersistentSet<Type> = persistentSetOf(),
+    val supertypes: PersistentSet<Type> = persistentHashSetOf(),
+    val notSupertypes: PersistentSet<Type> = persistentHashSetOf(),
+    val subtypes: PersistentSet<Type> = persistentHashSetOf(),
+    val notSubtypes: PersistentSet<Type> = persistentHashSetOf(),
 ) : Region<UTypeRegion<Type>> {
     /**
      * Returns region that represents empty set of types. Called when type
@@ -248,8 +248,8 @@ class UTypeRegion<Type>(
 
         return clone(
             USingleTypeStream(typeSystem, type),
-            supertypes = persistentSetOf(type),
-            subtypes = persistentSetOf(type)
+            supertypes = persistentHashSetOf(type),
+            subtypes = persistentHashSetOf(type)
         )
     }
 
@@ -269,8 +269,8 @@ class UTypeRegion<Type>(
         fun <Type> fromSingleType(typeSystem: UTypeSystem<Type>, type: Type): UTypeRegion<Type> = UTypeRegion(
             typeSystem,
             USingleTypeStream(typeSystem, type),
-            supertypes = persistentSetOf(type),
-            subtypes = persistentSetOf(type)
+            supertypes = persistentHashSetOf(type),
+            subtypes = persistentHashSetOf(type)
         )
     }
 }

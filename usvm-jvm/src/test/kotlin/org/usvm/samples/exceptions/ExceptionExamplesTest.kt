@@ -135,7 +135,8 @@ internal class ExceptionExamplesTest : JavaMethodTestRunner() {
             ExceptionExamples::tryThrowableMethod,
             eq(2),
             { _, r -> r == NullPointerException::class.java },
-            { _, r -> r == Throwable::class.java },
+            // Since we mock all methods of java.lang.Throwable getCause can return ANY Throwable
+            { _, r -> r != null && Throwable::class.java.isAssignableFrom(r) },
         )
     }
 }

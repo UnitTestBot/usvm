@@ -1,7 +1,7 @@
 package org.usvm.collection.set.primitive
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapAddress
@@ -84,7 +84,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     private val setType: SetType,
     private val elementSort: ElementSort,
     private val elementInfo: USymbolicCollectionKeyInfo<UExpr<ElementSort>, Reg>,
-    private var allocatedSets: PersistentMap<UAllocatedSetId<SetType, ElementSort, Reg>, UAllocatedSet<SetType, ElementSort, Reg>> = persistentMapOf(),
+    private var allocatedSets: PersistentMap<UAllocatedSetId<SetType, ElementSort, Reg>, UAllocatedSet<SetType, ElementSort, Reg>> = persistentHashMapOf(),
     private var inputSet: UInputSet<SetType, ElementSort, Reg>? = null,
 ) : USetRegion<SetType, ElementSort, Reg> {
     init {
