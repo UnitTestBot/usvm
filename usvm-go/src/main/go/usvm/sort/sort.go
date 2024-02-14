@@ -10,6 +10,7 @@ type Sort byte
 
 const (
 	Unknown Sort = iota
+	Void
 	Bool
 	Int8
 	Int16
@@ -21,6 +22,7 @@ const (
 	Uint64
 	Float32
 	Float64
+	String
 	Array
 	Slice
 	Map
@@ -31,24 +33,26 @@ const (
 )
 
 var basicSorts = []Sort{
-	types.Bool:         Bool,
-	types.UntypedBool:  Bool,
-	types.Int8:         Int8,
-	types.Uint8:        Uint8,
-	types.Int16:        Int16,
-	types.Uint16:       Uint16,
-	types.Int:          Int32,
-	types.Uint:         Uint32,
-	types.UntypedInt:   Int32,
-	types.Int32:        Int32,
-	types.Uint32:       Uint32,
-	types.UntypedRune:  Int32,
-	types.Int64:        Int64,
-	types.Uint64:       Uint64,
-	types.Uintptr:      Uint64,
-	types.Float32:      Float32,
-	types.Float64:      Float64,
-	types.UntypedFloat: Float64,
+	types.Bool:          Bool,
+	types.UntypedBool:   Bool,
+	types.Int8:          Int8,
+	types.Uint8:         Uint8,
+	types.Int16:         Int16,
+	types.Uint16:        Uint16,
+	types.Int:           Int32,
+	types.Uint:          Uint32,
+	types.UntypedInt:    Int32,
+	types.Int32:         Int32,
+	types.Uint32:        Uint32,
+	types.UntypedRune:   Int32,
+	types.Int64:         Int64,
+	types.Uint64:        Uint64,
+	types.Uintptr:       Uint64,
+	types.Float32:       Float32,
+	types.Float64:       Float64,
+	types.UntypedFloat:  Float64,
+	types.String:        String,
+	types.UntypedString: String,
 }
 
 func GetSort(v ssa.Value, unwrap bool) Sort {

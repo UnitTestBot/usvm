@@ -81,9 +81,6 @@ func NewInterpreter(file string, conf Config) (*Interpreter, error) {
 		return nil, fmt.Errorf("error: 0 packages")
 	}
 	mainPackage := mainPackages[0]
-	if conf.DumpSsa {
-		dump(mainPackage)
-	}
 
 	allTypes := make([]types.Type, 0)
 	for _, pkg := range program.AllPackages() {
@@ -95,11 +92,16 @@ func NewInterpreter(file string, conf Config) (*Interpreter, error) {
 		}
 	}
 
-	return &Interpreter{
+	i := &Interpreter{
 		mainPackage: mainPackage,
 		program:     program,
 		types:       allTypes,
-	}, nil
+	}
+	if conf.DumpSsa {
+		i.dump(mainPackage)
+	}
+
+	return i, nil
 }
 
 func (i *Interpreter) Program() *ssa.Program {
@@ -117,17 +119,12 @@ func (i *Interpreter) Types() []types.Type {
 func (i *Interpreter) Step(api api.Api, inst ssa.Instruction) (out *ssa.Instruction) {
 	block := inst.Block()
 
-	defer func() {
-		if out == nil {
-			return
-		}
-
-		switch inst.(type) {
-		case *ssa.Phi, *ssa.If:
-		default:
-			api.SetLastBlock(block.Index)
-		}
-	}()
+	switch inst.(type) {
+	case *ssa.Phi:
+	default:
+		api.SetLastBlock(block.Index)
+	}
+	api.WriteLastBlock()
 
 	switch i.visit(api, inst) {
 	case kNext:
@@ -173,14 +170,18 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		}
 
 	case *ssa.ChangeInterface:
+		api.MkChangeInterface(inst)
 
 	case *ssa.ChangeType:
+		api.MkChangeType(inst)
 
 	case *ssa.Convert:
+		api.MkConvert(inst)
 
 	case *ssa.SliceToArrayPointer:
 
 	case *ssa.MakeInterface:
+		api.MkMakeInterface(inst)
 
 	case *ssa.Extract:
 		api.MkExtract(inst)
@@ -207,6 +208,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		return kNone
 
 	case *ssa.Jump:
+		api.MkJump(inst)
 		return kJump
 
 	case *ssa.Defer:
@@ -262,7 +264,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 	return kNext
 }
 
-func dump(mainPackage *ssa.Package) {
+func (i *Interpreter) dump(mainPackage *ssa.Package) {
 	out := bytes.Buffer{}
 	ssa.WritePackage(&out, mainPackage)
 	for _, object := range mainPackage.Members {
@@ -270,5 +272,11 @@ func dump(mainPackage *ssa.Package) {
 			ssa.WriteFunction(&out, mainPackage.Func(object.Name()))
 		}
 	}
+	fmt.Print(out.String())
+}
+
+func (i *Interpreter) dumpFunc(pkg, fun string) {
+	out := bytes.Buffer{}
+	ssa.WriteFunction(&out, i.program.ImportedPackage(pkg).Func(fun))
 	fmt.Print(out.String())
 }
