@@ -78,9 +78,10 @@ class GoTestInterpreter(
                 GoSort.INT64, GoSort.UINT64 -> resolveBv64(expr)
                 GoSort.FLOAT32 -> resolveFp32(expr)
                 GoSort.FLOAT64 -> resolveFp64(expr)
-                GoSort.ARRAY, GoSort.SLICE -> resolveArray(expr.asExpr(ctx.addressSort), type)
+                GoSort.ARRAY, GoSort.SLICE, GoSort.STRING -> resolveArray(expr.asExpr(ctx.addressSort), type)
                 GoSort.MAP -> resolveMap(expr.asExpr(ctx.addressSort), type)
                 GoSort.STRUCT -> resolveStruct(expr.asExpr(ctx.addressSort), type)
+                GoSort.TUPLE -> resolveTuple(expr.asExpr(ctx.addressSort), type)
                 else -> null
             }
         }
@@ -99,8 +100,7 @@ class GoTestInterpreter(
 
         fun resolveFp64(expr: UExpr<out USort>) = (model.eval(expr) as KFp64Value).value
 
-        fun resolveArray(expr: UHeapRef, type: GoType): List<Any?>? {
-            val array = model.eval(expr)
+        fun resolveArray(array: UHeapRef, type: GoType): List<Any?>? {
             if (array == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
@@ -117,8 +117,7 @@ class GoTestInterpreter(
             return result
         }
 
-        fun resolveMap(expr: UHeapRef, type: GoType): Map<Any?, Any?>? {
-            val map = model.eval(expr)
+        fun resolveMap(map: UHeapRef, type: GoType): Map<Any?, Any?>? {
             if (map == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
@@ -136,8 +135,7 @@ class GoTestInterpreter(
             }
         }
 
-        fun resolveStruct(expr: UHeapRef, type: GoType): List<Any?>? {
-            val struct = model.eval(expr)
+        fun resolveStruct(struct: UHeapRef, type: GoType): List<Any?>? {
             if (struct == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
             }
@@ -146,6 +144,18 @@ class GoTestInterpreter(
             return List(types.size) {
                 val sort = ctx.mapSort(bridge.typeToSort(types[it]))
                 convertExpr(memory.readField(struct, it, sort), types[it])
+            }
+        }
+
+        fun resolveTuple(tuple: UHeapRef, type: GoType): List<Any?>? {
+            if (tuple == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            val types = bridge.tupleTypes(type)
+            return List(types.size) {
+                val sort = ctx.mapSort(bridge.typeToSort(types[it]))
+                convertExpr(memory.readField(tuple, it, sort), types[it])
             }
         }
     }
