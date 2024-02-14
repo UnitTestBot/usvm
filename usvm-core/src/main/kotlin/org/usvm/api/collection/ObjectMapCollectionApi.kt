@@ -25,6 +25,7 @@ import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
 import org.usvm.uctx
+import org.usvm.utils.logAssertFailure
 
 object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.mkSymbolicObjectMap(
@@ -61,7 +62,9 @@ object ObjectMapCollectionApi {
                 with(ctx) {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // Map size must be correct regardless of guard
-                    assert(boundConstraint) ?: return null
+                    assert(boundConstraint)
+                        .logAssertFailure { "SymbolicMap size correctness constraint" }
+                        ?: return null
                 }
                 symbolicMapRef
             }

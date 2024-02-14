@@ -7,6 +7,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.uctx
+import org.usvm.utils.logAssertFailure
 
 // TODO: special mock api for variables
 
@@ -39,7 +40,7 @@ private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbol
         mkTypeConstraint(ref)
     }
 
-    assert(typeConstraint) ?: return null
+    assert(typeConstraint).logAssertFailure { "Type constraint in mockSymbolicRef" } ?: return null
 
     return ref
 }

@@ -17,6 +17,7 @@ import org.usvm.mkSizeExpr
 import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
+import org.usvm.utils.logAssertFailure
 
 object ListCollectionApi {
     fun <ListType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.mkSymbolicList(
@@ -51,7 +52,9 @@ object ListCollectionApi {
                 with(ctx) {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // List size must be correct regardless of guard
-                    assert(boundConstraint) ?: return null
+                    assert(boundConstraint)
+                        .logAssertFailure { "SymbolicList size correctness constraint" }
+                        ?: return null
                 }
                 symbolicListRef
             }
