@@ -56,6 +56,9 @@ var basicSorts = []Sort{
 }
 
 func GetSort(v ssa.Value, unwrap bool) Sort {
+	if v.Type().String() == "iter" {
+		return Tuple
+	}
 	return MapSort(v.Type(), unwrap)
 }
 
