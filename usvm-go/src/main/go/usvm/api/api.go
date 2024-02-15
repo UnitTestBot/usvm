@@ -32,6 +32,8 @@ type Api interface {
 	MkReturn(inst *ssa.Return)
 	MkPanic(inst *ssa.Panic)
 	MkPhi(inst *ssa.Phi)
+	MkRange(inst *ssa.Range)
+	MkNext(inst *ssa.Next)
 	MkPointerFieldReading(inst *ssa.FieldAddr)
 	MkFieldReading(inst *ssa.Field)
 	MkPointerArrayReading(inst *ssa.IndexAddr)
@@ -78,6 +80,8 @@ const (
 	MethodMkReturn
 	MethodMkPanic
 	MethodMkVariable
+	MethodMkRange
+	MethodMkNext
 	MethodMkPointerFieldReading
 	MethodMkFieldReading
 	MethodMkPointerArrayReading
@@ -345,6 +349,33 @@ func (a *api) MkPhi(inst *ssa.Phi) {
 	}
 
 	a.mkVariable(inst, edge)
+}
+
+func (a *api) MkRange(inst *ssa.Range) {
+	a.buf.Write(byte(MethodMkRange))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+
+	if m, ok := inst.X.Type().Underlying().(*types.Map); ok {
+		a.buf.Write(byte(sort.MapSort(m.Key(), false)))
+		a.buf.Write(byte(sort.MapSort(m.Elem(), false)))
+	}
+}
+
+func (a *api) MkNext(inst *ssa.Next) {
+	a.buf.Write(byte(MethodMkNext))
+	a.writeVar(inst)
+	a.writeVar(inst.Iter)
+	a.buf.WriteBool(inst.IsString)
+
+	keyType := inst.Type().(*types.Tuple).At(1).Type()
+	if keyType != types.Typ[types.Invalid] {
+		a.buf.Write(byte(sort.MapSort(keyType, false)))
+	}
+	valueType := inst.Type().(*types.Tuple).At(2).Type()
+	if valueType != types.Typ[types.Invalid] {
+		a.buf.Write(byte(sort.MapSort(valueType, false)))
+	}
 }
 
 func (a *api) MkPointerFieldReading(inst *ssa.FieldAddr) {

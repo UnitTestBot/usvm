@@ -383,6 +383,11 @@ func arrayElementType(pointer C.jlong) C.jlong {
 		t = arrayType.Elem()
 	case *types.Slice:
 		t = arrayType.Elem()
+	case *types.Basic:
+		if arrayType.Kind() != types.String {
+			break
+		}
+		t = types.Typ[types.Int32]
 	}
 	return C.jlong(util.ToPointer(&t))
 }

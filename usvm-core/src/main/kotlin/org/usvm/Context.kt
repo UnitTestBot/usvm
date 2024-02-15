@@ -90,6 +90,7 @@ open class UContext<USizeSort : USort>(
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val pointerSort: UAddressSort = mkUninterpretedSort("Pointer")
+    
     val nullRef: UNullRef = UNullRef(this)
 
     fun mkNullRef(): USymbolicHeapRef {

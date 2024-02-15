@@ -1,13 +1,24 @@
 package org.usvm.api
 
+import io.ksmt.expr.KBitVec64Value
 import io.ksmt.utils.asExpr
 import org.usvm.UAddressPointer
+import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.ULValuePointer
 import org.usvm.USort
+import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapGet
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapAnyKey
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapMergeInto
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapRemove
 import org.usvm.bridge.GoBridge
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
@@ -23,6 +34,7 @@ import org.usvm.machine.operator.GoBinaryOperator
 import org.usvm.machine.operator.GoUnaryOperator
 import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.state.GoMethodResult
+import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoSort
 import org.usvm.machine.type.GoType
 import org.usvm.memory.GoPointerLValue
@@ -53,7 +65,7 @@ class Api(
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
             Method.MK_CALL -> mkCall(buf, lastBlock).let { if (it) nextInst = 0L }
-            Method.MK_CALL_BUILTIN -> mkCallBuiltin(buf)
+            Method.MK_CALL_BUILTIN -> mkCallBuiltin(buf, inst)
             Method.MK_CHANGE_INTERFACE -> mkChangeInterface(buf)
             Method.MK_CHANGE_TYPE -> mkChangeType(buf)
             Method.MK_CONVERT -> mkConvert(buf)
@@ -67,6 +79,8 @@ class Api(
             Method.MK_RETURN -> mkReturn(buf)
             Method.MK_PANIC -> mkPanic(buf)
             Method.MK_VARIABLE -> mkVariable(buf)
+            Method.MK_RANGE -> mkRange(buf)
+            Method.MK_NEXT -> mkNext(buf, nextInst)
             Method.MK_POINTER_FIELD_READING -> mkPointerFieldReading(buf)
             Method.MK_FIELD_READING -> mkFieldReading(buf)
             Method.MK_POINTER_ARRAY_READING -> mkPointerArrayReading(buf)
@@ -103,7 +117,7 @@ class Api(
         val op = BinOp.valueOf(buf.byte)
         val y = readVar(buf).expr
 
-        val signed = z.isSigned
+        val signed = z.goSort.isSigned()
         val expr = when (op) {
             BinOp.ADD -> GoBinaryOperator.Add
             BinOp.SUB -> GoBinaryOperator.Sub
@@ -171,24 +185,39 @@ class Api(
         return true
     }
 
-    private fun mkCallBuiltin(buf: ByteBuffer) {
+    private fun mkCallBuiltin(buf: ByteBuffer, inst: GoInst) = with(ctx) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val builtin = BuiltinFunction.valueOf(buf.byte)
-        val rvalue: UExpr<USort> = when (builtin) {
+        when (builtin) {
             BuiltinFunction.LEN, BuiltinFunction.CAP -> {
                 val arg = readVar(buf)
-                scope.calcOnState {
-                    val array = memory.read(URegisterStackLValue(ctx.addressSort, arg.index))
-                    memory.readArrayLength(array.asExpr(ctx.addressSort), arg.type, ctx.sizeSort)
+                val collection = scope.calcOnState {
+                    memory.read(URegisterStackLValue(addressSort, arg.index)).asExpr(addressSort)
                 }
+                val lvalue = URegisterStackLValue(sizeSort, idx)
+
+                scope.fork(
+                    mkHeapRefEq(collection, nullRef).not(),
+                    blockOnTrueState = {
+                        val rvalue = when (arg.goSort) {
+                            GoSort.SLICE, GoSort.ARRAY, GoSort.STRING -> {
+                                memory.readArrayLength(collection, arg.type, sizeSort)
+                            }
+
+                            GoSort.MAP -> symbolicObjectMapSize(collection, arg.type)
+                            else -> throw IllegalStateException()
+                        }
+
+                        memory.write(lvalue, rvalue.asExpr(sizeSort), ctx.trueExpr)
+                    },
+                    blockOnFalseState = {
+                        memory.write(lvalue, mkBv(0).asExpr(sizeSort), ctx.trueExpr)
+                        newInst(inst)
+                    }
+                )
             }
 
             else -> throw UnknownFunctionException()
-        }
-        val lvalue = URegisterStackLValue(rvalue.sort, idx)
-
-        scope.doWithState {
-            memory.write(lvalue, rvalue, ctx.trueExpr)
         }
     }
 
@@ -300,7 +329,7 @@ class Api(
                 0, 1 -> returnValue(readVar(buf).expr)
                 else -> {
                     val vars = Array(len) { readVar(buf).expr }
-                    returnValue(mkTuple(ctx.getReturnType(lastEnteredMethod), *vars).asExpr(ctx.addressSort))
+                    returnValue(mkTuple(this, ctx.getReturnType(lastEnteredMethod), *vars).asExpr(ctx.addressSort))
                 }
             }
         }
@@ -320,6 +349,115 @@ class Api(
         scope.doWithState {
             memory.write(lvalue, rvalue, ctx.trueExpr)
         }
+    }
+
+    private fun mkRange(buf: ByteBuffer) = with(ctx) {
+        val iter = readVar(buf)
+        val collectionVar = readVar(buf)
+
+        val isString = collectionVar.goSort == GoSort.STRING
+        val lvalue = URegisterStackLValue(iter.sort, iter.index)
+        scope.doWithState {
+            val (collection, key) = if (isString) {
+                collectionVar.expr.asExpr(addressSort) to mkSizeExpr(0)
+            } else {
+                val keySort = mapSort(GoSort.valueOf(buf.byte))
+                val valueSort = mapSort(GoSort.valueOf(buf.byte))
+
+                val isRefSet = keySort == addressSort
+                val mapType = collectionVar.type
+                val map = copyMap(collectionVar, keySort, valueSort)
+
+                val key = if (isRefSet) {
+                    symbolicObjectMapAnyKey(map, mapType)
+                } else {
+                    symbolicPrimitiveMapAnyKey(map, mapType, keySort, USizeExprKeyInfo())
+                }
+                map to key
+            }
+            val rvalue = mkTuple(this, iter.type, ctx.mkBv(collectionVar.type), collection, key)
+            memory.write(lvalue, rvalue.asExpr(iter.sort), ctx.trueExpr)
+        }
+    }
+
+    private fun mkNext(buf: ByteBuffer, inst: GoInst) = with(ctx) {
+        val tuple = readVar(buf)
+        val iter = readVar(buf).expr.asExpr(addressSort)
+        val isString = buf.bool
+
+        val lvalue = URegisterStackLValue(tuple.sort, tuple.index)
+        scope.doWithState {
+            val type = (memory.readField(iter, 0, bv64Sort) as KBitVec64Value).longValue
+            val collection = memory.readField(iter, 1, addressSort)
+            checkNotNull(collection) ?: throw IllegalStateException()
+
+            val (ok, key, value) = getCurrentKeyValue(this, buf, isString, iter, collection, type)
+            scope.fork(
+                ok,
+                blockOnTrueState = {
+                    val nextKey = computeNextKey(this, isString, key, collection, type)
+                    val validTuple = mkTuple(this, tuple.type, ok, key, value).asExpr(tuple.sort)
+                    memory.write(lvalue, validTuple, trueExpr)
+                    memory.writeField(iter, 2, key.sort, nextKey.asExpr(key.sort), trueExpr)
+                },
+                blockOnFalseState = {
+                    val invalidTuple = mkTuple(this, tuple.type, ok, nullRef, nullRef).asExpr(tuple.sort)
+                    memory.write(lvalue, invalidTuple, trueExpr)
+                    newInst(inst)
+                }
+            )
+        }
+    }
+
+    private fun getCurrentKeyValue(
+        state: GoState,
+        buf: ByteBuffer,
+        isString: Boolean,
+        iter: UHeapRef,
+        collection: UHeapRef,
+        type: GoType,
+    ): Triple<UExpr<UBoolSort>, UExpr<out USort>, UExpr<out USort>> = with(ctx) {
+        if (isString) {
+            val index = state.memory.readField(iter, 2, sizeSort)
+            val value = state.memory.readArrayIndex(collection, index, type, bv32Sort)
+            val length = state.memory.readArrayLength(collection, type, sizeSort)
+            val ok = mkBvSignedLessExpr(index, length)
+            return Triple(ok, index, value)
+        }
+
+        val keySort = mapSort(GoSort.valueOf(buf.byte))
+        val valueSort = mapSort(GoSort.valueOf(buf.byte))
+
+        val key = state.memory.readField(iter, 2, keySort)
+        val value = if (keySort == addressSort) {
+            state.symbolicObjectMapGet(collection, key.asExpr(addressSort), type, valueSort)
+        } else {
+            state.symbolicPrimitiveMapGet(collection, key.asExpr(valueSort), type, valueSort, USizeExprKeyInfo())
+        }
+        val length = state.symbolicObjectMapSize(collection, type)
+        val ok = mkBvSignedGreaterExpr(length, mkBv(0))
+        return Triple(ok, key, value)
+    }
+
+    private fun computeNextKey(
+        state: GoState,
+        isString: Boolean,
+        oldKey: UExpr<out USort>,
+        collection: UHeapRef,
+        type: GoType,
+    ): UExpr<out USort> = with(ctx) {
+        if (isString) {
+            return mkBvAddExpr(oldKey.asExpr(sizeSort), mkBv(1))
+        }
+
+        val keySort = oldKey.sort
+        if (keySort == addressSort) {
+            state.symbolicObjectMapRemove(collection, oldKey.asExpr(addressSort), type)
+            return state.symbolicObjectMapAnyKey(collection, type)
+        }
+
+        state.symbolicPrimitiveMapRemove(collection, oldKey, type, USizeExprKeyInfo())
+        return state.symbolicPrimitiveMapAnyKey(collection, type, keySort, USizeExprKeyInfo())
     }
 
     private fun mkPointerFieldReading(buf: ByteBuffer) {
@@ -394,7 +532,7 @@ class Api(
                 }
                 val rvalue = memory.read(entry).let {
                     if (commaOk) {
-                        mkTuple(value.type, it, ctx.trueExpr)
+                        mkTuple(this, value.type, it, ctx.trueExpr)
                     } else {
                         it
                     }
@@ -404,7 +542,7 @@ class Api(
             blockOnFalseState = {
                 val rvalue = value.sort.sampleUValue().let {
                     if (commaOk) {
-                        mkTuple(value.type, it, ctx.falseExpr)
+                        mkTuple(this, value.type, it, ctx.falseExpr)
                     } else {
                         it
                     }
@@ -439,12 +577,12 @@ class Api(
         }
     }
 
-    private fun mkTuple(type: GoType, vararg fields: UExpr<out USort>): UHeapRef = scope.calcOnState {
-        val ref = memory.allocConcrete(type)
+    private fun mkTuple(state: GoState, type: GoType, vararg fields: UExpr<out USort>): UHeapRef {
+        val ref = state.memory.allocConcrete(type)
         for ((index, field) in fields.withIndex()) {
-            memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), ctx.trueExpr)
+            state.memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), ctx.trueExpr)
         }
-        ref
+        return ref
     }
 
     fun getLastBlock(): Int {
@@ -472,9 +610,34 @@ class Api(
 
         scope.doWithState {
             if (rvalue.sort == ctx.addressSort) {
-                scope.assert(memory.types.evalIsSubtype(rvalue.asExpr(ctx.addressSort), l.type)) ?: throw IllegalStateException()
+                scope.assert(memory.types.evalIsSubtype(rvalue.asExpr(ctx.addressSort), l.type))
+                    ?: throw IllegalStateException()
             }
             memory.write(lvalue, rvalue, ctx.trueExpr)
+        }
+    }
+
+    private fun copyMap(
+        mapVar: Var,
+        keySort: USort,
+        valueSort: USort,
+    ): UHeapRef = with(ctx) {
+        val srcMap = mapVar.expr.asExpr(addressSort)
+        checkNotNull(srcMap) ?: throw IllegalStateException()
+
+        val mapType = mapVar.type
+        val isRefSet = keySort == addressSort
+
+        return scope.calcOnState {
+            val destMap = mkSymbolicObjectMap(mapType)
+
+            if (isRefSet) {
+                symbolicObjectMapMergeInto(destMap, srcMap, mapType, valueSort)
+            } else {
+                symbolicPrimitiveMapMergeInto(destMap, srcMap, mapType, keySort, valueSort, USizeExprKeyInfo())
+            }
+
+            destMap
         }
     }
 
@@ -493,7 +656,7 @@ class Api(
 
             else -> throw UnknownVarKindException()
         }
-        return Var(expr.asExpr(sort), type, goSort.isSigned(), sort, index)
+        return Var(expr.asExpr(sort), type, goSort, sort, index)
     }
 
     private fun readConst(buf: ByteBuffer, type: GoType, sort: USort): UExpr<out USort> = with(ctx) {
@@ -508,8 +671,8 @@ class Api(
             fp64Sort -> mkFp(buf.double, fp64Sort)
             stringSort -> scope.calcOnState {
                 val len = buf.int
-                val content = Array(len) { mkBv(buf.byte) }.asSequence()
-                memory.allocateArrayInitialized(type, bv8Sort, sizeSort, content)
+                val content = Array(len) { mkBv(buf.int) }.asSequence()
+                memory.allocateArrayInitialized(type, bv32Sort, sizeSort, content)
             }
 
             else -> throw UnknownTypeException()
@@ -524,7 +687,7 @@ class Api(
 
         val array = readVar(buf).expr.asExpr(ctx.addressSort)
         val indexVar = readVar(buf)
-        val index = ctx.mkNarrow(bv(indexVar.expr), Int.SIZE_BITS, indexVar.isSigned).asExpr(ctx.sizeSort)
+        val index = ctx.mkNarrow(bv(indexVar.expr), Int.SIZE_BITS, indexVar.goSort.isSigned()).asExpr(ctx.sizeSort)
         val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
 
         checkNotNull(array) ?: return null
@@ -558,7 +721,7 @@ class Api(
         else -> -1
     }
 
-    private fun normalize(expr: UExpr<USort>, op: BinOp, signed: Boolean): UExpr<USort> = when(op) {
+    private fun normalize(expr: UExpr<USort>, op: BinOp, signed: Boolean): UExpr<USort> = when (op) {
         BinOp.SHR -> bv(expr).mkNarrow(Long.SIZE_BITS, signed).asExpr(ctx.bv64Sort)
         else -> expr
     }
@@ -632,12 +795,14 @@ private enum class Method(val value: Byte) {
     MK_RETURN(15),
     MK_PANIC(16),
     MK_VARIABLE(17),
-    MK_POINTER_FIELD_READING(18),
-    MK_FIELD_READING(19),
-    MK_POINTER_ARRAY_READING(20),
-    MK_ARRAY_READING(21),
-    MK_MAP_LOOKUP(22),
-    MK_MAP_UPDATE(23);
+    MK_RANGE(18),
+    MK_NEXT(19),
+    MK_POINTER_FIELD_READING(20),
+    MK_FIELD_READING(21),
+    MK_POINTER_ARRAY_READING(22),
+    MK_ARRAY_READING(23),
+    MK_MAP_LOOKUP(24),
+    MK_MAP_UPDATE(25);
 
     companion object {
         private val values = values()
@@ -716,7 +881,7 @@ private enum class BuiltinFunction(val value: Byte) {
 private data class Var(
     val expr: UExpr<USort>,
     val type: GoType,
-    val isSigned: Boolean,
+    val goSort: GoSort,
     val sort: USort,
     val index: Int,
 )
