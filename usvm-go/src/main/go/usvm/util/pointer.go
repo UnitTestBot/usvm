@@ -17,9 +17,11 @@ func ToPointer[T any](in *T) uintptr {
 	switch v := any(in).(type) {
 	case *types.Type:
 		var typ = *v
-		switch t := typ.(type) {
-		case *types.Array:
-			typ = t.Underlying()
+		if t, ok := typ.(*types.Named); ok {
+			switch t := t.Underlying().(type) {
+			case *types.Array, *types.Slice:
+				typ = t.Underlying()
+			}
 		}
 		return PutPointer(uintptr(xxhash.Sum64String(typ.String())), in)
 	default:

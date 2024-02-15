@@ -12,7 +12,7 @@ class GoMethodInfo(
     val parametersTypes: Array<GoType>
 ) {
     override fun toString(): String {
-        return "returnType: $returnType, variables: $variablesCount, params: $parametersCount"
+        return "returnType: $returnType, variables: $variablesCount, params: $parametersCount, params types: ${parametersTypes.contentToString()}"
     }
 }
 

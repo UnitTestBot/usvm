@@ -112,6 +112,22 @@ class GoMachineTest {
     }
 
     @Test
+    fun testStructValueReceiver() {
+        val machine =
+            GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val results = machine.analyzeAndResolve(Path.getProgram("struct.go"), "isYoung", false)
+        println(results)
+    }
+
+    @Test
+    fun testStructValueReceiverString() {
+        val machine =
+            GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val results = machine.analyzeAndResolve(Path.getProgram("struct.go"), "getStringGender", false)
+        println(results)
+    }
+
+    @Test
     fun testStructPointer() {
         val results = machine.analyzeAndResolve(Path.getProgram("struct_pointer.go"), "setPerfectAge", false)
         println(results)
@@ -162,7 +178,14 @@ class GoMachineTest {
     @Test
     fun testCountSort() {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), timeout = Duration.INFINITE))
-        val results = machine.analyzeAndResolve(Path.getProgram("count_sort.go"), "count", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("sort.go"), "count", false)
+        println(results)
+    }
+
+    @Test
+    fun testBubbleSort() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), timeout = Duration.INFINITE))
+        val results = machine.analyzeAndResolve(Path.getProgram("sort.go"), "bubble", false)
         println(results)
     }
 
@@ -197,7 +220,7 @@ class GoMachineTest {
                 listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE
             )
         )
-        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "castSlice", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "castSlice", false)
         println(results)
     }
 
@@ -212,7 +235,27 @@ class GoMachineTest {
                     coverageZone = CoverageZone.TRANSITIVE
                 )
             )
-        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "stdSort", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "stdSort", false)
+        println(results)
+    }
+
+    @Test
+    fun testRangeMap() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH)))
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "rangeMap", false)
+        println(results)
+    }
+
+    @Test
+    fun testRangeString() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH)))
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "rangeString", false)
+        println(results)
+    }
+
+    @Test
+    fun testReturnString() {
+        val results = machine.analyzeAndResolve(Path.getProgram("playground.go"), "returnString", false)
         println(results)
     }
 }

@@ -59,7 +59,7 @@ class GoTestInterpreter(
             val outputModel = OutputModel(expr)
 
             SuccessfulExecutionResult(inputModel, outputModel)
-        }
+        }.also { logger.debug { it } }
     }
 
     private class MemoryScope(
@@ -78,7 +78,8 @@ class GoTestInterpreter(
                 GoSort.INT64, GoSort.UINT64 -> resolveBv64(expr)
                 GoSort.FLOAT32 -> resolveFp32(expr)
                 GoSort.FLOAT64 -> resolveFp64(expr)
-                GoSort.ARRAY, GoSort.SLICE, GoSort.STRING -> resolveArray(expr.asExpr(ctx.addressSort), type)
+                GoSort.STRING -> resolveString(expr.asExpr(ctx.addressSort), type)
+                GoSort.ARRAY, GoSort.SLICE -> resolveArray(expr.asExpr(ctx.addressSort), type)
                 GoSort.MAP -> resolveMap(expr.asExpr(ctx.addressSort), type)
                 GoSort.STRUCT -> resolveStruct(expr.asExpr(ctx.addressSort), type)
                 GoSort.TUPLE -> resolveTuple(expr.asExpr(ctx.addressSort), type)
@@ -100,6 +101,11 @@ class GoTestInterpreter(
 
         fun resolveFp64(expr: UExpr<out USort>) = (model.eval(expr) as KFp64Value).value
 
+        fun resolveString(string: UHeapRef, type: GoType): String? {
+            val integers = resolveArray(string, type) ?: return null
+            return "\"" + String(integers.map { (it as Int).toChar() }.toCharArray()) + "\""
+        }
+
         fun resolveArray(array: UHeapRef, type: GoType): List<Any?>? {
             if (array == ctx.mkConcreteHeapRef(NULL_ADDRESS)) {
                 return null
@@ -108,9 +114,9 @@ class GoTestInterpreter(
             val arrayType = bridge.typeHash(type)
             val elementType = bridge.arrayElementType(type)
             val lengthUExpr = memory.readArrayLength(array, arrayType, ctx.sizeSort)
-            val length = clipArrayLength(convertExpr(lengthUExpr, elementType) as Int)
+            val length = clipArrayLength(resolveBv32(lengthUExpr))
+            val sort = ctx.mapSort(bridge.typeToSort(elementType))
             val result = (0 until length).map { idx ->
-                val sort = ctx.mapSort(bridge.typeToSort(elementType))
                 val element = memory.readArrayIndex(array, ctx.mkSizeExpr(idx), arrayType, sort)
                 convertExpr(element, elementType)
             }
