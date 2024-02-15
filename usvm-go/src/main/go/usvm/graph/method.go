@@ -10,7 +10,12 @@ import (
 )
 
 func MethodInfo(function *ssa.Function) domain.MethodInfo {
-	returnType := function.Signature.Results()
+	results := function.Signature.Results()
+
+	var returnType types.Type = results
+	if results.Len() == 1 {
+		returnType = results.At(0).Type()
+	}
 
 	variablesCount := 0
 	for _, b := range function.Blocks {

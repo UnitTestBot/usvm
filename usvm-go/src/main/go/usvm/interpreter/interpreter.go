@@ -109,7 +109,17 @@ func (i *Interpreter) Program() *ssa.Program {
 }
 
 func (i *Interpreter) Func(name string) *ssa.Function {
-	return i.mainPackage.Func(name)
+	f := i.mainPackage.Func(name)
+	if f != nil {
+		return f
+	}
+
+	for _, m := range i.mainPackage.Members {
+		if t, ok := m.(*ssa.Type); ok {
+			return i.program.LookupMethod(t.Type(), i.mainPackage.Pkg, name)
+		}
+	}
+	return nil
 }
 
 func (i *Interpreter) Types() []types.Type {
@@ -227,8 +237,10 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkMakeMap(inst)
 
 	case *ssa.Range:
+		api.MkRange(inst)
 
 	case *ssa.Next:
+		api.MkNext(inst)
 
 	case *ssa.FieldAddr:
 		api.MkPointerFieldReading(inst)

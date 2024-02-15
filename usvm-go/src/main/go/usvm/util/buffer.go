@@ -104,9 +104,9 @@ func (b *ByteBuffer) WriteFloat64(i float64) *ByteBuffer {
 }
 
 func (b *ByteBuffer) WriteString(i string) *ByteBuffer {
-	b.WriteInt32(int32(len(i)))
-	for _, e := range []byte(i) {
-		b.Write(e)
+	b.WriteInt32(int32(len([]rune(i))))
+	for _, e := range i {
+		b.WriteInt32(e)
 	}
 	return b
 }
