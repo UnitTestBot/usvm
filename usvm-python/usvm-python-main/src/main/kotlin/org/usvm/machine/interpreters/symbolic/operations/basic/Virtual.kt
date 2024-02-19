@@ -11,6 +11,7 @@ import org.usvm.machine.model.substituteModel
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.getBoolContent
 import org.usvm.machine.symbolicobjects.memory.getIntContent
+import org.usvm.machine.utils.symbolIsMocked
 
 fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     ctx.curState ?: throw UnregisteredVirtualOperation
@@ -67,7 +68,7 @@ private fun internalVirtualCallKt(
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     ctx.curState ?: throw UnregisteredVirtualOperation
     val owner = ctx.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
-    val ownerIsAlreadyMocked = owner.isAlreadyMocked(ctx)
+    val ownerIsAlreadyMocked = symbolIsMocked(owner, ctx)
     if (ownerIsAlreadyMocked) {
         owner.addSupertypeSoft(ctx, MockType)
     }

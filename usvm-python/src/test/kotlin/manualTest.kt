@@ -55,7 +55,7 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
         listOf(GenericType(typeSystem.pythonList)),
-        "reverse_usage",
+        "triple_subscript",
         "Lists"
     )
     val functions = listOf(function)

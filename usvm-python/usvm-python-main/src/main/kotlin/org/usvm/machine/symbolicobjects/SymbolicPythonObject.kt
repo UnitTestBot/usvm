@@ -107,11 +107,6 @@ class UninterpretedSymbolicPythonObject(
         return interpreted.getFirstType()
     }
 
-    fun isAlreadyMocked(ctx: ConcolicRunContext): Boolean {
-        val interpreted = interpretSymbolicPythonObject(ctx, this)
-        return interpreted.isAlreadyMocked()
-    }
-
     private fun resolvesToNullInCurrentModel(ctx: ConcolicRunContext): Boolean {
         val interpreted = interpretSymbolicPythonObject(ctx, this)
         return interpreted.address.address == 0

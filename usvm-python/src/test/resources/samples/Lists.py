@@ -262,3 +262,7 @@ def use_remove(x):
 def use_count(x):
     lst = [1, 3, 3, 2]
     assert lst.count(x) == 2
+
+
+def triple_subscript(x):
+    assert x[0][0][0] > 10
