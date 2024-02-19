@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.agent
 
+import org.objectweb.asm.Opcodes
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.util.toByteArray
