@@ -22,25 +22,19 @@ open class PyObjectModelVisitor {
             if (it !in visited)
                 visit(it)
         }
-        obj.listItems?.let {
-            it.forEach { item ->
-                if (item !in visited)
-                    visit(item)
-            }
+        obj.listItems?.forEach { item ->
+            if (item !in visited)
+                visit(item)
         }
-        obj.dictItems?.let {
-            it.forEach { (key, value) ->
-                if (key !in visited)
-                    visit(key)
-                if (value !in visited)
-                    visit(value)
-            }
+        obj.dictItems?.forEach { (key, value) ->
+            if (key !in visited)
+                visit(key)
+            if (value !in visited)
+                visit(value)
         }
-        obj.fieldDict?.let {
-            it.values.forEach { item ->
-                if (item !in visited)
-                    visit(item)
-            }
+        obj.fieldDict?.values?.forEach { item ->
+            if (item !in visited)
+                visit(item)
         }
     }
     open fun visit(obj: PyTupleObject) {
