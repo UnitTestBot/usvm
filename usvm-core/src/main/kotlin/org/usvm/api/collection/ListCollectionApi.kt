@@ -53,7 +53,7 @@ object ListCollectionApi {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // List size must be correct regardless of guard
                     assert(boundConstraint)
-                        .logAssertFailure { "SymbolicList size correctness constraint" }
+                        .logAssertFailure { "Constraint violation: SymbolicList size correctness constraint" }
                         ?: return null
                 }
                 symbolicListRef

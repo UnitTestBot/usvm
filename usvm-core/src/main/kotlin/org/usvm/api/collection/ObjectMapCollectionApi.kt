@@ -63,7 +63,7 @@ object ObjectMapCollectionApi {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
                     // Map size must be correct regardless of guard
                     assert(boundConstraint)
-                        .logAssertFailure { "SymbolicMap size correctness constraint" }
+                        .logAssertFailure { "Constraint violation: SymbolicMap size correctness constraint" }
                         ?: return null
                 }
                 symbolicMapRef

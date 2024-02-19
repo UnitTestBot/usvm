@@ -104,6 +104,6 @@ inline fun StepScope<*, *, *, *>.onStateDeath(crossinline body: () -> Unit) {
     if (isDead) body()
 }
 
-inline fun Unit?.logAssertFailure(crossinline message: () -> String) = apply {
+inline fun Unit?.logAssertFailure(crossinline message: () -> String): Unit? = apply {
     if (this == null) logger.info { "Assert failed: ${message()}" }
 }
