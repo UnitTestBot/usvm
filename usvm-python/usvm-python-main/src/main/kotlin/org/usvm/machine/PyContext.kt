@@ -25,7 +25,6 @@ class PyContext(
 
     fun intToFloat(intValue: UExpr<KIntSort>): UExpr<KRealSort> {
         return mkIntToReal(intValue)
-        //return mkRealToFpExpr(fp64Sort, floatRoundingMode, realValue)
     }
 
 

@@ -21,8 +21,7 @@ fun constructInputObject(
     ctx: PyContext,
     memory: UMemory<PythonType, PyCallable>,
     pathConstraints: UPathConstraints<PythonType>,
-    typeSystem: PythonTypeSystem,
-    // preallocatedObjects: PreallocatedObjects
+    typeSystem: PythonTypeSystem
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
     val address = memory.read(URegisterStackLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>

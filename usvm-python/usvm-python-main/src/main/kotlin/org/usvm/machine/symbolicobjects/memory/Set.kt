@@ -20,7 +20,6 @@ import org.usvm.machine.symbolicobjects.SetContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.memory.key.USizeExprKeyInfo
 
-
 fun UninterpretedSymbolicPythonObject.setIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem

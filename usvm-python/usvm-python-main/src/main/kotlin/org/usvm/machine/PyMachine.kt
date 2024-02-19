@@ -116,11 +116,6 @@ class PyMachine(
                 PyPinnedCallable(substituted)
             }
             val pyObserver = PythonMachineObserver(saver.newStateObserver)
-            /*val coverageStatistics =
-                CoverageStatistics<PyCallable, PyInstruction, PyState>(
-                    setOf(pinnedCallable),
-                    PyApplicationGraph()
-                )*/
             val observer = CompositeUMachineObserver(pyObserver)
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }

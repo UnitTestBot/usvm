@@ -12,7 +12,6 @@ import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory
 
-
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
     require(ctx.curState != null)
     addSupertype(ctx, typeSystem.pythonBool)

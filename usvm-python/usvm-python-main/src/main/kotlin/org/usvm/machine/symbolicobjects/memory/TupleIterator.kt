@@ -9,7 +9,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.TupleIteratorContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-
 fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject) = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)

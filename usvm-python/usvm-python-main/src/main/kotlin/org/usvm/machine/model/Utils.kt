@@ -14,7 +14,6 @@ import org.usvm.machine.PyState
 import org.usvm.model.UModelBase
 import org.usvm.types.TypesResult
 
-
 fun UModelBase<PythonType>.toPyModel(
     ctx: PyContext,
     ps: UPathConstraints<PythonType>,
@@ -55,7 +54,6 @@ fun PyModel.getFirstType(address: UConcreteHeapRef): PythonType? {
             logger.error("TypeStream starting with $first instead of mock")  // TODO: supports mocks with different sets of methods
             return null
         }
-        // require(first is MockType)
     }
     return first
 }

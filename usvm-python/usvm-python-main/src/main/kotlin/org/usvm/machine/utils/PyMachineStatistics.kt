@@ -5,6 +5,8 @@ import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.symbolic.operations.tracing.NextInstruction
 
+// TODO [usvm-core]: replace with abstract statistics
+
 fun writeLostSymbolicValuesReport(lostValues: Map<MethodDescription, Int>): String {
     val result = StringBuilder()
     lostValues.toList().sortedBy { -it.second }.forEach { (description, count) ->

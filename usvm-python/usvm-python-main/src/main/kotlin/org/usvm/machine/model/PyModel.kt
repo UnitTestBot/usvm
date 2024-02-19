@@ -14,10 +14,8 @@ import org.usvm.collection.set.primitive.USetRegionId
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.constraints.UPathConstraints
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
-import org.usvm.machine.PyState
 import org.usvm.machine.model.regions.*
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion

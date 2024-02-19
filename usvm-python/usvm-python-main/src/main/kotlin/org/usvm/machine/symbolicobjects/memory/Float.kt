@@ -14,7 +14,6 @@ import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory
 
-
 sealed class FloatInterpretedContent
 object FloatNan: FloatInterpretedContent()
 object FloatPlusInfinity: FloatInterpretedContent()

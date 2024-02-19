@@ -10,7 +10,6 @@ import org.usvm.machine.symbolicobjects.TimeOfCreation
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.model.nullAddress
 
 abstract class ElementConstraint {
     abstract fun applyUninterpreted(

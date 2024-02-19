@@ -553,6 +553,7 @@ public class CPythonAdapter {
     }
 
     @CPythonAdapterJavaMethod(cName = "bool_and")
+    // might be useful in the future, but now this annotation leads to warning during compilation, and that is treated as error
     /*@CPythonFunction(
             argCTypes = {CType.PyObject, CType.PyObject},
             argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter},

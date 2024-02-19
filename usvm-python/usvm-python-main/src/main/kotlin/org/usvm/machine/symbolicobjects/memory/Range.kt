@@ -7,7 +7,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.RangeContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-
 fun UninterpretedSymbolicPythonObject.setRangeContent(
     ctx: ConcolicRunContext,
     start: UExpr<KIntSort>,
