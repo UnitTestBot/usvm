@@ -78,6 +78,7 @@ import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
+import org.usvm.utils.onStateDeath
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
 
@@ -484,6 +485,7 @@ class JcInterpreter(
             blockOnTrueState = { newStmt(posStmt) },
             blockOnFalseState = { newStmt(negStmt) }
         )
+        scope.onStateDeath { logger.info { "State death on fork with blacklist" } }
     }
 
     private fun visitReturnStmt(scope: JcStepScope, stmt: JcReturnInst) {
@@ -549,6 +551,7 @@ class JcInterpreter(
                 )
 
             scope.forkMultiWithBlackList(cases + defaultCase)
+            scope.onStateDeath { logger.info { "State death on fork with blacklist" } }
         }
     }
 

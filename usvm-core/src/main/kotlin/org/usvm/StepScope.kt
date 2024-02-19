@@ -41,6 +41,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
      */
     fun stepResult() = StepResult(forkedStates.asSequence(), alive)
 
+    val isDead: Boolean get() = stepScopeState === DEAD
+
     /**
      * Executes [block] on a state.
      *

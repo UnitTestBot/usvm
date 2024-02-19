@@ -119,6 +119,7 @@ import org.usvm.sizeSort
 import org.usvm.util.allocHeapRef
 import org.usvm.util.enumValuesField
 import org.usvm.util.write
+import org.usvm.utils.logAssertFailure
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -333,7 +334,11 @@ class JcExprResolver(
         val lengthRef = UArrayLengthLValue(ref, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
-        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
+
+        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length))
+            .logAssertFailure { "JcExprResolver: array length >= 0" }
+            ?: return null
+
         length
     }
 
@@ -505,7 +510,9 @@ class JcExprResolver(
         if (type is JcRefType) {
             val heapRef = expr.asExpr(ctx.addressSort)
             val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, type) }
-            scope.assert(isExpr) ?: return false
+            scope.assert(isExpr)
+                .logAssertFailure { "JcExprResolver: subtype constraint ${type.typeName}" }
+                ?: return false
         }
 
         return true
@@ -604,6 +611,7 @@ class JcExprResolver(
 
 
         scope.assert(invariantsConstraint)
+            .logAssertFailure { "JcExprResolver: enum correctness constraint" }
     }
 
     /**
@@ -804,6 +812,7 @@ class JcExprResolver(
     private fun assertHardMaxArrayLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
         val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
         scope.assert(lengthLeThanMaxLength)
+            .logAssertFailure { "JcExprResolver: array length max" }
     }
 
     // endregion
