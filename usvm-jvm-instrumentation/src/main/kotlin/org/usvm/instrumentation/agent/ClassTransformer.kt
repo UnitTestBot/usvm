@@ -31,6 +31,13 @@ class ClassTransformer(
         if (!loader.shouldInstrumentCurrentClass) return classfileBuffer
         return instrumenterCache.getOrPut(className) {
             val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
+
+            // JacoDB may produce incorrect IR/bytecode for earlier Java versions
+            // see https://github.com/UnitTestBot/usvm/issues/179
+            val classNode = classfileBuffer.toClassNode()
+            if (classNode.version < Opcodes.V1_8)
+                return classfileBuffer
+
             val instrumentedClassNode = instrumenter.instrumentClass(classfileBuffer.toClassNode())
             instrumentedClassNode.toByteArray(loader.jcClasspath , checkClass = true)
         }
