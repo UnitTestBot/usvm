@@ -12,12 +12,8 @@ import org.usvm.language.types.HasElementConstraint
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
-import org.usvm.machine.model.getConcreteType
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.types.first
-
-
-const val DEFAULT_ELEMENT_INDEX = -1
 
 fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): UExpr<KIntSort> {
     val type = getTypeIfDefined(ctx)
@@ -31,34 +27,6 @@ fun InterpretedInputSymbolicPythonObject.readArrayLength(ctx: PyContext): UExpr<
     require(getConcreteType() != null && getConcreteType() is ArrayLikeConcretePythonType)
     return modelHolder.model.readArrayLength(address, ArrayType, ctx.intSort)
 }
-
-fun UninterpretedSymbolicPythonObject.defaultElement(ctx: ConcolicRunContext): UHeapRef {
-    val type = getTypeIfDefined(ctx)
-    require(ctx.curState != null && type != null && type is ArrayLikeConcretePythonType && type.innerType != null)
-    val result = ctx.curState!!.memory.readArrayIndex(
-        address,
-        ctx.ctx.mkIntNum(DEFAULT_ELEMENT_INDEX),
-        ArrayType,
-        ctx.ctx.addressSort
-    )
-    val obj = UninterpretedSymbolicPythonObject(result, ctx.typeSystem)
-    val array = this
-    val cond = with(ctx.ctx) {
-        type.elementConstraints.fold(trueExpr as UBoolExpr) { acc, constraint ->
-            acc and constraint.applyUninterpreted(array, obj, ctx)
-        }
-    }
-    myAssert(ctx, cond)
-    return result
-}
-
-fun InterpretedInputSymbolicPythonObject.defaultElement(ctx: PyContext): UConcreteHeapRef =
-    modelHolder.model.readArrayIndex(
-        address,
-        ctx.mkIntNum(DEFAULT_ELEMENT_INDEX),
-        ArrayType,
-        ctx.addressSort
-    ) as UConcreteHeapRef
 
 fun UninterpretedSymbolicPythonObject.readArrayElement(
     ctx: ConcolicRunContext,
@@ -75,14 +43,7 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
         ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, elem, ctx))
     }
     myAssert(ctx, cond)
-    val actualAddress = if (type.innerType != null) {
-        with(ctx.ctx) {
-            mkIte(mkHeapRefEq(elemAddress, nullRef), defaultElement(ctx), elemAddress)
-        }
-    } else {
-        elemAddress
-    }
-    return UninterpretedSymbolicPythonObject(actualAddress, typeSystem)
+    return UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
 }
 
 fun InterpretedInputSymbolicPythonObject.readArrayElement(
@@ -96,22 +57,12 @@ fun InterpretedInputSymbolicPythonObject.readArrayElement(
         ArrayType,
         ctx.addressSort
     ) as UConcreteHeapRef
-    val actualAddress = if (element.address == 0) {
-        val type = modelHolder.model.getConcreteType(address)
-        if (type != null && type is ArrayLikeConcretePythonType && type.innerType != null) {
-            defaultElement(ctx)
-        } else {
-            element
-        }
-    } else {
-        element
-    }
-    return if (isStaticHeapRef(actualAddress)) {
-        val type = state.memory.typeStreamOf(actualAddress).first()
+    return if (isStaticHeapRef(element)) {
+        val type = state.memory.typeStreamOf(element).first()
         require(type is ConcretePythonType)
-        InterpretedAllocatedOrStaticSymbolicPythonObject(actualAddress, type, typeSystem)
+        InterpretedAllocatedOrStaticSymbolicPythonObject(element, type, typeSystem)
     } else {
-        InterpretedInputSymbolicPythonObject(actualAddress, modelHolder, typeSystem)
+        InterpretedInputSymbolicPythonObject(element, modelHolder, typeSystem)
     }
 }
 
@@ -128,12 +79,6 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
             ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
         }
         myAssert(ctx, cond)
-    }
-    if (type.innerType != null) {
-        myAssert(
-            ctx,
-            with(ctx.ctx) { mkHeapRefEq(value.address, nullRef).not() or mkHeapRefEq(defaultElement(ctx), nullRef) }
-        )
     }
     ctx.curState!!.memory.writeArrayIndex(
         address,

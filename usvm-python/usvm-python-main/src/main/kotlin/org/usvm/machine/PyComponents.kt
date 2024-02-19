@@ -19,9 +19,7 @@ class PyComponents(
     override val useSolverForForks: Boolean = true
     override fun <Context : UContext<KIntSort>> mkSolver(ctx: Context): USolverBase<PythonType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
-        // val softConstraintsProvider = USoftConstraintsProvider<PythonType, KIntSort>(ctx)
         val solver = KZ3Solver(ctx)
-//        solver.configure { setZ3Option("timeout", 1) }
         return PySolver(ctx, solver, UTypeSolver(typeSystem),  translator, decoder)
     }
 

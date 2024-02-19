@@ -7,7 +7,6 @@ import org.usvm.language.types.*
 @Suppress("unused_parameter")
 fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    // on.addSupertypeSoft(context, HasNbBool)  // TODO
 }
 
 fun nbIntKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {

@@ -9,17 +9,12 @@ import org.usvm.language.*
 import org.usvm.language.types.*
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
-import org.usvm.machine.ps.strategies.TypeRating
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
-import org.usvm.machine.ps.types.SymbolTypeTree
-import org.usvm.machine.ps.types.prioritizeTypes
 import org.usvm.memory.UMemory
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
-import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
-import org.usvm.types.TypesResult
 
 object PyTarget: UTarget<PyInstruction, PyTarget>()
 private val targets = UTargetsSet.empty<PyTarget, PyInstruction>()
@@ -82,7 +77,6 @@ class PyState(
         val cached = mocks[what]
         if (cached != null)
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
-        // println("what.args: ${what.args}")
         val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }

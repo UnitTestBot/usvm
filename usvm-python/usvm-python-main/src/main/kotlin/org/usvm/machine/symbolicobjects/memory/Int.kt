@@ -11,7 +11,6 @@ import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory
 
-
 fun UninterpretedSymbolicPythonObject.setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, typeSystem.pythonInt)

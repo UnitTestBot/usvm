@@ -32,7 +32,7 @@ class SymbolTypeTree(
                     NbSubtractMethod ->
                         { returnType: UtType -> createBinaryProtocol("__sub__", pythonAnyType, returnType) }
                     NbBoolMethod ->
-                        { _: UtType -> pythonAnyType /* createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) */ }
+                        { _: UtType -> createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) }
                     NbIntMethod ->
                         { _: UtType -> createUnaryProtocol("__int__", typeHintsStorage.pythonInt) }
                     NbNegativeMethod ->

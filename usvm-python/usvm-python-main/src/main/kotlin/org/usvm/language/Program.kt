@@ -67,7 +67,6 @@ class StructuredPyProgram(val roots: Set<File>): PyProgram(roots) {
             "$acc$name."
         }
         val resultAsObj = ConcretePythonInterpreter.eval(namespace, "$module.__dict__")
-        //println(module)
         if (ConcretePythonInterpreter.getPythonObjectTypeName(resultAsObj) != "dict")
             return null
         return PyNamespace(resultAsObj.address)

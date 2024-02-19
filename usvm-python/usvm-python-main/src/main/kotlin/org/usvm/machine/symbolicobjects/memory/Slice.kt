@@ -15,7 +15,6 @@ import org.usvm.machine.symbolicobjects.PropertyOfPythonObject
 import org.usvm.machine.symbolicobjects.SliceContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-
 data class SliceInterpretedContent(
     val start: KInterpretedValue<KIntSort>?,
     val stop: KInterpretedValue<KIntSort>?,

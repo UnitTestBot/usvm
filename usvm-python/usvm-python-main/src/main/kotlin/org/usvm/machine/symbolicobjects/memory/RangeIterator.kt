@@ -9,7 +9,6 @@ import org.usvm.machine.symbolicobjects.RangeContents
 import org.usvm.machine.symbolicobjects.RangeIteratorContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-
 fun UninterpretedSymbolicPythonObject.setRangeIteratorContent(
     ctx: ConcolicRunContext,
     range: UninterpretedSymbolicPythonObject

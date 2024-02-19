@@ -8,7 +8,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.EnumerateContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-
 fun UninterpretedSymbolicPythonObject.initializeEnumerate(
     ctx: ConcolicRunContext,
     arg: UninterpretedSymbolicPythonObject

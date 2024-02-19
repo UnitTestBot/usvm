@@ -156,7 +156,6 @@ fun handlerStandardTpGetattroKt(
     if (ctx.curState == null)
         return null
     val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
-    // println("Attr: $concreteStr")
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
     var defaultValue: UninterpretedSymbolicPythonObject? = null
@@ -172,7 +171,6 @@ fun handlerStandardTpGetattroKt(
     if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
         return null
     val containsFieldCond = obj.containsField(ctx, name)
-    // println("Attr result: ${ctx.modelHolder.model.eval(containsFieldCond).isTrue}")
     val result = obj.getFieldValue(ctx, name)
 
     val typeSystem = ctx.typeSystem

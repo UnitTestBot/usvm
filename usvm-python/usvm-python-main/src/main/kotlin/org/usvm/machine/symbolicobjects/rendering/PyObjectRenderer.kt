@@ -53,28 +53,22 @@ class PyObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
         val result = ConcretePythonInterpreter.eval(namespace, repr)
         converted[model] = result
         ConcretePythonInterpreter.addObjectToNamespace(namespace, result, "result")
-        if (model.listItems != null) {
-            model.listItems!!.forEach {
-                val elemRef = convert(it)
-                ConcretePythonInterpreter.addObjectToNamespace(namespace, elemRef, "elem")
-                ConcretePythonInterpreter.concreteRun(namespace, "result.append(elem)")
-            }
+        model.listItems?.forEach {
+            val elemRef = convert(it)
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, elemRef, "elem")
+            ConcretePythonInterpreter.concreteRun(namespace, "result.append(elem)")
         }
-        if (model.dictItems != null) {
-            model.dictItems!!.forEach { (key, elem) ->
-                val keyRef = convert(key)
-                val elemRef = convert(elem)
-                ConcretePythonInterpreter.addObjectToNamespace(namespace, keyRef, "key")
-                ConcretePythonInterpreter.addObjectToNamespace(namespace, elemRef, "elem")
-                ConcretePythonInterpreter.concreteRun(namespace, "result[key] = elem")
-            }
+        model.dictItems?.forEach { (key, elem) ->
+            val keyRef = convert(key)
+            val elemRef = convert(elem)
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, keyRef, "key")
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, elemRef, "elem")
+            ConcretePythonInterpreter.concreteRun(namespace, "result[key] = elem")
         }
-        if (model.fieldDict != null) {
-            model.fieldDict!!.forEach { (name, value) ->
-                val valueRef = convert(value)
-                ConcretePythonInterpreter.addObjectToNamespace(namespace, valueRef, "value")
-                ConcretePythonInterpreter.concreteRun(namespace, "result.$name = value")
-            }
+        model.fieldDict?.forEach { (name, value) ->
+            val valueRef = convert(value)
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, valueRef, "value")
+            ConcretePythonInterpreter.concreteRun(namespace, "result.$name = value")
         }
         ConcretePythonInterpreter.decref(namespace)
         return result

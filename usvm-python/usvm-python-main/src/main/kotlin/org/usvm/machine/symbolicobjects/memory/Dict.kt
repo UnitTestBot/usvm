@@ -25,7 +25,6 @@ import org.usvm.memory.UMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.types.first
 
-
 fun UninterpretedSymbolicPythonObject.dictIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
