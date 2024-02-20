@@ -1,16 +1,13 @@
 package org.usvm.machine
 
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
 import org.jacodb.api.JcField
 import org.jacodb.api.JcType
 import org.usvm.UComposer
-import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
@@ -18,7 +15,7 @@ import org.usvm.machine.interpreter.statics.JcStaticFieldReading
 import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.mapAddress
+import org.usvm.model.UModelEvaluator
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.USoftConstraintsProvider
@@ -54,16 +51,14 @@ class JcStaticFieldDecoder<Sort : USort>(
         }
 
     override fun decodeLazyRegion(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>,
     ): UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> =
-        JcStaticFieldModel(model, mapping, translated, translator)
+        JcStaticFieldModel(model, translated, translator)
 }
 
 class JcStaticFieldModel<Sort : USort>(
-    private val model: KModel,
-    private val mapping: Map<UHeapRef, UConcreteHeapRef>,
+    private val model: UModelEvaluator<*>,
     private val translatedFields: Map<JcField, UExpr<Sort>>,
     private val translator: UExprTranslator<*, *>
 ) : UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
@@ -72,7 +67,7 @@ class JcStaticFieldModel<Sort : USort>(
             ?: translator.translate(
                 key.sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, key.field, key.sort)
             )
-        return model.eval(translated, isComplete = true).mapAddress(mapping)
+        return model.evalAndComplete(translated)
     }
 }
 

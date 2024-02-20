@@ -1,9 +1,16 @@
 package org.usvm.samples.casts;
 
-import static org.usvm.api.mock.UMockKt.assume;
+import org.jetbrains.annotations.NotNull;
+import org.usvm.api.Engine;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+
+import static org.usvm.api.mock.UMockKt.assume;
 
 public class ArrayCastExample {
     @SuppressWarnings("RedundantCast")
@@ -101,10 +108,32 @@ public class ArrayCastExample {
         return (List<ColoredPoint>) iterable;
     }
 
+    private static class NonCollectionIterable<T> implements Iterable<T> {
+        private final List<T> collection = new ArrayList<>();
+
+        @NotNull
+        @Override
+        public Iterator<T> iterator() {
+            return collection.iterator();
+        }
+
+        @Override
+        public void forEach(Consumer<? super T> action) {
+            collection.forEach(action);
+        }
+
+        @Override
+        public Spliterator<T> spliterator() {
+            return collection.spliterator();
+        }
+    }
+
     public Collection<ColoredPoint> castFromIterableToCollection(Iterable<ColoredPoint> iterable) {
         if (iterable == null) {
             return null;
         }
+
+        Engine.assume(iterable instanceof Collection<?> | iterable instanceof NonCollectionIterable<?>);
 
         return (Collection<ColoredPoint>) iterable;
     }
