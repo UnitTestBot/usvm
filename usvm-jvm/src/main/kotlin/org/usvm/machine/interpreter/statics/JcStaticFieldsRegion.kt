@@ -1,7 +1,9 @@
 package org.usvm.machine.interpreter.statics
 
+import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.JcRefType
@@ -45,9 +47,10 @@ data class JcStaticFieldRegionId<Sort : USort>(
 internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     private val sort: Sort,
     private var fieldValuesByClass: PersistentMap<JcClassOrInterface, PersistentMap<JcField, UExpr<Sort>>> = persistentHashMapOf(),
+    private var initialStatics: PersistentList<JcField> = persistentListOf()
 ) : UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     val mutableStaticFields: List<JcField>
-        get() = fieldValuesByClass.values.flatMap { it.keys }.filter(fieldShouldBeSymbolic)
+        get() = initialStatics
 
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
@@ -72,7 +75,7 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
             .guardedWrite(key.field, value, guard) { key.sort.sampleUValue() }
         val newFieldsByClass = fieldValuesByClass.put(enclosingClass, newFieldValues)
 
-        return JcStaticFieldsMemoryRegion(sort, newFieldsByClass)
+        return JcStaticFieldsMemoryRegion(sort, newFieldsByClass, initialStatics)
     }
 
     fun mutatePrimitiveStaticFieldValuesToSymbolic(enclosingClass: JcClassOrInterface) {
@@ -82,8 +85,12 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
             .keys
             .filter { fieldShouldBeSymbolic(it) }
 
+        initialStatics = initialStatics.addAll(staticsToRemove)
+
         // Remove concrete fields from the region
-        val updatedStaticFields = staticsToRemove.fold(staticFields) { acc, field -> acc.remove(field) }
+        val updatedStaticFields = staticsToRemove.fold(staticFields) { acc, field ->
+            acc.remove(field)
+        }
         fieldValuesByClass = fieldValuesByClass.put(enclosingClass, updatedStaticFields)
     }
 
