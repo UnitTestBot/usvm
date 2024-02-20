@@ -1,8 +1,8 @@
 package org.usvm.runner
 
 import org.usvm.language.StructuredPyProgram
-import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.readMypyInfoBuild
+import org.utpython.types.mypy.MypyBuildDirectory
+import org.utpython.types.mypy.readMypyInfoBuild
 import java.io.File
 
 object SamplesBuild {

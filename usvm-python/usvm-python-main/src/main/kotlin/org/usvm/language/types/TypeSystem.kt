@@ -10,11 +10,11 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.machine.utils.withAdditionalPaths
 import org.usvm.python.model.PyIdentifier
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.getBoundedParameters
-import org.utbot.python.newtyping.mypy.MypyInfoBuild
+import org.utpython.types.*
+import org.utpython.types.general.UtType
+import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.general.getBoundedParameters
+import org.utpython.types.mypy.MypyInfoBuild
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 

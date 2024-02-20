@@ -1,11 +1,11 @@
 package org.usvm.language.types
 
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.general.DefaultSubstitutionProvider
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.general.getBoundedParameters
-import org.utbot.python.newtyping.pythonAnyType
-import org.utbot.python.newtyping.typesAreEqual
+import org.utpython.types.PythonSubtypeChecker
+import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.general.UtType
+import org.utpython.types.general.getBoundedParameters
+import org.utpython.types.pythonAnyType
+import org.utpython.types.typesAreEqual
 
 fun getTypeFromTypeHint(
     hint: UtType,

@@ -5,12 +5,12 @@ import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getConcreteStrIfDefined
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.FunctionTypeCreator
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.inference.TypeInferenceEdgeWithBound
-import org.utbot.python.newtyping.inference.TypeInferenceNode
-import org.utbot.python.newtyping.inference.addEdge
+import org.utpython.types.*
+import org.utpython.types.general.FunctionTypeCreator
+import org.utpython.types.general.UtType
+import org.utpython.types.inference.TypeInferenceEdgeWithBound
+import org.utpython.types.inference.TypeInferenceNode
+import org.utpython.types.inference.addEdge
 
 class SymbolTypeTree(
     private val state: PyState,

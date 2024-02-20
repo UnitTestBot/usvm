@@ -5,31 +5,15 @@ plugins {
     distribution
 }
 
-// from GRADLE_USER_HOME/gradle.properties
-val githubUserFromHome: String? by project
-val githubTokenFromHome: String? by project  // with permission to read packages
-
-val githubUser: String = githubUserFromHome ?: System.getenv("GITHUB_ACTOR") ?: error("githubUser not defined")
-val githubToken: String = githubTokenFromHome ?: System.getenv("GITHUB_TOKEN") ?: error("githubToken not defined")
-
-repositories {
-    maven {
-        url = uri("https://maven.pkg.github.com/tochilinak/UTBotJava")
-        credentials {
-            username = githubUser
-            password = githubToken
-        }
-    }
-}
-
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":usvm-python:usvm-python-main"))
     implementation(project(":usvm-python:usvm-python-object-model"))
-    implementation("org.utbot:utbot-python-types:2023.11-SNAPSHOT")
-
+    implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
     implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
+
+val pythonTestActivated: String? by project
 
 tasks.jar {
     dependsOn(":usvm-util:jar")
@@ -132,9 +116,6 @@ tasks.register<JavaExec>("manualTestDebugNoLogs") {
     }
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("ManualTestKt")
-    //doFirst {
-    //    println(sourceSets.test.get().runtimeClasspath.joinToString(separator = ":"))
-    //}
 }
 
 /*
@@ -149,6 +130,7 @@ tasks.register<JavaExec>("manualTestRelease") {
 */
 
 tasks.test {
+    onlyIf { pythonTestActivated?.toLowerCase() == "true" }
     maxHeapSize = "2G"
     val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
     // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()

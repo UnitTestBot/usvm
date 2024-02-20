@@ -16,7 +16,7 @@ import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstrai
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.machine.utils.MethodDescription
-import org.utbot.python.newtyping.getPythonAttributeByName
+import org.utpython.types.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
