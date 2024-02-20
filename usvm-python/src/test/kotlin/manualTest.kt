@@ -16,12 +16,12 @@ import org.usvm.utils.getPythonFilesFromRoot
 import org.usvm.machine.utils.withAdditionalPaths
 import org.usvm.python.model.PyResultFailure
 import org.usvm.python.model.PyResultSuccess
-import org.utbot.python.newtyping.*
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.buildMypyInfo
-import org.utbot.python.newtyping.mypy.readMypyInfoBuild
+import org.utpython.types.*
+import org.utpython.types.general.FunctionType
+import org.utpython.types.general.UtType
+import org.utpython.types.mypy.MypyBuildDirectory
+import org.utpython.types.mypy.buildMypyInfo
+import org.utpython.types.mypy.readMypyInfoBuild
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 

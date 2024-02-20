@@ -8,13 +8,13 @@ import org.usvm.machine.PyMachine
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.*
 import org.usvm.machine.results.serialization.EmptyObjectSerializer
-import org.utbot.python.newtyping.PythonCallableTypeDescription
-import org.utbot.python.newtyping.PythonCompositeTypeDescription
-import org.utbot.python.newtyping.general.FunctionType
-import org.utbot.python.newtyping.general.UtType
-import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.readMypyInfoBuild
-import org.utbot.python.newtyping.pythonDescription
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonCompositeTypeDescription
+import org.utpython.types.general.FunctionType
+import org.utpython.types.general.UtType
+import org.utpython.types.mypy.MypyBuildDirectory
+import org.utpython.types.mypy.readMypyInfoBuild
+import org.utpython.types.pythonDescription
 import java.io.File
 
 class PyMachineSocketRunner(

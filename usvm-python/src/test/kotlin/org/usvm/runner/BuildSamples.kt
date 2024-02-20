@@ -2,8 +2,8 @@ package org.usvm.runner
 
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
-import org.utbot.python.newtyping.mypy.MypyBuildDirectory
-import org.utbot.python.newtyping.mypy.buildMypyInfo
+import org.utpython.types.mypy.MypyBuildDirectory
+import org.utpython.types.mypy.buildMypyInfo
 import java.io.File
 
 fun main(args: Array<String>) {

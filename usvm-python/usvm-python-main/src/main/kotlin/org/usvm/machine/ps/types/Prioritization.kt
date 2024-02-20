@@ -7,8 +7,8 @@ import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.TypeRating
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.types.TypesResult
-import org.utbot.python.newtyping.PythonSubtypeChecker
-import org.utbot.python.newtyping.general.UtType
+import org.utpython.types.PythonSubtypeChecker
+import org.utpython.types.general.UtType
 
 fun makeTypeRating(state: PyState, delayedFork: DelayedFork): TypeRating? {
     val candidates = when (val types = delayedFork.possibleTypes.take(MAX_CONCRETE_TYPES_TO_CONSIDER)) {

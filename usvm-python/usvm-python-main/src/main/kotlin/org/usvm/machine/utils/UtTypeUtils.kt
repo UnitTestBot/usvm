@@ -4,8 +4,8 @@ import org.usvm.language.types.ConcretePythonType
 import org.usvm.language.types.PythonTypeSystem
 import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.utbot.python.newtyping.PythonCompositeTypeDescription
-import org.utbot.python.newtyping.pythonDescription
+import org.utpython.types.PythonCompositeTypeDescription
+import org.utpython.types.pythonDescription
 
 fun getMembersFromType(
     type: ConcretePythonType,
