@@ -75,24 +75,15 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
         return JcStaticFieldsMemoryRegion(sort, newFieldsByClass)
     }
 
-    fun mutatePrimitiveStaticFieldValuesToSymbolic(state: JcState, enclosingClass: JcClassOrInterface) {
+    fun mutatePrimitiveStaticFieldValuesToSymbolic(enclosingClass: JcClassOrInterface) {
         val staticFields = fieldValuesByClass[enclosingClass] ?: return
 
-        val mutablePrimitiveStaticFieldsToSymbolicValues = staticFields
-            .entries
-            .filter { (field, _) -> fieldShouldBeSymbolic(field) }
-            .associate { (field, value) ->
-                val lvalue = JcStaticFieldLValue(field, value.sort)
-                val regionId = lvalue.memoryRegionId as JcStaticFieldRegionId
-                val symbol = state.ctx.mkStaticFieldReading(regionId, field, value.sort)
+        val staticsToRemove = staticFields
+            .keys
+            .filter { fieldShouldBeSymbolic(it) }
 
-                state.memory.write(lvalue, symbol, guard = state.ctx.trueExpr)
-
-                field to state.memory.read(lvalue)
-            }
-
-        // Mutate field values in place because we do not have any LValue to write on it into memory
-        val updatedStaticFields = staticFields.putAll(mutablePrimitiveStaticFieldsToSymbolicValues)
+        // Remove concrete fields from the region
+        val updatedStaticFields = staticsToRemove.fold(staticFields) { acc, field -> acc.remove(field) }
         fieldValuesByClass = fieldValuesByClass.put(enclosingClass, updatedStaticFields)
     }
 
