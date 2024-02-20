@@ -54,13 +54,14 @@ Gradle tasks for building and running were tested on Windows and Ubuntu.
 
 1. Only for Unix. Install optional dependencies.
     - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
-    - __Short version__. Install the following packages with apt:
+    - __Short version (Ubuntu)__. Install the following packages with apt:
       ```
       build-essential gdb lcov pkg-config \
       libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev \
       libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev \
       lzma lzma-dev tk-dev uuid-dev zlib1g-dev
       ```
+     The main package from those is `libssl-dev`. It is needed for pip to work.
 
 2. Use Gradle tasks to do the rest.
     
