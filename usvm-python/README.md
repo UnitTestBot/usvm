@@ -2,23 +2,20 @@
 
 ## Getting started
 
-First, you need to activate Gradle tasks for `usvm-python` module. Since it has dependecies from Github Packages, you need to generate Github access token with permission to read packages (more on Github tokens [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)).
+By default, tasks in module `usvm-python` that require `CPython` are turned off (including `usvm-python:test`).
+To turn them on, first you need to set up `CPython`. For that:
 
-There are 2 ways to specify your token:
+1. Clone `CPython` as repository submodule ([refer to the section about submodules](#working-with-git-submodule)).
 
-1. Specify the following properties in `gradle.properties` in your GRADLE_USER_HOME directory ([about](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home)):
+2. If you are using Unix, you also need to install optional dependencies  ([refer to the section about CPython build](#cpython-build)).
 
-    - `githubUserFromHome`
-    - `githubTokenFromHome`
+After these steps, add gradle property `cpythonActivated=true`. This can be done in `GRADLE_USER_HOME` directory 
+([about](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home))
+or during gradle command in CLI:
 
-2. Specify the following environment variables:
-
-    - `GITHUB_ACTOR`
-    - `GITHUB_TOKEN`
-
-Secondly, you need to clone `CPython` as repository submodule ([refer to the section about submodules](#working-with-git-submodule)).
-
-If you are using Unix, you also need to install optional dependencies  ([refer to the section about CPython build](#cpython-build)).
+```
+./gradlew <task> -PcpythonActivated=true
+```
 
 Now, you should be able to run Gradle task `:usvm-python:test`.
 
