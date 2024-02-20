@@ -147,7 +147,12 @@ enum class StateCollectionStrategy {
     /**
      * Collect only those states which have reached terminal targets.
      */
-    REACHED_TARGET
+    REACHED_TARGET,
+
+    /**
+     * Collect all terminated states.
+     */
+    ALL,
 }
 
 data class UMachineOptions(
