@@ -13,6 +13,20 @@ class EnumerateTest: PythonTestRunnerForPrimitiveProgram(
     // allowPathDiversions = true
 ) {
     @Test
+    fun testEnumerateOnAny() {
+        check1WithConcreteRun(
+            constructFunction("use_enumerate", listOf(PythonAnyType)),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, res -> res.repr == "None" },
+                { _, res -> res.selfTypeName == "AssertionError" }
+            )
+        )
+    }
+
+    @Test
     fun testEnumerateOnList() {
         check1WithConcreteRun(
             constructFunction("use_enumerate", listOf(typeSystem.pythonList)),
@@ -30,20 +44,6 @@ class EnumerateTest: PythonTestRunnerForPrimitiveProgram(
     fun testEnumerateOnTuple() {
         check1WithConcreteRun(
             constructFunction("use_enumerate", listOf(typeSystem.pythonTuple)),
-            ignoreNumberOfAnalysisResults,
-            standardConcolicAndConcreteChecks,
-            /* invariants = */ emptyList(),
-            /* propertiesToDiscover = */ listOf(
-                { _, res -> res.repr == "None" },
-                { _, res -> res.selfTypeName == "AssertionError" }
-            )
-        )
-    }
-
-    @Test
-    fun testEnumerateOnAny() {
-        check1WithConcreteRun(
-            constructFunction("use_enumerate", listOf(PythonAnyType)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
             /* invariants = */ emptyList(),
