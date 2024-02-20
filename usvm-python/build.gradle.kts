@@ -14,6 +14,7 @@ dependencies {
 }
 
 val pythonTestActivated: String? by project
+val pythonTestActivatedFlag = pythonTestActivated?.toLowerCase() == "true"
 
 tasks.jar {
     dependsOn(":usvm-util:jar")
@@ -130,22 +131,24 @@ tasks.register<JavaExec>("manualTestRelease") {
 */
 
 tasks.test {
-    onlyIf { pythonTestActivated?.toLowerCase() == "true" }
-    maxHeapSize = "2G"
-    val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
-    // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()
-    if (!isWindows) {
-        environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-        environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
-    } else {
-        args += "-Djava.library.path=$cpythonAdapterBuildPath"
-        environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
+    onlyIf { pythonTestActivatedFlag }
+    if (pythonTestActivatedFlag) {
+        maxHeapSize = "2G"
+        val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
+        // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()
+        if (!isWindows) {
+            environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
+            environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
+        } else {
+            args += "-Djava.library.path=$cpythonAdapterBuildPath"
+            environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
+        }
+        jvmArgs = args
+        dependsOn(":usvm-python:cpythonadapter:linkDebug")
+        dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
+        dependsOn(buildSamples)
+        environment("PYTHONHOME" to cpythonBuildPath)
     }
-    jvmArgs = args
-    dependsOn(":usvm-python:cpythonadapter:linkDebug")
-    dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
-    dependsOn(buildSamples)
-    environment("PYTHONHOME" to cpythonBuildPath)
 }
 
 distributions {
@@ -175,7 +178,7 @@ tasks.jar {
     val dependencies = configurations
         .runtimeClasspath
         .get()
-        .map(::zipTree) // OR .map { zipTree(it) }
+        .map(::zipTree)
     from(dependencies)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
