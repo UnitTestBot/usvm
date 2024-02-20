@@ -112,11 +112,14 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
      * NOTE: always sets the [stepScopeState] to the [CANNOT_BE_PROCESSED] value.
      */
     fun forkMulti(conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>) =
-        forkMulti(conditionsWithBlockOnStates, alwaysRegisterForkPoint = false)
+        forkMulti(conditionsWithBlockOnStates, skipForkPointIfPossible = true)
 
+    /**
+     * @param skipForkPointIfPossible determines whether it is allowed to skip fork point registration.
+     * */
     private fun forkMulti(
         conditionsWithBlockOnStates: List<Pair<UBoolExpr, T.() -> Unit>>,
-        alwaysRegisterForkPoint: Boolean
+        skipForkPointIfPossible: Boolean
     ) {
         check(canProcessFurtherOnCurrentStep)
 
@@ -146,17 +149,20 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         // Interpret the first state as original and others as forked
         this.forkedStates += forkedStates.subList(1, forkedStates.size)
 
-        if (forkedStates.size > 1 || alwaysRegisterForkPoint) {
-            forkedStates.forEach { it.forkPoints += possibleForkPoint }
-        }
+        if (skipForkPointIfPossible && forkedStates.size < 2) return
+
+        forkedStates.forEach { it.forkPoints += possibleForkPoint }
     }
 
     fun assert(constraint: UBoolExpr, block: T.() -> Unit = {}): Unit? =
-        assert(constraint, alwaysRegisterForkPoint = false, block)
+        assert(constraint, registerForkPoint = false, block)
 
+    /**
+     * @param registerForkPoint register a fork point if assert was successful.
+     * */
     private fun assert(
         constraint: UBoolExpr,
-        alwaysRegisterForkPoint: Boolean,
+        registerForkPoint: Boolean,
         block: T.() -> Unit,
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
@@ -167,7 +173,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
         posState?.block()
 
-        if (alwaysRegisterForkPoint && posState != null) {
+        if (registerForkPoint && posState != null) {
             posState.forkPoints += possibleForkPoint
         }
 
@@ -208,14 +214,14 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         }
 
         // If condition is concrete there is no fork point possibility
-        val alwaysRegisterForkPoint = !condition.isConcrete
+        val registerForkPoint = !condition.isConcrete
 
         // TODO: asserts are implemented via forkMulti and create an unused copy of state
         if (shouldForkOnTrue) {
-            return assert(condition, alwaysRegisterForkPoint, blockOnTrueState)
+            return assert(condition, registerForkPoint, blockOnTrueState)
         }
 
-        return assert(condition.uctx.mkNot(condition), alwaysRegisterForkPoint, blockOnFalseState)
+        return assert(condition.uctx.mkNot(condition), registerForkPoint, blockOnFalseState)
     }
 
     /**
@@ -239,8 +245,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         }
 
         // If all conditions are concrete there is no fork point possibility
-        val alwaysRegisterForkPoint = forkCases.any { !it.condition.isConcrete }
-        return forkMulti(filteredConditionsWithBlockOnStates, alwaysRegisterForkPoint)
+        val skipForkPoint = forkCases.all { it.condition.isConcrete }
+        return forkMulti(filteredConditionsWithBlockOnStates, skipForkPoint)
     }
 
     private val UBoolExpr.isConcrete get() = isTrue || isFalse
