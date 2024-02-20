@@ -29,6 +29,8 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: "true"
 
       # Runs a single command using the runners shell
       - name: Setup Java JDK
@@ -43,7 +45,7 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Build and run tests
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build --no-daemon -PcpythonActivated=true
 
       # - name: Upload usvm test reports
       #   uses: actions/upload-artifact@v3
