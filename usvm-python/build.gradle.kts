@@ -64,7 +64,7 @@ if (cpythonActivatedFlag) {
         }
         environment("PYTHONHOME" to cpythonBuildPath)
         commandLine(pythonBinaryPath, "-m", "ensurepip")
-        commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.15")
+        commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.17")
     }
 
     val buildSamples = tasks.register<JavaExec>("buildSamples") {
