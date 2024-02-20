@@ -93,6 +93,7 @@ class JcMachine(
         val transparentCfgStatistics = transparentCfgStatistics()
 
         val timeStatistics = TimeStatistics<JcMethod, JcState>()
+        val loopTracker = JcLoopTracker()
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -101,7 +102,8 @@ class JcMachine(
             timeStatistics,
             { coverageStatistics },
             { transparentCfgStatistics },
-            { callGraphStatistics }
+            { callGraphStatistics },
+            { loopTracker }
         )
 
         val statesCollector =

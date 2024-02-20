@@ -246,4 +246,12 @@ data class UMachineOptions(
      * Should machine use merging when possible
      */
     val useMerging: Boolean = false,
+    /**
+     * Iteratively increase loop iteration. Analyze states with less loop iterations first.
+     * */
+    val loopIterativeDeepening: Boolean = false,
+    /**
+     * Limit loop iterations.
+     * */
+    val loopIterationLimit: Int? = null,
 )
