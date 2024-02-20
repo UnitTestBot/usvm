@@ -26,6 +26,7 @@ class SampleState(
     memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
     pathNode: PathNode<Stmt> = PathNode.root(),
+    forkPoints: PathNode<PathNode<Stmt>> = PathNode.root(),
     var returnRegister: UExpr<out USort>? = null,
     var exceptionRegister: ProgramException? = null,
     targets: UTargetsSet<SampleTarget, Stmt> = UTargetsSet.empty(),
@@ -36,6 +37,7 @@ class SampleState(
     memory,
     models,
     pathNode,
+    forkPoints,
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
@@ -48,6 +50,7 @@ class SampleState(
             memory.clone(clonedConstraints.typeConstraints),
             models,
             pathNode,
+            forkPoints,
             returnRegister,
             exceptionRegister,
             targets
@@ -63,6 +66,7 @@ class SampleState(
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
 
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
+        val mergedForkPoints = forkPoints.mergeWith(other.forkPoints, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
@@ -92,6 +96,7 @@ class SampleState(
             mergedMemory,
             mergedModels,
             mergedPathNode,
+            mergedForkPoints,
             mergedReturnRegister,
             mergedExceptionRegister,
             mergedTargets

@@ -303,13 +303,13 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     if (random == null) {
         return WeightedPathSelector(
             priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
-            weighter = { it.pathNode.depth }
+            weighter = { it.forkPoints.depth }
         )
     }
 
     return WeightedPathSelector(
         priorityCollectionFactory = { RandomizedPriorityCollection(compareById()) { random.nextDouble() } },
-        weighter = { 1.0 / max(it.pathNode.depth.toDouble(), 1.0) }
+        weighter = { 1.0 / max(it.forkPoints.depth.toDouble(), 1.0) }
     )
 }
 
