@@ -12,7 +12,14 @@ import kotlin.test.assertTrue
 
 class MergingTest {
     val programDecl = MergingProgram
-    val options = UMachineOptions(listOf(PathSelectionStrategy.BFS), solverType = SolverType.YICES, useMerging = true)
+
+    val options = UMachineOptions(
+        listOf(PathSelectionStrategy.BFS),
+        solverType = SolverType.YICES,
+        useMerging = true,
+        exceptionsPropagation = false, // todo: incompatible with merging (see MergingPathSelector implementation)
+    )
+
     val machine = SampleMachine(programDecl.program, options)
 
     @Test
