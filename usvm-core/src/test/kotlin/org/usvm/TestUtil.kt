@@ -44,7 +44,7 @@ internal class TestState(
     pathLocation: PathNode<TestInstruction>,
     targetTrees: UTargetsSet<TestTarget, TestInstruction> = UTargetsSet.empty(),
     override val entrypoint: TestMethod = ""
-) : UState<Any, TestMethod, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, targetTrees) {
+) : UState<Any, TestMethod, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, callStack, pathConstraints, memory, models, pathLocation, PathNode.root(), targetTrees) {
 
     override fun clone(newConstraints: UPathConstraints<Any>?): TestState = this
 
