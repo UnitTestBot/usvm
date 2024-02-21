@@ -53,6 +53,7 @@ import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
+import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.JcMethodApproximationResolver
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
@@ -78,6 +79,7 @@ import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
+import org.usvm.utils.logAssertFailure
 import org.usvm.utils.onStateDeath
 
 typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
@@ -88,6 +90,7 @@ typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
 class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
+    private val options: JcMachineOptions,
     private val observer: JcInterpreterObserver? = null,
     var forkBlackList: UForkBlackList<JcState, JcInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<JcState>() {
@@ -303,7 +306,7 @@ class JcInterpreter(
                     return
                 }
 
-                resolveVirtualInvoke(stmt, scope, forkOnRemainingTypes = false)
+                resolveVirtualInvoke(stmt, scope)
             }
 
             is JcDynamicMethodCallInst -> {
@@ -399,32 +402,29 @@ class JcInterpreter(
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolveJcExpr(stmt.rhv, stmt.lhv.type) ?: return
 
-        val noArrayStoreException = checkArrayStoreException(lvalue, expr, scope)
+        checkArrayStoreException(lvalue, expr, exprResolver, scope) ?: return
 
-        scope.fork(
-            noArrayStoreException,
-            blockOnTrueState = {
-                val nextStmt = stmt.nextStmt
-                memory.write(lvalue, expr)
-                newStmt(nextStmt)
-            },
-            blockOnFalseState = exprResolver.allocateException(ctx.arrayStoreExceptionType)
-        )
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt
+            memory.write(lvalue, expr)
+            newStmt(nextStmt)
+        }
     }
 
     // Returns `trueExpr` if ArrayStoreException is impossible
     private fun checkArrayStoreException(
         lvalue: ULValue<*, *>,
         rvalue: UExpr<out USort>,
+        exprResolver: JcExprResolver,
         scope: JcStepScope
-    ): UBoolExpr {
+    ): Unit? {
         if (lvalue !is UArrayIndexLValue<*, *, *>) {
-            return ctx.trueExpr
+            return Unit
         }
 
         // ArrayStoreException is possible only for references
         if (rvalue.sort != ctx.addressSort) {
-            return ctx.trueExpr
+            return Unit
         }
 
         check(lvalue.sort == rvalue.sort) {
@@ -462,7 +462,15 @@ class JcInterpreter(
             ctx.mkAnd(elementTypeConstraints, arrayTypeConstraints)
         }
 
-        return isRvalueSubtypeOf
+        return if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                isRvalueSubtypeOf,
+                blockOnFalseState = exprResolver.allocateException(ctx.arrayStoreExceptionType)
+            )
+        } else {
+            scope.assert(isRvalueSubtypeOf)
+                .logAssertFailure { "Jc implicit exception: Check ArrayStoreException" }
+        }
     }
 
     private fun visitIfStmt(scope: JcStepScope, stmt: JcIfInst) {
@@ -624,6 +632,7 @@ class JcInterpreter(
         JcExprResolver(
             ctx,
             scope,
+            options,
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
             ::stringConstantAllocator,
@@ -697,8 +706,7 @@ class JcInterpreter(
     private fun resolveVirtualInvoke(
         methodCall: JcVirtualMethodCallInst,
         scope: JcStepScope,
-        forkOnRemainingTypes: Boolean,
-    ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, forkOnRemainingTypes)
+    ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, options.forkOnRemainingTypes)
 
     private val approximationResolver = JcMethodApproximationResolver(ctx, applicationGraph)
 

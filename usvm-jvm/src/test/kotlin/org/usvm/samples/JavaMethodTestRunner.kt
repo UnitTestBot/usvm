@@ -780,7 +780,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val jcMethod = cp.getJcMethodByName(method)
 
-        JcMachine(cp, options, interpreterObserver).use { machine ->
+        JcMachine(cp, options, interpreterObserver = interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
         }

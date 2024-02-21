@@ -99,6 +99,7 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.USizeSort
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
@@ -128,11 +129,11 @@ import org.usvm.utils.logAssertFailure
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
+    private val options: JcMachineOptions,
     localToIdx: (JcMethod, JcLocal) -> Int,
     mkTypeRef: (JcType) -> UConcreteHeapRef,
     mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
-    private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
         ctx,
@@ -768,10 +769,14 @@ class JcExprResolver(
     fun checkArrayIndex(idx: UExpr<USizeSort>, length: UExpr<USizeSort>) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
-        scope.fork(
-            inside,
-            blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                inside,
+                blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
+            )
+        } else {
+            scope.assert(inside).logAssertFailure { "Jc implicit exception: Check index out of bound" }
+        }
     }
 
     fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
@@ -779,10 +784,14 @@ class JcExprResolver(
 
         val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
 
-        scope.fork(
-            lengthIsNonNegative,
-            blockOnFalseState = allocateException(negativeArraySizeExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                lengthIsNonNegative,
+                blockOnFalseState = allocateException(negativeArraySizeExceptionType)
+            )
+        } else {
+            scope.assert(lengthIsNonNegative).logAssertFailure { "Jc implicit exception: Check new array length" }
+        }
     }
 
     fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
@@ -791,18 +800,39 @@ class JcExprResolver(
             return Unit
         }
         val neqZero = mkEq(expr.cast(), mkBv(0, sort)).not()
-        scope.fork(
-            neqZero,
-            blockOnFalseState = allocateException(arithmeticExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                neqZero,
+                blockOnFalseState = allocateException(arithmeticExceptionType)
+            )
+        } else {
+            scope.assert(neqZero).logAssertFailure { "Jc implicit exception: Check division by zero" }
+        }
     }
 
     fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
-        scope.fork(
-            neqNull,
-            blockOnFalseState = allocateException(nullPointerExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                neqNull,
+                blockOnFalseState = allocateException(nullPointerExceptionType)
+            )
+        } else {
+            scope.assert(neqNull).logAssertFailure { "Jc implicit exception: Check NPE" }
+        }
+    }
+
+    fun checkClassCast(expr: UHeapRef, type: JcType) = with(ctx) {
+        val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
+
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                isExpr,
+                blockOnFalseState = allocateException(ctx.classCastExceptionType)
+            )
+        } else {
+            scope.assert(isExpr).logAssertFailure { "Jc implicit exception: Check class cast" }
+        }
     }
 
     // endregion
@@ -810,7 +840,7 @@ class JcExprResolver(
     // region hard assertions
 
     private fun assertHardMaxArrayLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
-        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
+        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.arrayMaxSize))
         scope.assert(lengthLeThanMaxLength)
             .logAssertFailure { "JcExprResolver: array length max" }
     }
@@ -881,17 +911,11 @@ class JcExprResolver(
             "Unexpected type variable $type"
         }
 
-        return if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
-
-            scope.fork(
-                isExpr,
-                blockOnFalseState = allocateException(ctx.classCastExceptionType)
-            ) ?: return null
-            expr
-        } else {
-            expr
+        if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
+            checkClassCast(expr, type) ?: return null
         }
+
+        return expr
     }
 
     private fun resolvePrimitiveCast(
