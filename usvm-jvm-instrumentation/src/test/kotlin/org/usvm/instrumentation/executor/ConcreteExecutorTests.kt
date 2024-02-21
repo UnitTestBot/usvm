@@ -9,6 +9,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.util.UTestCreator
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -247,5 +248,17 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionSuccessResult>(res)
     }
+
+    @Test
+    fun `get parent static field`() = executeTest {
+        val uTest = UTestCreator.ParentStaticFieldUser.getParentStaticField(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.String>(result)
+        assertEquals("static field content", result.value)
+        assertContains(res.resultState.statics.keys.map { it.name }, "STATIC_FIELD")
+    }.also { println(0) }
 
 }
