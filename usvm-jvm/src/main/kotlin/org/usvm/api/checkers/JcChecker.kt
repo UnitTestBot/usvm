@@ -43,7 +43,7 @@ class JcCheckerRunner(val cp: JcClasspath) {
     ) {
         val checkersObserver = JcCheckerObserver(checkersVisitor, apiImpl)
 
-        JcMachine(cp, options, checkersObserver).use { machine ->
+        JcMachine(cp, options, interpreterObserver = checkersObserver).use { machine ->
             machine.analyze(entryPoint, targets)
         }
     }

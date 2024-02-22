@@ -42,6 +42,7 @@ val logger = object : KLogging() {}.logger
 class JcMachine(
     cp: JcClasspath,
     private val options: UMachineOptions,
+    private val jcMachineOptions: JcMachineOptions = JcMachineOptions(),
     private val interpreterObserver: JcInterpreterObserver? = null,
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
@@ -50,7 +51,7 @@ class JcMachine(
     private val components = JcComponents(typeSystem, options)
     private val ctx = JcContext(cp, components)
 
-    private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
+    private val interpreter = JcInterpreter(ctx, applicationGraph, jcMachineOptions, interpreterObserver)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
