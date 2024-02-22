@@ -182,10 +182,6 @@ fun handlerStandardTpGetattroKt(
         result.evalIs(ctx, concreteAttrType)
     } ?: ctx.ctx.trueExpr
 
-    val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
-    val ps = ctx.curState!!.pathConstraints
-    ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
-
     if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
         if (defaultValue != null)
             return SymbolForCPython(defaultValue, 0)

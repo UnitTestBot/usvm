@@ -54,9 +54,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
-        listOf(typeSystem.pythonList),
-        "reverse_usage",
-        "Lists"
+        listOf(PythonAnyType),
+        "f",
+        "tricky.CompositeObjects"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)
@@ -206,8 +206,8 @@ private fun analyze(runConfig: RunConfig) {
                     maxIterations = 90,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    timeoutPerRunMs = 4_000,
-                    timeoutMs = 60_000
+                    //timeoutPerRunMs = 4_000,
+                    //timeoutMs = 60_000
                 )
                 saver.pyTestObserver.tests.forEach { test ->
                     println("INPUT:")

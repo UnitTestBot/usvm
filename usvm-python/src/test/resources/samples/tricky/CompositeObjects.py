@@ -10,9 +10,10 @@ class B:
 
 
 def f(x):
+    print("left data_list:", x.left.data_list, flush=True)
     if x.left.data_list and x.right.data_list:
         # print("left data_list:", x.left.data_list, flush=True)
-        # print("right data_list:", x.right.data_list, flush=True)
+        print("right data_list:", x.right.data_list, flush=True)
         a = x.left.data_list.pop(0)
         b = x.right.data_list.pop(0)
         if a + b == 155:

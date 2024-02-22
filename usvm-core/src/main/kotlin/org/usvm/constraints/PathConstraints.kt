@@ -52,7 +52,7 @@ open class UPathConstraints<Type> private constructor(
      * Constraints solved by SMT solver.
      */
     val softConstraintsSourceSequence: Sequence<UBoolExpr>
-        get() = logicalConstraints.asSequence() + numericConstraints.constraints() + pythonSoftConstraints.asSequence()
+        get() = logicalConstraints.asSequence() + numericConstraints.constraints()
 
     constructor(ctx: UContext<*>) : this(ctx, ULogicalConstraints.empty())
 
