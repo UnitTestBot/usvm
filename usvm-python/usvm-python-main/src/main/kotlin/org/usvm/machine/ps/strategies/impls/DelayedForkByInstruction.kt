@@ -7,23 +7,37 @@ import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.*
 import kotlin.random.Random
 
-fun makeDelayedForkByInstructionActionStrategy(
+fun makeDelayedForkByInstructionPriorityStrategy(
+    random: Random
+): RandomizedPriorityActionStrategy<DelayedForkState, DelayedForkByInstructionGraph> =
+    RandomizedPriorityActionStrategy(
+        random,
+        listOf(
+            PeekExecutedStateWithConcreteType,
+            PeekFromRoot,
+            ServeNewDelayedForkByInstruction,
+            PeekFromStateWithDelayedFork,
+            ServeOldDelayedForkByInstruction
+        ),
+        baselineProbabilities
+    )
+
+fun makeDelayedForkByInstructionWeightedStrategy(
     random: Random
 ): WeightedActionStrategy<DelayedForkState, DelayedForkByInstructionGraph> =
     WeightedActionStrategy(
         random,
         listOf(
+            PeekExecutedStateWithConcreteType,
             PeekFromRoot,
             ServeNewDelayedForkByInstruction,
             PeekFromStateWithDelayedFork,
-            ServeOldDelayedForkByInstruction,
-            PeekExecutedStateWithConcreteType
-        )
+            ServeOldDelayedForkByInstruction
+        ),
+        baselineWeights
     )
 
-sealed class DelayedForkByInstructionAction(
-    weight: Double
-): Action<DelayedForkState, DelayedForkByInstructionGraph>(weight) {
+sealed class DelayedForkByInstructionAction: Action<DelayedForkState, DelayedForkByInstructionGraph>() {
     protected fun findAvailableInstructions(
         graph: DelayedForkByInstructionGraph,
         isAvailable: (DelayedForkGraphInnerVertex<DelayedForkState>) -> Boolean,
@@ -50,7 +64,7 @@ sealed class DelayedForkByInstructionAction(
     }
 }
 
-object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction(ServeNewDelayedFork.weight) {
+object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isEmpty() && node.delayedForkState.size > 0
     }
@@ -67,7 +81,7 @@ object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction(ServeNew
     override fun toString(): String = "ServeNewDelayedForkByInstruction"
 }
 
-object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction(ServeOldDelayedFork.weight) {
+object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isNotEmpty() && node.delayedForkState.size > 0
     }

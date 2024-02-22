@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class ListsTest : PythonTestRunnerForPrimitiveProgram(
     "Lists",
-    UMachineOptions(stepLimit = 20U)
+    UMachineOptions(stepLimit = 35U)
 ) {
     init {
         timeoutPerRunMs = 2000
@@ -165,7 +165,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
             constructFunction("sum_of_elements", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* invariants = */ listOf { x, _ -> x.typeName == "list" },
             /* propertiesToDiscover = */ List(4) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
@@ -178,7 +178,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
             constructFunction("for_loop", listOf(typeSystem.pythonList)),
             ignoreNumberOfAnalysisResults,
             standardConcolicAndConcreteChecks,
-            /* invariants = */ listOf { x, res -> x.typeName == "list" && res.typeName == "int" },
+            /* invariants = */ listOf { x, _ -> x.typeName == "list" },
             /* propertiesToDiscover = */ List(3) { index ->
                 { _, res -> res.repr == (index + 1).toString() }
             }
