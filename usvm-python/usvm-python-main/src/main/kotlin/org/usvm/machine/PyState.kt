@@ -31,6 +31,7 @@ class PyState(
     var possibleTypesForNull: UTypeStream<PythonType> = typeSystem.topTypeStream(),
     callStack: UCallStack<PyCallable, PyInstruction> = UCallStack(),
     pathLocation: PathNode<PyInstruction> = PathNode.root(),
+    forkPoints: PathNode<PathNode<PyInstruction>> = PathNode.root(),
     var concolicQueries: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
@@ -42,7 +43,8 @@ class PyState(
     memory,
     listOf(uModel),
     pathLocation,
-    targets
+    forkPoints,
+    targets,
 ) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PyState {
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
@@ -59,6 +61,7 @@ class PyState(
             possibleTypesForNull,
             callStack,
             pathNode,
+            forkPoints,
             concolicQueries,
             delayedForks,
             mocks.toMutableMap(),  // copy
