@@ -77,8 +77,12 @@ class JcTypeSystem(
         }
     }
 
-    override fun isFinal(type: JcType): Boolean =
-        (type as? JcClassType)?.isFinal ?: false
+    override fun isFinal(type: JcType): Boolean = when (type) {
+        is JcPrimitiveType -> true
+        is JcClassType -> type.isFinal
+        is JcArrayType -> isFinal(type.elementType)
+        else -> false
+    }
 
     override fun isInstantiable(type: JcType): Boolean =
         when (type) {
