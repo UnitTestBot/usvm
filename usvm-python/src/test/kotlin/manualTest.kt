@@ -54,9 +54,9 @@ private fun buildSampleRunConfig(): RunConfig {
         """.trimIndent()
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "f",
-        "tricky.CompositeObjects"
+        listOf(typeSystem.pythonList),
+        "reverse_usage",
+        "Lists"
     )
     val functions = listOf(function)
     return RunConfig(program, typeSystem, functions)

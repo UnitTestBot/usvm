@@ -7,23 +7,40 @@ import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.*
 import kotlin.random.Random
 
-fun makeBaselineActionStrategy(
+val baselineProbabilities = listOf(1.0, 0.6, 0.9, 0.7, 1.0)
+val baselineWeights = listOf(100.0, 0.6, 0.3, 0.088, 0.012)
+
+fun makeBaselinePriorityActionStrategy(
+    random: Random
+): RandomizedPriorityActionStrategy<DelayedForkState, BaselineDelayedForkGraph> =
+    RandomizedPriorityActionStrategy(
+        random,
+        listOf(
+            PeekExecutedStateWithConcreteType,
+            PeekFromRoot,
+            ServeNewDelayedFork,
+            PeekFromStateWithDelayedFork,
+            ServeOldDelayedFork
+        ),
+        baselineProbabilities
+    )
+
+fun makeBaselineWeightedActionStrategy(
     random: Random
 ): WeightedActionStrategy<DelayedForkState, BaselineDelayedForkGraph> =
     WeightedActionStrategy(
         random,
         listOf(
+            PeekExecutedStateWithConcreteType,
             PeekFromRoot,
             ServeNewDelayedFork,
             PeekFromStateWithDelayedFork,
-            ServeOldDelayedFork,
-            PeekExecutedStateWithConcreteType
-        )
+            ServeOldDelayedFork
+        ),
+        baselineWeights
     )
 
-sealed class BaselineAction(
-    weight: Double
-): Action<DelayedForkState, BaselineDelayedForkGraph>(weight) {
+sealed class BaselineAction: Action<DelayedForkState, BaselineDelayedForkGraph>() {
     protected fun chooseAvailableVertex(
         available: List<DelayedForkGraphInnerVertex<DelayedForkState>>,
         random: Random
@@ -34,7 +51,19 @@ sealed class BaselineAction(
     }
 }
 
-object PeekFromRoot: BaselineAction(0.6) {
+object PeekExecutedStateWithConcreteType: BaselineAction() {
+    override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
+        !graph.pathSelectorForExecutedStatesWithConcreteTypes.isEmpty()
+
+    override fun makeAction(
+        graph: BaselineDelayedForkGraph,
+        random: Random
+    ): PyPathSelectorAction<DelayedForkState> =
+        Peek(graph.pathSelectorForExecutedStatesWithConcreteTypes)
+
+}
+
+object PeekFromRoot: BaselineAction() {
     override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
         !graph.pathSelectorWithoutDelayedForks.isEmpty()
 
@@ -44,7 +73,7 @@ object PeekFromRoot: BaselineAction(0.6) {
     override fun toString(): String = "PeekFromRoot"
 }
 
-object ServeNewDelayedFork: BaselineAction(0.3) {
+object ServeNewDelayedFork: BaselineAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isEmpty() && node.delayedForkState.size > 0
     }
@@ -60,7 +89,7 @@ object ServeNewDelayedFork: BaselineAction(0.3) {
     override fun toString(): String = "ServeNewDelayedFork"
 }
 
-object PeekFromStateWithDelayedFork: BaselineAction(0.088) {
+object PeekFromStateWithDelayedFork: BaselineAction() {
     override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
         !graph.pathSelectorWithDelayedForks.isEmpty()
 
@@ -71,7 +100,7 @@ object PeekFromStateWithDelayedFork: BaselineAction(0.088) {
     override fun toString(): String = "PeekFromStateWithDelayedFork"
 }
 
-object ServeOldDelayedFork: BaselineAction(0.012) {
+object ServeOldDelayedFork: BaselineAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isNotEmpty() && node.delayedForkState.size > 0
     }
@@ -85,18 +114,6 @@ object ServeOldDelayedFork: BaselineAction(0.012) {
     }
 
     override fun toString(): String = "ServeOldDelayedFork"
-}
-
-object PeekExecutedStateWithConcreteType: BaselineAction(100.0) {
-    override fun isAvailable(graph: BaselineDelayedForkGraph): Boolean =
-        !graph.pathSelectorForExecutedStatesWithConcreteTypes.isEmpty()
-
-    override fun makeAction(
-        graph: BaselineDelayedForkGraph,
-        random: Random
-    ): PyPathSelectorAction<DelayedForkState> =
-        Peek(graph.pathSelectorForExecutedStatesWithConcreteTypes)
-
 }
 
 class BaselineDelayedForkStrategy: DelayedForkStrategy<DelayedForkState> {
