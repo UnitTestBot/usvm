@@ -7,6 +7,7 @@ import org.usvm.language.types.PythonType
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
+import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream
 
 fun getLeafHeapRef(ref: UHeapRef, model: PyModel): UHeapRef =
@@ -27,8 +28,11 @@ fun getLeafHeapRef(ref: UHeapRef, model: PyModel): UHeapRef =
 fun getTypeStreamForDelayedFork(obj: UninterpretedSymbolicPythonObject, ctx: ConcolicRunContext): UTypeStream<PythonType> {
     require(ctx.curState != null)
     val interpreted = interpretSymbolicPythonObject(ctx, obj)
-    if (interpreted.address.address != 0)
-        return interpreted.getTypeStream()!!
-    val leaf = getLeafHeapRef(obj.address, ctx.curState!!.pyModel)
-    return ctx.curState!!.memory.typeStreamOf(leaf)
+    if (interpreted.address.address != 0) {
+        val current = interpreted.getTypeStream()!!
+        val prefix = current.take(3)
+        if (prefix is TypesResult.SuccessfulTypesResult && prefix.types.size >= 3)
+            return current
+    }
+    return ctx.typeSystem.topTypeStream()
 }

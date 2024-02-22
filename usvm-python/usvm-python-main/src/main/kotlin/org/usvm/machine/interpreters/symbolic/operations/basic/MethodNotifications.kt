@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.types.*
+import org.usvm.machine.symbolicobjects.memory.getFieldValue
 
 @Suppress("unused_parameter")
 fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
@@ -80,10 +81,14 @@ fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonOb
     myAssert(context, left.evalIsSoft(context, HasTpRichcmp))
 }
 
-fun tpGetattroKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {
-    context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasTpGetattro))
-    myAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))
+fun tpGetattroKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {
+    ctx.curState ?: return
+    myAssert(ctx, on.evalIsSoft(ctx, HasTpGetattro))
+    myAssert(ctx, name.evalIsSoft(ctx, ctx.typeSystem.pythonStr))
+    val field = on.getFieldValue(ctx, name)
+    val softConstraint = field.evalIsSoft(ctx, MockType)
+    val ps = ctx.curState!!.pathConstraints
+    ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
 }
 
 fun tpSetattroKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {

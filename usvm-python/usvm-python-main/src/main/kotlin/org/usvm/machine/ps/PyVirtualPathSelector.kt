@@ -136,6 +136,8 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
         delayedForkState.usedTypes.add(type)
         val state = delayedFork.state
         val symbol = delayedFork.symbol
+        logger.debug { "Delayed fork on ${symbol.address}" }
+        logger.debug { "Chosen type: $type" }
         val forkResult = fork(state, symbol.evalIs(ctx, state.pathConstraints.typeConstraints, type).not())
         if (forkResult.positiveState != state) {
             require(typeRating.types.isEmpty())
