@@ -14,7 +14,6 @@ import org.jacodb.api.JcType
 import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.PredefinedPrimitives
 import org.jacodb.api.cfg.JcAddExpr
 import org.jacodb.api.cfg.JcAndExpr
 import org.jacodb.api.cfg.JcArgument
@@ -85,8 +84,6 @@ import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.jacodb.impl.bytecode.JcFieldImpl
-import org.jacodb.impl.types.FieldInfo
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -97,9 +94,13 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
+import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
+import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
+import org.usvm.machine.interpreter.statics.isInitialized
+import org.usvm.machine.interpreter.statics.markAsInitialized
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -542,7 +543,7 @@ class JcExprResolver(
 
             return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
                 val sort = ctx.typeToSort(field.fieldType)
-                JcStaticFieldLValue(field.field, ctx, sort)
+                JcStaticFieldLValue(field.field, sort)
             }
         }
     }
@@ -595,7 +596,7 @@ class JcExprResolver(
             )
 
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val oneOfEnumInstancesLValue =
@@ -626,7 +627,7 @@ class JcExprResolver(
     private fun JcState.ensureEnumStaticInitializerInvariants(type: JcClassOrInterface) = with(ctx) {
         val enumValues = type.enumValues ?: error("Expected enum values containing in the enum type $type")
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val enumValuesType = enumValuesField.fieldType as JcArrayType
@@ -670,7 +671,6 @@ class JcExprResolver(
 
     /**
      * Run a class static initializer for [type] if it didn't run before the current state.
-     * The class static initialization state is tracked by the synthetic [staticFieldsInitializedFlagField] field.
      * */
     private inline fun <T> ensureStaticFieldsInitialized(
         type: JcRefType,
@@ -694,16 +694,9 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = simpleValueResolver.resolveClassRef(type)
+        val isClassInitialized = scope.calcOnState { isInitialized(type) }
 
-        val initializedFlag = staticFieldsInitializedFlag(type, classRef)
-
-        val staticFieldsInitialized = scope.calcOnState {
-            memory.read(initializedFlag).asExpr(ctx.booleanSort)
-        }
-
-
-        if (staticFieldsInitialized.isTrue) {
+        if (isClassInitialized) {
             scope.doWithState {
                 // Handle static initializer result
                 val result = methodResult
@@ -722,18 +715,12 @@ class JcExprResolver(
 
         // Run static initializer before the current statement
         scope.doWithState {
-            memory.write(initializedFlag, ctx.trueExpr)
+            markAsInitialized(type)
+            addConcreteMethodCallStmt(initializer, emptyList())
         }
-        scope.doWithState { addConcreteMethodCallStmt(initializer, emptyList()) }
+
         return null
     }
-
-    private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
-        UFieldLValue(
-            sort = ctx.booleanSort,
-            field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
-            ref = classRef
-        )
 
     private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *, USizeSort>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
@@ -990,26 +977,15 @@ class JcExprResolver(
     ) {
         scope.calcOnState {
             with(ctx) {
-                // We can use any sort here as it is not used
-                val staticFieldsMemoryRegionId = JcStaticFieldRegionId(staticInitializer.enclosingClass.toType(), voidSort)
-                val staticFieldsMemoryRegion = memory.getRegion(staticFieldsMemoryRegionId) as JcStaticFieldsMemoryRegion
-                staticFieldsMemoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState)
-            }
-        }
-    }
+                primitiveTypes.forEach {
+                    val sort = typeToSort(it)
 
-    companion object {
-        /**
-         * Synthetic field to track static field initialization state.
-         * */
-        private val staticFieldsInitializedFlagField by lazy {
-            FieldInfo(
-                name = "__initialized__",
-                signature = null,
-                access = 0,
-                type = PredefinedPrimitives.Boolean,
-                annotations = emptyList()
-            )
+                    if (sort === voidSort) return@forEach
+
+                    val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass)
+                }
+            }
         }
     }
 }

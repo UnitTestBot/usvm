@@ -16,20 +16,21 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USizeSort
-import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.UAllocatedArrayId
-import org.usvm.collection.array.UInputArrayId
-import org.usvm.collection.array.length.UInputArrayLengthId
-import org.usvm.collection.field.UInputFieldId
-import org.usvm.collection.array.length.UArrayLengthsRegionId
-import org.usvm.collection.array.UArrayRegionId
-import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.array.UArrayEagerModelRegion
+import org.usvm.collection.array.UArrayRegionId
+import org.usvm.collection.array.UInputArrayId
+import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter
 import org.usvm.collection.array.length.UArrayLengthEagerModelRegion
+import org.usvm.collection.array.length.UArrayLengthsRegionId
+import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UFieldsEagerModelRegion
+import org.usvm.collection.field.UFieldsRegionId
+import org.usvm.collection.field.UInputFieldId
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.sampleUValue
-import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.sizeSort
 import kotlin.test.assertSame
 
@@ -42,6 +43,8 @@ class ModelCompositionTest {
         val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }

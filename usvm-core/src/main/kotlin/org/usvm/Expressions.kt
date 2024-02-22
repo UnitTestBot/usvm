@@ -246,6 +246,25 @@ class UIndexedMethodReturnValue<Method, Sort : USort> internal constructor(
     override fun internHashCode(): Int = hash(method, callIndex, sort)
 }
 
+class UTrackedSymbol<Sort : USort> internal constructor(
+    ctx: UContext<*>,
+    val name: String,
+    override val sort: Sort
+): UMockSymbol<Sort>(ctx, sort) {
+    override fun accept(transformer: KTransformerBase): KExpr<Sort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, { name }, { sort })
+
+    override fun internHashCode(): Int = hash(name, sort)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append(name)
+    }
+}
+
 //endregion
 
 //region Subtyping Expressions

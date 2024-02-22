@@ -53,6 +53,7 @@ import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.machine.JcContext
@@ -66,8 +67,12 @@ import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
 import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
 import org.usvm.machine.interpreter.JcTypeStreamPrioritization
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
+import org.usvm.machine.interpreter.statics.extractInitialStatics
+import org.usvm.machine.state.localIdx
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
@@ -75,19 +80,63 @@ import org.usvm.types.first
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
-    val model: UModelBase<JcType>,
-    val memory: UReadOnlyMemory<JcType>,
-    // todo: remove hack with stringConstants. All statically allocated strings should present in the model
-    val stringConstants: Map<String, UConcreteHeapRef>,
+    private val model: UModelBase<JcType>,
+    private val finalStateMemory: UReadOnlyMemory<JcType>,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
+
+    private var resolveMode: ResolveMode = ResolveMode.ERROR
+
+    fun <R> withMode(resolveMode: ResolveMode, body: JcTestStateResolver<T>.() -> R): R {
+        val prevValue = this.resolveMode
+        try {
+            this.resolveMode = resolveMode
+            return this.body()
+        } finally {
+            this.resolveMode = prevValue
+        }
+    }
+
+    enum class ResolveMode {
+        MODEL, CURRENT, ERROR
+    }
+
+    val memory: UReadOnlyMemory<JcType>
+        get() = when (resolveMode) {
+            ResolveMode.MODEL -> model
+            ResolveMode.CURRENT -> finalStateMemory
+            ResolveMode.ERROR -> error("You must explicitly specify type of the required memory")
+        }
 
     val resolvedCache = mutableMapOf<UConcreteHeapAddress, T>()
     val decoders = JcTestDecoders(ctx.cp)
     val typeSelector = JcTypeStreamPrioritization(
         typesToScore = JcFixedInheritorsNumberTypeSelector.DEFAULT_INHERITORS_NUMBER_TO_SCORE
     )
+
+    fun resolveThisInstance(): T = if (method.isStatic) {
+        decoderApi.createNullConst(method.enclosingType)
+    } else {
+        val ref = URegisterStackLValue(ctx.addressSort, idx = 0)
+        resolveLValue(ref, method.enclosingType)
+    }
+
+    fun resolveParameters(): List<T> = method.parameters.mapIndexed { idx, param ->
+        val registerIdx = method.method.localIdx(idx)
+        val ref = URegisterStackLValue(ctx.typeToSort(param.type), registerIdx)
+        resolveLValue(ref, param.type)
+    }
+
+    fun resolveStatics(): Unit = extractInitialStatics(ctx, finalStateMemory)
+        .forEach { field ->
+            val fieldType = ctx.cp.findTypeOrNull(field.type.typeName)
+                ?: error("No such type ${field.type} found")
+            val sort = ctx.typeToSort(fieldType)
+            val resolvedValue = resolveLValue(JcStaticFieldLValue(field, sort), fieldType)
+
+            decoderApi.setField(field, decoderApi.createNullConst(field.enclosingClass.toType()), resolvedValue)
+        }
 
     fun resolveLValue(lvalue: ULValue<*, *>, type: JcType): T {
         val expr = memory.read(lvalue)
@@ -286,10 +335,12 @@ abstract class JcTestStateResolver<T>(
         val classTypeField = ctx.classTypeSyntheticField
         val classTypeLValue = UFieldLValue(ctx.addressSort, ref, classTypeField)
 
-        val classTypeRef = memory.read(classTypeLValue) as? UConcreteHeapRef
+        val memoryToResolveClassType = if (isStaticHeapRef(ref)) finalStateMemory else model
+
+        val classTypeRef = memoryToResolveClassType.read(classTypeLValue) as? UConcreteHeapRef
             ?: error("No type for allocated class")
 
-        val classType = memory.typeStreamOf(classTypeRef).first()
+        val classType = memoryToResolveClassType.typeStreamOf(classTypeRef).first()
 
         return decoderApi.createClassConst(classType)
     }
@@ -297,14 +348,17 @@ abstract class JcTestStateResolver<T>(
     abstract fun allocateString(value: T): T
 
     fun resolveAllocatedString(ref: UConcreteHeapRef): T {
-        val stringConstant = stringConstants.entries.singleOrNull { it.value == ref }
-        if (stringConstant != null) {
-            return decoderApi.createStringConst(stringConstant.key)
-        }
-
         val valueField = ctx.stringValueField
         val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
-        val strValue = resolveLValue(strValueLValue, valueField.fieldType)
+
+        val strValue = if (isStaticHeapRef(ref)) {
+            withMode(ResolveMode.CURRENT) {
+                val expr = memory.read(strValueLValue)
+                resolveExpr(expr, valueField.fieldType)
+            }
+        } else {
+            resolveLValue(strValueLValue, valueField.fieldType)
+        }
 
         return allocateString(strValue)
     }

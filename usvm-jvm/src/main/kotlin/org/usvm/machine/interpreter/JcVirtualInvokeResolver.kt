@@ -20,6 +20,7 @@ import org.usvm.isStaticHeapRef
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcVirtualMethodCallInst
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.memory.foldHeapRef
@@ -150,7 +151,7 @@ private fun JcVirtualMethodCallInst.prepareVirtualInvokeOnAbstractEnum(
     val curState = scope.calcOnState { this }
 
     val enumConstantRefs = enumConstantFields.map {
-        val staticFieldLValue = JcStaticFieldLValue(it, ctx, ctx.addressSort)
+        val staticFieldLValue = JcStaticFieldLValue(it, ctx.addressSort)
         curState.memory.read(staticFieldLValue)
     }
 

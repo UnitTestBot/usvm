@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import org.jacodb.api.JcClassOrInterface
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.CoverageZone
@@ -8,6 +9,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.JcClassCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
+import org.usvm.api.StaticFieldValue
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestInterpreter
 import org.usvm.machine.JcInterpreterObserver
@@ -18,9 +20,9 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.JcTestExecutor
 import org.usvm.util.JcTestResolverType
 import org.usvm.util.UTestRunnerController
+import org.usvm.util.getJcMethodByName
 import org.usvm.util.loadClasspathFromEnv
 import java.io.File
-import org.usvm.util.getJcMethodByName
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
@@ -28,7 +30,6 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlin.time.Duration
@@ -94,6 +95,26 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
             invariants = invariants,
             coverageChecker = coverageChecker,
             checkMode = CheckMode.MATCH_PROPERTIES
+        )
+    }
+
+    protected inline fun <reified T, reified R> checkDiscoveredPropertiesWithStatics(
+        method: KFunction1<T, R>,
+        analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
+        vararg analysisResultsMatchers: (T, R?, StaticsType, StaticsType) -> Boolean,
+        invariants: Array<(T, R?) -> Boolean> = emptyArray(),
+        noinline coverageChecker: (JcClassCoverage) -> Boolean = { _ -> true }, // TODO remove it
+        checkMode: CheckMode,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher,
+            analysisResultsMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { test: JcTest -> test.takeParametersBeforeAndAllStaticsWithResult(method) },
+            expectedTypesForExtractedValues = arrayOf(T::class, R::class, Map::class, Map::class),
+            checkMode = checkMode,
+            coverageChecker
         )
     }
 
@@ -724,7 +745,21 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected fun JcTest.takeAllParametersBeforeAndAfterWithResult(method: KFunction<*>): MutableList<Any?> {
         val values = takeAllParametersBeforeAndAfter(method)
-        result.let { values += it.getOrNull() }
+        values += result.getOrNull()
+
+
+        return values
+    }
+
+    private fun JcTest.takeStaticsBefore(): Map<JcClassOrInterface, List<StaticFieldValue>> = before.statics
+    private fun JcTest.takeStaticsAfter(): Map<JcClassOrInterface, List<StaticFieldValue>> = after.statics
+
+    protected fun JcTest.takeParametersBeforeAndAllStaticsWithResult(method: KFunction<*>): MutableList<Any?> {
+        val values = takeAllParametersBefore(method)
+
+        values += result.getOrNull()
+        values += takeStaticsBefore()
+        values += takeStaticsAfter()
 
         return values
     }
@@ -782,7 +817,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
         JcMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
-            states.map { testResolver.resolve(jcMethod, it, machine.stringConstants) }
+            states.map { testResolver.resolve(jcMethod, it) }
         }
     }
 
@@ -806,3 +841,5 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
 private val KFunction<*>.declaringClass: Class<*>?
     get() = (javaMethod ?: javaConstructor)?.declaringClass
+
+private typealias StaticsType = Map<JcClassOrInterface, List<StaticFieldValue>>

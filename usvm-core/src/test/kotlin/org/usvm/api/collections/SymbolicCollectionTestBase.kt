@@ -13,6 +13,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UCallStack
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeSort
@@ -21,6 +22,7 @@ import org.usvm.WithSolverStateForker
 import org.usvm.constraints.UPathConstraints
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
@@ -45,6 +47,10 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkTypeSystem(any()) } returns mockk()
         every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
         ctx = UContext(components)
+
+        every { components.mkComposer(ctx) } answers {
+            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType> -> UComposer(ctx, memory) }
+        }
 
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
