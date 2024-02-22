@@ -4,7 +4,6 @@ import io.ksmt.utils.uncheckedCast
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -39,7 +38,8 @@ open class UModelBase<Type>(
     internal val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
     internal val nullRef: UConcreteHeapRef,
 ) : UModel, UWritableMemory<Type> {
-    private val composer = UComposer(ctx, this)
+    @Suppress("LeakingThis")
+    protected open val composer = ctx.composer(this)
 
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].

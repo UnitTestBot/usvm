@@ -10,7 +10,7 @@ import org.usvm.instrumentation.util.*
 
 class StaticDescriptorsBuilder(
     private var workerClassLoader: WorkerClassLoader,
-    private val initialValue2DescriptorConverter: Value2DescriptorConverter
+    private var initialValue2DescriptorConverter: Value2DescriptorConverter
 ) {
 
     val builtInitialDescriptors = HashMap<JcField, UTestValueDescriptor?>()
@@ -20,6 +20,10 @@ class StaticDescriptorsBuilder(
 
     fun setClassLoader(workerClassLoader: WorkerClassLoader) {
         this.workerClassLoader = workerClassLoader
+    }
+
+    fun setInitialValue2DescriptorConverter(initialValue2DescriptorConverter: Value2DescriptorConverter) {
+        this.initialValue2DescriptorConverter = initialValue2DescriptorConverter
     }
 
     fun buildInitialDescriptorForClass(jcClass: JcClassOrInterface) {

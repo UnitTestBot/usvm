@@ -8,7 +8,6 @@ import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
-import org.usvm.UConcreteHeapRef
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
@@ -54,9 +53,6 @@ class JcMachine(
     private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
-
-    val stringConstants: Map<String, UConcreteHeapRef>
-        get() = interpreter.stringConstants
 
     fun analyze(methods: List<JcMethod>, targets: List<JcTarget> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({})", this, methods)

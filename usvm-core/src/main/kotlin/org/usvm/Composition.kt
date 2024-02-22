@@ -22,7 +22,7 @@ import org.usvm.regions.Region
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Type, USizeSort : USort>(
     ctx: UContext<USizeSort>,
-    internal val memory: UReadOnlyMemory<Type>
+    val memory: UReadOnlyMemory<Type>
 ) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
@@ -41,6 +41,10 @@ open class UComposer<Type, USizeSort : USort>(
 
     override fun <Method, Sort : USort> transform(
         expr: UIndexedMethodReturnValue<Method, Sort>,
+    ): UExpr<Sort> = memory.mocker.eval(expr)
+
+    override fun <Sort : USort> transform(
+        expr: UTrackedSymbol<Sort>
     ): UExpr<Sort> = memory.mocker.eval(expr)
 
     override fun transform(expr: UIsSubtypeExpr<Type>): UBoolExpr =

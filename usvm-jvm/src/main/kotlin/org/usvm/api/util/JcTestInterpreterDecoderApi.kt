@@ -4,6 +4,7 @@ import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcField
 import org.jacodb.api.JcMethod
 import org.jacodb.api.JcType
+import org.usvm.api.StaticFieldValue
 import org.usvm.api.decoder.DecoderApi
 import org.usvm.api.util.Reflection.allocateInstance
 import org.usvm.api.util.Reflection.getFieldValue
@@ -16,6 +17,10 @@ class JcTestInterpreterDecoderApi(
     private val ctx: JcContext,
     private val classLoader: ClassLoader
 ) : DecoderApi<Any?> {
+    private val _staticFields: MutableMap<JcClassOrInterface, MutableMap<JcField, StaticFieldValue>> = mutableMapOf()
+    val staticFields: Map<JcClassOrInterface, List<StaticFieldValue>>
+        get() = _staticFields.mapValues { it.value.values.toList() }
+
     override fun invokeMethod(method: JcMethod, args: List<Any?>): Any? =
         if (method.isStatic || method.isConstructor) {
             method.invoke(classLoader, null, args)
@@ -27,6 +32,15 @@ class JcTestInterpreterDecoderApi(
         field.getFieldValue(classLoader, instance)
 
     override fun setField(field: JcField, instance: Any?, value: Any?) {
+        if (field.isStatic) {
+            val fieldsForClass = _staticFields.getOrPut(field.enclosingClass) { mutableMapOf() }
+            if (field in fieldsForClass) error("You can write the same field only once. Field: $field")
+
+            fieldsForClass[field] = StaticFieldValue(field, value)
+
+            return
+        }
+
         field.setFieldValue(classLoader, instance, value)
     }
 

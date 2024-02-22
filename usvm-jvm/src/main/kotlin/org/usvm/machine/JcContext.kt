@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import io.ksmt.utils.cast
 import org.jacodb.api.JcArrayType
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcField
@@ -23,7 +24,10 @@ import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.types.FieldInfo
 import org.usvm.UBv32Sort
 import org.usvm.UContext
+import org.usvm.USort
 import org.usvm.machine.interpreter.JcLambdaCallSiteRegionId
+import org.usvm.machine.interpreter.statics.JcStaticFieldReading
+import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
 import org.usvm.util.extractJcRefType
 
 internal typealias USizeSort = UBv32Sort
@@ -67,6 +71,16 @@ class JcContext(
     internal val useNegativeAddressesInStaticInitializer: Boolean = false
 
     fun mkVoidValue(): JcVoidValue = voidValue
+
+
+    private val staticFieldReadings = mkAstInterner<JcStaticFieldReading<*>>()
+    fun <Sort : USort> mkStaticFieldReading(
+        regionId: JcStaticFieldRegionId<Sort>,
+        field: JcField,
+        sort: Sort,
+    ): JcStaticFieldReading<Sort> = staticFieldReadings.createIfContextActive {
+        JcStaticFieldReading(this, regionId, field, sort)
+    }.cast()
 
     fun typeToSort(type: JcType) = when (type) {
         is JcRefType -> addressSort

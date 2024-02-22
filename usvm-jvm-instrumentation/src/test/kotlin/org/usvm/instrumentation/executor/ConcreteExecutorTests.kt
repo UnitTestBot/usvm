@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.executor
 
+import com.jetbrains.rd.util.first
 import org.jacodb.api.ext.findTypeOrNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -83,9 +84,14 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
 
     @Test
     fun `static fields test`() = executeTest {
-        val uTest = UTestCreator.A.isA(jcClasspath)
-        val res = uTestConcreteExecutor.executeAsync(uTest)
-        assertIs<UTestExecutionSuccessResult>(res)
+        repeat(3) {
+            val uTest = UTestCreator.A.isA(jcClasspath)
+            val res = uTestConcreteExecutor.executeAsync(uTest)
+            assertIs<UTestExecutionSuccessResult>(res)
+            val staticDescriptor = res.resultState.statics.first().value
+            assertIs<UTestConstantDescriptor.Int>(staticDescriptor)
+            assertEquals(staticDescriptor.value, 778)
+        }
     }
 
     @Test
