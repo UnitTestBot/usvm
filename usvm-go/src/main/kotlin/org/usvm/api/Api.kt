@@ -43,6 +43,7 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -69,6 +70,7 @@ class Api(
             Method.MK_CHANGE_INTERFACE -> mkChangeInterface(buf)
             Method.MK_CHANGE_TYPE -> mkChangeType(buf)
             Method.MK_CONVERT -> mkConvert(buf)
+            Method.MK_SLICE_TO_ARRAY_POINTER -> mkSliceToArrayPointer(buf)
             Method.MK_MAKE_INTERFACE -> mkMakeInterface(buf)
             Method.MK_STORE -> mkStore(buf)
             Method.MK_IF -> mkIf(buf)
@@ -93,7 +95,7 @@ class Api(
         return nextInst
     }
 
-    private fun mkUnOp(buf: ByteBuffer) {
+    private fun mkUnOp(buf: ByteBuffer) = with(ctx) {
         val z = readVar(buf)
         val op = UnOp.valueOf(buf.byte)
         val x = readVar(buf).expr
@@ -107,11 +109,11 @@ class Api(
 
         val lvalue = URegisterStackLValue(z.sort, z.index)
         scope.doWithState {
-            memory.write(lvalue, expr.asExpr(z.sort), ctx.trueExpr)
+            memory.write(lvalue, expr.asExpr(z.sort), trueExpr)
         }
     }
 
-    private fun mkBinOp(buf: ByteBuffer) {
+    private fun mkBinOp(buf: ByteBuffer) = with(ctx) {
         val z = readVar(buf)
         val x = readVar(buf).expr
         val op = BinOp.valueOf(buf.byte)
@@ -140,18 +142,18 @@ class Api(
         }(x, normalize(y, op, signed))
 
         val lvalue = URegisterStackLValue(z.sort, z.index)
-        return scope.doWithState {
-            memory.write(lvalue, expr.asExpr(z.sort), ctx.trueExpr)
+        scope.doWithState {
+            memory.write(lvalue, expr.asExpr(z.sort), trueExpr)
         }
     }
 
-    private fun mkCall(buf: ByteBuffer, lastBlock: Int): Boolean {
+    private fun mkCall(buf: ByteBuffer, lastBlock: Int): Boolean = with(ctx) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
             scope.doWithState {
                 val lvalue = URegisterStackLValue(result.value.sort, idx)
-                memory.write(lvalue, result.value, ctx.trueExpr)
+                memory.write(lvalue, result.value, trueExpr)
                 methodResult = GoMethodResult.NoCall
             }
             return false
@@ -164,7 +166,7 @@ class Api(
         val isInvoke = buf.bool
         val method = if (isInvoke) {
             val type = scope.calcOnState {
-                memory.types.getTypeStream(parameters[0].asExpr(ctx.addressSort)).first()
+                memory.types.getTypeStream(parameters[0].asExpr(addressSort)).first()
             }
             bridge.methodImplementation(buf.long, type)
         } else buf.long
@@ -172,7 +174,7 @@ class Api(
 
         buf.rewind()
         val methodInfo = bridge.methodInfo(method)
-        ctx.setMethodInfo(method, methodInfo)
+        setMethodInfo(method, methodInfo)
 
         setLastBlock(lastBlock)
 
@@ -208,7 +210,7 @@ class Api(
                             else -> throw IllegalStateException()
                         }
 
-                        memory.write(lvalue, rvalue.asExpr(sizeSort), ctx.trueExpr)
+                        memory.write(lvalue, rvalue.asExpr(sizeSort), trueExpr)
                     },
                     blockOnFalseState = {
                         memory.write(lvalue, mkBv(0).asExpr(sizeSort), ctx.trueExpr)
@@ -229,14 +231,39 @@ class Api(
         copyVarWithTypeConstraint(buf)
     }
 
-    private fun mkConvert(buf: ByteBuffer) {
+    private fun mkConvert(buf: ByteBuffer) = with(ctx) {
         val l = readVar(buf)
         val r = readVar(buf)
-        val rvalue = ctx.mkPrimitiveCast(r.expr, l.sort).asExpr(l.sort)
+        val rvalue = mkPrimitiveCast(r.expr, l.sort).asExpr(l.sort)
         val lvalue = URegisterStackLValue(l.sort, l.index)
 
         scope.doWithState {
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
+        }
+    }
+
+    private fun mkSliceToArrayPointer(buf: ByteBuffer) = with(ctx) {
+        val idx = resolveIndex(VarKind.LOCAL, buf.int)
+        val arrayType = buf.long
+        val arrayValueSort = mapSort(GoSort.valueOf(buf.byte))
+        val arrayLength = mkSizeExpr(buf.long.toInt())
+
+        val slice = readVar(buf)
+        val sliceRef = slice.expr.asExpr(addressSort)
+        val sliceLength = scope.calcOnState {
+            memory.readArrayLength(sliceRef, slice.type, sizeSort)
+        }
+
+        checkNotNull(sliceRef) ?: throw IllegalStateException()
+        checkSliceToArrayPointerLength(sliceLength, arrayLength) ?: throw IllegalStateException()
+
+        val lvalue = URegisterStackLValue(pointerSort, idx)
+        scope.doWithState {
+            val arrayRef = memory.allocConcrete(arrayType)
+            memory.writeArrayLength(arrayRef, arrayLength, arrayType, sizeSort)
+            memory.memcpy(sliceRef, arrayRef, arrayType, arrayValueSort, mkSizeExpr(0), mkSizeExpr(0), arrayLength)
+            memory.write(GoPointerLValue(arrayRef, addressSort), arrayRef, trueExpr)
+            memory.write(lvalue, mkAddressPointer(arrayRef.address), trueExpr)
         }
     }
 
@@ -244,21 +271,21 @@ class Api(
         copyVarWithTypeConstraint(buf)
     }
 
-    private fun mkStore(buf: ByteBuffer) {
+    private fun mkStore(buf: ByteBuffer) = with(ctx) {
         val pointer = readVar(buf).expr as UAddressPointer
         val rvalue = readVar(buf).expr
         val lvalue = pointerLValue(pointer, rvalue.sort)
         scope.doWithState {
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
-    private fun mkIf(buf: ByteBuffer) {
+    private fun mkIf(buf: ByteBuffer) = with(ctx) {
         val expr = readVar(buf).expr
         val pos = buf.long
         val neg = buf.long
         scope.forkWithBlackList(
-            expr.asExpr(ctx.boolSort),
+            expr.asExpr(boolSort),
             pos,
             neg,
             blockOnTrueState = { newInst(pos) },
@@ -266,70 +293,69 @@ class Api(
         )
     }
 
-    private fun mkAlloc(buf: ByteBuffer) {
+    private fun mkAlloc(buf: ByteBuffer) = with(ctx) {
         val kind = VarKind.LOCAL
         val type = buf.long
         val idx = resolveIndex(kind, buf.int)
 
-        val lvalue = URegisterStackLValue(ctx.pointerSort, idx)
+        val lvalue = URegisterStackLValue(pointerSort, idx)
         scope.doWithState {
             val ref = memory.allocConcrete(type)
-            memory.write(lvalue, ctx.mkAddressPointer(ref.address), ctx.trueExpr)
+            memory.write(lvalue, mkAddressPointer(ref.address), trueExpr)
         }
     }
 
-    private fun mkMakeSlice(buf: ByteBuffer) {
+    private fun mkMakeSlice(buf: ByteBuffer) = with(ctx) {
         val kind = VarKind.LOCAL
         val arrayType = buf.long
         val idx = resolveIndex(kind, buf.int)
-        val len = readVar(buf).expr.asExpr(ctx.sizeSort)
-        readVar(buf)
+        val len = readVar(buf).expr.asExpr(sizeSort)
 
         checkLength(len) ?: throw IllegalStateException()
 
-        val lvalue = URegisterStackLValue(ctx.addressSort, idx)
+        val lvalue = URegisterStackLValue(addressSort, idx)
         scope.doWithState {
             val ref = memory.allocConcrete(arrayType)
-            memory.writeArrayLength(ref, len, arrayType, ctx.sizeSort)
-            memory.write(lvalue, ref.asExpr(ctx.addressSort), ctx.trueExpr)
+            memory.writeArrayLength(ref, len, arrayType, sizeSort)
+            memory.write(lvalue, ref.asExpr(addressSort), trueExpr)
         }
     }
 
-    private fun mkMakeMap(buf: ByteBuffer) {
+    private fun mkMakeMap(buf: ByteBuffer) = with(ctx) {
         val kind = VarKind.LOCAL
         val mapType = buf.long
         val idx = resolveIndex(kind, buf.int)
-        val reserve = readVar(buf).expr.asExpr(ctx.sizeSort)
+        val reserve = readVar(buf).expr.asExpr(sizeSort)
 
         checkLength(reserve) ?: throw IllegalStateException()
 
-        val lvalue = URegisterStackLValue(ctx.addressSort, idx)
+        val lvalue = URegisterStackLValue(addressSort, idx)
         scope.doWithState {
             val ref = memory.allocConcrete(mapType)
-            memory.write(UMapLengthLValue(ref, mapType, ctx.sizeSort), reserve, ctx.trueExpr)
-            memory.write(lvalue, ref.asExpr(ctx.addressSort), ctx.trueExpr)
+            memory.write(UMapLengthLValue(ref, mapType, sizeSort), reserve, trueExpr)
+            memory.write(lvalue, ref.asExpr(addressSort), trueExpr)
         }
     }
 
-    private fun mkExtract(buf: ByteBuffer) {
+    private fun mkExtract(buf: ByteBuffer) = with(ctx) {
         val element = readVar(buf)
         val tuple = readVar(buf)
         val index = buf.int
 
         scope.doWithState {
-            val rvalue = memory.readField(tuple.expr.asExpr(ctx.addressSort), index, element.sort)
-            memory.write(URegisterStackLValue(element.sort, element.index), rvalue, ctx.trueExpr)
+            val rvalue = memory.readField(tuple.expr.asExpr(addressSort), index, element.sort)
+            memory.write(URegisterStackLValue(element.sort, element.index), rvalue, trueExpr)
         }
     }
 
-    private fun mkReturn(buf: ByteBuffer) {
+    private fun mkReturn(buf: ByteBuffer) = with(ctx) {
         val len = buf.int
         scope.doWithState {
             when (len) {
                 0, 1 -> returnValue(readVar(buf).expr)
                 else -> {
                     val vars = Array(len) { readVar(buf).expr }
-                    returnValue(mkTuple(this, ctx.getReturnType(lastEnteredMethod), *vars).asExpr(ctx.addressSort))
+                    returnValue(mkTuple(this, getReturnType(lastEnteredMethod), *vars).asExpr(addressSort))
                 }
             }
         }
@@ -342,12 +368,12 @@ class Api(
         }
     }
 
-    private fun mkVariable(buf: ByteBuffer) {
+    private fun mkVariable(buf: ByteBuffer) = with(ctx) {
         val idx = resolveIndex(VarKind.LOCAL, buf.int)
         val rvalue = readVar(buf).expr
         val lvalue = URegisterStackLValue(rvalue.sort, idx)
         scope.doWithState {
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
@@ -375,8 +401,8 @@ class Api(
                 }
                 map to key
             }
-            val rvalue = mkTuple(this, iter.type, ctx.mkBv(collectionVar.type), collection, key)
-            memory.write(lvalue, rvalue.asExpr(iter.sort), ctx.trueExpr)
+            val rvalue = mkTuple(this, iter.type, mkBv(collectionVar.type), collection, key)
+            memory.write(lvalue, rvalue.asExpr(iter.sort), trueExpr)
         }
     }
 
@@ -389,13 +415,14 @@ class Api(
         scope.doWithState {
             val type = (memory.readField(iter, 0, bv64Sort) as KBitVec64Value).longValue
             val collection = memory.readField(iter, 1, addressSort)
+
             checkNotNull(collection) ?: throw IllegalStateException()
 
-            val (ok, key, value) = getCurrentKeyValue(this, buf, isString, iter, collection, type)
+            val (ok, key, value) = getIterCurrentKeyValue(this, buf, isString, iter, collection, type)
             scope.fork(
                 ok,
                 blockOnTrueState = {
-                    val nextKey = computeNextKey(this, isString, key, collection, type)
+                    val nextKey = computeIterNextKey(this, isString, key, collection, type)
                     val validTuple = mkTuple(this, tuple.type, ok, key, value).asExpr(tuple.sort)
                     memory.write(lvalue, validTuple, trueExpr)
                     memory.writeField(iter, 2, key.sort, nextKey.asExpr(key.sort), trueExpr)
@@ -409,7 +436,7 @@ class Api(
         }
     }
 
-    private fun getCurrentKeyValue(
+    private fun getIterCurrentKeyValue(
         state: GoState,
         buf: ByteBuffer,
         isString: Boolean,
@@ -439,7 +466,7 @@ class Api(
         return Triple(ok, key, value)
     }
 
-    private fun computeNextKey(
+    private fun computeIterNextKey(
         state: GoState,
         isString: Boolean,
         oldKey: UExpr<out USort>,
@@ -460,63 +487,63 @@ class Api(
         return state.symbolicPrimitiveMapAnyKey(collection, type, keySort, USizeExprKeyInfo())
     }
 
-    private fun mkPointerFieldReading(buf: ByteBuffer) {
-        val obj = readFieldReading(buf) ?: throw IllegalStateException()
-        val lvalue = URegisterStackLValue(ctx.pointerSort, obj.register)
+    private fun mkPointerFieldReading(buf: ByteBuffer) = with(ctx) {
+        val obj = readFieldReading(buf)
+        val lvalue = URegisterStackLValue(pointerSort, obj.register)
         scope.doWithState {
             val ref = memory.allocConcrete(obj.type)
             val field = UFieldLValue(obj.sort, obj.ref, obj.field)
-            memory.write(GoPointerLValue(ref, obj.sort), ctx.mkLValuePointer(field), ctx.trueExpr)
-            memory.write(lvalue, ctx.mkAddressPointer(ref.address), ctx.trueExpr)
+            memory.write(GoPointerLValue(ref, obj.sort), mkLValuePointer(field), trueExpr)
+            memory.write(lvalue, mkAddressPointer(ref.address), trueExpr)
         }
     }
 
-    private fun mkFieldReading(buf: ByteBuffer) {
-        val obj = readFieldReading(buf) ?: throw IllegalStateException()
+    private fun mkFieldReading(buf: ByteBuffer) = with(ctx) {
+        val obj = readFieldReading(buf)
         val lvalue = URegisterStackLValue(obj.sort, obj.register)
         scope.doWithState {
             val rvalue = memory.readField(obj.ref, obj.field, obj.sort)
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
-    private fun mkPointerArrayReading(buf: ByteBuffer) {
-        val arr = readArrayReading(buf) ?: throw IllegalStateException()
-        val lvalue = URegisterStackLValue(ctx.pointerSort, arr.register)
+    private fun mkPointerArrayReading(buf: ByteBuffer) = with(ctx) {
+        val arr = readArrayReading(buf)
+        val lvalue = URegisterStackLValue(pointerSort, arr.register)
         scope.doWithState {
             val ref = memory.allocConcrete(arr.type)
             val element = UArrayIndexLValue(arr.sort, arr.ref, arr.index, arr.arrayType)
-            memory.write(GoPointerLValue(ref, arr.sort), ctx.mkLValuePointer(element), ctx.trueExpr)
-            memory.write(lvalue, ctx.mkAddressPointer(ref.address), ctx.trueExpr)
+            memory.write(GoPointerLValue(ref, arr.sort), mkLValuePointer(element), trueExpr)
+            memory.write(lvalue, mkAddressPointer(ref.address), trueExpr)
         }
     }
 
-    private fun mkArrayReading(buf: ByteBuffer) {
-        val arr = readArrayReading(buf) ?: throw IllegalStateException()
+    private fun mkArrayReading(buf: ByteBuffer) = with(ctx) {
+        val arr = readArrayReading(buf)
         val lvalue = URegisterStackLValue(arr.sort, arr.register)
         scope.doWithState {
             val rvalue = memory.readArrayIndex(arr.ref, arr.index, arr.arrayType, arr.sort)
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
-    private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) {
+    private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) = with(ctx) {
         val value = readVar(buf)
 
         val mapVar = readVar(buf)
         val mapType = mapVar.type
-        val map = mapVar.expr.asExpr(ctx.addressSort)
+        val map = mapVar.expr.asExpr(addressSort)
         checkNotNull(map) ?: throw IllegalStateException()
 
         val key = readVar(buf).expr
-        val isRefKey = key.sort == ctx.addressSort
+        val isRefKey = key.sort == addressSort
 
-        val mapValueSort = ctx.mapSort(GoSort.valueOf(buf.byte))
+        val mapValueSort = mapSort(GoSort.valueOf(buf.byte))
         val commaOk = buf.bool
 
         val contains = scope.calcOnState {
             if (isRefKey) {
-                memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), mapType)
+                memory.refSetContainsElement(map, key.asExpr(addressSort), mapType)
             } else {
                 memory.setContainsElement(map, key, mapType, USizeExprKeyInfo())
             }
@@ -526,28 +553,28 @@ class Api(
             contains,
             blockOnTrueState = {
                 val entry = if (isRefKey) {
-                    URefMapEntryLValue(mapValueSort, map, key.asExpr(ctx.addressSort), mapType)
+                    URefMapEntryLValue(mapValueSort, map, key.asExpr(addressSort), mapType)
                 } else {
                     UMapEntryLValue(key.sort, mapValueSort, map, key, mapType, USizeExprKeyInfo())
                 }
                 val rvalue = memory.read(entry).let {
                     if (commaOk) {
-                        mkTuple(this, value.type, it, ctx.trueExpr)
+                        mkTuple(this, value.type, it, trueExpr)
                     } else {
                         it
                     }
                 }
-                memory.write(lvalue, rvalue.asExpr(value.sort), ctx.trueExpr)
+                memory.write(lvalue, rvalue.asExpr(value.sort), trueExpr)
             },
             blockOnFalseState = {
                 val rvalue = value.sort.sampleUValue().let {
                     if (commaOk) {
-                        mkTuple(this, value.type, it, ctx.falseExpr)
+                        mkTuple(this, value.type, it, falseExpr)
                     } else {
                         it
                     }
                 }
-                memory.write(lvalue, rvalue.asExpr(value.sort), ctx.trueExpr)
+                memory.write(lvalue, rvalue.asExpr(value.sort), trueExpr)
                 newInst(nextInst)
             }
         )
@@ -556,7 +583,7 @@ class Api(
     private fun mkMapUpdate(buf: ByteBuffer) = with(ctx) {
         val mapVar = readVar(buf)
         val mapType = mapVar.type
-        val map = mapVar.expr.asExpr(ctx.addressSort)
+        val map = mapVar.expr.asExpr(addressSort)
         val key = readVar(buf).expr
         val value = readVar(buf).expr
 
@@ -577,10 +604,10 @@ class Api(
         }
     }
 
-    private fun mkTuple(state: GoState, type: GoType, vararg fields: UExpr<out USort>): UHeapRef {
+    private fun mkTuple(state: GoState, type: GoType, vararg fields: UExpr<out USort>): UHeapRef = with(ctx) {
         val ref = state.memory.allocConcrete(type)
         for ((index, field) in fields.withIndex()) {
-            state.memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), ctx.trueExpr)
+            state.memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), trueExpr)
         }
         return ref
     }
@@ -593,27 +620,27 @@ class Api(
         scope.doWithState { lastBlock = block }
     }
 
-    private fun copyVar(buf: ByteBuffer) {
+    private fun copyVar(buf: ByteBuffer) = with(ctx) {
         val l = readVar(buf)
         val rvalue = readVar(buf).expr
         val lvalue = URegisterStackLValue(l.sort, l.index)
 
         scope.doWithState {
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
-    private fun copyVarWithTypeConstraint(buf: ByteBuffer) {
+    private fun copyVarWithTypeConstraint(buf: ByteBuffer) = with(ctx) {
         val l = readVar(buf)
         val rvalue = readVar(buf).expr
         val lvalue = URegisterStackLValue(l.sort, l.index)
 
         scope.doWithState {
-            if (rvalue.sort == ctx.addressSort) {
-                scope.assert(memory.types.evalIsSubtype(rvalue.asExpr(ctx.addressSort), l.type))
+            if (rvalue.sort == addressSort) {
+                scope.assert(memory.types.evalIsSubtype(rvalue.asExpr(addressSort), l.type))
                     ?: throw IllegalStateException()
             }
-            memory.write(lvalue, rvalue, ctx.trueExpr)
+            memory.write(lvalue, rvalue, trueExpr)
         }
     }
 
@@ -641,11 +668,11 @@ class Api(
         }
     }
 
-    private fun readVar(buf: ByteBuffer): Var {
+    private fun readVar(buf: ByteBuffer): Var = with(ctx) {
         val kind = VarKind.valueOf(buf.byte)
         val type = buf.long
         val goSort = GoSort.valueOf(buf.byte)
-        val sort = ctx.mapSort(goSort)
+        val sort = mapSort(goSort)
         var index = 0
         val expr = when (kind) {
             VarKind.CONST -> readConst(buf, type, sort)
@@ -679,51 +706,63 @@ class Api(
         }
     }
 
-    private fun readArrayReading(buf: ByteBuffer): ArrayReading? {
+    private fun readArrayReading(buf: ByteBuffer): ArrayReading = with(ctx) {
         val varIndex = resolveIndex(VarKind.LOCAL, buf.int)
-        val arrayType = buf.long
         val valueType = buf.long
-        val valueSort = ctx.mapSort(GoSort.valueOf(buf.byte))
+        val valueSort = mapSort(GoSort.valueOf(buf.byte))
 
-        val array = readVar(buf).expr.asExpr(ctx.addressSort)
+        val array = readVar(buf)
+        val arrayRef = array.expr.let {
+            if (it.sort == pointerSort) {
+                deref(it, addressSort)
+            } else {
+                it.asExpr(addressSort)
+            }
+        }
+        val arrayType = buf.long
+
         val indexVar = readVar(buf)
-        val index = ctx.mkNarrow(bv(indexVar.expr), Int.SIZE_BITS, indexVar.goSort.isSigned()).asExpr(ctx.sizeSort)
-        val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
+        val index = mkNarrow(bv(indexVar.expr), Int.SIZE_BITS, indexVar.goSort.isSigned()).asExpr(sizeSort)
+        val length = scope.calcOnState { memory.readArrayLength(arrayRef, arrayType, sizeSort) }
 
-        checkNotNull(array) ?: return null
-        checkIndex(index, length) ?: return null
+        checkNotNull(arrayRef) ?: throw IllegalStateException()
+        checkIndex(index, length) ?: throw IllegalStateException()
 
-        return ArrayReading(array, arrayType, valueType, valueSort, varIndex, index)
+        return ArrayReading(arrayRef, arrayType, valueType, valueSort, varIndex, index)
     }
 
-    private fun readFieldReading(buf: ByteBuffer): FieldReading? {
+    private fun readFieldReading(buf: ByteBuffer): FieldReading = with(ctx) {
         val index = resolveIndex(VarKind.LOCAL, buf.int)
         val type = buf.long
-        val sort = ctx.mapSort(GoSort.valueOf(buf.byte))
+        val sort = mapSort(GoSort.valueOf(buf.byte))
 
         val obj = readVar(buf).expr.let {
-            if (it.sort == ctx.pointerSort) {
-                deref(it, ctx.addressSort)
+            if (it.sort == pointerSort) {
+                deref(it, addressSort)
             } else {
-                it.asExpr(ctx.addressSort)
+                it.asExpr(addressSort)
             }
         }
         val field = buf.int
 
-        checkNotNull(obj) ?: return null
+        checkNotNull(obj) ?: throw IllegalStateException()
 
         return FieldReading(obj, type, sort, index, field)
     }
 
-    private fun resolveIndex(kind: VarKind, value: Int): Int = when (kind) {
-        VarKind.LOCAL -> value + ctx.getArgsCount(scope.calcOnState { lastEnteredMethod })
-        VarKind.PARAMETER -> value
-        else -> -1
+    private fun resolveIndex(kind: VarKind, value: Int): Int = with(ctx) {
+        when (kind) {
+            VarKind.LOCAL -> value + getArgsCount(scope.calcOnState { lastEnteredMethod })
+            VarKind.PARAMETER -> value
+            else -> -1
+        }
     }
 
-    private fun normalize(expr: UExpr<USort>, op: BinOp, signed: Boolean): UExpr<USort> = when (op) {
-        BinOp.SHR -> bv(expr).mkNarrow(Long.SIZE_BITS, signed).asExpr(ctx.bv64Sort)
-        else -> expr
+    private fun normalize(expr: UExpr<USort>, op: BinOp, signed: Boolean): UExpr<USort> = with(ctx) {
+        when (op) {
+            BinOp.SHR -> bv(expr).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort)
+            else -> expr
+        }
     }
 
     private fun bv(expr: UExpr<USort>): UExpr<UBvSort> {
@@ -732,15 +771,15 @@ class Api(
 
     private fun <Sort : USort> deref(pointer: UExpr<out USort>, sort: Sort): UExpr<Sort> {
         return scope.calcOnState {
-            pointer as UAddressPointer
             memory.read(pointerLValue(pointer, sort))
         }
     }
 
-    private fun <Sort : USort> pointerLValue(pointer: UExpr<out USort>, sort: Sort): ULValue<*, Sort> {
+    private fun <Sort : USort> pointerLValue(pointer: UExpr<out USort>, sort: Sort): ULValue<*, Sort> = with(ctx) {
         return scope.calcOnState {
             pointer as UAddressPointer
-            val lvalue = GoPointerLValue(ctx.mkConcreteHeapRef(pointer.address), sort)
+
+            val lvalue = GoPointerLValue(mkConcreteHeapRef(pointer.address), sort)
             val ref = memory.read(lvalue)
             if (ref is ULValuePointer) {
                 ref.lvalue.withSort(sort)
@@ -768,6 +807,15 @@ class Api(
         })
     }
 
+    private fun checkSliceToArrayPointerLength(
+        sliceLength: UExpr<USizeSort>,
+        arrayLength: UExpr<USizeSort>
+    ): Unit? = with(ctx) {
+        scope.fork(mkSizeGeExpr(sliceLength, arrayLength), blockOnFalseState = {
+            methodResult = GoMethodResult.Panic("length of the slice is less than the length of the array")
+        })
+    }
+
     private fun <T : USort> ULValue<*, *>.withSort(sort: T): ULValue<*, T> {
         check(this@withSort.sort == sort) { "Sort mismatch" }
 
@@ -785,24 +833,25 @@ private enum class Method(val value: Byte) {
     MK_CHANGE_INTERFACE(5),
     MK_CHANGE_TYPE(6),
     MK_CONVERT(7),
-    MK_MAKE_INTERFACE(8),
-    MK_STORE(9),
-    MK_IF(10),
-    MK_ALLOC(11),
-    MK_MAKE_SLICE(12),
-    MK_MAKE_MAP(13),
-    MK_EXTRACT(14),
-    MK_RETURN(15),
-    MK_PANIC(16),
-    MK_VARIABLE(17),
-    MK_RANGE(18),
-    MK_NEXT(19),
-    MK_POINTER_FIELD_READING(20),
-    MK_FIELD_READING(21),
-    MK_POINTER_ARRAY_READING(22),
-    MK_ARRAY_READING(23),
-    MK_MAP_LOOKUP(24),
-    MK_MAP_UPDATE(25);
+    MK_SLICE_TO_ARRAY_POINTER(8),
+    MK_MAKE_INTERFACE(9),
+    MK_STORE(10),
+    MK_IF(11),
+    MK_ALLOC(12),
+    MK_MAKE_SLICE(13),
+    MK_MAKE_MAP(14),
+    MK_EXTRACT(15),
+    MK_RETURN(16),
+    MK_PANIC(17),
+    MK_VARIABLE(18),
+    MK_RANGE(19),
+    MK_NEXT(20),
+    MK_POINTER_FIELD_READING(21),
+    MK_FIELD_READING(22),
+    MK_POINTER_ARRAY_READING(23),
+    MK_ARRAY_READING(24),
+    MK_MAP_LOOKUP(25),
+    MK_MAP_UPDATE(26);
 
     companion object {
         private val values = values()

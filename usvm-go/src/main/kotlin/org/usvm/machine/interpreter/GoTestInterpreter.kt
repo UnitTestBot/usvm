@@ -59,7 +59,7 @@ class GoTestInterpreter(
             val outputModel = OutputModel(expr)
 
             SuccessfulExecutionResult(inputModel, outputModel)
-        }.also { logger.debug { it } }
+        }
     }
 
     private class MemoryScope(
