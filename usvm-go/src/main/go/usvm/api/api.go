@@ -21,6 +21,7 @@ type Api interface {
 	MkChangeInterface(inst *ssa.ChangeInterface)
 	MkChangeType(inst *ssa.ChangeType)
 	MkConvert(inst *ssa.Convert)
+	MkSliceToArrayPointer(inst *ssa.SliceToArrayPointer)
 	MkMakeInterface(inst *ssa.MakeInterface)
 	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
@@ -70,6 +71,7 @@ const (
 	MethodMkChangeInterface
 	MethodMkChangeType
 	MethodMkConvert
+	MethodMkSliceToArrayPointer
 	MethodMkMakeInterface
 	MethodMkStore
 	MethodMkIf
@@ -263,6 +265,17 @@ func (a *api) MkConvert(inst *ssa.Convert) {
 	a.writeVar(inst.X)
 }
 
+func (a *api) MkSliceToArrayPointer(inst *ssa.SliceToArrayPointer) {
+	a.buf.Write(byte(MethodMkSliceToArrayPointer))
+
+	arrayType := inst.Type().Underlying().(*types.Pointer).Elem().Underlying().(*types.Array)
+	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.WriteType(arrayType)
+	a.buf.Write(byte(sort.MapSort(arrayType.Elem(), false)))
+	a.buf.WriteInt64(arrayType.Len())
+	a.writeVar(inst.X)
+}
+
 func (a *api) MkMakeInterface(inst *ssa.MakeInterface) {
 	a.buf.Write(byte(MethodMkMakeInterface))
 	a.writeVar(inst)
@@ -297,7 +310,6 @@ func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 	a.buf.WriteValueType(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
 	a.writeVar(inst.Len)
-	a.writeVar(inst.Cap)
 }
 
 func (a *api) MkMakeMap(inst *ssa.MakeMap) {
@@ -436,10 +448,16 @@ func (a *api) mkFieldReading(inst, object ssa.Value, index int) {
 
 func (a *api) mkArrayReading(inst, array, index ssa.Value) {
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.WriteValueType(array)
 	a.buf.WriteValueType(inst)
 	a.buf.Write(byte(sort.GetSort(inst, true)))
+
 	a.writeVar(array)
+	arrayType := array.Type().Underlying()
+	if p, ok := arrayType.(*types.Pointer); ok {
+		arrayType = p.Elem().Underlying()
+	}
+	a.buf.WriteType(arrayType)
+
 	a.writeVar(index)
 }
 

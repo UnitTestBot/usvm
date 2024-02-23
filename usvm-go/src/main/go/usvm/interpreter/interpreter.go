@@ -189,6 +189,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkConvert(inst)
 
 	case *ssa.SliceToArrayPointer:
+		api.MkSliceToArrayPointer(inst)
 
 	case *ssa.MakeInterface:
 		api.MkMakeInterface(inst)
