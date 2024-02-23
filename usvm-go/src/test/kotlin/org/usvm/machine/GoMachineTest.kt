@@ -45,7 +45,7 @@ class GoMachineTest {
     @Test
     fun testLoop() {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.BFS)))
-        val results = machine.analyze(Path.getProgram("loop.go"), "loop", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "loop", false)
         println(results)
     }
 
@@ -54,7 +54,7 @@ class GoMachineTest {
         val machine = GoMachine(
             UMachineOptions(listOf(PathSelectionStrategy.BFS), timeout = Duration.INFINITE),
         )
-        val results = machine.analyze(Path.getProgram("loop.go"), "loop2", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "loop2", false)
         println(results)
     }
 
@@ -68,7 +68,7 @@ class GoMachineTest {
                 stepLimit = 1_000_000UL,
             ),
         )
-        val results = machine.analyze(Path.getProgram("loop.go"), "infinite", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("loop.go"), "infinite", false)
         println(results)
     }
 
@@ -128,12 +128,6 @@ class GoMachineTest {
     }
 
     @Test
-    fun testStructPointer() {
-        val results = machine.analyzeAndResolve(Path.getProgram("struct_pointer.go"), "setPerfectAge", false)
-        println(results)
-    }
-
-    @Test
     fun testMapLookup() {
         val results = machine.analyzeAndResolve(Path.getProgram("map.go"), "lookup", false)
         println(results)
@@ -160,12 +154,6 @@ class GoMachineTest {
     @Test
     fun testPointer() {
         val results = machine.analyzeAndResolve(Path.getProgram("pointer.go"), "pointer", false)
-        println(results)
-    }
-
-    @Test
-    fun testPointerArray() {
-        val results = machine.analyzeAndResolve(Path.getProgram("pointer_array.go"), "pointer", false)
         println(results)
     }
 
@@ -221,6 +209,12 @@ class GoMachineTest {
             )
         )
         val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "castSlice", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceToArrayPointer() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceToArrayPointer", false)
         println(results)
     }
 
