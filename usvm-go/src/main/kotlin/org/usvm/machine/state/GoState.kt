@@ -24,6 +24,7 @@ class GoState(
     memory: UMemory<GoType, GoMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<GoType>> = listOf(),
     pathNode: PathNode<GoInst> = PathNode.root(),
+    forkPoints: PathNode<PathNode<GoInst>> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
     var methodResult: GoMethodResult = GoMethodResult.NoCall,
     var lastBlock: Int = -1,
@@ -34,6 +35,7 @@ class GoState(
     memory,
     models,
     pathNode,
+    forkPoints,
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<GoType>?): GoState {
@@ -46,6 +48,7 @@ class GoState(
             memory.clone(clonedConstraints.typeConstraints),
             models,
             pathNode,
+            forkPoints,
             targets.clone(),
             methodResult,
             lastBlock
@@ -57,6 +60,7 @@ class GoState(
         // TODO: copy-paste
 
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
+        val mergedForkPoints = forkPoints.mergeWith(other.forkPoints, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
@@ -81,6 +85,7 @@ class GoState(
             mergedMemory,
             mergedModels,
             mergedPathNode,
+            mergedForkPoints,
             mergedTargets,
             methodResult,
             lastBlock
