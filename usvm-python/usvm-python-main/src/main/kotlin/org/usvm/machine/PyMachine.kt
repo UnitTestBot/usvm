@@ -27,7 +27,7 @@ import kotlin.random.Random
 class PyMachine(
     private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
-    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.DelayedForkByInstructionWeightedDfs,
+    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.DelayedForkByInstructionWeightedRandomTree,
     private val printErrorMsg: Boolean = false
 ): UMachine<PyState>() {
     private val ctx = PyContext(typeSystem)
@@ -89,9 +89,7 @@ class PyMachine(
     ): UPathSelector<PyState> {
         val initialState = getInitialState(target)
         newStateObserver.onNewState(initialState)
-        val ps = createPyPathSelector(pathSelectorType, ctx, random, newStateObserver)
-        ps.add(listOf(initialState))
-        return ps
+        return createPyPathSelector(initialState, pathSelectorType, ctx, random, newStateObserver)
     }
 
     fun <PyObjectRepr> analyze(

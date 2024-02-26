@@ -33,8 +33,8 @@ fun main() {
     )
     ConcretePythonInterpreter.setVenv(venvConfig)*/
     // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
+    val config = buildProjectRunConfig()
+    // val config = buildSampleRunConfig()
     analyze(config)
     // checkConcolicAndConcrete(config)
 }
@@ -55,7 +55,7 @@ private fun buildSampleRunConfig(): RunConfig {
     )*/
     val function = PyUnpinnedCallable.constructCallableFromName(
         listOf(PythonAnyType),
-        "f",
+        "g",
         "tricky.CompositeObjects"
     )
     val functions = listOf(function)
@@ -74,7 +74,7 @@ private fun getFunctionInfo(
     typeSystem: PythonTypeSystemWithMypyInfo,
     program: StructuredPyProgram
 ): PyUnpinnedCallable? {
-    println("Module: $module, name: $name")
+    //println("Module: $module, name: $name")
     val description = type.pythonDescription()
     if (description !is PythonCallableTypeDescription)
         return null
@@ -82,8 +82,8 @@ private fun getFunctionInfo(
         return null
     //if (module != "requests.cookies")
     //    return null
-    if (name != "remove_cookie_by_name")
-        return null
+    //if (name != "remove_cookie_by_name")
+    //    return null
     if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
         return null
     runCatching {
@@ -115,7 +115,7 @@ private fun getFunctionInfo(
 */
 
 private fun buildProjectRunConfig(): RunConfig {
-    val projectPath = "D:\\projects\\requests\\src"
+    val projectPath = "D:\\projects\\Python\\sorts"
     val mypyRoot = "D:\\projects\\mypy_tmp"
     val files = getPythonFilesFromRoot(projectPath).filter { !it.name.contains("__init__") }
     println("Files: $files")
@@ -132,7 +132,7 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPyProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val functions = modules.flatMap { module ->
-        println("Module: $module")
+        //println("Module: $module")
         if (module in ignoreModules)
             return@flatMap emptyList()
         runCatching {
@@ -141,20 +141,21 @@ private fun buildProjectRunConfig(): RunConfig {
             }
         }.getOrNull() ?: return@flatMap emptyList()  // skip bad modules
         mypyBuild.definitions[module]!!.flatMap { (defName, def) ->
-            println("Def name: $defName")
+            //println("Def name: $defName")
             val type = def.getUtBotType()
             val description = type.pythonDescription()
             if (defName.startsWith("__")) {
                 emptyList()
             } else if (description is PythonConcreteCompositeTypeDescription) {
-                val members = description.getNamedMembers(type)
+                emptyList()
+                /*val members = description.getNamedMembers(type)
                 members.mapNotNull { memberDef ->
                     if (memberDef.meta.name.startsWith("__"))
                         return@mapNotNull null
                     memberDef.type
                     val name = "$defName.${memberDef.meta.name}"
                     getFunctionInfo(memberDef.type, name, module, typeSystem, program)
-                }
+                }*/
             } else {
                 getFunctionInfo(type, defName, module, typeSystem, program)?.let { listOf(it) } ?: emptyList()
             }
@@ -203,11 +204,11 @@ private fun analyze(runConfig: RunConfig) {
                 val iterations = activeMachine.analyze(
                     f,
                     saver,
-                    maxIterations = 90,
+                    maxIterations = 60,
                     allowPathDiversion = true,
                     maxInstructions = 50_000,
-                    //timeoutPerRunMs = 4_000,
-                    //timeoutMs = 60_000
+                    timeoutPerRunMs = 4_000,
+                    timeoutMs = 30_000
                 )
                 saver.pyTestObserver.tests.forEach { test ->
                     println("INPUT:")

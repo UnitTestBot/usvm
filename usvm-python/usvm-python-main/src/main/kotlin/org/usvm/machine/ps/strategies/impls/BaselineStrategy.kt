@@ -8,7 +8,7 @@ import org.usvm.machine.ps.strategies.*
 import kotlin.random.Random
 
 val baselineProbabilities = listOf(1.0, 0.6, 0.9, 0.7, 1.0)
-val baselineWeights = listOf(100.0, 0.6, 0.3, 0.088, 0.012)
+val baselineWeights = listOf(100.0, 0.6, 0.35, 0.04, 0.01)
 
 fun makeBaselinePriorityActionStrategy(
     random: Random
