@@ -50,7 +50,7 @@ class GoMachine(
         return analyze(file, entrypoint, debug).map { testInterpreter.resolve(it, bridge.getMethod(entrypoint)) }
     }
 
-    fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
+    private fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
         bridge.initialize(file, debug)
 
         val entryPoint = bridge.getMethod(entrypoint)
@@ -72,7 +72,7 @@ class GoMachine(
     private fun analyze(methods: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
         logger.debug("{}.analyze()", this)
 
-        val initialStates = mutableMapOf<GoMethod, GoState>()
+        val initialStates = hashMapOf<GoMethod, GoState>()
         methods.forEach {
             initialStates[it] = interpreter.getInitialState(it, targets)
         }
