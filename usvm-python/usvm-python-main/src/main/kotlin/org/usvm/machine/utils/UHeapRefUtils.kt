@@ -34,5 +34,6 @@ fun getTypeStreamForDelayedFork(obj: UninterpretedSymbolicPythonObject, ctx: Con
         if (prefix is TypesResult.SuccessfulTypesResult && prefix.types.size >= 3)
             return current
     }
-    return ctx.typeSystem.topTypeStream()
+    val leaf = getLeafHeapRef(obj.address, ctx.modelHolder.model)
+    return ctx.curState!!.memory.typeStreamOf(leaf)
 }
