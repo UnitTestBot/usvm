@@ -30,9 +30,9 @@ type Api interface {
 	MkMakeSlice(inst *ssa.MakeSlice)
 	MkMakeMap(inst *ssa.MakeMap)
 	MkExtract(inst *ssa.Extract)
+	MkSlice(inst *ssa.Slice)
 	MkReturn(inst *ssa.Return)
 	MkPanic(inst *ssa.Panic)
-	MkPhi(inst *ssa.Phi)
 	MkRange(inst *ssa.Range)
 	MkNext(inst *ssa.Next)
 	MkPointerFieldReading(inst *ssa.FieldAddr)
@@ -41,6 +41,8 @@ type Api interface {
 	MkArrayReading(inst *ssa.Index)
 	MkMapLookup(inst *ssa.Lookup)
 	MkMapUpdate(inst *ssa.MapUpdate)
+	MkTypeAssert(inst *ssa.TypeAssert)
+	MkPhi(inst *ssa.Phi)
 
 	SetLastBlock(block int)
 	WriteLastBlock()
@@ -79,6 +81,7 @@ const (
 	MethodMkMakeSlice
 	MethodMkMakeMap
 	MethodMkExtract
+	MethodMkSlice
 	MethodMkReturn
 	MethodMkPanic
 	MethodMkVariable
@@ -90,6 +93,7 @@ const (
 	MethodMkArrayReading
 	MethodMkMapLookup
 	MethodMkMapUpdate
+	MethodMkTypeAssert
 )
 
 type UnOp byte
@@ -301,21 +305,21 @@ func (a *api) MkJump(_ *ssa.Jump) {
 
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
-	a.buf.WriteValueType(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.WriteValueType(inst)
 }
 
 func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
 	a.buf.Write(byte(MethodMkMakeSlice))
-	a.buf.WriteValueType(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.WriteValueUnderlyingType(inst)
 	a.writeVar(inst.Len)
 }
 
 func (a *api) MkMakeMap(inst *ssa.MakeMap) {
 	a.buf.Write(byte(MethodMkMakeMap))
-	a.buf.WriteValueType(inst)
 	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.WriteValueUnderlyingType(inst)
 	a.writeVar(inst.Reserve)
 }
 
@@ -326,14 +330,31 @@ func (a *api) MkExtract(inst *ssa.Extract) {
 	a.buf.WriteInt32(int32(inst.Index))
 }
 
+func (a *api) MkSlice(inst *ssa.Slice) {
+	a.buf.Write(byte(MethodMkSlice))
+	a.writeVar(inst)
+	switch t := inst.Type().(type) {
+	case *types.Slice:
+		a.buf.Write(byte(sort.MapSort(t.Elem(), false)))
+	default:
+		a.buf.Write(byte(sort.Int32))
+	}
+
+	a.writeVar(inst.X)
+	a.writeVar(inst.Low)
+	a.writeVar(inst.High)
+}
+
 func (a *api) MkReturn(inst *ssa.Return) {
 	a.buf.Write(byte(MethodMkReturn))
 	a.buf.WriteInt32(int32(len(inst.Results)))
 
 	switch len(inst.Results) {
 	case 0:
+		nilType := types.Typ[types.UntypedNil]
 		a.buf.Write(byte(VarKindConst))
-		a.buf.WriteType(types.Typ[types.UntypedNil])
+		a.buf.WriteType(nilType)
+		a.buf.WriteType(nilType.Underlying())
 		a.buf.Write(byte(sort.Void))
 		return
 	case 1:
@@ -349,18 +370,6 @@ func (a *api) MkReturn(inst *ssa.Return) {
 func (a *api) MkPanic(inst *ssa.Panic) {
 	a.buf.Write(byte(MethodMkPanic))
 	a.writeVar(inst.X)
-}
-
-func (a *api) MkPhi(inst *ssa.Phi) {
-	var edge ssa.Value
-	for i, pred := range inst.Block().Preds {
-		if a.lastBlock == pred.Index {
-			edge = inst.Edges[i]
-			break
-		}
-	}
-
-	a.mkVariable(inst, edge)
 }
 
 func (a *api) MkRange(inst *ssa.Range) {
@@ -426,6 +435,26 @@ func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
 	a.writeVar(inst.Value)
 }
 
+func (a *api) MkTypeAssert(inst *ssa.TypeAssert) {
+	a.buf.Write(byte(MethodMkTypeAssert))
+	a.writeVar(inst)
+	a.writeVar(inst.X)
+	a.buf.WriteType(inst.AssertedType)
+	a.buf.WriteBool(inst.CommaOk)
+}
+
+func (a *api) MkPhi(inst *ssa.Phi) {
+	var edge ssa.Value
+	for i, pred := range inst.Block().Preds {
+		if a.lastBlock == pred.Index {
+			edge = inst.Edges[i]
+			break
+		}
+	}
+
+	a.mkVariable(inst, edge)
+}
+
 func (a *api) SetLastBlock(block int) {
 	a.lastBlock = block
 }
@@ -452,12 +481,6 @@ func (a *api) mkArrayReading(inst, array, index ssa.Value) {
 	a.buf.Write(byte(sort.GetSort(inst, true)))
 
 	a.writeVar(array)
-	arrayType := array.Type().Underlying()
-	if p, ok := arrayType.(*types.Pointer); ok {
-		arrayType = p.Elem().Underlying()
-	}
-	a.buf.WriteType(arrayType)
-
 	a.writeVar(index)
 }
 
@@ -477,15 +500,19 @@ func (a *api) writeVar(v ssa.Value) {
 			}
 			a.buf.Write(byte(VarKindParameter)).
 				WriteValueType(v).
+				WriteValueUnderlyingType(v).
 				Write(byte(sort.GetSort(in, false))).
 				WriteInt32(int32(i))
 		}
+
 	case *ssa.Const:
 		a.buf.Write(byte(VarKindConst))
 		a.writeConst(in)
+
 	default:
 		a.buf.Write(byte(VarKindLocal)).
 			WriteValueType(v).
+			WriteValueUnderlyingType(v).
 			Write(byte(sort.GetSort(in, false))).
 			WriteInt32(resolveRegister(in))
 	}
@@ -494,7 +521,9 @@ func (a *api) writeVar(v ssa.Value) {
 func (a *api) writeConst(in *ssa.Const) {
 	s := sort.GetSort(in, false)
 	a.buf.WriteValueType(in)
+	a.buf.WriteValueUnderlyingType(in)
 	a.buf.Write(byte(s))
+
 	switch s {
 	case sort.Bool:
 		a.buf.WriteBool(constant.BoolVal(in.Value))
