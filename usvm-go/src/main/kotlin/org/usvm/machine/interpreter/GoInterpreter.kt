@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.utils.asExpr
 import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -14,6 +15,7 @@ import org.usvm.machine.GoTarget
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoType
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 
@@ -24,15 +26,15 @@ class GoInterpreter(
     private val bridge: GoBridge,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
-    fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState {
+    fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState = with(ctx) {
         val state = GoState(ctx, method, targets = UTargetsSet.from(targets))
         val methodInfo = bridge.methodInfo(method)
 
         logger.debug("Method: {}, info: {}", method, methodInfo)
 
-        ctx.setMethodInfo(method, methodInfo)
+        setMethodInfo(method, methodInfo)
 
-        val solver = ctx.solver<GoType>()
+        val solver = solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 

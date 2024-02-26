@@ -11,7 +11,8 @@ import java.nio.Buffer
 import java.nio.ByteBuffer
 
 class GoBridge {
-    private val objects = LongArray(BUF_SIZE)
+    private val instructions = LongArray(BUF_SIZE)
+    private val types = LongArray(BUF_SIZE)
     private val single = LongArray(1)
 
     private val buf: ByteBuffer = ByteBuffer.allocateDirect(BUF_SIZE)
@@ -47,11 +48,11 @@ class GoBridge {
 
     // ------------ region: application graph
 
-    fun predecessors(inst: GoInst): Pair<LongArray, Int> = toArray { arr, len ->
+    fun predecessors(inst: GoInst): Pair<LongArray, Int> = toArray(instructions) { arr, len ->
         Bridge.predecessors(inst, arr, len)
     }
 
-    fun successors(inst: GoInst): Pair<LongArray, Int> = toArray { arr, len ->
+    fun successors(inst: GoInst): Pair<LongArray, Int> = toArray(instructions) { arr, len ->
         Bridge.successors(inst, arr, len)
     }
 
@@ -59,7 +60,7 @@ class GoBridge {
         Bridge.callees(inst, arr)
     }
 
-    fun callers(method: GoMethod): Pair<LongArray, Int> = toArray { arr, len ->
+    fun callers(method: GoMethod): Pair<LongArray, Int> = toArray(instructions) { arr, len ->
         Bridge.callers(method, arr, len)
     }
 
@@ -67,13 +68,13 @@ class GoBridge {
         Bridge.entryPoints(method, arr)
     }
 
-    fun exitPoints(method: GoMethod): Pair<LongArray, Int> = toArray { arr, len ->
+    fun exitPoints(method: GoMethod): Pair<LongArray, Int> = toArray(instructions) { arr, len ->
         Bridge.exitPoints(method, arr, len)
     }
 
     fun methodOf(inst: GoInst): GoMethod = Bridge.methodOf(inst)
 
-    fun statementsOf(method: GoMethod): Pair<LongArray, Int> = toArray { arr, len ->
+    fun statementsOf(method: GoMethod): Pair<LongArray, Int> = toArray(instructions) { arr, len ->
         Bridge.statementsOf(method, arr, len)
     }
 
@@ -85,7 +86,7 @@ class GoBridge {
 
     fun getAnyType(): GoType = Bridge.getAnyType()
 
-    fun findSubTypes(type: GoType): Pair<LongArray, Int> = toArray { arr, len ->
+    fun findSubTypes(type: GoType): Pair<LongArray, Int> = toArray(types) { arr, len ->
         Bridge.findSubTypes(type, arr, len)
     }
 
@@ -172,9 +173,9 @@ class GoBridge {
 
     // ------------ region: utils
 
-    private fun toArray(op: (LongArray, Int) -> Int): Pair<LongArray, Int> {
-        val len = op(objects, BUF_SIZE)
-        return objects to len
+    private fun toArray(array: LongArray, op: (LongArray, Int) -> Int): Pair<LongArray, Int> {
+        val len = op(array, BUF_SIZE)
+        return array to len
     }
 
     private fun toArraySingle(op: (LongArray) -> Unit): Pair<LongArray, Int> {

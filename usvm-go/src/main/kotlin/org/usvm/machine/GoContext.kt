@@ -23,7 +23,7 @@ internal typealias USizeSort = UBv32Sort
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
-    private var methodInfo: MutableMap<Long, GoMethodInfo> = mutableMapOf()
+    private var methodInfo: MutableMap<Long, GoMethodInfo> = hashMapOf()
 
     fun getArgsCount(method: Long): Int = methodInfo[method]!!.parametersCount
 
@@ -31,21 +31,6 @@ class GoContext(
 
     fun setMethodInfo(method: Long, info: GoMethodInfo) {
         methodInfo[method] = info
-    }
-
-    fun mapSort(sort: GoSort): USort = when (sort) {
-        GoSort.VOID -> voidSort
-        GoSort.BOOL -> boolSort
-        GoSort.INT8, GoSort.UINT8 -> bv8Sort
-        GoSort.INT16, GoSort.UINT16 -> bv16Sort
-        GoSort.INT32, GoSort.UINT32 -> bv32Sort
-        GoSort.INT64, GoSort.UINT64 -> bv64Sort
-        GoSort.FLOAT32 -> fp32Sort
-        GoSort.FLOAT64 -> fp64Sort
-        GoSort.STRING -> stringSort
-        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE -> addressSort
-        GoSort.POINTER -> pointerSort
-        else -> throw UnknownSortException()
     }
 
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
@@ -61,6 +46,21 @@ class GoContext(
     val voidValue by lazy { GoVoidValue(this) }
 
     val stringSort by lazy { addressSort }
+
+    fun mapSort(sort: GoSort): USort = when (sort) {
+        GoSort.VOID -> voidSort
+        GoSort.BOOL -> boolSort
+        GoSort.INT8, GoSort.UINT8 -> bv8Sort
+        GoSort.INT16, GoSort.UINT16 -> bv16Sort
+        GoSort.INT32, GoSort.UINT32 -> bv32Sort
+        GoSort.INT64, GoSort.UINT64 -> bv64Sort
+        GoSort.FLOAT32 -> fp32Sort
+        GoSort.FLOAT64 -> fp64Sort
+        GoSort.STRING -> stringSort
+        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE -> addressSort
+        GoSort.POINTER -> pointerSort
+        else -> throw UnknownSortException()
+    }
 
     fun mkPrimitiveCast(expr: UExpr<USort>, to: USort): UExpr<out USort> = when (to) {
         boolSort -> GoUnaryOperator.CastToBool(expr)
@@ -85,5 +85,13 @@ class GoContext(
             expr.ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, expr)
         }
         return res
+    }
+
+    private val arrayTypeToSliceType: MutableMap<GoType, GoType> = hashMapOf()
+
+    fun getSliceType(arrayType: GoType): GoType? = arrayTypeToSliceType[arrayType]
+
+    fun setSliceType(arrayType: GoType, sliceType: GoType) {
+        arrayTypeToSliceType[arrayType] = sliceType
     }
 }

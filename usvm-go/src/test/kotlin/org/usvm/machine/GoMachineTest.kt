@@ -178,6 +178,13 @@ class GoMachineTest {
     }
 
     @Test
+    fun testBubbleSortCast() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), timeout = Duration.INFINITE))
+        val results = machine.analyzeAndResolve(Path.getProgram("sort.go"), "bubbleCast", false)
+        println(results)
+    }
+
+    @Test
     fun testMakeSlice() {
         val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "alloc", false)
         println(results)
@@ -225,7 +232,7 @@ class GoMachineTest {
                 UMachineOptions(
                     listOf(PathSelectionStrategy.FORK_DEPTH),
                     timeout = Duration.INFINITE,
-                    stepLimit = 100000u,
+                    stepLimit = 10000u,
                     coverageZone = CoverageZone.TRANSITIVE
                 )
             )
@@ -250,6 +257,31 @@ class GoMachineTest {
     @Test
     fun testReturnString() {
         val results = machine.analyzeAndResolve(Path.getProgram("playground.go"), "returnString", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceArray() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArray", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceArrayArgs() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArrayArgs", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceString() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceString", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallSwap() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callSwap", false)
         println(results)
     }
 }

@@ -126,6 +126,21 @@ func (b *ByteBuffer) WriteValueType(v ssa.Value) *ByteBuffer {
 	return b
 }
 
+func (b *ByteBuffer) WriteValueUnderlyingType(v ssa.Value) *ByteBuffer {
+	t := v.Type()
+	if t.String() == "iter" {
+		b.WriteType(t)
+		return b
+	}
+
+	u := t.Underlying()
+	if p, ok := u.(*types.Pointer); ok {
+		u = p.Elem()
+	}
+	b.WriteType(u)
+	return b
+}
+
 func (b *ByteBuffer) WriteType(t types.Type) *ByteBuffer {
 	b.WriteUintptr(ToPointer(&t))
 	return b

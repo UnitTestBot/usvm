@@ -198,18 +198,21 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkExtract(inst)
 
 	case *ssa.Slice:
+		api.MkSlice(inst)
 
 	case *ssa.Return:
 		api.MkReturn(inst)
 		return kReturn
 
 	case *ssa.RunDefers:
+		panic("RunDefers")
 
 	case *ssa.Panic:
 		api.MkPanic(inst)
 		return kReturn
 
 	case *ssa.Send:
+		panic("Send")
 
 	case *ssa.Store:
 		api.MkStore(inst)
@@ -223,10 +226,13 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		return kJump
 
 	case *ssa.Defer:
+		panic("Defer")
 
 	case *ssa.Go:
+		panic("Go")
 
 	case *ssa.MakeChan:
+		panic("MakeChan")
 
 	case *ssa.Alloc:
 		api.MkAlloc(inst)
@@ -262,13 +268,16 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkMapUpdate(inst)
 
 	case *ssa.TypeAssert:
+		api.MkTypeAssert(inst)
 
 	case *ssa.MakeClosure:
+		panic("MakeClosure")
 
 	case *ssa.Phi:
 		api.MkPhi(inst)
 
 	case *ssa.Select:
+		panic("Select")
 
 	default:
 		panic(fmt.Sprintf("unexpected instruction: %T", inst))

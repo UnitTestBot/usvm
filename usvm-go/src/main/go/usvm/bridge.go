@@ -21,6 +21,7 @@ import (
 	"usvm/graph"
 	"usvm/interpreter"
 	"usvm/sort"
+	"usvm/typesystem"
 	"usvm/util"
 )
 
@@ -363,10 +364,9 @@ func hasCommonSubtype(pointer C.jlong, arr *C.jlong, size C.jint) C.jboolean {
 
 //export isSupertype
 func isSupertype(supertypePointer, typePointer C.jlong) C.jboolean {
-	t := *util.FromPointer[types.Type](uintptr(supertypePointer))
-	v := *util.FromPointer[types.Type](uintptr(typePointer))
-	result := types.Identical(v, t) || types.AssignableTo(v, t)
-	return toJBool(result)
+	super := *util.FromPointer[types.Type](uintptr(supertypePointer))
+	sub := *util.FromPointer[types.Type](uintptr(typePointer))
+	return toJBool(typesystem.IsSuperType(super, sub))
 }
 
 //export typeToSort
