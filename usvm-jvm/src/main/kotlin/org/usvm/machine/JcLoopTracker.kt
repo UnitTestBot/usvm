@@ -18,7 +18,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
         val method = statement.location.method
 
         val allMethodLoops = methodLoops.getOrPut(method) {
-            method.flowGraph().loops.map { it.buildInfo() }.sortedByDescending { it.size }
+            method.flowGraph().loops.map { it.buildInfo() }
         }
 
         return allMethodLoops.firstOrNull { it.loop.head == statement }
@@ -59,7 +59,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
 
     private class LoopExecutionPathAnalyzer(private val loop: JcLoop) {
         private val graph = LoopExecutionGraph(
-            loop.instructions + LOOP_ENTRY,
+            loop.instructions + LOOP_ITERATION_EXIT,
             loop.instructions.toHashSet()
         )
 
@@ -69,17 +69,32 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
 
         fun allExecutionPathsAreInsideLoop(inst: JcInst): Boolean {
             val dom = dominators.dominators(inst)
-            return dom.any { it !== inst && it !== LOOP_ENTRY }
+            return dom.any { it !== inst && it !== LOOP_ITERATION_EXIT }
         }
 
+        /**
+         * Loop iteration execution graph.
+         *
+         * Normally, the loop CFG looks like:
+         *
+         * (header) -> bodyStmt_0 -> ... -> bodyStmt_N -> (exit)
+         *     ^_________________________________|
+         *
+         * To analyze branches that belongs to the same iteration we remove loop back-edges
+         * and replace all exits with a single exit point:
+         *
+         * (header) -> bodyStmt_0 -> ... -> bodyStmt_N -> [LOOP_ITERATION_EXIT]
+         *                                      |_______________^
+         * Note: the graph is reversed.
+         * */
         private inner class LoopExecutionGraph(
-            private val instructionsWithEntry: List<Any>,
+            private val instructionsWithIterationExit: List<Any>,
             private val loopBodyInstructions: Set<JcInst>
-        ) : JcBytecodeGraph<Any>, List<Any> by instructionsWithEntry {
-            override val entries: List<Any> get() = listOf(LOOP_ENTRY)
+        ) : JcBytecodeGraph<Any>, List<Any> by instructionsWithIterationExit {
+            override val entries: List<Any> = listOf(LOOP_ITERATION_EXIT)
 
             override fun predecessors(node: Any): Set<Any> {
-                if (node === LOOP_ENTRY) return emptySet()
+                if (node === LOOP_ITERATION_EXIT) return emptySet()
 
                 val allSuccessors = loop.graph.successors(node as JcInst)
                         // + loop.graph.catchers(node) // todo: exceptions?
@@ -92,7 +107,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
             private fun normalizeSuccessors(successors: Collection<JcInst>): Set<Any> =
                 successors.mapTo(hashSetOf()) {
                     if (it == loop.head || it !in loopBodyInstructions) {
-                        LOOP_ENTRY
+                        LOOP_ITERATION_EXIT
                     } else {
                         it
                     }
@@ -104,7 +119,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
         }
 
         companion object {
-            private val LOOP_ENTRY = Any()
+            private val LOOP_ITERATION_EXIT = Any()
         }
     }
 }

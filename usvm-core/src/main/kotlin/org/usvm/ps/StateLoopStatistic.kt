@@ -84,7 +84,7 @@ class StateLoopStatistic<Stmt, Method, Loop : Any, State : UState<*, Method, Stm
             stackFramesMatch = false
 
             val emptyFrame = emptyStatsFrames.getOrPut(method) {
-                StateStackFrameStats(method, loops = null, 0)
+                StateStackFrameStats(method, loops = null, maxNonConcreteIteration = 0)
             }
 
             if (idx < frames.size) {
