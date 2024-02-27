@@ -105,11 +105,8 @@ private fun <Method, Statement, Target, State> createPathSelector(
         }
     }
 
-    val initialState = initialStates.singleOrNull()
-    requireNotNull(initialState) { "Merging path selector doesn't support multiple initial states" }
-
     selectors.singleOrNull()?.let { selector ->
-        val mergingSelector = createMergingPathSelector(initialState, selector, options, cfgStatisticsFactory)
+        val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
         val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
         resultSelector.add(initialStates.toList())
         return resultSelector
@@ -120,17 +117,21 @@ private fun <Method, Statement, Target, State> createPathSelector(
     val selector = when (options.pathSelectorCombinationStrategy) {
         PathSelectorCombinationStrategy.INTERLEAVED -> {
             // Since all selectors here work as one, we can wrap an interleaved selector only.
-            val interleavedPathSelector = InterleavedPathSelector(selectors)
-                .let { createMergingPathSelector(initialState, it, options, cfgStatisticsFactory) }
-                .wrapIfRequired(options, loopStatisticFactory)
+            val selector = InterleavedPathSelector(selectors)
 
-            interleavedPathSelector.add(initialStates.toList())
-            interleavedPathSelector
+            val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+            val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
+            resultSelector.add(initialStates.toList())
+
+            resultSelector
         }
 
         PathSelectorCombinationStrategy.PARALLEL -> {
             // Here we should wrap all selectors independently since they work in parallel.
-            val wrappedSelectors = selectors.map { it.wrapIfRequired(options, loopStatisticFactory) }
+            val wrappedSelectors = selectors.map { selector ->
+                val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+                mergingSelector.wrapIfRequired(options, loopStatisticFactory)
+            }
 
             wrappedSelectors.first().add(initialStates.toList())
             wrappedSelectors.drop(1).forEach {
@@ -349,7 +350,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 }
 
 internal fun <Method, Statement, Target, State> createMergingPathSelector(
-    initialState: State,
+    initialStates: List<State>,
     underlyingPathSelector: UPathSelector<State>,
     options: UMachineOptions,
     statistics: () -> CfgStatistics<Method, Statement>?,
@@ -359,6 +360,10 @@ internal fun <Method, Statement, Target, State> createMergingPathSelector(
     if (!options.useMerging) {
         return underlyingPathSelector
     }
+
+    val initialState = initialStates.singleOrNull()
+    requireNotNull(initialState) { "Merging path selector doesn't support multiple initial states" }
+
     val executionTreeTracker = ExecutionTreeTracker<State, Statement>(initialState.pathNode)
     val closeStatesSearcher = CloseStatesSearcherImpl(
         executionTreeTracker,
