@@ -7,7 +7,8 @@ import java.util.WeakHashMap
 
 /**
  * Track state loop iterations number.
- * Always prefer states with less loop iterations number.
+ * Iteratively relax loop iteration limit up to the [iterationLimit].
+ * Always peek states with iterations number within the current iterations limit.
  * Drop states with a loop iteration number greater than [iterationLimit].
  * */
 class IterativeDeepeningPs<Stmt, Method, Loop : Any, State : UState<*, Method, Stmt, *, *, State>>(
@@ -61,9 +62,8 @@ class IterativeDeepeningPs<Stmt, Method, Loop : Any, State : UState<*, Method, S
         stateStats[state] = stats
 
         when {
-            iterations == currentLevel -> addStateToCurrentLevel(state)
+            iterations <= currentLevel -> addStateToCurrentLevel(state)
             iterations > currentLevel -> addStateToFutureLevel(state, iterations)
-            else -> addStateToPreviousLevel(state, iterations)
         }
     }
 
@@ -83,9 +83,8 @@ class IterativeDeepeningPs<Stmt, Method, Loop : Any, State : UState<*, Method, S
     private fun pushStates() {
         while (underlyingPs.isEmpty() && currentLevel <= maxLevel) {
             currentLevel++
-            val states = pendingStates[currentLevel] ?: continue
+            val states = pendingStates.remove(currentLevel) ?: continue
             underlyingPs.add(states)
-            states.clear()
         }
     }
 
@@ -97,17 +96,5 @@ class IterativeDeepeningPs<Stmt, Method, Loop : Any, State : UState<*, Method, S
         maxLevel = maxOf(level, maxLevel)
         val pending = pendingStates.getOrPut(level) { mutableListOf() }
         pending.add(state)
-    }
-
-    private fun addStateToPreviousLevel(state: State, level: Int) {
-        val currentLevelStates = pendingStates.getOrPut(currentLevel) { mutableListOf() }
-        while (!underlyingPs.isEmpty()) {
-            val st = underlyingPs.peek()
-            underlyingPs.remove(st)
-            currentLevelStates.add(st)
-        }
-
-        currentLevel = level
-        addStateToCurrentLevel(state)
     }
 }
