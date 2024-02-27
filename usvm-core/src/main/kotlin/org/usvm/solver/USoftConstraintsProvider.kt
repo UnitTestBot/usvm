@@ -21,21 +21,7 @@ import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.asExpr
-import org.usvm.UAddressSort
-import org.usvm.UBoolExpr
-import org.usvm.UBvSort
-import org.usvm.UCollectionReading
-import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
-import org.usvm.UExpr
-import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UIsSubtypeExpr
-import org.usvm.UIsSupertypeExpr
-import org.usvm.UNullRef
-import org.usvm.URegisterReading
-import org.usvm.USort
-import org.usvm.UTrackedSymbol
-import org.usvm.UTransformer
+import org.usvm.*
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
@@ -52,13 +38,7 @@ import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.constraints.UPathConstraints
-import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isFalse
-import org.usvm.isStaticHeapRef
-import org.usvm.mkSizeExpr
-import org.usvm.mkSizeLeExpr
 import org.usvm.regions.Region
-import org.usvm.uctx
 
 open class USoftConstraintsProvider<Type, USizeSort : USort>(
     override val ctx: UContext<USizeSort>
@@ -205,8 +185,9 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         expr: UCollectionReading<*, *, Sort>,
         arg: UExpr<*>,
     ): UExpr<Sort> = computeSideEffect(expr) {
+        val startAddress = (arg as? UConcreteHeapRef)?.address
         require(!isAllocatedConcreteHeapRef(arg)) {
-            "Unexpected concrete address $arg in symbolic collection $expr"
+            "Unexpected concrete address $arg in symbolic ${isAllocatedConcreteHeapRef(arg)} ${arg::class.java.classLoader}, $expr, ${arg is UConcreteHeapRef}, ${(arg as? UConcreteHeapRef)?.address?.isAllocated}, ${(arg as? UConcreteHeapRef)?.isAllocated}, ${(arg as? UConcreteHeapRef)?.address}, ${startAddress}"
         }
         if (isStaticHeapRef(arg)) {
             // Do not apply any soft constraints on static refs usages as they are actually concrete

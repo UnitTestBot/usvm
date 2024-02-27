@@ -27,10 +27,10 @@ import kotlin.random.Random
 class PyMachine(
     private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
-    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.DelayedForkByInstructionWeightedRandomTree,
+    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.BaselinePriorityDfs,
     private val printErrorMsg: Boolean = false
 ): UMachine<PyState>() {
-    private val ctx = PyContext(typeSystem)
+    val ctx = PyContext(typeSystem)
 
     private val random = Random(0)
     val statistics = PyMachineStatistics()

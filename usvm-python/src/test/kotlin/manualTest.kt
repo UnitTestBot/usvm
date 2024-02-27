@@ -194,6 +194,8 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
 private fun analyze(runConfig: RunConfig) {
     val (program, typeSystem, functions) = runConfig
     val machine = PyMachine(program, typeSystem, printErrorMsg = false)
+    val concreteAddress = machine.ctx.mkConcreteHeapRef(10)
+    println("ClassLoader: ${concreteAddress::class.java.classLoader}")
     val emptyCoverage = mutableListOf<String>()
     machine.use { activeMachine ->
         functions.forEach { f ->

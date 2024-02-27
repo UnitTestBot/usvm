@@ -147,7 +147,7 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     fun testMultiplyAndCompare() {
         allowPathDiversions = true
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 300U)
+        options = UMachineOptions(stepLimit = 200U)
         timeoutPerRunMs = 1000
         check2WithConcreteRun(
             constructFunction("multiply_and_compare", List(2) { PythonAnyType }),

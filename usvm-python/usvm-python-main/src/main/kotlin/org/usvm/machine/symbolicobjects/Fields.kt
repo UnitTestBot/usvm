@@ -7,7 +7,9 @@ sealed class PropertyOfPythonObject
 class ContentOfType<out Sort: USort>(
     val id: String,
     val sort: (PyContext) -> Sort
-): PropertyOfPythonObject()
+): PropertyOfPythonObject() {
+    override fun toString(): String = "ContentOfType($id)"
+}
 
 object IntContents {
     val content = ContentOfType("int") { it.intSort }

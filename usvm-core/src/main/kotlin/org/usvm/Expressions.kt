@@ -78,10 +78,6 @@ fun isSymbolicHeapRef(expr: UExpr<*>): Boolean {
 
 @OptIn(ExperimentalContracts::class)
 fun isAllocatedConcreteHeapRef(expr: UExpr<*>): Boolean {
-    contract {
-        returns(true) implies (expr is UConcreteHeapRef)
-    }
-
     return expr is UConcreteHeapRef && expr.isAllocated
 }
 
