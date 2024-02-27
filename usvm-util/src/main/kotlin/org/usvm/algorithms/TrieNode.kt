@@ -9,6 +9,8 @@ class TrieNode<E, V> private constructor(
     private val _children = mutableMapOf<E, TrieNode<E, V>>()
     val children: Map<E, TrieNode<E, V>> = _children
 
+    fun parent(): TrieNode<E, V>? = parent
+
     fun add(edge: E, defaultValue: () -> V): TrieNode<E, V> =
         _children.getOrPut(edge) {
             TrieNode(depth + 1, parent = this, parentEdge = edge, defaultValue())

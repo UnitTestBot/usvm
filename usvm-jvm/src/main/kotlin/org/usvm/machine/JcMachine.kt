@@ -183,6 +183,10 @@ class JcMachine(
             )
         }
 
+        if (logger.isDebugEnabled) {
+            observers.add(JcDebugProfileObserver(pathSelector))
+        }
+
         run(
             interpreter,
             pathSelector,
