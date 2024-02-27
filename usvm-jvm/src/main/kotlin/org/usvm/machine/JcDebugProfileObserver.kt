@@ -10,6 +10,9 @@ import org.usvm.algorithms.TrieNode
 import org.usvm.machine.state.JcState
 import org.usvm.statistics.UMachineObserver
 import org.usvm.util.originalInst
+import java.util.concurrent.atomic.LongAdder
+
+private typealias StatsCounter = LongAdder
 
 /**
  * Collect JcMachine profile (like async-profiler) for the debug purposes.
@@ -17,12 +20,12 @@ import org.usvm.util.originalInst
 class JcDebugProfileObserver(
     private val pathSelector: UPathSelector<JcState>
 ) : UMachineObserver<JcState> {
-    private val instructionStats = hashMapOf<JcInst, MutableMap<StateId, Int>>()
-    private val methodCalls = hashMapOf<JcMethod, MutableMap<StateId, Int>>()
+    private val instructionStats = hashMapOf<JcInst, MutableMap<StateId, StatsCounter>>()
+    private val methodCalls = hashMapOf<JcMethod, MutableMap<StateId, StatsCounter>>()
 
     private val stackTraceTracker = JcStackTraceTracker()
-    private val stackTraces = hashMapOf<TrieNode<JcInst, *>, MutableMap<StateId, Int>>()
-    private val forksCount = hashMapOf<TrieNode<JcInst, *>, MutableMap<StateId, Int>>()
+    private val stackTraces = hashMapOf<TrieNode<JcInst, *>, MutableMap<StateId, StatsCounter>>()
+    private val forksCount = hashMapOf<TrieNode<JcInst, *>, MutableMap<StateId, StatsCounter>>()
 
     override fun onStatePeeked(state: JcState) {
         val statement = state.currentStatement
@@ -42,13 +45,13 @@ class JcDebugProfileObserver(
         }
     }
 
-    private fun <K> MutableMap<K, MutableMap<StateId, Int>>.increment(key: K, state: JcState) {
+    private fun <K> MutableMap<K, MutableMap<StateId, StatsCounter>>.increment(key: K, state: JcState) {
         val stateStats = this.getOrPut(key) { hashMapOf() }
-        val stats = stateStats[state.id] ?: 0
-        stateStats[state.id] = stats + 1
+        val stats = stateStats.getOrPut(state.id) { StatsCounter() }
+        stats.increment()
     }
 
-    private fun aggregateStats(): List<Map.Entry<JcClassOrInterface, List<Map.Entry<JcMethod, Int>>>> {
+    private fun aggregateStats(): List<Map.Entry<JcClassOrInterface, List<Map.Entry<JcMethod, Long>>>> {
         val methodStats = instructionStats.entries
             .groupBy({ it.key.location.method }, { it.value })
             .mapValues { it.value.sumOf { it.values.sum() } }
@@ -62,7 +65,7 @@ class JcDebugProfileObserver(
         val children = stackTraceTracker.getRoot().children.mapValues { (i, node) ->
             computeProfileFrame(slice, i, node)
         }
-        return ProfileFrame(inst = null, total = -1, self = -1, -1, -1, children = children)
+        return ProfileFrame(inst = null, total = -1, self = -1, totalForks = -1, selfForks = -1, children = children)
     }
 
     private fun computeProfileFrame(slice: StateId?, inst: JcInst, root: TrieNode<JcInst, *>): ProfileFrame {
@@ -70,17 +73,8 @@ class JcDebugProfileObserver(
         val allForkStats = forksCount[root] ?: emptyMap()
         val children = root.children.mapValues { (i, node) -> computeProfileFrame(slice, i, node) }
 
-        val nodeStats = if (slice == null) {
-            allNodeStats.values.sum()
-        } else {
-            allNodeStats[slice] ?: 0
-        }
-
-        val forkStats = if (slice == null) {
-            allForkStats.values.sum()
-        } else {
-            allForkStats[slice] ?: 0
-        }
+        val nodeStats = allNodeStats.sumOfSlice(slice)
+        val forkStats = allForkStats.sumOfSlice(slice)
 
         val selfStat = nodeStats - children.values.sumOf { it.total }
         val selfForks = forkStats - children.values.sumOf { it.totalForks }
@@ -89,10 +83,10 @@ class JcDebugProfileObserver(
 
     private class ProfileFrame(
         val inst: JcInst?,
-        val total: Int,
-        val self: Int,
-        val totalForks: Int,
-        val selfForks: Int,
+        val total: Long,
+        val self: Long,
+        val totalForks: Long,
+        val selfForks: Long,
         val children: Map<JcInst, ProfileFrame>
     ) {
         fun print(str: StringBuilder, indent: String) {
@@ -148,7 +142,10 @@ class JcDebugProfileObserver(
             appendLine("-".repeat(20))
             appendLine("$cls")
             for ((method, cnt) in methods) {
-                appendLine("$method | $cnt | ${methodCalls[method]?.values?.sum()}")
+                val methodCallsCnt = methodCalls[method]?.values?.sum()
+                    ?: "NO CALLS" // e.g. entrypoint method
+
+                appendLine("$method | $cnt | $methodCallsCnt")
             }
         }
     }
@@ -184,4 +181,9 @@ class JcDebugProfileObserver(
             return node.add(state.currentStatement.originalInst()) {}
         }
     }
+
+    private fun Map<StateId, StatsCounter>.sumOfSlice(slice: StateId?): Long =
+        if (slice == null) values.sum() else this[slice]?.sum() ?: 0L
+
+    private fun Iterable<StatsCounter>.sum(): Long = sumOf { it.sum() }
 }
