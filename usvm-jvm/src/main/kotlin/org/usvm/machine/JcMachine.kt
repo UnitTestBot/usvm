@@ -25,6 +25,7 @@ import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
@@ -93,6 +94,7 @@ class JcMachine(
         val transparentCfgStatistics = transparentCfgStatistics()
 
         val timeStatistics = TimeStatistics<JcMethod, JcState>()
+        val loopTracker = JcLoopTracker()
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -101,7 +103,8 @@ class JcMachine(
             timeStatistics,
             { coverageStatistics },
             { transparentCfgStatistics },
-            { callGraphStatistics }
+            { callGraphStatistics },
+            { loopTracker }
         )
 
         val statesCollector =
@@ -111,6 +114,7 @@ class JcMachine(
                 }
 
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector()
             }
 
         val stepsStatistics = StepsStatistics<JcMethod, JcState>()
