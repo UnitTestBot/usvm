@@ -35,6 +35,7 @@ private fun <Method, Statement, Target, State> createPathSelector(
     coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
 ): UPathSelector<State>
     where Target : UTarget<Statement, Target>,
           State : UState<*, Method, Statement, *, Target, State> {
@@ -104,16 +105,11 @@ private fun <Method, Statement, Target, State> createPathSelector(
         }
     }
 
-
-    val propagateExceptions = options.exceptionsPropagation
-
     selectors.singleOrNull()?.let { selector ->
-        val resultSelector = selector.wrapIfRequired(propagateExceptions)
-        val initialState = initialStates.singleOrNull()
-        requireNotNull(initialState) { "Merging path selector doesn't support multiple initial states" }
-        val mergingSelector = createMergingPathSelector(initialState, resultSelector, options, cfgStatisticsFactory)
-        mergingSelector.add(initialStates.toList())
-        return mergingSelector
+        val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+        val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
+        resultSelector.add(initialStates.toList())
+        return resultSelector
     }
 
     require(selectors.size >= 2) { "Cannot create collaborative path selector from less than 2 selectors" }
@@ -121,14 +117,21 @@ private fun <Method, Statement, Target, State> createPathSelector(
     val selector = when (options.pathSelectorCombinationStrategy) {
         PathSelectorCombinationStrategy.INTERLEAVED -> {
             // Since all selectors here work as one, we can wrap an interleaved selector only.
-            val interleavedPathSelector = InterleavedPathSelector(selectors).wrapIfRequired(propagateExceptions)
-            interleavedPathSelector.add(initialStates.toList())
-            interleavedPathSelector
+            val selector = InterleavedPathSelector(selectors)
+
+            val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+            val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
+            resultSelector.add(initialStates.toList())
+
+            resultSelector
         }
 
         PathSelectorCombinationStrategy.PARALLEL -> {
             // Here we should wrap all selectors independently since they work in parallel.
-            val wrappedSelectors = selectors.map { it.wrapIfRequired(propagateExceptions) }
+            val wrappedSelectors = selectors.map { selector ->
+                val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+                mergingSelector.wrapIfRequired(options, loopStatisticFactory)
+            }
 
             wrappedSelectors.first().add(initialStates.toList())
             wrappedSelectors.drop(1).forEach {
@@ -149,8 +152,17 @@ fun <Method, Statement, Target, State> createPathSelector(
     coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> =
-    createPathSelector(listOf(initialState), options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory)
+    createPathSelector(
+        listOf(initialState),
+        options,
+        applicationGraph,
+        coverageStatisticsFactory,
+        cfgStatisticsFactory,
+        callGraphStatisticsFactory,
+        loopStatisticFactory
+    )
 
 fun <Method, Statement, Target, State> createPathSelector(
     initialStates: Map<Method, State>,
@@ -160,10 +172,17 @@ fun <Method, Statement, Target, State> createPathSelector(
     coverageStatisticsFactory: () -> CoverageStatistics<Method, Statement, State>? = { null },
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
     if (options.timeout == Duration.INFINITE || initialStates.size == 1) {
         return createPathSelector(
-            initialStates.values.toList(), options, applicationGraph, coverageStatisticsFactory, cfgStatisticsFactory, callGraphStatisticsFactory
+            initialStates.values.toList(),
+            options,
+            applicationGraph,
+            coverageStatisticsFactory,
+            cfgStatisticsFactory,
+            callGraphStatisticsFactory,
+            loopStatisticFactory
         )
     }
 
@@ -179,7 +198,8 @@ fun <Method, Statement, Target, State> createPathSelector(
             applicationGraph,
             coverageStatisticsFactory,
             cfgStatisticsFactory,
-            callGraphStatisticsFactory
+            callGraphStatisticsFactory,
+            loopStatisticFactory
         )
 
     val coverageStatistics = coverageStatisticsFactory()
@@ -242,6 +262,22 @@ private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRe
     } else {
         this
     }
+private fun <Statement, Method, State : UState<*, Method, Statement, *, *, State>> UPathSelector<State>.wrapIfRequired(
+    options: UMachineOptions,
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>?
+): UPathSelector<State> {
+    var ps = this
+    if (options.exceptionsPropagation && ps !is ExceptionPropagationPathSelector<State>) {
+        ps = ExceptionPropagationPathSelector(ps)
+    }
+    if (options.loopIterativeDeepening && ps !is IterativeDeepeningPs<*, *, *, State>) {
+        ps = createIterativeDeepeningPathSelector(ps, options, loopStatisticFactory)
+    }
+    if (!options.loopIterativeDeepening && options.loopIterationLimit != null && ps !is LoopLimiterPs<*, *, *, State>) {
+        ps = createLoopLimiterPathSelector(ps, options, loopStatisticFactory)
+    }
+    return ps
+}
 
 private fun <State : UState<*, *, *, *, *, State>> compareById(): Comparator<State> = compareBy { it.id }
 
@@ -314,7 +350,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
 }
 
 internal fun <Method, Statement, Target, State> createMergingPathSelector(
-    initialState: State,
+    initialStates: List<State>,
     underlyingPathSelector: UPathSelector<State>,
     options: UMachineOptions,
     statistics: () -> CfgStatistics<Method, Statement>?,
@@ -324,6 +360,10 @@ internal fun <Method, Statement, Target, State> createMergingPathSelector(
     if (!options.useMerging) {
         return underlyingPathSelector
     }
+
+    val initialState = initialStates.singleOrNull()
+    requireNotNull(initialState) { "Merging path selector doesn't support multiple initial states" }
+
     val executionTreeTracker = ExecutionTreeTracker<State, Statement>(initialState.pathNode)
     val closeStatesSearcher = CloseStatesSearcherImpl(
         executionTreeTracker,
@@ -334,6 +374,24 @@ internal fun <Method, Statement, Target, State> createMergingPathSelector(
         closeStatesSearcher
     )
     return result
+}
+
+internal fun <Method, Statement, State> createIterativeDeepeningPathSelector(
+    underlyingPathSelector: UPathSelector<State>,
+    options: UMachineOptions,
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>?,
+): UPathSelector<State> where State : UState<*, Method, Statement, *, *, State> {
+    val loopTracker = requireNotNull(loopStatisticFactory())
+    return IterativeDeepeningPs(underlyingPathSelector, loopTracker, options.loopIterationLimit)
+}
+
+internal fun <Method, Statement, State> createLoopLimiterPathSelector(
+    underlyingPathSelector: UPathSelector<State>,
+    options: UMachineOptions,
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>?,
+): UPathSelector<State> where State : UState<*, Method, Statement, *, *, State> {
+    val loopTracker = requireNotNull(loopStatisticFactory())
+    return LoopLimiterPs(underlyingPathSelector, loopTracker, options.loopIterationLimit)
 }
 
 internal fun <Method, Statement, Target, State> createTargetedPathSelector(

@@ -15,6 +15,7 @@ import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
@@ -81,6 +82,7 @@ class SampleMachine(
                     it.exceptionRegister != null
                 }
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector()
             }
 
         val stepsStatistics = StepsStatistics<Method<*>, SampleState>()

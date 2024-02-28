@@ -49,6 +49,7 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
 
                 logger.debug { "Merged states: $state + $closeState == $mergedState" }
 
+                // todo: we must add/remove states starting from the top PS (not current)
                 remove(state)
                 remove(closeState)
                 add(listOf(mergedState))
