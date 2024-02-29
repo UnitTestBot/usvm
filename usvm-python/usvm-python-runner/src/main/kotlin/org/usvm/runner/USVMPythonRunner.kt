@@ -48,6 +48,7 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
             *functionConfigArgs.toTypedArray(),
             runConfig.timeoutPerRunMs.toString(),
             runConfig.timeoutMs.toString(),
+            config.pathSelector.name,
             *venvArgs.toTypedArray(),
             *config.roots.toList().toTypedArray()
         )

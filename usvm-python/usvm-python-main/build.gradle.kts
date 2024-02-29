@@ -14,7 +14,7 @@ tasks.compileJava {
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(mapOf("path" to ":usvm-python:usvm-python-annotations")))
-    implementation(project(mapOf("path" to ":usvm-python:usvm-python-object-model")))
+    implementation(project(mapOf("path" to ":usvm-python:usvm-python-commons")))
     annotationProcessor(project(":usvm-python:usvm-python-annotations"))
 
     implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")

@@ -14,21 +14,11 @@ import org.usvm.ps.RandomTreePathSelector
 import org.usvm.ps.WeightedPathSelector
 import org.usvm.python.model.PyTupleObject
 import org.usvm.python.model.calculateNumberOfMocks
+import org.usvm.python.ps.PyPathSelectorType
 import kotlin.math.max
 import kotlin.random.Random
 
 private val logger = object : KLogging() {}.logger
-
-enum class PyPathSelectorType {
-    BaselinePriorityDfs,
-    BaselineWeightedDfs,
-    BaselinePriorityRandomTree,
-    BaselinePriorityWeightedByNumberOfVirtual,
-    BaselinePriorityPlusTypeRatingByHintsDfs,
-    DelayedForkByInstructionPriorityDfs,
-    DelayedForkByInstructionWeightedDfs,
-    DelayedForkByInstructionWeightedRandomTree
-}
 
 fun createPyPathSelector(
     initialState: PyState,

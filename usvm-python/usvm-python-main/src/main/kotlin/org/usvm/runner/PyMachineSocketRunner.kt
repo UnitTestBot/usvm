@@ -8,6 +8,7 @@ import org.usvm.machine.PyMachine
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.*
 import org.usvm.machine.results.serialization.EmptyObjectSerializer
+import org.usvm.python.ps.PyPathSelectorType
 import org.utpython.types.PythonCallableTypeDescription
 import org.utpython.types.PythonCompositeTypeDescription
 import org.utpython.types.general.FunctionType
@@ -21,14 +22,15 @@ class PyMachineSocketRunner(
     mypyDirPath: File,
     programRoots: Set<File>,
     socketIp: String,
-    socketPort: Int
+    socketPort: Int,
+    pathSelector: PyPathSelectorType
 ): AutoCloseable {
     private val mypyDir = MypyBuildDirectory(mypyDirPath, programRoots.map { it.canonicalPath }.toSet())
     private val mypyBuild = readMypyInfoBuild(mypyDir)
     private val communicator = PickledObjectCommunicator(socketIp, socketPort)
     private val program = StructuredPyProgram(programRoots)
     private val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
-    private val machine = PyMachine(program, typeSystem)
+    private val machine = PyMachine(program, typeSystem, pathSelectorType = pathSelector)
     override fun close() {
         communicator.close()
         machine.close()

@@ -9,7 +9,6 @@ import org.usvm.language.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
-import org.usvm.machine.ps.PyPathSelectorType
 import org.usvm.machine.ps.createPyPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.NewStateObserver
@@ -19,6 +18,7 @@ import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.machine.utils.isGenerator
 import org.usvm.machine.utils.unfoldGenerator
 import org.usvm.memory.UMemory
+import org.usvm.python.ps.PyPathSelectorType
 import org.usvm.solver.USatResult
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.UMachineObserver

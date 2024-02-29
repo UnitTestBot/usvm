@@ -1,5 +1,6 @@
 package org.usvm.runner
 
+import org.usvm.python.ps.PyPathSelectorType
 import org.usvm.runner.venv.VenvConfig
 
 data class USVMPythonConfig(
@@ -7,7 +8,8 @@ data class USVMPythonConfig(
     val javaCmd: String,
     val mypyBuildDir: String,
     val roots: Set<String>,
-    val venvConfig: VenvConfig?
+    val venvConfig: VenvConfig?,
+    val pathSelector: PyPathSelectorType
 )
 
 sealed class USVMPythonCallableConfig
