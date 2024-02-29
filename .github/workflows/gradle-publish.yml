@@ -43,7 +43,7 @@ jobs:
       - name: Publish usvm-python-runner to GitHub Packages
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:publish :usvm-python:usvm-python-common:publish -Pversion=${{ steps.commithash.outputs.sha_short }}
+          arguments: :usvm-python:usvm-python-runner:publishAllPublicationsToGitHubPackagesRepository :usvm-python:usvm-python-common:publishAllPublicationsToGitHubPackagesRepository -Pversion=${{ steps.commithash.outputs.sha_short }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
