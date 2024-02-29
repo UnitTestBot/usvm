@@ -33,17 +33,17 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:build -Pversion=${{ steps.commithash.outputs.sha_short }}
+          arguments: :usvm-python:usvm-python-runner:build :usvm-python:usvm-python-common:build -Pversion=${{ steps.commithash.outputs.sha_short }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
       # the publishing section of your build.gradle
-      - name: Publish to GitHub Packages
+      - name: Publish usvm-python-runner to GitHub Packages
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:publish -Pversion=${{ steps.commithash.outputs.sha_short }}
+          arguments: :usvm-python:usvm-python-runner:publish :usvm-python:usvm-python-common:publish -Pversion=${{ steps.commithash.outputs.sha_short }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
