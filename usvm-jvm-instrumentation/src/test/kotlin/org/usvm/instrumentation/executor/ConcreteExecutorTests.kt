@@ -259,6 +259,6 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
         assertIs<UTestConstantDescriptor.String>(result)
         assertEquals("static field content", result.value)
         assertContains(res.resultState.statics.keys.map { it.name }, "STATIC_FIELD")
-    }.also { println(0) }
+    }
 
 }
