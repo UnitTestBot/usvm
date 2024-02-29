@@ -8,7 +8,7 @@ plugins {
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":usvm-python:usvm-python-main"))
-    implementation(project(":usvm-python:usvm-python-object-model"))
+    implementation(project(":usvm-python:usvm-python-commons"))
     implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
     implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }

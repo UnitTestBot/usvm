@@ -1,5 +1,6 @@
 package org.usvm.runner
 
+import org.usvm.python.ps.PyPathSelectorType
 import java.io.File
 
 fun main() {
@@ -14,7 +15,8 @@ fun main() {
         "java",
         mypyDir.canonicalPath,
         setOf(root.canonicalPath),
-        venvConfig
+        venvConfig,
+        PyPathSelectorType.BaselinePriorityDfs
     )
     val runConfig = USVMPythonRunConfig(
         USVMPythonFunctionConfig(
