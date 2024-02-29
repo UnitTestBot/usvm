@@ -24,7 +24,7 @@ tasks.jar {
     dependsOn(":usvm-util:jar")
     dependsOn(":usvm-core:jar")
     dependsOn(":usvm-python:usvm-python-main:jar")
-    dependsOn(":usvm-python:usvm-python-object-model:jar")
+    dependsOn(":usvm-python:usvm-python-commons:jar")
 }
 
 if (cpythonActivatedFlag) {
