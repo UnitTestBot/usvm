@@ -498,4 +498,13 @@ object UTestCreator {
             return UTest(listOf(), methodCall)
         }
     }
+
+    object ParentStaticFieldUser {
+        fun getParentStaticField(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass("example.ParentStaticFieldUser")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "getParentStaticField" }!!
+
+            return UTest(listOf(), UTestStaticMethodCall(jcMethod, emptyList()))
+        }
+    }
 }
