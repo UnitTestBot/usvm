@@ -26,7 +26,7 @@ class WeightedByNumberOfVirtualPathSelector(
         val availableNumbers = selectors.mapNotNull { (number, selector) ->
             if (selector.isEmpty()) null else number
         }
-        val chosenNumber = weightedRandom(random, availableNumbers) { mocks -> 1.0 / max(1, 10 * mocks) }
+        val chosenNumber = weightedRandom(random, availableNumbers) { mocks -> 1.0 / max(1, mocks + 1) }
         val selector = selectors[chosenNumber]!!
         return selector.peek()
     }
