@@ -121,17 +121,24 @@ object JcInstructionTracer : Tracer<Trace> {
         accessType: StaticFieldAccessType,
         jcClasspath: JcClasspath
     ): Long {
-        val jcClass =
+        var jcClass =
             jcRawFieldRef.declaringClass.toJcClassOrInterface(jcClasspath) ?: error("Can't find class in classpath")
-        val encodedClass = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
-        val indexedJcField =
-            jcClass.declaredFields.withIndex()
-                .find { it.value.isStatic && it.value.name == jcRawFieldRef.fieldName }
-                ?: error("Field not found")
-        val accessTypeId = accessType.ordinal.toLong()
-        val instId = encodeStaticFieldAccessId(encodedClass.id, indexedJcField.index.toLong(), accessTypeId)
-        encodedJcStaticFieldRef[instId] = indexedJcField.value to accessType
-        return instId
+        while (true) {
+            val encodedClass = encodedClasses.getOrPut(jcClass) { EncodedClass(currentClassIndex++) }
+            val indexedJcField =
+                jcClass.declaredFields.withIndex()
+                    .find { it.value.isStatic && it.value.name == jcRawFieldRef.fieldName }
+            if (indexedJcField == null) {
+                // static fields can be accessed via subclass of declaring class
+                jcClass = jcClass.superClass
+                    ?: error("Field `${jcRawFieldRef.declaringClass.typeName}.${jcRawFieldRef.fieldName}` not found")
+                continue
+            }
+            val accessTypeId = accessType.ordinal.toLong()
+            val instId = encodeStaticFieldAccessId(encodedClass.id, indexedJcField.index.toLong(), accessTypeId)
+            encodedJcStaticFieldRef[instId] = indexedJcField.value to accessType
+            return instId
+        }
     }
 
     private fun decode(jcInstructionId: Long): JcInst =
