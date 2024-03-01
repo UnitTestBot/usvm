@@ -9,7 +9,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class EnumerateTest: PythonTestRunnerForPrimitiveProgram(
     "Enumerate",
-    UMachineOptions(stepLimit = 15U, timeout = 20.seconds),
+    UMachineOptions(stepLimit = 25U, timeout = 20.seconds),
     // allowPathDiversions = true
 ) {
     @Test

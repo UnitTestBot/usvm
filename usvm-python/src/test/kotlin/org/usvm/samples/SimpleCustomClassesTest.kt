@@ -7,7 +7,7 @@ import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
-class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCustomClasses", UMachineOptions(stepLimit = 20U)) {
+class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCustomClasses", UMachineOptions(stepLimit = 25U)) {
     @Test
     fun testMatmulUsage() {
         check1WithConcreteRun(
@@ -25,10 +25,10 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
     @Test
     fun testMatmulAndAdd() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 2U)
+        options = UMachineOptions(stepLimit = 4U)
         check1WithConcreteRun(
             constructFunction("matmul_and_add", List(1) { PythonAnyType }),
-            eq(1),
+            ignoreNumberOfAnalysisResults,
             compareConcolicAndConcreteTypes,
             /* invariants = */ emptyList(),
             /* propertiesToDiscover = */ listOf { x, res ->
@@ -41,7 +41,7 @@ class SimpleCustomClassesTest: PythonTestRunnerForStructuredProgram("SimpleCusto
     @Test
     fun testMatmulAddAndSub() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 6U)
+        options = UMachineOptions(stepLimit = 10U)
         check1WithConcreteRun(
             constructFunction("matmul_add_and_sub", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,

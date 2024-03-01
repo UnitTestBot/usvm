@@ -7,8 +7,12 @@ import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.*
 import kotlin.random.Random
 
-val baselineProbabilities = listOf(1.0, 0.6, 0.9, 0.7, 1.0)
-val baselineWeights = listOf(100.0, 0.6, 0.35, 0.04, 0.01)
+val baselineProbabilities = listOf(1.0, 0.6, 0.875, 0.8, 1.0)
+private val probNegations = baselineProbabilities
+                                .drop(1)
+                                .runningFold(1.0) { acc, p -> acc * (1 - p) }
+val baselineWeights = //listOf(100.0, 0.6, 0.35, 0.04, 0.01)
+    listOf(100.0) + (baselineProbabilities.drop(1) zip probNegations.dropLast(1)).map { (a, b) -> a * b }
 
 fun makeBaselinePriorityActionStrategy(
     random: Random

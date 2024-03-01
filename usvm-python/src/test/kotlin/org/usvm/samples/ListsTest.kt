@@ -201,7 +201,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
 
     private fun richcompareCheck(function: PyUnpinnedCallable) {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 10U)
+        options = UMachineOptions(stepLimit = 15U)
         allowPathDiversions = true
         check2WithConcreteRun(
             function,
@@ -262,7 +262,7 @@ class ListsTest : PythonTestRunnerForPrimitiveProgram(
     @Test
     fun testDoubleSubscriptAndCompare() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 20U, timeout = 20.seconds)
+        options = UMachineOptions(stepLimit = 30U, timeout = 20.seconds)
         allowPathDiversions = true
         check2WithConcreteRun(
             constructFunction("double_subscript_and_compare", listOf(typeSystem.pythonList, typeSystem.pythonList)),
