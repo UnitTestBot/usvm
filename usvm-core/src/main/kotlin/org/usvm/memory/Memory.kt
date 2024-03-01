@@ -1,7 +1,7 @@
 package org.usvm.memory
 
 import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.UBoolExpr
@@ -95,8 +95,9 @@ class UMemory<Type, Method>(
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
     private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
-    private var regions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentMapOf(),
+    persistentRegions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
 ) : UWritableMemory<Type>, UMergeable<UMemory<Type, Method>, MergeGuard> {
+    private val regions = persistentRegions.builder()
 
     override val mocker: UMocker<Method>
         get() = mocks
@@ -105,12 +106,9 @@ class UMemory<Type, Method>(
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
         if (regionId is URegisterStackId) return stack as UMemoryRegion<Key, Sort>
 
-        val region = regions[regionId]
-        if (region != null) return region as UMemoryRegion<Key, Sort>
-
-        val newRegion = regionId.emptyRegion()
-        regions = regions.put(regionId, newRegion)
-        return newRegion
+        return regions.getOrPut(regionId) {
+            regionId.emptyRegion()
+        } as UMemoryRegion<Key, Sort>
     }
 
     override fun <Key, Sort : USort> setRegion(
@@ -121,7 +119,7 @@ class UMemory<Type, Method>(
             check(newRegion === stack) { "Stack is mutable" }
             return
         }
-        regions = regions.put(regionId, newRegion)
+        regions[regionId] = newRegion
     }
 
     override fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr) =
@@ -155,12 +153,12 @@ class UMemory<Type, Method>(
     override fun nullRef(): UHeapRef = ctx.nullRef
 
     fun clone(typeConstraints: UTypeConstraints<Type>): UMemory<Type, Method> =
-        UMemory(ctx, typeConstraints, stack.clone(), mocks.clone(), regions)
+        UMemory(ctx, typeConstraints, stack.clone(), mocks.clone(), regions.build())
 
     override fun toWritableMemory() =
     // To be perfectly rigorous, we should clone stack and types here.
         // But in fact they should not be used, so to optimize things up, we don't touch them.
-        UMemory(ctx, types, stack, mocks, regions)
+        UMemory(ctx, types, stack, mocks, regions.build())
 
 
     /**
@@ -191,7 +189,7 @@ class UMemory<Type, Method>(
             }
         }
 
-        val mergedRegions = regions
+        val mergedRegions = regions.build()
         val mergedStack = stack.mergeWith(other.stack, by) ?: return null
         val mergedMocks = mocks.mergeWith(other.mocks, by) ?: return null
 

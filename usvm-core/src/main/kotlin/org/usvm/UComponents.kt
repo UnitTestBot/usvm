@@ -1,8 +1,10 @@
 package org.usvm
 
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelDecoder
 import org.usvm.solver.UExprTranslator
+import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
 
@@ -30,6 +32,14 @@ interface UComponents<Type, USizeSort : USort> {
         return translator to decoder
     }
 
-    fun mkStatesForkProvider(): StateForker =
-        if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
+    fun <Context : UContext<USizeSort>> mkComposer(
+        ctx: Context,
+    ): (UReadOnlyMemory<Type>) -> UComposer<Type, USizeSort> =
+        { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) }
+
+    fun mkStatesForkProvider(): StateForker = if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
+
+    fun <Context : UContext<USizeSort>> mkSoftConstraintsProvider(
+        ctx: Context
+    ): USoftConstraintsProvider<Type, USizeSort> = USoftConstraintsProvider(ctx)
 }

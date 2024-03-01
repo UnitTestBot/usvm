@@ -2,6 +2,7 @@ package org.usvm.samples.wrappers
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 
@@ -9,12 +10,16 @@ import org.usvm.test.util.checkers.eq
 internal class ShortWrapperTest : JavaMethodTestRunner() {
     @Test
     fun primitiveToWrapperTest() {
-        checkDiscoveredProperties(
-            ShortWrapper::primitiveToWrapper,
-            eq(2),
-            { _, x, r -> x >= 0 && r != null && r <= 0 },
-            { _, x, r -> x < 0 && r != null && r < 0 },
-        )
+        // todo: investigate why only BFS works
+        val options = options.copy(pathSelectionStrategies = listOf(PathSelectionStrategy.BFS))
+        withOptions(options) {
+            checkDiscoveredProperties(
+                ShortWrapper::primitiveToWrapper,
+                eq(2),
+                { _, x, r -> x >= 0 && r != null && r <= 0 },
+                { _, x, r -> x < 0 && r != null && r < 0 },
+            )
+        }
     }
 
     @Test

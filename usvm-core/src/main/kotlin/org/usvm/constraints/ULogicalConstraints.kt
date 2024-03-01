@@ -1,6 +1,7 @@
 package org.usvm.constraints
 
 import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.UBoolExpr
 import org.usvm.UContext
@@ -32,7 +33,7 @@ class ULogicalConstraints private constructor(
         get() = constraints.any(UBoolExpr::isFalse)
 
     fun contradiction(ctx: UContext<*>) {
-        constraints = persistentSetOf(ctx.falseExpr)
+        constraints = persistentHashSetOf(ctx.falseExpr)
     }
 
     /**
@@ -50,6 +51,6 @@ class ULogicalConstraints private constructor(
     }
 
     companion object {
-        fun empty() = ULogicalConstraints(persistentSetOf())
+        fun empty() = ULogicalConstraints(persistentHashSetOf())
     }
 }

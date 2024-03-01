@@ -336,7 +336,7 @@ class UTypeConstraints<Type>(
         }
     }
 
-    private fun updateRegionCannotBeEqualNull(
+    private inline fun updateRegionCannotBeEqualNull(
         ref: USymbolicHeapRef,
         regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
     ) {
@@ -360,7 +360,7 @@ class UTypeConstraints<Type>(
         setTypeRegion(ref, newRegion)
     }
 
-    private fun updateRegionCanBeEqualNull(
+    private inline fun updateRegionCanBeEqualNull(
         ref: USymbolicHeapRef,
         regionMapper: (UTypeRegion<Type>) -> UTypeRegion<Type>,
     ) {

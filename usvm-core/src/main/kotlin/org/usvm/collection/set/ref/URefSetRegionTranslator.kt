@@ -1,11 +1,9 @@
 package org.usvm.collection.set.ref
 
 import io.ksmt.expr.KExpr
-import io.ksmt.solver.KModel
 import io.ksmt.sort.KBoolSort
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.collection.set.UAllocatedSetUpdatesTranslator
 import org.usvm.collection.set.UInputSetUpdatesTranslator
@@ -13,6 +11,7 @@ import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
+import org.usvm.model.UModelEvaluator
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.URegionDecoder
 import org.usvm.solver.URegionTranslator
@@ -55,11 +54,10 @@ class URefSetRegionDecoder<SetType>(
     }
 
     override fun decodeLazyRegion(
-        model: KModel,
-        mapping: Map<UHeapRef, UConcreteHeapRef>,
+        model: UModelEvaluator<*>,
         assertions: List<KExpr<KBoolSort>>
     ): UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>? =
-        inputWithInputRegionTranslator?.let { URefSetLazyModelRegion(regionId, model, mapping, assertions, it) }
+        inputWithInputRegionTranslator?.let { URefSetLazyModelRegion(regionId, model, assertions, it) }
 }
 
 private class UAllocatedRefSetWithInputElementsTranslator<SetType>(

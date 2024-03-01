@@ -1,14 +1,12 @@
 package org.usvm.collection.map.ref
 
-import io.ksmt.solver.KModel
 import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.AddressesMapping
+import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
-import org.usvm.sampleUValue
 import org.usvm.solver.UCollectionDecoder
 
 abstract class URefMapModelRegion<MapType, ValueSort : USort>(
@@ -24,12 +22,11 @@ abstract class URefMapModelRegion<MapType, ValueSort : USort>(
 
 class URefMapLazyModelRegion<MapType, ValueSort : USort>(
     regionId: URefMapRegionId<MapType, ValueSort>,
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val inputMapDecoder: UCollectionDecoder<USymbolicMapKey<UAddressSort>, ValueSort>
 ) : URefMapModelRegion<MapType, ValueSort>(regionId) {
     override val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<UAddressSort>, ValueSort> by lazy {
-        inputMapDecoder.decodeCollection(model, addressesMapping)
+        inputMapDecoder.decodeCollection(model)
     }
 }
 

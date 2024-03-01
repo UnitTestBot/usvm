@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.between
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
@@ -16,7 +16,7 @@ import org.usvm.util.UsvmTest
 import org.usvm.util.isException
 import kotlin.math.pow
 
-internal class RecursionTest : JavaMethodTestRunner() {
+internal class RecursionTest : ApproximationsTestRunner() {
     @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
     fun testFactorial(options: UMachineOptions) {
         withOptions(options) {

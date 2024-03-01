@@ -8,7 +8,6 @@ import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
-import org.usvm.UConcreteHeapRef
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.JcTarget
@@ -26,6 +25,7 @@ import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
@@ -43,6 +43,7 @@ val logger = object : KLogging() {}.logger
 class JcMachine(
     cp: JcClasspath,
     private val options: UMachineOptions,
+    private val jcMachineOptions: JcMachineOptions = JcMachineOptions(),
     private val interpreterObserver: JcInterpreterObserver? = null,
 ) : UMachine<JcState>() {
     private val applicationGraph = JcApplicationGraph(cp)
@@ -51,12 +52,9 @@ class JcMachine(
     private val components = JcComponents(typeSystem, options)
     private val ctx = JcContext(cp, components)
 
-    private val interpreter = JcInterpreter(ctx, applicationGraph, interpreterObserver)
+    private val interpreter = JcInterpreter(ctx, applicationGraph, jcMachineOptions, interpreterObserver)
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
-
-    val stringConstants: Map<String, UConcreteHeapRef>
-        get() = interpreter.stringConstants
 
     fun analyze(methods: List<JcMethod>, targets: List<JcTarget> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({})", this, methods)
@@ -96,6 +94,7 @@ class JcMachine(
         val transparentCfgStatistics = transparentCfgStatistics()
 
         val timeStatistics = TimeStatistics<JcMethod, JcState>()
+        val loopTracker = JcLoopTracker()
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -104,7 +103,8 @@ class JcMachine(
             timeStatistics,
             { coverageStatistics },
             { transparentCfgStatistics },
-            { callGraphStatistics }
+            { callGraphStatistics },
+            { loopTracker }
         )
 
         val statesCollector =
@@ -114,6 +114,7 @@ class JcMachine(
                 }
 
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector()
             }
 
         val stepsStatistics = StepsStatistics<JcMethod, JcState>()
@@ -184,6 +185,10 @@ class JcMachine(
                     stepsStatistics
                 )
             )
+        }
+
+        if (logger.isDebugEnabled) {
+            observers.add(JcDebugProfileObserver(pathSelector))
         }
 
         run(

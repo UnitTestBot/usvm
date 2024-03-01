@@ -10,6 +10,7 @@ import org.usvm.Method
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.USizeSort
@@ -21,6 +22,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelBase
 import org.usvm.solver.TypeSolverQuery
@@ -71,6 +73,7 @@ class TypeSolverTest {
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType> -> UComposer(ctx, memory) } }
     }
 
     private val pc = UPathConstraints<TestType>(ctx)

@@ -1,8 +1,10 @@
 package org.usvm.utils
 
+import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UState
 import org.usvm.isTrue
+import org.usvm.logger
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverResult
@@ -96,4 +98,12 @@ fun <T : UState<Type, *, *, *, *, T>, Type> T.applySoftConstraints() {
             // This state is supposed to be sat without soft constraints, so we just keep old models
         }
     }
+}
+
+inline fun StepScope<*, *, *, *>.onStateDeath(crossinline body: () -> Unit) {
+    if (isDead) body()
+}
+
+inline fun Unit?.logAssertFailure(crossinline message: () -> String): Unit? = apply {
+    if (this == null) logger.info { "Assert failed: ${message()}" }
 }

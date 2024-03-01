@@ -54,10 +54,10 @@ class UTestExecutor(
             workerClassLoader = workerClassLoader,
             previousState = null
         )
-        staticDescriptorsBuilder = StaticDescriptorsBuilder(
-            workerClassLoader = workerClassLoader,
-            initialValue2DescriptorConverter = initStateDescriptorBuilder
-        )
+        staticDescriptorsBuilder.setClassLoader(workerClassLoader)
+        staticDescriptorsBuilder.setInitialValue2DescriptorConverter(initStateDescriptorBuilder)
+        //In case of new worker classloader
+        workerClassLoader.setStaticDescriptorsBuilder(staticDescriptorsBuilder)
         JcInstructionTracer.reset()
         MockCollector.mocks.clear()
     }
@@ -84,12 +84,12 @@ class UTestExecutor(
                     trace = JcInstructionTracer.getTrace().trace
                 )
             }
-
+        accessedStatics.addAll(JcInstructionTracer.getTrace().statics.toSet())
         val initExecutionState = buildExecutionState(
             callMethodExpr = callMethodExpr,
             executor = executor,
             descriptorBuilder = initStateDescriptorBuilder,
-            accessedStatics = hashSetOf()
+            accessedStatics = accessedStatics
         )
 
         val methodInvocationResult =
@@ -174,7 +174,10 @@ class UTestExecutor(
         }
         val isInit = previousState == null
         val statics = if (isInit) {
-            staticDescriptorsBuilder.builtInitialDescriptors
+            val descriptorsForInitializedStatics =
+                staticDescriptorsBuilder.buildDescriptorsForExecutedStatics(accessedStatics, descriptorBuilder).getOrThrow()
+            staticDescriptorsBuilder.builtInitialDescriptors.plus(descriptorsForInitializedStatics)
+                .filter { it.value != null }
                 .mapValues { it.value!! }
         } else {
             staticDescriptorsBuilder.buildDescriptorsForExecutedStatics(accessedStatics, descriptorBuilder).getOrThrow()

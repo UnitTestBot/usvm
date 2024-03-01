@@ -13,6 +13,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UCallStack
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USizeSort
@@ -21,6 +22,7 @@ import org.usvm.WithSolverStateForker
 import org.usvm.constraints.UPathConstraints
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
@@ -46,6 +48,10 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
         ctx = UContext(components)
 
+        every { components.mkComposer(ctx) } answers {
+            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType> -> UComposer(ctx, memory) }
+        }
+
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         this.translator = translator
@@ -68,7 +74,7 @@ abstract class SymbolicCollectionTestBase {
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
     ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<USizeSort>, TargetStub, StateStub>(
         ctx, UCallStack(),
-        pathConstraints, memory, emptyList(), PathNode.root(), UTargetsSet.empty()
+        pathConstraints, memory, emptyList(), PathNode.root(), PathNode.root(), UTargetsSet.empty()
     ) {
         override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
             val clonedConstraints = newConstraints ?: pathConstraints.clone()

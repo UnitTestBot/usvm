@@ -147,7 +147,12 @@ enum class StateCollectionStrategy {
     /**
      * Collect only those states which have reached terminal targets.
      */
-    REACHED_TARGET
+    REACHED_TARGET,
+
+    /**
+     * Collect all terminated states.
+     */
+    ALL,
 }
 
 data class UMachineOptions(
@@ -246,4 +251,12 @@ data class UMachineOptions(
      * Should machine use merging when possible
      */
     val useMerging: Boolean = false,
+    /**
+     * Iteratively increase loop iteration. Analyze states with less loop iterations first.
+     * */
+    val loopIterativeDeepening: Boolean = false,
+    /**
+     * Limit loop iterations.
+     * */
+    val loopIterationLimit: Int? = null,
 )

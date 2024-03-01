@@ -1,10 +1,9 @@
 package org.usvm.collection.array
 
-import io.ksmt.solver.KModel
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.model.AddressesMapping
+import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
 import org.usvm.solver.UCollectionDecoder
 
@@ -21,12 +20,11 @@ abstract class UArrayModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
 
 class UArrayLazyModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
     regionId: UArrayRegionId<ArrayType, Sort, USizeSort>,
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val inputArrayDecoder: UCollectionDecoder<USymbolicArrayIndex<USizeSort>, Sort>
 ) : UArrayModelRegion<ArrayType, Sort, USizeSort>(regionId) {
     override val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex<USizeSort>, Sort> by lazy {
-        inputArrayDecoder.decodeCollection(model, addressesMapping)
+        inputArrayDecoder.decodeCollection(model)
     }
 }
 

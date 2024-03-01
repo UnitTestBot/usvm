@@ -7,6 +7,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.uctx
+import org.usvm.utils.logAssertFailure
 
 // TODO: special mock api for variables
 
@@ -14,7 +15,7 @@ fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
     sort: T
 ): UExpr<T> {
     check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
-    return memory.mocker.call(lastEnteredMethod, emptySequence(), sort)
+    return memory.mocker.createMockSymbol(trackedLiteral = null, sort)
 }
 
 fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(
@@ -28,7 +29,7 @@ fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRefWithSameTy
     mockSymbolicRef { objectTypeEquals(it, representative) }
 
 fun <Method> UState<*, Method, *, *, *, *>.makeSymbolicRefUntyped(): UHeapRef =
-    memory.mocker.call(lastEnteredMethod, emptySequence(), memory.ctx.addressSort)
+    memory.mocker.createMockSymbol(trackedLiteral = null, ctx.addressSort)
 
 private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbolicRef(
     crossinline mkTypeConstraint: State.(UHeapRef) -> UBoolExpr
@@ -39,7 +40,9 @@ private inline fun <Type, Method, State> StepScope<State, Type, *, *>.mockSymbol
         mkTypeConstraint(ref)
     }
 
-    assert(typeConstraint) ?: return null
+    assert(typeConstraint)
+        .logAssertFailure { "Constraint violation: Type constraint in mockSymbolicRef" }
+        ?: return null
 
     return ref
 }

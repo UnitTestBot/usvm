@@ -1,12 +1,12 @@
 package org.usvm.model
 
-import io.ksmt.solver.KModel
 import io.ksmt.utils.asExpr
 import org.usvm.UExpr
 import org.usvm.UIndexedMethodReturnValue
 import org.usvm.UMockEvaluator
 import org.usvm.UMockSymbol
 import org.usvm.USort
+import org.usvm.UTrackedSymbol
 import org.usvm.memory.UReadOnlyRegistersStack
 import org.usvm.solver.UExprTranslator
 import org.usvm.uctx
@@ -20,19 +20,16 @@ import org.usvm.uctx
  * Provides translated symbolic constants for registers readings.
  */
 class ULazyRegistersStackModel(
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val translator: UExprTranslator<*, *>,
 ) : UReadOnlyRegistersStack {
-    private val uctx = translator.ctx
-
     override fun <Sort : USort> readRegister(
         index: Int,
         sort: Sort,
     ): UExpr<Sort> {
-        val registerReading = uctx.mkRegisterReading(index, sort)
+        val registerReading = translator.ctx.mkRegisterReading(index, sort)
         val translated = translator.translate(registerReading)
-        return model.eval(translated, isComplete = true).mapAddress(addressesMapping)
+        return model.evalAndComplete(translated)
     }
 }
 
@@ -44,14 +41,16 @@ class ULazyRegistersStackModel(
  * Provides translated symbolic constants for mock symbols.
  */
 class ULazyIndexedMockModel(
-    private val model: KModel,
-    private val addressesMapping: AddressesMapping,
+    private val model: UModelEvaluator<*>,
     private val translator: UExprTranslator<*, *>,
 ) : UMockEvaluator {
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
-        require(symbol is UIndexedMethodReturnValue<*, Sort>)
+        require(symbol is UIndexedMethodReturnValue<*, Sort> || symbol is UTrackedSymbol<Sort>) {
+            "Unexpected symbol $symbol found"
+        }
+
         val translated = translator.translate(symbol)
-        return model.eval(translated, isComplete = true).mapAddress(addressesMapping)
+        return model.evalAndComplete(translated)
     }
 }
 

@@ -4,7 +4,6 @@ import io.ksmt.utils.uncheckedCast
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.NULL_ADDRESS
 import org.usvm.UBoolExpr
-import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -18,7 +17,6 @@ import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.UReadOnlyRegistersStack
 import org.usvm.memory.URegisterStackId
 import org.usvm.memory.UWritableMemory
-import org.usvm.sampleUValue
 
 interface UModel {
     fun <Sort : USort> eval(expr: UExpr<Sort>): UExpr<Sort>
@@ -40,7 +38,8 @@ open class UModelBase<Type>(
     internal val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
     internal val nullRef: UConcreteHeapRef,
 ) : UModel, UWritableMemory<Type> {
-    private val composer = UComposer(ctx, this)
+    @Suppress("LeakingThis")
+    protected open val composer = ctx.composer(this)
 
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
@@ -55,8 +54,9 @@ open class UModelBase<Type>(
         if (regionId is URegisterStackId) {
             return stack.uncheckedCast()
         }
+
         return regions[regionId]?.uncheckedCast()
-            ?: DefaultRegion(regionId, eval(regionId.sort.sampleUValue()))
+            ?: error("Model has no region: $regionId")
     }
 
     override fun nullRef(): UHeapRef = nullRef
@@ -80,13 +80,6 @@ open class UModelBase<Type>(
 
     override fun allocStatic(type: Type): UConcreteHeapRef {
         error("Illegal operation for a model")
-    }
-
-    private class DefaultRegion<Key, Sort : USort>(
-        private val regionId: UMemoryRegionId<Key, Sort>,
-        private val value: UExpr<Sort>
-    ) : UReadOnlyMemoryRegion<Key, Sort> {
-        override fun read(key: Key): UExpr<Sort> = value
     }
 }
 

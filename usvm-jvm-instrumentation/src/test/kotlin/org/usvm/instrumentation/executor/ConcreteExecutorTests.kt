@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.executor
 
+import com.jetbrains.rd.util.first
 import org.jacodb.api.ext.findTypeOrNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -9,6 +10,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.descriptor.UTestConstantDescriptor
 import org.usvm.instrumentation.util.UTestCreator
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -71,10 +73,26 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     }
 
     @Test
-    fun `static fields test`() = executeTest {
-        val uTest = UTestCreator.A.isA(jcClasspath)
+    fun `annotated method test`() = executeTest {
+        val uTest = UTestCreator.AnnotatedMethodClass.getClassAnnotationCount(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.Int>(result)
+        assertEquals(1, result.value)
+    }
+
+    @Test
+    fun `static fields test`() = executeTest {
+        repeat(3) {
+            val uTest = UTestCreator.A.isA(jcClasspath)
+            val res = uTestConcreteExecutor.executeAsync(uTest)
+            assertIs<UTestExecutionSuccessResult>(res)
+            val staticDescriptor = res.resultState.statics.first().value
+            assertIs<UTestConstantDescriptor.Int>(staticDescriptor)
+            assertEquals(staticDescriptor.value, 778)
+        }
     }
 
     @Test
@@ -244,6 +262,18 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
         val uTest = UTestCreator.Ex1.nestedDescriptors(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionSuccessResult>(res)
+    }
+
+    @Test
+    fun `get parent static field`() = executeTest {
+        val uTest = UTestCreator.ParentStaticFieldUser.getParentStaticField(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.String>(result)
+        assertEquals("static field content", result.value)
+        assertContains(res.resultState.statics.keys.map { it.name }, "STATIC_FIELD")
     }
 
 }

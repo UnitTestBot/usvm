@@ -1,5 +1,6 @@
 package org.usvm.instrumentation.agent
 
+import org.objectweb.asm.Opcodes
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.util.toByteArray
@@ -9,12 +10,12 @@ import java.lang.instrument.Instrumentation
 import java.security.ProtectionDomain
 
 class ClassTransformer(
-    instrumenterClassName: String,
+    instrumenterFactoryClassName: String,
     val instrumentation: Instrumentation
 ) : ClassFileTransformer {
 
     private val instrumenterFactoryInstance =
-        Class.forName(instrumenterClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
+        Class.forName(instrumenterFactoryClassName).constructors.first().newInstance() as JcInstrumenterFactory<*>
     private val instrumenterCache = HashMap<String, ByteArray>()
 
     override fun transform(
@@ -31,6 +32,13 @@ class ClassTransformer(
         if (!loader.shouldInstrumentCurrentClass) return classfileBuffer
         return instrumenterCache.getOrPut(className) {
             val instrumenter = instrumenterFactoryInstance.create(loader.jcClasspath)
+
+            // JacoDB may produce incorrect IR/bytecode for earlier Java versions
+            // see https://github.com/UnitTestBot/usvm/issues/179
+            val classNode = classfileBuffer.toClassNode()
+            if (classNode.version < Opcodes.V1_8)
+                return classfileBuffer
+
             val instrumentedClassNode = instrumenter.instrumentClass(classfileBuffer.toClassNode())
             instrumentedClassNode.toByteArray(loader.jcClasspath , checkClass = true)
         }

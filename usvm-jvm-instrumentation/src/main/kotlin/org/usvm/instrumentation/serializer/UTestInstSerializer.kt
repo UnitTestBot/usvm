@@ -1,10 +1,60 @@
 package org.usvm.instrumentation.serializer
 
-import com.jetbrains.rd.framework.*
-import org.jacodb.api.*
-import org.jacodb.api.ext.*
+import com.jetbrains.rd.framework.AbstractBuffer
+import com.jetbrains.rd.framework.FrameworkMarshallers
+import com.jetbrains.rd.framework.RdId
+import com.jetbrains.rd.framework.Serializers
+import com.jetbrains.rd.framework.UniversalMarshaller
+import com.jetbrains.rd.framework.getPlatformIndependentHash
+import com.jetbrains.rd.framework.readEnum
+import com.jetbrains.rd.framework.readList
+import com.jetbrains.rd.framework.writeEnum
+import com.jetbrains.rd.framework.writeList
+import org.jacodb.api.JcField
+import org.jacodb.api.JcMethod
+import org.jacodb.api.ext.boolean
+import org.jacodb.api.ext.byte
+import org.jacodb.api.ext.char
+import org.jacodb.api.ext.double
+import org.jacodb.api.ext.float
+import org.jacodb.api.ext.int
+import org.jacodb.api.ext.long
+import org.jacodb.api.ext.short
+import org.usvm.instrumentation.testcase.api.ArithmeticOperationType
+import org.usvm.instrumentation.testcase.api.ConditionType
+import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
+import org.usvm.instrumentation.testcase.api.UTestArithmeticExpression
+import org.usvm.instrumentation.testcase.api.UTestArrayGetExpression
+import org.usvm.instrumentation.testcase.api.UTestArrayLengthExpression
+import org.usvm.instrumentation.testcase.api.UTestArraySetStatement
+import org.usvm.instrumentation.testcase.api.UTestBinaryConditionExpression
+import org.usvm.instrumentation.testcase.api.UTestBinaryConditionStatement
+import org.usvm.instrumentation.testcase.api.UTestBooleanExpression
+import org.usvm.instrumentation.testcase.api.UTestByteExpression
+import org.usvm.instrumentation.testcase.api.UTestCastExpression
+import org.usvm.instrumentation.testcase.api.UTestCharExpression
+import org.usvm.instrumentation.testcase.api.UTestClassExpression
+import org.usvm.instrumentation.testcase.api.UTestConstructorCall
+import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
+import org.usvm.instrumentation.testcase.api.UTestDoubleExpression
+import org.usvm.instrumentation.testcase.api.UTestExpression
+import org.usvm.instrumentation.testcase.api.UTestFloatExpression
+import org.usvm.instrumentation.testcase.api.UTestGetFieldExpression
+import org.usvm.instrumentation.testcase.api.UTestGetStaticFieldExpression
+import org.usvm.instrumentation.testcase.api.UTestGlobalMock
+import org.usvm.instrumentation.testcase.api.UTestInst
+import org.usvm.instrumentation.testcase.api.UTestIntExpression
+import org.usvm.instrumentation.testcase.api.UTestLongExpression
+import org.usvm.instrumentation.testcase.api.UTestMethodCall
+import org.usvm.instrumentation.testcase.api.UTestMockObject
+import org.usvm.instrumentation.testcase.api.UTestNullExpression
+import org.usvm.instrumentation.testcase.api.UTestSetFieldStatement
+import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
+import org.usvm.instrumentation.testcase.api.UTestShortExpression
+import org.usvm.instrumentation.testcase.api.UTestStatement
+import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
+import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.usvm.instrumentation.util.stringType
-import org.usvm.instrumentation.testcase.api.*
 
 class UTestInstSerializer(private val ctx: SerializationContext) {
 
@@ -540,7 +590,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
     private fun AbstractBuffer.serialize(uTestSetStaticFieldStatement: UTestSetStaticFieldStatement) =
         serialize(
             uTestExpression = uTestSetStaticFieldStatement,
-            kind = UTestExpressionKind.SET_FIELD,
+            kind = UTestExpressionKind.SET_STATIC_FIELD,
             serializeInternals = {
                 serializeUTestInst(value)
             },

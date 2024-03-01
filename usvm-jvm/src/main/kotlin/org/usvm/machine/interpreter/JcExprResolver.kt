@@ -14,7 +14,6 @@ import org.jacodb.api.JcType
 import org.jacodb.api.JcTypeVariable
 import org.jacodb.api.JcTypedField
 import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.PredefinedPrimitives
 import org.jacodb.api.cfg.JcAddExpr
 import org.jacodb.api.cfg.JcAndExpr
 import org.jacodb.api.cfg.JcArgument
@@ -85,8 +84,6 @@ import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
 import org.jacodb.api.ext.void
-import org.jacodb.impl.bytecode.JcFieldImpl
-import org.jacodb.impl.types.FieldInfo
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -97,9 +94,14 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.isTrue
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.USizeSort
+import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
+import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
+import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
+import org.usvm.machine.interpreter.statics.isInitialized
+import org.usvm.machine.interpreter.statics.markAsInitialized
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -119,6 +121,7 @@ import org.usvm.sizeSort
 import org.usvm.util.allocHeapRef
 import org.usvm.util.enumValuesField
 import org.usvm.util.write
+import org.usvm.utils.logAssertFailure
 
 /**
  * An expression resolver based on JacoDb 3-address code. A result of resolving is `null`, iff
@@ -127,11 +130,11 @@ import org.usvm.util.write
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
+    private val options: JcMachineOptions,
     localToIdx: (JcMethod, JcLocal) -> Int,
     mkTypeRef: (JcType) -> UConcreteHeapRef,
     mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
-    private val hardMaxArrayLength: Int = 1_500, // TODO: move to options
 ) : JcExprVisitor<UExpr<out USort>?> {
     val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
         ctx,
@@ -333,7 +336,11 @@ class JcExprResolver(
         val lengthRef = UArrayLengthLValue(ref, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
         assertHardMaxArrayLength(length) ?: return null
-        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length)) ?: return null
+
+        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length))
+            .logAssertFailure { "JcExprResolver: array length >= 0" }
+            ?: return null
+
         length
     }
 
@@ -505,7 +512,9 @@ class JcExprResolver(
         if (type is JcRefType) {
             val heapRef = expr.asExpr(ctx.addressSort)
             val isExpr = scope.calcOnState { memory.types.evalIsSubtype(heapRef, type) }
-            scope.assert(isExpr) ?: return false
+            scope.assert(isExpr)
+                .logAssertFailure { "JcExprResolver: subtype constraint ${type.typeName}" }
+                ?: return false
         }
 
         return true
@@ -535,7 +544,7 @@ class JcExprResolver(
 
             return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
                 val sort = ctx.typeToSort(field.fieldType)
-                JcStaticFieldLValue(field.field, ctx, sort)
+                JcStaticFieldLValue(field.field, sort)
             }
         }
     }
@@ -588,7 +597,7 @@ class JcExprResolver(
             )
 
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val oneOfEnumInstancesLValue =
@@ -604,6 +613,7 @@ class JcExprResolver(
 
 
         scope.assert(invariantsConstraint)
+            .logAssertFailure { "JcExprResolver: enum correctness constraint" }
     }
 
     /**
@@ -618,7 +628,7 @@ class JcExprResolver(
     private fun JcState.ensureEnumStaticInitializerInvariants(type: JcClassOrInterface) = with(ctx) {
         val enumValues = type.enumValues ?: error("Expected enum values containing in the enum type $type")
         val enumValuesField = type.enumValuesField
-        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, ctx, addressSort)
+        val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
         val enumValuesType = enumValuesField.fieldType as JcArrayType
@@ -662,7 +672,6 @@ class JcExprResolver(
 
     /**
      * Run a class static initializer for [type] if it didn't run before the current state.
-     * The class static initialization state is tracked by the synthetic [staticFieldsInitializedFlagField] field.
      * */
     private inline fun <T> ensureStaticFieldsInitialized(
         type: JcRefType,
@@ -686,16 +695,9 @@ class JcExprResolver(
             return body()
         }
 
-        val classRef = simpleValueResolver.resolveClassRef(type)
+        val isClassInitialized = scope.calcOnState { isInitialized(type) }
 
-        val initializedFlag = staticFieldsInitializedFlag(type, classRef)
-
-        val staticFieldsInitialized = scope.calcOnState {
-            memory.read(initializedFlag).asExpr(ctx.booleanSort)
-        }
-
-
-        if (staticFieldsInitialized.isTrue) {
+        if (isClassInitialized) {
             scope.doWithState {
                 // Handle static initializer result
                 val result = methodResult
@@ -714,18 +716,12 @@ class JcExprResolver(
 
         // Run static initializer before the current statement
         scope.doWithState {
-            memory.write(initializedFlag, ctx.trueExpr)
+            markAsInitialized(type)
+            addConcreteMethodCallStmt(initializer, emptyList())
         }
-        scope.doWithState { addConcreteMethodCallStmt(initializer, emptyList()) }
+
         return null
     }
-
-    private fun staticFieldsInitializedFlag(type: JcRefType, classRef: UHeapRef) =
-        UFieldLValue(
-            sort = ctx.booleanSort,
-            field = JcFieldImpl(type.jcClass, staticFieldsInitializedFlagField),
-            ref = classRef
-        )
 
     private fun resolveArrayAccess(array: JcValue, index: JcValue): UArrayIndexLValue<JcType, *, USizeSort>? = with(ctx) {
         val arrayRef = resolveJcExpr(array)?.asExpr(addressSort) ?: return null
@@ -760,10 +756,14 @@ class JcExprResolver(
     fun checkArrayIndex(idx: UExpr<USizeSort>, length: UExpr<USizeSort>) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
-        scope.fork(
-            inside,
-            blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                inside,
+                blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
+            )
+        } else {
+            scope.assert(inside).logAssertFailure { "Jc implicit exception: Check index out of bound" }
+        }
     }
 
     fun checkNewArrayLength(length: UExpr<USizeSort>) = with(ctx) {
@@ -771,10 +771,14 @@ class JcExprResolver(
 
         val lengthIsNonNegative = mkBvSignedLessOrEqualExpr(mkBv(0), length)
 
-        scope.fork(
-            lengthIsNonNegative,
-            blockOnFalseState = allocateException(negativeArraySizeExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                lengthIsNonNegative,
+                blockOnFalseState = allocateException(negativeArraySizeExceptionType)
+            )
+        } else {
+            scope.assert(lengthIsNonNegative).logAssertFailure { "Jc implicit exception: Check new array length" }
+        }
     }
 
     fun checkDivisionByZero(expr: UExpr<out USort>) = with(ctx) {
@@ -783,18 +787,39 @@ class JcExprResolver(
             return Unit
         }
         val neqZero = mkEq(expr.cast(), mkBv(0, sort)).not()
-        scope.fork(
-            neqZero,
-            blockOnFalseState = allocateException(arithmeticExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                neqZero,
+                blockOnFalseState = allocateException(arithmeticExceptionType)
+            )
+        } else {
+            scope.assert(neqZero).logAssertFailure { "Jc implicit exception: Check division by zero" }
+        }
     }
 
     fun checkNullPointer(ref: UHeapRef) = with(ctx) {
         val neqNull = mkHeapRefEq(ref, nullRef).not()
-        scope.fork(
-            neqNull,
-            blockOnFalseState = allocateException(nullPointerExceptionType)
-        )
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                neqNull,
+                blockOnFalseState = allocateException(nullPointerExceptionType)
+            )
+        } else {
+            scope.assert(neqNull).logAssertFailure { "Jc implicit exception: Check NPE" }
+        }
+    }
+
+    fun checkClassCast(expr: UHeapRef, type: JcType) = with(ctx) {
+        val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
+
+        if (options.forkOnImplicitExceptions) {
+            scope.fork(
+                isExpr,
+                blockOnFalseState = allocateException(ctx.classCastExceptionType)
+            )
+        } else {
+            scope.assert(isExpr).logAssertFailure { "Jc implicit exception: Check class cast" }
+        }
     }
 
     // endregion
@@ -802,8 +827,9 @@ class JcExprResolver(
     // region hard assertions
 
     private fun assertHardMaxArrayLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
-        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(hardMaxArrayLength))
+        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.arrayMaxSize))
         scope.assert(lengthLeThanMaxLength)
+            .logAssertFailure { "JcExprResolver: array length max" }
     }
 
     // endregion
@@ -872,17 +898,11 @@ class JcExprResolver(
             "Unexpected type variable $type"
         }
 
-        return if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
-            val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
-
-            scope.fork(
-                isExpr,
-                blockOnFalseState = allocateException(ctx.classCastExceptionType)
-            ) ?: return null
-            expr
-        } else {
-            expr
+        if (!ctx.typeSystem<JcType>().isSupertype(type, typeBefore)) {
+            checkClassCast(expr, type) ?: return null
         }
+
+        return expr
     }
 
     private fun resolvePrimitiveCast(
@@ -981,26 +1001,15 @@ class JcExprResolver(
     ) {
         scope.calcOnState {
             with(ctx) {
-                // We can use any sort here as it is not used
-                val staticFieldsMemoryRegionId = JcStaticFieldRegionId(staticInitializer.enclosingClass.toType(), voidSort)
-                val staticFieldsMemoryRegion = memory.getRegion(staticFieldsMemoryRegionId) as JcStaticFieldsMemoryRegion
-                staticFieldsMemoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(this@calcOnState)
-            }
-        }
-    }
+                primitiveTypes.forEach {
+                    val sort = typeToSort(it)
 
-    companion object {
-        /**
-         * Synthetic field to track static field initialization state.
-         * */
-        private val staticFieldsInitializedFlagField by lazy {
-            FieldInfo(
-                name = "__initialized__",
-                signature = null,
-                access = 0,
-                type = PredefinedPrimitives.Boolean,
-                annotations = emptyList()
-            )
+                    if (sort === voidSort) return@forEach
+
+                    val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass)
+                }
+            }
         }
     }
 }

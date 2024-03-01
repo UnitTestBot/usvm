@@ -365,6 +365,17 @@ object UTestCreator {
         }
     }
 
+    object AnnotatedMethodClass {
+        fun getClassAnnotationCount(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.AnnotatedMethodClass>()
+            val jcMethod = jcClass.findDeclaredMethodOrNull("getSelfAnnotationCount")
+                ?: error("Cant find method getSelfAnnotationCount in class AnnotatedMethodClass")
+            val instance = UTestNullExpression(jcClass.toType())
+            val statements = emptyList<UTestInst>()
+            return UTest(statements, UTestMethodCall(instance, jcMethod, emptyList()))
+        }
+    }
+
     object Arrays {
 
         fun checkAllSamePoints(jcClasspath: JcClasspath): UTest {
@@ -493,6 +504,15 @@ object UTestCreator {
             val jcClass = jcClasspath.findClass<example.StaticInterfaceMethodCall>()
             val jcMethod = jcClass.declaredMethods.find { it.name == "callStaticInterfaceMethod" }!!
             return UTest(listOf(), UTestStaticMethodCall(jcMethod, listOf()))
+        }
+    }
+    
+    object ParentStaticFieldUser {
+        fun getParentStaticField(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass("example.ParentStaticFieldUser")
+            val jcMethod = jcClass.declaredMethods.find { it.name == "getParentStaticField" }!!
+
+            return UTest(listOf(), UTestStaticMethodCall(jcMethod, emptyList()))
         }
     }
 }
