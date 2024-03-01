@@ -74,13 +74,25 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
 
     @Test
     fun `annotated method test`() = executeTest {
-        val uTest = UTestCreator.AnnotatedMethodClass.getClassAnnotationCount(jcClasspath)
+        val uTest = UTestCreator.AnnotationsEx.getSelfAnnotationCount(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
         assertIs<UTestExecutionSuccessResult>(res)
         val result = res.result
         assertNotNull(result)
         assertIs<UTestConstantDescriptor.Int>(result)
         assertEquals(1, result.value)
+    }
+
+    @Test
+    @Disabled
+    fun `annotation default value test`() = executeTest {
+        val uTest = UTestCreator.AnnotationsEx.getAnnotationDefaultValue(jcClasspath)
+        val res = uTestConcreteExecutor.executeAsync(uTest)
+        assertIs<UTestExecutionSuccessResult>(res)
+        val result = res.result
+        assertNotNull(result)
+        assertIs<UTestConstantDescriptor.String>(result)
+        assertEquals("MyAnnotation default value", result.value)
     }
 
     @Test

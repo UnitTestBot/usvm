@@ -365,11 +365,20 @@ object UTestCreator {
         }
     }
 
-    object AnnotatedMethodClass {
-        fun getClassAnnotationCount(jcClasspath: JcClasspath): UTest {
-            val jcClass = jcClasspath.findClass<example.AnnotatedMethodClass>()
+    object AnnotationsEx {
+        fun getSelfAnnotationCount(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.AnnotationsEx>()
             val jcMethod = jcClass.findDeclaredMethodOrNull("getSelfAnnotationCount")
-                ?: error("Cant find method getSelfAnnotationCount in class AnnotatedMethodClass")
+                ?: error("Cant find method getSelfAnnotationCount in class AnnotationsEx")
+            val instance = UTestNullExpression(jcClass.toType())
+            val statements = emptyList<UTestInst>()
+            return UTest(statements, UTestMethodCall(instance, jcMethod, emptyList()))
+        }
+
+        fun getAnnotationDefaultValue(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.AnnotationsEx>()
+            val jcMethod = jcClass.findDeclaredMethodOrNull("getAnnotationDefaultValue")
+                ?: error("Cant find method getAnnotationDefaultValue in class AnnotationsEx")
             val instance = UTestNullExpression(jcClass.toType())
             val statements = emptyList<UTestInst>()
             return UTest(statements, UTestMethodCall(instance, jcMethod, emptyList()))
