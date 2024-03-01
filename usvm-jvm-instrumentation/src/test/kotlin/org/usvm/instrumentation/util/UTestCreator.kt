@@ -508,6 +508,14 @@ object UTestCreator {
         }
     }
 
+    object StaticInterfaceMethodCall {
+        fun callStaticInterfaceMethod(jcClasspath: JcClasspath): UTest {
+            val jcClass = jcClasspath.findClass<example.StaticInterfaceMethodCall>()
+            val jcMethod = jcClass.declaredMethods.find { it.name == "callStaticInterfaceMethod" }!!
+            return UTest(listOf(), UTestStaticMethodCall(jcMethod, listOf()))
+        }
+    }
+    
     object ParentStaticFieldUser {
         fun getParentStaticField(jcClasspath: JcClasspath): UTest {
             val jcClass = jcClasspath.findClass("example.ParentStaticFieldUser")
