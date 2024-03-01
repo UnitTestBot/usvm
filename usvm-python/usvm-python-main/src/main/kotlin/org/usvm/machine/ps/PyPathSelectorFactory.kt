@@ -1,24 +1,14 @@
 package org.usvm.machine.ps
 
-import mu.KLogging
-import org.usvm.algorithms.RandomizedPriorityCollection
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
-import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.ps.strategies.impls.*
 import org.usvm.machine.results.observers.NewStateObserver
-import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.RandomTreePathSelector
-import org.usvm.ps.WeightedPathSelector
-import org.usvm.python.model.PyTupleObject
-import org.usvm.python.model.calculateNumberOfMocks
 import org.usvm.python.ps.PyPathSelectorType
-import kotlin.math.max
 import kotlin.random.Random
 
-private val logger = object : KLogging() {}.logger
 
 fun createPyPathSelector(
     initialState: PyState,
@@ -34,11 +24,8 @@ fun createPyPathSelector(
         PyPathSelectorType.BaselineWeightedDfs ->
             createBaselineWeightedDfsPyPathSelector(ctx, random, newStateObserver)
 
-        PyPathSelectorType.BaselinePriorityRandomTree ->
-            createBaselinePriorityRandomTreePyPathSelector(initialState, ctx, random, newStateObserver)
-
-        PyPathSelectorType.BaselinePriorityWeightedByNumberOfVirtual ->
-            createBaselineWeightedByNumberOfVirtualPyPathSelector(ctx, random, newStateObserver)
+        PyPathSelectorType.BaselinePriorityNumberOfVirtualDfs ->
+            createBaselinePriorityNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.BaselinePriorityPlusTypeRatingByHintsDfs ->
             createTypeRatingByHintsDfsPyPathSelector(ctx, random, newStateObserver)
@@ -51,6 +38,12 @@ fun createPyPathSelector(
 
         PyPathSelectorType.DelayedForkByInstructionWeightedRandomTree ->
             createDelayedForkByInstructionWeightedRandomTreePyPathSelector(initialState, ctx, random, newStateObserver)
+
+        PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfVirtualDfs ->
+            createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
+
+        PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfVirtualDfs ->
+            createDelayedForkByInstructionWeightedNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
     }
     selector.add(listOf(initialState))
     return selector
@@ -69,25 +62,6 @@ fun createBaselinePriorityDfsPyPathSelector(
         newStateObserver
     )
 
-fun createBaselinePriorityRandomTreePyPathSelector(
-    initialState: PyState,
-    ctx: PyContext,
-    random: Random,
-    newStateObserver: NewStateObserver
-): PyVirtualPathSelector<*, *> =
-    PyVirtualPathSelector(
-        ctx,
-        makeBaselinePriorityActionStrategy(random),
-        BaselineDelayedForkStrategy(),
-        BaselineDFGraphCreation {
-            RandomTreePathSelector.fromRoot(
-                initialState.pathNode,
-                randomNonNegativeInt = { random.nextInt(0, it) }
-            )
-        },
-        newStateObserver
-    )
-
 fun createBaselineWeightedDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
@@ -101,7 +75,7 @@ fun createBaselineWeightedDfsPyPathSelector(
         newStateObserver
     )
 
-fun createBaselineWeightedByNumberOfVirtualPyPathSelector(
+fun createBaselinePriorityNumberOfVirtualDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
     newStateObserver: NewStateObserver
@@ -111,23 +85,9 @@ fun createBaselineWeightedByNumberOfVirtualPyPathSelector(
         makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
         BaselineDFGraphCreation {
-            WeightedPathSelector(
-                priorityCollectionFactory = {
-                    RandomizedPriorityCollection(compareBy { it.id }) { random.nextDouble() }
-                },
-                weighter = {
-                    val modelHolder = PyModelHolder(it.pyModel)
-                    val builder = PyObjectModelBuilder(it, modelHolder)
-                    val models = it.inputSymbols.map { symbol ->
-                        val interpreted = interpretSymbolicPythonObject(modelHolder, it.memory, symbol)
-                        builder.convert(interpreted)
-                    }
-                    val tupleOfModels = PyTupleObject(models)
-                    val mocks = calculateNumberOfMocks(tupleOfModels)
-                    logger.debug { "Mocks of state $it: $mocks" }
-                    1.0 / max(1, 10 * mocks)
-                }
-            )
+            WeightedByNumberOfVirtualPathSelector(random) {
+                DfsPathSelector()
+            }
         },
         newStateObserver
     )
@@ -173,6 +133,40 @@ fun createDelayedForkByInstructionWeightedRandomTreePyPathSelector(
                 initialState.pathNode,
                 randomNonNegativeInt = { random.nextInt(0, it) }
             )
+        },
+        newStateObserver
+    )
+
+fun createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(
+    ctx: PyContext,
+    random: Random,
+    newStateObserver: NewStateObserver
+): PyVirtualPathSelector<*, *> =
+    PyVirtualPathSelector(
+        ctx,
+        makeDelayedForkByInstructionPriorityStrategy(random),
+        BaselineDelayedForkStrategy(),
+        DelayedForkByInstructionGraphCreation {
+            WeightedByNumberOfVirtualPathSelector(random) {
+                DfsPathSelector()
+            }
+        },
+        newStateObserver
+    )
+
+fun createDelayedForkByInstructionWeightedNumberOfVirtualDfsPyPathSelector(
+    ctx: PyContext,
+    random: Random,
+    newStateObserver: NewStateObserver
+): PyVirtualPathSelector<*, *> =
+    PyVirtualPathSelector(
+        ctx,
+        makeDelayedForkByInstructionWeightedStrategy(random),
+        BaselineDelayedForkStrategy(),
+        DelayedForkByInstructionGraphCreation {
+            WeightedByNumberOfVirtualPathSelector(random) {
+                DfsPathSelector()
+            }
         },
         newStateObserver
     )
