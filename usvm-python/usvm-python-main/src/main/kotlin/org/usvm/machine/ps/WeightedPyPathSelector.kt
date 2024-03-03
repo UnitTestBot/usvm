@@ -2,17 +2,13 @@ package org.usvm.machine.ps
 
 import org.usvm.UPathSelector
 import org.usvm.machine.PyState
-import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
-import org.usvm.python.model.PyTupleObject
-import org.usvm.python.model.calculateNumberOfMocks
-import kotlin.math.max
 import kotlin.random.Random
 
 
-class WeightedByNumberOfVirtualPathSelector(
+class WeightedPyPathSelector(
     private val random: Random,
+    private val counter: (PyState) -> Int,
+    private val weight: (Int) -> Double,
     private val baseBaseSelectorCreation: () -> UPathSelector<PyState>
 ): UPathSelector<PyState> {
     private val selectors = mutableMapOf<Int, UPathSelector<PyState>>()
@@ -26,7 +22,7 @@ class WeightedByNumberOfVirtualPathSelector(
         val availableNumbers = selectors.mapNotNull { (number, selector) ->
             if (selector.isEmpty()) null else number
         }
-        val chosenNumber = weightedRandom(random, availableNumbers) { mocks -> 1.0 / max(1, mocks + 1) }
+        val chosenNumber = weightedRandom(random, availableNumbers, weight)
         val selector = selectors[chosenNumber]!!
         return selector.peek()
     }
@@ -41,7 +37,7 @@ class WeightedByNumberOfVirtualPathSelector(
     }
 
     private fun add(state: PyState) {
-        val numberOfVirtual = calculateNumberOfVirtual(state)
+        val numberOfVirtual = counter(state)
         if (selectors[numberOfVirtual] == null)
             selectors[numberOfVirtual] = baseBaseSelectorCreation()
         val selector = selectors[numberOfVirtual]!!
@@ -54,16 +50,4 @@ class WeightedByNumberOfVirtualPathSelector(
         selector.remove(state)
         selectorOfState[state] = null
     }
-
-    private fun calculateNumberOfVirtual(state: PyState): Int =
-        runCatching {
-            val modelHolder = PyModelHolder(state.pyModel)
-            val builder = PyObjectModelBuilder(state, modelHolder)
-            val models = state.inputSymbols.map { symbol ->
-                val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
-                builder.convert(interpreted)
-            }
-            val tupleOfModels = PyTupleObject(models)
-            calculateNumberOfMocks(tupleOfModels)
-        }.getOrDefault(2)
 }

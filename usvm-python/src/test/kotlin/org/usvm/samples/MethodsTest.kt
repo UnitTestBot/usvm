@@ -116,7 +116,7 @@ class MethodsTest: PythonTestRunnerForStructuredProgram("Methods", UMachineOptio
     @Test
     fun testPoint2Inference() {
         val oldOptions = options
-        options = UMachineOptions(stepLimit = 4U)
+        options = UMachineOptions(stepLimit = 6U)
         check1WithConcreteRun(
             constructFunction("point2_inference", List(1) { PythonAnyType }),
             ignoreNumberOfAnalysisResults,
