@@ -20,12 +20,15 @@ fun <T : Any> withTracing(
     if (context.isCancelled.call())
         throw CancelledExecutionException
     context.instructionCounter += 1
-    if (newEventParameters is NextInstruction)
-        context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
     if (context.instructionCounter > context.maxInstructions)
         throw InstructionLimitExceededException
     if (context.curState == null)
         return null
+    if (newEventParameters is NextInstruction) {
+        context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
+        val state = context.curState!!
+        state.uniqueInstructions = state.uniqueInstructions.add(newEventParameters.pyInstruction)
+    }
     if (context.pathPrefix.isEmpty()) {
         val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
         if (context.curState == null)

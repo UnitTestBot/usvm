@@ -1,7 +1,9 @@
 package org.usvm.machine
 
 import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
@@ -36,6 +38,7 @@ class PyState(
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
+    var uniqueInstructions: PersistentSet<PyInstruction> = persistentSetOf()
 ): UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
     ctx,
     callStack,
@@ -65,7 +68,8 @@ class PyState(
             concolicQueries,
             delayedForks,
             mocks.toMutableMap(),  // copy
-            mockedObjects.toMutableSet()  // copy
+            mockedObjects.toMutableSet(),  // copy
+            uniqueInstructions
         )
     }
 
