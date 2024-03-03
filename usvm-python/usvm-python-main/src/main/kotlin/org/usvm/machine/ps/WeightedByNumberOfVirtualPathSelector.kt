@@ -55,14 +55,15 @@ class WeightedByNumberOfVirtualPathSelector(
         selectorOfState[state] = null
     }
 
-    private fun calculateNumberOfVirtual(state: PyState): Int {
-        val modelHolder = PyModelHolder(state.pyModel)
-        val builder = PyObjectModelBuilder(state, modelHolder)
-        val models = state.inputSymbols.map { symbol ->
-            val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
-            builder.convert(interpreted)
-        }
-        val tupleOfModels = PyTupleObject(models)
-        return calculateNumberOfMocks(tupleOfModels)
-    }
+    private fun calculateNumberOfVirtual(state: PyState): Int =
+        runCatching {
+            val modelHolder = PyModelHolder(state.pyModel)
+            val builder = PyObjectModelBuilder(state, modelHolder)
+            val models = state.inputSymbols.map { symbol ->
+                val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
+                builder.convert(interpreted)
+            }
+            val tupleOfModels = PyTupleObject(models)
+            calculateNumberOfMocks(tupleOfModels)
+        }.getOrDefault(2)
 }
