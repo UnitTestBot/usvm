@@ -1,4 +1,4 @@
-package org.usvm.language.types
+package org.usvm.machine.types
 
 import org.utpython.types.PythonSubtypeChecker
 import org.utpython.types.general.DefaultSubstitutionProvider

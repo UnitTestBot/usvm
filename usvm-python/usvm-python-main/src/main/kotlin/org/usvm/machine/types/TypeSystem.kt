@@ -1,10 +1,12 @@
-package org.usvm.language.types
+package org.usvm.machine.types
 
 import org.usvm.language.StructuredPyProgram
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
+import org.usvm.machine.types.streams.PyMockTypeStream
+import org.usvm.machine.types.streams.TypeFilter
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
@@ -111,7 +113,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     override fun topTypeStream(): UTypeStream<PythonType> {
-        return USupportTypeStream.from(this, PythonAnyType)
+        return PyMockTypeStream(this, TypeFilter(this, emptySet(), emptySet(), emptySet(), emptySet()))
     }
 
     private fun createConcreteTypeByName(name: String, isHidden: Boolean = false): ConcretePythonType =

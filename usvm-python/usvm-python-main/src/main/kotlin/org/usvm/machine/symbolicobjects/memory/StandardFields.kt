@@ -9,9 +9,9 @@ import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.ObjectDictType
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.ObjectDictType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject

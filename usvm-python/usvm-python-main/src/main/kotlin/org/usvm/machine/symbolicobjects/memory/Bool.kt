@@ -10,6 +10,7 @@ import org.usvm.language.PyCallable
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.types.*
 import org.usvm.memory.UMemory
 
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {

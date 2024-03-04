@@ -2,7 +2,7 @@ package org.usvm.machine.model
 
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.model.UModelBase
 

@@ -3,9 +3,9 @@ package org.usvm.machine
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.*
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel

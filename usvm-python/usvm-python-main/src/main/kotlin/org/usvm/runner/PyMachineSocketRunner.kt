@@ -2,8 +2,8 @@ package org.usvm.runner
 
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.StructuredPyProgram
-import org.usvm.language.types.PythonTypeSystemWithMypyInfo
-import org.usvm.language.types.getTypeFromTypeHint
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.PyMachine
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.*

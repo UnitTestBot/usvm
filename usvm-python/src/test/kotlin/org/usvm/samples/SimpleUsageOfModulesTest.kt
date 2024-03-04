@@ -1,7 +1,7 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.language.types.PythonAnyType
+import org.usvm.machine.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.eq
 

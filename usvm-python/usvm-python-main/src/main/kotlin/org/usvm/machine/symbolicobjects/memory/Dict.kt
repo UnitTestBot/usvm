@@ -15,10 +15,10 @@ import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.IntDictType
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.RefDictType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.IntDictType
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.RefDictType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory

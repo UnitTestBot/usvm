@@ -1,7 +1,7 @@
 package org.usvm.machine.ps.strategies
 
 import org.usvm.UPathSelector
-import org.usvm.language.types.ConcretePythonType
+import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 

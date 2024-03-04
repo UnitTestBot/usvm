@@ -3,8 +3,8 @@ package org.usvm.machine.symbolicobjects
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject

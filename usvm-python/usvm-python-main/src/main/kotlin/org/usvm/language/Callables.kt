@@ -3,7 +3,7 @@ package org.usvm.language
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyNamespace
 import org.usvm.machine.interpreters.concrete.PyObject
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 
 sealed class PyCallable
 

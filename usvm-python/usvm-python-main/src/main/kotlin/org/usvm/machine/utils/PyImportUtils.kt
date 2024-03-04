@@ -1,6 +1,6 @@
 package org.usvm.machine.utils
 
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import java.io.File
 

@@ -1,8 +1,8 @@
 package org.usvm.machine.utils
 
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.PythonTypeSystem
-import org.usvm.language.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.utpython.types.PythonCompositeTypeDescription
 import org.utpython.types.pythonDescription

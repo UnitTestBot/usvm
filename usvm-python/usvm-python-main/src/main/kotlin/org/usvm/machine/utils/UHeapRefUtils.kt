@@ -3,7 +3,7 @@ package org.usvm.machine.utils
 import org.usvm.*
 import org.usvm.api.typeStreamOf
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject

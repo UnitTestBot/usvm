@@ -4,6 +4,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.types.*
 import org.usvm.machine.symbolicobjects.memory.getFieldValue
+import org.usvm.machine.types.*
 
 @Suppress("unused_parameter")
 fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {

@@ -4,8 +4,8 @@ import mu.KLogging
 import org.usvm.UPathSelector
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.api.typeStreamOf
-import org.usvm.language.types.MockType
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.MockType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState

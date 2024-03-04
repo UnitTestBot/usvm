@@ -6,7 +6,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyPinnedCallable
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.language.SymbolForCPython
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.*
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter

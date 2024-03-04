@@ -11,8 +11,8 @@ import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
-import org.usvm.language.types.IntSetType
-import org.usvm.language.types.RefSetType
+import org.usvm.machine.types.IntSetType
+import org.usvm.machine.types.RefSetType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject

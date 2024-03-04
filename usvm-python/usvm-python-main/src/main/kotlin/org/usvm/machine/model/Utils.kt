@@ -5,10 +5,10 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.ArrayLikeConcretePythonType
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.MockType
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.ArrayLikeConcretePythonType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.MockType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.model.UModelBase

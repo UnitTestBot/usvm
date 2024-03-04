@@ -8,7 +8,7 @@ import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.PropertyOfPythonObject

@@ -12,6 +12,8 @@ import org.usvm.language.types.*
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.memory.UMemory
 import org.usvm.targets.UTarget
 import org.usvm.types.UTypeStream
