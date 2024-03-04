@@ -15,6 +15,7 @@ import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
+import org.usvm.machine.types.*
 import org.usvm.machine.utils.MethodDescription
 import org.utpython.types.getPythonAttributeByName
 import java.util.stream.Stream

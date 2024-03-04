@@ -2,7 +2,7 @@ package org.usvm.interpreter;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.usvm.language.types.PythonTypeSystem;
+import org.usvm.machine.types.PythonTypeSystem;
 import org.usvm.machine.MockHeader;
 import org.usvm.machine.interpreters.symbolic.operations.tracing.PathDiversionException;
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent;

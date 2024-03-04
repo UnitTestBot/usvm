@@ -1,7 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.HasTpIter
+import org.usvm.machine.types.HasTpIter
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIndexAndIncrement
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIterator

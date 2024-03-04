@@ -5,10 +5,10 @@ import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.api.*
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.ArrayLikeConcretePythonType
-import org.usvm.language.types.ArrayType
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.HasElementConstraint
+import org.usvm.machine.types.ArrayLikeConcretePythonType
+import org.usvm.machine.types.ArrayType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.HasElementConstraint
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert

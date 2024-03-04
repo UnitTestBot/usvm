@@ -6,7 +6,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.language.types.ArrayLikeConcretePythonType
+import org.usvm.machine.types.ArrayLikeConcretePythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.getConcreteType

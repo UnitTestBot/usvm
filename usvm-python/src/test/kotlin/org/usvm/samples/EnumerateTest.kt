@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
-import org.usvm.language.types.PythonAnyType
+import org.usvm.machine.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.time.Duration.Companion.seconds

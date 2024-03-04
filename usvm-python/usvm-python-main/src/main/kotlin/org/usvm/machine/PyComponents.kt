@@ -5,8 +5,8 @@ import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.sort.KIntSort
 import org.usvm.*
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
 import org.usvm.solver.*

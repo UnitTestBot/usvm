@@ -1,4 +1,4 @@
-package org.usvm.language.types
+package org.usvm.machine.types
 
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.python.model.PyIdentifier

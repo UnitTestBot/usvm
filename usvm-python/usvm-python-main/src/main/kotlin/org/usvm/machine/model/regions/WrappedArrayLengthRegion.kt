@@ -4,7 +4,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.isTrue
-import org.usvm.language.types.ArrayType
+import org.usvm.machine.types.ArrayType
 import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 

@@ -7,8 +7,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.MockType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.MockType
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.model.PyModelHolder

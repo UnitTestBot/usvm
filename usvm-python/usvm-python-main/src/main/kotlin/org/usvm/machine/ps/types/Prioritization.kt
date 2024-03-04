@@ -1,7 +1,7 @@
 package org.usvm.machine.ps.types
 
-import org.usvm.language.types.ConcretePythonType
-import org.usvm.language.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.TypeRating

@@ -1,6 +1,6 @@
 package org.usvm.language
 
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.concrete.PyNamespace

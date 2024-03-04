@@ -4,8 +4,8 @@ import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
 import org.usvm.*
-import org.usvm.language.types.PythonType
-import org.usvm.language.types.PythonTypeSystem
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.solver.USolverBase
 
 class PyContext(

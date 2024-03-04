@@ -5,7 +5,7 @@ import org.usvm.*
 import org.usvm.api.*
 import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.types.ArrayType
+import org.usvm.machine.types.ArrayType
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.machine.symbolicobjects.memory.*
 import java.util.stream.Stream

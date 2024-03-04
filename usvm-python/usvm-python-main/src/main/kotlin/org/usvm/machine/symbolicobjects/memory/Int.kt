@@ -6,7 +6,7 @@ import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory

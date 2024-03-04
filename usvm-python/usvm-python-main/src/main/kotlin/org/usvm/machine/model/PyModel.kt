@@ -17,6 +17,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.regions.*
+import org.usvm.machine.types.*
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.key.USizeRegion

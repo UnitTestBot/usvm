@@ -4,7 +4,7 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.collection.map.ref.URefMapEntryLValue
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase

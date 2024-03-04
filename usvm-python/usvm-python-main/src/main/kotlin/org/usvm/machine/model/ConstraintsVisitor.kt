@@ -6,7 +6,7 @@ import org.usvm.*
 import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.types.PythonType
+import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region

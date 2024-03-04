@@ -1,4 +1,4 @@
-package org.usvm.language.types
+package org.usvm.machine.types
 
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 
@@ -22,7 +22,7 @@ data class HasElementConstraint(private val constraint: ElementConstraint): Virt
     }
 }
 
-data class ConcreteTypeNegation(private val concreteType: ConcretePythonType): VirtualPythonType() {
+data class ConcreteTypeNegation(val concreteType: ConcretePythonType): VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean {
         if (type is MockType || type == this)
             return true

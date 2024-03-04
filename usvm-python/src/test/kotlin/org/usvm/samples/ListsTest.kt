@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.language.PyUnpinnedCallable
-import org.usvm.language.types.PythonAnyType
+import org.usvm.machine.types.PythonAnyType
 import org.usvm.runner.PythonTestRunnerForPrimitiveProgram
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
