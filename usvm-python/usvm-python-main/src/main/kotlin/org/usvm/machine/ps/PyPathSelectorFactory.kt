@@ -7,6 +7,7 @@ import org.usvm.machine.ps.strategies.impls.*
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
+import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.RandomTreePathSelector
 import org.usvm.python.model.PyTupleObject
@@ -101,7 +102,7 @@ fun createBaselinePriorityNumberOfVirtualDfsPyPathSelector(
         makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
         BaselineDFGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfVirtual, ::mockWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
                 DfsPathSelector()
             }
         },
@@ -118,7 +119,7 @@ fun createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(
         makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
         BaselineDFGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfInstructions, ::instructionWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
                 DfsPathSelector()
             }
         },
@@ -180,7 +181,7 @@ fun createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(
         makeDelayedForkByInstructionPriorityStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfVirtual, ::mockWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
                 DfsPathSelector()
             }
         },
@@ -197,7 +198,7 @@ fun createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(
         makeDelayedForkByInstructionPriorityStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfInstructions, ::instructionWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
                 DfsPathSelector()
             }
         },
@@ -214,7 +215,7 @@ fun createDelayedForkByInstructionWeightedNumberOfVirtualDfsPyPathSelector(
         makeDelayedForkByInstructionWeightedStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfVirtual, ::mockWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
                 DfsPathSelector()
             }
         },
@@ -231,7 +232,7 @@ fun createDelayedForkByInstructionWeightedNumberOfInstructionDfsPyPathSelector(
         makeDelayedForkByInstructionWeightedStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, ::calculateNumberOfInstructions, ::instructionWeight) {
+            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
                 DfsPathSelector()
             }
         },

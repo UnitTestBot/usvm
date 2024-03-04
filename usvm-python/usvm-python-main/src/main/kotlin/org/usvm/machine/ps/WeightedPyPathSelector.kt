@@ -7,12 +7,14 @@ import kotlin.random.Random
 
 class WeightedPyPathSelector(
     private val random: Random,
+    private val proportionalToSelectorSize: Boolean,
     private val counter: (PyState) -> Int,
     private val weight: (Int) -> Double,
     private val baseBaseSelectorCreation: () -> UPathSelector<PyState>
 ): UPathSelector<PyState> {
     private val selectors = mutableMapOf<Int, UPathSelector<PyState>>()
-    private val selectorOfState = mutableMapOf<PyState, UPathSelector<PyState>?>()
+    private val selectorSizes = mutableMapOf<Int, Int>()
+    private val countOfState = mutableMapOf<PyState, Int?>()
 
     override fun isEmpty(): Boolean {
         return selectors.all { it.value.isEmpty() }
@@ -22,7 +24,13 @@ class WeightedPyPathSelector(
         val availableNumbers = selectors.mapNotNull { (number, selector) ->
             if (selector.isEmpty()) null else number
         }
-        val chosenNumber = weightedRandom(random, availableNumbers, weight)
+        val chosenNumber = weightedRandom(random, availableNumbers) {
+            if (proportionalToSelectorSize) {
+                weight(it) * selectorSizes[it]!!
+            } else {
+                weight(it)
+            }
+        }
         val selector = selectors[chosenNumber]!!
         return selector.peek()
     }
@@ -37,17 +45,22 @@ class WeightedPyPathSelector(
     }
 
     private fun add(state: PyState) {
-        val numberOfVirtual = counter(state)
-        if (selectors[numberOfVirtual] == null)
-            selectors[numberOfVirtual] = baseBaseSelectorCreation()
-        val selector = selectors[numberOfVirtual]!!
+        val count = counter(state)
+        if (selectors[count] == null) {
+            selectors[count] = baseBaseSelectorCreation()
+            selectorSizes[count] = 0
+        }
+        val selector = selectors[count]!!
         selector.add(listOf(state))
-        selectorOfState[state] = selector
+        countOfState[state] = count
+        selectorSizes[count] = selectorSizes[count]!! + 1
     }
 
     override fun remove(state: PyState) {
-        val selector = selectorOfState[state] ?: error("State was not in path selector")
+        val oldCount = countOfState[state] ?: error("State was not in path selector")
+        val selector = selectors[oldCount] ?: error("State was not in path selector")
         selector.remove(state)
-        selectorOfState[state] = null
+        countOfState[state] = null
+        selectorSizes[oldCount] = selectorSizes[oldCount]!! - 1
     }
 }

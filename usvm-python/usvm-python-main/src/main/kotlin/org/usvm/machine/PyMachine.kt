@@ -27,7 +27,7 @@ import kotlin.random.Random
 class PyMachine(
     private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
-    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.BaselinePriorityDfs,
+    private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.BaselinePriorityNumberOfInstructionsDfs,
     private val printErrorMsg: Boolean = false
 ): UMachine<PyState>() {
     private val ctx = PyContext(typeSystem)
