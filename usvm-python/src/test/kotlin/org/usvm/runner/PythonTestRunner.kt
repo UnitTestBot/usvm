@@ -3,7 +3,6 @@ package org.usvm.runner
 import org.usvm.UMachineOptions
 import org.usvm.machine.*
 import org.usvm.language.*
-import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject

@@ -9,7 +9,6 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
-import org.usvm.language.types.*
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId

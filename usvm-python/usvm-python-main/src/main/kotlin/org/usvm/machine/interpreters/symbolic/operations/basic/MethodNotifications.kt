@@ -2,7 +2,6 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.language.types.*
 import org.usvm.machine.symbolicobjects.memory.getFieldValue
 import org.usvm.machine.types.*
 

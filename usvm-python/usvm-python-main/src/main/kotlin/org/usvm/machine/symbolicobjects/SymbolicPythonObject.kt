@@ -6,7 +6,6 @@ import org.usvm.api.*
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.language.types.*
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.model.PyModelHolder

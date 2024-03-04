@@ -8,7 +8,6 @@ import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.language.*
-import org.usvm.language.types.*
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
