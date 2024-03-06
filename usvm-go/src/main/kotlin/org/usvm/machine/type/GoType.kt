@@ -35,7 +35,8 @@ enum class GoSort(val value: Byte) {
     STRUCT(17),
     INTERFACE(18),
     POINTER(19),
-    TUPLE(20);
+    TUPLE(20),
+    FUNCTION(21);
 
     fun isSigned(): Boolean = when (this) {
         BOOL, INT8, INT16, INT32, INT64, FLOAT32, FLOAT64 -> true
