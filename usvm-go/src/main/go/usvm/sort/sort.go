@@ -30,6 +30,7 @@ const (
 	Interface
 	Pointer
 	Tuple
+	Function
 )
 
 var basicSorts = []Sort{
@@ -83,6 +84,8 @@ func MapSort(t types.Type, unwrap bool) Sort {
 		return Pointer
 	case *types.Tuple:
 		return Tuple
+	case *types.Signature:
+		return Function
 	default:
 		return Unknown
 	}

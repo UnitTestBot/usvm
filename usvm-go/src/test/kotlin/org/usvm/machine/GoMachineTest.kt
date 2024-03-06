@@ -267,6 +267,24 @@ class GoMachineTest {
     }
 
     @Test
+    fun testSliceArrayLowNil() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArrayLowNil", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceArrayHighNil() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArrayHighNil", false)
+        println(results)
+    }
+
+    @Test
+    fun testSliceArrayLowHighNil() {
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArrayLowHighNil", false)
+        println(results)
+    }
+
+    @Test
     fun testSliceArrayArgs() {
         val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sliceArrayArgs", false)
         println(results)
@@ -279,9 +297,27 @@ class GoMachineTest {
     }
 
     @Test
+    fun testTypeAssert() {
+        val results = machine.analyzeAndResolve(Path.getProgram("playground.go"), "typeAssert", false)
+        println(results)
+    }
+
+    @Test
     fun testCallSwap() {
         val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
         val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callSwap", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallAnonClosure() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callAnonClosure", true)
+        println(results)
+    }
+
+    @Test
+    fun testCallBoundClosure() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callBoundClosure", true)
         println(results)
     }
 }

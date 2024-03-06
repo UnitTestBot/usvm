@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -42,6 +43,7 @@ type Api interface {
 	MkMapLookup(inst *ssa.Lookup)
 	MkMapUpdate(inst *ssa.MapUpdate)
 	MkTypeAssert(inst *ssa.TypeAssert)
+	MkMakeClosure(inst *ssa.MakeClosure)
 	MkPhi(inst *ssa.Phi)
 
 	SetLastBlock(block int)
@@ -94,6 +96,7 @@ const (
 	MethodMkMapLookup
 	MethodMkMapUpdate
 	MethodMkTypeAssert
+	MethodMkMakeClosure
 )
 
 type UnOp byte
@@ -164,6 +167,7 @@ const (
 	_ VarKind = iota
 	VarKindConst
 	VarKindParameter
+	VarKindFreeVariable
 	VarKindLocal
 )
 
@@ -351,11 +355,7 @@ func (a *api) MkReturn(inst *ssa.Return) {
 
 	switch len(inst.Results) {
 	case 0:
-		nilType := types.Typ[types.UntypedNil]
-		a.buf.Write(byte(VarKindConst))
-		a.buf.WriteType(nilType)
-		a.buf.WriteType(nilType.Underlying())
-		a.buf.Write(byte(sort.Void))
+		a.writeNil()
 		return
 	case 1:
 		a.writeVar(inst.Results[0])
@@ -436,11 +436,41 @@ func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
 }
 
 func (a *api) MkTypeAssert(inst *ssa.TypeAssert) {
+	var v ssa.Value
+	err := ""
+	t := inst.X.Type()
+	if t == nil {
+		err = fmt.Sprintf("interface conversion: interface is nil, not %s", inst.AssertedType)
+	} else if i, ok := inst.AssertedType.Underlying().(*types.Interface); ok {
+		v = inst.X
+		if meth, _ := types.MissingMethod(t, i, true); meth != nil {
+			err = fmt.Sprintf("interface conversion: %v is not %v: missing method %s", t, i, meth.Name())
+		}
+	} else if types.Identical(t, inst.AssertedType) {
+		v = inst.X
+	} else {
+		err = fmt.Sprintf("interface conversion: interface is %s, not %s", t, inst.AssertedType)
+	}
+
 	a.buf.Write(byte(MethodMkTypeAssert))
 	a.writeVar(inst)
 	a.writeVar(inst.X)
 	a.buf.WriteType(inst.AssertedType)
 	a.buf.WriteBool(inst.CommaOk)
+
+	a.writeVar(v)
+	a.buf.WriteString(err)
+}
+
+func (a *api) MkMakeClosure(inst *ssa.MakeClosure) {
+	a.buf.Write(byte(MethodMkMakeClosure))
+	a.writeVar(inst)
+
+	a.buf.WriteUintptr(util.ToPointer(inst.Fn.(*ssa.Function)))
+	a.buf.WriteInt32(int32(len(inst.Bindings)))
+	for _, b := range inst.Bindings {
+		a.writeVar(b)
+	}
 }
 
 func (a *api) MkPhi(inst *ssa.Phi) {
@@ -491,6 +521,11 @@ func (a *api) mkVariable(inst ssa.Value, value ssa.Value) {
 }
 
 func (a *api) writeVar(v ssa.Value) {
+	if v == nil {
+		a.writeNil()
+		return
+	}
+
 	switch in := v.(type) {
 	case *ssa.Parameter:
 		f := in.Parent()
@@ -499,6 +534,19 @@ func (a *api) writeVar(v ssa.Value) {
 				continue
 			}
 			a.buf.Write(byte(VarKindParameter)).
+				WriteValueType(v).
+				WriteValueUnderlyingType(v).
+				Write(byte(sort.GetSort(in, false))).
+				WriteInt32(int32(i))
+		}
+
+	case *ssa.FreeVar:
+		f := in.Parent()
+		for i, p := range f.FreeVars {
+			if p != in {
+				continue
+			}
+			a.buf.Write(byte(VarKindFreeVariable)).
 				WriteValueType(v).
 				WriteValueUnderlyingType(v).
 				Write(byte(sort.GetSort(in, false))).
@@ -551,6 +599,14 @@ func (a *api) writeConst(in *ssa.Const) {
 		a.buf.WriteString(constant.StringVal(in.Value))
 	default:
 	}
+}
+
+func (a *api) writeNil() {
+	nilType := types.Typ[types.UntypedNil]
+	a.buf.Write(byte(VarKindConst))
+	a.buf.WriteType(nilType)
+	a.buf.WriteType(nilType.Underlying())
+	a.buf.Write(byte(sort.Void))
 }
 
 func resolveRegister(in ssa.Value) int32 {

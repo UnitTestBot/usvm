@@ -17,7 +17,7 @@ func MethodInfo(function *ssa.Function) domain.MethodInfo {
 		returnType = results.At(0).Type()
 	}
 
-	variablesCount := 0
+	variablesCount := len(function.FreeVars)
 	for _, b := range function.Blocks {
 		for _, i := range b.Instrs {
 			if reflect.ValueOf(i).Elem().Field(0).Type().Name() == "register" {
