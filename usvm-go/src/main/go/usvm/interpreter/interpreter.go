@@ -271,7 +271,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkTypeAssert(inst)
 
 	case *ssa.MakeClosure:
-		panic("MakeClosure")
+		api.MkMakeClosure(inst)
 
 	case *ssa.Phi:
 		api.MkPhi(inst)

@@ -1,6 +1,5 @@
 package org.usvm.machine.interpreter
 
-import io.ksmt.utils.asExpr
 import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -15,7 +14,6 @@ import org.usvm.machine.GoTarget
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoType
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 
