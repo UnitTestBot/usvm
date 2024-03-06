@@ -92,6 +92,7 @@ class Api(
             Method.MK_MAP_LOOKUP -> mkMapLookup(buf, nextInst)
             Method.MK_MAP_UPDATE -> mkMapUpdate(buf)
             Method.MK_TYPE_ASSERT -> mkTypeAssert(buf)
+            Method.MK_MAKE_CLOSURE -> mkMakeClosure(buf)
             Method.UNKNOWN -> {}
         }
 
@@ -184,6 +185,10 @@ class Api(
         scope.doWithState {
             callStack.push(method, currentStatement)
             memory.stack.push(parameters, methodInfo.variablesCount)
+            getFreeVariables(method)?.forEachIndexed { index, variable ->
+                val lvalue = URegisterStackLValue(variable.sort, resolveIndex(VarKind.FREE_VARIABLE, index))
+                memory.write(lvalue, variable, trueExpr)
+            }
             newInst(entrypoint)
         }
 
@@ -307,6 +312,7 @@ class Api(
         val lvalue = URegisterStackLValue(pointerSort, index)
         scope.doWithState {
             val ref = memory.allocConcrete(type)
+            memory.write(GoPointerLValue(ref, addressSort), ref, trueExpr)
             memory.write(lvalue, mkAddressPointer(ref.address), trueExpr)
         }
     }
@@ -355,15 +361,10 @@ class Api(
     private fun mkSlice(buf: ByteBuffer) = with(ctx) {
         val target = readVar(buf)
         val targetValueSort = mapSort(GoSort.valueOf(buf.byte))
-        val source = readVar(buf)
-
-        val low = readVar(buf).expr.asExpr(sizeSort)
-        val high = readVar(buf).expr.asExpr(sizeSort)
-        val length = mkSizeSubExpr(high, low)
-
         val targetType = target.underlyingType
-        val sourceType = source.underlyingType
 
+        val source = readVar(buf)
+        val sourceType = source.underlyingType
         val sourceRef = source.expr.let {
             if (it.sort == pointerSort) {
                 deref(it, addressSort)
@@ -374,6 +375,22 @@ class Api(
         val sourceLength = scope.calcOnState {
             memory.readArrayLength(sourceRef, sourceType, sizeSort)
         }
+
+        val low = readVar(buf).expr.let {
+            if (it.sort == sizeSort) {
+                it.asExpr(sizeSort)
+            } else {
+                mkSizeExpr(0)
+            }
+        }
+        val high = readVar(buf).expr.let {
+            if (it.sort == sizeSort) {
+                it.asExpr(sizeSort)
+            } else {
+                sourceLength
+            }
+        }
+        val length = mkSizeSubExpr(high, low)
 
         checkNotNull(sourceRef) ?: throw IllegalStateException()
         checkNegativeIndex(low) ?: throw IllegalStateException()
@@ -647,7 +664,30 @@ class Api(
     }
 
     private fun mkTypeAssert(buf: ByteBuffer) = with(ctx) {
-        readVar(buf).expr.asExpr(addressSort)
+        val l = readVar(buf)
+        val iface = readVar(buf)
+        val type = buf.long
+        val commaOk = buf.bool
+
+        val v = readVar(buf)
+        val length = buf.int
+        val arr = Array(length) { buf.int }
+        val s = String(arr.map { it.toChar() }.toCharArray())
+
+        println("$l $iface $type $commaOk $v $s $addressSort")
+    }
+
+    private fun mkMakeClosure(buf: ByteBuffer) = with(ctx) {
+        val function = readVar(buf)
+        val method = buf.long
+        val bindings = Array(buf.int) { readVar(buf).expr }
+
+        setFreeVariables(method, bindings)
+
+        val lvalue = URegisterStackLValue(function.sort, function.index)
+        scope.doWithState {
+            memory.write(lvalue, function.expr, trueExpr)
+        }
     }
 
     private fun mkTuple(state: GoState, type: GoType, vararg fields: UExpr<out USort>): UHeapRef = with(ctx) {
@@ -726,7 +766,7 @@ class Api(
         var index = 0
         val expr = when (kind) {
             VarKind.CONST -> readConst(buf, type, sort)
-            VarKind.PARAMETER, VarKind.LOCAL -> scope.calcOnState {
+            VarKind.PARAMETER, VarKind.FREE_VARIABLE, VarKind.LOCAL -> scope.calcOnState {
                 index = resolveIndex(kind, buf.int)
                 memory.read(URegisterStackLValue(sort, index))
             }
@@ -802,9 +842,11 @@ class Api(
     }
 
     private fun resolveIndex(kind: VarKind, value: Int): Int = with(ctx) {
+        val method = scope.calcOnState { lastEnteredMethod }
         when (kind) {
-            VarKind.LOCAL -> value + getArgsCount(scope.calcOnState { lastEnteredMethod })
             VarKind.PARAMETER -> value
+            VarKind.FREE_VARIABLE -> value + getArgsCount(method)
+            VarKind.LOCAL -> value + getArgsCount(method) + getFreeVariablesCount(method)
             else -> -1
         }
     }
@@ -910,7 +952,8 @@ private enum class Method(val value: Byte) {
     MK_ARRAY_READING(25),
     MK_MAP_LOOKUP(26),
     MK_MAP_UPDATE(27),
-    MK_TYPE_ASSERT(28);
+    MK_TYPE_ASSERT(28),
+    MK_MAKE_CLOSURE(29);
 
     companion object {
         private val values = values()
@@ -965,7 +1008,8 @@ private enum class VarKind(val value: Byte) {
     ILLEGAL(0),
     CONST(1),
     PARAMETER(2),
-    LOCAL(3);
+    FREE_VARIABLE(3),
+    LOCAL(4);
 
     companion object {
         private val values = values()

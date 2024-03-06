@@ -24,6 +24,7 @@ class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
     private var methodInfo: MutableMap<Long, GoMethodInfo> = hashMapOf()
+    private var methodFreeVariables: MutableMap<Long, Array<UExpr<USort>>> = hashMapOf()
 
     fun getArgsCount(method: Long): Int = methodInfo[method]!!.parametersCount
 
@@ -31,6 +32,14 @@ class GoContext(
 
     fun setMethodInfo(method: Long, info: GoMethodInfo) {
         methodInfo[method] = info
+    }
+
+    fun getFreeVariables(method: Long): Array<UExpr<USort>>? = methodFreeVariables[method]
+
+    fun getFreeVariablesCount(method: Long): Int = getFreeVariables(method)?.size ?: 0
+
+    fun setFreeVariables(method: Long, freeVariables: Array<UExpr<USort>>) {
+        methodFreeVariables[method] = freeVariables
     }
 
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
@@ -57,7 +66,7 @@ class GoContext(
         GoSort.FLOAT32 -> fp32Sort
         GoSort.FLOAT64 -> fp64Sort
         GoSort.STRING -> stringSort
-        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE -> addressSort
+        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE, GoSort.FUNCTION -> addressSort
         GoSort.POINTER -> pointerSort
         else -> throw UnknownSortException()
     }
