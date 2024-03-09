@@ -26,10 +26,9 @@ class GoInterpreter(
 ) : UInterpreter<GoState>() {
     fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState = with(ctx) {
         val state = GoState(ctx, method, targets = UTargetsSet.from(targets))
+
         val methodInfo = bridge.methodInfo(method)
-
         logger.debug("Method: {}, info: {}", method, methodInfo)
-
         setMethodInfo(method, methodInfo)
 
         val solver = solver<GoType>()
