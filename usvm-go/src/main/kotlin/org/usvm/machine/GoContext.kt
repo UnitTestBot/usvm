@@ -30,6 +30,8 @@ class GoContext(
 
     fun getReturnType(method: Long): GoType = methodInfo[method]!!.returnType
 
+    fun getMethodInfo(method: Long) = methodInfo[method]!!
+
     fun setMethodInfo(method: Long, info: GoMethodInfo) {
         methodInfo[method] = info
     }

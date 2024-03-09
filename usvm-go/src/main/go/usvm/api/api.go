@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -224,6 +223,7 @@ const (
 	_ BuiltinFunc = iota
 	Len
 	Cap
+	SsaWrapNilCheck
 )
 
 func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
@@ -247,6 +247,8 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	case "complex":
 	case "panic":
 	case "recover":
+	case "ssa:wrapnilchk":
+		a.buf.Write(byte(SsaWrapNilCheck))
 	}
 
 	args := inst.Call.Args
@@ -436,30 +438,11 @@ func (a *api) MkMapUpdate(inst *ssa.MapUpdate) {
 }
 
 func (a *api) MkTypeAssert(inst *ssa.TypeAssert) {
-	var v ssa.Value
-	err := ""
-	t := inst.X.Type()
-	if t == nil {
-		err = fmt.Sprintf("interface conversion: interface is nil, not %s", inst.AssertedType)
-	} else if i, ok := inst.AssertedType.Underlying().(*types.Interface); ok {
-		v = inst.X
-		if meth, _ := types.MissingMethod(t, i, true); meth != nil {
-			err = fmt.Sprintf("interface conversion: %v is not %v: missing method %s", t, i, meth.Name())
-		}
-	} else if types.Identical(t, inst.AssertedType) {
-		v = inst.X
-	} else {
-		err = fmt.Sprintf("interface conversion: interface is %s, not %s", t, inst.AssertedType)
-	}
-
 	a.buf.Write(byte(MethodMkTypeAssert))
 	a.writeVar(inst)
 	a.writeVar(inst.X)
 	a.buf.WriteType(inst.AssertedType)
 	a.buf.WriteBool(inst.CommaOk)
-
-	a.writeVar(v)
-	a.buf.WriteString(err)
 }
 
 func (a *api) MkMakeClosure(inst *ssa.MakeClosure) {

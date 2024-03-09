@@ -163,15 +163,16 @@ class Api(
             return false
         }
 
-        val parameters = Array<UExpr<out USort>>(buf.int) {
-            readVar(buf).expr
-        }
-
+        val parametersVars = Array(buf.int) { readVar(buf) }
         val isInvoke = buf.bool
         val method = if (isInvoke) {
+            val receiverVar = parametersVars[0]
+            val receiver = receiverVar.expr.asExpr(addressSort)
             val type = scope.calcOnState {
-                memory.types.getTypeStream(parameters[0].asExpr(addressSort)).first()
+                memory.types.getTypeStream(receiver).first()
             }
+            parametersVars[0] = unbox(receiverVar, type)
+
             bridge.methodImplementation(buf.long, type)
         } else buf.long
         val entrypoint = if (isInvoke) bridge.entryPoints(method).first[0] else buf.long
@@ -182,6 +183,7 @@ class Api(
 
         setLastBlock(lastBlock)
 
+        val parameters: Array<UExpr<out USort>> = parametersVars.map { it.expr }.toTypedArray()
         scope.doWithState {
             callStack.push(method, currentStatement)
             memory.stack.push(parameters, methodInfo.variablesCount)
@@ -228,16 +230,34 @@ class Api(
                 )
             }
 
+            BuiltinFunction.SSA_WRAP_NIL_CHECK -> {}
+
             else -> throw UnknownFunctionException()
         }
     }
 
-    private fun mkChangeInterface(buf: ByteBuffer) {
-        copyVar(buf)
+    private fun mkChangeInterface(buf: ByteBuffer) = with(ctx) {
+        val l = readVar(buf)
+        val rvalue = readVar(buf).expr
+        val lvalue = URegisterStackLValue(l.sort, l.index)
+
+        scope.doWithState {
+            memory.write(lvalue, rvalue, trueExpr)
+        }
     }
 
-    private fun mkChangeType(buf: ByteBuffer) {
-        copyVarWithTypeConstraint(buf)
+    private fun mkChangeType(buf: ByteBuffer) = with(ctx) {
+        val l = readVar(buf)
+        val rvalue = readVar(buf).expr
+        val lvalue = URegisterStackLValue(l.sort, l.index)
+
+        scope.doWithState {
+            if (rvalue.sort == addressSort) {
+                val ref = rvalue.asExpr(addressSort)
+                scope.assert(memory.types.evalIsSubtype(ref, l.type)) ?: throw IllegalStateException()
+            }
+            memory.write(lvalue, rvalue, trueExpr)
+        }
     }
 
     private fun mkConvert(buf: ByteBuffer) = with(ctx) {
@@ -279,8 +299,27 @@ class Api(
         }
     }
 
-    private fun mkMakeInterface(buf: ByteBuffer) {
-        copyVarWithTypeConstraint(buf)
+    private fun mkMakeInterface(buf: ByteBuffer) = with(ctx) {
+        val l = readVar(buf)
+        val lvalue = URegisterStackLValue(l.sort, l.index)
+
+        val r = readVar(buf)
+        val rvalue = r.expr.let {
+            if (it.sort == addressSort) {
+                it
+            } else {
+                scope.calcOnState {
+                    val ref = memory.allocConcrete(r.type)
+                    memory.writeField(ref, l.index, r.sort, it, trueExpr)
+                    ref
+                }
+            }
+        }.asExpr(addressSort)
+
+        scope.doWithState {
+            scope.assert(memory.types.evalIsSubtype(rvalue, l.type)) ?: throw IllegalStateException()
+            memory.write(lvalue, rvalue.asExpr(l.sort), trueExpr)
+        }
     }
 
     private fun mkStore(buf: ByteBuffer) = with(ctx) {
@@ -669,12 +708,18 @@ class Api(
         val type = buf.long
         val commaOk = buf.bool
 
-        val v = readVar(buf)
-        val length = buf.int
-        val arr = Array(length) { buf.int }
-        val s = String(arr.map { it.toChar() }.toCharArray())
+        val lvalue = URegisterStackLValue(l.sort, l.index)
 
-        println("$l $iface $type $commaOk $v $s $addressSort")
+        val impl = unbox(iface, type)
+        scope.doWithState {
+            val rvalue = if (commaOk) {
+                mkTuple(this, l.type, impl.expr, trueExpr)
+            } else {
+                impl.expr
+            }
+
+            memory.write(lvalue, rvalue.asExpr(l.sort), trueExpr)
+        }
     }
 
     private fun mkMakeClosure(buf: ByteBuffer) = with(ctx) {
@@ -704,30 +749,6 @@ class Api(
 
     private fun setLastBlock(block: Int) {
         scope.doWithState { lastBlock = block }
-    }
-
-    private fun copyVar(buf: ByteBuffer) = with(ctx) {
-        val l = readVar(buf)
-        val rvalue = readVar(buf).expr
-        val lvalue = URegisterStackLValue(l.sort, l.index)
-
-        scope.doWithState {
-            memory.write(lvalue, rvalue, trueExpr)
-        }
-    }
-
-    private fun copyVarWithTypeConstraint(buf: ByteBuffer) = with(ctx) {
-        val l = readVar(buf)
-        val rvalue = readVar(buf).expr
-        val lvalue = URegisterStackLValue(l.sort, l.index)
-
-        scope.doWithState {
-            if (rvalue.sort == addressSort) {
-                val ref = rvalue.asExpr(addressSort)
-                scope.assert(memory.types.evalIsSubtype(ref, l.type)) ?: throw IllegalStateException()
-            }
-            memory.write(lvalue, rvalue, trueExpr)
-        }
     }
 
     private fun copyMap(
@@ -866,6 +887,18 @@ class Api(
         return scope.calcOnState {
             memory.read(pointerLValue(pointer, sort))
         }
+    }
+
+    private fun unbox(iface: Var, type: GoType): Var = with(ctx) {
+        val ref = iface.expr.asExpr(addressSort)
+        val index = iface.index
+
+        val unboxedGoSort = bridge.typeToSort(type)
+        val unboxedSort = mapSort(unboxedGoSort)
+        val unboxedReceiver = scope.calcOnState {
+            memory.readField(ref, index, unboxedSort)
+        }
+        return Var(unboxedReceiver, type, type, unboxedGoSort, unboxedSort, index)
     }
 
     private fun <Sort : USort> pointerLValue(pointer: UExpr<out USort>, sort: Sort): ULValue<*, Sort> = with(ctx) {
@@ -1021,7 +1054,8 @@ private enum class VarKind(val value: Byte) {
 private enum class BuiltinFunction(val value: Byte) {
     UNKNOWN(0),
     LEN(1),
-    CAP(2);
+    CAP(2),
+    SSA_WRAP_NIL_CHECK(3);
 
     companion object {
         private val values = values()

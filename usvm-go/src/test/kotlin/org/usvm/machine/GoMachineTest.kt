@@ -304,20 +304,55 @@ class GoMachineTest {
 
     @Test
     fun testCallSwap() {
-        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), coverageZone = CoverageZone.TRANSITIVE))
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                coverageZone = CoverageZone.TRANSITIVE
+            )
+        )
         val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callSwap", false)
         println(results)
     }
 
     @Test
+    fun testCallMethod() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callMethod", false)
+        println(results)
+    }
+
+    @Test
     fun testCallAnonClosure() {
-        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callAnonClosure", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callAnonClosure", false)
         println(results)
     }
 
     @Test
     fun testCallBoundClosure() {
-        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callBoundClosure", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callBoundClosure", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallSuperIntSqr() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callSuperIntSqr", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallConstSuperIntAdd() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callConstSuperIntAdd", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallIntSquarerSqr() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callIntSquarerSqr", false)
+        println(results)
+    }
+
+    @Test
+    fun testCallStructSquarerSqr() {
+        val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callStructSquarerSqr", false)
         println(results)
     }
 }
