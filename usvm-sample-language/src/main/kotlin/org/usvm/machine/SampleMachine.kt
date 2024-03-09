@@ -81,6 +81,7 @@ class SampleMachine(
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<SampleState>(coverageStatistics) {
                     it.exceptionRegister != null
                 }
+
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
                 StateCollectionStrategy.ALL -> AllStatesCollector()
             }
