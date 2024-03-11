@@ -23,25 +23,35 @@ internal typealias USizeSort = UBv32Sort
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
-    private var methodInfo: MutableMap<Long, GoMethodInfo> = hashMapOf()
-    private var methodFreeVariables: MutableMap<Long, Array<UExpr<USort>>> = hashMapOf()
+    private var methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
+    private var freeVariables: MutableMap<GoMethod, Array<UExpr<USort>>> = hashMapOf()
+    private var deferred: MutableMap<GoMethod, ArrayDeque<GoCall>> = hashMapOf()
 
-    fun getArgsCount(method: Long): Int = methodInfo[method]!!.parametersCount
+    fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
 
-    fun getReturnType(method: Long): GoType = methodInfo[method]!!.returnType
+    fun getReturnType(method: GoMethod): GoType = methodInfo[method]!!.returnType
 
-    fun getMethodInfo(method: Long) = methodInfo[method]!!
+    fun getMethodInfo(method: GoMethod) = methodInfo[method]!!
 
-    fun setMethodInfo(method: Long, info: GoMethodInfo) {
+    fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
         methodInfo[method] = info
     }
 
-    fun getFreeVariables(method: Long): Array<UExpr<USort>>? = methodFreeVariables[method]
+    fun getFreeVariables(method: GoMethod): Array<UExpr<USort>>? = freeVariables[method]
 
-    fun getFreeVariablesCount(method: Long): Int = getFreeVariables(method)?.size ?: 0
+    fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
 
-    fun setFreeVariables(method: Long, freeVariables: Array<UExpr<USort>>) {
-        methodFreeVariables[method] = freeVariables
+    fun setFreeVariables(method: GoMethod, freeVariables: Array<UExpr<USort>>) {
+        this.freeVariables[method] = freeVariables
+    }
+
+    fun getDeferred(method: GoMethod): ArrayDeque<GoCall> = deferred[method]!!
+
+    fun addDeferred(method: GoMethod, call: GoCall) {
+        if (method !in deferred) {
+            deferred[method] = ArrayDeque()
+        }
+        deferred[method]!!.addLast(call)
     }
 
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {

@@ -303,6 +303,12 @@ class GoMachineTest {
     }
 
     @Test
+    fun testTypeAssertFail() {
+        val results = machine.analyzeAndResolve(Path.getProgram("playground.go"), "typeAssertFail", false)
+        println(results)
+    }
+
+    @Test
     fun testCallSwap() {
         val machine = GoMachine(
             UMachineOptions(
@@ -353,6 +359,12 @@ class GoMachineTest {
     @Test
     fun testCallStructSquarerSqr() {
         val results = machine.analyzeAndResolve(Path.getProgram("call.go"), "callStructSquarerSqr", false)
+        println(results)
+    }
+
+    @Test
+    fun testDeferSimple() {
+        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "simple", false)
         println(results)
     }
 }
