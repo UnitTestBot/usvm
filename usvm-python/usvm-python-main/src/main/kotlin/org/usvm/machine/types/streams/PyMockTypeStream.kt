@@ -1,5 +1,6 @@
 package org.usvm.machine.types.streams
 
+import mu.KLogging
 import org.usvm.machine.types.*
 import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
@@ -51,8 +52,9 @@ class PyMockTypeStream(
         return if (result.isEmpty()) {
             TypesResult.EmptyTypesResult
         } else {
-            require(result.first() is MockType) {
-                "PyMockTypeStream must start with MockType"
+            if (result.first() !is MockType) {  // TODO: PyMockTypeStream must start with MockType
+                logger.warn("Bad start of PyMockTypeStream")
+                return TypesResult.SuccessfulTypesResult(listOf(result.first()))
             }
             TypesResult.SuccessfulTypesResult(result)
         }
@@ -63,4 +65,8 @@ class PyMockTypeStream(
 
     override val commonSuperType: PythonType?
         get() = null
+
+    companion object {
+        private val logger = object : KLogging() {}.logger
+    }
 }

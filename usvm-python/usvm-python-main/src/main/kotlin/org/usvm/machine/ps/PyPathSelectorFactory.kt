@@ -1,5 +1,7 @@
 package org.usvm.machine.ps
 
+import org.usvm.PathNode
+import org.usvm.language.PyInstruction
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.PyModelHolder
@@ -7,7 +9,6 @@ import org.usvm.machine.ps.strategies.impls.*
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
-import org.usvm.ps.BfsPathSelector
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.RandomTreePathSelector
 import org.usvm.python.model.PyTupleObject
@@ -25,6 +26,7 @@ fun createPyPathSelector(
     random: Random,
     newStateObserver: NewStateObserver
 ): PyVirtualPathSelector<*, *> {
+    val initialNode = initialState.pathNode
     val selector = when (type) {
         PyPathSelectorType.BaselinePriorityDfs ->
             createBaselinePriorityDfsPyPathSelector(ctx, random, newStateObserver)
@@ -35,32 +37,39 @@ fun createPyPathSelector(
         PyPathSelectorType.BaselinePriorityNumberOfVirtualDfs ->
             createBaselinePriorityNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
 
+        PyPathSelectorType.BaselineWeightedNumberOfVirtualRandomTree ->
+            createBaselineWeightedNumberOfVirtualRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+
         PyPathSelectorType.BaselinePriorityNumberOfInstructionsDfs ->
             createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(ctx, random, newStateObserver)
 
+        PyPathSelectorType.BaselinePriorityNumberOfInstructionsRandomTree ->
+            createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+
         PyPathSelectorType.BaselinePriorityPlusTypeRatingByHintsDfs ->
             createTypeRatingByHintsDfsPyPathSelector(ctx, random, newStateObserver)
-
-        PyPathSelectorType.DelayedForkByInstructionPriorityDfs ->
-            createDelayedForkByInstructionPriorityDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionWeightedDfs ->
             createDelayedForkByInstructionWeightedDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionWeightedRandomTree ->
-            createDelayedForkByInstructionWeightedRandomTreePyPathSelector(initialState, ctx, random, newStateObserver)
+            createDelayedForkByInstructionWeightedRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfVirtualDfs ->
             createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
 
-        PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfVirtualDfs ->
-            createDelayedForkByInstructionWeightedNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
+        PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfVirtualRandomTree ->
+            createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfInstructionsDfs ->
             createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(ctx, random, newStateObserver)
 
-        PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfInstructionsDfs ->
-            createDelayedForkByInstructionWeightedNumberOfInstructionDfsPyPathSelector(ctx, random, newStateObserver)
+        PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfInstructionsRandomTree ->
+            createDelayedForkByInstructionPriorityNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+
+        PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfInstructionsRandomTree ->
+            createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+
     }
     selector.add(listOf(initialState))
     return selector
@@ -109,6 +118,32 @@ fun createBaselinePriorityNumberOfVirtualDfsPyPathSelector(
         newStateObserver
     )
 
+fun createBaselineWeightedNumberOfVirtualRandomTreePyPathSelector(
+    initialNode: PathNode<PyInstruction>,
+    ctx: PyContext,
+    random: Random,
+    newStateObserver: NewStateObserver
+): PyVirtualPathSelector<*, *> =
+    PyVirtualPathSelector(
+        ctx,
+        makeBaselineWeightedActionStrategy(random),
+        BaselineDelayedForkStrategy(),
+        BaselineDFGraphCreation {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = true,
+                ::calculateNumberOfVirtual,
+                ::mockWeight
+            ) {
+                RandomTreePathSelector.fromRoot(
+                    initialNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
+            }
+        },
+        newStateObserver
+    )
+
 fun createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
@@ -119,23 +154,41 @@ fun createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(
         makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
         BaselineDFGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = false,
+                ::calculateNumberOfInstructions,
+                ::instructionWeight
+            ) {
                 DfsPathSelector()
             }
         },
         newStateObserver
     )
 
-fun createDelayedForkByInstructionPriorityDfsPyPathSelector(
+fun createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(
+    initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
     newStateObserver: NewStateObserver
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
-        makeDelayedForkByInstructionPriorityStrategy(random),
+        makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
-        DelayedForkByInstructionGraphCreation { DfsPathSelector() },
+        BaselineDFGraphCreation {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = false,
+                ::calculateNumberOfInstructions,
+                ::instructionWeight
+            ) {
+                RandomTreePathSelector.fromRoot(
+                    initialNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
+            }
+        },
         newStateObserver
     )
 
@@ -153,7 +206,7 @@ fun createDelayedForkByInstructionWeightedDfsPyPathSelector(
     )
 
 fun createDelayedForkByInstructionWeightedRandomTreePyPathSelector(
-    initialState: PyState,
+    initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
     newStateObserver: NewStateObserver
@@ -164,7 +217,7 @@ fun createDelayedForkByInstructionWeightedRandomTreePyPathSelector(
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
             RandomTreePathSelector.fromRoot(
-                initialState.pathNode,
+                initialNode,
                 randomNonNegativeInt = { random.nextInt(0, it) }
             )
         },
@@ -188,6 +241,33 @@ fun createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(
         newStateObserver
     )
 
+
+fun createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelector(
+    initialNode: PathNode<PyInstruction>,
+    ctx: PyContext,
+    random: Random,
+    newStateObserver: NewStateObserver
+): PyVirtualPathSelector<*, *> =
+    PyVirtualPathSelector(
+        ctx,
+        makeDelayedForkByInstructionWeightedStrategy(random),
+        BaselineDelayedForkStrategy(),
+        DelayedForkByInstructionGraphCreation {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = true,
+                ::calculateNumberOfVirtual,
+                ::mockWeight
+            ) {
+                RandomTreePathSelector.fromRoot(
+                    initialNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
+            }
+        },
+        newStateObserver
+    )
+
 fun createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
@@ -205,24 +285,34 @@ fun createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(
         newStateObserver
     )
 
-fun createDelayedForkByInstructionWeightedNumberOfVirtualDfsPyPathSelector(
+fun createDelayedForkByInstructionPriorityNumberOfInstructionsRandomTreePyPathSelector(
+    initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
     newStateObserver: NewStateObserver
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
-        makeDelayedForkByInstructionWeightedStrategy(random),
+        makeDelayedForkByInstructionPriorityStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
-                DfsPathSelector()
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = false,
+                ::calculateNumberOfInstructions,
+                ::instructionWeight
+            ) {
+                RandomTreePathSelector.fromRoot(
+                    initialNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
             }
         },
         newStateObserver
     )
 
-fun createDelayedForkByInstructionWeightedNumberOfInstructionDfsPyPathSelector(
+fun createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSelector(
+    initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
     newStateObserver: NewStateObserver
@@ -232,8 +322,16 @@ fun createDelayedForkByInstructionWeightedNumberOfInstructionDfsPyPathSelector(
         makeDelayedForkByInstructionWeightedStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
-                DfsPathSelector()
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = false,
+                ::calculateNumberOfInstructions,
+                ::instructionWeight
+            ) {
+                RandomTreePathSelector.fromRoot(
+                    initialNode,
+                    randomNonNegativeInt = { random.nextInt(0, it) }
+                )
             }
         },
         newStateObserver

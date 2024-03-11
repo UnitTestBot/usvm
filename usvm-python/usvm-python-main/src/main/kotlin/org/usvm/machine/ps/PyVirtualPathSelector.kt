@@ -197,6 +197,6 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
     }
 
     companion object {
-        val logger = object : KLogging() {}.logger
+        private val logger = object : KLogging() {}.logger
     }
 }
