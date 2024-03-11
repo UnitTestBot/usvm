@@ -16,7 +16,7 @@ import java.util.stream.DoubleStream;
 
 import static org.usvm.api.mock.UMockKt.assume;
 
-@SuppressWarnings("IfStatementWithIdenticalBranches")
+@SuppressWarnings({"IfStatementWithIdenticalBranches", "lossy-conversions"})
 public class DoubleStreamExample {
     DoubleStream returningStreamAsParameterExample(DoubleStream s) {
         assume(s != null);

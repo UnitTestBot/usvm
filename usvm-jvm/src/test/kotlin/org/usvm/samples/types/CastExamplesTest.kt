@@ -75,5 +75,5 @@ internal class CastExamplesTest : JavaMethodTestRunner() {
     }
 
     // Special cast to emulate Java binary numeric promotion
-    private fun Number.charInt() = toChar().code
+    private fun Number.charInt() = toInt().toChar().code
 }

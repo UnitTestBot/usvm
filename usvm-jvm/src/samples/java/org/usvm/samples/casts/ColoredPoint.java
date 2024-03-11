@@ -2,7 +2,7 @@ package org.usvm.samples.casts;
 
 import java.util.Objects;
 
-public class ColoredPoint extends Point implements Colorable {
+final public class ColoredPoint extends Point implements Colorable {
     public int color;
 
     public ColoredPoint(int x, int y, int color) {

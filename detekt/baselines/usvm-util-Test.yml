@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>BracesOnIfStatements:GraphUtilsDistanceTests.kt$GraphUtilsDistanceTests$if</ID>
+    <ID>Filename:RegionTreeTests.kt$org.usvm.regions.RegionTreeTests.kt</ID>
+    <ID>FinalNewline:CachingSequenceTest.kt$org.usvm.algorithms.CachingSequenceTest.kt</ID>
+    <ID>FinalNewline:DisjointSetsTests.kt$org.usvm.algorithms.DisjointSetsTests.kt</ID>
+    <ID>FinalNewline:ProductRegionTest.kt$org.usvm.regions.ProductRegionTest.kt</ID>
+    <ID>FinalNewline:RegionTreeIteratorTest.kt$org.usvm.regions.RegionTreeIteratorTest.kt</ID>
+    <ID>FinalNewline:RegionTreeTests.kt$org.usvm.regions.RegionTreeTests.kt</ID>
+    <ID>FinalNewline:SetRegionTest.kt$org.usvm.regions.SetRegionTest.kt</ID>
+    <ID>MatchingDeclarationName:RegionTreeTests.kt$RegionsTest</ID>
+    <ID>MaxChainedCallsOnSameLine:RegionTreeTests.kt$RegionsTest$loc0.entries.entries.first().value.first</ID>
+    <ID>MaxChainedCallsOnSameLine:RegionTreeTests.kt$RegionsTest$loc2.entries.entries.first().value.first</ID>
+    <ID>MaxChainedCallsOnSameLine:RegionTreeTests.kt$RegionsTest$loc3.entries.entries.first().value.first</ID>
+    <ID>MaxChainedCallsOnSameLine:RegionTreeTests.kt$RegionsTest$loc4_5.entries.entries.first().value.first</ID>
+    <ID>MaxLineLength:GraphUtilsDistanceTests.kt$GraphUtilsDistanceTests$fun</ID>
+    <ID>MaximumLineLength:GraphUtilsDistanceTests.kt$GraphUtilsDistanceTests$ </ID>
+    <ID>NewLineAtEndOfFile:CachingSequenceTest.kt$org.usvm.algorithms.CachingSequenceTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DisjointSetsTests.kt$org.usvm.algorithms.DisjointSetsTests.kt</ID>
+    <ID>NewLineAtEndOfFile:ProductRegionTest.kt$org.usvm.regions.ProductRegionTest.kt</ID>
+    <ID>NewLineAtEndOfFile:RegionTreeIteratorTest.kt$org.usvm.regions.RegionTreeIteratorTest.kt</ID>
+    <ID>NewLineAtEndOfFile:RegionTreeTests.kt$org.usvm.regions.RegionTreeTests.kt</ID>
+    <ID>NewLineAtEndOfFile:SetRegionTest.kt$org.usvm.regions.SetRegionTest.kt</ID>
+    <ID>NoConsecutiveBlankLines:CachingSequenceTest.kt$CachingSequenceTest$ </ID>
+    <ID>NoConsecutiveBlankLines:IntIntervalsRegionTest.kt$IntIntervalsRegionTest$ </ID>
+    <ID>NoConsecutiveBlankLines:RegionTreeIteratorTest.kt$RegionTreeIteratorTest$ </ID>
+    <ID>NoMultipleSpaces:RegionTreeIteratorTest.kt$RegionTreeIteratorTest$ </ID>
+    <ID>NoMultipleSpaces:SetRegionTest.kt$SetRegionTest$ </ID>
+    <ID>NoUnusedImports:DisjointSetsTests.kt$org.usvm.algorithms.DisjointSetsTests.kt</ID>
+    <ID>ParameterListWrapping:GraphUtilsDistanceTests.kt$GraphUtilsDistanceTests$(graph: SimpleGraph, startVertex: Int, expected: Map&lt;Int, UInt&gt;)</ID>
+    <ID>ParameterListWrapping:IntIntervalsRegionTest.kt$IntIntervalsRegionTest$( universumLength: Int, count: Int, random: Random, )</ID>
+    <ID>SpacingAroundColon:WeightedAaTreeTests.kt$WeightedAaTreeTests$:</ID>
+    <ID>UnderscoresInNumericLiterals:RandomizedPriorityCollectionTests.kt$RandomizedPriorityCollectionTests$10000</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val loc1_6 = tree3.localize(seg1_6)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val loc4_5 = tree3.localize(seg4_5)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val seg0_10 = SetRegion.ofSet(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val seg1_6 = SetRegion.ofSet(1, 2, 3, 4, 5, 6)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val seg2_4 = SetRegion.ofSet(2, 3, 4)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val seg3_5 = SetRegion.ofSet(3, 4, 5)</ID>
+    <ID>VariableNaming:RegionTreeTests.kt$RegionsTest$val seg4_5 = SetRegion.ofSet(4, 5)</ID>
+  </CurrentIssues>
+</SmellBaseline>

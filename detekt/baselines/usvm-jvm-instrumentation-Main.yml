@@ -1,0 +1,902 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>AnnotationOnSeparateLine:Classloader.kt$@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")</ID>
+    <ID>AnnotationOnSeparateLine:InstrumentedProcessModel.Generated.kt$@Suppress("DEPRECATION") InstrumentedProcessModel.create(lifetime, this)</ID>
+    <ID>AnnotationOnSeparateLine:InstrumentedProcessModel.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>AnnotationOnSeparateLine:InstrumentedProcessRoot.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>AnnotationOnSeparateLine:SyncProtocolModel.Generated.kt$@Suppress("DEPRECATION") SyncProtocolModel.create(lifetime, this)</ID>
+    <ID>AnnotationOnSeparateLine:SyncProtocolModel.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>AnnotationOnSeparateLine:SyncProtocolRoot.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>AnnotationOnSeparateLine:UTestExpressionExecutor.kt$@file:Suppress("UNCHECKED_CAST")</ID>
+    <ID>ArgumentListWrapping:Classloader.kt$URLClassPathLoader$(classPath.map { it.toURI().toURL() }.toTypedArray(), AccessController.getContext())</ID>
+    <ID>ArgumentListWrapping:Descriptor.kt$UTestObjectDescriptor$(",")</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$("DEPRECATION")</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$(InstrumentedProcessModel::class)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$(lifetime, this)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(ctx, buffer)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(ctx,buffer, it)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(value.cause)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(value.result)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(ctx, buffer)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(ctx, buffer, v)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(ctx,buffer, it)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(it)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(v)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(value.argsDescriptors)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(value.instanceDescriptor)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(value.statics)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$("Use protocol.instrumentedProcessModel or revise the extension scope instead", ReplaceWith("protocol.instrumentedProcessModel"))</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$("protocol.instrumentedProcessModel")</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$(ctx, buffer)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$(ctx,buffer, value.fieldDescriptor)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(ctx, buffer)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(ctx,buffer, v)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(ctx,buffer, value.callMethodExpression)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)</ID>
+    <ID>ArgumentListWrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(value.initStatements)</ID>
+    <ID>ArgumentListWrapping:Jar.kt$LabelFilterer$( newReplacements.getValue(tryCatch.start), newReplacements.getValue(tryCatch.end), newReplacements.getValue(tryCatch.handler), tryCatch.type )</ID>
+    <ID>ArgumentListWrapping:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$( jcRawFieldRef, StaticFieldAccessType.GET, jcClasspath )</ID>
+    <ID>ArgumentListWrapping:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$( jcRawFieldRef, StaticFieldAccessType.SET, jcClasspath )</ID>
+    <ID>ArgumentListWrapping:MockClassRebuilder.kt$MockClassRebuilder$( declaringClass = mockedJcVirtualClass.typename, methodName = methodName, argumentTypes = argumentTypes, returnType = returnType, args = args.map { convertJcRawValue(it) })</ID>
+    <ID>ArgumentListWrapping:MockClassRebuilder.kt$MockClassRebuilder$( declaringClass = mockedJcVirtualClass.typename, methodName = methodName, argumentTypes = argumentTypes, returnType = returnType, instance = convertJcRawValue(instance), args = args.map { convertJcRawValue(it) })</ID>
+    <ID>ArgumentListWrapping:MockClassRebuilder.kt$MockClassRebuilder$( owner = newMethod, throwable = convertJcRawValue(inst.throwable), handler = JcRawLabelRef(inst.handler.name), entries = inst.entries.map { JcRawCatchEntry( acceptedThrowable = it.acceptedThrowable, startInclusive = JcRawLabelRef(it.startInclusive.name), endExclusive = JcRawLabelRef(it.endExclusive.name) ) })</ID>
+    <ID>ArgumentListWrapping:MockHelper.kt$MockHelper$( createGetMockValueMethodName(mockTypeName), mockedMethodId, jcThisReference )</ID>
+    <ID>ArgumentListWrapping:Printer.kt$TracePrinter$(maxLengthMethod)</ID>
+    <ID>ArgumentListWrapping:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$(cp)</ID>
+    <ID>ArgumentListWrapping:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$(jFieldValue, jcField.type.toJcType(cp))</ID>
+    <ID>ArgumentListWrapping:SyncProtocolModel.Generated.kt$("DEPRECATION")</ID>
+    <ID>ArgumentListWrapping:SyncProtocolModel.Generated.kt$(SyncProtocolModel::class)</ID>
+    <ID>ArgumentListWrapping:SyncProtocolModel.Generated.kt$(lifetime, this)</ID>
+    <ID>ArgumentListWrapping:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$("Use protocol.syncProtocolModel or revise the extension scope instead", ReplaceWith("protocol.syncProtocolModel"))</ID>
+    <ID>ArgumentListWrapping:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$("protocol.syncProtocolModel")</ID>
+    <ID>ArgumentListWrapping:UTestConcreteExecutor.kt$UTestConcreteExecutor$(File.pathSeparator)</ID>
+    <ID>ArgumentListWrapping:UTestConcreteExecutor.kt$UTestConcreteExecutor$(instrumentationClassFactory, testingProjectClasspath.joinToString(File.pathSeparator), jcClasspath, timeout)</ID>
+    <ID>ArgumentListWrapping:UTestExecutor.kt$UTestExecutor$( trace.trace, methodInvocationResultDescriptor, initExecutionState, resultExecutionState )</ID>
+    <ID>ArgumentListWrapping:UTestExecutor.kt$UTestExecutor$(accessedStatics, descriptorBuilder)</ID>
+    <ID>ArgumentListWrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$( uTestCreateArrayExpression.elementType.toJavaClass( workerClassLoader ), size )</ID>
+    <ID>ArgumentListWrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$("Cant cast object of type ${uTestCastExpression.expr.type} to ${uTestCastExpression.type}")</ID>
+    <ID>BracesOnIfStatements:ClassTransformer.kt$ClassTransformer$if</ID>
+    <ID>BracesOnIfStatements:Jar.kt$JarBuilder$if</ID>
+    <ID>BracesOnIfStatements:Jar.kt$LabelFilterer$else</ID>
+    <ID>BracesOnIfStatements:Try.kt$else</ID>
+    <ID>BracesOnWhenStatements:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$when</ID>
+    <ID>BracesOnWhenStatements:Jar.kt$UsvmClassWriter$when</ID>
+    <ID>BracesOnWhenStatements:UTestInstSerializer.kt$UTestInstSerializer$when</ID>
+    <ID>BracesOnWhenStatements:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$when</ID>
+    <ID>CommentSpacing:Api.kt$ArithmeticOperationType.EQ$//Relational</ID>
+    <ID>CommentSpacing:Api.kt$ArithmeticOperationType.OR$//Bitwise</ID>
+    <ID>CommentSpacing:Api.kt$ArithmeticOperationType.PLUS$//Arithmetic</ID>
+    <ID>CommentSpacing:Api.kt$UTestBinaryConditionExpression$//Probably add functionality in jacodb?</ID>
+    <ID>CommentSpacing:Api.kt$UTestBinaryConditionExpression$//TODO!! What if trueBranch and elseBranch have different types of the last instruction? Shouldn't we find their LCA?</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//If something gone wrong with RD</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Max depth of descriptor construction</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Number of stacktrace elements for exception construction</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Passes as environment parameter</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Rollback strategy</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//TODO move in common settings file</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Timeout for executor process waiting (should be in seconds)</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Timeout for method execution</ID>
+    <ID>CommentSpacing:Constants.kt$InstrumentationModuleConstants$//Timeout for test execution</ID>
+    <ID>CommentSpacing:Descriptor.kt$UTestObjectDescriptor$//TODO: Avoid recursion via DescriptorPrinter</ID>
+    <ID>CommentSpacing:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$//Proccess runner wrapper</ID>
+    <ID>CommentSpacing:InstrumentedProcess.kt$InstrumentedProcess$//Main class for worker process</ID>
+    <ID>CommentSpacing:InstrumentedProcess.kt$InstrumentedProcess$//TODO Return initial state with timeouts</ID>
+    <ID>CommentSpacing:InstrumentedProcess.kt$InstrumentedProcess$//persistent(location = "/home/.usvm/jcdb.db", clearOnStart = false)</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ClassToId$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$//secondary constructor</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//companion</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//contexts</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//deepClone</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//equals trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//fields</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//hash code trait</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//initializer</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//methods</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//pretty print</ID>
+    <ID>CommentSpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//secondary constructor</ID>
+    <ID>CommentSpacing:Jacodb.kt$//Because of jcdb</ID>
+    <ID>CommentSpacing:Jar.kt$//Workaround for bug with locals translation</ID>
+    <ID>CommentSpacing:JcInstructionTracer.kt$JcInstructionTracer$//Jacodb instructions tracer</ID>
+    <ID>CommentSpacing:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$//Copy of clinit method to be able to rollback statics between executions!</ID>
+    <ID>CommentSpacing:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$//We are not able to call &lt;clinit&gt; method directly with reflection</ID>
+    <ID>CommentSpacing:MockHelper.kt$MockHelper$//Also we need to rebuild constructors</ID>
+    <ID>CommentSpacing:MockHelper.kt$MockHelper$//Handle methods with default implementation</ID>
+    <ID>CommentSpacing:MockHelper.kt$MockHelper$//Load mockedClass</ID>
+    <ID>CommentSpacing:MockHelper.kt$MockHelper$//TODO Decide what to do with partially mocked classes</ID>
+    <ID>CommentSpacing:MockHelper.kt$MockHelper$//Using for not remock methods of usual classes</ID>
+    <ID>CommentSpacing:SerializationUtils.kt$//We need this because of jacodb peculiarity with typenames...</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//companion</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//contexts</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//deepClone</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//equals trait</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//fields</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//hash code trait</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//initializer</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//methods</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//pretty print</ID>
+    <ID>CommentSpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$//secondary constructor</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//companion</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//contexts</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//deepClone</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//equals trait</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//fields</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//hash code trait</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//initializer</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//methods</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//pretty print</ID>
+    <ID>CommentSpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//secondary constructor</ID>
+    <ID>CommentSpacing:TraceHelper.kt$TraceHelper$//We need virtual method to insert it invocation in instrumented instruction list</ID>
+    <ID>CommentSpacing:UTestExecutor.kt$UTestExecutor$//In case of new worker classloader</ID>
+    <ID>CommentSpacing:UTestExpressionExecutor.kt$UTestExpressionExecutor$//Modify bytecode according to mocks</ID>
+    <ID>CommentSpacing:UTestExpressionExecutor.kt$UTestExpressionExecutor$//Set mocked fields</ID>
+    <ID>CommentSpacing:Value2DescriptorConverter.kt$Value2DescriptorConverter$//TODO! Decide for which fields descriptors should be build</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//In case of jdk classes which are not in Bootstrap classloader</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//Invoking clinit method for loaded classes for statics reset between executions</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//Loaded classes cache</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//TODO do it in bytecode</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//To avoid cyclic references first reset all static fields to default values, then we need to call &lt;clinit&gt;</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//Using for static descriptor building after class initialization</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//We can't build descriptors for static for some reason</ID>
+    <ID>CommentSpacing:WorkerClassLoader.kt$WorkerClassLoader$//cannot access some classes, for example, enums</ID>
+    <ID>ConstructorParameterNaming:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$private val _callUTest: RdCall&lt;SerializedUTest, ExecutionResult&gt;</ID>
+    <ID>ConstructorParameterNaming:SyncProtocolModel.Generated.kt$SyncProtocolModel$private val _synchronizationSignal: RdSignal&lt;String&gt;</ID>
+    <ID>DoubleMutabilityForCollection:Value2DescriptorConverter.kt$Value2DescriptorConverter$var uTestExecutorCache: MutableList&lt;Pair&lt;Any?, UTestInst&gt;&gt; = mutableListOf()</ID>
+    <ID>EmptyElseBlock:Try.kt${}</ID>
+    <ID>EmptyFunctionBlock:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion${ }</ID>
+    <ID>Filename:Classloader.kt$org.usvm.instrumentation.util.Classloader.kt</ID>
+    <ID>Filename:Constants.kt$org.usvm.instrumentation.util.Constants.kt</ID>
+    <ID>Filename:Printer.kt$org.usvm.instrumentation.util.Printer.kt</ID>
+    <ID>FinalNewline:Agent.kt$org.usvm.instrumentation.agent.Agent.kt</ID>
+    <ID>FinalNewline:ClassTransformer.kt$org.usvm.instrumentation.agent.ClassTransformer.kt</ID>
+    <ID>FinalNewline:Classloader.kt$org.usvm.instrumentation.util.Classloader.kt</ID>
+    <ID>FinalNewline:Constants.kt$org.usvm.instrumentation.util.Constants.kt</ID>
+    <ID>FinalNewline:Descriptor.kt$org.usvm.instrumentation.testcase.descriptor.Descriptor.kt</ID>
+    <ID>FinalNewline:Descriptor2ValueConverter.kt$org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter.kt</ID>
+    <ID>FinalNewline:Instrumentation.kt$org.usvm.instrumentation.util.Instrumentation.kt</ID>
+    <ID>FinalNewline:InstrumentedProcess.kt$org.usvm.instrumentation.rd.InstrumentedProcess.kt</ID>
+    <ID>FinalNewline:Jacodb.kt$org.usvm.instrumentation.util.Jacodb.kt</ID>
+    <ID>FinalNewline:JcInstructionTracer.kt$org.usvm.instrumentation.instrumentation.JcInstructionTracer.kt</ID>
+    <ID>FinalNewline:JcInstrumenter.kt$org.usvm.instrumentation.instrumentation.JcInstrumenter.kt</ID>
+    <ID>FinalNewline:JcInstrumenterFactory.kt$org.usvm.instrumentation.instrumentation.JcInstrumenterFactory.kt</ID>
+    <ID>FinalNewline:JcRuntimeTraceInstrumenter.kt$org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenter.kt</ID>
+    <ID>FinalNewline:MockClassRebuilder.kt$org.usvm.instrumentation.mock.MockClassRebuilder.kt</ID>
+    <ID>FinalNewline:NoInstrumentation.kt$org.usvm.instrumentation.instrumentation.NoInstrumentation.kt</ID>
+    <ID>FinalNewline:Printer.kt$org.usvm.instrumentation.util.Printer.kt</ID>
+    <ID>FinalNewline:RdProcessRunner.kt$org.usvm.instrumentation.executor.RdProcessRunner.kt</ID>
+    <ID>FinalNewline:RdUtils.kt$org.usvm.instrumentation.rd.RdUtils.kt</ID>
+    <ID>FinalNewline:Response.kt$org.usvm.instrumentation.testcase.api.Response.kt</ID>
+    <ID>FinalNewline:SerializationContext.kt$org.usvm.instrumentation.serializer.SerializationContext.kt</ID>
+    <ID>FinalNewline:SerializationUtils.kt$org.usvm.instrumentation.serializer.SerializationUtils.kt</ID>
+    <ID>FinalNewline:StaticDescriptorsBuilder.kt$org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder.kt</ID>
+    <ID>FinalNewline:TraceHelper.kt$org.usvm.instrumentation.instrumentation.TraceHelper.kt</ID>
+    <ID>FinalNewline:Tracer.kt$org.usvm.instrumentation.instrumentation.Tracer.kt</ID>
+    <ID>FinalNewline:Try.kt$org.usvm.instrumentation.util.Try.kt</ID>
+    <ID>FinalNewline:UTest.kt$org.usvm.instrumentation.testcase.UTest.kt</ID>
+    <ID>FinalNewline:UTestConcreteExecutor.kt$org.usvm.instrumentation.executor.UTestConcreteExecutor.kt</ID>
+    <ID>FinalNewline:UTestExecutor.kt$org.usvm.instrumentation.rd.UTestExecutor.kt</ID>
+    <ID>FinalNewline:UTestExpressionExecutor.kt$org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor.kt</ID>
+    <ID>FinalNewline:UTestUnexpectedExecutionBuilder.kt$org.usvm.instrumentation.testcase.descriptor.UTestUnexpectedExecutionBuilder.kt</ID>
+    <ID>FinalNewline:UTestUtils.kt$org.usvm.instrumentation.util.UTestUtils.kt</ID>
+    <ID>FinalNewline:UTestValueDescriptorSerializer.kt$org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.kt</ID>
+    <ID>FinalNewline:Value2DescriptorConverter.kt$org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter.kt</ID>
+    <ID>FinalNewline:WorkerClassLoader.kt$org.usvm.instrumentation.classloader.WorkerClassLoader.kt</ID>
+    <ID>ForbiddenMethodCall:UTestConcreteExecutor.kt$UTestConcreteExecutor$println("Cant init rdProcess")</ID>
+    <ID>FunctionNaming:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$private fun `enum`(descriptor: UTestEnumValueDescriptor): Any</ID>
+    <ID>FunctionNaming:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$private fun `exception`(descriptor: UTestExceptionDescriptor): Any</ID>
+    <ID>FunctionNaming:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$private fun `object`(descriptor: UTestObjectDescriptor): Any</ID>
+    <ID>FunctionNaming:Try.kt$inline fun &lt;T&gt; `try`(body: () -&gt; T): Try&lt;T&gt;</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `boolean array`(array: BooleanArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `byte array`(array: ByteArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `char array`(array: CharArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `class`(value: Class&lt;*&gt;): UTestValueDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `double array`(array: DoubleArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `enum`(value: Any, depth: Int): UTestEnumValueDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `exception`(exception: Throwable, depth: Int): UTestExceptionDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `float array`(array: FloatArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `int array`(array: IntArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `long array`(array: LongArray): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `null`(type: JcType)</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `object array`(array: Array&lt;*&gt;, depth: Int): UTestArrayDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `object`(value: Any, depth: Int): UTestValueDescriptor</ID>
+    <ID>FunctionNaming:Value2DescriptorConverter.kt$Value2DescriptorConverter$private fun `short array`(array: ShortArray): UTestArrayDescriptor</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ClassToId$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ClassToId$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ClassToId$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ClassToId</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ClassToId)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecuteParams</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecuteParams)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecutionResult</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionResult)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ExecutionStateSerialized</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ExecutionStateSerialized)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$override fun deepClone(): InstrumentedProcessModel</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$@JvmStatic @Deprecated("Use protocol.instrumentedProcessModel or revise the extension scope instead", ReplaceWith("protocol.instrumentedProcessModel")) fun create(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$@JvmStatic @JvmName("internalCreateModel") @Deprecated("Use create instead", ReplaceWith("create(lifetime, protocol)")) internal fun createModel(lifetime: Lifetime, protocol: IProtocol): InstrumentedProcessModel</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$override fun registerSerializersCore(serializers: ISerializers)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SerializedStaticField</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SerializedStaticField)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$override fun equals(other: Any?): Boolean</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$override fun hashCode(): Int</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$@Suppress("UNCHECKED_CAST") override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): SerializedUTest</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: SerializedUTest)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$override fun deepClone(): InstrumentedProcessRoot</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$override fun registerSerializersCore(serializers: ISerializers)</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$override fun deepClone(): SyncProtocolModel</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$@JvmStatic @Deprecated("Use protocol.syncProtocolModel or revise the extension scope instead", ReplaceWith("protocol.syncProtocolModel")) fun create(lifetime: Lifetime, protocol: IProtocol): SyncProtocolModel</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$@JvmStatic @JvmName("internalCreateModel") @Deprecated("Use create instead", ReplaceWith("create(lifetime, protocol)")) internal fun createModel(lifetime: Lifetime, protocol: IProtocol): SyncProtocolModel</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$override fun registerSerializersCore(serializers: ISerializers)</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$override fun deepClone(): SyncProtocolRoot</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$override fun print(printer: PrettyPrinter)</ID>
+    <ID>FunctionStartOfBodySpacing:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$override fun registerSerializersCore(serializers: ISerializers)</ID>
+    <ID>ImportOrdering:Classloader.kt$import jdk.internal.loader.URLClassPath import jdk.internal.loader.Resource as InternalResource import java.io.File import java.io.InputStream import java.net.URL import java.security.AccessController import java.security.CodeSigner</ID>
+    <ID>ImportOrdering:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.framework.* import com.jetbrains.rd.framework.base.* import com.jetbrains.rd.framework.impl.* import com.jetbrains.rd.util.lifetime.* import com.jetbrains.rd.util.reactive.* import com.jetbrains.rd.util.string.* import com.jetbrains.rd.util.* import kotlin.time.Duration import kotlin.reflect.KClass import kotlin.jvm.JvmStatic</ID>
+    <ID>ImportOrdering:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.framework.* import com.jetbrains.rd.framework.base.* import com.jetbrains.rd.framework.impl.* import com.jetbrains.rd.util.lifetime.* import com.jetbrains.rd.util.reactive.* import com.jetbrains.rd.util.string.* import com.jetbrains.rd.util.* import kotlin.time.Duration import kotlin.reflect.KClass import kotlin.jvm.JvmStatic</ID>
+    <ID>ImportOrdering:RdProcessRunner.kt$import com.jetbrains.rd.framework.* import com.jetbrains.rd.framework.impl.RdCall import com.jetbrains.rd.util.lifetime.Lifetime import com.jetbrains.rd.util.lifetime.LifetimeDefinition import com.jetbrains.rd.util.threading.SingleThreadScheduler import com.jetbrains.rd.util.threading.SynchronousScheduler import kotlinx.coroutines.delay import org.jacodb.api.JcClassOrInterface import org.jacodb.api.JcClasspath import org.jacodb.api.cfg.JcInst import org.jacodb.api.ext.methods import org.usvm.instrumentation.generated.models.* import org.usvm.instrumentation.rd.* import org.usvm.instrumentation.util.findFieldByFullNameOrNull import org.usvm.instrumentation.serializer.SerializationContext import org.usvm.instrumentation.serializer.UTestInstSerializer.Companion.registerUTestInstSerializer import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer import org.usvm.instrumentation.testcase.UTest import org.usvm.instrumentation.testcase.api.* import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor import java.util.concurrent.CompletableFuture import java.util.concurrent.TimeUnit import kotlin.math.pow import kotlin.time.Duration import kotlin.time.Duration.Companion.milliseconds import kotlin.time.Duration.Companion.seconds</ID>
+    <ID>ImportOrdering:SerializationContext.kt$import org.jacodb.api.JcClasspath import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor import org.usvm.instrumentation.testcase.api.UTestInst import java.util.*</ID>
+    <ID>ImportOrdering:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.framework.* import com.jetbrains.rd.framework.base.* import com.jetbrains.rd.framework.impl.* import com.jetbrains.rd.util.lifetime.* import com.jetbrains.rd.util.reactive.* import com.jetbrains.rd.util.string.* import com.jetbrains.rd.util.* import kotlin.time.Duration import kotlin.reflect.KClass import kotlin.jvm.JvmStatic</ID>
+    <ID>ImportOrdering:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.framework.* import com.jetbrains.rd.framework.base.* import com.jetbrains.rd.framework.impl.* import com.jetbrains.rd.util.lifetime.* import com.jetbrains.rd.util.reactive.* import com.jetbrains.rd.util.string.* import com.jetbrains.rd.util.* import kotlin.time.Duration import kotlin.reflect.KClass import kotlin.jvm.JvmStatic</ID>
+    <ID>ImportOrdering:UTestExpressionExecutor.kt$import org.jacodb.api.JcArrayType import org.jacodb.api.JcField import org.jacodb.api.ext.* import org.usvm.instrumentation.classloader.WorkerClassLoader import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType import org.usvm.instrumentation.mock.MockHelper import org.usvm.instrumentation.testcase.api.* import org.usvm.instrumentation.collector.trace.MockCollector import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrapper import org.usvm.instrumentation.util.* import java.lang.ClassCastException import java.lang.IllegalArgumentException</ID>
+    <ID>ImportOrdering:UTestValueDescriptorSerializer.kt$import com.jetbrains.rd.framework.* import org.jacodb.api.JcField import org.jacodb.api.ext.* import org.usvm.instrumentation.util.stringType import org.usvm.instrumentation.testcase.descriptor.*</ID>
+    <ID>ImportOrdering:Value2DescriptorConverter.kt$import org.jacodb.api.JcField import org.jacodb.api.JcType import org.jacodb.api.ext.* import org.usvm.instrumentation.classloader.WorkerClassLoader import org.usvm.instrumentation.mock.MockHelper import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor import org.usvm.instrumentation.testcase.api.UTestExpression import org.usvm.instrumentation.testcase.api.UTestInst import org.usvm.instrumentation.testcase.api.UTestMock import org.usvm.instrumentation.util.* import java.util.*</ID>
+    <ID>Indentation:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$ </ID>
+    <ID>MagicNumber:Constants.kt$InstrumentationModuleConstants$10</ID>
+    <ID>MagicNumber:Constants.kt$InstrumentationModuleConstants$5</ID>
+    <ID>MagicNumber:Instrumentation.kt$9</ID>
+    <ID>MagicNumber:Instrumentation.kt$OpenModulesContainer$8</ID>
+    <ID>MagicNumber:Jar.kt$JarBuilder$1024</ID>
+    <ID>MagicNumber:JcInstructionTracer.kt$JcInstructionTracer$3</ID>
+    <ID>MagicNumber:JcInstructionTracer.kt$JcInstructionTracer$5</ID>
+    <ID>MagicNumber:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$9</ID>
+    <ID>MagicNumber:RdProcessRunner.kt$RdProcessRunner$3</ID>
+    <ID>MagicNumber:RdProcessRunner.kt$RdProcessRunner$5</ID>
+    <ID>MandatoryBracesLoops:Jar.kt$LabelFilterer$actualPrev = replacementsList[actualPrev]</ID>
+    <ID>MatchingDeclarationName:Classloader.kt$URLClassPathLoader</ID>
+    <ID>MatchingDeclarationName:Constants.kt$InstrumentationModuleConstants</ID>
+    <ID>MatchingDeclarationName:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot : RdExtBase</ID>
+    <ID>MatchingDeclarationName:Printer.kt$TracePrinter</ID>
+    <ID>MatchingDeclarationName:Reflection.kt$ReflectionUtils</ID>
+    <ID>MatchingDeclarationName:SyncProtocolModel.Generated.kt$SyncProtocolModel : RdExtBase</ID>
+    <ID>MatchingDeclarationName:SyncProtocolRoot.Generated.kt$SyncProtocolRoot : RdExtBase</ID>
+    <ID>MaxChainedCallsOnSameLine:Printer.kt$TracePrinter$element.location.method.enclosingClass.name.padStart(maxLengthClass)</ID>
+    <ID>MaxChainedCallsOnSameLine:Printer.kt$TracePrinter$it.location.method.enclosingClass.name.length</ID>
+    <ID>MaxLineLength:Api.kt$UTestBinaryConditionExpression$//TODO!! What if trueBranch and elseBranch have different types of the last instruction? Shouldn't we find their LCA?</ID>
+    <ID>MaxLineLength:Classloader.kt$URLClassPathLoader$private val urlClassPath = URLClassPath(classPath.map { it.toURI().toURL() }.toTypedArray(), AccessController.getContext())</ID>
+    <ID>MaxLineLength:Descriptor.kt$UTestObjectDescriptor$"UTestObjectDescriptor(type=$type, fields:${fields.entries.joinToString(",") { "${it.key.name} to ${it.value}}" }}"</ID>
+    <ID>MaxLineLength:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$listOf("-javaagent:${InstrumentationModuleConstants.pathToUsvmInstrumentationJar}=$instrumentationClassNameFactoryName")</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$buffer.writeNullable(value.cause) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$buffer.writeNullable(value.result) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$val cause = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$val result = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$buffer.writeList(value.argsDescriptors) { v -&gt; buffer.writeNullable(v) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it) } }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$buffer.writeNullable(value.instanceDescriptor) { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$buffer.writeNullable(value.statics) { buffer.writeList(it) { v -&gt; SerializedStaticField.write(ctx, buffer, v) } }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$val argsDescriptors = buffer.readList { buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer) } }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$val instanceDescriptor = buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$@Deprecated("Use protocol.instrumentedProcessModel or revise the extension scope instead", ReplaceWith("protocol.instrumentedProcessModel"))</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, value.fieldDescriptor)</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$val fieldDescriptor = (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer)</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;).write(ctx,buffer, value.callMethodExpression)</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$buffer.writeList(value.initStatements) { v -&gt; (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;).write(ctx,buffer, v) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$val callMethodExpression = (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;).read(ctx, buffer)</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$val initStatements = buffer.readList { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;).read(ctx, buffer) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessModel.Generated.kt$val IProtocol.instrumentedProcessModel get() = getOrCreateExtension(InstrumentedProcessModel::class) { @Suppress("DEPRECATION") InstrumentedProcessModel.create(lifetime, this) }</ID>
+    <ID>MaxLineLength:InstrumentedProcessRoot.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>MaxLineLength:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$jcClass.declaredMethods.filterNot { it.isConstructor || it.isClassInitializer || it.name == "values" || it.name == "valueOf" }</ID>
+    <ID>MaxLineLength:Printer.kt$TracePrinter$val method = "${element.location.method.name}${element.location.method.description}".padStart(maxLengthMethod)</ID>
+    <ID>MaxLineLength:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$private</ID>
+    <ID>MaxLineLength:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$val jFieldValueDescriptor = descriptorBuilder.buildDescriptorResultFromAny(jFieldValue, jcField.type.toJcType(cp))</ID>
+    <ID>MaxLineLength:SyncProtocolModel.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>MaxLineLength:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$@Deprecated("Use protocol.syncProtocolModel or revise the extension scope instead", ReplaceWith("protocol.syncProtocolModel"))</ID>
+    <ID>MaxLineLength:SyncProtocolModel.Generated.kt$val IProtocol.syncProtocolModel get() = getOrCreateExtension(SyncProtocolModel::class) { @Suppress("DEPRECATION") SyncProtocolModel.create(lifetime, this) }</ID>
+    <ID>MaxLineLength:SyncProtocolRoot.Generated.kt$@file:Suppress("EXPERIMENTAL_API_USAGE","EXPERIMENTAL_UNSIGNED_LITERALS","PackageDirectoryMismatch","UnusedImport","unused","LocalVariableName","CanBeVal","PropertyName","EnumEntryName","ClassName","ObjectPropertyName","UnnecessaryVariable","SpellCheckingInspection")</ID>
+    <ID>MaxLineLength:UTestConcreteExecutor.kt$UTestConcreteExecutor$)</ID>
+    <ID>MaxLineLength:UTestExecutor.kt$UTestExecutor$staticDescriptorsBuilder.buildDescriptorsForExecutedStatics(accessedStatics, descriptorBuilder).getOrThrow()</ID>
+    <ID>MaxLineLength:UTestExecutor.kt$UTestExecutor$}</ID>
+    <ID>MaxLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$ArithmeticOperationType.AND -&gt; lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong and rhvAsLong)</ID>
+    <ID>MaxLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$ArithmeticOperationType.OR -&gt; lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong or rhvAsLong)</ID>
+    <ID>MaxLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$ArithmeticOperationType.XOR -&gt; lhvAsDouble?.let { error("Bit operation on double impossible") } ?: (lhvAsLong xor rhvAsLong)</ID>
+    <ID>MaxLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$private</ID>
+    <ID>MaxLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$throw TestExecutorException("Cant cast object of type ${uTestCastExpression.expr.type} to ${uTestCastExpression.type}")</ID>
+    <ID>MaximumLineLength:Classloader.kt$URLClassPathLoader$ </ID>
+    <ID>MaximumLineLength:Descriptor.kt$UTestObjectDescriptor$ </ID>
+    <ID>MaximumLineLength:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$@</ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
+    <ID>MaximumLineLength:InstrumentedProcessModel.Generated.kt$val</ID>
+    <ID>MaximumLineLength:InstrumentedProcessRoot.Generated.kt$@</ID>
+    <ID>MaximumLineLength:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$ </ID>
+    <ID>MaximumLineLength:Printer.kt$TracePrinter$ </ID>
+    <ID>MaximumLineLength:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$ </ID>
+    <ID>MaximumLineLength:SyncProtocolModel.Generated.kt$@</ID>
+    <ID>MaximumLineLength:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
+    <ID>MaximumLineLength:SyncProtocolModel.Generated.kt$val</ID>
+    <ID>MaximumLineLength:SyncProtocolRoot.Generated.kt$@</ID>
+    <ID>MaximumLineLength:UTestConcreteExecutor.kt$UTestConcreteExecutor$ </ID>
+    <ID>MaximumLineLength:UTestExecutor.kt$UTestExecutor$ </ID>
+    <ID>MaximumLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$ </ID>
+    <ID>MayBeConst:Constants.kt$InstrumentationModuleConstants$//Max depth of descriptor construction val maxDepthOfDescriptorConstruction = 5</ID>
+    <ID>MayBeConst:Constants.kt$InstrumentationModuleConstants$//Number of stacktrace elements for exception construction val maxStackTraceElements = 10</ID>
+    <ID>NewLineAtEndOfFile:Agent.kt$org.usvm.instrumentation.agent.Agent.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassTransformer.kt$org.usvm.instrumentation.agent.ClassTransformer.kt</ID>
+    <ID>NewLineAtEndOfFile:Classloader.kt$org.usvm.instrumentation.util.Classloader.kt</ID>
+    <ID>NewLineAtEndOfFile:Constants.kt$org.usvm.instrumentation.util.Constants.kt</ID>
+    <ID>NewLineAtEndOfFile:Descriptor.kt$org.usvm.instrumentation.testcase.descriptor.Descriptor.kt</ID>
+    <ID>NewLineAtEndOfFile:Descriptor2ValueConverter.kt$org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter.kt</ID>
+    <ID>NewLineAtEndOfFile:Instrumentation.kt$org.usvm.instrumentation.util.Instrumentation.kt</ID>
+    <ID>NewLineAtEndOfFile:InstrumentedProcess.kt$org.usvm.instrumentation.rd.InstrumentedProcess.kt</ID>
+    <ID>NewLineAtEndOfFile:Jacodb.kt$org.usvm.instrumentation.util.Jacodb.kt</ID>
+    <ID>NewLineAtEndOfFile:JcInstructionTracer.kt$org.usvm.instrumentation.instrumentation.JcInstructionTracer.kt</ID>
+    <ID>NewLineAtEndOfFile:JcInstrumenter.kt$org.usvm.instrumentation.instrumentation.JcInstrumenter.kt</ID>
+    <ID>NewLineAtEndOfFile:JcInstrumenterFactory.kt$org.usvm.instrumentation.instrumentation.JcInstrumenterFactory.kt</ID>
+    <ID>NewLineAtEndOfFile:JcRuntimeTraceInstrumenter.kt$org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenter.kt</ID>
+    <ID>NewLineAtEndOfFile:MockClassRebuilder.kt$org.usvm.instrumentation.mock.MockClassRebuilder.kt</ID>
+    <ID>NewLineAtEndOfFile:NoInstrumentation.kt$org.usvm.instrumentation.instrumentation.NoInstrumentation.kt</ID>
+    <ID>NewLineAtEndOfFile:Printer.kt$org.usvm.instrumentation.util.Printer.kt</ID>
+    <ID>NewLineAtEndOfFile:RdProcessRunner.kt$org.usvm.instrumentation.executor.RdProcessRunner.kt</ID>
+    <ID>NewLineAtEndOfFile:RdUtils.kt$org.usvm.instrumentation.rd.RdUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:Response.kt$org.usvm.instrumentation.testcase.api.Response.kt</ID>
+    <ID>NewLineAtEndOfFile:SerializationContext.kt$org.usvm.instrumentation.serializer.SerializationContext.kt</ID>
+    <ID>NewLineAtEndOfFile:SerializationUtils.kt$org.usvm.instrumentation.serializer.SerializationUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:StaticDescriptorsBuilder.kt$org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder.kt</ID>
+    <ID>NewLineAtEndOfFile:TraceHelper.kt$org.usvm.instrumentation.instrumentation.TraceHelper.kt</ID>
+    <ID>NewLineAtEndOfFile:Tracer.kt$org.usvm.instrumentation.instrumentation.Tracer.kt</ID>
+    <ID>NewLineAtEndOfFile:Try.kt$org.usvm.instrumentation.util.Try.kt</ID>
+    <ID>NewLineAtEndOfFile:UTest.kt$org.usvm.instrumentation.testcase.UTest.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestConcreteExecutor.kt$org.usvm.instrumentation.executor.UTestConcreteExecutor.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestExecutor.kt$org.usvm.instrumentation.rd.UTestExecutor.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestExpressionExecutor.kt$org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestUnexpectedExecutionBuilder.kt$org.usvm.instrumentation.testcase.descriptor.UTestUnexpectedExecutionBuilder.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestUtils.kt$org.usvm.instrumentation.util.UTestUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestValueDescriptorSerializer.kt$org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.kt</ID>
+    <ID>NewLineAtEndOfFile:Value2DescriptorConverter.kt$org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter.kt</ID>
+    <ID>NewLineAtEndOfFile:WorkerClassLoader.kt$org.usvm.instrumentation.classloader.WorkerClassLoader.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:ClassTransformer.kt$ClassTransformer$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Classloader.kt$URLClassPathLoader$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Collection.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Constants.kt$InstrumentationModuleConstants$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Descriptor.kt$UTestConstantDescriptor$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Descriptor.kt$UTestExceptionDescriptor$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Descriptor.kt$UTestObjectDescriptor$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcess.kt$InstrumentedProcess$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$ExecutionResultType.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Jacodb.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Jar.kt$JarBuilder$ </ID>
+    <ID>NoBlankLineBeforeRbrace:JcInstructionTracer.kt$JcInstructionTracer$ </ID>
+    <ID>NoBlankLineBeforeRbrace:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$ </ID>
+    <ID>NoBlankLineBeforeRbrace:MockClassRebuilder.kt$MockClassRebuilder$ </ID>
+    <ID>NoBlankLineBeforeRbrace:MockHelper.kt$MockHelper$ </ID>
+    <ID>NoBlankLineBeforeRbrace:RdProcessRunner.kt$RdProcessRunner$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Reflection.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Reflection.kt$ReflectionUtils$ </ID>
+    <ID>NoBlankLineBeforeRbrace:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$ </ID>
+    <ID>NoBlankLineBeforeRbrace:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:TraceHelper.kt$TraceHelper$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Tracer.kt$Tracer$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestConcreteExecutor.kt$UTestConcreteExecutor$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestExpressionExecutor.kt$UTestExpressionExecutor$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestInstSerializer.kt$UTestInstSerializer$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer.Companion$ </ID>
+    <ID>NoBlankLineBeforeRbrace:Value2DescriptorConverter.kt$Value2DescriptorConverter$ </ID>
+    <ID>NoBlankLineBeforeRbrace:WorkerClassLoader.kt$WorkerClassLoader$ </ID>
+    <ID>NoConsecutiveBlankLines:Api.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Collection.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcess.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessRoot.Generated.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:Jacodb.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Jar.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MockClassRebuilder.kt$MockClassRebuilder$ </ID>
+    <ID>NoConsecutiveBlankLines:MockHelper.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MockHelper.kt$MockHelper$ </ID>
+    <ID>NoConsecutiveBlankLines:RdProcessRunner.kt$RdProcessRunner$ </ID>
+    <ID>NoConsecutiveBlankLines:RdUtils.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Reflection.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SyncProtocolModel.Generated.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:SyncProtocolRoot.Generated.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:TraceHelper.kt$TraceHelper$ </ID>
+    <ID>NoConsecutiveBlankLines:Try.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestExecutor.kt$UTestExecutor$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestExpressionExecutor.kt$UTestExpressionExecutor$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestInstSerializer.kt$UTestInstSerializer$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestInstSerializer.kt$UTestInstSerializer.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer.Companion$ </ID>
+    <ID>NoMultipleSpaces:Instrumentation.kt$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcess.kt$StaticsRollbackStrategy.HARD$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcess.kt$StaticsRollbackStrategy.REINIT$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcess.kt$StaticsRollbackStrategy.ROLLBACK$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ClassToId$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecuteParams$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResult$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$SerializedStaticField$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$SerializedUTest$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$ </ID>
+    <ID>NoMultipleSpaces:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$ </ID>
+    <ID>NoMultipleSpaces:SyncProtocolModel.Generated.kt$SyncProtocolModel$ </ID>
+    <ID>NoMultipleSpaces:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
+    <ID>NoMultipleSpaces:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$ </ID>
+    <ID>NoMultipleSpaces:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$ </ID>
+    <ID>NoNameShadowing:MockClassRebuilder.kt$MockClassRebuilder${ JcVirtualParameter(it.index, it.type) }</ID>
+    <ID>NoNameShadowing:UTestExpressionExecutor.kt$UTestExpressionExecutor${ objectToInstructionsCache.add(it to uTestExpression) }</ID>
+    <ID>NoNameShadowing:UTestInstSerializer.kt$UTestInstSerializer${ serializeUTestInst(it) }</ID>
+    <ID>NoNameShadowing:UTestInstSerializer.kt$UTestInstSerializer${ writeUTestInst(it) }</ID>
+    <ID>NoNameShadowing:WorkerClassLoader.kt$WorkerClassLoader${ redefineClass(it.first, it.second) }</ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ClassToId$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecuteParams$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResult$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResultType$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionResultType.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$SerializedStaticField$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$SerializedUTest$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$ </ID>
+    <ID>NoTrailingSpaces:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$ </ID>
+    <ID>NoTrailingSpaces:SyncProtocolModel.Generated.kt$SyncProtocolModel$ </ID>
+    <ID>NoTrailingSpaces:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
+    <ID>NoTrailingSpaces:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$ </ID>
+    <ID>NoTrailingSpaces:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$ </ID>
+    <ID>NoUnusedImports:InstrumentedProcessModel.Generated.kt$org.usvm.instrumentation.generated.models.InstrumentedProcessModel.Generated.kt</ID>
+    <ID>NoUnusedImports:InstrumentedProcessRoot.Generated.kt$org.usvm.instrumentation.generated.models.InstrumentedProcessRoot.Generated.kt</ID>
+    <ID>NoUnusedImports:SyncProtocolModel.Generated.kt$org.usvm.instrumentation.generated.models.SyncProtocolModel.Generated.kt</ID>
+    <ID>NoUnusedImports:SyncProtocolRoot.Generated.kt$org.usvm.instrumentation.generated.models.SyncProtocolRoot.Generated.kt</ID>
+    <ID>NoWildcardImports:Api.kt$import org.jacodb.api.*</ID>
+    <ID>NoWildcardImports:Api.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:Descriptor2ValueConverter.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:Descriptor2ValueConverter.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcess.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcess.kt$import org.usvm.instrumentation.generated.models.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcess.kt$import org.usvm.instrumentation.testcase.api.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcess.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.framework.base.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.framework.impl.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.util.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.util.lifetime.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.util.reactive.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessModel.Generated.kt$import com.jetbrains.rd.util.string.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.framework.base.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.framework.impl.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.util.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.util.lifetime.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.util.reactive.*</ID>
+    <ID>NoWildcardImports:InstrumentedProcessRoot.Generated.kt$import com.jetbrains.rd.util.string.*</ID>
+    <ID>NoWildcardImports:Jacodb.kt$import org.jacodb.api.*</ID>
+    <ID>NoWildcardImports:Jacodb.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:Jar.kt$import java.io.*</ID>
+    <ID>NoWildcardImports:Jar.kt$import org.objectweb.asm.tree.*</ID>
+    <ID>NoWildcardImports:JcRuntimeTraceInstrumenter.kt$import org.jacodb.api.cfg.*</ID>
+    <ID>NoWildcardImports:MockClassRebuilder.kt$import org.jacodb.api.cfg.*</ID>
+    <ID>NoWildcardImports:MockClassRebuilder.kt$import org.jacodb.impl.cfg.*</ID>
+    <ID>NoWildcardImports:MockHelper.kt$import org.jacodb.api.cfg.*</ID>
+    <ID>NoWildcardImports:MockHelper.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:MockHelper.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:RdProcessRunner.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:RdProcessRunner.kt$import org.usvm.instrumentation.generated.models.*</ID>
+    <ID>NoWildcardImports:RdProcessRunner.kt$import org.usvm.instrumentation.rd.*</ID>
+    <ID>NoWildcardImports:RdProcessRunner.kt$import org.usvm.instrumentation.testcase.api.*</ID>
+    <ID>NoWildcardImports:Reflection.kt$import java.lang.reflect.*</ID>
+    <ID>NoWildcardImports:Reflection.kt$import java.util.concurrent.*</ID>
+    <ID>NoWildcardImports:SerializationUtils.kt$import org.jacodb.api.*</ID>
+    <ID>NoWildcardImports:StaticDescriptorsBuilder.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.framework.base.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.framework.impl.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.util.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.util.lifetime.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.util.reactive.*</ID>
+    <ID>NoWildcardImports:SyncProtocolModel.Generated.kt$import com.jetbrains.rd.util.string.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.framework.base.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.framework.impl.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.util.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.util.lifetime.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.util.reactive.*</ID>
+    <ID>NoWildcardImports:SyncProtocolRoot.Generated.kt$import com.jetbrains.rd.util.string.*</ID>
+    <ID>NoWildcardImports:UTestExecutor.kt$import org.usvm.instrumentation.testcase.api.*</ID>
+    <ID>NoWildcardImports:UTestExecutor.kt$import org.usvm.instrumentation.testcase.descriptor.*</ID>
+    <ID>NoWildcardImports:UTestExpressionExecutor.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:UTestExpressionExecutor.kt$import org.usvm.instrumentation.testcase.api.*</ID>
+    <ID>NoWildcardImports:UTestExpressionExecutor.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:UTestValueDescriptorSerializer.kt$import com.jetbrains.rd.framework.*</ID>
+    <ID>NoWildcardImports:UTestValueDescriptorSerializer.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:UTestValueDescriptorSerializer.kt$import org.usvm.instrumentation.testcase.descriptor.*</ID>
+    <ID>NoWildcardImports:Value2DescriptorConverter.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:Value2DescriptorConverter.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>NoWildcardImports:WorkerClassLoader.kt$import org.usvm.instrumentation.util.*</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$override val _type: KClass&lt;ClassToId&gt; = ClassToId::class</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$override val _type: KClass&lt;ExecuteParams&gt; = ExecuteParams::class</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$override val _type: KClass&lt;ExecutionResult&gt; = ExecutionResult::class</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$override val _type: KClass&lt;ExecutionStateSerialized&gt; = ExecutionStateSerialized::class</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$override val _type: KClass&lt;SerializedStaticField&gt; = SerializedStaticField::class</ID>
+    <ID>ObjectPropertyNaming:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$override val _type: KClass&lt;SerializedUTest&gt; = SerializedUTest::class</ID>
+    <ID>ParameterListWrapping:Descriptor.kt$UTestClassDescriptor$( val classType: JcType, override val type: JcType )</ID>
+    <ID>ParameterListWrapping:MockHelper.kt$MockHelper$( jcClass: JcClassOrInterface, methods: List&lt;JcMethod&gt; )</ID>
+    <ID>ParameterListWrapping:MockHelper.kt$MockHelper$( jcClass: JcClassOrInterface, methods: List&lt;JcMethod&gt;, isGlobalMock: Boolean )</ID>
+    <ID>ParameterListWrapping:MockHelper.kt$MockHelper$( jcConstructor: JcMethod, methodRebuilder: MockClassRebuilder )</ID>
+    <ID>ParameterListWrapping:RdProcessRunner.kt$RdProcessRunner$( lifetime: Lifetime, request: TReq, timeout: Duration )</ID>
+    <ID>PropertyWrapping:Classloader.kt$URLClassPathLoader$private val urlClassPath = URLClassPath(classPath.map { it.toURI().toURL() }.toTypedArray(), AccessController.getContext())</ID>
+    <ID>SpacingAroundColon:Api.kt$UTestClassExpression$:</ID>
+    <ID>SpacingAroundColon:Api.kt$UTestExpression$:</ID>
+    <ID>SpacingAroundColon:Api.kt$UTestMock$:</ID>
+    <ID>SpacingAroundColon:Classloader.kt$URLClassPathLoader.InternalResourceWrapper$:</ID>
+    <ID>SpacingAroundColon:Descriptor.kt$UTestArrayDescriptor$:</ID>
+    <ID>SpacingAroundColon:Instrumentation.kt$UTestExecutorInitException$:</ID>
+    <ID>SpacingAroundColon:Jar.kt$ClassReadException$:</ID>
+    <ID>SpacingAroundColon:JcInstrumenterFactory.kt$JcInstrumenterFactory$:</ID>
+    <ID>SpacingAroundColon:RdServer.kt$RdServer$:</ID>
+    <ID>SpacingAroundColon:Response.kt$UTestExecutionExceptionResult$:</ID>
+    <ID>SpacingAroundColon:Response.kt$UTestExecutionFailedResult$:</ID>
+    <ID>SpacingAroundColon:Response.kt$UTestExecutionInitFailedResult$:</ID>
+    <ID>SpacingAroundColon:Response.kt$UTestExecutionSuccessResult$:</ID>
+    <ID>SpacingAroundColon:Response.kt$UTestExecutionTimedOutResult$:</ID>
+    <ID>SpacingAroundComma:ClassTransformer.kt$ClassTransformer$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessModel.Generated.kt$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$,</ID>
+    <ID>SpacingAroundComma:InstrumentedProcessRoot.Generated.kt$,</ID>
+    <ID>SpacingAroundComma:SyncProtocolModel.Generated.kt$,</ID>
+    <ID>SpacingAroundComma:SyncProtocolRoot.Generated.kt$,</ID>
+    <ID>SpacingAroundCurly:Api.kt$UTestBinaryConditionExpression${</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$ClassToId$*</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$ExecuteParams$*</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$ExecutionResult$*</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$*</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$SerializedStaticField$*</ID>
+    <ID>SpacingAroundOperators:InstrumentedProcessModel.Generated.kt$SerializedUTest$*</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$ClassToId$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$ExecuteParams$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$ExecutionResult$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$SerializedStaticField$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessModel.Generated.kt$SerializedUTest$(</ID>
+    <ID>SpacingAroundParens:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$(</ID>
+    <ID>SpacingAroundParens:SyncProtocolModel.Generated.kt$SyncProtocolModel$(</ID>
+    <ID>SpacingAroundParens:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$(</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Api.kt$UTestMockObject$/** * Mock for specific object */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//If something gone wrong with RD</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//Max depth of descriptor construction</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//Number of stacktrace elements for exception construction</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//Rollback strategy</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//Timeout for executor process waiting (should be in seconds)</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:Constants.kt$InstrumentationModuleConstants$//Timeout for method execution</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ClassToId$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ClassToId$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ClassToId$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecuteParams$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecuteParams$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecuteParams$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionResult$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionResult$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionResult$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//deepClone</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$//methods</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedStaticField$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedUTest$//fields</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedUTest$//hash code trait</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessModel.Generated.kt$SerializedUTest$//pretty print</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot$//deepClone</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:SyncProtocolModel.Generated.kt$SyncProtocolModel$//deepClone</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:SyncProtocolModel.Generated.kt$SyncProtocolModel$//methods</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:SyncProtocolRoot.Generated.kt$SyncProtocolRoot$//deepClone</ID>
+    <ID>SwallowedException:Jar.kt$UsvmClassWriter$e: Throwable</ID>
+    <ID>SwallowedException:MockHelper.kt$MockHelper$e: Throwable</ID>
+    <ID>SwallowedException:Reflection.kt$ReflectionUtils$e: Throwable</ID>
+    <ID>SwallowedException:UTestConcreteExecutor.kt$UTestConcreteExecutor$e: Throwable</ID>
+    <ID>SwallowedException:UTestExpressionExecutor.kt$UTestExpressionExecutor$e: ClassCastException</ID>
+    <ID>SwallowedException:Value2DescriptorConverter.kt$Value2DescriptorConverter$e: Throwable</ID>
+    <ID>SwallowedException:WorkerClassLoader.kt$WorkerClassLoader$e: Throwable</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:Reflection.kt$ReflectionUtils$RuntimeException()</ID>
+    <ID>TooGenericExceptionCaught:Jacodb.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Jar.kt$UsvmClassWriter$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:MockHelper.kt$MockHelper$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Reflection.kt$ReflectionUtils$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Reflection.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Try.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:UTestConcreteExecutor.kt$UTestConcreteExecutor$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:UTestConcreteExecutor.kt$UTestConcreteExecutor$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:UTestExpressionExecutor.kt$UTestExpressionExecutor$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Value2DescriptorConverter.kt$Value2DescriptorConverter$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:WorkerClassLoader.kt$WorkerClassLoader$e: Throwable</ID>
+    <ID>TooGenericExceptionThrown:Reflection.kt$ReflectionUtils$throw RuntimeException()</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestAllocateMemoryCall$( val clazz: JcClassOrInterface )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestArithmeticExpression$( val operationType: ArithmeticOperationType, val lhv: UTestExpression, val rhv: UTestExpression, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestArrayGetExpression$( val arrayInstance: UTestExpression, val index: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestArrayLengthExpression$( val arrayInstance: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestArraySetStatement$( val arrayInstance: UTestExpression, val index: UTestExpression, val setValueExpression: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestBinaryConditionExpression$( val conditionType: ConditionType, val lhv: UTestExpression, val rhv: UTestExpression, val trueBranch: UTestExpression, val elseBranch: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestBinaryConditionStatement$( val conditionType: ConditionType, val lhv: UTestExpression, val rhv: UTestExpression, val trueBranch: List&lt;UTestStatement&gt;, val elseBranch: List&lt;UTestStatement&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestBooleanExpression$( override val value: Boolean, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestByteExpression$( override val value: Byte, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestCastExpression$( val expr: UTestExpression, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestCharExpression$( override val value: Char, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestClassExpression$( override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestConstructorCall$( override val method: JcMethod, override val args: List&lt;UTestExpression&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestCreateArrayExpression$( val elementType: JcType, val size: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestDoubleExpression$( override val value: Double, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestFloatExpression$( override val value: Float, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestGetFieldExpression$( val instance: UTestExpression, val field: JcField )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestGetStaticFieldExpression$( val field: JcField )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestGlobalMock$( override val type: JcType, override val fields: Map&lt;JcField, UTestExpression&gt;, override val methods: Map&lt;JcMethod, List&lt;UTestExpression&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestIntExpression$( override val value: Int, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestLongExpression$( override val value: Long, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestMethodCall$( override val instance: UTestExpression, override val method: JcMethod, override val args: List&lt;UTestExpression&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestMock$( override val type: JcType, open val fields: Map&lt;JcField, UTestExpression&gt;, open val methods: Map&lt;JcMethod, List&lt;UTestExpression&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestMockObject$( override val type: JcType, override val fields: Map&lt;JcField, UTestExpression&gt;, override val methods: Map&lt;JcMethod, List&lt;UTestExpression&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestNullExpression$( override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestSetFieldStatement$( val instance: UTestExpression, val field: JcField, val value: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestSetStaticFieldStatement$( val field: JcField, val value: UTestExpression )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestShortExpression$( override val value: Short, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestStaticMethodCall$( override val method: JcMethod, override val args: List&lt;UTestExpression&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Api.kt$UTestStringExpression$( override val value: String, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ClassTransformer.kt$ClassTransformer$( instrumenterFactoryClassName: String, val instrumentation: Instrumentation )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ClassTransformer.kt$ClassTransformer$( loader: ClassLoader?, className: String?, classBeingRedefined: Class&lt;*&gt;?, protectionDomain: ProtectionDomain?, classfileBuffer: ByteArray )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Collection.kt$( result: R, body: (Int, A) -&gt; Pair&lt;K, V&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Collection.kt$( that: Iterable&lt;B&gt;, result: R, transform: (A, B) -&gt; Pair&lt;C, D&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestArrayDescriptor$( val elementType: JcType, val length: Int, val value: List&lt;UTestValueDescriptor&gt;, override val refId: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestClassDescriptor$( val classType: JcType, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestCyclicReferenceDescriptor$( val refId: Int, override val type: JcType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestEnumValueDescriptor$( override val type: JcType, val enumValueName: String, val fields: Map&lt;JcField, UTestValueDescriptor&gt;, override val refId: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestExceptionDescriptor$( override val type: JcType, val message: String, val stackTrace: List&lt;UTestValueDescriptor&gt;, var raisedByUserCode: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Descriptor.kt$UTestObjectDescriptor$( override val type: JcType, val fields: Map&lt;JcField, UTestValueDescriptor&gt;, val originUTestExpr: UTestInst?, override val refId: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Instrumentation.kt$JdkInfo$( val path: Path, val version: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$( private val testingProjectClasspath: String, private val jcClasspath: JcClasspath, private val instrumentationClassFactory: KClass&lt;out JcInstrumenterFactory&lt;out JcInstrumenter&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$( testingProjectClasspath: List&lt;String&gt;, jcClasspath: JcClasspath, instrumentationClassFactory: KClass&lt;JcInstrumenterFactory&lt;out JcInstrumenter&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcess.kt$StaticsRollbackStrategy</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$ClassToId$( val className: String, val classId: Long )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$ExecuteParams$( val classname: String, val signature: String, val classpath: String )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$ExecutionResult$( val type: ExecutionResultType, val classes: List&lt;ClassToId&gt;?, val trace: List&lt;Long&gt;?, val cause: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?, val result: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?, val initialState: ExecutionStateSerialized?, val resultState: ExecutionStateSerialized? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$ExecutionResultType</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$( val instanceDescriptor: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?, val argsDescriptors: List&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor?&gt;, val statics: List&lt;SerializedStaticField&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$( private val _callUTest: RdCall&lt;SerializedUTest, ExecutionResult&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$SerializedStaticField$( val fieldName: String, val fieldDescriptor: org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InstrumentedProcessModel.Generated.kt$SerializedUTest$( val initStatements: List&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;, val callMethodExpression: org.usvm.instrumentation.testcase.api.UTestInst )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Jar.kt$( jcClassPath: JcClasspath, flags: Flags = Flags.writeComputeAll, checkClass: Boolean = false )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Jar.kt$( jcClassPath: JcClasspath, path: Path, flags: Flags = Flags.writeComputeAll, checkClass: Boolean = false )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcInstructionTracer.kt$JcInstructionTracer$( jcRawFieldRef: JcRawFieldRef, accessType: StaticFieldAccessType, jcClasspath: JcClasspath )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$( override val jcClasspath: JcClasspath )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockClassRebuilder.kt$MockClassRebuilder$( jcMethod: JcMethod, makeNotAbstract: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockClassRebuilder.kt$MockClassRebuilder$( val jcClass: JcClassOrInterface, mockedClassName: String )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockHelper.kt$MockHelper$( jcClass: JcClassOrInterface, jcMethod: JcMethod, mockedMethodId: Long, isGlobalMock: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockHelper.kt$MockHelper$( jcClass: JcClassOrInterface, methods: List&lt;JcMethod&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockHelper.kt$MockHelper$( jcClass: JcClassOrInterface, methods: List&lt;JcMethod&gt;, isGlobalMock: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockHelper.kt$MockHelper$( jcConstructor: JcMethod, methodRebuilder: MockClassRebuilder )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockHelper.kt$MockHelper$( jcMethod: JcMethod, mockedMethodId: Long, classRebuilder: MockClassRebuilder )</ID>
+    <ID>TrailingCommaOnDeclarationSite:NoInstrumentation.kt$NoInstrumentation$( override val jcClasspath: JcClasspath )</ID>
+    <ID>TrailingCommaOnDeclarationSite:RdProcessRunner.kt$RdProcessRunner$( lifetime: Lifetime, request: TReq, timeout: Duration )</ID>
+    <ID>TrailingCommaOnDeclarationSite:RdProcessRunner.kt$RdProcessRunner$( private val process: Process, private val checkProcessAliveDelay: Duration = 1.seconds, private val rdPort: Int, private val jcClasspath: JcClasspath, private val lifetime: LifetimeDefinition )</ID>
+    <ID>TrailingCommaOnDeclarationSite:RdServerProcess.kt$RdServerProcess$( private val process: Process, override val lifetime: LifetimeDefinition, override val protocol: Protocol, val model: InstrumentedProcessModel )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionExceptionResult$( val cause: UTestExceptionDescriptor, val trace: List&lt;JcInst&gt;?, val initialState: UTestExecutionState, val resultState: UTestExecutionState )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionFailedResult$( val cause: UTestExceptionDescriptor )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionInitFailedResult$( val cause: UTestExceptionDescriptor, val trace: List&lt;JcInst&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionState$( val instanceDescriptor: UTestValueDescriptor?, val argsDescriptors: List&lt;UTestValueDescriptor?&gt;, val statics: MutableMap&lt;JcField, UTestValueDescriptor&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionSuccessResult$( val trace: List&lt;JcInst&gt;?, val result: UTestValueDescriptor?, val initialState: UTestExecutionState, val resultState: UTestExecutionState )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Response.kt$UTestExecutionTimedOutResult$( val cause: UTestExceptionDescriptor )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$( fields: Set&lt;Pair&lt;JcField, StaticFieldAccessType&gt;&gt;, resultValue2DescriptorConverter: Value2DescriptorConverter )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$( private var workerClassLoader: WorkerClassLoader, private var initialValue2DescriptorConverter: Value2DescriptorConverter )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SyncProtocolModel.Generated.kt$SyncProtocolModel$( private val _synchronizationSignal: RdSignal&lt;String&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TraceHelper.kt$TraceHelper$( private val jcClasspath: JcClasspath, globalObjectJClass: Class&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTest.kt$UTest$( val initStatements: List&lt;UTestInst&gt;, val callMethodExpression: UTestCall )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestConcreteExecutor.kt$UTestConcreteExecutor$( instrumentationClassFactory: KClass&lt;out JcInstrumenterFactory&lt;*&gt;&gt;, testingProjectClasspath: List&lt;String&gt;, jcClasspath: JcClasspath, timeout: Duration )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestConcreteExecutor.kt$UTestConcreteExecutor$( instrumentationClassFactory: KClass&lt;out JcInstrumenterFactory&lt;*&gt;&gt;, testingProjectClasspath: String, private val jcClasspath: JcClasspath, private val timeout: Duration )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestExecutor.kt$UTestExecutor$( builder: Value2DescriptorConverter, exception: Throwable, raisedByUserCode: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestExecutor.kt$UTestExecutor$( callMethodExpr: UTestCall, executor: UTestExpressionExecutor, descriptorBuilder: Value2DescriptorConverter, accessedStatics: MutableSet&lt;Pair&lt;JcField, JcInstructionTracer.StaticFieldAccessType&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestExecutor.kt$UTestExecutor$( private val jcClasspath: JcClasspath, private val ucp: URLClassPathLoader )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestExpressionExecutor.kt$UTestExpressionExecutor$( private val workerClassLoader: WorkerClassLoader, private val accessedStatics: MutableSet&lt;Pair&lt;JcField, StaticFieldAccessType&gt;&gt;, private val mockHelper: MockHelper )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestInstSerializer.kt$UTestInstSerializer$( uTestExpression: T, kind: UTestExpressionKind, serializeInternals: T.() -&gt; Unit, serialize: T.() -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestInstSerializer.kt$UTestInstSerializer$UTestExpressionKind</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestUnexpectedExecutionBuilder.kt$UTestUnexpectedExecutionBuilder$( jcClasspath: JcClasspath )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$( uTestValueDescriptor: T, kind: UTestValueDescriptorKind, serializeInternals: T.() -&gt; Unit, serialize: T.() -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UsvmRdCoroutineScope.kt$UsvmRdCoroutineScope$( lifetime: Lifetime, scheduler: SingleThreadScheduler )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Value2DescriptorConverter.kt$Value2DescriptorConverter$( valueDescriptor: T, value: Any?, body: T.() -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:WorkerClassLoader.kt$WorkerClassLoader$( private val urlClassPath: URLClassPathLoader, private val traceCollectorClassLoader: ClassLoader, private val traceCollectorClassName: String, private val mockCollectorClassName: String, val jcClasspath: JcClasspath )</ID>
+    <ID>UnderscoresInNumericLiterals:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$1434578686845984847L</ID>
+    <ID>UnderscoresInNumericLiterals:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$7874463878801458679L</ID>
+    <ID>UnderscoresInNumericLiterals:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$5176282966920202414L</ID>
+    <ID>UnderscoresInNumericLiterals:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$4402368171949397719L</ID>
+    <ID>UnsafeCallOnNullableType:Instrumentation.kt$matcher.find(javaVersion)?.groupValues?.getOrNull(2)!!</ID>
+    <ID>UnsafeCallOnNullableType:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!!</ID>
+    <ID>UnsafeCallOnNullableType:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!!</ID>
+    <ID>UnsafeCallOnNullableType:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!!</ID>
+    <ID>UnsafeCallOnNullableType:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!!</ID>
+    <ID>UnsafeCallOnNullableType:Jacodb.kt$current!!</ID>
+    <ID>UnsafeCallOnNullableType:Jacodb.kt$findClassOrNull("java.lang.String")!!</ID>
+    <ID>UnsafeCallOnNullableType:Jar.kt$LabelFilterer$clonedLabelsList[index]!!</ID>
+    <ID>UnsafeCallOnNullableType:Jar.kt$LabelFilterer$clonedLabelsList[replacementsList[index]]!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$current!!</ID>
+    <ID>UnsafeCallOnNullableType:SerializationUtils.kt$jcClasspath.findClass(className).findFieldOrNull(fieldName)!!</ID>
+    <ID>UnsafeCallOnNullableType:SerializationUtils.kt$jcClasspath.findClass(className).findMethodOrNull(methodName, description)!!</ID>
+    <ID>UnsafeCallOnNullableType:StaticDescriptorsBuilder.kt$StaticDescriptorsBuilder$it.value!!</ID>
+    <ID>UnsafeCallOnNullableType:TraceHelper.kt$TraceHelper$jcVirtualGlobalObjectClass.declaredMethods.find { it.name == "isInExecution" }!!</ID>
+    <ID>UnsafeCallOnNullableType:TraceHelper.kt$TraceHelper$jcVirtualGlobalObjectClass.declaredMethods.find { it.name == traceMethodName }!!</ID>
+    <ID>UnsafeCallOnNullableType:Try.kt$Try$failure!!</ID>
+    <ID>UnsafeCallOnNullableType:UTestExecutor.kt$UTestExecutor$it.value!!</ID>
+    <ID>UnsafeCallOnNullableType:UTestExpressionExecutor.kt$UTestExpressionExecutor$rhvAsDouble!!</ID>
+    <ID>UnsafeCallOnNullableType:UTestInstSerializer.kt$UTestInstSerializer$readJcType(jcClasspath)!!</ID>
+    <ID>UnsafeCallOnNullableType:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$readJcType(jcClasspath)!!</ID>
+    <ID>UnsafeCallOnNullableType:Value2DescriptorConverter.kt$Value2DescriptorConverter$enumValueJcClass.superClass!!</ID>
+    <ID>UnsafeCallOnNullableType:Value2DescriptorConverter.kt$Value2DescriptorConverter$jcClasspath.findTypeOrNull&lt;Class&lt;*&gt;&gt;()!!</ID>
+    <ID>UnusedPrivateProperty:UTestConcreteExecutor.kt$UTestConcreteExecutor$i</ID>
+    <ID>UseOrEmpty:File.kt$current.listFiles() ?: arrayOf()</ID>
+    <ID>UseOrEmpty:Instrumentation.kt$OpenModulesContainer$modulesContainer .takeIf { JdkInfoService.provide().version &gt; 8 } ?: emptyList()</ID>
+    <ID>UseOrEmpty:RdProcessRunner.kt$RdProcessRunner$executionResult.classes ?: listOf()</ID>
+    <ID>UseOrEmpty:RdProcessRunner.kt$RdProcessRunner$state.statics?.associate { val jcField = jcClasspath.findFieldByFullNameOrNull(it.fieldName) ?: error("deserialization failed") val jcFieldDescriptor = it.fieldDescriptor jcField to jcFieldDescriptor } ?: mapOf()</ID>
+    <ID>UseOrEmpty:Value2DescriptorConverter.kt$Value2DescriptorConverter$exception.message ?: ""</ID>
+    <ID>UseRequire:UTestExpressionExecutor.kt$UTestExpressionExecutor$throw IllegalArgumentException("Wrong argument types for arithmetic operation")</ID>
+    <ID>UtilityClassWithPublicConstructor:Agent.kt$Agent</ID>
+    <ID>VarCouldBeVal:UTestExecutor.kt$UTestExecutor$private var mockHelper = MockHelper( jcClasspath = jcClasspath, classLoader = workerClassLoader )</ID>
+    <ID>VarCouldBeVal:UTestExecutor.kt$UTestExecutor$private var staticDescriptorsBuilder = StaticDescriptorsBuilder( workerClassLoader = workerClassLoader, initialValue2DescriptorConverter = initStateDescriptorBuilder )</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$ClassToId$var __r = 0</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$ExecuteParams$var __r = 0</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$ExecutionResult$var __r = 0</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$var __r = 0</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$SerializedStaticField$var __r = 0</ID>
+    <ID>VariableNaming:InstrumentedProcessModel.Generated.kt$SerializedUTest$var __r = 0</ID>
+    <ID>VariableNaming:Jar.kt$JarBuilder$val `in` = BufferedInputStream(fis)</ID>
+    <ID>Wrapping:Classloader.kt$URLClassPathLoader$it.toURI().toURL()</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$@Suppress("DEPRECATION") InstrumentedProcessModel.create(lifetime, this)</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ClassToId$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecuteParams$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer)</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it)</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer)</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).write(ctx,buffer, it)</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$buffer.readNullable { (ctx.serializers.get(org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor&gt;).read(ctx, buffer) }</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$SerializedStaticField$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest$;</ID>
+    <ID>Wrapping:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$(ctx.serializers.get(org.usvm.instrumentation.serializer.UTestInstSerializer.marshallerId)!! as IMarshaller&lt;org.usvm.instrumentation.testcase.api.UTestInst&gt;).read(ctx, buffer)</ID>
+    <ID>Wrapping:JcRuntimeTraceInstrumenter.kt$JcRuntimeTraceInstrumenter$it.isConstructor || it.isClassInitializer || it.name == "values" || it.name == "valueOf"</ID>
+    <ID>Wrapping:MockClassRebuilder.kt$MockClassRebuilder$(</ID>
+    <ID>Wrapping:Printer.kt$TracePrinter$(</ID>
+    <ID>Wrapping:SyncProtocolModel.Generated.kt$@Suppress("DEPRECATION") SyncProtocolModel.create(lifetime, this)</ID>
+    <ID>Wrapping:SyncProtocolModel.Generated.kt$SyncProtocolModel$;</ID>
+    <ID>Wrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$( uTestCreateArrayExpression.elementType.toJavaClass( workerClassLoader ), size )</ID>
+    <ID>Wrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$error("Bit operation on double impossible")</ID>
+  </CurrentIssues>
+</SmellBaseline>

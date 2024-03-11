@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:UTestCreator.kt$UTestCreator.SleepingClass$(UTestLongExpression(timeInMillis, jcClasspath.long))</ID>
+    <ID>ArgumentListWrapping:UTestCreator.kt$UTestCreator.SleepingClass$(jcMethod, listOf(UTestLongExpression(timeInMillis, jcClasspath.long)))</ID>
+    <ID>ArgumentListWrapping:UTestCreator.kt$UTestCreator.SleepingClass$(timeInMillis, jcClasspath.long)</ID>
+    <ID>CommentSpacing:ConcreteExecutorTests.kt$ConcreteExecutorTests$//Expected behavior</ID>
+    <ID>EmptyFinallyBlock:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest${ }</ID>
+    <ID>FinalNewline:ConcreteExecutorTests.kt$org.usvm.instrumentation.executor.ConcreteExecutorTests.kt</ID>
+    <ID>FinalNewline:UTestCreator.kt$org.usvm.instrumentation.util.UTestCreator.kt</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("getNumberOfClassConstructors") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("methodWithBug") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("mockAbstractClass") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("mockAbstractClass1") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("mockInterface") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("mockRandom") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("multipleMock") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("returnField") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.A$val jcMethod = jcClass.findDeclaredMethodOrNull("staticMock") ?: error("Cant find method indexOf in class A")</ID>
+    <ID>MaxLineLength:UTestCreator.kt$UTestCreator.SleepingClass$val jcMethodCall = UTestStaticMethodCall(jcMethod, listOf(UTestLongExpression(timeInMillis, jcClasspath.long)))</ID>
+    <ID>MaximumLineLength:UTestCreator.kt$UTestCreator.A$ </ID>
+    <ID>MaximumLineLength:UTestCreator.kt$UTestCreator.SleepingClass$ </ID>
+    <ID>NewLineAtEndOfFile:ConcreteExecutorTests.kt$org.usvm.instrumentation.executor.ConcreteExecutorTests.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestCreator.kt$org.usvm.instrumentation.util.UTestCreator.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:ConcreteExecutorTests.kt$ConcreteExecutorTests$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestCreator.kt$UTestCreator.Arrays$ </ID>
+    <ID>NoConsecutiveBlankLines:ConcreteExecutorTests.kt$ConcreteExecutorTests$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest.Companion$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestCreator.kt$UTestCreator.A$ </ID>
+    <ID>NoTrailingSpaces:UTestCreator.kt$UTestCreator$ </ID>
+    <ID>NoWildcardImports:UTestCreator.kt$import org.jacodb.api.ext.*</ID>
+    <ID>NoWildcardImports:UTestCreator.kt$import org.usvm.instrumentation.testcase.api.*</ID>
+    <ID>PropertyWrapping:UTestCreator.kt$UTestCreator.SleepingClass$val jcMethodCall = UTestStaticMethodCall(jcMethod, listOf(UTestLongExpression(timeInMillis, jcClasspath.long)))</ID>
+    <ID>SpacingAroundColon:ConcreteExecutorTests.kt$ConcreteExecutorTests$:</ID>
+    <ID>SpacingAroundCurly:UTestCreator.kt$UTestCreator.Ex1${</ID>
+    <ID>UnnecessaryAbstractClass:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest$UTestConcreteExecutorTest</ID>
+  </CurrentIssues>
+</SmellBaseline>

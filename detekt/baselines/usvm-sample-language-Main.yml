@@ -1,0 +1,74 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:SampleApplicationGraph.kt$SampleApplicationGraph$(method, stmtToPreds[stmt].orEmpty(), stmtToSuccs[stmt].orEmpty(), stmtToCallees[stmt].orEmpty())</ID>
+    <ID>ArgumentListWrapping:SampleExprResolver.kt$SampleExprResolver$(actualLengthLeThanLength, blockOnFalseState = { exceptionRegister = NegativeArraySize( lastStmt, (models.firstOrNull().eval(length) as KBitVec32Value).intValue, actualLength ) } )</ID>
+    <ID>ArgumentListWrapping:SampleExprResolver.kt$SampleExprResolver$(neqZero, blockOnFalseState = { exceptionRegister = DivisionByZero(lastStmt) } )</ID>
+    <ID>ArgumentListWrapping:SampleMachine.kt$SampleMachine$(methods.toSet(), applicationGraph)</ID>
+    <ID>BracesOnWhenStatements:SampleExprResolver.kt$SampleExprResolver$when</ID>
+    <ID>FinalNewline:Exceptions.kt$org.usvm.language.Exceptions.kt</ID>
+    <ID>FinalNewline:Expressions.kt$org.usvm.language.Expressions.kt</ID>
+    <ID>FinalNewline:Extensions.kt$org.usvm.language.builders.Extensions.kt</ID>
+    <ID>FinalNewline:ProgramExecutionResults.kt$org.usvm.machine.ProgramExecutionResults.kt</ID>
+    <ID>FinalNewline:Types.kt$org.usvm.language.Types.kt</ID>
+    <ID>FinalNewline:Utils.kt$org.usvm.language.Utils.kt</ID>
+    <ID>ImportOrdering:MethodScope.kt$import org.usvm.language.ArrayExpr import org.usvm.language.ArrayIdxSetLValue import org.usvm.language.Body import org.usvm.language.BooleanExpr import org.usvm.language.Call import org.usvm.language.Expr import org.usvm.language.Field import org.usvm.language.FieldSetLValue import org.usvm.language.Goto import org.usvm.language.If import org.usvm.language.IntExpr import org.usvm.language.SampleType import org.usvm.language.LValue import org.usvm.language.Label import org.usvm.language.Method import org.usvm.language.Return import org.usvm.language.SetLabel import org.usvm.language.SetValue import org.usvm.language.Stmt import org.usvm.language.StructExpr import org.usvm.language.Register import org.usvm.language.RegisterLValue import kotlin.reflect.KProperty</ID>
+    <ID>ImportOrdering:SampleExprResolver.kt$import io.ksmt.expr.KBitVec32Value import io.ksmt.expr.KExpr import io.ksmt.utils.asExpr import org.usvm.UBoolExpr import org.usvm.UBv32Sort import org.usvm.UContext import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.api.allocateArray import org.usvm.language.And import org.usvm.language.ArrayCreation import org.usvm.language.ArrayEq import org.usvm.language.ArrayExpr import org.usvm.language.ArrayIdxSetLValue import org.usvm.language.ArraySelect import org.usvm.language.ArraySize import org.usvm.language.ArrayType import org.usvm.language.BooleanConst import org.usvm.language.BooleanEq import org.usvm.language.BooleanExpr import org.usvm.language.BooleanType import org.usvm.language.DivisionByZero import org.usvm.language.Expr import org.usvm.language.Field import org.usvm.language.FieldSelect import org.usvm.language.FieldSetLValue import org.usvm.language.Ge import org.usvm.language.Gt import org.usvm.language.IndexOutOfBounds import org.usvm.language.IntConst import org.usvm.language.IntDiv import org.usvm.language.IntEq import org.usvm.language.IntExpr import org.usvm.language.IntMinus import org.usvm.language.IntPlus import org.usvm.language.IntRem import org.usvm.language.IntTimes import org.usvm.language.IntType import org.usvm.language.LValue import org.usvm.language.Le import org.usvm.language.Lt import org.usvm.language.NegativeArraySize import org.usvm.language.Not import org.usvm.language.NullPointerDereference import org.usvm.language.Or import org.usvm.language.Register import org.usvm.language.RegisterLValue import org.usvm.language.SampleType import org.usvm.language.StructCreation import org.usvm.language.StructEq import org.usvm.language.StructExpr import org.usvm.language.StructIsNull import org.usvm.language.StructType import org.usvm.language.UnaryMinus import org.usvm.memory.ULValue import org.usvm.memory.URegisterStackLValue import org.usvm.collection.array.UArrayIndexLValue import org.usvm.collection.array.length.UArrayLengthLValue import org.usvm.collection.field.UFieldLValue import org.usvm.model.UModel import org.usvm.sampleUValue import org.usvm.sizeSort</ID>
+    <ID>MaxLineLength:SampleApplicationGraph.kt$SampleApplicationGraph$StmtInfo(method, stmtToPreds[stmt].orEmpty(), stmtToSuccs[stmt].orEmpty(), stmtToCallees[stmt].orEmpty())</ID>
+    <ID>MaxLineLength:SampleMachine.kt$SampleMachine$val coverageStatistics: CoverageStatistics&lt;Method&lt;*&gt;, Stmt, SampleState&gt; = CoverageStatistics(methods.toSet(), applicationGraph)</ID>
+    <ID>MaximumLineLength:SampleApplicationGraph.kt$SampleApplicationGraph$ </ID>
+    <ID>MaximumLineLength:SampleMachine.kt$SampleMachine$ </ID>
+    <ID>NewLineAtEndOfFile:Exceptions.kt$org.usvm.language.Exceptions.kt</ID>
+    <ID>NewLineAtEndOfFile:Expressions.kt$org.usvm.language.Expressions.kt</ID>
+    <ID>NewLineAtEndOfFile:Extensions.kt$org.usvm.language.builders.Extensions.kt</ID>
+    <ID>NewLineAtEndOfFile:ProgramExecutionResults.kt$org.usvm.machine.ProgramExecutionResults.kt</ID>
+    <ID>NewLineAtEndOfFile:Types.kt$org.usvm.language.Types.kt</ID>
+    <ID>NewLineAtEndOfFile:Utils.kt$org.usvm.language.Utils.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:ProgramDecl.kt$ProgramDecl.StructDecl$ </ID>
+    <ID>NoBlankLineBeforeRbrace:SampleState.kt$SampleState$ </ID>
+    <ID>NoConsecutiveBlankLines:Domain.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Expressions.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Extensions.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MethodScope.kt$MethodScope$ </ID>
+    <ID>NoConsecutiveBlankLines:SampleApplicationGraph.kt$SampleApplicationGraph$ </ID>
+    <ID>NoConsecutiveBlankLines:SampleExprResolver.kt$SampleExprResolver$ </ID>
+    <ID>NoConsecutiveBlankLines:SampleInterpreter.kt$ </ID>
+    <ID>NoUnusedImports:SampleLanguageComponents.kt$org.usvm.machine.SampleLanguageComponents.kt</ID>
+    <ID>PropertyWrapping:SampleMachine.kt$SampleMachine$val coverageStatistics: CoverageStatistics&lt;Method&lt;*&gt;, Stmt, SampleState&gt; = CoverageStatistics(methods.toSet(), applicationGraph)</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:SampleInterpreter.kt$SampleInterpreter$/** * Symbolic interpreter for a sample language. */</ID>
+    <ID>TrailingCommaOnDeclarationSite:Domain.kt$Body$( var registersCount: Int, val stmts: List&lt;Stmt&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Domain.kt$Program$( val name: String, val structs: List&lt;Struct&gt;, val methods: List&lt;Method&lt;SampleType?&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Domain.kt$Struct$( val name: String, val fields: Set&lt;Field&lt;SampleType&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Exceptions.kt$DivisionByZero$( override val stmt: Stmt )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$BaseStructExpr$( struct: Struct )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$Register$( val idx: Int, override val type: T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Extensions.kt$( vararg values: Expr&lt;T&gt;, size: IntExpr = IntConst(values.size) )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramDecl.kt$ProgramDecl.MethodDecl$( name: String, argumentTypes: List&lt;SampleType&gt;, returnType: R, val body: MethodScope&lt;@UnsafeVariance R&gt;.() -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramDecl.kt$ProgramDecl.StructDecl$( thisRef: StructDecl, property: KProperty&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramExecutionResults.kt$InputModel$( val argumentExprs: List&lt;Expr&lt;SampleType&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramExecutionResults.kt$OutputModel$( val returnExpr: Expr&lt;SampleType&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramExecutionResults.kt$SuccessfulExecutionResult$( val inputModel: InputModel, val outputModel: OutputModel )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ProgramExecutionResults.kt$UnsuccessfulExecutionResult$( val inputModel: InputModel, val exception: ProgramException )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SampleInterpreter.kt$SampleInterpreter$( private val ctx: UContext&lt;USizeSort&gt;, private val applicationGraph: SampleApplicationGraph, private val forkBlackList: UForkBlackList&lt;SampleState, Stmt&gt; = UForkBlackList.createDefault() )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SampleMachine.kt$SampleMachine$( method: Method&lt;*&gt;, targets: List&lt;SampleTarget&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SampleMachine.kt$SampleMachine$( methods: List&lt;Method&lt;*&gt;&gt;, targets: List&lt;SampleTarget&gt; = emptyList() )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SampleMachine.kt$SampleMachine$( program: Program, private val options: UMachineOptions )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$Call$( val lvalue: LValue?, val method: Method&lt;SampleType?&gt;, val args: List&lt;Expr&lt;SampleType&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$FieldSetLValue$( val instance: StructExpr, val field: Field&lt;SampleType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$Goto$( val label: Label )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$If$( val condition: BooleanExpr, val label: Label )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$Label$( val idx: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$RegisterLValue$( val value: Register&lt;SampleType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$Return$( val valueToReturn: Expr&lt;SampleType&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$SetLabel$( val label: Label )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Stmts.kt$SetValue$( val lvalue: LValue, val expr: Expr&lt;SampleType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Types.kt$ArrayType$( val elementType: T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Types.kt$StructType$( val struct: Struct )</ID>
+    <ID>UnnecessaryAbstractClass:ProgramDecl.kt$ProgramDecl$ProgramDecl</ID>
+    <ID>UnnecessaryAbstractClass:ProgramDecl.kt$ProgramDecl.StructDecl$StructDecl</ID>
+    <ID>UnnecessaryAbstractClass:SampleTarget.kt$SampleTarget$SampleTarget</ID>
+    <ID>UnsafeCallOnNullableType:ResultModelConverter.kt$ResultModelConverter$method.returnType!!</ID>
+    <ID>Wrapping:SampleExprResolver.kt$SampleExprResolver$(</ID>
+  </CurrentIssues>
+</SmellBaseline>

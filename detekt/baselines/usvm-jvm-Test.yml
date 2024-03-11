@@ -1,0 +1,932 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>AnnotationSpacing:JavaAssertTest.kt$JavaAssertTest$@Test</ID>
+    <ID>AnnotationSpacing:LongStreamExampleTest.kt$LongStreamExampleTest$@Test @Disabled("Index 1 out of bounds for length 1")</ID>
+    <ID>AnnotationSpacing:TestLoanExam.kt$TestLoanExam$@UsvmTest( [ Options([PathSelectionStrategy.BFS], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES), Options([PathSelectionStrategy.RANDOM_PATH], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES), Options( [PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL, stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES ) ] )</ID>
+    <ID>ArgumentListWrapping:ComplexEnumExamplesTest.kt$ComplexEnumExamplesTest$("TODO the first matcher does not matches. Discover whether it should or not - perhaps it's an issue with calculating coverage.")</ID>
+    <ID>ArgumentListWrapping:IntArrayBasicsTest.kt$IntArrayBasicsTest$("TODO uses the native call jdk.internal.misc.Unsafe.getLong(java.lang.Object, long) in java.util.Arrays.equals(int[], int[])")</ID>
+    <ID>ArgumentListWrapping:JavaMethodTestRunner.kt$JavaMethodTestRunner$(T::class, A0::class, A1::class, T::class, A0::class, A1::class, R::class)</ID>
+    <ID>ArgumentListWrapping:QueueUsagesTest.kt$QueueUsagesTest$( QueueUsages::addQueue, eq(3), { _, q, _, r -&gt; q == null &amp;&amp; r.isException&lt;NullPointerException&gt;() }, { _, q, x, r -&gt; q != null &amp;&amp; x in r.getOrNull()!! }, { _, q, x, r -&gt; q != null &amp;&amp; x == null &amp;&amp; r.isException&lt;NullPointerException&gt;() }, )</ID>
+    <ID>ArgumentListWrapping:TestCollatz.kt$TestCollatz$([PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL, solverType = SolverType.YICES)</ID>
+    <ID>ArgumentListWrapping:TestLoanExam.kt$TestLoanExam$([PathSelectionStrategy.BFS], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES)</ID>
+    <ID>ArgumentListWrapping:TestLoanExam.kt$TestLoanExam$([PathSelectionStrategy.RANDOM_PATH], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES)</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$Array&lt;Byte&gt;</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$Array&lt;Int&gt;</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$Array&lt;Long&gt;</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$Array&lt;Short&gt;</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$arrayOf( Byte.MIN_VALUE, (Byte.MIN_VALUE + 100).toByte(), 0.toByte(), (Byte.MAX_VALUE - 100).toByte(), Byte.MAX_VALUE )</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$arrayOf( Integer.MIN_VALUE, Integer.MIN_VALUE + 100, 0, Integer.MAX_VALUE - 100, Integer.MAX_VALUE )</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$arrayOf( Long.MIN_VALUE, Long.MIN_VALUE + 100L, 0L, Long.MAX_VALUE - 100L, Long.MAX_VALUE )</ID>
+    <ID>ArrayPrimitive:StringExamplesTest.kt$StringExamplesTest$arrayOf( Short.MIN_VALUE, (Short.MIN_VALUE + 100).toShort(), 0.toShort(), (Short.MAX_VALUE - 100).toShort(), Short.MAX_VALUE )</ID>
+    <ID>BlockCommentInitialStarAlignment:DoubleStreamExampleTest.kt$DoubleStreamExampleTest$/* @Test fun testPeekExample() { checkThisAndStaticsAfter( DoubleStreamExample::peekExample, ignoreNumberOfAnalysisResults, *streamConsumerStaticsMatchers, ) } */</ID>
+    <ID>ChainWrapping:MapsPart1Test.kt$MapsPart1Test$&amp;&amp;</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.samples.mock.provider.Provider</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.samples.mock.service.impl.ExampleClass</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.samples.mock.service.impl.ServiceWithArguments</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.testing.isParameter</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.testing.mocksMethod</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//internal class ArgumentsMockTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:ArgumentsMockTest.kt$//}</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//) {</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//// For this reason code generation executions are disabled</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//// This class is substituted with ComplicatedMethodsSubstitutionsStorage</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//// but we cannot do in code generation.</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import kotlin.math.abs</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import kotlin.math.sqrt</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.junit.jupiter.api.Disabled</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.usvm.test.util.checkers.withoutConcrete</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//import org.usvm.testing.Compilation</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//internal class ClassWithComplicatedMethodsTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//package org.usvm.samples.make.symbolic</ID>
+    <ID>CommentSpacing:ClassWithComplicatedMethodsTest.kt$//}</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//// TODO failed Kotlin tests execution with non-nullable expected field</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//class ClassWithPrivateMutableFieldOfPrivateTypeTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:ClassWithPrivateMutableFieldOfPrivateTypeTest.kt$//}</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//internal class CommonMocksExampleTest: JavaMethodTestRunner(testClass = CommonMocksExample::class) {</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:CommonMocksExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//) {</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.junit.Test</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.framework.plugin.api.FieldId</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.framework.plugin.api.UtAssembleModel</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.framework.plugin.api.UtCompositeModel</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.framework.plugin.api.UtModel</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.framework.plugin.api.UtReferenceModel</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//package org.usvm.samples.models</ID>
+    <ID>CommentSpacing:CompositeModelMinimizationChecker.kt$//}</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$///**</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//import org.usvm.util.isException</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//internal class EnumWithAnnotationsTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//package org.usvm.samples.annotations.lombok</ID>
+    <ID>CommentSpacing:EnumWithAnnotationsTest.kt$//}</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//import org.usvm.util.isException</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//internal class EnumWithoutAnnotationsTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//package org.usvm.samples.annotations.lombok</ID>
+    <ID>CommentSpacing:EnumWithoutAnnotationsTest.kt$//}</ID>
+    <ID>CommentSpacing:ExceptionExamplesTest.kt$ExceptionExamplesTest$//Muted for concrete executor because of no mocks</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.framework.plugin.api.UtModel</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.framework.plugin.api.isNotNull</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.framework.plugin.api.isNull</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.samples.mock.provider.impl.ProviderImpl</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.samples.mock.service.impl.ServiceWithField</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//import org.usvm.testing.primitiveValue</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//internal class FieldMockChecker : UtModelTestCaseChecker() {</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//package org.usvm.samples.mock.model</ID>
+    <ID>CommentSpacing:FieldMockChecker.kt$//}</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//) {</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.samples.mock.provider.Provider</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.samples.mock.service.impl.ExampleClass</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.samples.mock.service.impl.ServiceWithField</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.testing.mocksMethod</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//internal class FieldMockTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:FieldMockTest.kt$//}</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.UtModel</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.isMockModel</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.isNotNull</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.isNull</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.samples.JavaMethodTestRunner.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.testing.getOrThrow</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//import org.usvm.testing.primitiveValue</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//internal class InnerMockWithFieldChecker : UtModelTestCaseChecker(testClass = InnerMockWithFieldExample::class) {</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:InnerMockWithFieldChecker.kt$//}</ID>
+    <ID>CommentSpacing:JavaAssertTest.kt$JavaAssertTest$//TODO! Decide if -ea (assertions) flag should be enabled (now it's enabled)</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//) {</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//.OTHER_CLASSES</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.usvm.samples.mock.others.FinalClass</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.usvm.test.util.checkers.ge</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.usvm.testing.singleMock</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//internal class MockFinalClassTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockFinalClassTest.kt$//}</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//) {</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import java.util.Random</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.framework.plugin.api.UtCompositeModel</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.framework.plugin.api.UtNewInstanceInstrumentation</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.TestExecution</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.isParameter</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.mockValues</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.mocksMethod</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.singleMock</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//internal class MockRandomTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockRandomTest.kt$//}</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.junit.jupiter.api.Disabled</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.samples.mock.others.Generator</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.samples.mock.others.Locator</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.testing.mockValue</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.testing.singleMock</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.testing.singleMockOrNull</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//internal class MockReturnObjectExampleTest : JavaMethodTestRunner(testClass = MockReturnObjectExample::class) {</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockReturnObjectExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//) {</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import kotlin.reflect.KClass</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.framework.plugin.api.FieldMockTarget</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.framework.plugin.api.MockInfo</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.framework.plugin.api.UtCompositeModel</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.framework.plugin.api.UtNewInstanceInstrumentation</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.samples.mock.others.ClassWithStaticField</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.samples.mock.others.Generator</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.test.util.checkers.withoutConcrete</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.testing.TestExecution</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.testing.singleMock</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.testing.singleMockOrNull</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//internal class MockStaticFieldExampleTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockStaticFieldExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//) {</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.framework.plugin.api.UtPrimitiveModel</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.framework.plugin.api.util.id</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.framework.util.singleModel</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.framework.util.singleStaticMethod</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.framework.util.singleValue</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//import org.usvm.testing.TestExecution</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//internal class MockStaticMethodExampleTest : JavaMethodTestRunner(</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockStaticMethodExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.UtModel</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.isMockModel</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.framework.plugin.api.isNull</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.samples.JavaMethodTestRunner.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.testing.getOrThrow</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//import org.usvm.testing.primitiveValue</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//internal class MockWithFieldChecker : UtModelTestCaseChecker(testClass = MockWithFieldExample::class) {</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockWithFieldChecker.kt$//}</ID>
+    <ID>CommentSpacing:MockWithSideEffectExampleTest.kt$//import org.junit.Test</ID>
+    <ID>CommentSpacing:MockWithSideEffectExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:MockWithSideEffectExampleTest.kt$//internal class MockWithSideEffectExampleTest : JavaMethodTestRunner(testClass = MockWithSideEffectExample::class) {</ID>
+    <ID>CommentSpacing:MockWithSideEffectExampleTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:MockWithSideEffectExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//) {</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//// TODO failed Kotlin compilation SAT-1332</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.framework.plugin.api.UtArrayModel</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.framework.plugin.api.UtAssembleModel</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.framework.plugin.api.UtDirectSetFieldModel</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.framework.plugin.api.UtExecutionSuccess</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.framework.plugin.api.UtReferenceModel</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//internal class ModelsIdEqualityChecker : UtModelTestCaseChecker(</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//package org.usvm.samples.models</ID>
+    <ID>CommentSpacing:ModelsIdEqualityChecker.kt$//}</ID>
+    <ID>CommentSpacing:ObjectWithFinalStaticTest.kt$//class ObjectWithFinalStaticTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:ObjectWithFinalStaticTest.kt$//}</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//internal class ObjectWithStaticFieldsExampleTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//package org.usvm.samples.objects</ID>
+    <ID>CommentSpacing:ObjectWithStaticFieldsExampleTest.kt$//}</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import kotlin.math.floor</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import kotlin.math.sqrt</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import org.junit.jupiter.api.Disabled</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import org.usvm.samples.algorithms.Sort</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//internal class OverflowAsErrorTest : JavaMethodTestRunner() {</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//package org.usvm.samples.math</ID>
+    <ID>CommentSpacing:OverflowAsErrorTest.kt$//}</ID>
+    <ID>CommentSpacing:SetsTest.kt$SetsTest$//TODO: JIRA:1666 -- Engine ignores branches in Wrappers sometimes</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//.OTHER_PACKAGES</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.samples.mock.provider.Provider</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.samples.mock.service.impl.ExampleClass</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.samples.mock.service.impl.ServiceWithStaticField</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.testing.mocksMethod</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//import org.usvm.testing.value</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//internal class StaticFieldMockTest : JavaMethodTestRunner(testClass = ServiceWithStaticField::class) {</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:StaticFieldMockTest.kt$//}</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.framework.plugin.api.UtCompositeModel</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.framework.plugin.api.UtVoidModel</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.samples.mock.UseNetwork</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//import org.usvm.testing.UtModelTestCaseChecker</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//internal class UseNetworkModelBasedTest : UtModelTestCaseChecker(testClass = UseNetwork::class) {</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//package org.usvm.samples.mock.model</ID>
+    <ID>CommentSpacing:UseNetworkModelBasedTest.kt$//}</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//import org.junit.jupiter.api.Test</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//import org.usvm.framework.plugin.api.UtConcreteValue</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//import org.usvm.test.util.checkers.eq</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//internal class UseNetworkTest : JavaMethodTestRunner(testClass = UseNetwork::class) {</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//package org.usvm.samples.mock</ID>
+    <ID>CommentSpacing:UseNetworkTest.kt$//}</ID>
+    <ID>CommentWrapping:ClassWithEnumTest.kt$ClassWithEnumTest$/* y == 11 areStaticsCorrect &amp;&amp; r == true } ) } */</ID>
+    <ID>CommentWrapping:ClassWithEnumTest.kt$ClassWithEnumTest$/*x == 1 &amp;&amp;*/</ID>
+    <ID>CommentWrapping:CyclesTest.kt$CyclesTest$/*eq(3)*/</ID>
+    <ID>CommentWrapping:NotNullAnnotationTest.kt$NotNullAnnotationTest$/*eq(1)*/</ID>
+    <ID>CommentWrapping:NotNullAnnotationTest.kt$NotNullAnnotationTest$/*eq(2)*/</ID>
+    <ID>CommentWrapping:NotNullAnnotationsTest.kt$NotNullAnnotationsTest$/*eq(1)*/</ID>
+    <ID>CommentWrapping:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$/* &amp;&amp; fst != snd by ref */</ID>
+    <ID>CommentWrapping:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$/* &amp;&amp; fst == snd by ref */</ID>
+    <ID>CommentWrapping:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$/* fst != snd by ref */</ID>
+    <ID>CommentWrapping:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$/* fst == snd by ref */</ID>
+    <ID>ExplicitItLambdaParameter:ListsPart3Test.kt$ListsPart3Test${ i, it -&gt; if (i &lt; r.size) it == r[i] else it == a[i - r.size] }</ID>
+    <ID>Filename:TestResolvingOptions.kt$org.usvm.util.TestResolvingOptions.kt</ID>
+    <ID>FinalNewline:AbstractAnonymousClassTest.kt$org.usvm.samples.objects.AbstractAnonymousClassTest.kt</ID>
+    <ID>FinalNewline:AliasingInParamsExampleTest.kt$org.usvm.samples.mock.aliasing.AliasingInParamsExampleTest.kt</ID>
+    <ID>FinalNewline:AnonymousClassesExampleTest.kt$org.usvm.samples.objects.AnonymousClassesExampleTest.kt</ID>
+    <ID>FinalNewline:ArgumentsMockTest.kt$.ArgumentsMockTest.kt</ID>
+    <ID>FinalNewline:ArithmeticUtilsTest.kt$org.usvm.samples.numbers.ArithmeticUtilsTest.kt</ID>
+    <ID>FinalNewline:ArrayCastExampleTest.kt$org.usvm.samples.casts.ArrayCastExampleTest.kt</ID>
+    <ID>FinalNewline:ArrayOfArraysTest.kt$org.usvm.samples.arrays.ArrayOfArraysTest.kt</ID>
+    <ID>FinalNewline:ArrayOfObjectsTest.kt$org.usvm.samples.arrays.ArrayOfObjectsTest.kt</ID>
+    <ID>FinalNewline:ArraysOverwriteValueTest.kt$org.usvm.samples.arrays.ArraysOverwriteValueTest.kt</ID>
+    <ID>FinalNewline:AstExampleTest.kt$org.usvm.samples.invokes.AstExampleTest.kt</ID>
+    <ID>FinalNewline:BinarySearchTest.kt$org.usvm.samples.algorithms.BinarySearchTest.kt</ID>
+    <ID>FinalNewline:BitOperatorsTest.kt$org.usvm.samples.math.BitOperatorsTest.kt</ID>
+    <ID>FinalNewline:BooleanWrapperTest.kt$org.usvm.samples.wrappers.BooleanWrapperTest.kt</ID>
+    <ID>FinalNewline:ByteExamplesTest.kt$org.usvm.samples.primitives.ByteExamplesTest.kt</ID>
+    <ID>FinalNewline:ByteWrapperTest.kt$org.usvm.samples.wrappers.ByteWrapperTest.kt</ID>
+    <ID>FinalNewline:CastClassTest.kt$org.usvm.samples.casts.CastClassTest.kt</ID>
+    <ID>FinalNewline:CastExamplesTest.kt$org.usvm.samples.types.CastExamplesTest.kt</ID>
+    <ID>FinalNewline:CharExamplesTest.kt$org.usvm.samples.primitives.CharExamplesTest.kt</ID>
+    <ID>FinalNewline:CharacterWrapperTest.kt$org.usvm.samples.wrappers.CharacterWrapperTest.kt</ID>
+    <ID>FinalNewline:ClassRefTest.kt$org.usvm.samples.objects.ClassRefTest.kt</ID>
+    <ID>FinalNewline:ClassWithClassRefTest.kt$org.usvm.samples.objects.ClassWithClassRefTest.kt</ID>
+    <ID>FinalNewline:ClassWithComplicatedMethodsTest.kt$.ClassWithComplicatedMethodsTest.kt</ID>
+    <ID>FinalNewline:ClassWithCrossReferenceRelationshipTest.kt$org.usvm.samples.codegen.deepequals.ClassWithCrossReferenceRelationshipTest.kt</ID>
+    <ID>FinalNewline:ClassWithNullableFieldTest.kt$org.usvm.samples.codegen.deepequals.ClassWithNullableFieldTest.kt</ID>
+    <ID>FinalNewline:ClassWithStaticAndInnerClassesTest.kt$org.usvm.samples.codegen.ClassWithStaticAndInnerClassesTest.kt</ID>
+    <ID>FinalNewline:CodegenExampleTest.kt$org.usvm.samples.codegen.CodegenExampleTest.kt</ID>
+    <ID>FinalNewline:CompositeModelMinimizationChecker.kt$.CompositeModelMinimizationChecker.kt</ID>
+    <ID>FinalNewline:CorrectBracketSequencesTest.kt$org.usvm.samples.algorithms.CorrectBracketSequencesTest.kt</ID>
+    <ID>FinalNewline:CustomerExamplesTest.kt$org.usvm.samples.collections.CustomerExamplesTest.kt</ID>
+    <ID>FinalNewline:CycleDependedConditionTest.kt$org.usvm.samples.controlflow.CycleDependedConditionTest.kt</ID>
+    <ID>FinalNewline:DateExampleTest.kt$org.usvm.samples.stdlib.DateExampleTest.kt</ID>
+    <ID>FinalNewline:DivRemExamplesTest.kt$org.usvm.samples.math.DivRemExamplesTest.kt</ID>
+    <ID>FinalNewline:DoubleFunctionsTest.kt$org.usvm.samples.math.DoubleFunctionsTest.kt</ID>
+    <ID>FinalNewline:DoubleWrapperTest.kt$org.usvm.samples.wrappers.DoubleWrapperTest.kt</ID>
+    <ID>FinalNewline:EnumWithAnnotationsTest.kt$.EnumWithAnnotationsTest.kt</ID>
+    <ID>FinalNewline:EnumWithoutAnnotationsTest.kt$.EnumWithoutAnnotationsTest.kt</ID>
+    <ID>FinalNewline:FieldMockChecker.kt$.FieldMockChecker.kt</ID>
+    <ID>FinalNewline:FieldMockTest.kt$.FieldMockTest.kt</ID>
+    <ID>FinalNewline:FileWithTopLevelFunctionsTest.kt$org.usvm.samples.codegen.FileWithTopLevelFunctionsTest.kt</ID>
+    <ID>FinalNewline:FinalStaticFieldArrayTest.kt$org.usvm.samples.arrays.FinalStaticFieldArrayTest.kt</ID>
+    <ID>FinalNewline:FloatExamplesTest.kt$org.usvm.samples.primitives.FloatExamplesTest.kt</ID>
+    <ID>FinalNewline:FloatWrapperTest.kt$org.usvm.samples.wrappers.FloatWrapperTest.kt</ID>
+    <ID>FinalNewline:GenericCastExampleTest.kt$org.usvm.samples.casts.GenericCastExampleTest.kt</ID>
+    <ID>FinalNewline:GenericListsExampleTest.kt$org.usvm.samples.collections.GenericListsExampleTest.kt</ID>
+    <ID>FinalNewline:GenericWithUpperBoundTest.kt$org.usvm.samples.types.GenericWithUpperBoundTest.kt</ID>
+    <ID>FinalNewline:GenericsTest.kt$org.usvm.samples.types.GenericsTest.kt</ID>
+    <ID>FinalNewline:GraphTest.kt$org.usvm.samples.algorithms.GraphTest.kt</ID>
+    <ID>FinalNewline:HeapTest.kt$org.usvm.samples.structures.HeapTest.kt</ID>
+    <ID>FinalNewline:HiddenFieldAccessModifiersTest.kt$org.usvm.samples.objects.HiddenFieldAccessModifiersTest.kt</ID>
+    <ID>FinalNewline:HiddenFieldExampleTest.kt$org.usvm.samples.objects.HiddenFieldExampleTest.kt</ID>
+    <ID>FinalNewline:InnerMockWithFieldChecker.kt$.InnerMockWithFieldChecker.kt</ID>
+    <ID>FinalNewline:InstanceOfExampleTest.kt$org.usvm.samples.casts.InstanceOfExampleTest.kt</ID>
+    <ID>FinalNewline:IntExamplesTest.kt$org.usvm.samples.primitives.IntExamplesTest.kt</ID>
+    <ID>FinalNewline:IntegerWrapperTest.kt$org.usvm.samples.wrappers.IntegerWrapperTest.kt</ID>
+    <ID>FinalNewline:InvokeExampleTest.kt$org.usvm.samples.invokes.InvokeExampleTest.kt</ID>
+    <ID>FinalNewline:JavaAssertTest.kt$org.usvm.samples.codegen.JavaAssertTest.kt</ID>
+    <ID>FinalNewline:JavaIOFileInputStreamCheckTest.kt$org.usvm.samples.stdlib.JavaIOFileInputStreamCheckTest.kt</ID>
+    <ID>FinalNewline:JavaMethodTestRunner.kt$org.usvm.samples.JavaMethodTestRunner.kt</ID>
+    <ID>FinalNewline:JcOperatorTestData.kt$org.usvm.machine.operator.JcOperatorTestData.kt</ID>
+    <ID>FinalNewline:JcUnaryOperatorTest.kt$org.usvm.machine.operator.JcUnaryOperatorTest.kt</ID>
+    <ID>FinalNewline:ListAlgorithmsTest.kt$org.usvm.samples.collections.ListAlgorithmsTest.kt</ID>
+    <ID>FinalNewline:ListIteratorsTest.kt$org.usvm.samples.collections.ListIteratorsTest.kt</ID>
+    <ID>FinalNewline:ListWrapperReturnsVoidTest.kt$org.usvm.samples.collections.ListWrapperReturnsVoidTest.kt</ID>
+    <ID>FinalNewline:ListsPart1Test.kt$org.usvm.samples.collections.ListsPart1Test.kt</ID>
+    <ID>FinalNewline:ListsPart2Test.kt$org.usvm.samples.collections.ListsPart2Test.kt</ID>
+    <ID>FinalNewline:ListsPart3Test.kt$org.usvm.samples.collections.ListsPart3Test.kt</ID>
+    <ID>FinalNewline:LoggerExampleTest.kt$org.usvm.samples.mixed.LoggerExampleTest.kt</ID>
+    <ID>FinalNewline:LongWrapperTest.kt$org.usvm.samples.wrappers.LongWrapperTest.kt</ID>
+    <ID>FinalNewline:MapEntrySetTest.kt$org.usvm.samples.collections.MapEntrySetTest.kt</ID>
+    <ID>FinalNewline:MapKeySetTest.kt$org.usvm.samples.collections.MapKeySetTest.kt</ID>
+    <ID>FinalNewline:MapValuesTest.kt$org.usvm.samples.collections.MapValuesTest.kt</ID>
+    <ID>FinalNewline:MapsPart1Test.kt$org.usvm.samples.collections.MapsPart1Test.kt</ID>
+    <ID>FinalNewline:MapsPart2Test.kt$org.usvm.samples.collections.MapsPart2Test.kt</ID>
+    <ID>FinalNewline:MinStackExampleTest.kt$org.usvm.samples.structures.MinStackExampleTest.kt</ID>
+    <ID>FinalNewline:MockFinalClassTest.kt$.MockFinalClassTest.kt</ID>
+    <ID>FinalNewline:MockRandomTest.kt$.MockRandomTest.kt</ID>
+    <ID>FinalNewline:MockReturnObjectExampleTest.kt$.MockReturnObjectExampleTest.kt</ID>
+    <ID>FinalNewline:MockStaticFieldExampleTest.kt$.MockStaticFieldExampleTest.kt</ID>
+    <ID>FinalNewline:MockStaticMethodExampleTest.kt$.MockStaticMethodExampleTest.kt</ID>
+    <ID>FinalNewline:MockWithFieldChecker.kt$.MockWithFieldChecker.kt</ID>
+    <ID>FinalNewline:MockWithSideEffectExampleTest.kt$.MockWithSideEffectExampleTest.kt</ID>
+    <ID>FinalNewline:ModelMinimizationExamplesTest.kt$org.usvm.samples.objects.ModelMinimizationExamplesTest.kt</ID>
+    <ID>FinalNewline:ModelsIdEqualityChecker.kt$.ModelsIdEqualityChecker.kt</ID>
+    <ID>FinalNewline:MonitorUsageTest.kt$org.usvm.samples.mixed.MonitorUsageTest.kt</ID>
+    <ID>FinalNewline:NativeExampleTest.kt$org.usvm.samples.invokes.NativeExampleTest.kt</ID>
+    <ID>FinalNewline:NativeExamplesTest.kt$org.usvm.samples.natives.NativeExamplesTest.kt</ID>
+    <ID>FinalNewline:NotNullAnnotationsTest.kt$org.usvm.samples.annotations.lombok.NotNullAnnotationsTest.kt</ID>
+    <ID>FinalNewline:ObjectWithFinalStaticTest.kt$org.usvm.samples.objects.ObjectWithFinalStaticTest.kt</ID>
+    <ID>FinalNewline:ObjectWithStaticFieldsExampleTest.kt$.ObjectWithStaticFieldsExampleTest.kt</ID>
+    <ID>FinalNewline:OptionalsTest.kt$org.usvm.samples.collections.OptionalsTest.kt</ID>
+    <ID>FinalNewline:OverloadTest.kt$org.usvm.samples.mixed.OverloadTest.kt</ID>
+    <ID>FinalNewline:PathDependentGenericsExampleTest.kt$org.usvm.samples.types.PathDependentGenericsExampleTest.kt</ID>
+    <ID>FinalNewline:PrimitiveArraysTest.kt$org.usvm.samples.arrays.PrimitiveArraysTest.kt</ID>
+    <ID>FinalNewline:PrivateFieldsTest.kt$org.usvm.samples.objects.PrivateFieldsTest.kt</ID>
+    <ID>FinalNewline:QueueUsagesTest.kt$org.usvm.samples.collections.QueueUsagesTest.kt</ID>
+    <ID>FinalNewline:SetIteratorsTest.kt$org.usvm.samples.collections.SetIteratorsTest.kt</ID>
+    <ID>FinalNewline:SetsTest.kt$org.usvm.samples.collections.SetsTest.kt</ID>
+    <ID>FinalNewline:ShortWrapperTest.kt$org.usvm.samples.wrappers.ShortWrapperTest.kt</ID>
+    <ID>FinalNewline:SimpleClassMultiInstanceExampleTest.kt$org.usvm.samples.objects.SimpleClassMultiInstanceExampleTest.kt</ID>
+    <ID>FinalNewline:SimpleInterfaceExampleTest.kt$org.usvm.samples.invokes.SimpleInterfaceExampleTest.kt</ID>
+    <ID>FinalNewline:SimpleNoConditionTest.kt$org.usvm.samples.mixed.SimpleNoConditionTest.kt</ID>
+    <ID>FinalNewline:SimplifierTest.kt$org.usvm.samples.mixed.SimplifierTest.kt</ID>
+    <ID>FinalNewline:SortTest.kt$org.usvm.samples.algorithms.SortTest.kt</ID>
+    <ID>FinalNewline:StandardStructuresTest.kt$org.usvm.samples.structures.StandardStructuresTest.kt</ID>
+    <ID>FinalNewline:StaticFieldMockTest.kt$.StaticFieldMockTest.kt</ID>
+    <ID>FinalNewline:StaticsSubstitutionTest.kt$org.usvm.samples.substitution.StaticsSubstitutionTest.kt</ID>
+    <ID>FinalNewline:StringConcatTest.kt$org.usvm.samples.strings11.StringConcatTest.kt</ID>
+    <ID>FinalNewline:SwitchTest.kt$org.usvm.samples.controlflow.SwitchTest.kt</ID>
+    <ID>FinalNewline:TestId.kt$org.usvm.samples.objects.TestId.kt</ID>
+    <ID>FinalNewline:TestMultiDimensional.kt$org.usvm.samples.arrays.TestMultiDimensional.kt</ID>
+    <ID>FinalNewline:TestResolvingOptions.kt$org.usvm.util.TestResolvingOptions.kt</ID>
+    <ID>FinalNewline:TestThrowing.kt$org.usvm.samples.functions.TestThrowing.kt</ID>
+    <ID>FinalNewline:TestVector2D.kt$org.usvm.samples.objects.TestVector2D.kt</ID>
+    <ID>FinalNewline:UTestRunner.kt$org.usvm.util.UTestRunner.kt</ID>
+    <ID>FinalNewline:UTestRunnerController.kt$org.usvm.util.UTestRunnerController.kt</ID>
+    <ID>FinalNewline:UnsafeOperationsTest.kt$org.usvm.samples.unsafe.UnsafeOperationsTest.kt</ID>
+    <ID>FinalNewline:UnsafeWithFieldTest.kt$org.usvm.samples.unsafe.UnsafeWithFieldTest.kt</ID>
+    <ID>FinalNewline:UseNetworkModelBasedTest.kt$.UseNetworkModelBasedTest.kt</ID>
+    <ID>FinalNewline:UseNetworkTest.kt$.UseNetworkTest.kt</ID>
+    <ID>FinalNewline:VirtualInvokeExampleTest.kt$org.usvm.samples.invokes.VirtualInvokeExampleTest.kt</ID>
+    <ID>FinalNewline:VoidStaticMethodsTest.kt$org.usvm.samples.codegen.VoidStaticMethodsTest.kt</ID>
+    <ID>ForbiddenMethodCall:ListsPart3Test.kt$ListsPart3Test$println(r)</ID>
+    <ID>ImportOrdering:BaseStreamExampleTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Tag import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import org.usvm.util.isException import java.util.Optional import java.util.stream.Collectors import java.util.stream.Stream</ID>
+    <ID>ImportOrdering:ClassWithCrossReferenceRelationshipTest.kt$import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.eq</ID>
+    <ID>ImportOrdering:ClassWithNullableFieldTest.kt$import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.eq</ID>
+    <ID>ImportOrdering:CodegenExampleTest.kt$import org.usvm.test.util.checkers.eq import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>ImportOrdering:DoubleStreamExampleTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Tag import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import org.usvm.util.isException import java.util.OptionalDouble import java.util.stream.DoubleStream import kotlin.streams.toList</ID>
+    <ID>ImportOrdering:FileWithTopLevelFunctionsTest.kt$import org.usvm.test.util.checkers.eq import org.usvm.samples.JavaMethodTestRunner</ID>
+    <ID>ImportOrdering:IntStreamExampleTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Tag import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import org.usvm.util.isException import java.util.OptionalDouble import java.util.OptionalInt import java.util.stream.IntStream import kotlin.streams.toList</ID>
+    <ID>ImportOrdering:LinkedListsTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.util.isException</ID>
+    <ID>ImportOrdering:ListIteratorsTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import kotlin.math.min</ID>
+    <ID>ImportOrdering:LongStreamExampleTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Tag import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import org.usvm.util.isException import java.util.OptionalDouble import java.util.OptionalLong import java.util.stream.LongStream import kotlin.streams.toList</ID>
+    <ID>ImportOrdering:ObjectWithThrowableConstructorTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.eq import kotlin.reflect.KFunction2</ID>
+    <ID>ImportOrdering:StaticsPathDiversionTest.kt$import org.junit.jupiter.api.Disabled import org.junit.jupiter.api.Test import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.ge import java.io.File</ID>
+    <ID>ImportOrdering:TestSimple.kt$import org.usvm.UMachineOptions import org.usvm.PathSelectionStrategy import org.usvm.PathSelectorCombinationStrategy import org.usvm.samples.JavaMethodTestRunner import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults import org.usvm.util.Options import org.usvm.util.UsvmTest</ID>
+    <ID>Indentation:DeepEqualsTest.kt$ </ID>
+    <ID>Indentation:DoubleStreamExampleTest.kt$DoubleStreamExampleTest$ </ID>
+    <ID>Indentation:InstanceOfExampleTest.kt$InstanceOfExampleTest$ </ID>
+    <ID>Indentation:IntStreamExampleTest.kt$IntStreamExampleTest$ </ID>
+    <ID>Indentation:LongStreamExampleTest.kt$LongStreamExampleTest$ </ID>
+    <ID>Indentation:MapsPart1Test.kt$MapsPart1Test$ </ID>
+    <ID>Indentation:StaticsSubstitutionTest.kt$StaticsSubstitutionTest$ </ID>
+    <ID>Indentation:StringExamplesTest.kt$StringExamplesTest$ </ID>
+    <ID>Indentation:UnsafeOperationsTest.kt$UnsafeOperationsTest$ </ID>
+    <ID>LargeClass:JavaMethodTestRunner.kt$JavaMethodTestRunner : TestRunner</ID>
+    <ID>LargeClass:StringExamplesTest.kt$StringExamplesTest : JavaMethodTestRunner</ID>
+    <ID>LongMethod:TaintTest.kt$TaintTest$private fun constructCommonTaintAnalysis(): TaintAnalysis</ID>
+    <ID>MapGetWithNotNullAssertionOperator:TaintTest.kt$TaintTest$configuration.methodSinks[consumerOfInjections]!!</ID>
+    <ID>MapGetWithNotNullAssertionOperator:TaintTest.kt$TaintTest$configuration.methodSinks[consumerWithReturningValue]!!</ID>
+    <ID>MapGetWithNotNullAssertionOperator:TaintTest.kt$TaintTest$configuration.methodSources[sampleSourceMethod]!!</ID>
+    <ID>MatchingDeclarationName:TestResolvingOptions.kt$JcTestResolverType</ID>
+    <ID>MaxChainedCallsOnSameLine:TestStatics.kt$TestStatics$staticsAfter.entries.single().value.single().value</ID>
+    <ID>MaxChainedCallsOnSameLine:TestStatics.kt$TestStatics$staticsBefore.entries.single().value.single().value</ID>
+    <ID>MaxLineLength:AnonymousClassesExampleTest.kt$AnonymousClassesExampleTest${ _, abstractAnonymousClass -&gt; abstractAnonymousClass != null &amp;&amp; abstractAnonymousClass::class.java.isAnonymousClass }</ID>
+    <ID>MaxLineLength:AnonymousClassesExampleTest.kt$AnonymousClassesExampleTest${ _, abstractAnonymousClass, r -&gt; abstractAnonymousClass != null &amp;&amp; abstractAnonymousClass::class.java.isAnonymousClass &amp;&amp; r.getOrNull() == 42 }</ID>
+    <ID>MaxLineLength:ArgumentsMockTest.kt$// mocksMethod(Provider::provideBoolean) &amp;&amp; value(0) &amp;&amp; !value&lt;Boolean&gt;(1) &amp;&amp; isParameter(1) &amp;&amp; r == 1</ID>
+    <ID>MaxLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest${ _, a, _ -&gt; a is Array&lt;*&gt; &amp;&amp; a.isArrayOf&lt;Point&gt;() &amp;&amp; !a.isArrayOf&lt;ColoredPoint&gt;() &amp;&amp; (a[0] as Point).x != 1 }</ID>
+    <ID>MaxLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest${ _, a, _ -&gt; a is Array&lt;*&gt; &amp;&amp; a.isArrayOf&lt;Point&gt;() &amp;&amp; !a.isArrayOf&lt;ColoredPoint&gt;() &amp;&amp; (a[0] as Point).x == 1 }</ID>
+    <ID>MaxLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest${ _, a, r -&gt; a is Array&lt;*&gt; &amp;&amp; a.isArrayOf&lt;CastClassFirstSucc&gt;() &amp;&amp; r != null &amp;&amp; r.isArrayOf&lt;CastClassFirstSucc&gt;() }</ID>
+    <ID>MaxLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest${ _, a, r -&gt; a is Array&lt;*&gt; &amp;&amp; a.isArrayOf&lt;ColoredPoint&gt;() &amp;&amp; (a[0] as Point).x != 1 &amp;&amp; r != null &amp;&amp; r[0].x == 5 }</ID>
+    <ID>MaxLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest${ _, a, r -&gt; a is Array&lt;*&gt; &amp;&amp; a.isArrayOf&lt;ColoredPoint&gt;() &amp;&amp; (a[0] as Point).x == 1 &amp;&amp; r != null &amp;&amp; r[0].x == 10 }</ID>
+    <ID>MaxLineLength:ArrayOfArraysTest.kt$ArrayOfArraysTest${ _, m, r -&gt; m.size &gt;= 3 &amp;&amp; m.size == m[0].size &amp;&amp; m[0][0] == 1 &amp;&amp; m[0][1] == 0 &amp;&amp; m[0][2] != 0 &amp;&amp; r != null &amp;&amp; !r }</ID>
+    <ID>MaxLineLength:ArraysOverwriteValueTest.kt$ArraysOverwriteValueTest${ _, before, _, _, r -&gt; before != null &amp;&amp; before.isNotEmpty() &amp;&amp; before[0] != 0.toByte() &amp;&amp; r == 2.toByte() }</ID>
+    <ID>MaxLineLength:ArraysOverwriteValueTest.kt$ArraysOverwriteValueTest${ _, before, _, _, r -&gt; before != null &amp;&amp; before.isNotEmpty() &amp;&amp; before[0] != 0.toChar() &amp;&amp; r == 2.toChar() }</ID>
+    <ID>MaxLineLength:ArraysOverwriteValueTest.kt$ArraysOverwriteValueTest${ _, before, _, _, r -&gt; before != null &amp;&amp; before.isNotEmpty() &amp;&amp; before[0] != 0.toLong() &amp;&amp; r == 2.toLong() }</ID>
+    <ID>MaxLineLength:ArraysOverwriteValueTest.kt$ArraysOverwriteValueTest${ _, before, _, _, r -&gt; before != null &amp;&amp; before.isNotEmpty() &amp;&amp; before[0] != 0.toShort() &amp;&amp; r == 2.toByte() }</ID>
+    <ID>MaxLineLength:ByteWrapperTest.kt$ByteWrapperTest${ _, a, b, result -&gt; a != b &amp;&amp; result == 4 }</ID>
+    <ID>MaxLineLength:CastExampleTest.kt$CastExampleTest${ _, i, a, r -&gt; i == 0 &amp;&amp; a != null &amp;&amp; a[i] != null &amp;&amp; a[i] is CastClassFirstSucc &amp;&amp; r is CastClassFirstSucc }</ID>
+    <ID>MaxLineLength:CastExamplesTest.kt$CastExamplesTest${ _, a, b, r -&gt; (a.charInt() + b.charInt()).charInt() &lt;= 10 &amp;&amp; a.charInt() &lt;= b.charInt() &amp;&amp; r == (0).toChar() }</ID>
+    <ID>MaxLineLength:CastExamplesTest.kt$CastExamplesTest${ _, a, b, r -&gt; (a.charInt() + b.charInt()).charInt() &lt;= 10 &amp;&amp; a.charInt() &gt; b.charInt() &amp;&amp; r == (-1).toChar() }</ID>
+    <ID>MaxLineLength:CharExamplesTest.kt$CharExamplesTest${ _, b, r -&gt; b != (-1).toByte() &amp;&amp; b != (-128).toByte() &amp;&amp; b != 0.toByte() &amp;&amp; b != 127.toByte() &amp;&amp; r == 200 }</ID>
+    <ID>MaxLineLength:ClassUsingClassWithRandomFieldTest.kt$ClassUsingClassWithRandomFieldTest$// noMocks &amp;&amp; classIdEquality &amp;&amp; callSiteIdEquality &amp;&amp; instance.isMock &amp;&amp; methodNameEquality &amp;&amp; mockValueResult</ID>
+    <ID>MaxLineLength:ClassWithClassRefTest.kt$ClassWithClassRefTest$// { _, instance, r -&gt; instance.someListClass != null &amp;&amp; r.getOrNull() == "" }, // TODO: Method coverage with `this` parameter isn't supported</ID>
+    <ID>MaxLineLength:ClassWithComplicatedMethodsTest.kt$// x &gt; 0 &amp;&amp; mocks.isEmpty() &amp;&amp; instr.isEmpty() &amp;&amp; sqrt(x.toDouble()) != x.toDouble() &amp;&amp; r != null &amp;&amp; r.a == 10</ID>
+    <ID>MaxLineLength:ClassWithComplicatedMethodsTest.kt$// x &gt; 0 &amp;&amp; mocks.isEmpty() &amp;&amp; instr.isEmpty() &amp;&amp; sqrt(x.toDouble()) == x.toDouble() &amp;&amp; r != null &amp;&amp; r.a == 2821</ID>
+    <ID>MaxLineLength:ClassWithComplicatedMethodsTest.kt$// { _, a, b, mocks, instr, r -&gt; a &lt; 0 &amp;&amp; b &lt; 0 &amp;&amp; r != null &amp;&amp; r.a == (a + b).toInt() &amp;&amp; mocks.isEmpty() &amp;&amp; instr.isEmpty() },</ID>
+    <ID>MaxLineLength:ClassWithComplicatedMethodsTest.kt$// { _, a, b, mocks, instr, r -&gt; a &gt; 10 &amp;&amp; b &gt; 10 &amp;&amp; r != null &amp;&amp; r.a == a + b &amp;&amp; mocks.isEmpty() &amp;&amp; instr.isEmpty() },</ID>
+    <ID>MaxLineLength:ComplexEnumExamplesTest.kt$ComplexEnumExamplesTest$@Disabled("TODO the first matcher does not matches. Discover whether it should or not - perhaps it's an issue with calculating coverage.")</ID>
+    <ID>MaxLineLength:DoubleFunctionsTest.kt$DoubleFunctionsTest$ignoreNumberOfAnalysisResults</ID>
+    <ID>MaxLineLength:ExceptionExamplesTest.kt$ExceptionExamplesTest${ _, e, r -&gt; e == null || (e is RuntimeException &amp;&amp; e !is NumberFormatException &amp;&amp; e !is InvalidPathException) &amp;&amp; r == 3 }</ID>
+    <ID>MaxLineLength:FileWithTopLevelFunctionsTest.kt$FileWithTopLevelFunctionsTest$// // NB: cast is important here because we need to treat receiver as an argument to be able to check its content in matchers</ID>
+    <ID>MaxLineLength:GenericCastExampleTest.kt$GenericCastExampleTest$(g == null &amp;&amp; r.isException&lt;NullPointerException&gt;()) || (g != null &amp;&amp; r.getOrThrow() == g.genericField)</ID>
+    <ID>MaxLineLength:GenericCastExampleTest.kt$GenericCastExampleTest${ _, g, r -&gt; g.genericArray[0] != null &amp;&amp; g.genericArray[1] != null &amp;&amp; r == g.genericArray[0] + g.genericArray[1] }</ID>
+    <ID>MaxLineLength:GenericListsExampleTest.kt$GenericListsExampleTest$(it is Array&lt;*&gt; &amp;&amp; it.isArrayOf&lt;Array&lt;*&gt;&gt;() &amp;&amp; it.all { it.isArrayOf&lt;Long&gt;() || it == null }) || it == null</ID>
+    <ID>MaxLineLength:GenericListsExampleTest.kt$GenericListsExampleTest${ _, v, r -&gt; v != null &amp;&amp; v.size &gt; 1 &amp;&amp; v[0] != null &amp;&amp; v.all { it is Comparable&lt;*&gt; || it == null } &amp;&amp; v == r }</ID>
+    <ID>MaxLineLength:GenericsTest.kt$GenericsTest${ _, obj, r -&gt; (obj.field != null &amp;&amp; obj.field != "abc" &amp;&amp; r == false) || (obj.field == "abc" &amp;&amp; r == true) }</ID>
+    <ID>MaxLineLength:GraphTest.kt$GraphTest${ _, e, r -&gt; e != null &amp;&amp; e.any { it.first &lt; 0 || it.first &gt;= 10 } &amp;&amp; r.isException&lt;ArrayIndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:GraphTest.kt$GraphTest${ _, e, r -&gt; e != null &amp;&amp; e.any { it.second &lt; 0 || it.second &gt;= 10 } &amp;&amp; r.isException&lt;ArrayIndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:InstanceOfExampleTest.kt$InstanceOfExampleTest${ _, aBefore, _, aAfter, r -&gt; aBefore is BooleanArray &amp;&amp; r is BooleanArray &amp;&amp; aBefore contentEquals r &amp;&amp; aAfter === r }</ID>
+    <ID>MaxLineLength:InstanceOfExampleTest.kt$InstanceOfExampleTest${ _, aBefore, _, aAfter, r -&gt; aBefore is IntArray &amp;&amp; r is IntArray &amp;&amp; aBefore contentEquals r &amp;&amp; aAfter === r }</ID>
+    <ID>MaxLineLength:InstanceOfExampleTest.kt$InstanceOfExampleTest${ _, objects, index, _, result -&gt; (index !in 0..2 || objects == null || objects.size &gt;= index + 2) &amp;&amp; result == null }</ID>
+    <ID>MaxLineLength:IntArrayBasicsTest.kt$IntArrayBasicsTest$@Disabled("TODO uses the native call jdk.internal.misc.Unsafe.getLong(java.lang.Object, long) in java.util.Arrays.equals(int[], int[])")</ID>
+    <ID>MaxLineLength:IntArrayBasicsTest.kt$IntArrayBasicsTest$arrayAfter[0] == 1 &amp;&amp; arrayAfter[1] == 2 &amp;&amp; arrayAfter[2] == 3 &amp;&amp; r!!.zip(arrayAfter).all { it.first == it.second }</ID>
+    <ID>MaxLineLength:IntArrayBasicsTest.kt$IntArrayBasicsTest${ _, a, n, r -&gt; a != null &amp;&amp; a.size &gt; 6 &amp;&amp; (n &lt; 0 || n &gt;= a.size) &amp;&amp; r.isException&lt;IndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:IntArrayBasicsTest.kt$IntArrayBasicsTest${ _, a, r -&gt; a != null &amp;&amp; a.size &gt;= 4 &amp;&amp; a[0] == 1 &amp;&amp; a[1] == 2 &amp;&amp; a[2] == 3 &amp;&amp; a[3] != 4 &amp;&amp; r.getOrNull() == 0 }</ID>
+    <ID>MaxLineLength:IntExamplesTest.kt$IntExamplesTest${ _, a, b, r -&gt; ((b + 10 &lt; b + 22 &amp;&amp; b + 22 &gt;= a + b + 10) || (b + 10 &gt;= b + 22)) &amp;&amp; r == 0 }</ID>
+    <ID>MaxLineLength:InvokeExampleTest.kt$InvokeExampleTest${ _, a, r -&gt; a != null &amp;&amp; a.isNotEmpty() &amp;&amp; r != null &amp;&amp; r.size == a.size &amp;&amp; a.map { it + 5 } == r.toList() }</ID>
+    <ID>MaxLineLength:JavaIOFileInputStreamCheckTest.kt$JavaIOFileInputStreamCheckTest$// additionalMockAlwaysClasses = setOf(java.io.FileInputStream::class.id), // there is a problem with coverage calculation of mocked values</ID>
+    <ID>MaxLineLength:JavaIOFileInputStreamCheckTest.kt$JavaIOFileInputStreamCheckTest$// val callSiteIdEquality = constructorMock.callSites.single() == JavaIOFileInputStreamCheck::class.id</ID>
+    <ID>MaxLineLength:JavaMethodTestRunner.kt$JavaMethodTestRunner$expectedTypesForExtractedValues = arrayOf(T::class, A0::class, A1::class, T::class, A0::class, A1::class, R::class)</ID>
+    <ID>MaxLineLength:JavaMethodTestRunner.kt$JavaMethodTestRunner$protected inline</ID>
+    <ID>MaxLineLength:ListAlgorithmsTest.kt$ListAlgorithmsTest${ _, a, b, r -&gt; (a.subList(0, a.size - 1).any { b.last() &lt;= it } || a.any { ai -&gt; b.any { ai &lt; it } }) &amp;&amp; r != null &amp;&amp; r == r.sorted() }</ID>
+    <ID>MaxLineLength:ListIteratorsTest.kt$ListIteratorsTest$ListIterators::removeElements</ID>
+    <ID>MaxLineLength:ListsPart3Test.kt$ListsPart3Test${ _, a, r -&gt; a != null &amp;&amp; a.isNotEmpty() &amp;&amp; r != null &amp;&amp; r.isNotEmpty() &amp;&amp; a.toList() == r.also { println(r) } }</ID>
+    <ID>MaxLineLength:ListsPart3Test.kt$ListsPart3Test${ _, list, i, _, r -&gt; list != null &amp;&amp; i &gt;= 0 &amp;&amp; list.size &gt; i &amp;&amp; list[i] == null &amp;&amp; r.isException&lt;NullPointerException&gt;() }</ID>
+    <ID>MaxLineLength:LoggerExampleTest.kt$LoggerExampleTest$// (mocks.single().values.single() as UtConcreteValue&lt;*&gt;).value == false &amp;&amp; instrumentation.size == 1 &amp;&amp; r == 2</ID>
+    <ID>MaxLineLength:LoggerExampleTest.kt$LoggerExampleTest$// (mocks.single().values.single() as UtConcreteValue&lt;*&gt;).value == true &amp;&amp; instrumentation.size == 1 &amp;&amp; r == 1</ID>
+    <ID>MaxLineLength:MapEntrySetTest.kt$MapEntrySetTest$resultMap.entries.size == map.entries.size - 1 &amp;&amp; resultMap.entries.none { it.key == i &amp;&amp; it.value == j }</ID>
+    <ID>MaxLineLength:MapValuesTest.kt$MapValuesTest$// { _, map, result -&gt; map != null &amp;&amp; map.values.isEmpty() &amp;&amp; result.isException&lt;NoSuchElementException&gt;() },</ID>
+    <ID>MaxLineLength:MapValuesTest.kt$MapValuesTest$iInIndexRange &amp;&amp; mapContainsAllValuesFromResult &amp;&amp; ithValueWasDeleted &amp;&amp; keyAssociatedWIthIthValueWasDeleted</ID>
+    <ID>MaxLineLength:MapValuesTest.kt$MapValuesTest$iInMapValues &amp;&amp; iWasDeletedFromValues &amp;&amp; firstKeyAssociatedWIthIWasDeleted &amp;&amp; mapContainsAllValuesFromResult</ID>
+    <ID>MaxLineLength:MapValuesTest.kt$MapValuesTest${ _, map, result -&gt; map != null &amp;&amp; map.values.first() == null &amp;&amp; result.isException&lt;NullPointerException&gt;() }</ID>
+    <ID>MaxLineLength:MapsPart1Test.kt$MapsPart1Test$result != null</ID>
+    <ID>MaxLineLength:MapsPart1Test.kt$MapsPart1Test${ _, map, i, j, res -&gt; map != null &amp;&amp; (i !in map || map[i] == null) &amp;&amp; (j !in map || map[j] == null) &amp;&amp; res == -1 }</ID>
+    <ID>MaxLineLength:MapsPart2Test.kt$MapsPart2Test${ _, map, other, result -&gt; map != null &amp;&amp; other != null &amp;&amp; map.keys.containsAll(other.keys) &amp;&amp; result == 0 }</ID>
+    <ID>MaxLineLength:MapsPart2Test.kt$MapsPart2Test${ _, map, other, result -&gt; map != null &amp;&amp; other != null &amp;&amp; other.keys.all { it !in map.keys } &amp;&amp; result == 1 }</ID>
+    <ID>MaxLineLength:MinStackExampleTest.kt$MinStackExampleTest$initialValues != null &amp;&amp; initialValues.size == 1 &amp;&amp; result != null &amp;&amp; result.size == initialValues.size - 1</ID>
+    <ID>MaxLineLength:MinStackExampleTest.kt$MinStackExampleTest$initialValues != null &amp;&amp; initialValues.size &gt; 1 &amp;&amp; result != null &amp;&amp; result.size == initialValues.size - 1</ID>
+    <ID>MaxLineLength:ObjectWithPrimitivesClassTest.kt$ObjectWithPrimitivesClassTest$// instance is ObjectWithPrimitivesClass &amp;&amp; instance.x == x &amp;&amp; instance.y == y &amp;&amp; instance.weight == weight</ID>
+    <ID>MaxLineLength:ObjectWithPrimitivesExampleTest.kt$ObjectWithPrimitivesExampleTest${ _, fst, snd, r -&gt; fst != null &amp;&amp; snd != null &amp;&amp; (fst.x == snd.x || fst.y == snd.y) &amp;&amp; r.getOrNull()!! == fst }</ID>
+    <ID>MaxLineLength:ObjectWithPrimitivesExampleTest.kt$ObjectWithPrimitivesExampleTest${ _, fst, snd, r -&gt; fst != null &amp;&amp; snd != null &amp;&amp; fst.x &lt; snd.x &amp;&amp; fst.y &lt; snd.y &amp;&amp; r.getOrNull()!! == snd }</ID>
+    <ID>MaxLineLength:ObjectWithPrimitivesExampleTest.kt$ObjectWithPrimitivesExampleTest${ _, fst, snd, r -&gt; fst != null &amp;&amp; snd != null &amp;&amp; fst.x &gt; snd.x &amp;&amp; fst.y &gt; snd.y &amp;&amp; r.getOrNull()!! == fst }</ID>
+    <ID>MaxLineLength:ObjectWithPrimitivesExampleTest.kt$ObjectWithPrimitivesExampleTest${ _, r -&gt; r != null &amp;&amp; r.x == 0 &amp;&amp; r.y == 0 &amp;&amp; r.weight == 0.0 &amp;&amp; r.valueByDefault == 5 &amp;&amp; r.anotherX == 0 }</ID>
+    <ID>MaxLineLength:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest${ _, fst, snd, r -&gt; fst != null &amp;&amp; snd != null &amp;&amp; ((fst.x &gt; 0 &amp;&amp; snd.x &gt;= 0) || fst.x &lt;= 0) &amp;&amp; fst === snd &amp;&amp; r == 2 }</ID>
+    <ID>MaxLineLength:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest${ _, fst, snd, r -&gt; fst != null &amp;&amp; snd != null &amp;&amp; (fst.x &lt;= 0 || (fst.x &gt; 0 &amp;&amp; snd.x &gt;= 0)) &amp;&amp; fst !== snd &amp;&amp; r == 3 }</ID>
+    <ID>MaxLineLength:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest${ _, r -&gt; r != null &amp;&amp; r.x == 0 &amp;&amp; r.y == 0 &amp;&amp; r.weight == 0.0 &amp;&amp; r.arrayField == null &amp;&amp; r.refField == null }</ID>
+    <ID>MaxLineLength:ObjectWithStaticFieldsExampleTest.kt$// val contentCondition = staticArray.zip(staticArray.indices).all { it.first == defaultValue + it.second }</ID>
+    <ID>MaxLineLength:ObjectWithStaticFieldsExampleTest.kt$// { staticsBefore, staticsAfter, _ -&gt; staticsBefore.singleValue() == 41 &amp;&amp; staticsAfter.singleValue() == 42 },</ID>
+    <ID>MaxLineLength:OptionalsTest.kt$OptionalsTest$// { _, left, _, _, result -&gt; left.isPresent &amp;&amp; (result == left.asDouble || result.isNaN() &amp;&amp; left.asDouble.isNaN()) },</ID>
+    <ID>MaxLineLength:OptionalsTest.kt$OptionalsTest$// { _, left, right, _, result -&gt; left === OptionalDouble.empty() &amp;&amp; (result == right || result.isNaN() &amp;&amp; right.isNaN()) },</ID>
+    <ID>MaxLineLength:OptionalsTest.kt$OptionalsTest${ _, left, right, result -&gt; left != null &amp;&amp; left == right &amp;&amp; left.isPresent &amp;&amp; right.isPresent &amp;&amp; result != null &amp;&amp; result }</ID>
+    <ID>MaxLineLength:OptionalsTest.kt$OptionalsTest${ _, left, right, result -&gt; left != null &amp;&amp; left === right &amp;&amp; !left.isPresent &amp;&amp; !right.isPresent &amp;&amp; result != null &amp;&amp; result }</ID>
+    <ID>MaxLineLength:OverflowAsErrorTest.kt$// { _, x, r -&gt; (x &lt;= -sqrtIntMax || x &gt;= sqrtIntMax) &amp;&amp; r.isException&lt;OverflowDetectionError&gt;() }, // through overflow</ID>
+    <ID>MaxLineLength:OverflowAsErrorTest.kt$// { _, x, r -&gt; (x &gt; -sqrtIntMax &amp;&amp; x &lt; sqrtIntMax) &amp;&amp; r.isException&lt;OverflowDetectionError&gt;() }, // through overflow</ID>
+    <ID>MaxLineLength:PrivateConstructorExampleTest.kt$PrivateConstructorExampleTest${ caller, limit, _, _, r -&gt; caller.a - caller.b &lt; limit &amp;&amp; r == limit }</ID>
+    <ID>MaxLineLength:SetsTest.kt$SetsTest${ _, set, other, result -&gt; set.isNotEmpty() &amp;&amp; other.isNotEmpty() &amp;&amp; !set.containsAll(other) &amp;&amp; result == 0 }</ID>
+    <ID>MaxLineLength:SetsTest.kt$SetsTest${ _, set, other, result -&gt; set.isNotEmpty() &amp;&amp; other.isNotEmpty() &amp;&amp; set.containsAll(other) &amp;&amp; result == 1 }</ID>
+    <ID>MaxLineLength:SimpleLambdaExamplesTest.kt$SimpleLambdaExamplesTest${ _, b, r -&gt; !b &amp;&amp; r != null &amp;&amp; r.test(null) &amp;&amp; !r.test(0) }</ID>
+    <ID>MaxLineLength:SortTest.kt$SortTest${ _, _, begin, end, r -&gt; end &gt; begin &amp;&amp; r.isSuccess }</ID>
+    <ID>MaxLineLength:SortTest.kt$SortTest${ _, a, i, j, r -&gt; a != null &amp;&amp; i in a.indices &amp;&amp; (j &lt; 0 || j &gt;= a.size) &amp;&amp; r.isException&lt;IndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:StandardStructuresTest.kt$StandardStructuresTest$d !is java.util.ArrayDeque&lt;*&gt; &amp;&amp; d !is LinkedList &amp;&amp; d != null &amp;&amp; r !is java.util.ArrayDeque&lt;*&gt; &amp;&amp; r !is LinkedList &amp;&amp; r != null</ID>
+    <ID>MaxLineLength:StaticsPathDiversionTest.kt$StaticsPathDiversionTest$// In the matchers below we check that the symbolic does not change the static field `File.separator` - we should</ID>
+    <ID>MaxLineLength:StreamsAsMethodResultExampleTest.kt$StreamsAsMethodResultExampleTest$// { _, c, r -&gt; c.isNotEmpty() &amp;&amp; c.none { it == null } &amp;&amp; c.map { it.toDouble() }.toDoubleArray().contentEquals(r.getOrThrow().toArray()) },</ID>
+    <ID>MaxLineLength:StreamsAsMethodResultExampleTest.kt$StreamsAsMethodResultExampleTest$// { _, c, r -&gt; c.isNotEmpty() &amp;&amp; c.none { it == null } &amp;&amp; c.map { it.toLong() }.toLongArray().contentEquals(r.getOrThrow().toArray()) },</ID>
+    <ID>MaxLineLength:StreamsAsMethodResultExampleTest.kt$StreamsAsMethodResultExampleTest$// { _, c, r -&gt; c.isNotEmpty() &amp;&amp; c.none { it == null } &amp;&amp; c.toIntArray().contentEquals(r.getOrThrow().toArray()) },</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, _, t, i, r -&gt; t != null &amp;&amp; i &lt; 0 || i &gt;= t.length &amp;&amp; r.isException&lt;StringIndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, cs, i, r -&gt; i &gt; 0 &amp;&amp; cs != null &amp;&amp; cs.length &gt; i &amp;&amp; r.getOrThrow() }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, _, i, r -&gt; s != null &amp;&amp; i &lt; 0 || i &gt;= s.length &amp;&amp; r.isException&lt;StringIndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, b, e, r -&gt; s != null &amp;&amp; b &lt; 0 || e &gt; s.length || b &gt; e &amp;&amp; r.isException&lt;StringIndexOutOfBoundsException&gt;() }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, i, r -&gt; s != null &amp;&amp; i in 0..s.length &amp;&amp; r.getOrThrow() == s.substring(i) &amp;&amp; s.substring(i) != "password" }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, prefix, r -&gt; prefix != null &amp;&amp; prefix.length &gt;= 2 &amp;&amp; s != null &amp;&amp; !s.startsWith(prefix) &amp;&amp; r == false }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, prefix, r -&gt; prefix != null &amp;&amp; prefix.length &gt;= 2 &amp;&amp; s != null &amp;&amp; s.startsWith(prefix) &amp;&amp; r == true }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, regex, replacement, r -&gt; s != null &amp;&amp; regex != null &amp;&amp; replacement == null &amp;&amp; r.isException&lt;NullPointerException&gt;() }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, suffix, r -&gt; suffix != null &amp;&amp; suffix.length &gt;= 2 &amp;&amp; s != null &amp;&amp; !s.endsWith(suffix) &amp;&amp; r == false }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, t, i, r -&gt; s != null &amp;&amp; t != null &amp;&amp; s.codePointAt(i) &lt; t.codePointAt(i) &amp;&amp; i != 0 &amp;&amp; r.getOrThrow() == 1 }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, t, i, r -&gt; s != null &amp;&amp; t != null &amp;&amp; s.codePointAt(i) &lt; t.codePointAt(i) &amp;&amp; i == 0 &amp;&amp; r.getOrThrow() == 0 }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, t, i, r -&gt; s != null &amp;&amp; t != null &amp;&amp; s.codePointAt(i) &gt;= t.codePointAt(i) &amp;&amp; i != 0 &amp;&amp; r.getOrThrow() == 3 }</ID>
+    <ID>MaxLineLength:StringExamplesTest.kt$StringExamplesTest${ _, s, t, i, r -&gt; s != null &amp;&amp; t != null &amp;&amp; s.codePointAt(i) &gt;= t.codePointAt(i) &amp;&amp; i == 0 &amp;&amp; r.getOrThrow() == 2 }</ID>
+    <ID>MaxLineLength:TestCollatz.kt$TestCollatz$Options([PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL, solverType = SolverType.YICES)</ID>
+    <ID>MaxLineLength:TestLoanExam.kt$TestLoanExam$Options([PathSelectionStrategy.BFS], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES)</ID>
+    <ID>MaxLineLength:TestLoanExam.kt$TestLoanExam$Options([PathSelectionStrategy.RANDOM_PATH], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES)</ID>
+    <ID>MaxLineLength:TestOneDimensional.kt$TestOneDimensional${ a, b, r -&gt; a != null &amp;&amp; b != null &amp;&amp; a.size &gt; b.size &amp;&amp; r.exceptionOrNull() is IndexOutOfBoundsException }</ID>
+    <ID>MaximumLineLength:AnonymousClassesExampleTest.kt$AnonymousClassesExampleTest$ </ID>
+    <ID>MaximumLineLength:ArrayCastExampleTest.kt$ArrayCastExampleTest$ </ID>
+    <ID>MaximumLineLength:ArrayOfArraysTest.kt$ArrayOfArraysTest$ </ID>
+    <ID>MaximumLineLength:ArraysOverwriteValueTest.kt$ArraysOverwriteValueTest$ </ID>
+    <ID>MaximumLineLength:ByteWrapperTest.kt$ByteWrapperTest$ </ID>
+    <ID>MaximumLineLength:CastExampleTest.kt$CastExampleTest$ </ID>
+    <ID>MaximumLineLength:CastExamplesTest.kt$CastExamplesTest$ </ID>
+    <ID>MaximumLineLength:CharExamplesTest.kt$CharExamplesTest$ </ID>
+    <ID>MaximumLineLength:ComplexEnumExamplesTest.kt$ComplexEnumExamplesTest$ </ID>
+    <ID>MaximumLineLength:DoubleFunctionsTest.kt$DoubleFunctionsTest$ </ID>
+    <ID>MaximumLineLength:ExceptionExamplesTest.kt$ExceptionExamplesTest$ </ID>
+    <ID>MaximumLineLength:GenericCastExampleTest.kt$GenericCastExampleTest$ </ID>
+    <ID>MaximumLineLength:GenericListsExampleTest.kt$GenericListsExampleTest$ </ID>
+    <ID>MaximumLineLength:GenericsTest.kt$GenericsTest$ </ID>
+    <ID>MaximumLineLength:GraphTest.kt$GraphTest$ </ID>
+    <ID>MaximumLineLength:InstanceOfExampleTest.kt$InstanceOfExampleTest$ </ID>
+    <ID>MaximumLineLength:IntArrayBasicsTest.kt$IntArrayBasicsTest$ </ID>
+    <ID>MaximumLineLength:IntExamplesTest.kt$IntExamplesTest$ </ID>
+    <ID>MaximumLineLength:InvokeExampleTest.kt$InvokeExampleTest$ </ID>
+    <ID>MaximumLineLength:JavaMethodTestRunner.kt$JavaMethodTestRunner$ </ID>
+    <ID>MaximumLineLength:ListAlgorithmsTest.kt$ListAlgorithmsTest$ </ID>
+    <ID>MaximumLineLength:ListIteratorsTest.kt$ListIteratorsTest$ </ID>
+    <ID>MaximumLineLength:ListsPart3Test.kt$ListsPart3Test$ </ID>
+    <ID>MaximumLineLength:MapEntrySetTest.kt$MapEntrySetTest$ </ID>
+    <ID>MaximumLineLength:MapValuesTest.kt$MapValuesTest$ </ID>
+    <ID>MaximumLineLength:MapsPart1Test.kt$MapsPart1Test$ </ID>
+    <ID>MaximumLineLength:MapsPart2Test.kt$MapsPart2Test$ </ID>
+    <ID>MaximumLineLength:MinStackExampleTest.kt$MinStackExampleTest$ </ID>
+    <ID>MaximumLineLength:ObjectWithPrimitivesExampleTest.kt$ObjectWithPrimitivesExampleTest$ </ID>
+    <ID>MaximumLineLength:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$ </ID>
+    <ID>MaximumLineLength:OptionalsTest.kt$OptionalsTest$ </ID>
+    <ID>MaximumLineLength:PrivateConstructorExampleTest.kt$PrivateConstructorExampleTest$ </ID>
+    <ID>MaximumLineLength:SetsTest.kt$SetsTest$ </ID>
+    <ID>MaximumLineLength:SimpleLambdaExamplesTest.kt$SimpleLambdaExamplesTest$ </ID>
+    <ID>MaximumLineLength:SortTest.kt$SortTest$ </ID>
+    <ID>MaximumLineLength:StandardStructuresTest.kt$StandardStructuresTest$ </ID>
+    <ID>MaximumLineLength:StringExamplesTest.kt$StringExamplesTest$ </ID>
+    <ID>MaximumLineLength:TestCollatz.kt$TestCollatz$ </ID>
+    <ID>MaximumLineLength:TestLoanExam.kt$TestLoanExam$ </ID>
+    <ID>MaximumLineLength:TestOneDimensional.kt$TestOneDimensional$ </ID>
+    <ID>ModifierListSpacing:LongStreamExampleTest.kt$LongStreamExampleTest$@Test @Disabled("Index 1 out of bounds for length 1")</ID>
+    <ID>ModifierListSpacing:StringExamplesTest.kt$StringExamplesTest$@Test @Disabled("Expected exactly 3 executions, but 2 found")</ID>
+    <ID>ModifierListSpacing:TestLoanExam.kt$TestLoanExam$@UsvmTest( [ Options([PathSelectionStrategy.BFS], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES), Options([PathSelectionStrategy.RANDOM_PATH], stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES), Options( [PathSelectionStrategy.BFS, PathSelectionStrategy.DFS], PathSelectorCombinationStrategy.PARALLEL, stopOnCoverage = 93, coverageZone = CoverageZone.METHOD, solverType = SolverType.YICES ) ] )</ID>
+    <ID>NewLineAtEndOfFile:AbstractAnonymousClassTest.kt$org.usvm.samples.objects.AbstractAnonymousClassTest.kt</ID>
+    <ID>NewLineAtEndOfFile:AliasingInParamsExampleTest.kt$org.usvm.samples.mock.aliasing.AliasingInParamsExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:AnonymousClassesExampleTest.kt$org.usvm.samples.objects.AnonymousClassesExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArgumentsMockTest.kt$.ArgumentsMockTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArithmeticUtilsTest.kt$org.usvm.samples.numbers.ArithmeticUtilsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArrayCastExampleTest.kt$org.usvm.samples.casts.ArrayCastExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArrayOfArraysTest.kt$org.usvm.samples.arrays.ArrayOfArraysTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArrayOfObjectsTest.kt$org.usvm.samples.arrays.ArrayOfObjectsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ArraysOverwriteValueTest.kt$org.usvm.samples.arrays.ArraysOverwriteValueTest.kt</ID>
+    <ID>NewLineAtEndOfFile:AstExampleTest.kt$org.usvm.samples.invokes.AstExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:BinarySearchTest.kt$org.usvm.samples.algorithms.BinarySearchTest.kt</ID>
+    <ID>NewLineAtEndOfFile:BitOperatorsTest.kt$org.usvm.samples.math.BitOperatorsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:BooleanWrapperTest.kt$org.usvm.samples.wrappers.BooleanWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ByteExamplesTest.kt$org.usvm.samples.primitives.ByteExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ByteWrapperTest.kt$org.usvm.samples.wrappers.ByteWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CastClassTest.kt$org.usvm.samples.casts.CastClassTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CastExamplesTest.kt$org.usvm.samples.types.CastExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CharExamplesTest.kt$org.usvm.samples.primitives.CharExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CharacterWrapperTest.kt$org.usvm.samples.wrappers.CharacterWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassRefTest.kt$org.usvm.samples.objects.ClassRefTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassWithClassRefTest.kt$org.usvm.samples.objects.ClassWithClassRefTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassWithComplicatedMethodsTest.kt$.ClassWithComplicatedMethodsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassWithCrossReferenceRelationshipTest.kt$org.usvm.samples.codegen.deepequals.ClassWithCrossReferenceRelationshipTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassWithNullableFieldTest.kt$org.usvm.samples.codegen.deepequals.ClassWithNullableFieldTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ClassWithStaticAndInnerClassesTest.kt$org.usvm.samples.codegen.ClassWithStaticAndInnerClassesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CodegenExampleTest.kt$org.usvm.samples.codegen.CodegenExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CompositeModelMinimizationChecker.kt$.CompositeModelMinimizationChecker.kt</ID>
+    <ID>NewLineAtEndOfFile:CorrectBracketSequencesTest.kt$org.usvm.samples.algorithms.CorrectBracketSequencesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CustomerExamplesTest.kt$org.usvm.samples.collections.CustomerExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:CycleDependedConditionTest.kt$org.usvm.samples.controlflow.CycleDependedConditionTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DateExampleTest.kt$org.usvm.samples.stdlib.DateExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DivRemExamplesTest.kt$org.usvm.samples.math.DivRemExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DoubleFunctionsTest.kt$org.usvm.samples.math.DoubleFunctionsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:DoubleWrapperTest.kt$org.usvm.samples.wrappers.DoubleWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:EnumWithAnnotationsTest.kt$.EnumWithAnnotationsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:EnumWithoutAnnotationsTest.kt$.EnumWithoutAnnotationsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:FieldMockChecker.kt$.FieldMockChecker.kt</ID>
+    <ID>NewLineAtEndOfFile:FieldMockTest.kt$.FieldMockTest.kt</ID>
+    <ID>NewLineAtEndOfFile:FileWithTopLevelFunctionsTest.kt$org.usvm.samples.codegen.FileWithTopLevelFunctionsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:FinalStaticFieldArrayTest.kt$org.usvm.samples.arrays.FinalStaticFieldArrayTest.kt</ID>
+    <ID>NewLineAtEndOfFile:FloatExamplesTest.kt$org.usvm.samples.primitives.FloatExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:FloatWrapperTest.kt$org.usvm.samples.wrappers.FloatWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GenericCastExampleTest.kt$org.usvm.samples.casts.GenericCastExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GenericListsExampleTest.kt$org.usvm.samples.collections.GenericListsExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GenericWithUpperBoundTest.kt$org.usvm.samples.types.GenericWithUpperBoundTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GenericsTest.kt$org.usvm.samples.types.GenericsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GraphTest.kt$org.usvm.samples.algorithms.GraphTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HeapTest.kt$org.usvm.samples.structures.HeapTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HiddenFieldAccessModifiersTest.kt$org.usvm.samples.objects.HiddenFieldAccessModifiersTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HiddenFieldExampleTest.kt$org.usvm.samples.objects.HiddenFieldExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:InnerMockWithFieldChecker.kt$.InnerMockWithFieldChecker.kt</ID>
+    <ID>NewLineAtEndOfFile:InstanceOfExampleTest.kt$org.usvm.samples.casts.InstanceOfExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:IntExamplesTest.kt$org.usvm.samples.primitives.IntExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:IntegerWrapperTest.kt$org.usvm.samples.wrappers.IntegerWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:InvokeExampleTest.kt$org.usvm.samples.invokes.InvokeExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:JavaAssertTest.kt$org.usvm.samples.codegen.JavaAssertTest.kt</ID>
+    <ID>NewLineAtEndOfFile:JavaIOFileInputStreamCheckTest.kt$org.usvm.samples.stdlib.JavaIOFileInputStreamCheckTest.kt</ID>
+    <ID>NewLineAtEndOfFile:JavaMethodTestRunner.kt$org.usvm.samples.JavaMethodTestRunner.kt</ID>
+    <ID>NewLineAtEndOfFile:JcOperatorTestData.kt$org.usvm.machine.operator.JcOperatorTestData.kt</ID>
+    <ID>NewLineAtEndOfFile:JcUnaryOperatorTest.kt$org.usvm.machine.operator.JcUnaryOperatorTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ListAlgorithmsTest.kt$org.usvm.samples.collections.ListAlgorithmsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ListIteratorsTest.kt$org.usvm.samples.collections.ListIteratorsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ListWrapperReturnsVoidTest.kt$org.usvm.samples.collections.ListWrapperReturnsVoidTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ListsPart1Test.kt$org.usvm.samples.collections.ListsPart1Test.kt</ID>
+    <ID>NewLineAtEndOfFile:ListsPart2Test.kt$org.usvm.samples.collections.ListsPart2Test.kt</ID>
+    <ID>NewLineAtEndOfFile:ListsPart3Test.kt$org.usvm.samples.collections.ListsPart3Test.kt</ID>
+    <ID>NewLineAtEndOfFile:LoggerExampleTest.kt$org.usvm.samples.mixed.LoggerExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:LongWrapperTest.kt$org.usvm.samples.wrappers.LongWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MapEntrySetTest.kt$org.usvm.samples.collections.MapEntrySetTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MapKeySetTest.kt$org.usvm.samples.collections.MapKeySetTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MapValuesTest.kt$org.usvm.samples.collections.MapValuesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MapsPart1Test.kt$org.usvm.samples.collections.MapsPart1Test.kt</ID>
+    <ID>NewLineAtEndOfFile:MapsPart2Test.kt$org.usvm.samples.collections.MapsPart2Test.kt</ID>
+    <ID>NewLineAtEndOfFile:MinStackExampleTest.kt$org.usvm.samples.structures.MinStackExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockFinalClassTest.kt$.MockFinalClassTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockRandomTest.kt$.MockRandomTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockReturnObjectExampleTest.kt$.MockReturnObjectExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockStaticFieldExampleTest.kt$.MockStaticFieldExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockStaticMethodExampleTest.kt$.MockStaticMethodExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MockWithFieldChecker.kt$.MockWithFieldChecker.kt</ID>
+    <ID>NewLineAtEndOfFile:MockWithSideEffectExampleTest.kt$.MockWithSideEffectExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ModelMinimizationExamplesTest.kt$org.usvm.samples.objects.ModelMinimizationExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ModelsIdEqualityChecker.kt$.ModelsIdEqualityChecker.kt</ID>
+    <ID>NewLineAtEndOfFile:MonitorUsageTest.kt$org.usvm.samples.mixed.MonitorUsageTest.kt</ID>
+    <ID>NewLineAtEndOfFile:NativeExampleTest.kt$org.usvm.samples.invokes.NativeExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:NativeExamplesTest.kt$org.usvm.samples.natives.NativeExamplesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:NotNullAnnotationsTest.kt$org.usvm.samples.annotations.lombok.NotNullAnnotationsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ObjectWithFinalStaticTest.kt$org.usvm.samples.objects.ObjectWithFinalStaticTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ObjectWithStaticFieldsExampleTest.kt$.ObjectWithStaticFieldsExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:OptionalsTest.kt$org.usvm.samples.collections.OptionalsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:OverloadTest.kt$org.usvm.samples.mixed.OverloadTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PathDependentGenericsExampleTest.kt$org.usvm.samples.types.PathDependentGenericsExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PrimitiveArraysTest.kt$org.usvm.samples.arrays.PrimitiveArraysTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PrivateFieldsTest.kt$org.usvm.samples.objects.PrivateFieldsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:QueueUsagesTest.kt$org.usvm.samples.collections.QueueUsagesTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SetIteratorsTest.kt$org.usvm.samples.collections.SetIteratorsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SetsTest.kt$org.usvm.samples.collections.SetsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ShortWrapperTest.kt$org.usvm.samples.wrappers.ShortWrapperTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SimpleClassMultiInstanceExampleTest.kt$org.usvm.samples.objects.SimpleClassMultiInstanceExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SimpleInterfaceExampleTest.kt$org.usvm.samples.invokes.SimpleInterfaceExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SimpleNoConditionTest.kt$org.usvm.samples.mixed.SimpleNoConditionTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SimplifierTest.kt$org.usvm.samples.mixed.SimplifierTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SortTest.kt$org.usvm.samples.algorithms.SortTest.kt</ID>
+    <ID>NewLineAtEndOfFile:StandardStructuresTest.kt$org.usvm.samples.structures.StandardStructuresTest.kt</ID>
+    <ID>NewLineAtEndOfFile:StaticFieldMockTest.kt$.StaticFieldMockTest.kt</ID>
+    <ID>NewLineAtEndOfFile:StaticsSubstitutionTest.kt$org.usvm.samples.substitution.StaticsSubstitutionTest.kt</ID>
+    <ID>NewLineAtEndOfFile:StringConcatTest.kt$org.usvm.samples.strings11.StringConcatTest.kt</ID>
+    <ID>NewLineAtEndOfFile:SwitchTest.kt$org.usvm.samples.controlflow.SwitchTest.kt</ID>
+    <ID>NewLineAtEndOfFile:TestId.kt$org.usvm.samples.objects.TestId.kt</ID>
+    <ID>NewLineAtEndOfFile:TestMultiDimensional.kt$org.usvm.samples.arrays.TestMultiDimensional.kt</ID>
+    <ID>NewLineAtEndOfFile:TestResolvingOptions.kt$org.usvm.util.TestResolvingOptions.kt</ID>
+    <ID>NewLineAtEndOfFile:TestThrowing.kt$org.usvm.samples.functions.TestThrowing.kt</ID>
+    <ID>NewLineAtEndOfFile:TestVector2D.kt$org.usvm.samples.objects.TestVector2D.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestRunner.kt$org.usvm.util.UTestRunner.kt</ID>
+    <ID>NewLineAtEndOfFile:UTestRunnerController.kt$org.usvm.util.UTestRunnerController.kt</ID>
+    <ID>NewLineAtEndOfFile:UnsafeOperationsTest.kt$org.usvm.samples.unsafe.UnsafeOperationsTest.kt</ID>
+    <ID>NewLineAtEndOfFile:UnsafeWithFieldTest.kt$org.usvm.samples.unsafe.UnsafeWithFieldTest.kt</ID>
+    <ID>NewLineAtEndOfFile:UseNetworkModelBasedTest.kt$.UseNetworkModelBasedTest.kt</ID>
+    <ID>NewLineAtEndOfFile:UseNetworkTest.kt$.UseNetworkTest.kt</ID>
+    <ID>NewLineAtEndOfFile:VirtualInvokeExampleTest.kt$org.usvm.samples.invokes.VirtualInvokeExampleTest.kt</ID>
+    <ID>NewLineAtEndOfFile:VoidStaticMethodsTest.kt$org.usvm.samples.codegen.VoidStaticMethodsTest.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:IntegerWrapperTest.kt$IntegerWrapperTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:LinkedListsTest.kt$LinkedListsTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:ListsPart3Test.kt$ListsPart3Test$ </ID>
+    <ID>NoBlankLineBeforeRbrace:TestThrowing.kt$TestThrowing$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UTestRunner.kt$UTestRunner$ </ID>
+    <ID>NoBlankLineInList:ArithmeticUtilsTest.kt$ArithmeticUtilsTest$ </ID>
+    <ID>NoBlankLineInList:StaticsPathDiversionTest.kt$StaticsPathDiversionTest$ </ID>
+    <ID>NoBlankLineInList:StringExamplesTest.kt$StringExamplesTest$ </ID>
+    <ID>NoBlankLinesInChainedMethodCalls:ApproximationsTest.kt$ApproximationsTest$ </ID>
+    <ID>NoConsecutiveBlankLines:AbstractAnonymousClassTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:AliasingInParamsExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:AnonymousClassesExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ArithmeticUtilsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ArrayCastExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ArrayOfArraysTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:BitOperatorsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:BooleanWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ByteExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ByteWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CastClassTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CastExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CastExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CharacterWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassForTestClinitSectionsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassRefTest.kt$ClassRefTest$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassUsingClassWithRandomFieldTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassWithCrossReferenceRelationshipTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassWithEnumTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassWithNullableFieldTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ClassWithStaticAndInnerClassesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CodegenExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ConditionsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CopyOfExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CountDownLatchExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CustomerExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CycleDependedConditionTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:CycleDependedConditionTest.kt$CycleDependedConditionTest$ </ID>
+    <ID>NoConsecutiveBlankLines:CyclesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DeepEqualsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DoubleExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DoubleStreamExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DoubleWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ExecutorServiceExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:FileWithTopLevelFunctionsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:FinalStaticFieldArrayTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:FloatExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:FloatWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:GenericListsExampleTest.kt$GenericListsExampleTest$ </ID>
+    <ID>NoConsecutiveBlankLines:GenericsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:GraphTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:HeapTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:HiddenFieldAccessModifiersTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:HiddenFieldExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InstanceOfExampleTest.kt$InstanceOfExampleTest$ </ID>
+    <ID>NoConsecutiveBlankLines:IntExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:IntExamplesTest.kt$IntExamplesTest$ </ID>
+    <ID>NoConsecutiveBlankLines:IntegerWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:IntegerWrapperTest.kt$IntegerWrapperTest$ </ID>
+    <ID>NoConsecutiveBlankLines:InvokeExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:InvokeExampleTest.kt$InvokeExampleTest$ </ID>
+    <ID>NoConsecutiveBlankLines:JavaIOFileInputStreamCheckTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:JavaMethodTestRunner.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:JavaMethodTestRunner.kt$JavaMethodTestRunner$ </ID>
+    <ID>NoConsecutiveBlankLines:JcBinaryOperatorTest.kt$JcBinaryOperatorTest$ </ID>
+    <ID>NoConsecutiveBlankLines:JcOperatorTestData.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:JcTestExecutor.kt$JcTestExecutor$ </ID>
+    <ID>NoConsecutiveBlankLines:JcUnaryOperatorTest.kt$JcUnaryOperatorTest$ </ID>
+    <ID>NoConsecutiveBlankLines:JvmCrashExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:LinkedListsTest.kt$LinkedListsTest$ </ID>
+    <ID>NoConsecutiveBlankLines:ListAlgorithmsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ListIteratorsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ListsPart1Test.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ListsPart2Test.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ListsPart3Test.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:LocalClassExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:LoggerExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:LongWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MapEntrySetTest.kt$MapEntrySetTest$ </ID>
+    <ID>NoConsecutiveBlankLines:MapsPart1Test.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MinStackExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:MonitorUsageTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:NativeExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:NativeExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:NewInstanceExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:NotNullAnnotationTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:NotNullAnnotationsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ObjectWithPrimitivesExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ObjectWithRefFieldsExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:OptionalsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:OverloadTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:PathDependentGenericsExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:PredicateNotExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:PrimitiveArraysTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:PrivateConstructorExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:RecursionTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:RecursiveTypeTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SetIteratorsTest.kt$SetIteratorsTest$ </ID>
+    <ID>NoConsecutiveBlankLines:SetsTest.kt$SetsTest$ </ID>
+    <ID>NoConsecutiveBlankLines:ShortWrapperTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SimpleClassExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SimpleClassMultiInstanceExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SimpleInterfaceExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SimpleNoConditionTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SimplifierTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SortTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:StaticMethodExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:StaticsSubstitutionTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:StringExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:StringExamplesTest.kt$StringExamplesTest$ </ID>
+    <ID>NoConsecutiveBlankLines:TaintTest.kt$TaintTest$ </ID>
+    <ID>NoConsecutiveBlankLines:TestIterationLimit.kt$TestIterationLimit$ </ID>
+    <ID>NoConsecutiveBlankLines:TestOneDimensional.kt$TestOneDimensional$ </ID>
+    <ID>NoConsecutiveBlankLines:TestSimple.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:TestVector2D.kt$TestVector2D$ </ID>
+    <ID>NoConsecutiveBlankLines:ThreadExamplesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:ThrowingWithLambdaExampleTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:TypeBordersTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:TypeMatchesTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestRunnerController.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:UTestRunnerController.kt$UTestRunnerController$ </ID>
+    <ID>NoConsecutiveBlankLines:UnsafeOperationsTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:UnsafeWithFieldTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Util.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:VoidStaticMethodsTest.kt$ </ID>
+    <ID>NoMultipleSpaces:DeepEqualsTest.kt$DeepEqualsTest$ </ID>
+    <ID>NoMultipleSpaces:OptionalsTest.kt$OptionalsTest$ </ID>
+    <ID>NoMultipleSpaces:QueueUsagesTest.kt$QueueUsagesTest$ </ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it == 0 }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it == constValue + 1 }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it == null }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it.isEmpty() }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it.size == 3 &amp;&amp; it.all { it == 0 } }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it.size == 4 &amp;&amp; it.all { it == null } }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it.size == j &amp;&amp; it.all { it.size == 3 &amp;&amp; it.all { it == 0 } } }</ID>
+    <ID>NoNameShadowing:ArrayOfArraysTest.kt$ArrayOfArraysTest${ it.size == length &amp;&amp; it.all { it == constValue + 1 } }</ID>
+    <ID>NoNameShadowing:GenericListsExampleTest.kt$GenericListsExampleTest${ it is Int || it == null }</ID>
+    <ID>NoNameShadowing:GenericListsExampleTest.kt$GenericListsExampleTest${ it.isArrayOf&lt;Long&gt;() || it == null }</ID>
+    <ID>NoSemicolons:JcBinaryOperatorTest.kt$JcBinaryOperatorTest$;</ID>
+    <ID>NoTrailingSpaces:OptionalsTest.kt$OptionalsTest$ </ID>
+    <ID>NoUnusedImports:AnonymousClassesExampleTest.kt$org.usvm.samples.objects.AnonymousClassesExampleTest.kt</ID>
+    <ID>NoUnusedImports:ArrayCastExampleTest.kt$org.usvm.samples.casts.ArrayCastExampleTest.kt</ID>
+    <ID>NoUnusedImports:BinarySearchTest.kt$org.usvm.samples.algorithms.BinarySearchTest.kt</ID>
+    <ID>NoUnusedImports:CastExamplesTest.kt$org.usvm.samples.types.CastExamplesTest.kt</ID>
+    <ID>NoUnusedImports:ClassRefTest.kt$org.usvm.samples.objects.ClassRefTest.kt</ID>
+    <ID>NoUnusedImports:ClassWithCrossReferenceRelationshipTest.kt$import org.usvm.test.util.checkers.eq</ID>
+    <ID>NoUnusedImports:ClassWithNullableFieldTest.kt$import org.usvm.test.util.checkers.eq</ID>
+    <ID>NoUnusedImports:CodegenExampleTest.kt$org.usvm.samples.codegen.CodegenExampleTest.kt</ID>
+    <ID>NoUnusedImports:ConditionsTest.kt$org.usvm.samples.controlflow.ConditionsTest.kt</ID>
+    <ID>NoUnusedImports:DivRemExamplesTest.kt$org.usvm.samples.math.DivRemExamplesTest.kt</ID>
+    <ID>NoUnusedImports:DoubleWrapperTest.kt$org.usvm.samples.wrappers.DoubleWrapperTest.kt</ID>
+    <ID>NoUnusedImports:FileWithTopLevelFunctionsTest.kt$org.usvm.samples.codegen.FileWithTopLevelFunctionsTest.kt</ID>
+    <ID>NoUnusedImports:FloatWrapperTest.kt$org.usvm.samples.wrappers.FloatWrapperTest.kt</ID>
+    <ID>NoUnusedImports:HiddenFieldAccessModifiersTest.kt$org.usvm.samples.objects.HiddenFieldAccessModifiersTest.kt</ID>
+    <ID>NoUnusedImports:JcTestExecutorDecoderApi.kt$org.usvm.util.JcTestExecutorDecoderApi.kt</ID>
+    <ID>NoUnusedImports:NotNullAnnotationTest.kt$org.usvm.samples.annotations.NotNullAnnotationTest.kt</ID>
+    <ID>NoUnusedImports:NotNullAnnotationsTest.kt$org.usvm.samples.annotations.lombok.NotNullAnnotationsTest.kt</ID>
+    <ID>NoUnusedImports:PrivateFieldsTest.kt$org.usvm.samples.objects.PrivateFieldsTest.kt</ID>
+    <ID>NoUnusedImports:RecursiveTypeTest.kt$org.usvm.samples.objects.RecursiveTypeTest.kt</ID>
+    <ID>NoUnusedImports:SimpleClassExampleTest.kt$org.usvm.samples.objects.SimpleClassExampleTest.kt</ID>
+    <ID>NoUnusedImports:SimpleClassMultiInstanceExampleTest.kt$org.usvm.samples.objects.SimpleClassMultiInstanceExampleTest.kt</ID>
+    <ID>NoUnusedImports:StaticInvokeExampleTest.kt$org.usvm.samples.invokes.StaticInvokeExampleTest.kt</ID>
+    <ID>NoUnusedImports:TestOverflow.kt$org.usvm.samples.operators.TestOverflow.kt</ID>
+    <ID>NoUnusedImports:TypeMatchesTest.kt$org.usvm.samples.types.TypeMatchesTest.kt</ID>
+    <ID>NoUnusedImports:VoidStaticMethodsTest.kt$org.usvm.samples.codegen.VoidStaticMethodsTest.kt</ID>
+    <ID>NoWildcardImports:ComplexEnumExamplesTest.kt$import org.usvm.samples.enums.SimpleEnumExample.*</ID>
+    <ID>NoWildcardImports:UsvmTest.kt$import org.usvm.*</ID>
+    <ID>RedundantHigherOrderMapUsage:JcTestExecutor.kt$JcTestExecutor$map</ID>
+    <ID>SpacingAroundColon:SimplifierTest.kt$SimplifierTest$:</ID>
+    <ID>SpacingAroundOperators:DeepEqualsTest.kt$DeepEqualsTest$&amp;&amp;</ID>
+    <ID>SpacingAroundParens:QueueUsagesTest.kt$QueueUsagesTest$)</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:TestResolvingOptions.kt$JcTestResolverType.CONCRETE_EXECUTOR$/** * Uses concrete execution to resolve objects. */</ID>
+    <ID>TopLevelPropertyNaming:JacoDBContainer.kt$const val samplesKey = "tests"</ID>
+    <ID>TopLevelPropertyNaming:JacoDBContainer.kt$const val samplesWithApproximationsKey = "samplesWithApproximations"</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestExecutorDecoderApi.kt$JcTestExecutorDecoderApi$( private val ctx: JcContext )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TestResolvingOptions.kt$JcTestResolverType</ID>
+    <ID>TrailingCommaOnDeclarationSite:UsvmTest.kt$Options$( val strategies: Array&lt;PathSelectionStrategy&gt;, val combinationStrategy: PathSelectorCombinationStrategy = PathSelectorCombinationStrategy.INTERLEAVED, val stopOnCoverage: Int = 100, val timeout: Long = 20_000, val coverageZone: CoverageZone = CoverageZone.METHOD, val solverType: SolverType = SolverType.YICES, val targetSearchDepth: UInt = 0u )</ID>
+    <ID>UnderscoresInNumericLiterals:ArrayOfArraysTest.kt$ArrayOfArraysTest$12345</ID>
+    <ID>UnderscoresInNumericLiterals:CharExamplesTest.kt$CharExamplesTest$50000</ID>
+    <ID>UnderscoresInNumericLiterals:DoubleFunctionsTest.kt$DoubleFunctionsTest$10000</ID>
+    <ID>UnderscoresInNumericLiterals:InvokeExampleTest.kt$InvokeExampleTest$10000</ID>
+    <ID>UnderscoresInNumericLiterals:RecursionTest.kt$RecursionTest$10000</ID>
+    <ID>UnnecessaryAbstractClass:ApproximationsTestRunner.kt$ApproximationsTestRunner$ApproximationsTestRunner</ID>
+    <ID>UnnecessaryFilter:MapValuesTest.kt$MapValuesTest$filter { it == firstValue }</ID>
+    <ID>UnnecessaryFilter:MapValuesTest.kt$MapValuesTest$filter { it == i }</ID>
+    <ID>UnnecessaryFilter:MapValuesTest.kt$MapValuesTest$filter { it == ithValue }</ID>
+    <ID>UnusedPrivateMember:ApproximationsTest.kt$ApproximationsTest$private fun approximationTests(): List&lt;ApproximationTestCase&gt;</ID>
+    <ID>UseAnyOrNoneInsteadOfFind:ListsPart3Test.kt$ListsPart3Test$lastOrNull()</ID>
+    <ID>UseIsNullOrEmpty:ArrayStoreExceptionExamplesTest.kt$ArrayStoreExceptionExamplesTest$arr == null || arr.isEmpty()</ID>
+    <ID>UseOrEmpty:ApproximationsDecoderTest.kt$ApproximationsDecoderTest$cp.locations .single { it.classNames?.contains(Optional_DecoderTests::class.java.name) == true } .classNames ?.filter { "Decoder" in it } ?.toSet() ?: emptySet()</ID>
+    <ID>UseRequireNotNull:ArrayCastExampleTest.kt$ArrayCastExampleTest$require(r != null)</ID>
+    <ID>UseRequireNotNull:ArrayOfObjectsTest.kt$ArrayOfObjectsTest$require(r != null)</ID>
+    <ID>UseRequireNotNull:IntArrayBasicsTest.kt$IntArrayBasicsTest$require(a != null)</ID>
+    <ID>UseRequireNotNull:ListIteratorsTest.kt$ListIteratorsTest$require(l != null)</ID>
+    <ID>UseRequireNotNull:ListsPart3Test.kt$ListsPart3Test$require(list != null)</ID>
+    <ID>UseRequireNotNull:ListsPart3Test.kt$ListsPart3Test$require(r != null)</ID>
+    <ID>UseRequireNotNull:ObjectWithRefFieldsExampleTest.kt$ObjectWithRefFieldsExampleTest$require(r != null)</ID>
+    <ID>Wrapping:DeepEqualsTest.kt$-&gt;</ID>
+    <ID>Wrapping:GraphTest.kt$GraphTest$it.second &lt; 0 || it.second &gt;= 10</ID>
+    <ID>Wrapping:IntExamplesTest.kt$IntExamplesTest$[</ID>
+    <ID>Wrapping:ListAlgorithmsTest.kt$ListAlgorithmsTest$ai &lt; it</ID>
+    <ID>Wrapping:ListAlgorithmsTest.kt$ListAlgorithmsTest$b.last() &lt;= it</ID>
+    <ID>Wrapping:QueueUsagesTest.kt$QueueUsagesTest$(</ID>
+    <ID>Wrapping:TestOneDimensional.kt$TestOneDimensional$(</ID>
+  </CurrentIssues>
+</SmellBaseline>
