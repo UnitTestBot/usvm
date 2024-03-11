@@ -26,12 +26,14 @@ type Api interface {
 	MkStore(inst *ssa.Store)
 	MkIf(inst *ssa.If)
 	MkJump(inst *ssa.Jump)
+	MkDefer(inst *ssa.Defer)
 	MkAlloc(inst *ssa.Alloc)
 	MkMakeSlice(inst *ssa.MakeSlice)
 	MkMakeMap(inst *ssa.MakeMap)
 	MkExtract(inst *ssa.Extract)
 	MkSlice(inst *ssa.Slice)
 	MkReturn(inst *ssa.Return)
+	MkRunDefers(inst *ssa.RunDefers)
 	MkPanic(inst *ssa.Panic)
 	MkRange(inst *ssa.Range)
 	MkNext(inst *ssa.Next)
@@ -66,7 +68,7 @@ var apiInstance = &api{}
 type Method byte
 
 const (
-	MethodUnknown Method = iota
+	_ Method = iota
 	MethodMkUnOp
 	MethodMkBinOp
 	MethodMkCall
@@ -78,12 +80,15 @@ const (
 	MethodMkMakeInterface
 	MethodMkStore
 	MethodMkIf
+	MethodMkJump
+	MethodMkDefer
 	MethodMkAlloc
 	MethodMkMakeSlice
 	MethodMkMakeMap
 	MethodMkExtract
 	MethodMkSlice
 	MethodMkReturn
+	MethodMkRunDefers
 	MethodMkPanic
 	MethodMkVariable
 	MethodMkRange
@@ -194,27 +199,7 @@ func (a *api) MkBinOp(inst *ssa.BinOp) {
 func (a *api) MkCall(inst *ssa.Call) {
 	a.buf.Write(byte(MethodMkCall))
 	a.buf.WriteInt32(resolveRegister(inst))
-
-	call := inst.Common()
-	args := make([]ssa.Value, 0, len(call.Args)+1)
-	if call.IsInvoke() {
-		args = append(args, call.Value)
-	}
-	args = append(args, call.Args...)
-
-	a.buf.WriteInt32(int32(len(args)))
-	for i := range args {
-		a.writeVar(args[i])
-	}
-
-	a.buf.WriteBool(call.IsInvoke())
-	if call.IsInvoke() {
-		a.buf.WriteUintptr(util.ToPointer(call.Method))
-	} else {
-		function := graph.Callee(a.program, call)
-		a.buf.WriteUintptr(util.ToPointer(function))
-		a.buf.WriteUintptr(util.ToPointer(&function.Blocks[0].Instrs[0]))
-	}
+	a.writeCall(inst.Common())
 }
 
 type BuiltinFunc byte
@@ -306,13 +291,18 @@ func (a *api) MkIf(inst *ssa.If) {
 }
 
 func (a *api) MkJump(_ *ssa.Jump) {
-	a.buf.Write(byte(MethodUnknown))
+	a.buf.Write(byte(MethodMkJump))
+}
+
+func (a *api) MkDefer(inst *ssa.Defer) {
+	a.buf.Write(byte(MethodMkDefer))
+	a.writeCall(inst.Common())
 }
 
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
 	a.buf.WriteInt32(resolveRegister(inst))
-	a.buf.WriteValueType(inst)
+	a.buf.WriteValueUnderlyingType(inst)
 }
 
 func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
@@ -366,7 +356,10 @@ func (a *api) MkReturn(inst *ssa.Return) {
 			a.writeVar(v)
 		}
 	}
+}
 
+func (a *api) MkRunDefers(_ *ssa.RunDefers) {
+	a.buf.Write(byte(MethodMkRunDefers))
 }
 
 func (a *api) MkPanic(inst *ssa.Panic) {
@@ -590,6 +583,28 @@ func (a *api) writeNil() {
 	a.buf.WriteType(nilType)
 	a.buf.WriteType(nilType.Underlying())
 	a.buf.Write(byte(sort.Void))
+}
+
+func (a *api) writeCall(call *ssa.CallCommon) {
+	args := make([]ssa.Value, 0, len(call.Args)+1)
+	if call.IsInvoke() {
+		args = append(args, call.Value)
+	}
+	args = append(args, call.Args...)
+
+	a.buf.WriteInt32(int32(len(args)))
+	for i := range args {
+		a.writeVar(args[i])
+	}
+
+	a.buf.WriteBool(call.IsInvoke())
+	if call.IsInvoke() {
+		a.buf.WriteUintptr(util.ToPointer(call.Method))
+	} else {
+		function := graph.Callee(a.program, call)
+		a.buf.WriteUintptr(util.ToPointer(function))
+		a.buf.WriteUintptr(util.ToPointer(&function.Blocks[0].Instrs[0]))
+	}
 }
 
 func resolveRegister(in ssa.Value) int32 {

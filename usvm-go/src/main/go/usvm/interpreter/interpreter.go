@@ -205,7 +205,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		return kReturn
 
 	case *ssa.RunDefers:
-		panic("RunDefers")
+		api.MkRunDefers(inst)
 
 	case *ssa.Panic:
 		api.MkPanic(inst)
@@ -226,7 +226,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		return kJump
 
 	case *ssa.Defer:
-		panic("Defer")
+		api.MkDefer(inst)
 
 	case *ssa.Go:
 		panic("Go")

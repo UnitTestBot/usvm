@@ -1,5 +1,7 @@
 package org.usvm.machine
 
+import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.machine.type.GoType
 
 typealias GoInst = Long
@@ -23,3 +25,9 @@ class GoInstInfo(
         return expression
     }
 }
+
+class GoCall(
+    val method: GoMethod,
+    val entrypoint: GoInst,
+    val parameters: Array<UExpr<out USort>>
+)
