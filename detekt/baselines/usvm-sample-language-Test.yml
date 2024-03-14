@@ -24,10 +24,6 @@
     <ID>NewLineAtEndOfFile:MergingProgram.kt$org.usvm.programs.MergingProgram.kt</ID>
     <ID>NewLineAtEndOfFile:StructProgram.kt$org.usvm.programs.StructProgram.kt</ID>
     <ID>NoBlankLineBeforeRbrace:DfsProgram.kt$DfsProgram$ </ID>
-    <ID>NoConsecutiveBlankLines:DfsProgram.kt$DfsProgram$ </ID>
-    <ID>NoConsecutiveBlankLines:DfsTest.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:LoopTest.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:MergingProgram.kt$MergingProgram$ </ID>
     <ID>NoWildcardImports:DfsProgram.kt$import org.usvm.language.*</ID>
     <ID>NoWildcardImports:DfsProgram.kt$import org.usvm.language.builders.*</ID>
     <ID>PropertyWrapping:DfsTest.kt$DfsTest$val machine = SampleMachine(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))</ID>

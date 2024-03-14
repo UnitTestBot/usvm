@@ -77,20 +77,6 @@
     <ID>NewLineAtEndOfFile:JcOperatorUtils.kt$org.usvm.machine.operator.JcOperatorUtils.kt</ID>
     <ID>NewLineAtEndOfFile:Reflection.kt$org.usvm.api.util.Reflection.kt</ID>
     <ID>NoBlankLineInList:JcMachineOptions.kt$JcMachineOptions$ </ID>
-    <ID>NoConsecutiveBlankLines:JcClassLoader.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:JcContext.kt$JcContext$ </ID>
-    <ID>NoConsecutiveBlankLines:JcExprResolver.kt$JcExprResolver$ </ID>
-    <ID>NoConsecutiveBlankLines:JcExprResolver.kt$JcSimpleValueResolver$ </ID>
-    <ID>NoConsecutiveBlankLines:JcInterpreter.kt$JcInterpreter$ </ID>
-    <ID>NoConsecutiveBlankLines:JcMethodCallInst.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:JcMethodUtils.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:JcTypeSystem.kt$JcTypeSystem$ </ID>
-    <ID>NoConsecutiveBlankLines:Position.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:TaintAction.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:TaintAnalysis.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:TaintAnalysis.kt$TaintAnalysis$ </ID>
-    <ID>NoConsecutiveBlankLines:TaintCondition.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:TaintConfigurationItem.kt$ </ID>
     <ID>NoNameShadowing:JcApproximations.kt$JcMethodApproximationResolver${ it.asExpr(ctx.addressSort) }</ID>
     <ID>NoNameShadowing:JcCallGraphStatistics.kt$JcCallGraphStatistics${ getCallees(it).asSequence() }</ID>
     <ID>NoNameShadowing:JcDebugProfileObserver.kt$JcDebugProfileObserver${ it.value }</ID>

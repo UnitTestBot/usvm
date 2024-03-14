@@ -26,10 +26,6 @@
     <ID>NoBlankLineBeforeRbrace:ConcreteExecutorTests.kt$ConcreteExecutorTests$ </ID>
     <ID>NoBlankLineBeforeRbrace:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest$ </ID>
     <ID>NoBlankLineBeforeRbrace:UTestCreator.kt$UTestCreator.Arrays$ </ID>
-    <ID>NoConsecutiveBlankLines:ConcreteExecutorTests.kt$ConcreteExecutorTests$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestConcreteExecutorTest.kt$UTestConcreteExecutorTest.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestCreator.kt$UTestCreator.A$ </ID>
     <ID>NoTrailingSpaces:UTestCreator.kt$UTestCreator$ </ID>
     <ID>NoWildcardImports:UTestCreator.kt$import org.jacodb.api.ext.*</ID>
     <ID>NoWildcardImports:UTestCreator.kt$import org.usvm.instrumentation.testcase.api.*</ID>

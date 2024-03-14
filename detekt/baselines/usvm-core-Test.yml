@@ -67,17 +67,6 @@
     <ID>NoBlankLineBeforeRbrace:HeapMemsetTest.kt$HeapMemsetTest$ </ID>
     <ID>NoBlankLineBeforeRbrace:ObjectMapTest.kt$ObjectMapTest$ </ID>
     <ID>NoBlankLineBeforeRbrace:TypeSolverTest.kt$TypeSolverTest$ </ID>
-    <ID>NoConsecutiveBlankLines:CloseStatesSearcherTest.kt$CloseStatesSearcherTest.TestApplicationGraph$ </ID>
-    <ID>NoConsecutiveBlankLines:CompositionTest.kt$CompositionTest$ </ID>
-    <ID>NoConsecutiveBlankLines:HeapRefEqTest.kt$HeapRefEqTest$ </ID>
-    <ID>NoConsecutiveBlankLines:HeapRefSplittingTest.kt$HeapRefSplittingTest$ </ID>
-    <ID>NoConsecutiveBlankLines:Instance.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase$ </ID>
-    <ID>NoConsecutiveBlankLines:TestTypeSystem.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:TranslationTest.kt$TranslationTest$ </ID>
-    <ID>NoConsecutiveBlankLines:TypeSolverTest.kt$TypeSolverTest$ </ID>
-    <ID>NoConsecutiveBlankLines:TypeStreamTest.kt$TypeStreamTest$ </ID>
-    <ID>NoConsecutiveBlankLines:UContextInterningTest.kt$UContextInterningTest$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:UpdatesIteratorTest.kt$UpdatesIteratorTest$ </ID>
     <ID>NoMultipleSpaces:HeapRefEqTest.kt$HeapRefEqTest$ </ID>
     <ID>NoWildcardImports:HeapMemCpyTest.kt$import org.usvm.*</ID>

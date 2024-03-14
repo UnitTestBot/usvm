@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>BracesOnIfStatements:GraphUtilsDistanceTests.kt$GraphUtilsDistanceTests$if</ID>
     <ID>Filename:RegionTreeTests.kt$org.usvm.regions.RegionTreeTests.kt</ID>
     <ID>FinalNewline:CachingSequenceTest.kt$org.usvm.algorithms.CachingSequenceTest.kt</ID>
     <ID>FinalNewline:DisjointSetsTests.kt$org.usvm.algorithms.DisjointSetsTests.kt</ID>
@@ -23,9 +22,6 @@
     <ID>NewLineAtEndOfFile:RegionTreeIteratorTest.kt$org.usvm.regions.RegionTreeIteratorTest.kt</ID>
     <ID>NewLineAtEndOfFile:RegionTreeTests.kt$org.usvm.regions.RegionTreeTests.kt</ID>
     <ID>NewLineAtEndOfFile:SetRegionTest.kt$org.usvm.regions.SetRegionTest.kt</ID>
-    <ID>NoConsecutiveBlankLines:CachingSequenceTest.kt$CachingSequenceTest$ </ID>
-    <ID>NoConsecutiveBlankLines:IntIntervalsRegionTest.kt$IntIntervalsRegionTest$ </ID>
-    <ID>NoConsecutiveBlankLines:RegionTreeIteratorTest.kt$RegionTreeIteratorTest$ </ID>
     <ID>NoMultipleSpaces:RegionTreeIteratorTest.kt$RegionTreeIteratorTest$ </ID>
     <ID>NoMultipleSpaces:SetRegionTest.kt$SetRegionTest$ </ID>
     <ID>NoUnusedImports:DisjointSetsTests.kt$org.usvm.algorithms.DisjointSetsTests.kt</ID>

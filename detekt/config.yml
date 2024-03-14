@@ -61,9 +61,11 @@ formatting:
   TrailingCommaOnDeclarationSite:
     active: true
   MultiLineIfElse:
-    active: false
+    active: true
   NoBlankLineInList:
     active: true
+  NoConsecutiveBlankLines:
+    active: false
 
 performance:
   CouldBeSequence:
@@ -75,9 +77,7 @@ performance:
 style:
   active: true
   BracesOnIfStatements:
-    active: true
-    singleLine: 'never'
-    multiLine: 'always'
+    active: false
   BracesOnWhenStatements:
     active: true
     singleLine: 'necessary'

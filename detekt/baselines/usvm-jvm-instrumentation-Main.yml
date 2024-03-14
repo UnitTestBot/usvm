@@ -60,10 +60,6 @@
     <ID>ArgumentListWrapping:UTestExecutor.kt$UTestExecutor$(accessedStatics, descriptorBuilder)</ID>
     <ID>ArgumentListWrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$( uTestCreateArrayExpression.elementType.toJavaClass( workerClassLoader ), size )</ID>
     <ID>ArgumentListWrapping:UTestExpressionExecutor.kt$UTestExpressionExecutor$("Cant cast object of type ${uTestCastExpression.expr.type} to ${uTestCastExpression.type}")</ID>
-    <ID>BracesOnIfStatements:ClassTransformer.kt$ClassTransformer$if</ID>
-    <ID>BracesOnIfStatements:Jar.kt$JarBuilder$if</ID>
-    <ID>BracesOnIfStatements:Jar.kt$LabelFilterer$else</ID>
-    <ID>BracesOnIfStatements:Try.kt$else</ID>
     <ID>BracesOnWhenStatements:Descriptor2ValueConverter.kt$Descriptor2ValueConverter$when</ID>
     <ID>BracesOnWhenStatements:Jar.kt$UsvmClassWriter$when</ID>
     <ID>BracesOnWhenStatements:UTestInstSerializer.kt$UTestInstSerializer$when</ID>
@@ -411,6 +407,9 @@
     <ID>MaximumLineLength:UTestExpressionExecutor.kt$UTestExpressionExecutor$ </ID>
     <ID>MayBeConst:Constants.kt$InstrumentationModuleConstants$//Max depth of descriptor construction val maxDepthOfDescriptorConstruction = 5</ID>
     <ID>MayBeConst:Constants.kt$InstrumentationModuleConstants$//Number of stacktrace elements for exception construction val maxStackTraceElements = 10</ID>
+    <ID>MultiLineIfElse:ClassTransformer.kt$ClassTransformer$return classfileBuffer</ID>
+    <ID>MultiLineIfElse:Jar.kt$JarBuilder$name += "/"</ID>
+    <ID>MultiLineIfElse:Jar.kt$LabelFilterer$null</ID>
     <ID>NewLineAtEndOfFile:Agent.kt$org.usvm.instrumentation.agent.Agent.kt</ID>
     <ID>NewLineAtEndOfFile:ClassTransformer.kt$org.usvm.instrumentation.agent.ClassTransformer.kt</ID>
     <ID>NewLineAtEndOfFile:Classloader.kt$org.usvm.instrumentation.util.Classloader.kt</ID>
@@ -485,40 +484,6 @@
     <ID>NoBlankLineBeforeRbrace:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer.Companion$ </ID>
     <ID>NoBlankLineBeforeRbrace:Value2DescriptorConverter.kt$Value2DescriptorConverter$ </ID>
     <ID>NoBlankLineBeforeRbrace:WorkerClassLoader.kt$WorkerClassLoader$ </ID>
-    <ID>NoConsecutiveBlankLines:Api.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Collection.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentationProcessRunner.kt$InstrumentationProcessRunner$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcess.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ClassToId.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecuteParams.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecutionResult.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$ExecutionStateSerialized.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$InstrumentedProcessModel.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$SerializedStaticField.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessModel.Generated.kt$SerializedUTest.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessRoot.Generated.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:InstrumentedProcessRoot.Generated.kt$InstrumentedProcessRoot.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:Jacodb.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Jar.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:MockClassRebuilder.kt$MockClassRebuilder$ </ID>
-    <ID>NoConsecutiveBlankLines:MockHelper.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:MockHelper.kt$MockHelper$ </ID>
-    <ID>NoConsecutiveBlankLines:RdProcessRunner.kt$RdProcessRunner$ </ID>
-    <ID>NoConsecutiveBlankLines:RdUtils.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Reflection.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SyncProtocolModel.Generated.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SyncProtocolModel.Generated.kt$SyncProtocolModel.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:SyncProtocolRoot.Generated.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SyncProtocolRoot.Generated.kt$SyncProtocolRoot.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:TraceHelper.kt$TraceHelper$ </ID>
-    <ID>NoConsecutiveBlankLines:Try.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestExecutor.kt$UTestExecutor$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestExpressionExecutor.kt$UTestExpressionExecutor$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestInstSerializer.kt$UTestInstSerializer$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestInstSerializer.kt$UTestInstSerializer.Companion$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer$ </ID>
-    <ID>NoConsecutiveBlankLines:UTestValueDescriptorSerializer.kt$UTestValueDescriptorSerializer.Companion$ </ID>
     <ID>NoMultipleSpaces:Instrumentation.kt$ </ID>
     <ID>NoMultipleSpaces:InstrumentedProcess.kt$StaticsRollbackStrategy.HARD$ </ID>
     <ID>NoMultipleSpaces:InstrumentedProcess.kt$StaticsRollbackStrategy.REINIT$ </ID>

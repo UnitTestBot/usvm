@@ -75,15 +75,6 @@
     <ID>ArgumentListWrapping:UTargetsSet.kt$UTargetsSet.Companion$(persistentListOf())</ID>
     <ID>ArgumentListWrapping:UpdateNodes.kt$URangedUpdateNode$(adapter.convert(key, composer), predicate, matchingWrites, nextGuardBuilder, composer)</ID>
     <ID>ArgumentListWrapping:UpdateNodes.kt$URangedUpdateNode$(key, composer)</ID>
-    <ID>BracesOnIfStatements:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:ArrayRegion.kt$UArrayMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$else</ID>
-    <ID>BracesOnIfStatements:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$if</ID>
-    <ID>BracesOnIfStatements:FieldsRegion.kt$UFieldsMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:UMapLengthRegion.kt$UMapLengthMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:UMapRegion.kt$UMapMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:URefMapRegion.kt$URefMapMemoryRegion$if</ID>
-    <ID>BracesOnIfStatements:URefSetRegion.kt$URefSetMemoryRegion$if</ID>
     <ID>BracesOnWhenStatements:ExceptionPropagationPathSelector.kt$ExceptionPropagationPathSelector$when</ID>
     <ID>BracesOnWhenStatements:HeapRefSplitting.kt$when</ID>
     <ID>BracesOnWhenStatements:PathConstraints.kt$UPathConstraints$when</ID>
@@ -396,6 +387,16 @@
     <ID>MaximumLineLength:USymbolicSetUnionAdapter.kt$UInputToInputSymbolicSetUnionAdapter$ </ID>
     <ID>MaximumLineLength:UTargetsSet.kt$UTargetsSet.Companion$ </ID>
     <ID>MaximumLineLength:UpdateNodes.kt$URangedUpdateNode$ </ID>
+    <ID>MultiLineIfElse:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:ArrayRegion.kt$UArrayMemoryRegion$inputArray = UInputArrayId&lt;_, _, USizeSort&gt;(arrayType, sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$UInt.MAX_VALUE</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$currentMinDistanceToTarget + minDistanceToReturn</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$currentStatement</ID>
+    <ID>MultiLineIfElse:FieldsRegion.kt$UFieldsMemoryRegion$inputFields = UInputFieldId(ref.field, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:UMapLengthRegion.kt$UMapLengthMemoryRegion$inputLengths = UInputMapLengthId(ref.mapType, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:UMapRegion.kt$UMapMemoryRegion$inputMap = UInputMapId(keySort, valueSort, mapType, keyInfo).emptyRegion()</ID>
+    <ID>MultiLineIfElse:URefMapRegion.kt$URefMapMemoryRegion$inputMapWithInputKeys = UInputRefMapWithInputKeysId( valueSort, mapType ).emptyRegion()</ID>
+    <ID>MultiLineIfElse:URefSetRegion.kt$URefSetMemoryRegion$inputSetWithInputElements = UInputRefSetWithInputElementsId(setType, sort).emptyRegion()</ID>
     <ID>NestedBlockDepth:HeapRefSplitting.kt$internal inline fun &lt;Sort : USort&gt; UHeapRef.map( concreteMapper: (UConcreteHeapRef) -&gt; UExpr&lt;Sort&gt;, staticMapper: (UConcreteHeapRef) -&gt; UExpr&lt;Sort&gt;, symbolicMapper: (USymbolicHeapRef) -&gt; UExpr&lt;Sort&gt;, ignoreNullRefs: Boolean = true, ): UExpr&lt;Sort&gt;</ID>
     <ID>NestedBlockDepth:HeapRefSplitting.kt$internal inline fun filter( ref: UHeapRef, initialGuard: UBoolExpr, ignoreNullRefs: Boolean, predicate: (GuardedExpr&lt;UHeapRef&gt;) -&gt; Boolean, ): GuardedExpr&lt;UHeapRef&gt;?</ID>
     <ID>NestedBlockDepth:PathConstraints.kt$UPathConstraints$@Suppress("UNCHECKED_CAST") operator fun plusAssign(constraint: UBoolExpr): Unit</ID>
@@ -413,23 +414,6 @@
     <ID>NoBlankLineBeforeRbrace:TypeSolver.kt$UTypeSolver$ </ID>
     <ID>NoBlankLineInList:ArrayRegion.kt$UArrayMemoryRegion$ </ID>
     <ID>NoBlankLineInList:UNumericConstraints.kt$UNumericConstraints$ </ID>
-    <ID>NoConsecutiveBlankLines:Context.kt$UContext$ </ID>
-    <ID>NoConsecutiveBlankLines:Expressions.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:HeapRefSplitting.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:LazyModelDecoder.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:LazyModels.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Memory.kt$UMemory$ </ID>
-    <ID>NoConsecutiveBlankLines:MemoryApi.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:ModelRegions.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SymbolicCollectionUpdates.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:SymbolicCollectionUpdates.kt$UTreeUpdates$ </ID>
-    <ID>NoConsecutiveBlankLines:TypeConstraints.kt$UTypeConstraints$ </ID>
-    <ID>NoConsecutiveBlankLines:TypeSolver.kt$UTypeSolver$ </ID>
-    <ID>NoConsecutiveBlankLines:TypeSystem.kt$UTypeSystem$ </ID>
-    <ID>NoConsecutiveBlankLines:UNumericConstraints.kt$UNumericConstraints$ </ID>
-    <ID>NoConsecutiveBlankLines:USymbolicArrayId.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:USymbolicCollection.kt$USymbolicCollection$ </ID>
-    <ID>NoConsecutiveBlankLines:UpdateNodes.kt$URangedUpdateNode$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:HeapRefSplitting.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:PathSelectorFactory.kt$ </ID>
     <ID>NoEmptyFirstLineInMethodBlock:StateForker.kt$WithSolverStateForker$ </ID>

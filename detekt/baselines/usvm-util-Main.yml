@@ -22,14 +22,6 @@
     <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(value = succ.value, right = it)</ID>
     <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(value = value, weight = weight, weightSum = leftWeightSum + rightWeightSum + weight, level = level, left = left, right = right)</ID>
     <ID>BlockCommentInitialStarAlignment:GraphUtils.kt$/* 1. Why won't we break anything with such update? Because even if newDistanceToTheVertex &lt; currentDistanceToTheVertex holds, we haven't visited theVertex yet: Suppose we have, then currentDistanceToTheVertex &lt;= distanceToCurrentVertex (because we're doing BFS) newDistanceToTheVertex &lt; currentDistanceToTheVertex ~ distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; currentDistanceToTheVertex distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; distanceToCurrentVertex ?! */</ID>
-    <ID>BracesOnIfStatements:Logging.kt$else</ID>
-    <ID>BracesOnIfStatements:Logging.kt$if</ID>
-    <ID>BracesOnIfStatements:ProductRegion.kt$ProductRegion$if</ID>
-    <ID>BracesOnIfStatements:ProductRegion.kt$if</ID>
-    <ID>BracesOnIfStatements:SetRegion.kt$SetRegion$else</ID>
-    <ID>BracesOnIfStatements:SetRegion.kt$SetRegion$if</ID>
-    <ID>BracesOnIfStatements:SetRegion.kt$else</ID>
-    <ID>BracesOnIfStatements:SetRegion.kt$if</ID>
     <ID>BracesOnWhenStatements:DisjointSets.kt$DisjointSets$when</ID>
     <ID>BracesOnWhenStatements:RegionTree.kt$RegionTree$when</ID>
     <ID>BracesOnWhenStatements:WeightedAaTree.kt$WeightedAaTree$when</ID>
@@ -74,6 +66,19 @@
     <ID>MaximumLineLength:RegionTree.kt$RegionTree$ </ID>
     <ID>MaximumLineLength:TestRunner.kt$TestRunner$ </ID>
     <ID>MaximumLineLength:WeightedAaTree.kt$WeightedAaTree$ </ID>
+    <ID>MultiLineIfElse:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg ${closingComment(Result.success(res.getOrThrow()))}" }</ID>
+    <ID>MultiLineIfElse:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg &lt;Nothing&gt;" }</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return Region.ComparisonResult.DISJOINT</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return Region.ComparisonResult.INCLUDES</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return this</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$result.add(a to bd)</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$result.add(ac to b)</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$return rects</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.DISJOINT</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.INCLUDES</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.INTERSECTS</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$disjoint = false</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$includes = false</ID>
     <ID>NestedBlockDepth:GraphUtils.kt$inline fun &lt;V&gt; findMinDistancesInUnweightedGraph( startVertex: V, adjacentVertices: (V) -&gt; Sequence&lt;V&gt;, distanceCache: Map&lt;V, Map&lt;V, UInt&gt;&gt; = emptyMap(), ): Map&lt;V, UInt&gt;</ID>
     <ID>NestedBlockDepth:ProductRegion.kt$ProductRegion$override fun intersect(other: ProductRegion&lt;X, Y&gt;): ProductRegion&lt;X, Y&gt;</ID>
     <ID>NestedBlockDepth:ProductRegion.kt$private fun &lt;X : Region&lt;X&gt;, Y : Region&lt;Y&gt;&gt; subtractRect(rects: List&lt;Pair&lt;X, Y&gt;&gt;, rect2: Pair&lt;X, Y&gt;): List&lt;Pair&lt;X, Y&gt;&gt;</ID>
@@ -86,9 +91,6 @@
     <ID>NewLineAtEndOfFile:SetRegion.kt$org.usvm.regions.SetRegion.kt</ID>
     <ID>NewLineAtEndOfFile:TrivialRegion.kt$org.usvm.regions.TrivialRegion.kt</ID>
     <ID>NoBlankLineBeforeRbrace:ProductRegion.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:DisjointSets.kt$DisjointSets$ </ID>
-    <ID>NoConsecutiveBlankLines:IntIntervalsRegion.kt$IntIntervalsRegion$ </ID>
-    <ID>NoConsecutiveBlankLines:Region.kt$ </ID>
     <ID>NoUnusedImports:TimeLimitedIterator.kt$org.usvm.util.TimeLimitedIterator.kt</ID>
     <ID>SpacingAroundColon:Logging.kt$:</ID>
     <ID>SpacingAroundColon:Maybe.kt$Maybe$:</ID>

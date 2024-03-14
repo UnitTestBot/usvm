@@ -27,13 +27,6 @@
     <ID>NewLineAtEndOfFile:Utils.kt$org.usvm.language.Utils.kt</ID>
     <ID>NoBlankLineBeforeRbrace:ProgramDecl.kt$ProgramDecl.StructDecl$ </ID>
     <ID>NoBlankLineBeforeRbrace:SampleState.kt$SampleState$ </ID>
-    <ID>NoConsecutiveBlankLines:Domain.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Expressions.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:Extensions.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:MethodScope.kt$MethodScope$ </ID>
-    <ID>NoConsecutiveBlankLines:SampleApplicationGraph.kt$SampleApplicationGraph$ </ID>
-    <ID>NoConsecutiveBlankLines:SampleExprResolver.kt$SampleExprResolver$ </ID>
-    <ID>NoConsecutiveBlankLines:SampleInterpreter.kt$ </ID>
     <ID>NoUnusedImports:SampleLanguageComponents.kt$org.usvm.machine.SampleLanguageComponents.kt</ID>
     <ID>PropertyWrapping:SampleMachine.kt$SampleMachine$val coverageStatistics: CoverageStatistics&lt;Method&lt;*&gt;, Stmt, SampleState&gt; = CoverageStatistics(methods.toSet(), applicationGraph)</ID>
     <ID>SpacingBetweenDeclarationsWithComments:SampleInterpreter.kt$SampleInterpreter$/** * Symbolic interpreter for a sample language. */</ID>
