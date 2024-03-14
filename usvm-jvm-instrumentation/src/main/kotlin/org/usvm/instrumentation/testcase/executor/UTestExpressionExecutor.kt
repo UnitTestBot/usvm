@@ -199,7 +199,7 @@ class UTestExpressionExecutor(
             Long::class -> res
             Float::class -> res.toFloat()
             Double::class -> res.toDouble()
-            Char::class -> res.toChar()
+            Char::class -> res.toInt().toChar()
             else -> error("Wrong type for bit operation")
         }
     }

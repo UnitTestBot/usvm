@@ -1,0 +1,161 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:JcApproximations.kt$JcMethodApproximationResolver$( methodCall, arrayTypeConstraintsWithBlockOnStates, type, srcRef, srcPos, dstRef, dstPos, length )</ID>
+    <ID>ArgumentListWrapping:JcCallGraphStatistics.kt$JcCallGraphStatistics$(it)</ID>
+    <ID>ArgumentListWrapping:JcCallGraphStatistics.kt$JcCallGraphStatistics$(listOf(methodFrom), depthLimit, adjacentVertices = { getCallees(it).asSequence() })</ID>
+    <ID>ArgumentListWrapping:JcCallGraphStatistics.kt$JcCallGraphStatistics$(methodFrom)</ID>
+    <ID>ArgumentListWrapping:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$("$indent$INDENT$i | States ${child.self}/${child.total} | Forks ${child.selfForks}/${child.totalForks}")</ID>
+    <ID>ArgumentListWrapping:JcExprResolver.kt$JcExprResolver$(ctx)</ID>
+    <ID>ArgumentListWrapping:JcInterpreter.kt$JcInterpreter$("The catch instruction must be unfolded during processing of the instructions led to it. Encountered inst: $stmt")</ID>
+    <ID>ArgumentListWrapping:JcTestStateResolver.kt$JcTestStateResolver$(memory, memoryEntries, heapRef, mapType, keyInModel = { !keysInModel.add(it) }, addModelEntry = { k, v -&gt; resultMapAddEntry(k, v) } )</ID>
+    <ID>ArgumentListWrapping:JcTestStateResolver.kt$JcTestStateResolver$(model, modelEntries, modelMapRef, mapType, keyInModel = { !keysInModel.add(it) }, addModelEntry = { k, v -&gt; resultMapAddEntry(k, v) } )</ID>
+    <ID>BracesOnWhenStatements:JcBinaryOperator.kt$JcBinaryOperator.Companion$when</ID>
+    <ID>BracesOnWhenStatements:JcExprResolver.kt$JcExprResolver$when</ID>
+    <ID>BracesOnWhenStatements:JcOperatorUtils.kt$when</ID>
+    <ID>BracesOnWhenStatements:JcTestStateResolver.kt$JcTestStateResolver.Companion$when</ID>
+    <ID>BracesOnWhenStatements:JcTypeSystem.kt$JcTypeSystem$when</ID>
+    <ID>BracesOnWhenStatements:JcVirtualInvokeResolver.kt$when</ID>
+    <ID>BracesOnWhenStatements:Position.kt$CallPositionResolver$when</ID>
+    <ID>BracesOnWhenStatements:Reflection.kt$Reflection$when</ID>
+    <ID>ChainWrapping:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion.Companion$&amp;&amp;</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:JcApproximations.kt$JcMethodApproximationResolver$val (listRef, dstListRef, srcFromIdx, dstFromIdx, length) = it.arguments</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:JcApproximations.kt$JcMethodApproximationResolver$val (srcRef, srcPos, dstRef, dstPos, length) = arguments</ID>
+    <ID>Filename:JcApproximations.kt$org.usvm.machine.JcApproximations.kt</ID>
+    <ID>Filename:JcSolverFactory.kt$org.usvm.machine.JcSolverFactory.kt</ID>
+    <ID>FinalNewline:JcExprResolver.kt$org.usvm.machine.interpreter.JcExprResolver.kt</ID>
+    <ID>FinalNewline:JcExpressions.kt$org.usvm.machine.JcExpressions.kt</ID>
+    <ID>FinalNewline:JcOperatorUtils.kt$org.usvm.machine.operator.JcOperatorUtils.kt</ID>
+    <ID>FinalNewline:Reflection.kt$org.usvm.api.util.Reflection.kt</ID>
+    <ID>Indentation:JcInterpreter.kt$JcInterpreter$ </ID>
+    <ID>Indentation:JcLoopTracker.kt$JcLoopTracker.LoopExecutionPathAnalyzer.LoopExecutionGraph$ </ID>
+    <ID>Indentation:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion.Companion$ </ID>
+    <ID>LargeClass:JcApproximations.kt$JcMethodApproximationResolver</ID>
+    <ID>LargeClass:JcExprResolver.kt$JcExprResolver : JcExprVisitor</ID>
+    <ID>LongMethod:JcMachine.kt$JcMachine$fun analyze(methods: List&lt;JcMethod&gt;, targets: List&lt;JcTarget&gt; = emptyList()): List&lt;JcState&gt;</ID>
+    <ID>MagicNumber:JcApproximations.kt$JcMethodApproximationResolver$16</ID>
+    <ID>MagicNumber:JcApproximations.kt$JcMethodApproximationResolver$4</ID>
+    <ID>MagicNumber:JcBinaryOperator.kt$JcBinaryOperator.Companion$31</ID>
+    <ID>MagicNumber:JcBinaryOperator.kt$JcBinaryOperator.Companion$63L</ID>
+    <ID>MagicNumber:JcDebugProfileObserver.kt$JcDebugProfileObserver$20</ID>
+    <ID>MagicNumber:JcFixedInheritorsNumberTypeSelector.kt$JcTypeStreamPrioritization$10</ID>
+    <ID>MagicNumber:JcFixedInheritorsNumberTypeSelector.kt$JcTypeStreamPrioritization$3</ID>
+    <ID>MatchingDeclarationName:JcApproximations.kt$JcMethodApproximationResolver</ID>
+    <ID>MatchingDeclarationName:JcSolverFactory.kt$SolverFactory : AutoCloseable</ID>
+    <ID>MaxLineLength:JcApproximations.kt$JcMethodApproximationResolver$// We assume that methods of java.lang.Throwable are not really required to be analysed and can be simply mocked</ID>
+    <ID>MaxLineLength:JcCallGraphStatistics.kt$JcCallGraphStatistics$limitedBfsTraversal(listOf(methodFrom), depthLimit, adjacentVertices = { getCallees(it).asSequence() }).toSet()</ID>
+    <ID>MaxLineLength:JcClassLoader.kt$JcClassLoader$* Loads known classes using [ClassLoader.getSystemClassLoader], or defines them using bytecode from jacodb if they are unknown.</ID>
+    <ID>MaxLineLength:JcClassLoader.kt$JcClassLoader$// For unknown class we need to load all its supers, all classes mentioned in its ALL (not only declared)</ID>
+    <ID>MaxLineLength:JcClassLoader.kt$JcClassLoader$// fields (as they are used in resolving), and then define the class itself using its bytecode from jacodb</ID>
+    <ID>MaxLineLength:JcContext.kt$JcContext$// Do not use JcTypedField here as its type is not required, however JcTypedField does not have required overridden `equals` method</ID>
+    <ID>MaxLineLength:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$str.appendLine("$indent$INDENT$i | States ${child.self}/${child.total} | Forks ${child.selfForks}/${child.totalForks}")</ID>
+    <ID>MaxLineLength:JcExprResolver.kt$JcExprResolver$*</ID>
+    <ID>MaxLineLength:JcExprResolver.kt$JcExprResolver$// In case of enum methods, we need to consider all refs allocated in these methods as static too. It is important</ID>
+    <ID>MaxLineLength:JcExprResolver.kt$JcExprResolver$private</ID>
+    <ID>MaxLineLength:JcInterpreter.kt$JcInterpreter$"Writing $rvalue with sort ${rvalue.sort} to the array with different sort ${lvalue.sort} by lvalue $lvalue found"</ID>
+    <ID>MaxLineLength:JcInterpreter.kt$JcInterpreter$?:</ID>
+    <ID>MaxLineLength:JcInterpreter.kt$JcInterpreter$error("The catch instruction must be unfolded during processing of the instructions led to it. Encountered inst: $stmt")</ID>
+    <ID>MaxLineLength:JcInterpreterObserver.kt$JcInterpreterObserver$fun onEnterMonitorStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcEnterMonitorInst, stepScope: JcStepScope)</ID>
+    <ID>MaxLineLength:JcInterpreterObserver.kt$JcInterpreterObserver$fun onExitMonitorStatement(simpleValueResolver: JcSimpleValueResolver, stmt: JcExitMonitorInst, stepScope: JcStepScope)</ID>
+    <ID>MaxLineLength:JcInterpreterObserver.kt$JcInterpreterObserver$fun onMethodCallWithResolvedArguments(simpleValueResolver: JcSimpleValueResolver, stmt: JcMethodCallBaseInst, stepScope: JcStepScope)</ID>
+    <ID>MaxLineLength:JcInterpreterObserver.kt$JcInterpreterObserver$fun onMethodCallWithUnresolvedArguments(simpleValueResolver: JcSimpleValueResolver, stmt: JcCallExpr, stepScope: JcStepScope)</ID>
+    <ID>MaxLineLength:JcMachine.kt$JcMachine$// TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered</ID>
+    <ID>MaxLineLength:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion$private var fieldValuesByClass: PersistentMap&lt;JcClassOrInterface, PersistentMap&lt;JcField, UExpr&lt;Sort&gt;&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:TaintAnalysis.kt$TaintAnalysis$override</ID>
+    <ID>MaximumLineLength:JcCallGraphStatistics.kt$JcCallGraphStatistics$ </ID>
+    <ID>MaximumLineLength:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$ </ID>
+    <ID>MaximumLineLength:JcExprResolver.kt$JcExprResolver$ </ID>
+    <ID>MaximumLineLength:JcInterpreter.kt$JcInterpreter$ </ID>
+    <ID>MaximumLineLength:JcInterpreterObserver.kt$JcInterpreterObserver$ </ID>
+    <ID>MaximumLineLength:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion$ </ID>
+    <ID>MaximumLineLength:TaintAnalysis.kt$TaintAnalysis$ </ID>
+    <ID>MemberNameEqualsClassName:JcApplicationGraph.kt$JcApplicationGraph$private val jcApplicationGraph = JcApplicationGraphImpl(cp, SyncUsagesExtension(HierarchyExtensionImpl(cp), cp))</ID>
+    <ID>NestedBlockDepth:JcClassLoader.kt$JcClassLoader$private fun defineClassRecursively( jcClass: JcClassOrInterface, visited: MutableSet&lt;JcClassOrInterface&gt; ): Class&lt;*&gt;?</ID>
+    <ID>NewLineAtEndOfFile:JcExprResolver.kt$org.usvm.machine.interpreter.JcExprResolver.kt</ID>
+    <ID>NewLineAtEndOfFile:JcExpressions.kt$org.usvm.machine.JcExpressions.kt</ID>
+    <ID>NewLineAtEndOfFile:JcOperatorUtils.kt$org.usvm.machine.operator.JcOperatorUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:Reflection.kt$org.usvm.api.util.Reflection.kt</ID>
+    <ID>NoBlankLineInList:JcMachineOptions.kt$JcMachineOptions$ </ID>
+    <ID>NoNameShadowing:JcApproximations.kt$JcMethodApproximationResolver${ it.asExpr(ctx.addressSort) }</ID>
+    <ID>NoNameShadowing:JcCallGraphStatistics.kt$JcCallGraphStatistics${ getCallees(it).asSequence() }</ID>
+    <ID>NoNameShadowing:JcDebugProfileObserver.kt$JcDebugProfileObserver${ it.value }</ID>
+    <ID>NoNameShadowing:JcDebugProfileObserver.kt$JcDebugProfileObserver${ it.values.sum() }</ID>
+    <ID>NoNameShadowing:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame${ it.value.total }</ID>
+    <ID>NoUnusedImports:JcComponents.kt$org.usvm.machine.JcComponents.kt</ID>
+    <ID>ParameterListWrapping:JcInterpreterObserver.kt$JcInterpreterObserver$(simpleValueResolver: JcSimpleValueResolver, stmt: JcCallExpr, stepScope: JcStepScope)</ID>
+    <ID>ParameterListWrapping:JcInterpreterObserver.kt$JcInterpreterObserver$(simpleValueResolver: JcSimpleValueResolver, stmt: JcEnterMonitorInst, stepScope: JcStepScope)</ID>
+    <ID>ParameterListWrapping:JcInterpreterObserver.kt$JcInterpreterObserver$(simpleValueResolver: JcSimpleValueResolver, stmt: JcExitMonitorInst, stepScope: JcStepScope)</ID>
+    <ID>ParameterListWrapping:JcInterpreterObserver.kt$JcInterpreterObserver$(simpleValueResolver: JcSimpleValueResolver, stmt: JcMethodCallBaseInst, stepScope: JcStepScope)</ID>
+    <ID>ParameterListWrapping:JcTestStateResolver.kt$JcTestStateResolver$( ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType )</ID>
+    <ID>ParameterWrapping:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion$private var fieldValuesByClass: PersistentMap&lt;JcClassOrInterface, PersistentMap&lt;JcField, UExpr&lt;Sort&gt;&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ReturnFromFinally:JcCheckerImpl.kt$JcCheckerObserver$finally { jcCheckerApi.resetResolverAndScope() }</ID>
+    <ID>SpacingAroundColon:JcSolverFactory.kt$AnotherProcessSolverFactory.YicesWithSymFpu$:</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:JcFixedInheritorsNumberTypeSelector.kt$JcFixedInheritorsNumberTypeSelector.Companion$// TODO: elaborate on better constant choosing</ID>
+    <ID>StringTemplate:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$${selfForks}</ID>
+    <ID>StringTemplate:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$${self}</ID>
+    <ID>StringTemplate:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$${totalForks}</ID>
+    <ID>StringTemplate:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$${total}</ID>
+    <ID>SwallowedException:JcClassLoader.kt$JcClassLoader$e: ClassNotFoundException</ID>
+    <ID>SwallowedException:Reflection.kt$Reflection$ex: NoSuchFieldException</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:JcMachine.kt$JcMachine$IllegalStateException()</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcApproximationUtils.kt$( dirOrJars: List&lt;File&gt;, features: List&lt;JcClasspathFeature&gt; = emptyList() )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcApproximations.kt$JcMethodApproximationResolver$( methodCall: JcMethodCall, branches: MutableList&lt;Pair&lt;UBoolExpr, (JcState) -&gt; Unit&gt;&gt;, type: JcArrayType, srcRef: UHeapRef, srcPos: UExpr&lt;USizeSort&gt;, dstRef: UHeapRef, dstPos: UExpr&lt;USizeSort&gt;, length: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcApproximations.kt$JcMethodApproximationResolver$( methodCall: JcMethodCall, srcRef: UHeapRef, srcPos: UExpr&lt;USizeSort&gt;, dstRef: UHeapRef, dstPos: UExpr&lt;USizeSort&gt;, length: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCallGraphStatistics.kt$JcCallGraphStatistics$( private val depthLimit: UInt, private val applicationGraph: JcApplicationGraph, private val typeStream: UTypeStream&lt;JcType&gt;, private val subclassesToTake: Int = 0 )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCallSiteRegion.kt$JcLambdaCallSite$( val ref: UConcreteHeapRef, val lambda: JcLambdaExpr, val callSiteArgs: List&lt;UExpr&lt;*&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCallSiteRegion.kt$JcLambdaCallSiteMemoryRegion$( key: Nothing, value: UExpr&lt;UAddressSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCallSiteRegion.kt$JcLambdaCallSiteMemoryRegion$( private val ctx: JcContext, private val callSites: PersistentMap&lt;UConcreteHeapAddress, JcLambdaCallSite&gt; = persistentHashMapOf() )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCheckerImpl.kt$JcCheckerObserver$( simpleValueResolver: JcSimpleValueResolver, stepScope: JcStepScope, blockOnStmt: () -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcCheckerImpl.kt$JcCheckerObserver$( simpleValueResolver: JcSimpleValueResolver, stmt: JcCatchInst, stepScope: JcStepScope )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcClassLoader.kt$JcClassLoader$( jcClass: JcClassOrInterface, visited: MutableSet&lt;JcClassOrInterface&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcComponents.kt$JcComponents$( ctx: Context )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcDebugProfileObserver.kt$JcDebugProfileObserver$( private val pathSelector: UPathSelector&lt;JcState&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcDebugProfileObserver.kt$JcDebugProfileObserver.ProfileFrame$( val inst: JcInst?, val total: Long, val self: Long, val totalForks: Long, val selfForks: Long, val children: Map&lt;JcInst, ProfileFrame&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcExprResolver.kt$JcExprResolver$( expr: JcExpr, type: JcPrimitiveType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcExprResolver.kt$JcExprResolver$( scope: JcStepScope, staticInitializer: JcMethod )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcFixedInheritorsNumberTypeSelector.kt$JcTypeStreamPrioritization$( typeStream: UTypeStream&lt;out JcType&gt;, referenceClass: JcClassOrInterface, limit: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcInterpreter.kt$JcInterpreter$( lvalue: ULValue&lt;*, *&gt;, rvalue: UExpr&lt;out USort&gt;, exprResolver: JcExprResolver, scope: JcStepScope )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcInterpreter.kt$JcInterpreter$( scope: JcStepScope, enclosingType: JcClassType, outerType: JcClassType, outerClassRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcLoopTracker.kt$JcLoopTracker.LoopExecutionPathAnalyzer.LoopExecutionGraph$( private val instructionsWithIterationExit: List&lt;Any&gt;, private val loopBodyInstructions: Set&lt;JcInst&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcMachine.kt$JcMachine$CoverageZone.METHOD, CoverageZone.TRANSITIVE -&gt; methods.toSet()</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcMethodResult.kt$JcMethodResult.JcException$( val address: UHeapRef, val type: JcType, val symbolicStackTrace: List&lt;UStackTraceFrame&lt;JcMethod, JcInst&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcSolverFactory.kt$AnotherProcessSolverFactory$( ctx: Context, solverType: SolverType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcSolverFactory.kt$SameProcessSolverFactory$( ctx: Context, solverType: SolverType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcSolverFactory.kt$SolverFactory$( ctx: Context, solverType: SolverType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcStaticFieldsRegion.kt$JcStaticFieldsMemoryRegion$( private val sort: Sort, private var fieldValuesByClass: PersistentMap&lt;JcClassOrInterface, PersistentMap&lt;JcField, UExpr&lt;Sort&gt;&gt;&gt; = persistentHashMapOf(), private var initialStatics: PersistentList&lt;JcField&gt; = persistentListOf() )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTest.kt$JcParametersState$( val thisInstance: Any?, val parameters: List&lt;Any?&gt;, val statics: Map&lt;JcClassOrInterface, List&lt;StaticFieldValue&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTest.kt$JcTestSuite$( val tests: List&lt;JcTest&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestInterpreter.kt$JcTestInterpreter$( exception: JcMethodResult.JcException, afterMemory: MemoryScope )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestInterpreterDecoderApi.kt$JcTestInterpreterDecoderApi$( private val ctx: JcContext, private val classLoader: ClassLoader )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestStateResolver.kt$JcTestStateResolver$( heapRef: UHeapRef, mapType: JcType, resultMapSize: () -&gt; Int, resultMapAddEntry: (T, T) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestStateResolver.kt$JcTestStateResolver$( memory: UReadOnlyMemory&lt;JcType&gt;, keySetEntries: URefSetEntries&lt;JcType&gt;, mapRef: UHeapRef, mapType: JcType, keyInModel: (UHeapRef) -&gt; Boolean, addModelEntry: (T, T) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestStateResolver.kt$JcTestStateResolver$( ref: UConcreteHeapAddress, resolve: () -&gt; T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTestStateResolver.kt$JcTestStateResolver$( ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTransformer.kt$JcStaticFieldModel$( private val model: UModelEvaluator&lt;*&gt;, private val translatedFields: Map&lt;JcField, UExpr&lt;Sort&gt;&gt;, private val translator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcTypeSystem.kt$JcTypeSystem$( private val cp: JcClasspath, override val typeOperationsTimeout: Duration )</ID>
+    <ID>TrailingCommaOnDeclarationSite:JcVirtualInvokeResolver.kt$( superClass: JcClassOrInterface, ctx: JcContext, scope: JcStepScope, methodCall: JcVirtualMethodCallInst, instance: UHeapRef, condition: UBoolExpr )</ID>
+    <ID>UnnecessaryAbstractClass:JcTarget.kt$JcTarget$JcTarget</ID>
+    <ID>UnnecessaryFilter:JcStateUtils.kt$filter { it !is JcArgument }</ID>
+    <ID>UnsafeCallOnNullableType:JcExprResolver.kt$JcExprResolver$enumValues!!</ID>
+    <ID>UnsafeCallOnNullableType:JcTestInterpreterDecoderApi.kt$JcTestInterpreterDecoderApi$array!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Boolean::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Byte::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Char::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Double::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Float::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Int::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Long::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Reflection.kt$Reflection$Short::class.javaPrimitiveType!!</ID>
+    <ID>UnsafeCallOnNullableType:Utils.kt$clazz.qualifiedName!!</ID>
+    <ID>UnsafeCallOnNullableType:Utils.kt$cp.findTypeOrNull(clazz.qualifiedName!!)!!</ID>
+    <ID>UseCheckOrError:JcMachine.kt$JcMachine$throw IllegalStateException()</ID>
+    <ID>UseOrEmpty:JcApproximationUtils.kt$it.classNames ?: emptySet()</ID>
+    <ID>UseOrEmpty:JcDebugProfileObserver.kt$JcDebugProfileObserver$forksCount[root] ?: emptyMap()</ID>
+    <ID>UseOrEmpty:JcDebugProfileObserver.kt$JcDebugProfileObserver$stackTraces[root] ?: emptyMap()</ID>
+    <ID>Wrapping:JcInterpreter.kt$JcInterpreter$-&gt;</ID>
+    <ID>Wrapping:JcInterpreterObserver.kt$JcInterpreterObserver${}</ID>
+    <ID>Wrapping:JcTestStateResolver.kt$JcTestStateResolver$(</ID>
+    <ID>Wrapping:JcTypeSystem.kt$JcTypeSystem$-&gt;</ID>
+  </CurrentIssues>
+</SmellBaseline>
