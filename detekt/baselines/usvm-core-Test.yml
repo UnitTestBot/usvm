@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:CompositionTest.kt$CompositionTest$( concreteNull, mapOf(0 to mkConcreteHeapRef(-1), 1 to mkConcreteHeapRef(-2)) )</ID>
+    <ID>ArgumentListWrapping:CompositionTest.kt$CompositionTest$( ctx, mockk(), mockk(), mockk(), emptyMap(), concreteNullRef )</ID>
+    <ID>ArgumentListWrapping:CompositionTest.kt$CompositionTest$( fstAddressForCompose, concreteIndex, arrayType, regionArray.sort, fstValue, guard = trueExpr )</ID>
+    <ID>ArgumentListWrapping:CompositionTest.kt$CompositionTest$( sndAddressForCompose, concreteIndex, arrayType, regionArray.sort, sndValue, guard = trueExpr )</ID>
+    <ID>ArgumentListWrapping:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$(key)</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( concreteNull, mapOf(0 to composedSymbolicHeapRef, 1 to mkBv(0)) )</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull )</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( ctx, stackModel, mockk(), mockk(), mapOf(arrayLengthMemoryId to arrayLengthModel), concreteNull )</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( ctx, stackModel, mockk(), mockk(), mapOf(arrayMemoryId to arrayModel), concreteNull )</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( ctx, stackModel, mockk(), mockk(), mapOf(fieldMemoryId to fieldModel), concreteNull )</ID>
+    <ID>ArgumentListWrapping:ModelCompositionTest.kt$ModelCompositionTest$( persistentMapOf((composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0) )</ID>
+    <ID>ArgumentListWrapping:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase.StateStub$( ctx, UCallStack(), pathConstraints, memory, emptyList(), PathNode.root(), PathNode.root(), UTargetsSet.empty() )</ID>
+    <ID>ArgumentListWrapping:TestTypeSystem.kt$TestTypeSystem$(!inheritor.isMultipleInheritanceAllowed || inheritor == topType || inheritor.isMultipleInheritanceAllowed)</ID>
+    <ID>ArgumentListWrapping:TestUtil.kt$TestState$(ctx, callStack, pathConstraints, memory, models, pathLocation, PathNode.root(), targetTrees)</ID>
+    <ID>ArgumentListWrapping:TranslationTest.kt$TranslationTest$( mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo() )</ID>
+    <ID>CommentSpacing:NumericConstraintsTests.kt$NumericConstraintsTests.Companion$//100_000</ID>
+    <ID>CommentSpacing:NumericConstraintsTests.kt$NumericConstraintsTests.Companion$//1_000_000</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:CloseStatesSearcherTest.kt$CloseStatesSearcherTest$val (closeToFirst, closeToSecond, closeToThird, closeToFourth) = states.map { searcher.findCloseStates(it).toList() }</ID>
+    <ID>DoubleMutabilityForCollection:NumericConstraintsTests.kt$NumericConstraintsTests$private lateinit var unsimplifiedConstraints: MutableList&lt;UBoolExpr&gt;</ID>
+    <ID>FinalNewline:Builders.kt$org.usvm.types.system.Builders.kt</ID>
+    <ID>FinalNewline:CloseStatesSearcherTest.kt$org.usvm.merging.CloseStatesSearcherTest.kt</ID>
+    <ID>FinalNewline:ExecutionTreeTrackerTest.kt$org.usvm.ps.ExecutionTreeTrackerTest.kt</ID>
+    <ID>FinalNewline:HeapRefEqTest.kt$org.usvm.memory.HeapRefEqTest.kt</ID>
+    <ID>FinalNewline:HeapRefSplittingTest.kt$org.usvm.memory.HeapRefSplittingTest.kt</ID>
+    <ID>FinalNewline:MemoryMergingTest.kt$org.usvm.merging.MemoryMergingTest.kt</ID>
+    <ID>FinalNewline:MemoryRegionTest.kt$org.usvm.memory.MemoryRegionTest.kt</ID>
+    <ID>FinalNewline:PathConstraintsMergingTest.kt$org.usvm.merging.PathConstraintsMergingTest.kt</ID>
+    <ID>FinalNewline:TestTypes.kt$org.usvm.types.system.TestTypes.kt</ID>
+    <ID>FinalNewline:UContextInterningTest.kt$org.usvm.UContextInterningTest.kt</ID>
+    <ID>ForbiddenMethodCall:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase$println()</ID>
+    <ID>IgnoredReturnValue:TypeStreamTest.kt$TypeStreamTest$findSubtypes(base1)</ID>
+    <ID>IgnoredReturnValue:TypeStreamTest.kt$TypeStreamTest$findSubtypes(topType)</ID>
+    <ID>ImportOrdering:TranslationTest.kt$import io.ksmt.expr.KExpr import io.ksmt.solver.KSolverStatus import io.ksmt.solver.z3.KZ3Solver import io.ksmt.sort.KArraySort import io.ksmt.sort.KSort import io.ksmt.utils.mkConst import io.mockk.every import io.mockk.mockk import org.junit.jupiter.api.BeforeEach import org.junit.jupiter.api.Test import org.usvm.Field import org.usvm.Type import org.usvm.UAddressSort import org.usvm.UBv32SizeExprProvider import org.usvm.UBv32Sort import org.usvm.UComponents import org.usvm.UContext import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USizeSort import org.usvm.api.allocateConcreteRef import org.usvm.api.readArrayIndex import org.usvm.api.writeArrayIndex import org.usvm.collection.array.UAllocatedArrayId import org.usvm.collection.array.UInputArrayId import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter import org.usvm.collection.array.USymbolicArrayIndexKeyInfo import org.usvm.collection.array.USymbolicArrayInputToAllocatedCopyAdapter import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter import org.usvm.collection.array.length.UInputArrayLengthId import org.usvm.collection.field.UInputFieldId import org.usvm.collection.map.ref.URefMapEntryLValue import org.usvm.memory.UMemory import org.usvm.mkSizeExpr import org.usvm.memory.key.USizeExprKeyInfo import org.usvm.sizeSort import kotlin.test.assertEquals import kotlin.test.assertSame</ID>
+    <ID>Indentation:MemoryRegionTest.kt$MemoryRegionTest$ </ID>
+    <ID>LongMethod:InterprocDistanceCalculatorTests.kt$InterprocDistanceCalculatorTests.Companion$@JvmStatic fun testCases(): Collection&lt;Arguments&gt;</ID>
+    <ID>MapGetWithNotNullAssertionOperator:EqualityConstraintsTests.kt$EqualityConstraintsTests$constraints.referenceDisequalities[ref2]!!</ID>
+    <ID>MapGetWithNotNullAssertionOperator:EqualityConstraintsTests.kt$EqualityConstraintsTests$constraints.referenceDisequalities[ref3]!!</ID>
+    <ID>MapGetWithNotNullAssertionOperator:EqualityConstraintsTests.kt$EqualityConstraintsTests$constraints.referenceDisequalities[ref6]!!</ID>
+    <ID>MatchingDeclarationName:Builders.kt$TestTypeSystemScope</ID>
+    <ID>MaxLineLength:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$override</ID>
+    <ID>MaxLineLength:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$override fun cmpConcreteLe(key1: USymbolicArrayIndex&lt;USizeSort&gt;, key2: USymbolicArrayIndex&lt;USizeSort&gt;): Boolean</ID>
+    <ID>MaxLineLength:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$override fun eqSymbolic(ctx: UContext&lt;*&gt;, key1: UExpr&lt;USizeSort&gt;, key2: UExpr&lt;USizeSort&gt;): UBoolExpr</ID>
+    <ID>MaxLineLength:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$override fun mapKey(key: UExpr&lt;USizeSort&gt;, transformer: UTransformer&lt;*, *&gt;?): UExpr&lt;USizeSort&gt;</ID>
+    <ID>MaxLineLength:TestTypeSystem.kt$TestTypeSystem$require(!inheritor.isMultipleInheritanceAllowed || inheritor == topType || inheritor.isMultipleInheritanceAllowed)</ID>
+    <ID>MaxLineLength:TestUtil.kt$TestState$)</ID>
+    <ID>MaxLineLength:TestUtil.kt$internal</ID>
+    <ID>MaximumLineLength:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$ </ID>
+    <ID>MaximumLineLength:TestTypeSystem.kt$TestTypeSystem$ </ID>
+    <ID>MaximumLineLength:TestUtil.kt$TestState$)</ID>
+    <ID>MaximumLineLength:TestUtil.kt$internal</ID>
+    <ID>NewLineAtEndOfFile:Builders.kt$org.usvm.types.system.Builders.kt</ID>
+    <ID>NewLineAtEndOfFile:CloseStatesSearcherTest.kt$org.usvm.merging.CloseStatesSearcherTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ExecutionTreeTrackerTest.kt$org.usvm.ps.ExecutionTreeTrackerTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HeapRefEqTest.kt$org.usvm.memory.HeapRefEqTest.kt</ID>
+    <ID>NewLineAtEndOfFile:HeapRefSplittingTest.kt$org.usvm.memory.HeapRefSplittingTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MemoryMergingTest.kt$org.usvm.merging.MemoryMergingTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MemoryRegionTest.kt$org.usvm.memory.MemoryRegionTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PathConstraintsMergingTest.kt$org.usvm.merging.PathConstraintsMergingTest.kt</ID>
+    <ID>NewLineAtEndOfFile:TestTypes.kt$org.usvm.types.system.TestTypes.kt</ID>
+    <ID>NewLineAtEndOfFile:UContextInterningTest.kt$org.usvm.UContextInterningTest.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:CallStackDistanceCalculatorTests.kt$CallStackDistanceCalculatorTests$ </ID>
+    <ID>NoBlankLineBeforeRbrace:CloseStatesSearcherTest.kt$CloseStatesSearcherTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:HeapMemsetTest.kt$HeapMemsetTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:ObjectMapTest.kt$ObjectMapTest$ </ID>
+    <ID>NoBlankLineBeforeRbrace:TypeSolverTest.kt$TypeSolverTest$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:UpdatesIteratorTest.kt$UpdatesIteratorTest$ </ID>
+    <ID>NoMultipleSpaces:HeapRefEqTest.kt$HeapRefEqTest$ </ID>
+    <ID>NoWildcardImports:HeapMemCpyTest.kt$import org.usvm.*</ID>
+    <ID>ParameterListWrapping:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$(ctx: UContext&lt;*&gt;, key1: UExpr&lt;USizeSort&gt;, key2: UExpr&lt;USizeSort&gt;)</ID>
+    <ID>ParameterListWrapping:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$(ctx: UContext&lt;*&gt;, key1: USymbolicArrayIndex&lt;USizeSort&gt;, key2: USymbolicArrayIndex&lt;USizeSort&gt;)</ID>
+    <ID>ParameterListWrapping:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$(key: UExpr&lt;USizeSort&gt;, transformer: UTransformer&lt;*, *&gt;?)</ID>
+    <ID>ParameterListWrapping:CompositionTest.kt$CompositionTest.&lt;no name provided&gt;$(key: USymbolicArrayIndex&lt;USizeSort&gt;, transformer: UTransformer&lt;*, *&gt;?)</ID>
+    <ID>ParameterListWrapping:TestUtil.kt$TestState$( ctx: UContext&lt;*&gt;, callStack: UCallStack&lt;TestMethod, TestInstruction&gt;, pathConstraints: UPathConstraints&lt;Any&gt;, memory: UMemory&lt;Any, TestMethod&gt;, models: List&lt;UModelBase&lt;Any&gt;&gt;, pathLocation: PathNode&lt;TestInstruction&gt;, targetTrees: UTargetsSet&lt;TestTarget, TestInstruction&gt; = UTargetsSet.empty(), override val entrypoint: TestMethod = "" )</ID>
+    <ID>ReturnFromFinally:NumericConstraintsTests.kt$NumericConstraintsTests$finally { pop() }</ID>
+    <ID>ReturnFromFinally:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase$finally { pop() }</ID>
+    <ID>SpacingAroundCurly:CompositionTest.kt$CompositionTest$}</ID>
+    <ID>SpacingAroundOperators:PathConstraintsMergingTest.kt$PathConstraintsMergingTest$+=</ID>
+    <ID>SpacingBetweenDeclarationsWithAnnotations:UpdatesIteratorTest.kt$UpdatesIteratorTest$@BeforeEach fun initializeContext()</ID>
+    <ID>TrailingCommaOnDeclarationSite:InterprocDistanceCalculatorTests.kt$InterprocDistanceCalculatorTests$( callGraphReachabilityDepth: Int, callStack: UCallStack&lt;String, TestInstruction&gt;, fromLoc: TestInstruction, targetLoc: TestInstruction, expectedDist: InterprocDistance )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ObjectMapTest.kt$ObjectMapTest$( mapRef: UHeapRef, checkSizeBounds: KSolver&lt;*&gt;.(UExpr&lt;USizeSort&gt;, UExpr&lt;USizeSort&gt;, UExpr&lt;USizeSort&gt;) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ObjectMapTest.kt$ObjectMapTest$( mapRef: UHeapRef, keys: List&lt;UHeapRef&gt;, startValueIdx: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicListTest.kt$SymbolicListTest$( listRef: UHeapRef, checkSize: KSolver&lt;*&gt;.(UExpr&lt;USizeSort&gt;, UExpr&lt;USizeSort&gt;) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicListTest.kt$SymbolicListTest$( listRef: UHeapRef, values: List&lt;UExpr&lt;USizeSort&gt;&gt;, initialSize: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TestUtil.kt$TestState$( ctx: UContext&lt;*&gt;, callStack: UCallStack&lt;TestMethod, TestInstruction&gt;, pathConstraints: UPathConstraints&lt;Any&gt;, memory: UMemory&lt;Any, TestMethod&gt;, models: List&lt;UModelBase&lt;Any&gt;&gt;, pathLocation: PathNode&lt;TestInstruction&gt;, targetTrees: UTargetsSet&lt;TestTarget, TestInstruction&gt; = UTargetsSet.empty(), override val entrypoint: TestMethod = "" )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TranslationTest.kt$TranslationTest.RecordingCtx$( array: KExpr&lt;KArraySort&lt;D, R&gt;&gt;, index: KExpr&lt;D&gt;, value: KExpr&lt;R&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UContextInterningTest.kt$UContextInterningTest$( equals: List&lt;UExpr&lt;out USort&gt;&gt;, distinct: List&lt;UExpr&lt;out USort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UpdatesIteratorTest.kt$UpdatesIteratorTest$( iterator: Iterator&lt;UUpdateNode&lt;Key, ValueSort&gt;&gt; )</ID>
+    <ID>UnderscoresInNumericLiterals:ObjectMapTest.kt$ObjectMapTest$65536</ID>
+    <ID>UnnecessaryAbstractClass:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase$SymbolicCollectionTestBase</ID>
+    <ID>UnusedPrivateMember:NumericConstraintsTests.kt$NumericConstraintsTests$private fun KSolver&lt;*&gt;.debugFailedStatement()</ID>
+    <ID>UnusedPrivateProperty:RandomTreePathSelectorTests.kt$RandomTreePathSelectorTests$i</ID>
+    <ID>UseOrEmpty:TestApplicationGraph.kt$TestApplicationGraphBuilderImpl$builder.calleesByOffset[node.offset]?.let { sequenceOf(it) } ?: emptySequence()</ID>
+    <ID>Wrapping:SymbolicCollectionTestBase.kt$SymbolicCollectionTestBase${ memory: UReadOnlyMemory&lt;SingleTypeSystem.SingleType&gt; -&gt; UComposer(ctx, memory) }</ID>
+  </CurrentIssues>
+</SmellBaseline>

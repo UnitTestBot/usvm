@@ -18,7 +18,7 @@ import java.util.function.ToLongFunction;
 import java.util.stream.DoubleStream;
 import java.util.stream.LongStream;
 
-@SuppressWarnings("IfStatementWithIdenticalBranches")
+@SuppressWarnings({"IfStatementWithIdenticalBranches", "lossy-conversions"})
 public class LongStreamExample {
     LongStream returningStreamAsParameterExample(LongStream s) {
         assume(s != null);

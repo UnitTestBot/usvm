@@ -133,26 +133,26 @@ tasks.getByName("compileTestKotlin").finalizedBy("testJar")
 tasks.withType<Test> {
     environment(
         "usvm-test-jar",
-        buildDir
-            .resolve("libs")
-            .resolve("usvm-jvm-test.jar")
-            .absolutePath
+        layout
+            .buildDirectory
+            .file("libs/usvm-jvm-test.jar")
+            .get().asFile.absolutePath
     )
     environment(
         "usvm-jvm-instrumentation-jar",
         project(":usvm-jvm-instrumentation")
-            .buildDir
-            .resolve("libs")
-            .resolve("usvm-jvm-instrumentation-1.0.jar")
-            .absolutePath
+            .layout
+            .buildDirectory
+            .file("libs/usvm-jvm-instrumentation-1.0.jar")
+            .get().asFile.absolutePath
     )
     environment(
         "usvm-jvm-collectors-jar",
         project(":usvm-jvm-instrumentation")
-            .buildDir
-            .resolve("libs")
-            .resolve("usvm-jvm-instrumentation-collectors.jar")
-            .absolutePath
+            .layout
+            .buildDirectory
+            .file("libs/usvm-jvm-instrumentation-collectors.jar")
+            .get().asFile.absolutePath
     )
 }
 

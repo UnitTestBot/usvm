@@ -1,0 +1,128 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:Logging.kt$(Result.failure(t))</ID>
+    <ID>ArgumentListWrapping:Logging.kt$(Result.success(res.getOrThrow()))</ID>
+    <ID>ArgumentListWrapping:Logging.kt$(res.getOrThrow())</ID>
+    <ID>ArgumentListWrapping:Logging.kt$(startNano)</ID>
+    <ID>ArgumentListWrapping:Logging.kt$(t)</ID>
+    <ID>ArgumentListWrapping:RandomizedPriorityCollection.kt$RandomizedPriorityCollection$(randomValue in 0.0..1.0)</ID>
+    <ID>ArgumentListWrapping:RegionTree.kt$RegionTree$(nodeRegion, valueWithRegionTree, filterPredicate)</ID>
+    <ID>ArgumentListWrapping:TestRunner.kt$TestRunner$( params[0], params[1], params[2] )</ID>
+    <ID>ArgumentListWrapping:TestRunner.kt$TestRunner$( params[0], params[1], params[2], params[3] )</ID>
+    <ID>ArgumentListWrapping:TestRunner.kt$TestRunner$( params[0], params[1], params[2], params[3], params[4], )</ID>
+    <ID>ArgumentListWrapping:TestRunner.kt$TestRunner$( params[0], params[1], params[2], params[3], params[4], params[5], )</ID>
+    <ID>ArgumentListWrapping:TestRunner.kt$TestRunner$( params[0], params[1], params[2], params[3], params[4], params[5], params[6], )</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(deleteFrom.update(value = pred.value, left = it).balanceAfterRemove())</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(deleteFrom.update(value = succ.value, right = it).balanceAfterRemove())</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(pred.value, deleteFrom.left)</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(succ.value, deleteFrom.right)</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(value = pred.value, left = it)</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(value = succ.value, right = it)</ID>
+    <ID>ArgumentListWrapping:WeightedAaTree.kt$WeightedAaTree$(value = value, weight = weight, weightSum = leftWeightSum + rightWeightSum + weight, level = level, left = left, right = right)</ID>
+    <ID>BlockCommentInitialStarAlignment:GraphUtils.kt$/* 1. Why won't we break anything with such update? Because even if newDistanceToTheVertex &lt; currentDistanceToTheVertex holds, we haven't visited theVertex yet: Suppose we have, then currentDistanceToTheVertex &lt;= distanceToCurrentVertex (because we're doing BFS) newDistanceToTheVertex &lt; currentDistanceToTheVertex ~ distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; currentDistanceToTheVertex distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; distanceToCurrentVertex ?! */</ID>
+    <ID>BracesOnWhenStatements:DisjointSets.kt$DisjointSets$when</ID>
+    <ID>BracesOnWhenStatements:RegionTree.kt$RegionTree$when</ID>
+    <ID>BracesOnWhenStatements:WeightedAaTree.kt$WeightedAaTree$when</ID>
+    <ID>Filename:Lca.kt$org.usvm.algorithms.Lca.kt</ID>
+    <ID>FinalNewline:CachingSequence.kt$org.usvm.algorithms.CachingSequence.kt</ID>
+    <ID>FinalNewline:Lca.kt$org.usvm.algorithms.Lca.kt</ID>
+    <ID>FinalNewline:Logging.kt$org.usvm.util.Logging.kt</ID>
+    <ID>FinalNewline:Matchers.kt$org.usvm.test.util.checkers.Matchers.kt</ID>
+    <ID>FinalNewline:Maybe.kt$org.usvm.util.Maybe.kt</ID>
+    <ID>FinalNewline:SeparationUtils.kt$org.usvm.algorithms.SeparationUtils.kt</ID>
+    <ID>FinalNewline:SetRegion.kt$org.usvm.regions.SetRegion.kt</ID>
+    <ID>FinalNewline:TrivialRegion.kt$org.usvm.regions.TrivialRegion.kt</ID>
+    <ID>FunctionReturnTypeSpacing:Maybe.kt$Maybe$@Suppress("UNCHECKED_CAST") fun getOrThrow() : T</ID>
+    <ID>ImplicitDefaultLocale:Logging.kt$String.format("%.3f", elapsedS)</ID>
+    <ID>Indentation:TestRunner.kt$TestRunner$ </ID>
+    <ID>IteratorNotThrowingNoSuchElementException:CachingSequence.kt$CachingSequence$CachingIterator : Iterator</ID>
+    <ID>IteratorNotThrowingNoSuchElementException:TimeLimitedIterator.kt$TimeLimitedIterator&lt;T&gt; : Iterator</ID>
+    <ID>MagicNumber:Logging.kt$1_000_000_000</ID>
+    <ID>MatchingDeclarationName:Lca.kt$LcaResult&lt;T, E&gt;</ID>
+    <ID>MatchingDeclarationName:Logging.kt$LoggerWithLogMethod</ID>
+    <ID>MatchingDeclarationName:SeparationUtils.kt$SeparationResult&lt;C&gt;</ID>
+    <ID>MaxLineLength:GraphUtils.kt$/* 1. Why won't we break anything with such update? Because even if newDistanceToTheVertex &lt; currentDistanceToTheVertex holds, we haven't visited theVertex yet: Suppose we have, then currentDistanceToTheVertex &lt;= distanceToCurrentVertex (because we're doing BFS) newDistanceToTheVertex &lt; currentDistanceToTheVertex ~ distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; currentDistanceToTheVertex distanceToCurrentVertex + distanceFromCurrentToTheVertex &lt; distanceToCurrentVertex ?! */</ID>
+    <ID>MaxLineLength:GraphUtils.kt$/* 2. If the vertex was added to queue, then it will never be added again: If we write newDistanceToAdjacentVertex to dictionary here, newDistanceToAdjacentVertex &gt;= currentDistanceToAdjacentVertex will always hold because of BFS. It won't be broken by cache because currentDistanceToAdjacentVertex won't be rewritten from cache (see 1.) */</ID>
+    <ID>MaxLineLength:GraphUtils.kt$if</ID>
+    <ID>MaxLineLength:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg ${closingComment(Result.success(res.getOrThrow()))}" }</ID>
+    <ID>MaxLineLength:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg :: EXCEPTION :: ${closingComment(Result.failure(t))}" }</ID>
+    <ID>MaxLineLength:ProductRegion.kt$ProductRegion$// TODO: comparison actually computes difference. Reuse it somehow (for example, return difference together with verdict).</ID>
+    <ID>MaxLineLength:RandomizedPriorityCollection.kt$RandomizedPriorityCollection$check(randomValue in 0.0..1.0) { "Random generator in discrete PDF returned a number outside the unit interval (${randomValue})" }</ID>
+    <ID>MaxLineLength:RegionTree.kt$RegionTree$Region.ComparisonResult.DISJOINT -&gt; disjoint.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)</ID>
+    <ID>MaxLineLength:RegionTree.kt$RegionTree$Region.ComparisonResult.INCLUDES -&gt; included.addWithFilter(nodeRegion, valueWithRegionTree, filterPredicate)</ID>
+    <ID>MaxLineLength:TestRunner.kt$TestRunner$"Some types don't match at positions (from 0): ${mismatchedTypes.map { it.index }}. ${System.lineSeparator()}"</ID>
+    <ID>MaxLineLength:TestRunner.kt$TestRunner$is Function6&lt;*, *, *, *, *, *, *&gt;</ID>
+    <ID>MaxLineLength:TestRunner.kt$TestRunner$is Function7&lt;*, *, *, *, *, *, *, *&gt;</ID>
+    <ID>MaxLineLength:UMachineOptions.kt$PathSelectorFairnessStrategy.CONSTANT_TIME$*</ID>
+    <ID>MaxLineLength:WeightedAaTree.kt$WeightedAaTree$private tailrec</ID>
+    <ID>MaxLineLength:WeightedAaTree.kt$WeightedAaTree$removeRec(pred.value, deleteFrom.left) { k(deleteFrom.update(value = pred.value, left = it).balanceAfterRemove()) }</ID>
+    <ID>MaxLineLength:WeightedAaTree.kt$WeightedAaTree$removeRec(succ.value, deleteFrom.right) { k(deleteFrom.update(value = succ.value, right = it).balanceAfterRemove()) }</ID>
+    <ID>MaxLineLength:WeightedAaTree.kt$WeightedAaTree$return AaTreeNode(value = value, weight = weight, weightSum = leftWeightSum + rightWeightSum + weight, level = level, left = left, right = right)</ID>
+    <ID>MaximumLineLength:GraphUtils.kt$ </ID>
+    <ID>MaximumLineLength:Logging.kt$ </ID>
+    <ID>MaximumLineLength:RandomizedPriorityCollection.kt$RandomizedPriorityCollection$ </ID>
+    <ID>MaximumLineLength:RegionTree.kt$RegionTree$ </ID>
+    <ID>MaximumLineLength:TestRunner.kt$TestRunner$ </ID>
+    <ID>MaximumLineLength:WeightedAaTree.kt$WeightedAaTree$ </ID>
+    <ID>MultiLineIfElse:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg ${closingComment(Result.success(res.getOrThrow()))}" }</ID>
+    <ID>MultiLineIfElse:Logging.kt$logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg &lt;Nothing&gt;" }</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return Region.ComparisonResult.DISJOINT</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return Region.ComparisonResult.INCLUDES</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$ProductRegion$return this</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$result.add(a to bd)</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$result.add(ac to b)</ID>
+    <ID>MultiLineIfElse:ProductRegion.kt$return rects</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.DISJOINT</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.INCLUDES</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$SetRegion$Region.ComparisonResult.INTERSECTS</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$disjoint = false</ID>
+    <ID>MultiLineIfElse:SetRegion.kt$includes = false</ID>
+    <ID>NestedBlockDepth:GraphUtils.kt$inline fun &lt;V&gt; findMinDistancesInUnweightedGraph( startVertex: V, adjacentVertices: (V) -&gt; Sequence&lt;V&gt;, distanceCache: Map&lt;V, Map&lt;V, UInt&gt;&gt; = emptyMap(), ): Map&lt;V, UInt&gt;</ID>
+    <ID>NestedBlockDepth:ProductRegion.kt$ProductRegion$override fun intersect(other: ProductRegion&lt;X, Y&gt;): ProductRegion&lt;X, Y&gt;</ID>
+    <ID>NestedBlockDepth:ProductRegion.kt$private fun &lt;X : Region&lt;X&gt;, Y : Region&lt;Y&gt;&gt; subtractRect(rects: List&lt;Pair&lt;X, Y&gt;&gt;, rect2: Pair&lt;X, Y&gt;): List&lt;Pair&lt;X, Y&gt;&gt;</ID>
+    <ID>NewLineAtEndOfFile:CachingSequence.kt$org.usvm.algorithms.CachingSequence.kt</ID>
+    <ID>NewLineAtEndOfFile:Lca.kt$org.usvm.algorithms.Lca.kt</ID>
+    <ID>NewLineAtEndOfFile:Logging.kt$org.usvm.util.Logging.kt</ID>
+    <ID>NewLineAtEndOfFile:Matchers.kt$org.usvm.test.util.checkers.Matchers.kt</ID>
+    <ID>NewLineAtEndOfFile:Maybe.kt$org.usvm.util.Maybe.kt</ID>
+    <ID>NewLineAtEndOfFile:SeparationUtils.kt$org.usvm.algorithms.SeparationUtils.kt</ID>
+    <ID>NewLineAtEndOfFile:SetRegion.kt$org.usvm.regions.SetRegion.kt</ID>
+    <ID>NewLineAtEndOfFile:TrivialRegion.kt$org.usvm.regions.TrivialRegion.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:ProductRegion.kt$ </ID>
+    <ID>NoUnusedImports:TimeLimitedIterator.kt$org.usvm.util.TimeLimitedIterator.kt</ID>
+    <ID>SpacingAroundColon:Logging.kt$:</ID>
+    <ID>SpacingAroundColon:Maybe.kt$Maybe$:</ID>
+    <ID>SpacingAroundComma:ProductRegion.kt$ProductRegion$,</ID>
+    <ID>SpacingAroundCurly:SetRegion.kt${</ID>
+    <ID>SpacingAroundKeyword:SetRegion.kt$when</ID>
+    <ID>SpacingAroundParens:Maybe.kt$Maybe$)</ID>
+    <ID>SpacingBetweenDeclarationsWithAnnotations:GraphIterators.kt$GraphIterator.IteratorState$Element&lt;T&gt; : IteratorState</ID>
+    <ID>StringTemplate:RandomizedPriorityCollection.kt$RandomizedPriorityCollection$${randomValue}</ID>
+    <ID>StringTemplate:TestRunner.kt$TestRunner$${executionIndex}</ID>
+    <ID>StringTemplate:TestRunner.kt$TestRunner$${invariantsIndices}</ID>
+    <ID>TooGenericExceptionCaught:Logging.kt$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Logging.kt$t: Throwable</ID>
+    <ID>TooGenericExceptionThrown:SetRegion.kt$SetRegion$throw Exception("Unreachable")</ID>
+    <ID>TrailingCommaOnDeclarationSite:CachingSequence.kt$CachingSequence.CachingIterator$( private var ptr: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Logging.kt$( msg: String, crossinline closingComment: (Result&lt;T&gt;) -&gt; Any? = { "" }, block: () -&gt; T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:PersistentMultiMapBuilder.kt$PersistentMultiMapBuilder.MultiMapIterator$( mapBuilder: MutableMap&lt;K, PersistentSet&lt;V&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SetRegion.kt$SetRegion$( private val points: Set&lt;Point&gt;, private val thrown: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TrieNode.kt$TrieNode$( private val depth: Int, private var parent: TrieNode&lt;E, V&gt;?, private var parentEdge: E?, var value: V )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineOptions.kt$CoverageZone</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineOptions.kt$PathSelectionStrategy</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineOptions.kt$PathSelectorCombinationStrategy</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineOptions.kt$PathSelectorFairnessStrategy</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineOptions.kt$SolverType</ID>
+    <ID>TrailingCommaOnDeclarationSite:WeightedAaTree.kt$AaTreeNode$( /** * Value attached to the node. */ val value: T, /** * Weight attached to the node. */ val weight: Double, /** * Sum of the children's weights. */ val weightSum: Double, /** * Node's depth in the tree. 1 for root node, 2 for its children etc. */ val level: Int, /** * Reference to the left child. */ val left: AaTreeNode&lt;T&gt;?, /** * Reference to the right child. */ val right: AaTreeNode&lt;T&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:WeightedAaTree.kt$WeightedAaTree$( value: T = this.value, weight: Double = this.weight, level: Int = this.level, left: AaTreeNode&lt;T&gt;? = this.left, right: AaTreeNode&lt;T&gt;? = this.right )</ID>
+    <ID>UnsafeCallOnNullableType:DeterministicPriorityCollection.kt$DeterministicPriorityCollection$topElement!!</ID>
+    <ID>UnsafeCallOnNullableType:IntIntervalsRegion.kt$IntIntervalsRegion$x1!!</ID>
+    <ID>UnsafeCallOnNullableType:IntIntervalsRegion.kt$IntIntervalsRegion$x2!!</ID>
+    <ID>UnsafeCallOnNullableType:TrieNode.kt$TrieNode$parentEdge!!</ID>
+    <ID>UseOrEmpty:IntIntervalsRegion.kt$IntIntervalsRegion$" U ".takeIf { repr.isNotEmpty() } ?: ""</ID>
+    <ID>Wrapping:DisjointSets.kt$DisjointSets$;</ID>
+    <ID>Wrapping:RandomizedPriorityCollection.kt$RandomizedPriorityCollection$"Random generator in discrete PDF returned a number outside the unit interval (${randomValue})"</ID>
+  </CurrentIssues>
+</SmellBaseline>

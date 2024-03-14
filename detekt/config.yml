@@ -1,0 +1,114 @@
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+  weights:
+  # complexity: 2
+  # LongParameterList: 1
+  # style: 1
+  # comments: 1
+
+config:
+  validation: true
+  warningsAsErrors: false
+  checkExhaustiveness: false
+  # when writing own rules with new properties, exclude the property path e.g.: 'my_rule_set,.*>.*>[my_property]'
+  excludes: ''
+
+processors:
+  active: true
+  exclude:
+    - 'DetektProgressListener'
+  # - 'KtFileCountProcessor'
+  # - 'PackageCountProcessor'
+  # - 'ClassCountProcessor'
+  # - 'FunctionCountProcessor'
+  # - 'PropertyCountProcessor'
+  # - 'ProjectComplexityProcessor'
+  # - 'ProjectCognitiveComplexityProcessor'
+  # - 'ProjectLLOCProcessor'
+  # - 'ProjectCLOCProcessor'
+  # - 'ProjectLOCProcessor'
+  # - 'ProjectSLOCProcessor'
+  # - 'LicenseHeaderLoaderExtension'
+
+console-reports:
+  active: true
+  exclude:
+    - 'ProjectStatisticsReport'
+    #  - 'ComplexityReport'
+    - 'NotificationReport'
+    - 'FindingsReport'
+    - 'FileBasedFindingsReport'
+  #  - 'LiteFindingsReport'
+
+complexity:
+  active: true
+  LongParameterList:
+    active: false
+  ComplexCondition:
+    active: true
+    threshold: 6
+  LongMethod:
+    active: true
+    threshold: 100
+  TooManyFunctions:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
+
+formatting:
+  active: true
+  TrailingCommaOnDeclarationSite:
+    active: true
+  MultiLineIfElse:
+    active: true
+  NoBlankLineInList:
+    active: true
+  NoConsecutiveBlankLines:
+    active: false
+
+performance:
+  CouldBeSequence:
+    active: true
+    threshold: 4
+  SpreadOperator:
+    active: false
+
+style:
+  active: true
+  BracesOnIfStatements:
+    active: false
+  BracesOnWhenStatements:
+    active: true
+    singleLine: 'necessary'
+    multiLine: 'consistent'
+  ForbiddenComment:
+    active: false
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - reason: 'print does not allow you to configure the output stream. Use a logger instead.'
+        value: 'kotlin.io.print'
+      - reason: 'println does not allow you to configure the output stream. Use a logger instead.'
+        value: 'kotlin.io.println'
+  LoopWithTooManyJumpStatements:
+    active: true
+    maxJumpCount: 3
+  MagicNumber:
+    active: true
+    excludes: [ '**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/*.kts' ]
+  MandatoryBracesLoops:
+    active: true
+  MaxChainedCallsOnSameLine:
+    active: true
+    maxChainedCalls: 5
+  NoTabs:
+    active: true
+  ReturnCount:
+    active: false
+  UnderscoresInNumericLiterals:
+    active: true
+    acceptableLength: 4
+    allowNonStandardGrouping: false
+  WildcardImport:
+    active: false

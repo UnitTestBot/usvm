@@ -51,3 +51,12 @@ jobs:
       #   with:
       #     name: usvm-tests-report-linux
       #     path: ./**/build/reports/tests/test/
+
+      - name: Run Detekt
+        run: ./gradlew detektMain detektTest --no-daemon
+
+      - name: Upload SARIF to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        if: success() || failure()
+        with:
+          sarif_file: build/reports/detekt/detekt.sarif

@@ -76,7 +76,7 @@ val generateModels = tasks.register<RdGenTask>("generateProtocolModels") {
     group = "rdgen"
     rdParams.verbose = true
     rdParams.sources(sourcesDir)
-    rdParams.hashFolder = buildDir.resolve("rdgen/hashes").absolutePath
+    rdParams.hashFolder = layout.buildDirectory.file("rdgen/hashes").get().asFile.absolutePath
     // where to search roots
     rdParams.packages = "org.usvm.instrumentation.models"
 

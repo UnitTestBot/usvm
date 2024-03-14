@@ -1,0 +1,927 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:ArrayRegion.kt$UArrayMemoryRegion$( fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo() )</ID>
+    <ID>ArgumentListWrapping:ArrayRegion.kt$UArrayMemoryRegion$(key.arrayType, key.sort, concreteRef.address)</ID>
+    <ID>ArgumentListWrapping:ArrayRegion.kt$UArrayMemoryRegion$(key.index)</ID>
+    <ID>ArgumentListWrapping:ArrayRegionApi.kt$(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)</ID>
+    <ID>ArgumentListWrapping:ArrayRegionTranslator.kt$UAllocatedArrayUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:ArrayRegionTranslator.kt$UInputArrayUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:Context.kt$(withSizeSort())</ID>
+    <ID>ArgumentListWrapping:CoverageStatistics.kt$CoverageStatistics$(applicationGraph::callees)</ID>
+    <ID>ArgumentListWrapping:CoverageStatistics.kt$CoverageStatistics$(method)</ID>
+    <ID>ArgumentListWrapping:CoverageStatistics.kt$CoverageStatistics$(uncoveredStatements::containsKey)</ID>
+    <ID>ArgumentListWrapping:EqualityConstraints.kt$UEqualityConstraints$( ctx, DisjointSets(), persistentHashSetOf(), persistentHashMapOf(), persistentHashMapOf() )</ID>
+    <ID>ArgumentListWrapping:Expressions.kt$UInputArrayReading$(ctx, collection)</ID>
+    <ID>ArgumentListWrapping:HeapRefSplitting.kt$(ref, initialGuard, collapseHeapRefs = collapseHeapRefs)</ID>
+    <ID>ArgumentListWrapping:PathSelectorFactory.kt$(callGraphStatisticsFactory())</ID>
+    <ID>ArgumentListWrapping:PathSelectorFactory.kt$(cfgStatisticsFactory())</ID>
+    <ID>ArgumentListWrapping:PathSelectorFactory.kt$(coverageStatisticsFactory())</ID>
+    <ID>ArgumentListWrapping:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$(" %-12s | %-${timeColumnWidth}s | %-${stepsColumnWidth}s | %s ".format(coverage, time, steps, name))</ID>
+    <ID>ArgumentListWrapping:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$(coverage, time, steps, name)</ID>
+    <ID>ArgumentListWrapping:StopStrategyFactory.kt$(stepsStatisticsFactory())</ID>
+    <ID>ArgumentListWrapping:StopStrategyFactory.kt$(timeStatisticsFactory())</ID>
+    <ID>ArgumentListWrapping:SymbolicCollectionUpdates.kt$UFlatUpdates$( UFlatUpdatesNode( UPinpointUpdateNode( key, keyInfo, value, guard ), this ), keyInfo )</ID>
+    <ID>ArgumentListWrapping:SymbolicCollectionUpdates.kt$UFlatUpdates$( UPinpointUpdateNode( key, keyInfo, value, guard ), this )</ID>
+    <ID>ArgumentListWrapping:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( add(lhsConst, lhsBias), rhsConst ?: zero, isPrimary = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( add(lhsConst, lhsBias), rhsConst ?: zero, isStrict, isPrimary = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( boundsConstraint, bias, rhsLB, rhsConstraint = null, findRelevantBiases = { boundsConstraint.concreteLowerBounds.asSequence() .mapNotNull { (bias, c) -&gt; bias.takeIf { c == constraint } } }, removeConstraintForBias = { bc, biasToRemove -&gt; bc.removeConcreteLowerBound(biasToRemove) }, removeOppositeConstraintForBias = { bc, _ -&gt; bc }, cont = { cont(it) } )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( boundsConstraint, bias, rhsLB, rhsConstraint = rhs, findRelevantBiases = { boundsConstraint.inferredTermLowerBounds.findBiasesWithConstraint(constraint) }, removeConstraintForBias = { bc, biasToRemove -&gt; val modifiedBounds = bc.inferredTermLowerBounds.removeTermConstraint(biasToRemove, constraint) bc.modifyTermLowerBounds(modifiedBounds) }, removeOppositeConstraintForBias = { bc, biasToRemove -&gt; val oppositeConstraint = TermsConstraint( boundsConstraint.constrainedTerms, biasToRemove, constraint.isStrict ) bc.removeTermUpperBound(constraint.bias, oppositeConstraint) }, cont = { cont(it) } )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( boundsConstraint, bias, rhsUB, rhsConstraint = null, findRelevantBiases = { boundsConstraint.concreteUpperBounds.asSequence() .mapNotNull { (bias, c) -&gt; bias.takeIf { c == constraint } } }, removeConstraintForBias = { bc, biasToRemove -&gt; bc.removeConcreteUpperBound(biasToRemove) }, removeOppositeConstraintForBias = { bc, _ -&gt; bc }, cont = { cont(it) } )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( boundsConstraint, bias, rhsUB, rhsConstraint = rhs, findRelevantBiases = { boundsConstraint.termUpperBounds.findBiasesWithConstraint(constraint) }, removeConstraintForBias = { bc, biasToRemove -&gt; val modifiedBounds = bc.termUpperBounds.removeTermConstraint(biasToRemove, constraint) bc.modifyTermUpperBounds(modifiedBounds) }, removeOppositeConstraintForBias = { bc, biasToRemove -&gt; val oppositeConstraint = TermsConstraint( boundsConstraint.constrainedTerms, biasToRemove, constraint.isStrict ) bc.removeTermLowerBound(constraint.bias, oppositeConstraint) }, cont = { cont(it) } )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( constraint, rhs, rhsBias, bounds, propagateConstraint, isStrict = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( ctx, sort, numericConstraints.build(), constraintWatchList.build() )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsBias, add(rhsConst, value), isPrimary = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsBias, add(rhsConst, value), isStrict, isPrimary = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsBias, rhsConstraint, normalizedRhsConst, isStrict )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsBias, simplifiedRhs.uncheckedCast(), isStrict, isPrimary = true )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsConstraint, add(lhsConst, lhsBias), rhsTerms, rhsConst, isStrict, isInternalConstraint )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsConstraint, lhsBias, add(rhsConst, value) )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsTerms = null, lhsConst = rhsConst, rhsTerms = null, rhsConst = add(lhsConst, value), isStrict, isInternalConstraint )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsTerms, lhsConst, rhsTerms, rhsConst, isStrict = false, isInternalConstraint = false )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( lhsTerms, lhsConst, rhsTerms, rhsConst, isStrict = true, isInternalConstraint = false )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( normalizedRhsConst, updatedLhs, lhsBias, isStrict )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( propagatedStrict, rhs, rhsBias, bounds, propagateConstraint, isStrict = false )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( rhsTerms, rhsConst, rhsConst = add(lhsConst, value), isStrict, isInternalConstraint )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( this, bias, constraint, rhsLB = constraint.value )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints$( this, bias, constraint, rhsUB = constraint.value )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints.BoundsConstraint$( constrainedTerms, concreteLowerBounds, concreteUpperBounds, concreteDisequalitites, inferredTermLowerBounds, termUpperBounds, termDisequalities )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints.BoundsConstraint$( constrainedTerms, concreteLowerBounds, concreteUpperBounds, concreteDisequalitites, termLowerBounds, termUpperBounds, termDisequalities )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints.BoundsConstraint$( constrainedTerms, concreteLowerBounds, concreteUpperBounds, modified, inferredTermLowerBounds, termUpperBounds, termDisequalities )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints.BoundsConstraint$( constrainedTerms, concreteLowerBounds, modified, concreteDisequalitites, inferredTermLowerBounds, termUpperBounds, termDisequalities )</ID>
+    <ID>ArgumentListWrapping:UNumericConstraints.kt$UNumericConstraints.BoundsConstraint$( constrainedTerms, modified, concreteUpperBounds, concreteDisequalitites, inferredTermLowerBounds, termUpperBounds, termDisequalities )</ID>
+    <ID>ArgumentListWrapping:URefMapRegion.kt$URefMapMemoryRegion$( initial = region, srcMapRef = srcConcrete, guard = guard, keySet = keySet, read = { initialAllocatedMapState[it] ?: valueSort.sampleUValue() }, mkDstKeyId = { inputMapWithAllocatedKeyId(it) }, write = { result, dstKeyId, value, g -&gt; val newMap = result.getInputMapWithAllocatedKeys(dstKeyId) .write(dstSymbolic, value, g) result.updateInputMapWithAllocatedKeys(dstKeyId, newMap) } )</ID>
+    <ID>ArgumentListWrapping:URefMapRegion.kt$URefMapMemoryRegion$( initial = region, srcMapRef = srcSymbolic, guard = guard, keySet = keySet, read = { region.getInputMapWithAllocatedKeys(it).read(srcSymbolic) }, mkDstKeyId = { inputMapWithAllocatedKeyId(it) }, write = { result, dstKeyId, value, g -&gt; val newMap = result.getInputMapWithAllocatedKeys(dstKeyId) .write(dstSymbolic, value, g) result.updateInputMapWithAllocatedKeys(dstKeyId, newMap) } )</ID>
+    <ID>ArgumentListWrapping:URefMapRegion.kt$URefMapMemoryRegion$( initial = region.allocatedMapWithAllocatedKeys, srcMapRef = srcSymbolic, guard = guard, keySet = keySet, read = { region.getInputMapWithAllocatedKeys(it).read(srcSymbolic) }, mkDstKeyId = { UAllocatedRefMapWithAllocatedKeysId(dstConcrete.address, it) }, write = { result, dstKeyId, value, g -&gt; result.guardedWrite(dstKeyId, value, g) { sort.sampleUValue() } } )</ID>
+    <ID>ArgumentListWrapping:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$( sourceCollection, convertedKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( initial = region, guard = guard, read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) }, mkDstKeyId = { inputSetWithAllocatedElementsId(it) }, write = { result, dstKeyId, value, g -&gt; val newMap = result.getInputSetWithAllocatedElements(dstKeyId) .write(dstSymbolic, value, g) result.updateInputSetWithAllocatedElements(dstKeyId, newMap) } )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( initial = region, srcAddress = srcConcrete.address, guard = guard, read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr }, mkDstKeyId = { inputSetWithAllocatedElementsId(it) }, write = { result, dstKeyId, value, g -&gt; val newMap = result.getInputSetWithAllocatedElements(dstKeyId) .write(dstSymbolic, value, g) result.updateInputSetWithAllocatedElements(dstKeyId, newMap) } )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( setType, sort, allocatedSetWithAllocatedElements, allocatedSetWithInputElements, inputSetWithAllocatedElements, updatedSet )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( setType, sort, allocatedSetWithAllocatedElements, allocatedSetWithInputElements, inputSetWithAllocatedElements.put(id, updatedSet), inputSetWithInputElements )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( setType, sort, allocatedSetWithAllocatedElements, allocatedSetWithInputElements.put(id, updatedSet), inputSetWithAllocatedElements, inputSetWithInputElements )</ID>
+    <ID>ArgumentListWrapping:URefSetRegion.kt$URefSetMemoryRegion$( setType, sort, updated, allocatedSetWithInputElements, inputSetWithAllocatedElements, inputSetWithInputElements )</ID>
+    <ID>ArgumentListWrapping:USetUpdatesTranslator.kt$USetUpdatesTranslator$( key = selectKey, composer = null )</ID>
+    <ID>ArgumentListWrapping:USizeExprProvider.kt$UBv32SizeExprProvider$(lhs, rhs)</ID>
+    <ID>ArgumentListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToAllocatedCopyAdapter$( srcFrom, dstFrom, dstTo, keyInfo )</ID>
+    <ID>ArgumentListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToInputCopyAdapter$( srcFrom, dstFrom, dstTo, keyInfo )</ID>
+    <ID>ArgumentListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToAllocatedCopyAdapter$( srcFrom, dstFrom, dstTo, keyInfo )</ID>
+    <ID>ArgumentListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$( srcFrom, dstFrom, dstTo, keyInfo )</ID>
+    <ID>ArgumentListWrapping:USymbolicRefSetId.kt$UAllocatedRefSetWithInputElementsId$( setType, sort )</ID>
+    <ID>ArgumentListWrapping:USymbolicRefSetId.kt$UInputRefSetWithAllocatedElementsId$( setType, sort )</ID>
+    <ID>ArgumentListWrapping:UTargetsSet.kt$UTargetsSet.Companion$(persistentListOf())</ID>
+    <ID>ArgumentListWrapping:UpdateNodes.kt$URangedUpdateNode$(adapter.convert(key, composer), predicate, matchingWrites, nextGuardBuilder, composer)</ID>
+    <ID>ArgumentListWrapping:UpdateNodes.kt$URangedUpdateNode$(key, composer)</ID>
+    <ID>BracesOnWhenStatements:ExceptionPropagationPathSelector.kt$ExceptionPropagationPathSelector$when</ID>
+    <ID>BracesOnWhenStatements:HeapRefSplitting.kt$when</ID>
+    <ID>BracesOnWhenStatements:PathConstraints.kt$UPathConstraints$when</ID>
+    <ID>BracesOnWhenStatements:PathSelectorFactory.kt$when</ID>
+    <ID>BracesOnWhenStatements:StateForker.kt$WithSolverStateForker$when</ID>
+    <ID>BracesOnWhenStatements:StateUtils.kt$when</ID>
+    <ID>BracesOnWhenStatements:TypeConstraints.kt$UTypeConstraints$when</ID>
+    <ID>BracesOnWhenStatements:UNumericConstraints.kt$UNumericConstraints$when</ID>
+    <ID>BracesOnWhenStatements:USoftConstraintsProvider.kt$SortPreferredValuesProvider$when</ID>
+    <ID>BracesOnWhenStatements:USymbolicCollection.kt$USymbolicCollection$when</ID>
+    <ID>BracesOnWhenStatements:USymbolicSetElementsCollector.kt$USymbolicSetElementsCollector$when</ID>
+    <ID>BracesOnWhenStatements:UTypeModel.kt$UTypeModel$when</ID>
+    <ID>ChainWrapping:Mocks.kt$UIndexedMocker$||</ID>
+    <ID>ConstructorParameterNaming:PathNode.kt$PathNode$private val _segment: PathSegment&lt;Statement&gt;?</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$(name, coverage, time, steps)</ID>
+    <ID>Filename:ArrayLengthRegionTranslator.kt$org.usvm.collection.array.length.ArrayLengthRegionTranslator.kt</ID>
+    <ID>Filename:ArrayRegionTranslator.kt$org.usvm.collection.array.ArrayRegionTranslator.kt</ID>
+    <ID>Filename:Composition.kt$org.usvm.Composition.kt</ID>
+    <ID>Filename:EqualityConstraints.kt$org.usvm.constraints.EqualityConstraints.kt</ID>
+    <ID>Filename:ExprTranslator.kt$org.usvm.solver.ExprTranslator.kt</ID>
+    <ID>Filename:Expressions.kt$org.usvm.collection.array.length.Expressions.kt</ID>
+    <ID>Filename:Expressions.kt$org.usvm.collection.field.Expressions.kt</ID>
+    <ID>Filename:Expressions.kt$org.usvm.collection.map.length.Expressions.kt</ID>
+    <ID>Filename:FieldRegionTranslator.kt$org.usvm.collection.field.FieldRegionTranslator.kt</ID>
+    <ID>Filename:Interpreter.kt$org.usvm.Interpreter.kt</ID>
+    <ID>Filename:Merging.kt$org.usvm.merging.Merging.kt</ID>
+    <ID>Filename:PathConstraints.kt$org.usvm.constraints.PathConstraints.kt</ID>
+    <ID>Filename:PathSelector.kt$org.usvm.PathSelector.kt</ID>
+    <ID>Filename:SupportTypeStream.kt$org.usvm.types.SupportTypeStream.kt</ID>
+    <ID>Filename:TypeRegion.kt$org.usvm.types.TypeRegion.kt</ID>
+    <ID>Filename:TypeSystem.kt$org.usvm.types.TypeSystem.kt</ID>
+    <ID>Filename:UMapLengthRegionTranslator.kt$org.usvm.collection.map.length.UMapLengthRegionTranslator.kt</ID>
+    <ID>Filename:UMapRegionTranslator.kt$org.usvm.collection.map.primitive.UMapRegionTranslator.kt</ID>
+    <ID>Filename:URefMapRegionTranslator.kt$org.usvm.collection.map.ref.URefMapRegionTranslator.kt</ID>
+    <ID>Filename:URefSetRegionTranslator.kt$org.usvm.collection.set.ref.URefSetRegionTranslator.kt</ID>
+    <ID>Filename:USetRegionTranslator.kt$org.usvm.collection.set.primitive.USetRegionTranslator.kt</ID>
+    <ID>FinalNewline:CloseStatesSearcher.kt$org.usvm.merging.CloseStatesSearcher.kt</ID>
+    <ID>FinalNewline:EagerModels.kt$org.usvm.model.EagerModels.kt</ID>
+    <ID>FinalNewline:Interpreter.kt$org.usvm.Interpreter.kt</ID>
+    <ID>FinalNewline:MergeGuard.kt$org.usvm.merging.MergeGuard.kt</ID>
+    <ID>FinalNewline:MergingPathSelector.kt$org.usvm.merging.MergingPathSelector.kt</ID>
+    <ID>FinalNewline:PathSelector.kt$org.usvm.PathSelector.kt</ID>
+    <ID>FinalNewline:SupportTypeStream.kt$org.usvm.types.SupportTypeStream.kt</ID>
+    <ID>FinalNewline:UInterpreterObserver.kt$org.usvm.statistics.UInterpreterObserver.kt</ID>
+    <ID>FinalNewline:ULogicalConstraints.kt$org.usvm.constraints.ULogicalConstraints.kt</ID>
+    <ID>FunctionReturnTypeSpacing:ExprTransformer.kt$UTransformer$fun &lt;Sort : USort&gt; transform(expr: UTrackedSymbol&lt;Sort&gt;) : UExpr&lt;Sort&gt;</ID>
+    <ID>FunctionReturnTypeSpacing:StopStrategyFactory.kt$fun createStopStrategy( options: UMachineOptions, targets: Collection&lt;UTarget&lt;*, *&gt;&gt;, timeStatisticsFactory: () -&gt; TimeStatistics&lt;*, *&gt;? = { null }, stepsStatisticsFactory: () -&gt; StepsStatistics&lt;*, *&gt;? = { null }, coverageStatisticsFactory: () -&gt; CoverageStatistics&lt;*, *, *&gt;? = { null }, getCollectedStatesCount: (() -&gt; Int)? = null, ) : StopStrategy</ID>
+    <ID>HasPlatformType:RegistersStack.kt$URegistersStack$fun pop()</ID>
+    <ID>ImportOrdering:Expressions.kt$import io.ksmt.cache.hash import io.ksmt.cache.structurallyEqual import io.ksmt.expr.printer.ExpressionPrinter import io.ksmt.expr.transformer.KTransformerBase import org.usvm.UCollectionReading import org.usvm.UContext import org.usvm.UHeapRef import org.usvm.UNullRef import org.usvm.UExpr import org.usvm.USort import org.usvm.UTransformer import org.usvm.asTypedTransformer</ID>
+    <ID>ImportOrdering:MemoryApi.kt$import org.usvm.UBoolExpr import org.usvm.UConcreteHeapRef import org.usvm.UContext import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.memory.UMemory import org.usvm.memory.UReadOnlyMemory import org.usvm.memory.UWritableMemory import org.usvm.collection.array.UArrayIndexLValue import org.usvm.collection.array.length.UArrayLengthLValue import org.usvm.collection.field.UFieldLValue import org.usvm.collection.set.primitive.USetEntryLValue import org.usvm.collection.set.ref.URefSetEntryLValue import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.mkSizeAddExpr import org.usvm.mkSizeExpr import org.usvm.mkSizeSubExpr import org.usvm.regions.Region import org.usvm.types.UTypeStream import org.usvm.uctx import org.usvm.withSizeSort import org.usvm.collection.array.memcpy as memcpyInternal import org.usvm.collection.array.memset as memsetInternal import org.usvm.collection.array.allocateArray as allocateArrayInternal import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitializedInternal</ID>
+    <ID>ImportOrdering:SoftConstraintsObserver.kt$import org.usvm.UState import org.usvm.utils.applySoftConstraints import org.usvm.statistics.UMachineObserver</ID>
+    <ID>ImportOrdering:StateUtils.kt$import org.usvm.StepScope import org.usvm.UBoolExpr import org.usvm.UState import org.usvm.isTrue import org.usvm.logger import org.usvm.model.UModelBase import org.usvm.solver.USatResult import org.usvm.solver.USolverResult import org.usvm.solver.USolverBase import org.usvm.solver.UUnknownResult import org.usvm.solver.UUnsatResult</ID>
+    <ID>ImportOrdering:UMapModelRegion.kt$import org.usvm.UExpr import org.usvm.USort import org.usvm.collection.map.USymbolicMapKey import org.usvm.memory.UReadOnlyMemoryRegion import org.usvm.model.UModelEvaluator import org.usvm.model.modelEnsureConcreteInputRef import org.usvm.solver.UCollectionDecoder import org.usvm.regions.Region</ID>
+    <ID>ImportOrdering:UMapRegionTranslator.kt$import io.ksmt.KContext import io.ksmt.expr.KExpr import io.ksmt.sort.KArray2Sort import io.ksmt.sort.KArraySort import io.ksmt.sort.KBoolSort import io.ksmt.utils.mkConst import org.usvm.UAddressSort import org.usvm.UConcreteHeapAddress import org.usvm.UExpr import org.usvm.USort import org.usvm.collection.map.USymbolicMapKey import org.usvm.memory.URangedUpdateNode import org.usvm.memory.UReadOnlyMemoryRegion import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionId import org.usvm.model.UModelEvaluator import org.usvm.solver.U1DUpdatesTranslator import org.usvm.solver.U2DUpdatesTranslator import org.usvm.solver.UCollectionDecoder import org.usvm.solver.UExprTranslator import org.usvm.solver.URegionDecoder import org.usvm.solver.URegionTranslator import org.usvm.uctx import org.usvm.regions.Region import java.util.IdentityHashMap</ID>
+    <ID>ImportOrdering:URefSetRegion.kt$import kotlinx.collections.immutable.PersistentMap import kotlinx.collections.immutable.persistentHashMapOf import org.usvm.UAddressSort import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UConcreteHeapAddress import org.usvm.UHeapRef import org.usvm.collection.set.USymbolicSetEntries import org.usvm.collection.set.USymbolicSetElement import org.usvm.collection.set.USymbolicSetElementsCollector import org.usvm.memory.ULValue import org.usvm.memory.UMemoryRegion import org.usvm.memory.UMemoryRegionId import org.usvm.memory.UReadOnlyMemoryRegion import org.usvm.memory.USymbolicCollection import org.usvm.memory.foldHeapRef2 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic import org.usvm.memory.guardedWrite import org.usvm.memory.mapWithStaticAsSymbolic import org.usvm.uctx</ID>
+    <ID>ImportOrdering:USetRegion.kt$import kotlinx.collections.immutable.PersistentMap import kotlinx.collections.immutable.persistentHashMapOf import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UConcreteHeapAddress import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.collection.set.USymbolicSetEntries import org.usvm.collection.set.USymbolicSetElement import org.usvm.collection.set.USymbolicSetElementsCollector import org.usvm.memory.ULValue import org.usvm.memory.UMemoryRegion import org.usvm.memory.UMemoryRegionId import org.usvm.memory.UReadOnlyMemoryRegion import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.foldHeapRef2 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic import org.usvm.memory.mapWithStaticAsSymbolic import org.usvm.regions.Region import org.usvm.uctx</ID>
+    <ID>ImportOrdering:USymbolicArrayCopyAdapter.kt$import io.ksmt.utils.uncheckedCast import org.usvm.UBoolExpr import org.usvm.UComposer import org.usvm.UContext import org.usvm.UExpr import org.usvm.USort import org.usvm.compose import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionAdapter import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.UUpdateNode import org.usvm.memory.UWritableMemory import org.usvm.mkSizeAddExpr import org.usvm.mkSizeSubExpr import org.usvm.uctx import org.usvm.regions.Region import org.usvm.withSizeSort</ID>
+    <ID>ImportOrdering:USymbolicArrayId.kt$import io.ksmt.cache.hash import kotlinx.collections.immutable.toPersistentMap import org.usvm.UBoolExpr import org.usvm.UComposer import org.usvm.UConcreteHeapAddress import org.usvm.UExpr import org.usvm.USort import org.usvm.compose import org.usvm.memory.UPinpointUpdateNode import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.UTreeUpdates import org.usvm.memory.UUpdateNode import org.usvm.memory.UWritableMemory import org.usvm.memory.key.USizeRegion import org.usvm.regions.RegionTree import org.usvm.regions.emptyRegionTree import org.usvm.sampleUValue import org.usvm.memory.key.USizeExprKeyInfo import org.usvm.uctx import org.usvm.withSizeSort</ID>
+    <ID>ImportOrdering:USymbolicArrayLengthId.kt$import org.usvm.UBoolExpr import org.usvm.UComposer import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.withSizeSort import org.usvm.memory.UFlatUpdates import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.UWritableMemory import org.usvm.memory.key.UHeapRefKeyInfo import org.usvm.uctx</ID>
+    <ID>ImportOrdering:USymbolicMapId.kt$import io.ksmt.cache.hash import org.usvm.UBoolExpr import org.usvm.UComposer import org.usvm.UConcreteHeapAddress import org.usvm.UExpr import org.usvm.USort import org.usvm.collection.map.USymbolicMapKey import org.usvm.collection.map.USymbolicMapKeyInfo import org.usvm.collection.map.USymbolicMapKeyRegion import org.usvm.collection.set.primitive.UAllocatedSetId import org.usvm.collection.set.primitive.UInputSetId import org.usvm.collection.set.primitive.USymbolicSetId import org.usvm.compose import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.UTreeUpdates import org.usvm.memory.UWritableMemory import org.usvm.sampleUValue import org.usvm.uctx import org.usvm.regions.Region import org.usvm.regions.emptyRegionTree</ID>
+    <ID>ImportOrdering:USymbolicMapMergeAdapter.kt$import io.ksmt.utils.uncheckedCast import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UComposer import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.collection.map.USymbolicMapKey import org.usvm.collection.set.USymbolicSetKeyInfo import org.usvm.collection.set.primitive.UAllocatedSetId import org.usvm.collection.set.primitive.UInputSetId import org.usvm.collection.set.primitive.USymbolicSetId import org.usvm.compose import org.usvm.isTrue import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionAdapter import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.UUpdateNode import org.usvm.memory.UWritableMemory import org.usvm.memory.key.UHeapRefKeyInfo import org.usvm.uctx import org.usvm.regions.Region</ID>
+    <ID>ImportOrdering:USymbolicRefMapId.kt$import io.ksmt.cache.hash import org.usvm.UAddressSort import org.usvm.UBoolExpr import org.usvm.UComposer import org.usvm.UConcreteHeapAddress import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.collection.map.USymbolicMapKey import org.usvm.collection.map.USymbolicMapKeyInfo import org.usvm.collection.map.USymbolicMapKeyRegion import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsId import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsId import org.usvm.collection.set.ref.UInputRefSetWithInputElementsId import org.usvm.collection.set.ref.USymbolicRefSetId import org.usvm.compose import org.usvm.memory.ULValue import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.UTreeUpdates import org.usvm.memory.UWritableMemory import org.usvm.memory.key.UHeapRefKeyInfo import org.usvm.memory.key.UHeapRefRegion import org.usvm.sampleUValue import org.usvm.uctx import org.usvm.regions.emptyRegionTree</ID>
+    <ID>ImportOrdering:USymbolicRefMapMergeAdapter.kt$import io.ksmt.utils.uncheckedCast import org.usvm.UAddressSort import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UComposer import org.usvm.UHeapRef import org.usvm.collection.map.USymbolicMapKey import org.usvm.collection.set.USymbolicSetKeyInfo import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsId import org.usvm.collection.set.ref.UInputRefSetWithInputElementsId import org.usvm.collection.set.ref.USymbolicRefSetId import org.usvm.compose import org.usvm.isTrue import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionAdapter import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.UUpdateNode import org.usvm.memory.UWritableMemory import org.usvm.memory.key.UHeapRefKeyInfo import org.usvm.uctx import org.usvm.regions.Region</ID>
+    <ID>ImportOrdering:USymbolicSetUnionAdapter.kt$import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UComposer import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.collection.set.USymbolicSetElement import org.usvm.collection.set.USymbolicSetElementsCollector import org.usvm.collection.set.USymbolicSetKeyInfo import org.usvm.collection.set.USymbolicSetUnionElements import org.usvm.compose import org.usvm.isTrue import org.usvm.memory.USymbolicCollection import org.usvm.memory.USymbolicCollectionAdapter import org.usvm.memory.USymbolicCollectionId import org.usvm.memory.USymbolicCollectionKeyInfo import org.usvm.memory.UUpdateNode import org.usvm.memory.UWritableMemory import org.usvm.memory.key.UHeapRefKeyInfo import org.usvm.uctx import org.usvm.regions.Region</ID>
+    <ID>Indentation:ExprTranslator.kt$UExprTranslator$ </ID>
+    <ID>Indentation:Expressions.kt$UInputRefMapWithInputKeysReading$ </ID>
+    <ID>Indentation:Expressions.kt$UInputRefSetWithInputElementsReading$ </ID>
+    <ID>Indentation:InterprocDistanceCalculator.kt$InterprocDistanceCalculator$ </ID>
+    <ID>Indentation:Memory.kt$UMemory$ </ID>
+    <ID>Indentation:SupportTypeStream.kt$USupportTypeStream.Companion$ </ID>
+    <ID>Indentation:TargetsReachableForkBlackList.kt$TargetsReachableForkBlackList$ </ID>
+    <ID>Indentation:TypeStream.kt$ </ID>
+    <ID>Indentation:UMapRegion.kt$ </ID>
+    <ID>Indentation:UMapRegion.kt$UMapRegion$ </ID>
+    <ID>Indentation:URefMapRegion.kt$ </ID>
+    <ID>Indentation:URefMapRegion.kt$URefMapRegion$ </ID>
+    <ID>Indentation:URefSetRegion.kt$ </ID>
+    <ID>Indentation:USetRegion.kt$ </ID>
+    <ID>Indentation:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToAllocatedCopyAdapter$ </ID>
+    <ID>Indentation:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$ </ID>
+    <ID>Indentation:USymbolicArrayIndexKeyInfo.kt$USymbolicArrayIndexKeyInfo$ </ID>
+    <ID>Indentation:USymbolicArrayLengthId.kt$USymbolicArrayLengthId$ </ID>
+    <ID>Indentation:USymbolicMapId.kt$UAllocatedMapId$ </ID>
+    <ID>Indentation:USymbolicMapId.kt$UInputMapId$ </ID>
+    <ID>Indentation:USymbolicMapId.kt$USymbolicMapId$ </ID>
+    <ID>Indentation:USymbolicMapKeyInfo.kt$USymbolicMapKeyInfo$ </ID>
+    <ID>Indentation:USymbolicRefMapId.kt$UAllocatedRefMapWithInputKeysId$ </ID>
+    <ID>Indentation:USymbolicRefMapId.kt$UInputRefMapWithAllocatedKeysId$ </ID>
+    <ID>Indentation:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$ </ID>
+    <ID>Indentation:USymbolicRefMapId.kt$USymbolicRefMapId$ </ID>
+    <ID>Indentation:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$ </ID>
+    <ID>Indentation:USymbolicRefSetId.kt$USymbolicRefSetId$ </ID>
+    <ID>Indentation:USymbolicRefSetUnionAdapter.kt$USymbolicRefSetUnionAdapter$ </ID>
+    <ID>Indentation:USymbolicSetElementsCollector.kt$USymbolicSetElementsCollector$ </ID>
+    <ID>Indentation:USymbolicSetId.kt$USymbolicSetId$ </ID>
+    <ID>Indentation:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$ </ID>
+    <ID>IteratorNotThrowingNoSuchElementException:SymbolicCollectionUpdates.kt$UFlatUpdates$UFlatUpdatesIterator&lt;Key, Sort : USort&gt; : Iterator</ID>
+    <ID>LargeClass:UNumericConstraints.kt$UNumericConstraints&lt;Sort : UBvSort&gt; : UMergeable</ID>
+    <ID>MagicNumber:CoverageStatistics.kt$CoverageStatistics$100f</ID>
+    <ID>MagicNumber:PathNode.kt$PathSegment.Merged$8</ID>
+    <ID>MagicNumber:PathSelectorFactory.kt$100f</ID>
+    <ID>MagicNumber:StopStrategyFactory.kt$100</ID>
+    <ID>MatchingDeclarationName:ArrayLengthRegionTranslator.kt$UArrayLengthRegionDecoder&lt;ArrayType, USizeSort : USort&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:ArrayRegionTranslator.kt$UArrayRegionDecoder&lt;ArrayType, Sort : USort, USizeSort : USort&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:Composition.kt$UComposer&lt;Type, USizeSort : USort&gt; : UExprTransformer</ID>
+    <ID>MatchingDeclarationName:Context.kt$UContext&lt;USizeSort : USort&gt; : KContext</ID>
+    <ID>MatchingDeclarationName:EqualityConstraints.kt$UEqualityConstraints : UMergeable</ID>
+    <ID>MatchingDeclarationName:ExprTranslator.kt$UExprTranslator&lt;Type, USizeSort : USort&gt; : UExprTransformer</ID>
+    <ID>MatchingDeclarationName:Expressions.kt$UInputArrayLengthReading&lt;ArrayType, USizeSort : USort&gt; : UCollectionReading</ID>
+    <ID>MatchingDeclarationName:Expressions.kt$UInputFieldReading&lt;Field, Sort : USort&gt; : UCollectionReading</ID>
+    <ID>MatchingDeclarationName:Expressions.kt$UInputMapLengthReading&lt;MapType, USizeSort : USort&gt; : UCollectionReading</ID>
+    <ID>MatchingDeclarationName:FieldRegionTranslator.kt$UFieldRegionDecoder&lt;Field, Sort : USort&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:Interpreter.kt$UInterpreter&lt;State&gt;</ID>
+    <ID>MatchingDeclarationName:Merging.kt$UMergeable&lt;Entity, By&gt;</ID>
+    <ID>MatchingDeclarationName:PathConstraints.kt$UPathConstraints&lt;Type&gt; : UMergeable</ID>
+    <ID>MatchingDeclarationName:PathSelector.kt$UPathSelector&lt;State&gt;</ID>
+    <ID>MatchingDeclarationName:SupportTypeStream.kt$USupportTypeStream&lt;Type&gt; : UTypeStream</ID>
+    <ID>MatchingDeclarationName:TypeRegion.kt$UTypeRegion&lt;Type&gt; : Region</ID>
+    <ID>MatchingDeclarationName:TypeSystem.kt$UTypeSystem&lt;Type&gt;</ID>
+    <ID>MatchingDeclarationName:UMapLengthRegionTranslator.kt$UMapLengthRegionDecoder&lt;MapType, USizeSort : USort&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:UMapRegionTranslator.kt$UMapRegionDecoder&lt;MapType, KeySort : USort, ValueSort : USort, Reg : Region&lt;Reg&gt;&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:URefMapRegionTranslator.kt$URefMapRegionDecoder&lt;MapType, ValueSort : USort&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:URefSetRegionTranslator.kt$URefSetRegionDecoder&lt;SetType&gt; : URegionDecoder</ID>
+    <ID>MatchingDeclarationName:USetRegionTranslator.kt$USetRegionDecoder&lt;SetType, ElementSort : USort, Reg : Region&lt;Reg&gt;&gt; : URegionDecoder</ID>
+    <ID>MaxChainedCallsOnSameLine:SymbolicCollectionUpdates.kt$UTreeUpdates$updates.entries.entries.lastOrNull()?.value?.first</ID>
+    <ID>MaxLineLength:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$override</ID>
+    <ID>MaxLineLength:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$private</ID>
+    <ID>MaxLineLength:ArrayLengthRegion.kt$UArrayLengthsRegion&lt;ArrayType, USizeSort : USort&gt; : UMemoryRegion</ID>
+    <ID>MaxLineLength:ArrayLengthRegion.kt$typealias UInputArrayLengths&lt;ArrayType, USizeSort&gt; = USymbolicCollection&lt;UInputArrayLengthId&lt;ArrayType, USizeSort&gt;, UHeapRef, USizeSort&gt;</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$UArrayMemoryRegion$concreteMapper = { concreteRef -&gt; getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) }</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$UArrayMemoryRegion$override</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$UArrayMemoryRegion$private var allocatedArrays: PersistentMap&lt;UConcreteHeapAddress, UAllocatedArray&lt;ArrayType, Sort, USizeSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$UArrayRegion$interface</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$UArrayRegionId$data</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$typealias UAllocatedArray&lt;ArrayType, Sort, USizeSort&gt; = USymbolicCollection&lt;UAllocatedArrayId&lt;ArrayType, Sort, USizeSort&gt;, UExpr&lt;USizeSort&gt;, Sort&gt;</ID>
+    <ID>MaxLineLength:ArrayRegion.kt$typealias UInputArray&lt;ArrayType, Sort, USizeSort&gt; = USymbolicCollection&lt;UInputArrayId&lt;ArrayType, Sort, USizeSort&gt;, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;</ID>
+    <ID>MaxLineLength:ArrayRegionApi.kt$val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)</ID>
+    <ID>MaxLineLength:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$// min distance from F to return point R of current frame + minDistanceToTarget(point in prev frame where R returns)</ID>
+    <ID>MaxLineLength:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$targetsByMethod[method]?.minOfOrNull { cfgStatistics.getShortestDistance(method, statement, it) } ?: UInt.MAX_VALUE</ID>
+    <ID>MaxLineLength:CfgStatisticsImpl.kt$CfgStatisticsImpl$private val allToAllShortestDistanceCache = ConcurrentHashMap&lt;Method, ConcurrentHashMap&lt;Statement, Map&lt;Statement, UInt&gt;&gt;&gt;()</ID>
+    <ID>MaxLineLength:CompletelyFairPathSelector.kt$CompletelyFairPathSelector$*</ID>
+    <ID>MaxLineLength:ConstantTimeFairPathSelector.kt$ConstantTimeFairPathSelector$*</ID>
+    <ID>MaxLineLength:ConstantTimeFairPathSelector.kt$ConstantTimeFairPathSelector$KeysQueueElement&lt;Key, KeyPriority&gt;</ID>
+    <ID>MaxLineLength:Context.kt$fun</ID>
+    <ID>MaxLineLength:Context.kt$inline fun &lt;USizeSort : USort, R&gt; UContext&lt;*&gt;.withSizeSort(block: UContext&lt;USizeSort&gt;.() -&gt; R): R</ID>
+    <ID>MaxLineLength:CoverageStatistics.kt$CoverageStatistics$applicationGraph.statementsOf(method).flatMap(applicationGraph::callees).filter(uncoveredStatements::containsKey)</ID>
+    <ID>MaxLineLength:CoverageStatistics.kt$CoverageStatistics$private val onStatementCoveredObservers: MutableSet&lt;(State, Method, Statement) -&gt; Unit&gt; = ConcurrentHashMap.newKeySet()</ID>
+    <ID>MaxLineLength:CoverageStatistics.kt$CoverageStatistics$val uncoveredStatementsCount = uncoveredStatements[method]?.size ?: throw IllegalArgumentException("Trying to get coverage of unknown method $method")</ID>
+    <ID>MaxLineLength:EqualityConstraints.kt$UEqualityConstraints$*</ID>
+    <ID>MaxLineLength:EqualityConstraints.kt$UEqualityConstraints$if</ID>
+    <ID>MaxLineLength:Expressions.kt$UInputArrayReading$)</ID>
+    <ID>MaxLineLength:HeapRefSplitting.kt$*</ID>
+    <ID>MaxLineLength:HeapRefSplitting.kt$val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(ref, initialGuard, collapseHeapRefs = collapseHeapRefs)</ID>
+    <ID>MaxLineLength:InterprocDistanceCalculator.kt$InterprocDistanceCalculator$!calculateFrameDistance(methodOnCallStack, statementOnCallStack).isInfinite</ID>
+    <ID>MaxLineLength:ListCollectionApi.kt$ListCollectionApi$fun</ID>
+    <ID>MaxLineLength:LoopLimiterPs.kt$LoopLimiterPs$"Drop state ${state.id} | iteration limit exceeded $iterations at ${state.lastEnteredMethod} ${state.currentStatement}"</ID>
+    <ID>MaxLineLength:Memory.kt$UAddressCounter$*</ID>
+    <ID>MaxLineLength:Mocks.kt$UIndexedMocker$private var methodMockClauses: PersistentMap&lt;Method, PersistentList&lt;UMockSymbol&lt;out USort&gt;&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:ObjectMapCollectionApi.kt$ObjectMapCollectionApi$fun</ID>
+    <ID>MaxLineLength:PathConstraints.kt$UPathConstraints$* Specially represented equalities and disequalities between objects, used in various part of constraints management.</ID>
+    <ID>MaxLineLength:PathConstraints.kt$UPathConstraints$// Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$)</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL_RANDOM</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$private</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$requireNotNull(callGraphStatisticsFactory()) { "Call graph statistics is required for targeted path selector" }</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for closest to uncovered path selector" }</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted call stack local path selector" }</ID>
+    <ID>MaxLineLength:PathSelectorFactory.kt$requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" }</ID>
+    <ID>MaxLineLength:StateForker.kt$WithSolverStateForker$*</ID>
+    <ID>MaxLineLength:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$* Prints a table with coverage, time and steps statistics for each method in [getMethods] result using [print] function.</ID>
+    <ID>MaxLineLength:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$StatisticsRow</ID>
+    <ID>MaxLineLength:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$statisticsSb.appendLine(" %-12s | %-${timeColumnWidth}s | %-${stepsColumnWidth}s | %s ".format(coverage, time, steps, name))</ID>
+    <ID>MaxLineLength:StepLimitStopStrategy.kt$StepLimitStopStrategy$class</ID>
+    <ID>MaxLineLength:StepScope.kt$StepScope$"The original state $originalState was expected to become the first of forked states but $firstForkedState found"</ID>
+    <ID>MaxLineLength:StopStrategyFactory.kt$val stepsStatistics = lazy { requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for selected stopping strategy" } }</ID>
+    <ID>MaxLineLength:StopStrategyFactory.kt$val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on timeout" }</ID>
+    <ID>MaxLineLength:SymbolicCollectionUpdates.kt$USymbolicCollectionUpdates$*</ID>
+    <ID>MaxLineLength:SymbolicCollectionUpdates.kt$UTreeUpdates$// reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order</ID>
+    <ID>MaxLineLength:SymbolicCollectionUpdates.kt$UTreeUpdates.UTreeMemoryUpdatesFolder$iterator: Iterator&lt;Map.Entry&lt;Region&lt;*&gt;, Pair&lt;UUpdateNode&lt;Key, Sort&gt;, RegionTree&lt;*, UUpdateNode&lt;Key, Sort&gt;&gt;&gt;&gt;&gt;</ID>
+    <ID>MaxLineLength:TimeoutStopStrategy.kt$TimeoutStopStrategy$class</ID>
+    <ID>MaxLineLength:TypeConstraints.kt$UTypeConstraints$*</ID>
+    <ID>MaxLineLength:TypeConstraints.kt$UTypeConstraints$// We need to set only the concrete type instead of all these symbolic types - make it using both subtype/supertype</ID>
+    <ID>MaxLineLength:TypeRegion.kt$UTypeRegion$if</ID>
+    <ID>MaxLineLength:TypeRegion.kt$UTypeRegion$override val isEmpty: Boolean get() = typeStream.isEmpty ?: false // Timeout here means that this type region **may** be not empty</ID>
+    <ID>MaxLineLength:TypeSolver.kt$UTypeSolver$val isEmpty = typeStream.isEmpty ?: return UUnknownResult() // Timeout here may lead to an inconsistent model - avoid it</ID>
+    <ID>MaxLineLength:TypeStream.kt$UTypeStream$* Stores a supertype that satisfies current type constraints and other satisfying types are inheritors of this type.</ID>
+    <ID>MaxLineLength:UMapLengthRegion.kt$typealias UInputMapLength&lt;MapType, USizeSort&gt; = USymbolicCollection&lt;UInputMapLengthId&lt;MapType, USizeSort&gt;, UHeapRef, USizeSort&gt;</ID>
+    <ID>MaxLineLength:UMapLengthRegion.kt$typealias UInputMapLengthCollection&lt;MapType, USizeSort&gt; = USymbolicCollection&lt;UInputMapLengthId&lt;MapType, USizeSort&gt;, UHeapRef, USizeSort&gt;</ID>
+    <ID>MaxLineLength:UMapRegion.kt$UMapMemoryRegion$private var allocatedMaps: PersistentMap&lt;UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, UAllocatedMap&lt;MapType, KeySort, ValueSort, Reg&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$private</ID>
+    <ID>MaxLineLength:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$private</ID>
+    <ID>MaxLineLength:URefMapRegion.kt$URefMapMemoryRegion$private var allocatedMapWithAllocatedKeys: PersistentMap&lt;UAllocatedRefMapWithAllocatedKeysId, UExpr&lt;ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefMapRegion.kt$URefMapMemoryRegion$private var allocatedMapWithInputKeys: PersistentMap&lt;UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, UAllocatedRefMapWithInputKeys&lt;MapType, ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefMapRegion.kt$URefMapMemoryRegion$private var inputMapWithAllocatedKeys: PersistentMap&lt;UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, UInputRefMapWithAllocatedKeys&lt;MapType, ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$private</ID>
+    <ID>MaxLineLength:URefMapRegionTranslator.kt$UInputRefMapTranslator$region: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;</ID>
+    <ID>MaxLineLength:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$private</ID>
+    <ID>MaxLineLength:URefSetRegion.kt$URefSetMemoryRegion$private var allocatedSetWithAllocatedElements: PersistentMap&lt;UAllocatedRefSetWithAllocatedElementId, UBoolExpr&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefSetRegion.kt$URefSetMemoryRegion$private var allocatedSetWithInputElements: PersistentMap&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UAllocatedRefSetWithInputElements&lt;SetType&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefSetRegion.kt$URefSetMemoryRegion$private var inputSetWithAllocatedElements: PersistentMap&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UInputRefSetWithAllocatedElements&lt;SetType&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:URefSetRegionTranslator.kt$UInputRefSetWithInputElementsTranslator$region: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:URefSetRegionTranslator.kt$URefSetRegionDecoder$mutableMapOf&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UAllocatedRefSetWithInputElementsTranslator&lt;SetType&gt;&gt;()</ID>
+    <ID>MaxLineLength:URefSetRegionTranslator.kt$URefSetRegionDecoder$mutableMapOf&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UInputRefSetWithAllocatedElementsTranslator&lt;SetType&gt;&gt;()</ID>
+    <ID>MaxLineLength:USetRegion.kt$USetMemoryRegion$private var allocatedSets: PersistentMap&lt;UAllocatedSetId&lt;SetType, ElementSort, Reg&gt;, UAllocatedSet&lt;SetType, ElementSort, Reg&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>MaxLineLength:USetRegion.kt$typealias UPrimitiveSetEntries&lt;SetType, ElementSort, Reg&gt; = USymbolicSetEntries&lt;USetEntryLValue&lt;SetType, ElementSort, Reg&gt;&gt;</ID>
+    <ID>MaxLineLength:USetRegionTranslator.kt$UInputSetTranslator$region: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, Reg&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeAddExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UExpr&lt;UBv32Sort&gt;</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeGeExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UBoolExpr</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeGtExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UBoolExpr</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeLeExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UBoolExpr</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeLtExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UBoolExpr</ID>
+    <ID>MaxLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$override fun mkSizeSubExpr(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;): UExpr&lt;UBv32Sort&gt;</ID>
+    <ID>MaxLineLength:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$override</ID>
+    <ID>MaxLineLength:USymbolicArrayId.kt$UAllocatedArrayId$override</ID>
+    <ID>MaxLineLength:USymbolicArrayId.kt$UInputArrayId$collection: USymbolicCollection&lt;UInputArrayId&lt;ArrayType, Sort, USizeSort&gt;, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;</ID>
+    <ID>MaxLineLength:USymbolicArrayId.kt$UInputArrayId$override</ID>
+    <ID>MaxLineLength:USymbolicArrayId.kt$USymbolicArrayId$interface</ID>
+    <ID>MaxLineLength:USymbolicArrayIndexKeyInfo.kt$* A composite key for symbolic arrays: every entry is determined by heap address of target buffer and its numeric index.</ID>
+    <ID>MaxLineLength:USymbolicCollection.kt$GuardBuilder$*</ID>
+    <ID>MaxLineLength:USymbolicCollection.kt$USymbolicCollection$*</ID>
+    <ID>MaxLineLength:USymbolicCollectionId.kt$USymbolicCollectionId$* Performs a reading from a [collection] by a [key]. Inheritors use context heap in symbolic collection composition.</ID>
+    <ID>MaxLineLength:USymbolicMapId.kt$UAllocatedMapId$override</ID>
+    <ID>MaxLineLength:USymbolicMapId.kt$UInputMapId$collection: USymbolicCollection&lt;UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicMapId.kt$UInputMapId$override</ID>
+    <ID>MaxLineLength:USymbolicMapLengthId.kt$USymbolicMapLengthId$interface</ID>
+    <ID>MaxLineLength:USymbolicMapMergeAdapter.kt$USymbolicMapMergeAdapter$sealed</ID>
+    <ID>MaxLineLength:USymbolicRefMapId.kt$UAllocatedRefMapWithInputKeysId$override</ID>
+    <ID>MaxLineLength:USymbolicRefMapId.kt$UInputRefMapWithAllocatedKeysId$override</ID>
+    <ID>MaxLineLength:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$collection: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$override</ID>
+    <ID>MaxLineLength:USymbolicRefMapMergeAdapter.kt$UInputToInputSymbolicRefMapMergeAdapter$override</ID>
+    <ID>MaxLineLength:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$collection: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$override</ID>
+    <ID>MaxLineLength:USymbolicRefSetUnionAdapter.kt$UAllocatedToInputSymbolicRefSetUnionAdapter$override</ID>
+    <ID>MaxLineLength:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$override</ID>
+    <ID>MaxLineLength:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicSetId.kt$UInputSetId$collection: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, *&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicSetId.kt$UInputSetId$collection: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, Reg&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>MaxLineLength:USymbolicSetUnionAdapter.kt$UInputToInputSymbolicSetUnionAdapter$override</ID>
+    <ID>MaxLineLength:UTargetsSet.kt$UTargetsSet.Companion$fun &lt;Target : UTarget&lt;Statement, Target&gt;, Statement&gt; empty()</ID>
+    <ID>MaxLineLength:UpdateNodes.kt$URangedUpdateNode$*</ID>
+    <ID>MaxLineLength:UpdateNodes.kt$URangedUpdateNode$sourceCollection.split(adapter.convert(key, composer), predicate, matchingWrites, nextGuardBuilder, composer)</ID>
+    <ID>MaximumLineLength:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$ </ID>
+    <ID>MaximumLineLength:ArrayLengthRegion.kt$UArrayLengthsRegion$interface</ID>
+    <ID>MaximumLineLength:ArrayLengthRegion.kt$typealias</ID>
+    <ID>MaximumLineLength:ArrayRegion.kt$UArrayMemoryRegion$ </ID>
+    <ID>MaximumLineLength:ArrayRegion.kt$UArrayRegion$interface</ID>
+    <ID>MaximumLineLength:ArrayRegion.kt$UArrayRegionId$data</ID>
+    <ID>MaximumLineLength:ArrayRegion.kt$typealias</ID>
+    <ID>MaximumLineLength:ArrayRegionApi.kt$ </ID>
+    <ID>MaximumLineLength:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$ </ID>
+    <ID>MaximumLineLength:CfgStatisticsImpl.kt$CfgStatisticsImpl$ </ID>
+    <ID>MaximumLineLength:ConstantTimeFairPathSelector.kt$ConstantTimeFairPathSelector$ </ID>
+    <ID>MaximumLineLength:Context.kt$fun</ID>
+    <ID>MaximumLineLength:Context.kt$inline</ID>
+    <ID>MaximumLineLength:CoverageStatistics.kt$CoverageStatistics$ </ID>
+    <ID>MaximumLineLength:EqualityConstraints.kt$UEqualityConstraints$ </ID>
+    <ID>MaximumLineLength:Expressions.kt$UInputArrayReading$)</ID>
+    <ID>MaximumLineLength:HeapRefSplitting.kt$ </ID>
+    <ID>MaximumLineLength:InterprocDistanceCalculator.kt$InterprocDistanceCalculator$ </ID>
+    <ID>MaximumLineLength:ListCollectionApi.kt$ListCollectionApi$ </ID>
+    <ID>MaximumLineLength:LoopLimiterPs.kt$LoopLimiterPs$ </ID>
+    <ID>MaximumLineLength:Mocks.kt$UIndexedMocker$ </ID>
+    <ID>MaximumLineLength:ObjectMapCollectionApi.kt$ObjectMapCollectionApi$ </ID>
+    <ID>MaximumLineLength:PathSelectorFactory.kt$ </ID>
+    <ID>MaximumLineLength:PathSelectorFactory.kt$)</ID>
+    <ID>MaximumLineLength:PathSelectorFactory.kt$private</ID>
+    <ID>MaximumLineLength:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$ </ID>
+    <ID>MaximumLineLength:StepLimitStopStrategy.kt$StepLimitStopStrategy$class</ID>
+    <ID>MaximumLineLength:StepScope.kt$StepScope$ </ID>
+    <ID>MaximumLineLength:StopStrategyFactory.kt$ </ID>
+    <ID>MaximumLineLength:SymbolicCollectionUpdates.kt$UTreeUpdates.UTreeMemoryUpdatesFolder$ </ID>
+    <ID>MaximumLineLength:TimeoutStopStrategy.kt$TimeoutStopStrategy$class</ID>
+    <ID>MaximumLineLength:TypeRegion.kt$UTypeRegion$ </ID>
+    <ID>MaximumLineLength:TypeSolver.kt$UTypeSolver$ </ID>
+    <ID>MaximumLineLength:UMapLengthRegion.kt$typealias</ID>
+    <ID>MaximumLineLength:UMapRegion.kt$UMapMemoryRegion$ </ID>
+    <ID>MaximumLineLength:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$ </ID>
+    <ID>MaximumLineLength:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$ </ID>
+    <ID>MaximumLineLength:URefMapRegion.kt$URefMapMemoryRegion$ </ID>
+    <ID>MaximumLineLength:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$ </ID>
+    <ID>MaximumLineLength:URefMapRegionTranslator.kt$UInputRefMapTranslator$ </ID>
+    <ID>MaximumLineLength:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$ </ID>
+    <ID>MaximumLineLength:URefSetRegion.kt$URefSetMemoryRegion$ </ID>
+    <ID>MaximumLineLength:URefSetRegionTranslator.kt$UInputRefSetWithInputElementsTranslator$ </ID>
+    <ID>MaximumLineLength:URefSetRegionTranslator.kt$URefSetRegionDecoder$ </ID>
+    <ID>MaximumLineLength:USetRegion.kt$USetMemoryRegion$ </ID>
+    <ID>MaximumLineLength:USetRegion.kt$typealias</ID>
+    <ID>MaximumLineLength:USetRegionTranslator.kt$UInputSetTranslator$ </ID>
+    <ID>MaximumLineLength:USizeExprProvider.kt$UBv32SizeExprProvider$ </ID>
+    <ID>MaximumLineLength:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$ </ID>
+    <ID>MaximumLineLength:USymbolicArrayId.kt$UAllocatedArrayId$ </ID>
+    <ID>MaximumLineLength:USymbolicArrayId.kt$UInputArrayId$ </ID>
+    <ID>MaximumLineLength:USymbolicArrayId.kt$USymbolicArrayId$interface</ID>
+    <ID>MaximumLineLength:USymbolicMapId.kt$UAllocatedMapId$ </ID>
+    <ID>MaximumLineLength:USymbolicMapId.kt$UInputMapId$ </ID>
+    <ID>MaximumLineLength:USymbolicMapLengthId.kt$USymbolicMapLengthId$interface</ID>
+    <ID>MaximumLineLength:USymbolicMapMergeAdapter.kt$USymbolicMapMergeAdapter$sealed</ID>
+    <ID>MaximumLineLength:USymbolicRefMapId.kt$UAllocatedRefMapWithInputKeysId$ </ID>
+    <ID>MaximumLineLength:USymbolicRefMapId.kt$UInputRefMapWithAllocatedKeysId$ </ID>
+    <ID>MaximumLineLength:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$ </ID>
+    <ID>MaximumLineLength:USymbolicRefMapMergeAdapter.kt$UInputToInputSymbolicRefMapMergeAdapter$ </ID>
+    <ID>MaximumLineLength:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$ </ID>
+    <ID>MaximumLineLength:USymbolicRefSetUnionAdapter.kt$UAllocatedToInputSymbolicRefSetUnionAdapter$ </ID>
+    <ID>MaximumLineLength:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$ </ID>
+    <ID>MaximumLineLength:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$ </ID>
+    <ID>MaximumLineLength:USymbolicSetId.kt$UInputSetId$ </ID>
+    <ID>MaximumLineLength:USymbolicSetUnionAdapter.kt$UInputToInputSymbolicSetUnionAdapter$ </ID>
+    <ID>MaximumLineLength:UTargetsSet.kt$UTargetsSet.Companion$ </ID>
+    <ID>MaximumLineLength:UpdateNodes.kt$URangedUpdateNode$ </ID>
+    <ID>MultiLineIfElse:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:ArrayRegion.kt$UArrayMemoryRegion$inputArray = UInputArrayId&lt;_, _, USizeSort&gt;(arrayType, sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$UInt.MAX_VALUE</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$currentMinDistanceToTarget + minDistanceToReturn</ID>
+    <ID>MultiLineIfElse:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$currentStatement</ID>
+    <ID>MultiLineIfElse:FieldsRegion.kt$UFieldsMemoryRegion$inputFields = UInputFieldId(ref.field, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:UMapLengthRegion.kt$UMapLengthMemoryRegion$inputLengths = UInputMapLengthId(ref.mapType, ref.sort).emptyRegion()</ID>
+    <ID>MultiLineIfElse:UMapRegion.kt$UMapMemoryRegion$inputMap = UInputMapId(keySort, valueSort, mapType, keyInfo).emptyRegion()</ID>
+    <ID>MultiLineIfElse:URefMapRegion.kt$URefMapMemoryRegion$inputMapWithInputKeys = UInputRefMapWithInputKeysId( valueSort, mapType ).emptyRegion()</ID>
+    <ID>MultiLineIfElse:URefSetRegion.kt$URefSetMemoryRegion$inputSetWithInputElements = UInputRefSetWithInputElementsId(setType, sort).emptyRegion()</ID>
+    <ID>NestedBlockDepth:HeapRefSplitting.kt$internal inline fun &lt;Sort : USort&gt; UHeapRef.map( concreteMapper: (UConcreteHeapRef) -&gt; UExpr&lt;Sort&gt;, staticMapper: (UConcreteHeapRef) -&gt; UExpr&lt;Sort&gt;, symbolicMapper: (USymbolicHeapRef) -&gt; UExpr&lt;Sort&gt;, ignoreNullRefs: Boolean = true, ): UExpr&lt;Sort&gt;</ID>
+    <ID>NestedBlockDepth:HeapRefSplitting.kt$internal inline fun filter( ref: UHeapRef, initialGuard: UBoolExpr, ignoreNullRefs: Boolean, predicate: (GuardedExpr&lt;UHeapRef&gt;) -&gt; Boolean, ): GuardedExpr&lt;UHeapRef&gt;?</ID>
+    <ID>NestedBlockDepth:PathConstraints.kt$UPathConstraints$@Suppress("UNCHECKED_CAST") operator fun plusAssign(constraint: UBoolExpr): Unit</ID>
+    <ID>NewLineAtEndOfFile:CloseStatesSearcher.kt$org.usvm.merging.CloseStatesSearcher.kt</ID>
+    <ID>NewLineAtEndOfFile:EagerModels.kt$org.usvm.model.EagerModels.kt</ID>
+    <ID>NewLineAtEndOfFile:Interpreter.kt$org.usvm.Interpreter.kt</ID>
+    <ID>NewLineAtEndOfFile:MergeGuard.kt$org.usvm.merging.MergeGuard.kt</ID>
+    <ID>NewLineAtEndOfFile:MergingPathSelector.kt$org.usvm.merging.MergingPathSelector.kt</ID>
+    <ID>NewLineAtEndOfFile:PathSelector.kt$org.usvm.PathSelector.kt</ID>
+    <ID>NewLineAtEndOfFile:SupportTypeStream.kt$org.usvm.types.SupportTypeStream.kt</ID>
+    <ID>NewLineAtEndOfFile:UInterpreterObserver.kt$org.usvm.statistics.UInterpreterObserver.kt</ID>
+    <ID>NewLineAtEndOfFile:ULogicalConstraints.kt$org.usvm.constraints.ULogicalConstraints.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:HeapRefSplitting.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:PathNode.kt$PathNode.&lt;no name provided&gt;$ </ID>
+    <ID>NoBlankLineBeforeRbrace:TypeSolver.kt$UTypeSolver$ </ID>
+    <ID>NoBlankLineInList:ArrayRegion.kt$UArrayMemoryRegion$ </ID>
+    <ID>NoBlankLineInList:UNumericConstraints.kt$UNumericConstraints$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:HeapRefSplitting.kt$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:PathSelectorFactory.kt$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:StateForker.kt$WithSolverStateForker$ </ID>
+    <ID>NoMultipleSpaces:EqualityConstraints.kt$UEqualityConstraints$ </ID>
+    <ID>NoNameShadowing:CallStackDistanceCalculator.kt$CallStackDistanceCalculator${ cfgStatistics.getShortestDistance(method, statement, it) }</ID>
+    <ID>NoNameShadowing:CfgStatisticsImpl.kt$CfgStatisticsImpl${ it.value }</ID>
+    <ID>NoNameShadowing:PathSelectorFactory.kt${ it.clone() }</ID>
+    <ID>NoSemicolons:StepScope.kt$StepScope.StepScopeState.CAN_BE_PROCESSED$;</ID>
+    <ID>NoTrailingSpaces:Context.kt$UContext$ </ID>
+    <ID>NoUnusedImports:MemoryApi.kt$org.usvm.api.MemoryApi.kt</ID>
+    <ID>NoUnusedImports:ULogicalConstraints.kt$org.usvm.constraints.ULogicalConstraints.kt</ID>
+    <ID>ParameterListWrapping:Context.kt$(block: UContext&lt;USizeSort&gt;.() -&gt; R)</ID>
+    <ID>ParameterListWrapping:Context.kt$(lhs: UExpr&lt;USizeSort&gt;, rhs: UExpr&lt;USizeSort&gt;)</ID>
+    <ID>ParameterListWrapping:Context.kt$UContext$( ref: UHeapRef, type: Type, )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, arrayType: ArrayType, sizeSort: USizeSort )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, field: Field, sort: Sort )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, field: Field, sort: Sort, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, index: UExpr&lt;USizeSort&gt;, arrayType: ArrayType, sort: Sort )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, index: UExpr&lt;USizeSort&gt;, type: ArrayType, sort: Sort, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( ref: UHeapRef, size: UExpr&lt;USizeSort&gt;, arrayType: ArrayType, sizeSort: USizeSort )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( type: ArrayType, sizeSort: USizeSort, count: UExpr&lt;USizeSort&gt;, )</ID>
+    <ID>ParameterListWrapping:MemoryApi.kt$( type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence&lt;UExpr&lt;Sort&gt;&gt; )</ID>
+    <ID>ParameterListWrapping:StepLimitStopStrategy.kt$StepLimitStopStrategy$(private val limit: ULong, private val stepsStatistics: StepsStatistics&lt;*, *&gt;)</ID>
+    <ID>ParameterListWrapping:TimeoutStopStrategy.kt$TimeoutStopStrategy$(private val timeout: Duration, private val timeStatistics: TimeStatistics&lt;*, *&gt;)</ID>
+    <ID>ParameterListWrapping:UNumericConstraints.kt$UNumericConstraints$( BoundsConstraint&lt;Sort&gt;, KBitVecValue&lt;Sort&gt;, Boolean, )</ID>
+    <ID>ParameterListWrapping:UNumericConstraints.kt$UNumericConstraints$( BoundsConstraint&lt;Sort&gt;, KBitVecValue&lt;Sort&gt;, KBitVecValue&lt;Sort&gt;, Boolean, )</ID>
+    <ID>ParameterListWrapping:URefSetModelRegion.kt$URefSetEagerModelRegion$( regionId: URefSetRegionId&lt;SetType&gt;, override val inputSet: UMemory2DArray&lt;UAddressSort, UAddressSort, UBoolSort&gt; )</ID>
+    <ID>ParameterListWrapping:USizeExprProvider.kt$UBv32SizeExprProvider$(lhs: UExpr&lt;UBv32Sort&gt;, rhs: UExpr&lt;UBv32Sort&gt;)</ID>
+    <ID>ParameterListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToAllocatedCopyAdapter$( srcFrom: UExpr&lt;USizeSort&gt;, dstFrom: UExpr&lt;USizeSort&gt;, dstTo: UExpr&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>ParameterListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToInputCopyAdapter$( srcFrom: UExpr&lt;USizeSort&gt;, dstFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstTo: USymbolicArrayIndex&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>ParameterListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToAllocatedCopyAdapter$( srcFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstFrom: UExpr&lt;USizeSort&gt;, dstTo: UExpr&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>ParameterListWrapping:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$( srcFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstTo: USymbolicArrayIndex&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>ParameterWrapping:ArrayRegion.kt$UArrayMemoryRegion$private var allocatedArrays: PersistentMap&lt;UConcreteHeapAddress, UAllocatedArray&lt;ArrayType, Sort, USizeSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:Mocks.kt$UIndexedMocker$private var methodMockClauses: PersistentMap&lt;Method, PersistentList&lt;UMockSymbol&lt;out USort&gt;&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:SymbolicCollectionUpdates.kt$UTreeUpdates.UTreeMemoryUpdatesFolder$iterator: Iterator&lt;Map.Entry&lt;Region&lt;*&gt;, Pair&lt;UUpdateNode&lt;Key, Sort&gt;, RegionTree&lt;*, UUpdateNode&lt;Key, Sort&gt;&gt;&gt;&gt;&gt;</ID>
+    <ID>ParameterWrapping:UMapRegion.kt$UMapMemoryRegion$private var allocatedMaps: PersistentMap&lt;UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, UAllocatedMap&lt;MapType, KeySort, ValueSort, Reg&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefMapRegion.kt$URefMapMemoryRegion$private var allocatedMapWithAllocatedKeys: PersistentMap&lt;UAllocatedRefMapWithAllocatedKeysId, UExpr&lt;ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefMapRegion.kt$URefMapMemoryRegion$private var allocatedMapWithInputKeys: PersistentMap&lt;UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, UAllocatedRefMapWithInputKeys&lt;MapType, ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefMapRegion.kt$URefMapMemoryRegion$private var inputMapWithAllocatedKeys: PersistentMap&lt;UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, UInputRefMapWithAllocatedKeys&lt;MapType, ValueSort&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefMapRegionTranslator.kt$UInputRefMapTranslator$region: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;</ID>
+    <ID>ParameterWrapping:URefSetRegion.kt$URefSetMemoryRegion$private var allocatedSetWithAllocatedElements: PersistentMap&lt;UAllocatedRefSetWithAllocatedElementId, UBoolExpr&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefSetRegion.kt$URefSetMemoryRegion$private var allocatedSetWithInputElements: PersistentMap&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UAllocatedRefSetWithInputElements&lt;SetType&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefSetRegion.kt$URefSetMemoryRegion$private var inputSetWithAllocatedElements: PersistentMap&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UInputRefSetWithAllocatedElements&lt;SetType&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:URefSetRegionTranslator.kt$UInputRefSetWithInputElementsTranslator$region: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USetRegion.kt$USetMemoryRegion$private var allocatedSets: PersistentMap&lt;UAllocatedSetId&lt;SetType, ElementSort, Reg&gt;, UAllocatedSet&lt;SetType, ElementSort, Reg&gt;&gt; = persistentHashMapOf()</ID>
+    <ID>ParameterWrapping:USetRegionTranslator.kt$UInputSetTranslator$region: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, Reg&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicArrayId.kt$UInputArrayId$collection: USymbolicCollection&lt;UInputArrayId&lt;ArrayType, Sort, USizeSort&gt;, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicMapId.kt$UInputMapId$collection: USymbolicCollection&lt;UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$collection: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$collection: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicSetId.kt$UInputSetId$collection: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, *&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>ParameterWrapping:USymbolicSetId.kt$UInputSetId$collection: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, Reg&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;</ID>
+    <ID>PropertyWrapping:CfgStatisticsImpl.kt$CfgStatisticsImpl$private val allToAllShortestDistanceCache = ConcurrentHashMap&lt;Method, ConcurrentHashMap&lt;Statement, Map&lt;Statement, UInt&gt;&gt;&gt;()</ID>
+    <ID>PropertyWrapping:StopStrategyFactory.kt$val stepsStatistics = lazy { requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for selected stopping strategy" } }</ID>
+    <ID>PropertyWrapping:StopStrategyFactory.kt$val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on timeout" }</ID>
+    <ID>SpacingAroundColon:ExprTransformer.kt$UTransformer$:</ID>
+    <ID>SpacingAroundColon:Expressions.kt$UAllocatedMapReading$:</ID>
+    <ID>SpacingAroundColon:Expressions.kt$UInputMapReading$:</ID>
+    <ID>SpacingAroundColon:Expressions.kt$UTrackedSymbol$:</ID>
+    <ID>SpacingAroundColon:ListCollectionApi.kt$ListCollectionApi$:</ID>
+    <ID>SpacingAroundColon:ObjectMapCollectionApi.kt$ObjectMapCollectionApi$:</ID>
+    <ID>SpacingAroundColon:StopStrategyFactory.kt$:</ID>
+    <ID>SpacingAroundColon:UMapRegion.kt$UMapRegion$:</ID>
+    <ID>SpacingAroundColon:URefMapRegion.kt$URefMapRegion$:</ID>
+    <ID>SpacingAroundColon:USymbolicArrayIndexKeyInfo.kt$USymbolicArrayIndexKeyInfo$:</ID>
+    <ID>SpacingAroundColon:USymbolicMapId.kt$USymbolicMapId$:</ID>
+    <ID>SpacingAroundColon:USymbolicRefMapId.kt$USymbolicRefMapId$:</ID>
+    <ID>SpacingAroundColon:USymbolicSetElementsCollector.kt$USymbolicSetElementsCollector$:</ID>
+    <ID>SpacingAroundOperators:Interpreter.kt$UInterpreter$?:</ID>
+    <ID>SpacingAroundOperators:Machine.kt$UMachine$?:</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InterprocDistanceCalculator.kt$ReachabilityKind.DOWN_STACK$/** * Target is reachable from some method on the call stack after returning to it. */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InterprocDistanceCalculator.kt$ReachabilityKind.NONE$/** * Target is unreachable. */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:InterprocDistanceCalculator.kt$ReachabilityKind.UP_STACK$/** * Target is reachable from some method which can be called later. */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:StepScope.kt$StepScope.StepScopeState.CANNOT_BE_PROCESSED$/** * Cannot be forked or asserted using [forkWithBlackList], [forkMultiWithBlackList] or [assert], * but is considered as alive from the Machine's point of view. */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:StepScope.kt$StepScope.StepScopeState.CAN_BE_PROCESSED$/** * Can be forked using [forkWithBlackList] or [forkMultiWithBlackList] and asserted using [assert]. */</ID>
+    <ID>SwallowedException:SupportTypeStream.kt$USupportTypeStream$e: TimeoutException</ID>
+    <ID>TopLevelPropertyNaming:StateForker.kt$private const val ForkedState = true</ID>
+    <ID>TopLevelPropertyNaming:StateForker.kt$private const val OriginalState = false</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$( key: UArrayLengthLValue&lt;ArrayType, USizeSort&gt;, value: UExpr&lt;USizeSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$( private val sort: USizeSort, private val arrayType: ArrayType, private val allocatedLengths: PersistentMap&lt;UConcreteHeapAddress, UExpr&lt;USizeSort&gt;&gt; = persistentHashMapOf(), private var inputLengths: UInputArrayLengths&lt;ArrayType, USizeSort&gt;? = null )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UArrayLengthRegionDecoder$( collectionId: UInputArrayLengthId&lt;ArrayType, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UArrayLengthRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UInputArrayLengthRegionTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UInputArrayLengthRegionTranslator$( region: USymbolicCollection&lt;UInputArrayLengthId&lt;ArrayType, USizeSort&gt;, UHeapRef, USizeSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UInputArrayLengthUpdateTranslator$( exprTranslator: UExprTranslator&lt;*, USizeSort&gt;, initialValue: KExpr&lt;KArraySort&lt;UAddressSort, USizeSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayLengthRegionTranslator.kt$UInputArrayLengthUpdateTranslator$( previous: KExpr&lt;KArraySort&lt;UAddressSort, USizeSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UHeapRef, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegion.kt$UArrayMemoryRegion$( address: UConcreteHeapAddress, arrayType: ArrayType, sort: Sort, content: Map&lt;UExpr&lt;USizeSort&gt;, UExpr&lt;Sort&gt;&gt;, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegion.kt$UArrayMemoryRegion$( arrayType: ArrayType, sort: Sort, address: UConcreteHeapAddress )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegion.kt$UArrayMemoryRegion$( key: UArrayIndexLValue&lt;ArrayType, Sort, USizeSort&gt;, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegion.kt$UArrayMemoryRegion$( private var allocatedArrays: PersistentMap&lt;UConcreteHeapAddress, UAllocatedArray&lt;ArrayType, Sort, USizeSort&gt;&gt; = persistentHashMapOf(), private var inputArray: UInputArray&lt;ArrayType, Sort, USizeSort&gt;? = null )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegion.kt$UArrayRegion$( address: UConcreteHeapAddress, arrayType: ArrayType, sort: Sort, content: Map&lt;UExpr&lt;USizeSort&gt;, UExpr&lt;Sort&gt;&gt;, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionApi.kt$( type: ArrayType, elementSort: Sort, sizeSort: USizeSort, contents: Sequence&lt;UExpr&lt;Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UAllocatedArrayRegionTranslator$( private val collectionId: UAllocatedArrayId&lt;ArrayType, Sort, USizeSort&gt;, exprTranslator: UExprTranslator&lt;*, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UAllocatedArrayRegionTranslator$( region: USymbolicCollection&lt;UAllocatedArrayId&lt;ArrayType, Sort, USizeSort&gt;, UExpr&lt;USizeSort&gt;, Sort&gt;, key: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UAllocatedArrayUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, USizeSort&gt;, initialValue: KExpr&lt;KArraySort&lt;USizeSort, Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UAllocatedArrayUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;USizeSort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UExpr&lt;USizeSort&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UAllocatedArrayUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;USizeSort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UExpr&lt;USizeSort&gt;, Sort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, Sort&gt;, adapter: USymbolicArrayCopyAdapter&lt;SrcKey, UExpr&lt;USizeSort&gt;, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UArrayRegionDecoder$( collectionId: UAllocatedArrayId&lt;ArrayType, Sort, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UArrayRegionDecoder$( collectionId: UInputArrayId&lt;ArrayType, Sort, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UArrayRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UInputArrayRegionTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UInputArrayRegionTranslator$( region: USymbolicCollection&lt;UInputArrayId&lt;ArrayType, Sort, USizeSort&gt;, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;, key: USymbolicArrayIndex&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UInputArrayUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, USizeSort&gt;, initialValue: KExpr&lt;KArray2Sort&lt;UAddressSort, USizeSort, Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UInputArrayUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, USizeSort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ArrayRegionTranslator.kt$UInputArrayUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, USizeSort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, Sort&gt;, adapter: USymbolicArrayCopyAdapter&lt;SrcKey, USymbolicArrayIndex&lt;USizeSort&gt;, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:CallGraphStatisticsImpl.kt$CallGraphStatisticsImpl$( private val depthLimit: UInt, private val applicationGraph: ApplicationGraph&lt;Method, Statement&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:CallStackDistanceCalculator.kt$CallStackDistanceCalculator$( targets: Collection&lt;Statement&gt;, private val cfgStatistics: CfgStatistics&lt;Method, Statement&gt;, applicationGraph: ApplicationGraph&lt;Method, Statement&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:CompletelyFairPathSelector.kt$CompletelyFairPathSelector$( initialKeys: Set&lt;Key&gt;, private val stopwatch: Stopwatch, getKey: (State) -&gt; Key, basePathSelectorFactory: (Key) -&gt; UPathSelector&lt;State&gt;, private val peeksInQuantum: UInt = 1U )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( ctx: UContext&lt;USizeSort&gt;, val memory: UReadOnlyMemory&lt;Type&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UAllocatedMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UAllocatedRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UAllocatedSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UInputMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UInputRefMapWithAllocatedKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UInputRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UInputSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Composition.kt$UComposer$( expr: UTrackedSymbol&lt;Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ConstantTimeFairPathSelector.kt$ConstantTimeFairPathSelector$( initialKeys: Set&lt;Key&gt;, private val stopwatch: Stopwatch, private val getRemainingTime: () -&gt; Duration, getKey: (State) -&gt; Key, private val getKeyPriority: (Key) -&gt; KeyPriority, basePathSelectorFactory: (Key) -&gt; UPathSelector&lt;State&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( condition: KExpr&lt;KBoolSort&gt;, trueBranch: () -&gt; KExpr&lt;T&gt;, falseBranch: () -&gt; KExpr&lt;T&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UAllocatedMap&lt;MapType, KeySort, Sort, Reg&gt;, key: UExpr&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UAllocatedRefMapWithInputKeys&lt;MapType, Sort&gt;, keyRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UAllocatedRefSetWithInputElements&lt;SetType&gt;, elementRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UAllocatedSet&lt;SetType, ElementSort, Reg&gt;, element: UExpr&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputMap&lt;MapType, KeySort, Sort, Reg&gt;, address: UHeapRef, key: UExpr&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputMapLengthCollection&lt;MapType, USizeSort&gt;, address: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputRefMap&lt;MapType, Sort&gt;, mapRef: UHeapRef, keyRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputRefMapWithAllocatedKeys&lt;MapType, Sort&gt;, mapRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputRefSetWithAllocatedElements&lt;SetType&gt;, setRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputRefSetWithInputElements&lt;SetType&gt;, setRef: UHeapRef, elementRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( region: UInputSet&lt;SetType, ElementSort, Reg&gt;, address: UHeapRef, element: UExpr&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Context.kt$UContext$( sort: Sort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:CoveredNewStatesCollector.kt$CoveredNewStatesCollector$( private val coverageStatistics: CoverageStatistics&lt;*, *, *&gt;, private val isException: (State) -&gt; Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:DistanceCalculator.kt$MultiTargetDistanceCalculator$( currentStatement: Statement, callStack: UCallStack&lt;Method, Statement&gt;, target: Statement )</ID>
+    <ID>TrailingCommaOnDeclarationSite:DistanceCalculator.kt$MultiTargetDistanceCalculator$( private val getDistanceCalculator: (Statement) -&gt; DistanceCalculator&lt;Method, Statement, Distance&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:EagerModels.kt$URegistersStackEagerModel$( private val nullRef: UConcreteHeapRef, private val registers: Map&lt;Int, UExpr&lt;out USort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:EngineApi.kt$( lhs: UHeapRef, rhs: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:EngineApi.kt$( ref: UHeapRef, onNull: () -&gt; UExpr&lt;R&gt;, operation: (UHeapRef, UTypeStream&lt;Type&gt;) -&gt; UExpr&lt;R&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:EngineApi.kt$( ref: UHeapRef, operation: (UHeapRef, UTypeStream&lt;Type&gt;) -&gt; UExpr&lt;R&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTransformer.kt$UExprTransformer$( ctx: UContext&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTransformer.kt$UTransformer$( expr: UAllocatedMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTransformer.kt$UTransformer$( expr: UInputMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( arrayId: ArrayId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( arrayLengthId: ArrayLenId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UAllocatedMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UAllocatedRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UAllocatedSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UInputMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UInputRefMapWithAllocatedKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UInputRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( expr: UInputSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( fieldId: FieldId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( mapId: MapId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( mapLengthId: MapLengthId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( refMapId: MapId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( refSetId: SetId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( regionId: UMemoryRegionId&lt;*, *&gt;, buildDecoder: () -&gt; D )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$( setId: SetId )</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$&lt;MapType, KeySort : USort, ValueSort : USort, Reg : Region&lt;Reg&gt;, MapId : USymbolicMapId&lt;MapType, *, KeySort, ValueSort, Reg, *, MapId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:ExprTranslator.kt$UExprTranslator$&lt;SetType, KeySort : USort, Reg : Region&lt;Reg&gt;, SetId : USymbolicSetId&lt;SetType, KeySort, *, Reg, *, SetId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UCollectionReading$( ctx: UContext&lt;*&gt;, val collection: USymbolicCollection&lt;CollectionId, Key, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UInputArrayReading$( ctx: UContext&lt;USizeSort&gt;, collection: UInputArray&lt;ArrayType, Sort, USizeSort&gt;, val address: UHeapRef, val index: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UInputMapReading$( ctx: UContext&lt;*&gt;, collection: UInputMap&lt;MapType, KeySort, Sort, Reg&gt;, val address: UHeapRef, val key: UExpr&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UInputRefMapWithInputKeysReading$( ctx: UContext&lt;*&gt;, collection: UInputRefMap&lt;MapType, Sort&gt;, val mapRef: UHeapRef, val keyRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UInputRefSetWithInputElementsReading$( ctx: UContext&lt;*&gt;, collection: UInputRefSetWithInputElements&lt;SetType&gt;, val setRef: UHeapRef, val elementRef: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UInputSetReading$( ctx: UContext&lt;*&gt;, collection: UInputSet&lt;SetType, ElementSort, Reg&gt;, val address: UHeapRef, val element: UExpr&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Expressions.kt$UTrackedSymbol$( ctx: UContext&lt;*&gt;, val name: String, override val sort: Sort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UFieldRegionDecoder$( collectionId: UInputFieldId&lt;Field, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UFieldRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UFieldRegionDecoder$( private val regionId: UFieldsRegionId&lt;Field, Sort&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UInputFieldRegionTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UInputFieldRegionTranslator$( private val collectionId: UInputFieldId&lt;Field, Sort&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UInputFieldRegionTranslator$( region: USymbolicCollection&lt;UInputFieldId&lt;Field, Sort&gt;, UHeapRef, Sort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UInputFieldUpdateTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, initialValue: KExpr&lt;KArraySort&lt;UAddressSort, Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldRegionTranslator.kt$UInputFieldUpdateTranslator$( previous: KExpr&lt;KArraySort&lt;UAddressSort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UHeapRef, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldsRegion.kt$UFieldsMemoryRegion$( key: UFieldLValue&lt;Field, Sort&gt;, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FieldsRegion.kt$UFieldsMemoryRegion$( private val sort: Sort, private val field: Field, private val allocatedFields: PersistentMap&lt;UConcreteHeapAddress, UExpr&lt;Sort&gt;&gt; = persistentHashMapOf(), private var inputFields: UInputFields&lt;Field, Sort&gt;? = null )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FunctionAppCollector.kt$FunctionAppCollector$( ctx: KContext, val function: KDecl&lt;S&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:FunctionAppCollector.kt$FunctionAppCollector$( left: PersistentSet&lt;KFunctionApp&lt;S&gt;&gt;, right: PersistentSet&lt;KFunctionApp&lt;S&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InterprocDistanceCalculator.kt$InterprocDistanceCalculator$( currentStatement: Statement, callStack: UCallStack&lt;Method, Statement&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InterprocDistanceCalculator.kt$InterprocDistanceCalculator$( private val targetLocation: Statement, private val applicationGraph: ApplicationGraph&lt;Method, Statement&gt;, private val cfgStatistics: CfgStatistics&lt;Method, Statement&gt;, private val callGraphStatistics: CallGraphStatistics&lt;Method&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:InterprocDistanceCalculator.kt$ReachabilityKind</ID>
+    <ID>TrailingCommaOnDeclarationSite:IterativeDeepeningPs.kt$IterativeDeepeningPs$( private val underlyingPs: UPathSelector&lt;State&gt;, loopTracker: StateLoopTracker&lt;Loop, Stmt, State&gt;, private val iterationLimit: Int? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:LazyModelDecoder.kt$ULazyModelDecoder.DefaultRegion$( private val regionId: UMemoryRegionId&lt;Key, Sort&gt;, private val value: UExpr&lt;Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:LazyModelDecoder.kt$ULazyModelDecoder.UHeapModelWithCompletion$( regionId: UMemoryRegionId&lt;Key, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:LazyModelDecoder.kt$ULazyModelDecoder.UHeapModelWithCompletion$( val regions: Map&lt;UMemoryRegionId&lt;*, *&gt;, UReadOnlyMemoryRegion&lt;*, *&gt;&gt;, val model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:LoopLimiterPs.kt$LoopLimiterPs$( private val underlyingPs: UPathSelector&lt;State&gt;, loopTracker: StateLoopTracker&lt;Loop, Stmt, State&gt;, private val iterationLimit: Int? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Machine.kt$UMachine$( interpreter: UInterpreter&lt;State&gt;, pathSelector: UPathSelector&lt;State&gt;, observer: UMachineObserver&lt;State&gt;, isStateTerminated: (State) -&gt; Boolean, stopStrategy: StopStrategy = StopStrategy { false } )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Memory.kt$UMemory$( regionId: UMemoryRegionId&lt;Key, Sort&gt;, key: Key, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Memory.kt$UMemory$( regionId: UMemoryRegionId&lt;Key, Sort&gt;, newRegion: UMemoryRegion&lt;Key, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, arrayType: ArrayType, sizeSort: USizeSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, field: Field, sort: Sort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, field: Field, sort: Sort, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, index: UExpr&lt;USizeSort&gt;, arrayType: ArrayType, sort: Sort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, index: UExpr&lt;USizeSort&gt;, type: ArrayType, sort: Sort, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, size: UExpr&lt;USizeSort&gt;, arrayType: ArrayType, sizeSort: USizeSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( ref: UHeapRef, type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence&lt;UExpr&lt;Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MemoryApi.kt$( type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence&lt;UExpr&lt;Sort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockApi.kt$( crossinline mkTypeConstraint: State.(UHeapRef) -&gt; UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockApi.kt$( representative: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockApi.kt$( sort: T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:MockApi.kt$( type: Type )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Model.kt$UModelBase$( regionId: UMemoryRegionId&lt;Key, Sort&gt;, newRegion: UMemoryRegion&lt;Key, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:PathSelectorFactory.kt$( options: UMachineOptions, loopStatisticFactory: () -&gt; StateLoopTracker&lt;*, Statement, State&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:RegionTranslator.kt$U1DUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;KeySort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UExpr&lt;KeySort&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:RegionTranslator.kt$U2DUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;Key1Sort, Key2Sort, Sort&gt;&gt;, update: URangedUpdateNode&lt;*, *, Pair&lt;UExpr&lt;Key1Sort&gt;, UExpr&lt;Key2Sort&gt;&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Solver.kt$USolverBase$( pc: UPathConstraints&lt;Type&gt;, softConstraints: Iterable&lt;UBoolExpr&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:Solver.kt$USolverBase$( protected val ctx: UContext&lt;*&gt;, protected val smtSolver: KSolver&lt;*&gt;, protected val typeSolver: UTypeSolver&lt;Type&gt;, protected val translator: UExprTranslator&lt;Type, *&gt;, protected val decoder: UModelDecoder&lt;UModelBase&lt;Type&gt;&gt;, // TODO this timeout must not exceed time budget for the MUT private val timeout: Duration )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StateLoopStatistic.kt$LoopStats$( val loop: Loop, val previousLoopEnter: PathNode&lt;Stmt&gt;, val iterations: Int, val nonConcreteIterations: Int )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StateLoopStatistic.kt$StateLoopStatistic$( state: State, loopStats: LoopStats&lt;Stmt, Loop&gt;, loop: Loop )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StatisticsByMethodPrinter.kt$StatisticsByMethodPrinter$( private val getMethods: () -&gt; List&lt;Method&gt;, private val print: (String) -&gt; Unit, private val getMethodSignature: (Method) -&gt; String, private val coverageStatistics: CoverageStatistics&lt;Method, Statement, State&gt;, private val timeStatistics: TimeStatistics&lt;Method, State&gt;, private val stepsStatistics: StepsStatistics&lt;Method, State&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StepScope.kt$ForkCase$( /** * Condition to branch on. */ val condition: UBoolExpr, /** * Statement to branch on. */ val stmt: Statement, /** * Block to execute on state after branch. */ val block: T.() -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StepScope.kt$StepScope$( conditionsWithBlockOnStates: List&lt;Pair&lt;UBoolExpr, T.() -&gt; Unit&gt;&gt;, skipForkPointIfPossible: Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StepScope.kt$StepScope$( private val originalState: T, private val forkBlackList: UForkBlackList&lt;T, Statement&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:StepScope.kt$StepScope$StepScopeState</ID>
+    <ID>TrailingCommaOnDeclarationSite:StepsFromLastCoveredStopStrategy.kt$StepsFromLastCoveredStopStrategy$( private val limit: ULong, private val collectedStateCount: () -&gt; Int, private val stepsStatistics: StepsStatistics&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicCollectionUpdates.kt$UFlatUpdates$( key: Key, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicCollectionUpdates.kt$USymbolicCollectionUpdates$( key: Key, value: UExpr&lt;Sort&gt;, guard: UBoolExpr = value.ctx.trueExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicCollectionUpdates.kt$UTreeUpdates$( fromCollection: USymbolicCollection&lt;CollectionId, SrcKey, Sort&gt;, adapter: USymbolicCollectionAdapter&lt;SrcKey, Key&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicCollectionUpdates.kt$UTreeUpdates$( key: Key, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:SymbolicCollectionUpdates.kt$UTreeUpdates$( private val updates: RegionTree&lt;Reg, UUpdateNode&lt;Key, Sort&gt;&gt;, private val keyInfo: USymbolicCollectionKeyInfo&lt;Key, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TypeStream.kt$TypesResult.SuccessfulTypesResult$( val types: Collection&lt;Type&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:TypeStream.kt$TypesResult.TypesResultWithExpiredTimeout$( val collectedTypes: Collection&lt;Type&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UArrayModelRegion.kt$UArrayEagerModelRegion$( regionId: UArrayRegionId&lt;ArrayType, Sort, USizeSort&gt;, override val inputArray: UReadOnlyMemoryRegion&lt;USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UArrayModelRegion.kt$UArrayLazyModelRegion$( regionId: UArrayRegionId&lt;ArrayType, Sort, USizeSort&gt;, private val model: UModelEvaluator&lt;*&gt;, private val inputArrayDecoder: UCollectionDecoder&lt;USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UComponents.kt$UComponents$( ctx: Context )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UFieldsModelRegion.kt$UFieldsEagerModelRegion$( regionId: UFieldsRegionId&lt;Field, Sort&gt;, override val inputFields: UReadOnlyMemoryRegion&lt;UHeapRef, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UFieldsModelRegion.kt$UFieldsLazyModelRegion$( regionId: UFieldsRegionId&lt;Field, Sort&gt;, private val model: UModelEvaluator&lt;*&gt;, private val inputFieldsDecoder: UCollectionDecoder&lt;UHeapRef, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMachineObserver.kt$CompositeUMachineObserver$( private val observers: List&lt;UMachineObserver&lt;State&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthModelRegion.kt$UMapLengthEagerModelRegion$( regionId: UMapLengthRegionId&lt;MapType, USizeSort&gt;, override val inputMapLength: UReadOnlyMemoryRegion&lt;UHeapRef, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthModelRegion.kt$UMapLengthLazyModelRegion$( regionId: UMapLengthRegionId&lt;MapType, USizeSort&gt;, private val model: UModelEvaluator&lt;*&gt;, private val inputLengthDecoder: UCollectionDecoder&lt;UHeapRef, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegion.kt$UMapLengthMemoryRegion$( key: UMapLengthLValue&lt;MapType, USizeSort&gt;, value: UExpr&lt;USizeSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegion.kt$UMapLengthMemoryRegion$( private val sort: USizeSort, private val mapType: MapType, private val allocatedLengths: PersistentMap&lt;UConcreteHeapAddress, UExpr&lt;USizeSort&gt;&gt; = persistentHashMapOf(), private var inputLengths: UInputMapLength&lt;MapType, USizeSort&gt;? = null )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UInputMapLengthRegionTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UInputMapLengthRegionTranslator$( region: USymbolicCollection&lt;UInputMapLengthId&lt;MapType, USizeSort&gt;, UHeapRef, USizeSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UInputMapLengthUpdateTranslator$( exprTranslator: UExprTranslator&lt;*, USizeSort&gt;, initialValue: KExpr&lt;KArraySort&lt;UAddressSort, USizeSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UInputMapLengthUpdateTranslator$( previous: KExpr&lt;KArraySort&lt;UAddressSort, USizeSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UHeapRef, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UMapLengthRegionDecoder$( collectionId: UInputMapLengthId&lt;MapType, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapLengthRegionTranslator.kt$UMapLengthRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapModelRegion.kt$UMapEagerModelRegion$( regionId: UMapRegionId&lt;MapType, KeySort, ValueSort, Reg&gt;, override val inputMap: UReadOnlyMemoryRegion&lt;USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapModelRegion.kt$UMapLazyModelRegion$( regionId: UMapRegionId&lt;MapType, KeySort, ValueSort, Reg&gt;, private val model: UModelEvaluator&lt;*&gt;, private val inputMapDecoder: UCollectionDecoder&lt;USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapModelRegion.kt$UMapModelRegion$( private val regionId: UMapRegionId&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapEntryLValue$( val keySort: KeySort, override val sort: ValueSort, val mapRef: UHeapRef, val mapKey: UExpr&lt;KeySort&gt;, val mapType: MapType, val keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;KeySort&gt;, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapMemoryRegion$( id: UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapMemoryRegion$( id: UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, updatedMap: UAllocatedMap&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapMemoryRegion$( key: UMapEntryLValue&lt;MapType, KeySort, ValueSort, Reg&gt;, value: UExpr&lt;ValueSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapMemoryRegion$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, srcKeySet: USetRegion&lt;MapType, KeySort, *&gt;, initialGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapMemoryRegion$( updatedMap: UInputMap&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapRegion$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, srcKeySet: USetRegion&lt;MapType, KeySort, *&gt;, initialGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegion.kt$UMapRegionId$( val keySort: KeySort, override val sort: ValueSort, val mapType: MapType, val keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;KeySort&gt;, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionApi.kt$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, keySort: KeySort, sort: ValueSort, keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;KeySort&gt;, Reg&gt;, keySet: USetRegionId&lt;MapType, KeySort, Nothing&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UAllocatedMapTranslator$( collectionId: UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UAllocatedMapTranslator$( region: USymbolicCollection&lt;UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, UExpr&lt;KeySort&gt;, ValueSort&gt;, key: UExpr&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, initialValue: KExpr&lt;KArraySort&lt;KeySort, ValueSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;KeySort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UExpr&lt;KeySort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UAllocatedMapUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;KeySort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UExpr&lt;KeySort&gt;, ValueSort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, ValueSort&gt;, adapter: USymbolicMapMergeAdapter&lt;*, SrcKey, UExpr&lt;KeySort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapTranslator$( collectionId: UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapTranslator$( region: USymbolicCollection&lt;UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt;, key: USymbolicMapKey&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, initialValue: KExpr&lt;KArray2Sort&lt;UAddressSort, KeySort, ValueSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, KeySort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UInputMapUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, KeySort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, ValueSort&gt;, adapter: USymbolicMapMergeAdapter&lt;*, SrcKey, USymbolicMapKey&lt;KeySort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UMapRegionDecoder$( collectionId: UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UMapRegionDecoder$( collectionId: UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UMapRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UMapRegionTranslator.kt$UMapRegionDecoder$( private val regionId: UMapRegionId&lt;MapType, KeySort, ValueSort, Reg&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UModelEvaluator.kt$UModelEvaluator$( interpretation: KFuncInterp&lt;KArray2Sort&lt;Idx1, Idx2, Value&gt;&gt;, onEntry: (KExpr&lt;Idx1&gt;, KExpr&lt;Idx2&gt;, KExpr&lt;Value&gt;) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:UModelEvaluator.kt$UModelEvaluator$( interpretation: KFuncInterp&lt;KArraySort&lt;Idx, Value&gt;&gt;, onEntry: (KExpr&lt;Idx&gt;, KExpr&lt;Value&gt;) -&gt; Unit )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapModelRegion.kt$URefMapEagerModelRegion$( regionId: URefMapRegionId&lt;MapType, ValueSort&gt;, override val inputMap: UReadOnlyMemoryRegion&lt;USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapModelRegion.kt$URefMapLazyModelRegion$( regionId: URefMapRegionId&lt;MapType, ValueSort&gt;, private val model: UModelEvaluator&lt;*&gt;, private val inputMapDecoder: UCollectionDecoder&lt;USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapModelRegion.kt$URefMapModelRegion$( private val regionId: URefMapRegionId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$UAllocatedRefMapWithAllocatedKeysId$( val mapAddress: UConcreteHeapAddress, val keyAddress: UConcreteHeapAddress )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapEntryLValue$( override val sort: ValueSort, val mapRef: UHeapRef, val mapKey: UHeapRef, val mapType: MapType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( id: UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( id: UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, updatedMap: UAllocatedRefMapWithInputKeys&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( id: UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( id: UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, updatedMap: UInputRefMapWithAllocatedKeys&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( initial: R, keys: Iterable&lt;SrcKeyId&gt;, guard: UBoolExpr, keySet: URefSetRegion&lt;MapType&gt;, srcMapRef: UHeapRef, srcKeyConcreteAddress: (SrcKeyId) -&gt; UConcreteHeapAddress, read: (SrcKeyId) -&gt; UExpr&lt;ValueSort&gt;, mkDstKeyId: (UConcreteHeapAddress) -&gt; DstKeyId, write: (R, DstKeyId, UExpr&lt;ValueSort&gt;, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( initial: R, srcMapRef: UConcreteHeapRef, guard: UBoolExpr, keySet: URefSetRegion&lt;MapType&gt;, read: (UAllocatedRefMapWithAllocatedKeysId) -&gt; UExpr&lt;ValueSort&gt;, mkDstKeyId: (UConcreteHeapAddress) -&gt; DstKeyId, write: (R, DstKeyId, UExpr&lt;ValueSort&gt;, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( initial: R, srcMapRef: UHeapRef, guard: UBoolExpr, keySet: URefSetRegion&lt;MapType&gt;, read: (UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;) -&gt; UExpr&lt;ValueSort&gt;, mkDstKeyId: (UConcreteHeapAddress) -&gt; DstKeyId, write: (R, DstKeyId, UExpr&lt;ValueSort&gt;, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( key: URefMapEntryLValue&lt;MapType, ValueSort&gt;, value: UExpr&lt;ValueSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, sort: ValueSort, keySet: URefSetRegion&lt;MapType&gt;, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapMemoryRegion$( updated: PersistentMap&lt;UAllocatedRefMapWithAllocatedKeysId, UExpr&lt;ValueSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegion.kt$URefMapRegion$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, sort: ValueSort, keySet: URefSetRegion&lt;MapType&gt;, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionApi.kt$( srcRef: UHeapRef, dstRef: UHeapRef, mapType: MapType, sort: ValueSort, keySetId: URefSetRegionId&lt;MapType&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, initialValue: KExpr&lt;KArraySort&lt;UAddressSort, ValueSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;UAddressSort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UHeapRef, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UAllocatedRefMapUpdatesTranslator$( previous: KExpr&lt;KArraySort&lt;UAddressSort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, UHeapRef, ValueSort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, ValueSort&gt;, adapter: USymbolicRefMapMergeAdapter&lt;*, SrcKey, UHeapRef, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UAllocatedRefMapWithInputKeysTranslator$( collectionId: UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UAllocatedRefMapWithInputKeysTranslator$( region: USymbolicCollection&lt;UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, UHeapRef, ValueSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapTranslator$( collectionId: UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapTranslator$( model: UModelEvaluator&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapTranslator$( region: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;, key: USymbolicMapKey&lt;UAddressSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, initialValue: KExpr&lt;KArray2Sort&lt;UAddressSort, UAddressSort, ValueSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, UAddressSort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapUpdatesTranslator$( previous: KExpr&lt;KArray2Sort&lt;UAddressSort, UAddressSort, ValueSort&gt;&gt;, update: URangedUpdateNode&lt;*, *, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;, sourceCollection: USymbolicCollection&lt;CollectionId, SrcKey, ValueSort&gt;, adapter: USymbolicRefMapMergeAdapter&lt;*, SrcKey, USymbolicMapKey&lt;UAddressSort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapWithAllocatedKeysTranslator$( collectionId: UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$UInputRefMapWithAllocatedKeysTranslator$( region: USymbolicCollection&lt;UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, UHeapRef, ValueSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$URefMapRegionDecoder$( collectionId: UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$URefMapRegionDecoder$( collectionId: UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$URefMapRegionDecoder$( collectionId: UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$URefMapRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefMapRegionTranslator.kt$URefMapRegionDecoder$( private val regionId: URefMapRegionId&lt;MapType, ValueSort&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetModelRegion.kt$URefSetEagerModelRegion$( regionId: URefSetRegionId&lt;SetType&gt;, override val inputSet: UMemory2DArray&lt;UAddressSort, UAddressSort, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetModelRegion.kt$URefSetLazyModelRegion$( regionId: URefSetRegionId&lt;SetType&gt;, model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt;, inputSetDecoder: USetCollectionDecoder&lt;UAddressSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetModelRegion.kt$URefSetModelRegion$( private val regionId: URefSetRegionId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$UAllocatedRefSetWithAllocatedElementId$( val setAddress: UConcreteHeapAddress, val elementAddress: UConcreteHeapAddress )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetEntryLValue$( val setRef: UHeapRef, val setElement: UHeapRef, val setType: SetType )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( id: UAllocatedRefSetWithInputElementsId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( id: UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, updatedSet: UAllocatedRefSetWithInputElements&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( id: UInputRefSetWithAllocatedElementsId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( id: UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, updatedSet: UInputRefSetWithAllocatedElements&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( initial: R, guard: UBoolExpr, read: (UInputRefSetWithAllocatedElementsId&lt;SetType&gt;) -&gt; UBoolExpr, mkDstKeyId: (UConcreteHeapAddress) -&gt; DstKeyId, write: (R, DstKeyId, UBoolExpr, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( initial: R, keys: Iterable&lt;SrcKeyId&gt;, guard: UBoolExpr, read: (SrcKeyId) -&gt; UBoolExpr, mkDstKeyId: (SrcKeyId) -&gt; DstKeyId, write: (R, DstKeyId, UBoolExpr, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( initial: R, srcAddress: UConcreteHeapAddress, guard: UBoolExpr, read: (UAllocatedRefSetWithAllocatedElementId) -&gt; UBoolExpr, mkDstKeyId: (UConcreteHeapAddress) -&gt; DstKeyId, write: (R, DstKeyId, UBoolExpr, UBoolExpr) -&gt; R )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( key: URefSetEntryLValue&lt;SetType&gt;, value: UBoolExpr, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( private val setType: SetType, private val sort: UBoolSort, private var allocatedSetWithAllocatedElements: PersistentMap&lt;UAllocatedRefSetWithAllocatedElementId, UBoolExpr&gt; = persistentHashMapOf(), private var allocatedSetWithInputElements: PersistentMap&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UAllocatedRefSetWithInputElements&lt;SetType&gt;&gt; = persistentHashMapOf(), private var inputSetWithAllocatedElements: PersistentMap&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UInputRefSetWithAllocatedElements&lt;SetType&gt;&gt; = persistentHashMapOf(), private var inputSetWithInputElements: UInputRefSetWithInputElements&lt;SetType&gt;? = null )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( srcRef: UHeapRef, dstRef: UHeapRef, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetMemoryRegion$( updated: PersistentMap&lt;UAllocatedRefSetWithAllocatedElementId, UBoolExpr&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegion.kt$URefSetRegionId$( val setType: SetType, override val sort: UBoolSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UAllocatedRefSetWithInputElementsTranslator$( private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UAllocatedRefSetWithInputElementsTranslator$( region: USymbolicCollection&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UInputRefSetWithAllocatedElementsTranslator$( private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UInputRefSetWithAllocatedElementsTranslator$( region: USymbolicCollection&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, key: UHeapRef )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UInputRefSetWithInputElementsTranslator$( collectionId: UInputRefSetWithInputElementsId&lt;SetType&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$UInputRefSetWithInputElementsTranslator$( region: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;, key: USymbolicSetElement&lt;UAddressSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$URefSetRegionDecoder$( collectionId: UAllocatedRefSetWithInputElementsId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$URefSetRegionDecoder$( collectionId: UInputRefSetWithAllocatedElementsId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$URefSetRegionDecoder$( collectionId: UInputRefSetWithInputElementsId&lt;SetType&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$URefSetRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:URefSetRegionTranslator.kt$URefSetRegionDecoder$( private val regionId: URefSetRegionId&lt;SetType&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetModelRegion.kt$USetEagerModelRegion$( regionId: USetRegionId&lt;SetType, ElementSort, Reg&gt;, override val inputSet: UMemory2DArray&lt;UAddressSort, ElementSort, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetModelRegion.kt$USetLazyModelRegion$( regionId: USetRegionId&lt;SetType, ElementSort, Reg&gt;, model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt;, inputSetDecoder: USetCollectionDecoder&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetModelRegion.kt$USetModelRegion$( private val regionId: USetRegionId&lt;SetType, ElementSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetEntryLValue$( val elementSort: ElementSort, val setRef: UHeapRef, val setElement: UExpr&lt;ElementSort&gt;, val setType: SetType, val elementInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;ElementSort&gt;, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetMemoryRegion$( id: UAllocatedSetId&lt;SetType, ElementSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetMemoryRegion$( id: UAllocatedSetId&lt;SetType, ElementSort, Reg&gt;, updated: UAllocatedSet&lt;SetType, ElementSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetMemoryRegion$( key: USetEntryLValue&lt;SetType, ElementSort, Reg&gt;, value: UExpr&lt;UBoolSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetMemoryRegion$( srcRef: UHeapRef, dstRef: UHeapRef, operationGuard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegion.kt$USetRegionId$( val elementSort: ElementSort, val setType: SetType, val elementInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;ElementSort&gt;, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionBuilder.kt$USetRegionBuilder$( previous: Reg, update: UUpdateNode&lt;Element, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionBuilder.kt$USetRegionBuilder$( private val baseRegion: Reg, private val keyInfo: USymbolicCollectionKeyInfo&lt;Element, Reg&gt;, private val topRegion: Reg )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$UAllocatedSetTranslator$( private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$UAllocatedSetTranslator$( region: USymbolicCollection&lt;UAllocatedSetId&lt;SetType, ElementSort, Reg&gt;, UExpr&lt;ElementSort&gt;, UBoolSort&gt;, key: UExpr&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$UInputSetTranslator$( collectionId: UInputSetId&lt;SetType, ElementSort, Reg&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$UInputSetTranslator$( region: USymbolicCollection&lt;UInputSetId&lt;SetType, ElementSort, Reg&gt;, USymbolicSetElement&lt;ElementSort&gt;, UBoolSort&gt;, key: USymbolicSetElement&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$USetRegionDecoder$( collectionId: UAllocatedSetId&lt;SetType, ElementSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$USetRegionDecoder$( collectionId: UInputSetId&lt;SetType, ElementSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$USetRegionDecoder$( model: UModelEvaluator&lt;*&gt;, assertions: List&lt;KExpr&lt;KBoolSort&gt;&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetRegionTranslator.kt$USetRegionDecoder$( private val regionId: USetRegionId&lt;SetType, ElementSort, Reg&gt;, private val exprTranslator: UExprTranslator&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetUpdatesTranslator.kt$UAllocatedSetUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, selectKey: UExpr&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetUpdatesTranslator.kt$UInputSetUpdatesTranslator$( exprTranslator: UExprTranslator&lt;*, *&gt;, private val initialFunction: KFuncDecl&lt;UBoolSort&gt;, selectKey: USymbolicSetElement&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USetUpdatesTranslator.kt$USetUpdatesTranslator$( previous: KExpr&lt;KBoolSort&gt;, update: UUpdateNode&lt;Element, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USizeExprProvider.kt$UBv32SizeExprProvider$( override val ctx: UContext&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USizeExprProvider.kt$UInt32SizeExprProvider$( override val ctx: UContext&lt;*&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UAllocatedMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UAllocatedRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UAllocatedSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UInputMapLengthReading&lt;Type, USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UInputMapReading&lt;Type, KeySort, Sort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UInputRefMapWithAllocatedKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UInputRefMapWithInputKeysReading&lt;Type, Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UInputSetReading&lt;Type, ElemSort, Reg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( expr: UTrackedSymbol&lt;Sort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USoftConstraintsProvider.kt$USoftConstraintsProvider$( override val ctx: UContext&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToAllocatedCopyAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;UExpr&lt;USizeSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;UExpr&lt;USizeSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: UExpr&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToAllocatedCopyAdapter$( srcFrom: UExpr&lt;USizeSort&gt;, dstFrom: UExpr&lt;USizeSort&gt;, dstTo: UExpr&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToInputCopyAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;UExpr&lt;USizeSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: UExpr&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayAllocatedToInputCopyAdapter$( srcFrom: UExpr&lt;USizeSort&gt;, dstFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstTo: USymbolicArrayIndex&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayCopyAdapter$( idx: UExpr&lt;USizeSort&gt;, dstFromIdx: UExpr&lt;USizeSort&gt;, srcFromIdx: UExpr&lt;USizeSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayCopyAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;SrcKey, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;DstKey, *, *&gt;, guard: UBoolExpr, srcKey: SrcKey, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayCopyAdapter$( val srcFrom: SrcKey, val dstFrom: DstKey, val dstTo: DstKey, private val keyInfo: USymbolicCollectionKeyInfo&lt;DstKey, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayCopyAdapter.Companion$( key: Key, concrete: (UExpr&lt;*&gt;) -&gt; T, symbolic: (USymbolicArrayIndex&lt;*&gt;) -&gt; T )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToAllocatedCopyAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;UExpr&lt;USizeSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: USymbolicArrayIndex&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToAllocatedCopyAdapter$( srcFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstFrom: UExpr&lt;USizeSort&gt;, dstTo: UExpr&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: USymbolicArrayIndex&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayCopyAdapter.kt$USymbolicArrayInputToInputCopyAdapter$( srcFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstFrom: USymbolicArrayIndex&lt;USizeSort&gt;, dstTo: USymbolicArrayIndex&lt;USizeSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;USymbolicArrayIndex&lt;USizeSort&gt;, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayId.kt$UAllocatedArrayId$( collection: USymbolicCollection&lt;UAllocatedArrayId&lt;ArrayType, Sort, USizeSort&gt;, UExpr&lt;USizeSort&gt;, Sort&gt;, key: UExpr&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayId.kt$UAllocatedArrayId$( content: Map&lt;UExpr&lt;USizeSort&gt;, UExpr&lt;Sort&gt;&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayId.kt$UInputArrayId$( collection: USymbolicCollection&lt;UInputArrayId&lt;ArrayType, Sort, USizeSort&gt;, USymbolicArrayIndex&lt;USizeSort&gt;, Sort&gt;, key: USymbolicArrayIndex&lt;USizeSort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayId.kt$UInputArrayId$( memory: UWritableMemory&lt;Type&gt;, key: USymbolicArrayIndex&lt;USizeSort&gt;, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicArrayLengthId.kt$UInputArrayLengthId$( collection: USymbolicCollection&lt;UInputArrayLengthId&lt;ArrayType, USizeSort&gt;, UHeapRef, USizeSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollection.kt$( key: K, value: UExpr&lt;VSort&gt;, guard: UBoolExpr, defaultValue: () -&gt; UExpr&lt;VSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollection.kt$USymbolicCollection$( fromCollection: USymbolicCollection&lt;OtherCollectionId, SrcKey, Sort&gt;, adapter: USymbolicCollectionAdapter&lt;SrcKey, Key&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollection.kt$USymbolicCollection$( key: Key, composer: UComposer&lt;*, *&gt;?, predicate: (UExpr&lt;Sort&gt;) -&gt; Boolean )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollection.kt$USymbolicCollection$( key: Key, updates: USymbolicCollectionUpdates&lt;Key, Sort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollection.kt$USymbolicCollection$( key: Key, value: UExpr&lt;Sort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicCollectionAdapter.kt$USymbolicCollectionAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;SrcKey, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;DstKey, *, *&gt;, guard: UBoolExpr, srcKey: SrcKey, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapId.kt$UAllocatedMapId$( collection: USymbolicCollection&lt;UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, UExpr&lt;KeySort&gt;, ValueSort&gt;, key: UExpr&lt;KeySort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapId.kt$UAllocatedMapId$( memory: UWritableMemory&lt;Type&gt;, key: UExpr&lt;KeySort&gt;, value: UExpr&lt;ValueSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapId.kt$UInputMapId$( collection: USymbolicCollection&lt;UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;, USymbolicMapKey&lt;KeySort&gt;, ValueSort&gt;, key: USymbolicMapKey&lt;KeySort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapId.kt$UInputMapId$( memory: UWritableMemory&lt;Type&gt;, key: USymbolicMapKey&lt;KeySort&gt;, value: UExpr&lt;ValueSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapId.kt$USymbolicMapId$&lt; MapType, Key, KeySort : USort, ValueSort : USort, Reg : Region&lt;Reg&gt;, out KeysSetId : USymbolicSetId&lt;*, *, Key, *, *, KeysSetId&gt;, out MapId : USymbolicMapId&lt;MapType, Key, KeySort, ValueSort, Reg, KeysSetId, MapId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapKeyInfo.kt$USymbolicMapKeyInfo$( ctx: UContext&lt;*&gt;, key1: USymbolicMapKey&lt;KeySort&gt;, key2: USymbolicMapKey&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapKeyInfo.kt$USymbolicMapKeyInfo$( from: USymbolicMapKey&lt;KeySort&gt;, to: USymbolicMapKey&lt;KeySort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapKeyInfo.kt$USymbolicMapKeyInfo$( val keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;KeySort&gt;, KeyReg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicMapLengthId.kt$UInputMapLengthId$( collection: USymbolicCollection&lt;UInputMapLengthId&lt;MapType, USizeSort&gt;, UHeapRef, USizeSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefMapId.kt$UAllocatedRefMapWithInputKeysId$( collection: USymbolicCollection&lt;UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, UHeapRef, ValueSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefMapId.kt$UInputRefMapWithAllocatedKeysId$( collection: USymbolicCollection&lt;UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;, UHeapRef, ValueSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$( collection: USymbolicCollection&lt;UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort&gt;, key: USymbolicMapKey&lt;UAddressSort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$( memory: UWritableMemory&lt;Type&gt;, key: USymbolicMapKey&lt;UAddressSort&gt;, value: UExpr&lt;ValueSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefMapId.kt$USymbolicRefMapId$&lt; MapType, Key, ValueSort : USort, out KeysSetId : USymbolicRefSetId&lt;MapType, Key, *, KeysSetId&gt;, out MapId : USymbolicRefMapId&lt;MapType, Key, ValueSort, KeysSetId, MapId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UAllocatedRefSetWithInputElementsId$( collection: USymbolicCollection&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UAllocatedRefSetWithInputElementsId$( collection: USymbolicCollection&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UHeapRef, R&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UAllocatedRefSetWithInputElementsId$( val setAddress: UConcreteHeapAddress, setType: SetType, sort: UBoolSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithAllocatedElementsId$( collection: USymbolicCollection&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, key: UHeapRef, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithAllocatedElementsId$( collection: USymbolicCollection&lt;UInputRefSetWithAllocatedElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;UHeapRef, R&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithAllocatedElementsId$( val elementAddress: UConcreteHeapAddress, setType: SetType, sort: UBoolSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$( collection: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;, key: USymbolicSetElement&lt;UAddressSort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$( collection: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;, keyInfo: USymbolicCollectionKeyInfo&lt;USymbolicSetElement&lt;UAddressSort&gt;, R&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$( memory: UWritableMemory&lt;Type&gt;, key: USymbolicSetElement&lt;UAddressSort&gt;, value: UExpr&lt;UBoolSort&gt;, guard: UBoolExpr )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$( setType: SetType, sort: UBoolSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$USymbolicRefSetId$( val setType: SetType, override val sort: UBoolSort )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetId.kt$USymbolicRefSetId$&lt;SetType, Element, Reg : Region&lt;Reg&gt;, out SetId : USymbolicRefSetId&lt;SetType, Element, Reg, SetId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UAllocatedToAllocatedSymbolicRefSetUnionAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;UHeapRef, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;UHeapRef, *, *&gt;, guard: UBoolExpr, srcKey: UHeapRef, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UAllocatedToAllocatedSymbolicRefSetUnionAdapter$( setOfKeys: USymbolicCollection&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UAllocatedToInputSymbolicRefSetUnionAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;UHeapRef, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;USymbolicSetElement&lt;UAddressSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: UHeapRef, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UAllocatedToInputSymbolicRefSetUnionAdapter$( val dstSetRef: UHeapRef, setOfKeys: USymbolicCollection&lt;UAllocatedRefSetWithInputElementsId&lt;SetType&gt;, UHeapRef, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;USymbolicSetElement&lt;UAddressSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;UHeapRef, *, *&gt;, guard: UBoolExpr, srcKey: USymbolicSetElement&lt;UAddressSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$( val srcSetRef: UHeapRef, setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$( key: USymbolicSetElement&lt;UAddressSort&gt;, composer: UComposer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$( memory: UWritableMemory&lt;Type&gt;, srcCollectionId: USymbolicCollectionId&lt;USymbolicSetElement&lt;UAddressSort&gt;, *, *&gt;, dstCollectionId: USymbolicCollectionId&lt;USymbolicSetElement&lt;UAddressSort&gt;, *, *&gt;, guard: UBoolExpr, srcKey: USymbolicSetElement&lt;UAddressSort&gt;, composer: UComposer&lt;*, *&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$( val srcSetRef: UHeapRef, val dstSetRef: UHeapRef, setOfKeys: USymbolicCollection&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicRefSetUnionAdapter.kt$USymbolicRefSetUnionAdapter$&lt;SetType, SrcKey, DstKey, out SetId : USymbolicRefSetId&lt;SetType, SrcKey, *, SetId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetElementsCollector.kt$USymbolicSetElementsCollector$( previous: Elements&lt;Element&gt;, update: UUpdateNode&lt;Element, UBoolSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetId.kt$USymbolicSetId$&lt;SetType, ElementSort : USort, Element, ElementReg : Region&lt;ElementReg&gt;, Reg : Region&lt;Reg&gt;, out SetId : USymbolicSetId&lt;SetType, ElementSort, Element, ElementReg, Reg, SetId&gt;&gt;</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$( ctx: UContext&lt;*&gt;, key1: USymbolicSetElement&lt;ElementSort&gt;, key2: USymbolicSetElement&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$( from: USymbolicSetElement&lt;ElementSort&gt;, to: USymbolicSetElement&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$( key1: USymbolicSetElement&lt;ElementSort&gt;, key2: USymbolicSetElement&lt;ElementSort&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$( key: USymbolicSetElement&lt;ElementSort&gt;, transformer: UTransformer&lt;*, *&gt;? )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo$( val keyInfo: USymbolicCollectionKeyInfo&lt;UExpr&lt;ElementSort&gt;, ElementReg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo.Companion$( region: ElementReg, setRefRegion: UHeapRefRegion )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo.Companion$( region: USymbolicSetElementRegion&lt;ElementReg&gt;, elementKeyInfo: USymbolicCollectionKeyInfo&lt;*, ElementReg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:USymbolicSetKeyInfo.kt$USymbolicSetKeyInfo.Companion$( region: USymbolicSetElementRegion&lt;ElementReg&gt;, setRefRegion: UHeapRefRegion, elementKeyInfo: USymbolicCollectionKeyInfo&lt;*, ElementReg&gt; )</ID>
+    <ID>TrailingCommaOnDeclarationSite:WeightedPathSelector.kt$WeightedPathSelector$( priorityCollectionFactory: () -&gt; UPriorityCollection&lt;State, Weight&gt;, private val weighter: StateWeighter&lt;State, Weight&gt; )</ID>
+    <ID>UnnecessaryAbstractClass:Solver.kt$USolver$USolver</ID>
+    <ID>UnnecessaryAbstractClass:UTarget.kt$UTarget$UTarget</ID>
+    <ID>UnsafeCallOnNullableType:ArrayLengthRegion.kt$UArrayLengthsMemoryRegion$inputLengths!!</ID>
+    <ID>UnsafeCallOnNullableType:ArrayLengthRegionTranslator.kt$UArrayLengthRegionDecoder$inputArrayLengthTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:ArrayRegion.kt$UArrayMemoryRegion$inputArray!!</ID>
+    <ID>UnsafeCallOnNullableType:ArrayRegionTranslator.kt$UArrayRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:CallStack.kt$UCallStack$second.returnSite!!</ID>
+    <ID>UnsafeCallOnNullableType:FieldRegionTranslator.kt$UFieldRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:FieldsRegion.kt$UFieldsMemoryRegion$inputFields!!</ID>
+    <ID>UnsafeCallOnNullableType:PathNode.kt$PathNode$it._segment!!</ID>
+    <ID>UnsafeCallOnNullableType:PathNode.kt$PathNode$it.parent!!</ID>
+    <ID>UnsafeCallOnNullableType:UMapLengthRegion.kt$UMapLengthMemoryRegion$inputLengths!!</ID>
+    <ID>UnsafeCallOnNullableType:UMapLengthRegionTranslator.kt$UMapLengthRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:UMapRegion.kt$UMapMemoryRegion$inputMap!!</ID>
+    <ID>UnsafeCallOnNullableType:UMapRegionTranslator.kt$UMapRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:UNumericConstraints.kt$UNumericConstraints$rhsTerms!!</ID>
+    <ID>UnsafeCallOnNullableType:URefMapRegion.kt$URefMapMemoryRegion$inputMapWithInputKeys!!</ID>
+    <ID>UnsafeCallOnNullableType:URefMapRegionTranslator.kt$URefMapRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:URefSetRegion.kt$URefSetMemoryRegion$inputSetWithInputElements!!</ID>
+    <ID>UnsafeCallOnNullableType:URefSetRegionTranslator.kt$URefSetRegionDecoder$inputWithInputRegionTranslator!!</ID>
+    <ID>UnsafeCallOnNullableType:USetRegion.kt$USetMemoryRegion$inputSet!!</ID>
+    <ID>UnsafeCallOnNullableType:USetRegionTranslator.kt$USetRegionDecoder$inputRegionTranslator!!</ID>
+    <ID>UnusedPrivateMember:PathSelectorFactory.kt$private fun &lt;State : UState&lt;*, *, *, *, *, State&gt;&gt; UPathSelector&lt;State&gt;.wrapIfRequired(propagateExceptions: Boolean)</ID>
+    <ID>UseCheckOrError:KeyedPathSelector.kt$KeyedPathSelector$throw IllegalStateException("Trying to add states with unknown key")</ID>
+    <ID>UseCheckOrError:KeyedPathSelector.kt$KeyedPathSelector$throw IllegalStateException("Trying to remove state with unknown key")</ID>
+    <ID>UseCheckOrError:KeyedPathSelector.kt$KeyedPathSelector$throw IllegalStateException("Trying to update state with unknown key")</ID>
+    <ID>UseOrEmpty:ExecutionTreeTracker.kt$ExecutionTreeTracker$pathNodeToNode[pathNode]?.children?.values?.map { it.value.pathNode } ?: emptyList()</ID>
+    <ID>UseOrEmpty:UNumericConstraints.kt$UNumericConstraints$bounds.termDependency[terms] ?: emptySet()</ID>
+    <ID>UseOrEmpty:UNumericConstraints.kt$UNumericConstraints.TermConstraintSet$termConstraints[constraint]?.asSequence() ?: emptySequence()</ID>
+    <ID>Wrapping:CoverageStatistics.kt$CoverageStatistics$;</ID>
+    <ID>Wrapping:ExprTranslator.kt$UExprTranslator$&lt;MapType, KeySort : USort, ValueSort : USort, Reg : Region&lt;Reg&gt;, MapId : USymbolicMapId&lt;MapType, *, KeySort, ValueSort, Reg, *, MapId&gt;&gt;</ID>
+    <ID>Wrapping:ExprTranslator.kt$UExprTranslator$&lt;SetType, KeySort : USort, Reg : Region&lt;Reg&gt;, SetId : USymbolicSetId&lt;SetType, KeySort, *, Reg, *, SetId&gt;&gt;</ID>
+    <ID>Wrapping:Expressions.kt$UInputRefMapWithInputKeysReading$&lt;UInputRefMapWithInputKeysId&lt;MapType, Sort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, Sort&gt;</ID>
+    <ID>Wrapping:Expressions.kt$UInputRefSetWithInputElementsReading$&lt;UInputRefSetWithInputElementsId&lt;SetType&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UBoolSort&gt;</ID>
+    <ID>Wrapping:PathSelectorFactory.kt$"Coverage statistics is required for closest to uncovered path selector"</ID>
+    <ID>Wrapping:PathSelectorFactory.kt${ m: Method -&gt; coverageStatistics.getMethodCoverage(m) }</ID>
+    <ID>Wrapping:Solver.kt$USolverBase$-&gt;</ID>
+    <ID>Wrapping:StopStrategyFactory.kt$"Steps statistics is required for selected stopping strategy"</ID>
+    <ID>Wrapping:StopStrategyFactory.kt$requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for selected stopping strategy" }</ID>
+    <ID>Wrapping:SymbolicCollectionUpdates.kt$UFlatUpdates$( UFlatUpdatesNode( UPinpointUpdateNode( key, keyInfo, value, guard ), this ), keyInfo )</ID>
+    <ID>Wrapping:SymbolicCollectionUpdates.kt$UFlatUpdates$( UPinpointUpdateNode( key, keyInfo, value, guard ), this )</ID>
+    <ID>Wrapping:USoftConstraintsProvider.kt$SortPreferredValuesProvider${ expr -&gt; mkAnd( mkArithLe(INT_MIN_VALUE.expr, expr.asExpr(sort)), mkArithGe(INT_MAX_VALUE.expr, expr.asExpr(sort)) ) }</ID>
+    <ID>Wrapping:USoftConstraintsProvider.kt$SortPreferredValuesProvider${ expr -&gt; mkAnd( mkArithLe(mkRealNum(INT_MIN_VALUE), expr.asExpr(sort)), mkArithGe(mkRealNum(INT_MAX_VALUE), expr.asExpr(sort)) ) }</ID>
+    <ID>Wrapping:USymbolicMapId.kt$UAllocatedMapId$&lt;MapType, UExpr&lt;KeySort&gt;, KeySort, ValueSort, Reg, UAllocatedSetId&lt;MapType, KeySort, Reg&gt;, UAllocatedMapId&lt;MapType, KeySort, ValueSort, Reg&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapId.kt$UInputMapId$&lt;MapType, USymbolicMapKey&lt;KeySort&gt;, KeySort, ValueSort, Reg, UInputSetId&lt;MapType, KeySort, Reg&gt;, UInputMapId&lt;MapType, KeySort, ValueSort, Reg&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapId.kt$USymbolicMapId$&lt; MapType, Key, KeySort : USort, ValueSort : USort, Reg : Region&lt;Reg&gt;, out KeysSetId : USymbolicSetId&lt;*, *, Key, *, *, KeysSetId&gt;, out MapId : USymbolicMapId&lt;MapType, Key, KeySort, ValueSort, Reg, KeysSetId, MapId&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapMergeAdapter.kt$UAllocatedToAllocatedSymbolicMapMergeAdapter$&lt;MapType, UExpr&lt;KeySort&gt;, UExpr&lt;KeySort&gt;, UAllocatedSetId&lt;MapType, KeySort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapMergeAdapter.kt$UAllocatedToInputSymbolicMapMergeAdapter$&lt;MapType, UExpr&lt;KeySort&gt;, USymbolicMapKey&lt;KeySort&gt;, UAllocatedSetId&lt;MapType, KeySort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapMergeAdapter.kt$UInputToAllocatedSymbolicMapMergeAdapter$&lt;MapType, USymbolicMapKey&lt;KeySort&gt;, UExpr&lt;KeySort&gt;, UInputSetId&lt;MapType, KeySort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicMapMergeAdapter.kt$UInputToInputSymbolicMapMergeAdapter$&lt;MapType, USymbolicMapKey&lt;KeySort&gt;, USymbolicMapKey&lt;KeySort&gt;, UInputSetId&lt;MapType, KeySort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapId.kt$UAllocatedRefMapWithInputKeysId$&lt;MapType, UHeapRef, ValueSort, UAllocatedRefSetWithInputElementsId&lt;MapType&gt;, UAllocatedRefMapWithInputKeysId&lt;MapType, ValueSort&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapId.kt$UInputRefMapWithAllocatedKeysId$&lt;MapType, UHeapRef, ValueSort, UInputRefSetWithAllocatedElementsId&lt;MapType&gt;, UInputRefMapWithAllocatedKeysId&lt;MapType, ValueSort&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapId.kt$UInputRefMapWithInputKeysId$&lt;MapType, USymbolicMapKey&lt;UAddressSort&gt;, ValueSort, UInputRefSetWithInputElementsId&lt;MapType&gt;, UInputRefMapWithInputKeysId&lt;MapType, ValueSort&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapId.kt$USymbolicRefMapId$&lt; MapType, Key, ValueSort : USort, out KeysSetId : USymbolicRefSetId&lt;MapType, Key, *, KeysSetId&gt;, out MapId : USymbolicRefMapId&lt;MapType, Key, ValueSort, KeysSetId, MapId&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapMergeAdapter.kt$UAllocatedToInputSymbolicRefMapMergeAdapter$&lt;MapType, UHeapRef, USymbolicMapKey&lt;UAddressSort&gt;, UAllocatedRefSetWithInputElementsId&lt;MapType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapMergeAdapter.kt$UInputToAllocatedSymbolicRefMapMergeAdapter$&lt;MapType, USymbolicMapKey&lt;UAddressSort&gt;, UHeapRef, UInputRefSetWithInputElementsId&lt;MapType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapMergeAdapter.kt$UInputToInputSymbolicRefMapMergeAdapter$&lt;MapType, USymbolicMapKey&lt;UAddressSort&gt;, USymbolicMapKey&lt;UAddressSort&gt;, UInputRefSetWithInputElementsId&lt;MapType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefMapMergeAdapter.kt$USymbolicRefMapMergeAdapter$&lt; MapType, SrcKey, DstKey, out SetId : USymbolicRefSetId&lt;MapType, SrcKey, *, SetId&gt;, &gt;</ID>
+    <ID>Wrapping:USymbolicRefSetId.kt$UInputRefSetWithInputElementsId$&lt;SetType, USymbolicSetElement&lt;UAddressSort&gt;, USymbolicSetElementRegion&lt;UHeapRefRegion&gt;, UInputRefSetWithInputElementsId&lt;SetType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetId.kt$USymbolicRefSetId$&lt;SetType, Element, Reg : Region&lt;Reg&gt;, out SetId : USymbolicRefSetId&lt;SetType, Element, Reg, SetId&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetUnionAdapter.kt$UAllocatedToAllocatedSymbolicRefSetUnionAdapter$&lt;SetType, UHeapRef, UHeapRef, UAllocatedRefSetWithInputElementsId&lt;SetType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetUnionAdapter.kt$UAllocatedToInputSymbolicRefSetUnionAdapter$&lt;SetType, UHeapRef, USymbolicSetElement&lt;UAddressSort&gt;, UAllocatedRefSetWithInputElementsId&lt;SetType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetUnionAdapter.kt$UInputToAllocatedSymbolicRefSetUnionAdapter$&lt;SetType, USymbolicSetElement&lt;UAddressSort&gt;, UHeapRef, UInputRefSetWithInputElementsId&lt;SetType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetUnionAdapter.kt$UInputToInputSymbolicRefSetUnionAdapter$&lt;SetType, USymbolicSetElement&lt;UAddressSort&gt;, USymbolicSetElement&lt;UAddressSort&gt;, UInputRefSetWithInputElementsId&lt;SetType&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicRefSetUnionAdapter.kt$USymbolicRefSetUnionAdapter$&lt;SetType, SrcKey, DstKey, out SetId : USymbolicRefSetId&lt;SetType, SrcKey, *, SetId&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetId.kt$UAllocatedSetId$&lt;SetType, ElementSort, UExpr&lt;ElementSort&gt;, Reg, Reg, UAllocatedSetId&lt;SetType, ElementSort, Reg&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetId.kt$UInputSetId$&lt;SetType, ElementSort, USymbolicSetElement&lt;ElementSort&gt;, Reg, USymbolicSetElementRegion&lt;Reg&gt;, UInputSetId&lt;SetType, ElementSort, Reg&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetId.kt$USymbolicSetId$&lt;SetType, ElementSort : USort, Element, ElementReg : Region&lt;ElementReg&gt;, Reg : Region&lt;Reg&gt;, out SetId : USymbolicSetId&lt;SetType, ElementSort, Element, ElementReg, Reg, SetId&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetUnionAdapter.kt$UAllocatedToAllocatedSymbolicSetUnionAdapter$&lt;SetType, UExpr&lt;ElemSort&gt;, UExpr&lt;ElemSort&gt;, UAllocatedSetId&lt;SetType, ElemSort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetUnionAdapter.kt$UAllocatedToInputSymbolicSetUnionAdapter$&lt;SetType, UExpr&lt;ElemSort&gt;, USymbolicSetElement&lt;ElemSort&gt;, UAllocatedSetId&lt;SetType, ElemSort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetUnionAdapter.kt$UInputToAllocatedSymbolicSetUnionAdapter$&lt;SetType, USymbolicSetElement&lt;ElemSort&gt;, UExpr&lt;ElemSort&gt;, UInputSetId&lt;SetType, ElemSort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetUnionAdapter.kt$UInputToInputSymbolicSetUnionAdapter$&lt;SetType, USymbolicSetElement&lt;ElemSort&gt;, USymbolicSetElement&lt;ElemSort&gt;, UInputSetId&lt;SetType, ElemSort, *&gt;&gt;</ID>
+    <ID>Wrapping:USymbolicSetUnionAdapter.kt$USymbolicSetUnionAdapter$&lt; SetType, SrcKey, DstKey, out SetId : USymbolicSetId&lt;SetType, *, SrcKey, *, *, SetId&gt;, &gt;</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:DfsTest.kt$DfsTest$(PathSelectionStrategy.RANDOM_PATH)</ID>
+    <ID>ArgumentListWrapping:DfsTest.kt$DfsTest$(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES)</ID>
+    <ID>ArgumentListWrapping:DfsTest.kt$DfsTest$(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))</ID>
+    <ID>ArgumentListWrapping:LoopTest.kt$LoopTest$(PathSelectionStrategy.DFS)</ID>
+    <ID>ArgumentListWrapping:LoopTest.kt$LoopTest$(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES)</ID>
+    <ID>ArgumentListWrapping:LoopTest.kt$LoopTest$(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))</ID>
+    <ID>FinalNewline:DfsProgram.kt$org.usvm.programs.DfsProgram.kt</ID>
+    <ID>FinalNewline:LoopProgram.kt$org.usvm.programs.LoopProgram.kt</ID>
+    <ID>FinalNewline:MathProgram.kt$org.usvm.programs.MathProgram.kt</ID>
+    <ID>FinalNewline:MergingProgram.kt$org.usvm.programs.MergingProgram.kt</ID>
+    <ID>FinalNewline:StructProgram.kt$org.usvm.programs.StructProgram.kt</ID>
+    <ID>ImportOrdering:DfsTest.kt$import org.junit.jupiter.api.Test import org.usvm.UMachineOptions import org.usvm.PathSelectionStrategy import org.usvm.SolverType import org.usvm.language.ArrayCreation import org.usvm.language.IntConst import org.usvm.language.IntType import org.usvm.programs.DfsProgram import kotlin.test.assertTrue</ID>
+    <ID>MaxLineLength:DfsTest.kt$DfsTest$val machine = SampleMachine(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))</ID>
+    <ID>MaxLineLength:LoopTest.kt$LoopTest$val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))</ID>
+    <ID>MaximumLineLength:DfsTest.kt$DfsTest$ </ID>
+    <ID>MaximumLineLength:LoopTest.kt$LoopTest$ </ID>
+    <ID>NewLineAtEndOfFile:DfsProgram.kt$org.usvm.programs.DfsProgram.kt</ID>
+    <ID>NewLineAtEndOfFile:LoopProgram.kt$org.usvm.programs.LoopProgram.kt</ID>
+    <ID>NewLineAtEndOfFile:MathProgram.kt$org.usvm.programs.MathProgram.kt</ID>
+    <ID>NewLineAtEndOfFile:MergingProgram.kt$org.usvm.programs.MergingProgram.kt</ID>
+    <ID>NewLineAtEndOfFile:StructProgram.kt$org.usvm.programs.StructProgram.kt</ID>
+    <ID>NoBlankLineBeforeRbrace:DfsProgram.kt$DfsProgram$ </ID>
+    <ID>NoWildcardImports:DfsProgram.kt$import org.usvm.language.*</ID>
+    <ID>NoWildcardImports:DfsProgram.kt$import org.usvm.language.builders.*</ID>
+    <ID>PropertyWrapping:DfsTest.kt$DfsTest$val machine = SampleMachine(programDecl.program, UMachineOptions(pathSelectionStrategies = listOf(PathSelectionStrategy.RANDOM_PATH), solverType = SolverType.YICES))</ID>
+    <ID>PropertyWrapping:LoopTest.kt$LoopTest$val machine = SampleMachine(programDecl.program, UMachineOptions(listOf(PathSelectionStrategy.DFS), solverType = SolverType.YICES))</ID>
+  </CurrentIssues>
+</SmellBaseline>
