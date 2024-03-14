@@ -169,7 +169,7 @@ if (cpythonActivatedFlag) {
                     from(fileTree(cpythonBuildPath).exclude("**/__pycache__/**"))
                 }
                 into("jar") {
-                    from(File(project.buildDir, "libs/usvm-python.jar"))
+                    from(tasks.jar)
                 }
             }
         }
@@ -189,4 +189,9 @@ if (cpythonActivatedFlag) {
         from(dependencies)
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
+
+    tasks.distTar.get().dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
+    tasks.distZip.get().dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
+    tasks.distTar.get().dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    tasks.distZip.get().dependsOn(":usvm-python:cpythonadapter:linkDebug")
 }
