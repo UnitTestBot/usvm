@@ -26,7 +26,7 @@ fun Project.configureDetekt() {
         "**/generated/**",
     )
 
-    val baselineFile = { project: String, task: String ->
+    val resolveBaselineFile = { project: String, task: String ->
         val taskPostfix = task.substringAfter("detekt").substringAfter("Baseline")
         rootDir
             .resolve("detekt")
@@ -42,7 +42,6 @@ fun Project.configureDetekt() {
         parallel = true
 
         config.setFrom(configFile)
-//        baseline = baselineFile
     }
 
     tasks.withType<Detekt> {
@@ -55,11 +54,14 @@ fun Project.configureDetekt() {
             xml.required = false
         }
 
-        baseline = baselineFile(project.name, this@withType.name)
+        val baselineFile = resolveBaselineFile(project.name, this@withType.name)
+        if (baselineFile.exists()) {
+            baseline = baselineFile
+        }
     }
 
     tasks.withType<DetektCreateBaselineTask> {
-        baseline = baselineFile(project.name, this@withType.name)
+        baseline = resolveBaselineFile(project.name, this@withType.name)
     }
 
 
