@@ -12,7 +12,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 fun UninterpretedSymbolicPythonObject.setListIteratorContent(
     ctx: ConcolicRunContext,
-    list: UninterpretedSymbolicPythonObject
+    list: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, typeSystem.pythonListIteratorType)
@@ -34,7 +34,7 @@ fun UninterpretedSymbolicPythonObject.increaseListIteratorCounter(ctx: ConcolicR
 }
 
 fun UninterpretedSymbolicPythonObject.getListIteratorContent(
-    ctx: ConcolicRunContext
+    ctx: ConcolicRunContext,
 ): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertype(ctx, typeSystem.pythonListIteratorType)

@@ -2,15 +2,15 @@ package org.usvm.runner
 
 import org.usvm.machine.PyState
 import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
-import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.results.serialization.PickleArgsSerializer
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
+import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
 
 class NewStateObserverForRunner(
-    private val communicator: PickledObjectCommunicator
-): NewStateObserver() {
+    private val communicator: PickledObjectCommunicator,
+) : NewStateObserver() {
     private val sentData = mutableSetOf<String>()
     override fun onNewState(state: PyState) {
         val modelHolder = PyModelHolder(state.pyModel)

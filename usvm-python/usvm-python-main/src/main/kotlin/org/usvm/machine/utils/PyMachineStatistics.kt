@@ -26,8 +26,9 @@ fun writeLostSymbolicValuesReport(lostValues: Map<MethodDescription, Int>): Stri
 }
 
 private fun addWithDefault(map: MutableMap<MethodDescription, Int>, descr: MethodDescription, value: Int = 1) {
-    if (map[descr] == null)
+    if (map[descr] == null) {
         map[descr] = 0
+    }
     map[descr] = map[descr]!! + value
 }
 
@@ -71,7 +72,9 @@ class PyMachineStatistics {
         result.append("Functions analyzed: ${functionStatistics.size}\n")
         result.append("Mean coverage: $meanCoverage\n")
         result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
-        result.append("Number of functions with unregistered virtual operations: $numberOfFunctionsWithUnregisteredVirtualOperations\n")
+        result.append(
+            "Number of functions with unregistered virtual operations: $numberOfFunctionsWithUnregisteredVirtualOperations\n"
+        )
         result.append("Lost symbolic values (by number of functions):\n")
         result.append(writeLostSymbolicValuesReport(lostSymbolicValuesByNumberOfFunctions))
         result.append("Lost symbolic values (by overall usages):\n")
@@ -116,11 +119,13 @@ class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) 
         }
     }
     fun updateCoverage(cmd: NextInstruction, usesVirtual: Boolean) {
-        if (cmd.pyInstruction.code != functionCode)
+        if (cmd.pyInstruction.code != functionCode) {
             return
+        }
         coveredInstructions += cmd.pyInstruction.numberInBytecode
-        if (!usesVirtual)
+        if (!usesVirtual) {
             coveredInstructionsNoVirtual += cmd.pyInstruction.numberInBytecode
+        }
         coverage = coveredInstructions.size.toDouble() / instructionOffsets.size
         coverageNoVirtual = coveredInstructionsNoVirtual.size.toDouble() / instructionOffsets.size
     }
@@ -137,5 +142,5 @@ class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) 
 }
 
 data class MethodDescription(
-    val description: String
+    val description: String,
 )

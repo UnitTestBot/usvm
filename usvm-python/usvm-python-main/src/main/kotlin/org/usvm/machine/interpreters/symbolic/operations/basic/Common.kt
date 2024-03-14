@@ -9,28 +9,46 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
-import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
-import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.symbolicobjects.memory.*
-import org.usvm.machine.types.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.constructBool
+import org.usvm.machine.symbolicobjects.constructEmptyAllocatedObject
+import org.usvm.machine.symbolicobjects.constructInt
+import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.memory.containsField
+import org.usvm.machine.symbolicobjects.memory.getBoolContent
+import org.usvm.machine.symbolicobjects.memory.getFieldValue
+import org.usvm.machine.symbolicobjects.memory.getIntContent
+import org.usvm.machine.symbolicobjects.memory.readArrayLength
+import org.usvm.machine.symbolicobjects.memory.setFieldValue
+import org.usvm.machine.types.ArrayLikeConcretePythonType
+import org.usvm.machine.types.ArrayType
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.ConcreteTypeNegation
+import org.usvm.machine.types.HasTpHash
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.utils.MethodDescription
 import org.utpython.types.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PyObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PyObject): UninterpretedSymbolicPythonObject? = with(
+    ctx.ctx
+) {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
-    if (type == typeSystem.pythonObjectType)
+    if (type == typeSystem.pythonObjectType) {
         return constructBool(ctx, ctx.ctx.trueExpr)
+    }
 
     val interpreted = interpretSymbolicPythonObject(ctx, obj)
     val concreteType = interpreted.getConcreteType()
     return if (concreteType == null) {
-        if (type == typeSystem.pythonInt) {  //  this is a common case, TODO: better solution
+        if (type == typeSystem.pythonInt) { //  this is a common case, TODO: better solution
             val cond =
                 obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonInt)) and obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonBool))
             myFork(ctx, cond)
@@ -40,8 +58,8 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
         require(interpreted.getConcreteType() == null)
         constructBool(ctx, falseExpr)
     } else {
-        if (type == typeSystem.pythonInt) {  //  this is a common case
-            myAssert(ctx, obj.evalIs(ctx, typeSystem.pythonBool).not())  // to avoid underapproximation
+        if (type == typeSystem.pythonInt) { //  this is a common case
+            myAssert(ctx, obj.evalIs(ctx, typeSystem.pythonBool).not()) // to avoid underapproximation
             constructBool(ctx, obj.evalIs(ctx, typeSystem.pythonInt))
         } else {
             constructBool(ctx, obj.evalIs(ctx, type))
@@ -56,7 +74,9 @@ fun fixateTypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject
     obj.addSupertype(ctx, type)
 }
 
-fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(ctx.ctx) {
+fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(
+    ctx.ctx
+) {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     left.addSupertype(ctx, typeSystem.pythonBool)
@@ -67,21 +87,23 @@ fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObjec
 }
 
 fun lostSymbolicValueKt(ctx: ConcolicRunContext, description: String) {
-    if (ctx.curState != null)
+    if (ctx.curState != null) {
         ctx.statistics.addLostSymbolicValue(MethodDescription(description))
+    }
 }
 
 fun createIterable(
     ctx: ConcolicRunContext,
     elements: List<UninterpretedSymbolicPythonObject>,
-    type: ConcretePythonType
+    type: ConcretePythonType,
 ): UninterpretedSymbolicPythonObject? {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return null
+    }
     val addresses = elements.map { it.address }.asSequence()
     val typeSystem = ctx.typeSystem
     val size = elements.size
-    with (ctx.ctx) {
+    with(ctx.ctx) {
         val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
         ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
         ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
@@ -94,7 +116,7 @@ fun createIterable(
 fun handlerStrEqKt(
     ctx: ConcolicRunContext,
     left: UninterpretedSymbolicPythonObject,
-    right: UninterpretedSymbolicPythonObject
+    right: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     left.addSupertype(ctx, ctx.typeSystem.pythonStr)
@@ -106,7 +128,7 @@ fun handlerStrEqKt(
 fun handlerStrNeqKt(
     ctx: ConcolicRunContext,
     left: UninterpretedSymbolicPythonObject,
-    right: UninterpretedSymbolicPythonObject
+    right: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     left.addSupertype(ctx, ctx.typeSystem.pythonStr)
@@ -118,7 +140,7 @@ fun handlerStrNeqKt(
 fun handlerIsOpKt(
     ctx: ConcolicRunContext,
     left: UninterpretedSymbolicPythonObject,
-    right: UninterpretedSymbolicPythonObject
+    right: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     ctx.curState ?: return
     val leftType = left.getTypeIfDefined(ctx)
@@ -151,10 +173,11 @@ fun handlerNoneCheckKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonO
 fun handlerStandardTpGetattroKt(
     ctx: ConcolicRunContext,
     obj: UninterpretedSymbolicPythonObject,
-    name: UninterpretedSymbolicPythonObject
+    name: UninterpretedSymbolicPythonObject,
 ): SymbolForCPython? {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return null
+    }
     val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
@@ -168,8 +191,9 @@ fun handlerStandardTpGetattroKt(
             defaultValue = handlerLoadConstKt(ctx, concreteDescriptor)
         }
     }
-    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
+    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
         return null
+    }
     val containsFieldCond = obj.containsField(ctx, name)
     val result = obj.getFieldValue(ctx, name)
 
@@ -183,8 +207,9 @@ fun handlerStandardTpGetattroKt(
     } ?: ctx.ctx.trueExpr
 
     if (ctx.modelHolder.model.eval(containsFieldCond).isFalse) {
-        if (defaultValue != null)
+        if (defaultValue != null) {
             return SymbolForCPython(defaultValue, 0)
+        }
         myFork(ctx, ctx.ctx.mkAnd(containsFieldCond, additionalCond))
         return null
     } else {
@@ -198,27 +223,31 @@ fun handlerStandardTpSetattroKt(
     ctx: ConcolicRunContext,
     obj: UninterpretedSymbolicPythonObject,
     name: UninterpretedSymbolicPythonObject,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return
-    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject))
+    if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
         return
+    }
     val descriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
     if (descriptor != null) {
         val descrType = ConcretePythonInterpreter.getPythonObjectType(descriptor)
-        if (ConcretePythonInterpreter.typeHasTpDescrSet(descrType))
+        if (ConcretePythonInterpreter.typeHasTpDescrSet(descrType)) {
             return
+        }
     }
     obj.setFieldValue(ctx, name, value)
 }
 
 fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
+    if (context.curState == null) {
         return null
-    if (array.getTypeIfDefined(context) != type)
+    }
+    if (array.getTypeIfDefined(context) != type) {
         return null
+    }
     val listSize = array.readArrayLength(context)
     return constructInt(context, listSize)
 }
@@ -228,11 +257,12 @@ fun resolveSequenceIndex(
     ctx: ConcolicRunContext,
     seq: UninterpretedSymbolicPythonObject,
     index: UninterpretedSymbolicPythonObject,
-    type: ArrayLikeConcretePythonType
+    type: ArrayLikeConcretePythonType,
 ): UExpr<KIntSort>? {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return null
-    with (ctx.ctx) {
+    }
+    with(ctx.ctx) {
         val typeSystem = ctx.typeSystem
         index.addSupertypeSoft(ctx, typeSystem.pythonInt)
         seq.addSupertypeSoft(ctx, type)
@@ -243,8 +273,9 @@ fun resolveSequenceIndex(
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
         myFork(ctx, indexCond)
 
-        if (ctx.curState!!.pyModel.eval(indexCond).isFalse)
+        if (ctx.curState!!.pyModel.eval(indexCond).isFalse) {
             return null
+        }
 
         val positiveIndex = mkAnd(indexValue lt listSize, mkIntNum(0) le indexValue)
         myFork(ctx, positiveIndex)
@@ -261,7 +292,7 @@ fun resolveSequenceIndex(
 
 fun handlerCreateEmptyObjectKt(
     ctx: ConcolicRunContext,
-    typeRef: PyObject
+    typeRef: PyObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
@@ -271,7 +302,7 @@ fun handlerCreateEmptyObjectKt(
 
 fun addHashableTypeConstrains(
     ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     var cond: UBoolExpr = trueExpr
     cond = cond and key.evalIsSoft(ctx, HasTpHash)
@@ -283,7 +314,7 @@ fun addHashableTypeConstrains(
 
 fun forkOnUnknownHashableType(
     ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     require(key.getTypeIfDefined(ctx) == null)
     val keyIsInt = key.evalIs(ctx, ctx.typeSystem.pythonInt)
@@ -300,7 +331,7 @@ fun forkOnUnknownHashableType(
 fun handlerCallOnKt(
     ctx: ConcolicRunContext,
     function: PyObject,
-    args: Stream<UninterpretedSymbolicPythonObject>
+    args: Stream<UninterpretedSymbolicPythonObject>,
 ) {
     ctx.curState ?: return
     addConstraintsFromNativeId(ctx, function, args.asSequence().toList())

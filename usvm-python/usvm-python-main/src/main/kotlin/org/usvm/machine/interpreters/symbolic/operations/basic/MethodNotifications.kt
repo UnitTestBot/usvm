@@ -3,7 +3,25 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getFieldValue
-import org.usvm.machine.types.*
+import org.usvm.machine.types.HasMpAssSubscript
+import org.usvm.machine.types.HasMpLength
+import org.usvm.machine.types.HasMpSubscript
+import org.usvm.machine.types.HasNbAdd
+import org.usvm.machine.types.HasNbIndex
+import org.usvm.machine.types.HasNbInt
+import org.usvm.machine.types.HasNbMatrixMultiply
+import org.usvm.machine.types.HasNbMultiply
+import org.usvm.machine.types.HasNbNegative
+import org.usvm.machine.types.HasNbPositive
+import org.usvm.machine.types.HasNbSubtract
+import org.usvm.machine.types.HasSqLength
+import org.usvm.machine.types.HasTpCall
+import org.usvm.machine.types.HasTpGetattro
+import org.usvm.machine.types.HasTpHash
+import org.usvm.machine.types.HasTpIter
+import org.usvm.machine.types.HasTpRichcmp
+import org.usvm.machine.types.HasTpSetattro
+import org.usvm.machine.types.MockType
 
 @Suppress("unused_parameter")
 fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
@@ -15,7 +33,9 @@ fun nbIntKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) 
     on.addSupertypeSoft(context, HasNbInt)
 }
 
-fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(
+    context.ctx
+) {
     context.curState ?: return
     myAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
 }
@@ -25,7 +45,9 @@ fun nbSubtractKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonO
     myAssert(context, left.evalIsSoft(context, HasNbSubtract))
 }
 
-fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(
+    context.ctx
+) {
     context.curState ?: return
     myAssert(context, left.evalIsSoft(context, HasNbMultiply) or right.evalIsSoft(context, HasNbMultiply))
 }
@@ -55,7 +77,7 @@ fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObjec
 fun mpSubscriptKt(
     context: ConcolicRunContext,
     on: UninterpretedSymbolicPythonObject,
-    index: UninterpretedSymbolicPythonObject
+    index: UninterpretedSymbolicPythonObject,
 ) {
     context.curState ?: return
     on.addSupertypeSoft(context, HasMpSubscript)
@@ -67,7 +89,7 @@ fun mpSubscriptKt(
 fun mpAssSubscriptKt(
     context: ConcolicRunContext,
     on: UninterpretedSymbolicPythonObject,
-    index: UninterpretedSymbolicPythonObject
+    index: UninterpretedSymbolicPythonObject,
 ) {
     context.curState ?: return
     on.addSupertypeSoft(context, HasMpAssSubscript)

@@ -1,9 +1,9 @@
 package org.usvm.machine.symbolicobjects.rendering
 
+import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
-import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
 import org.usvm.python.model.PyObjectModel

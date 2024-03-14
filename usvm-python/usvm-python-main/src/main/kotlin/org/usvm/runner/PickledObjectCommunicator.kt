@@ -5,8 +5,8 @@ import java.net.Socket
 
 class PickledObjectCommunicator(
     ip: String,
-    port: Int
-): AutoCloseable {
+    port: Int,
+) : AutoCloseable {
     private val clientSocket = Socket(ip, port)
     private val writer = PrintWriter(clientSocket.getOutputStream())
 

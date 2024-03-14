@@ -3,22 +3,30 @@ package org.usvm.machine.symbolicobjects.memory
 import io.ksmt.expr.KFp64Value
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isTrue
 import org.usvm.language.PyCallable
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.ContentOfType
+import org.usvm.machine.symbolicobjects.FloatContents
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 sealed class FloatInterpretedContent
-object FloatNan: FloatInterpretedContent()
-object FloatPlusInfinity: FloatInterpretedContent()
-object FloatMinusInfinity: FloatInterpretedContent()
-data class FloatNormalValue(val value: Double): FloatInterpretedContent()
+object FloatNan : FloatInterpretedContent()
+object FloatPlusInfinity : FloatInterpretedContent()
+object FloatMinusInfinity : FloatInterpretedContent()
+data class FloatNormalValue(val value: Double) : FloatInterpretedContent()
 
 private fun readBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, model: PyModel, address: UConcreteHeapRef, ctx: PyContext): UBoolExpr {
     val value = model.readField(address, field, field.sort(ctx))
@@ -38,8 +46,9 @@ private fun writeBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, mem
 fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatInterpretedContent {
     require(getConcreteType() == typeSystem.pythonFloat)
     val isNan = readBoolFieldWithSoftConstraint(FloatContents.isNan, modelHolder.model, address, ctx)
-    if (isNan.isTrue)
+    if (isNan.isTrue) {
         return FloatNan
+    }
     val isInf = readBoolFieldWithSoftConstraint(FloatContents.isInf, modelHolder.model, address, ctx)
     if (isInf.isTrue) {
         val isPositive = modelHolder.model.readField(address, FloatContents.infSign, FloatContents.infSign.sort(ctx))
@@ -51,11 +60,13 @@ fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatI
 }
 
 fun InterpretedSymbolicPythonObject.getFloatContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): FloatInterpretedContent {
-    if (this is InterpretedInputSymbolicPythonObject)
+    if (this is InterpretedInputSymbolicPythonObject) {
         return getFloatContent(ctx)
+    }
     val isNan = memory.readField(address, FloatContents.isNan, ctx.boolSort)
-    if (isNan.isTrue)
+    if (isNan.isTrue) {
         return FloatNan
+    }
     val isInf = memory.readField(address, FloatContents.isInf, ctx.boolSort)
     if (isInf.isTrue) {
         val isPositive = memory.readField(address, FloatContents.infSign, ctx.boolSort)
@@ -70,7 +81,7 @@ data class FloatUninterpretedContent(
     val isNan: UBoolExpr,
     val isInf: UBoolExpr,
     val infSign: UBoolExpr,
-    val realValue: UExpr<KRealSort>
+    val realValue: UExpr<KRealSort>,
 )
 
 fun mkUninterpretedNan(ctx: PyContext): FloatUninterpretedContent =
@@ -114,7 +125,9 @@ fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): 
 private fun wrapRealValue(ctx: PyContext, value: UExpr<KRealSort>): FloatUninterpretedContent =
     FloatUninterpretedContent(ctx.falseExpr, ctx.falseExpr, ctx.falseExpr, value)
 
-fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent? = with(ctx.ctx) {
+fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent? = with(
+    ctx.ctx
+) {
     return when (getTypeIfDefined(ctx)) {
         typeSystem.pythonFloat -> getFloatContent(ctx)
         typeSystem.pythonInt -> wrapRealValue(ctx.ctx, intToFloat(getIntContent(ctx)))

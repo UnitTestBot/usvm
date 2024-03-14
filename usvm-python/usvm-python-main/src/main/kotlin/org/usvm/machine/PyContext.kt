@@ -3,15 +3,19 @@ package org.usvm.machine
 import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
-import org.usvm.*
+import org.usvm.INITIAL_STATIC_ADDRESS
+import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.solver.USolverBase
 
 class PyContext(
     typeSystem: PythonTypeSystem,
-    private val components: PyComponents = PyComponents(typeSystem)
-): UContext<KIntSort>(components) {
+    private val components: PyComponents = PyComponents(typeSystem),
+) : UContext<KIntSort>(components) {
     private var nextAddress: UConcreteHeapAddress = INITIAL_STATIC_ADDRESS / 2
     fun provideRawConcreteHeapRef(): UConcreteHeapRef {
         require(nextAddress > INITIAL_STATIC_ADDRESS) {

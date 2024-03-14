@@ -4,10 +4,10 @@ import org.usvm.USort
 import org.usvm.machine.PyContext
 
 sealed class PropertyOfPythonObject
-class ContentOfType<out Sort: USort>(
+class ContentOfType<out Sort : USort>(
     val id: String,
-    val sort: (PyContext) -> Sort
-): PropertyOfPythonObject()
+    val sort: (PyContext) -> Sort,
+) : PropertyOfPythonObject()
 
 object IntContents {
     val content = ContentOfType("int") { it.intSort }
@@ -20,9 +20,9 @@ object BoolContents {
 object FloatContents {
     const val BOUND = 300
     val content = ContentOfType("float") { it.realSort }
-    val isNan = ContentOfType("is_nan_value") { it.intSort }  // isNan <=> value > bound
+    val isNan = ContentOfType("is_nan_value") { it.intSort } // isNan <=> value > bound
     val infSign = ContentOfType("float_inf_sign") { it.boolSort }
-    val isInf = ContentOfType("is_inf_value") { it.intSort }  // isInf <=> value > bound
+    val isInf = ContentOfType("is_inf_value") { it.intSort } // isInf <=> value > bound
 }
 
 object ListIteratorContents {
@@ -71,4 +71,4 @@ object EnumerateContents {
     val index = ContentOfType("index_of_enumerate") { it.intSort }
 }
 
-object TimeOfCreation: PropertyOfPythonObject()
+object TimeOfCreation : PropertyOfPythonObject()

@@ -10,7 +10,7 @@ enum class ObjectConverter(val repr: String) {
     TupleConverter("tuple_converter"),
     StringConverter("string_converter"),
     ObjectIdConverter("object_id_converter"),
-    NoConverter("")
+    NoConverter(""),
 }
 
 enum class CType(val repr: String) {
@@ -19,7 +19,7 @@ enum class CType(val repr: String) {
     PyFrameObject("PyFrameObject *"),
     CInt("int"),
     CStr("const char *"),
-    JObject("jobject")
+    JObject("jobject"),
 }
 
 enum class JavaType(val repr: String, val call: String) {
@@ -28,13 +28,13 @@ enum class JavaType(val repr: String, val call: String) {
     JInt("jint", "Int"),
     JBoolean("jboolean", "Boolean"),
     JObjectArray("jobjectArray", "Object"),
-    NoType("", "Void")
+    NoType("", "Void"),
 }
 
 data class ArgumentDescription(
     val cType: CType,
     val javaType: JavaType,
-    val converter: ObjectConverter
+    val converter: ObjectConverter,
 )
 
 data class CPythonFunctionDescription(
@@ -43,7 +43,7 @@ data class CPythonFunctionDescription(
     val result: ArgumentDescription,
     val failValue: String,
     val defaultValue: String,
-    val addToSymbolicAdapter: Boolean
+    val addToSymbolicAdapter: Boolean,
 )
 
 fun generateCPythonFunction(description: CPythonFunctionDescription): Pair<String, String> {
@@ -60,16 +60,18 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): Pair<Strin
     val javaReturnDescr = description.result.javaType.call
     val javaArgs = (listOf("ctx->context") + List(numberOfArgs) { "java_arg_$it" }).joinToString(", ")
     val returnValueCreation =
-        if (description.result.javaType != JavaType.NoType)
+        if (description.result.javaType != JavaType.NoType) {
             "$javaReturnType java_return = (*ctx->env)->CallStatic${javaReturnDescr}Method(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
-        else
+        } else {
             "(*ctx->env)->CallStaticVoidMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
+        }
     val returnConverter = description.result.converter.repr
     val returnStmt =
-        if (description.result.javaType == JavaType.NoType)
+        if (description.result.javaType == JavaType.NoType) {
             "return $defaultValue;"
-        else
+        } else {
             "return $returnConverter(ctx, java_return);"
+        }
     val cReturnType = description.result.cType.repr
     val failValue = description.failValue
     val failLine = if (numberOfArgs > 0) "int fail = 0;" else ""

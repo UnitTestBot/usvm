@@ -6,6 +6,6 @@ abstract class InputPythonObjectObserver {
     abstract fun onInputObjects(inputObjects: List<PyObject>)
 }
 
-object EmptyInputPythonObjectObserver: InputPythonObjectObserver() {
+object EmptyInputPythonObjectObserver : InputPythonObjectObserver() {
     override fun onInputObjects(inputObjects: List<PyObject>) = run {}
 }

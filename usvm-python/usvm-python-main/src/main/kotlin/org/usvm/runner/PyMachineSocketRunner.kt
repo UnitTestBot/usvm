@@ -2,12 +2,16 @@ package org.usvm.runner
 
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.StructuredPyProgram
-import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
-import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.PyMachine
 import org.usvm.machine.results.PyMachineResultsReceiver
-import org.usvm.machine.results.observers.*
+import org.usvm.machine.results.observers.EmptyInputPythonObjectObserver
+import org.usvm.machine.results.observers.EmptyNewStateObserver
+import org.usvm.machine.results.observers.EmptyPyTestObserver
+import org.usvm.machine.results.observers.NewStateObserver
+import org.usvm.machine.results.observers.PyTestObserver
 import org.usvm.machine.results.serialization.EmptyObjectSerializer
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.python.ps.PyPathSelectorType
 import org.utpython.types.PythonCallableTypeDescription
 import org.utpython.types.PythonCompositeTypeDescription
@@ -23,8 +27,8 @@ class PyMachineSocketRunner(
     programRoots: Set<File>,
     socketIp: String,
     socketPort: Int,
-    pathSelector: PyPathSelectorType
-): AutoCloseable {
+    pathSelector: PyPathSelectorType,
+) : AutoCloseable {
     private val mypyDir = MypyBuildDirectory(mypyDirPath, programRoots.map { it.canonicalPath }.toSet())
     private val mypyBuild = readMypyInfoBuild(mypyDir)
     private val communicator = PickledObjectCommunicator(socketIp, socketPort)
@@ -39,15 +43,18 @@ class PyMachineSocketRunner(
     private fun validateFunctionType(type: UtType): FunctionType {
         val description = type.pythonDescription() as? PythonCallableTypeDescription
             ?: error("Specified definition is not a function")
-        if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
+        if (description.argumentKinds.any {
+                it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
+            }) {
             error("Named arguments are not supported in symbolic execution")
+        }
         return type as FunctionType
     }
 
     private fun analyze(
         callable: PyUnpinnedCallable,
         timeoutPerRunMs: Long,
-        timeoutMs: Long
+        timeoutMs: Long,
     ) = machine.analyze(
         callable,
         saver = ResultReceiver(communicator),
@@ -60,7 +67,7 @@ class PyMachineSocketRunner(
         module: String,
         functionName: String,
         timeoutPerRunMs: Long,
-        timeoutMs: Long
+        timeoutMs: Long,
     ) {
         val def = mypyBuild.definitions[module]?.let { it[functionName] }
             ?: error("Did not find specified function in mypy build")
@@ -81,7 +88,7 @@ class PyMachineSocketRunner(
         functionName: String,
         clsName: String,
         timeoutPerRunMs: Long,
-        timeoutMs: Long
+        timeoutMs: Long,
     ) {
         val def = mypyBuild.definitions[module]?.let { it[clsName] }
             ?: error("Did not find specified class in mypy build")
@@ -102,7 +109,7 @@ class PyMachineSocketRunner(
         analyze(unpinnedCallable, timeoutPerRunMs, timeoutMs)
     }
 
-    private class ResultReceiver(communicator: PickledObjectCommunicator): PyMachineResultsReceiver<Unit> {
+    private class ResultReceiver(communicator: PickledObjectCommunicator) : PyMachineResultsReceiver<Unit> {
         override val newStateObserver: NewStateObserver = EmptyNewStateObserver
         override val serializer = EmptyObjectSerializer
         override val inputModelObserver = InputModelObserverForRunner(communicator)

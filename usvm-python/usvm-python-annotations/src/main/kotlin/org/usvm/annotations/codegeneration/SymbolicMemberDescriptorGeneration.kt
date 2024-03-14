@@ -3,7 +3,7 @@ package org.usvm.annotations.codegeneration
 data class MemberDescriptorInfo(
     val nativeTypeName: String,
     val nativeMemberName: String,
-    val javaMemberName: String
+    val javaMemberName: String,
 )
 
 fun generateDescriptorCheck(info: MemberDescriptorInfo): String =
@@ -18,8 +18,8 @@ fun generateDescriptorCheck(info: MemberDescriptorInfo): String =
 
 fun generateDescriptorChecks(info: List<MemberDescriptorInfo>): String =
     "#define MEMBER_DESCRIPTORS \\\n" +
-    info.joinToString("\n", transform = ::generateDescriptorCheck).replace("\n", "\\\n") +
-    "\n\n#define dummy_0 0"
+        info.joinToString("\n", transform = ::generateDescriptorCheck).replace("\n", "\\\n") +
+        "\n\n#define dummy_0 0"
 
 fun generateMethodDescriptorCheck(info: MemberDescriptorInfo): String =
     """
@@ -34,5 +34,5 @@ fun generateMethodDescriptorCheck(info: MemberDescriptorInfo): String =
 
 fun generateMethodDescriptorChecks(info: List<MemberDescriptorInfo>): String =
     "#define METHOD_DESCRIPTORS \\\n" +
-    info.joinToString("\n", transform = ::generateMethodDescriptorCheck).replace("\n", "\\\n") +
-    "\n\n#define dummy_1 1"
+        info.joinToString("\n", transform = ::generateMethodDescriptorCheck).replace("\n", "\\\n") +
+        "\n\n#define dummy_1 1"

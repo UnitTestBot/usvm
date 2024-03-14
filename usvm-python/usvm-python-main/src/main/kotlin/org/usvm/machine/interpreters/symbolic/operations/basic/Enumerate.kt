@@ -1,16 +1,17 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.types.HasTpIter
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIndexAndIncrement
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIterator
 import org.usvm.machine.symbolicobjects.memory.initializeEnumerate
+import org.usvm.machine.types.HasTpIter
 import java.util.stream.Stream
 
 fun handlerCreateEnumerateKt(
     ctx: ConcolicRunContext,
-    iterable: UninterpretedSymbolicPythonObject
+    iterable: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     iterable.addSupertype(ctx, HasTpIter)
@@ -36,7 +37,7 @@ fun handlerCreateEnumerateKt(
 
 fun handlerEnumerateIterKt(
     ctx: ConcolicRunContext,
-    enumerate: UninterpretedSymbolicPythonObject
+    enumerate: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     return enumerate
@@ -44,7 +45,7 @@ fun handlerEnumerateIterKt(
 
 fun handlerEnumerateNextKt(
     ctx: ConcolicRunContext,
-    enumerate: UninterpretedSymbolicPythonObject
+    enumerate: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val iterator = enumerate.getEnumerateIterator(ctx)

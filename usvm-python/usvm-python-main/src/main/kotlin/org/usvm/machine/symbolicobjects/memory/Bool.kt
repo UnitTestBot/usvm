@@ -8,8 +8,16 @@ import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
-import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.types.*
+import org.usvm.machine.symbolicobjects.BoolContents
+import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.HasMpLength
+import org.usvm.machine.types.HasNbBool
+import org.usvm.machine.types.HasSqLength
+import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
@@ -18,7 +26,7 @@ fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): U
     return ctx.curState!!.memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx.ctx))
 }
 
-fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with (ctx.ctx) {
+fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with(ctx.ctx) {
     require(ctx.curState != null)
     return when (val type = getTypeIfDefined(ctx)) {
         typeSystem.pythonBool -> getBoolContent(ctx)
@@ -28,10 +36,11 @@ fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): U
         typeSystem.pythonDict -> dictIsEmpty(ctx).not()
         typeSystem.pythonSet -> setIsEmpty(ctx).not()
         is ConcretePythonType -> {
-            if (HasNbBool.accepts(type) && !HasSqLength.accepts(type) && HasMpLength.accepts(type))
+            if (HasNbBool.accepts(type) && !HasSqLength.accepts(type) && HasMpLength.accepts(type)) {
                 trueExpr
-            else
+            } else {
                 null
+            }
         }
         else -> null
     }
@@ -48,7 +57,11 @@ fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemo
             getBoolContent(ctx)
         }
         is InterpretedAllocatedOrStaticSymbolicPythonObject -> {
-            memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx)) as KInterpretedValue<KBoolSort>
+            memory.readField(
+                address,
+                BoolContents.content,
+                BoolContents.content.sort(ctx)
+            ) as KInterpretedValue<KBoolSort>
         }
     }
 }

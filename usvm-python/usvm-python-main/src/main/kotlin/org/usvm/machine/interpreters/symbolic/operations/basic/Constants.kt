@@ -3,12 +3,16 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.constructBool
+import org.usvm.machine.symbolicobjects.constructFloat
+import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedFloatWithValue
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
-    if (ConcretePythonInterpreter.pythonExceptionOccurred())
+    if (ConcretePythonInterpreter.pythonExceptionOccurred()) {
         return null
+    }
     return when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
         "int" -> handlerLoadConstLongKt(context, value)
         "bool" -> handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
@@ -28,15 +32,17 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): Uninterpre
 }
 
 fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
+    if (context.curState == null) {
         return null
+    }
     val str = ConcretePythonInterpreter.getPythonObjectStr(value)
     return context.curState!!.preAllocatedObjects.allocateStr(context, str, value)
 }
 
 fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
+    if (context.curState == null) {
         return null
+    }
     val str = runCatching {
         ConcretePythonInterpreter.getPythonObjectRepr(value)
     }.onFailure {
@@ -49,16 +55,18 @@ fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PyObject): Uninte
 }
 
 fun handlerLoadConstFloatKt(ctx: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return null
+    }
     val str = ConcretePythonInterpreter.getPythonObjectRepr(value)
     val doubleValue = str.toDoubleOrNull() ?: return null
     return constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, doubleValue))
 }
 
 fun handlerLoadConstBoolKt(context: ConcolicRunContext, value: String): UninterpretedSymbolicPythonObject? {
-    if (context.curState == null)
+    if (context.curState == null) {
         return null
+    }
     return when (value) {
         "True" -> constructBool(context, context.ctx.trueExpr)
         "False" -> constructBool(context, context.ctx.falseExpr)

@@ -4,7 +4,11 @@ import org.usvm.annotations.codegeneration.generateSymbolicMethod
 import org.usvm.annotations.codegeneration.generateSymbolicMethodInitialization
 import org.usvm.annotations.ids.SymbolicMethodId
 import java.io.File
-import javax.annotation.processing.*
+import javax.annotation.processing.AbstractProcessor
+import javax.annotation.processing.RoundEnvironment
+import javax.annotation.processing.SupportedAnnotationTypes
+import javax.annotation.processing.SupportedOptions
+import javax.annotation.processing.SupportedSourceVersion
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
@@ -14,10 +18,11 @@ import javax.lang.model.type.ArrayType
 @SupportedAnnotationTypes("org.usvm.annotations.SymbolicMethod")
 @SupportedOptions("headerPath")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-class SymbolicMethodProcessor: AbstractProcessor() {
+class SymbolicMethodProcessor : AbstractProcessor() {
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        if (annotations.size != 1)
+        if (annotations.size != 1) {
             return false
+        }
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val functionsCode = generateFunctions(annotatedElements)

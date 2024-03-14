@@ -13,8 +13,9 @@ import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import org.usvm.machine.utils.getTypeStreamForDelayedFork
 
 fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return
+    }
     val model = ctx.curState!!.pyModel
     val oldCurState = ctx.curState
     val forkResult = fork(ctx.curState!!, cond)
@@ -31,10 +32,11 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     forkResult.negativeState?.let(applyToPyModel)
     forkResult.positiveState?.also { it.meta.generatedFrom = "From ordinary fork" }
     forkResult.negativeState?.also { it.meta.generatedFrom = "From ordinary fork" }
-    if (forkResult.negativeState != oldCurState)
+    if (forkResult.negativeState != oldCurState) {
         forkResult.negativeState?.let {
             ctx.forkedStates.add(it)
         }
+    }
 }
 
 fun myAssertOnState(state: PyState, cond: UExpr<KBoolSort>): PyState? {
@@ -48,19 +50,23 @@ fun myAssertOnState(state: PyState, cond: UExpr<KBoolSort>): PyState? {
 }
 
 fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return
+    }
     val oldModel = ctx.curState!!.pyModel
     val forkResult = myAssertOnState(ctx.curState!!, cond)
-    if (forkResult == null)
+    if (forkResult == null) {
         ctx.curState!!.meta.modelDied = true
-    if (forkResult?.pyModel != oldModel)
+    }
+    if (forkResult?.pyModel != oldModel) {
         throw BadModelException
+    }
 }
 
 fun addDelayedFork(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, clonedState: PyState) {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return
+    }
     ctx.curState!!.delayedForks = ctx.curState!!.delayedForks.add(
         DelayedFork(
             clonedState,
@@ -72,8 +78,9 @@ fun addDelayedFork(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObjec
 }
 
 fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObject) {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return
+    }
     if (cond.getTypeIfDefined(ctx) == null) {
         addDelayedFork(ctx, cond, ctx.curState!!.clone())
     }
@@ -81,6 +88,6 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     myFork(ctx, expr)
 }
 
-object BadModelException: Exception() {
+object BadModelException : Exception() {
     private fun readResolve(): Any = BadModelException
 }

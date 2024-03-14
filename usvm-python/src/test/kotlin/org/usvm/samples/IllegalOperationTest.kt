@@ -3,9 +3,9 @@ package org.usvm.samples
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
+import org.usvm.machine.utils.withAdditionalPaths
 import org.usvm.runner.PythonTestRunnerForStructuredProgram
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import org.usvm.machine.utils.withAdditionalPaths
 
 class IllegalOperationTest : PythonTestRunnerForStructuredProgram("SimpleExample") {
     @Test

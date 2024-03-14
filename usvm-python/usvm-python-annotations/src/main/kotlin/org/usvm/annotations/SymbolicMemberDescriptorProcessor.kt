@@ -3,7 +3,11 @@ package org.usvm.annotations
 import org.usvm.annotations.codegeneration.MemberDescriptorInfo
 import org.usvm.annotations.codegeneration.generateDescriptorChecks
 import java.io.File
-import javax.annotation.processing.*
+import javax.annotation.processing.AbstractProcessor
+import javax.annotation.processing.RoundEnvironment
+import javax.annotation.processing.SupportedAnnotationTypes
+import javax.annotation.processing.SupportedOptions
+import javax.annotation.processing.SupportedSourceVersion
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
@@ -11,10 +15,11 @@ import javax.lang.model.element.TypeElement
 @SupportedAnnotationTypes("org.usvm.annotations.SymbolicMemberDescriptor")
 @SupportedOptions("headerPath")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-class SymbolicMemberDescriptorProcessor: AbstractProcessor() {
+class SymbolicMemberDescriptorProcessor : AbstractProcessor() {
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        if (annotations.size != 1)
+        if (annotations.size != 1) {
             return false
+        }
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val info = getInfo(annotatedElements)

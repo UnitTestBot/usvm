@@ -1,8 +1,18 @@
 package org.usvm.annotations
 
-import org.usvm.annotations.codegeneration.*
+import org.usvm.annotations.codegeneration.ArgumentDescription
+import org.usvm.annotations.codegeneration.CPythonFunctionDescription
+import org.usvm.annotations.codegeneration.CType
+import org.usvm.annotations.codegeneration.JavaType
+import org.usvm.annotations.codegeneration.ObjectConverter
+import org.usvm.annotations.codegeneration.generateCPythonFunctionHeader
+import org.usvm.annotations.codegeneration.generateCPythonFunctionsImpls
 import java.io.File
-import javax.annotation.processing.*
+import javax.annotation.processing.AbstractProcessor
+import javax.annotation.processing.RoundEnvironment
+import javax.annotation.processing.SupportedAnnotationTypes
+import javax.annotation.processing.SupportedOptions
+import javax.annotation.processing.SupportedSourceVersion
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
@@ -15,10 +25,11 @@ import javax.lang.model.type.TypeMirror
 @SupportedAnnotationTypes("org.usvm.annotations.CPythonFunction")
 @SupportedOptions("headerPath")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-class CPythonFunctionProcessor: AbstractProcessor() {
+class CPythonFunctionProcessor : AbstractProcessor() {
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        if (annotations.size != 1)
+        if (annotations.size != 1) {
             return false
+        }
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val descriptions = getDescriptions(annotatedElements)

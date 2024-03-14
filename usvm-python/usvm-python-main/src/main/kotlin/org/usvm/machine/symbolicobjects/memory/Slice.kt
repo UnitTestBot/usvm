@@ -8,39 +8,51 @@ import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.PropertyOfPythonObject
 import org.usvm.machine.symbolicobjects.SliceContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.types.PythonTypeSystem
 
 data class SliceInterpretedContent(
     val start: KInterpretedValue<KIntSort>?,
     val stop: KInterpretedValue<KIntSort>?,
-    val step: KInterpretedValue<KIntSort>?
+    val step: KInterpretedValue<KIntSort>?,
 )
 
 fun InterpretedInputSymbolicPythonObject.getSliceContent(ctx: PyContext, typeSystem: PythonTypeSystem): SliceInterpretedContent {
     require(getConcreteType() == typeSystem.pythonSlice)
     val startIsNone = modelHolder.model.readField(address, SliceContents.startIsNone, ctx.boolSort).isTrue
-    val start = if (startIsNone) null else modelHolder.model.readField(address, SliceContents.start, ctx.intSort) as KInterpretedValue<KIntSort>
+    val start = if (startIsNone) null else modelHolder.model.readField(
+        address,
+        SliceContents.start,
+        ctx.intSort
+    ) as KInterpretedValue<KIntSort>
     val stopIsNone = modelHolder.model.readField(address, SliceContents.stopIsNone, ctx.boolSort).isTrue
-    val stop = if (stopIsNone) null else modelHolder.model.readField(address, SliceContents.stop, ctx.intSort) as KInterpretedValue<KIntSort>
+    val stop = if (stopIsNone) null else modelHolder.model.readField(
+        address,
+        SliceContents.stop,
+        ctx.intSort
+    ) as KInterpretedValue<KIntSort>
     val stepIsNone = modelHolder.model.readField(address, SliceContents.stepIsNone, ctx.boolSort).isTrue
-    val step = if (stepIsNone) null else modelHolder.model.readField(address, SliceContents.step, ctx.intSort) as KInterpretedValue<KIntSort>
+    val step = if (stepIsNone) null else modelHolder.model.readField(
+        address,
+        SliceContents.step,
+        ctx.intSort
+    ) as KInterpretedValue<KIntSort>
     return SliceInterpretedContent(start, stop, step)
 }
 
 data class SliceUninterpretedField(
     val isNone: UBoolExpr,
-    val content: UExpr<KIntSort>
+    val content: UExpr<KIntSort>,
 )
 
 private fun UninterpretedSymbolicPythonObject.getSliceField(
     ctx: ConcolicRunContext,
     fieldIsNone: PropertyOfPythonObject,
-    field: PropertyOfPythonObject
+    field: PropertyOfPythonObject,
 ): SliceUninterpretedField {
     require(ctx.curState != null)
     addSupertype(ctx, ctx.typeSystem.pythonSlice)
@@ -53,7 +65,7 @@ private fun UninterpretedSymbolicPythonObject.setSliceField(
     ctx: ConcolicRunContext,
     fieldIsNone: PropertyOfPythonObject,
     field: PropertyOfPythonObject,
-    content: SliceUninterpretedField
+    content: SliceUninterpretedField,
 ) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)

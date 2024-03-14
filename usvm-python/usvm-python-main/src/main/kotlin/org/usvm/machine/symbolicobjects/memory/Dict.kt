@@ -2,7 +2,9 @@ package org.usvm.machine.symbolicobjects.memory
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KIntSort
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
@@ -14,13 +16,20 @@ import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isFalse
+import org.usvm.isStaticHeapRef
+import org.usvm.isTrue
 import org.usvm.language.PyCallable
+import org.usvm.machine.PyContext
+import org.usvm.machine.symbolicobjects.DictContents
+import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.types.IntDictType
 import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.RefDictType
-import org.usvm.machine.PyContext
-import org.usvm.machine.symbolicobjects.*
 import org.usvm.memory.UMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.types.first
@@ -36,12 +45,18 @@ fun UninterpretedSymbolicPythonObject.setDictNotEmpty(ctx: ConcolicRunContext) {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
-    ctx.curState!!.memory.writeField(address, DictContents.isNotEmpty, ctx.ctx.boolSort, ctx.ctx.trueExpr, ctx.ctx.trueExpr)
+    ctx.curState!!.memory.writeField(
+        address,
+        DictContents.isNotEmpty,
+        ctx.ctx.boolSort,
+        ctx.ctx.trueExpr,
+        ctx.ctx.trueExpr
+    )
 }
 
 fun UninterpretedSymbolicPythonObject.readDictRefElement(
     ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -52,7 +67,7 @@ fun UninterpretedSymbolicPythonObject.readDictRefElement(
 
 fun UninterpretedSymbolicPythonObject.dictContainsRef(
     ctx: ConcolicRunContext,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ): UBoolExpr {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -66,7 +81,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsRef(
 fun UninterpretedSymbolicPythonObject.writeDictRefElement(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -77,7 +92,7 @@ fun UninterpretedSymbolicPythonObject.writeDictRefElement(
 
 fun UninterpretedSymbolicPythonObject.readDictIntElement(
     ctx: ConcolicRunContext,
-    key: UExpr<KIntSort>
+    key: UExpr<KIntSort>,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -89,7 +104,7 @@ fun UninterpretedSymbolicPythonObject.readDictIntElement(
 
 fun UninterpretedSymbolicPythonObject.dictContainsInt(
     ctx: ConcolicRunContext,
-    key: UExpr<KIntSort>
+    key: UExpr<KIntSort>,
 ): UBoolExpr {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -104,7 +119,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsInt(
 fun UninterpretedSymbolicPythonObject.writeDictIntElement(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem
@@ -124,7 +139,7 @@ fun InterpretedInputSymbolicPythonObject.dictIsEmpty(ctx: PyContext): Boolean {
 
 private fun InterpretedInputSymbolicPythonObject.constructResultObject(
     resultAddress: UConcreteHeapRef,
-    memory: UMemory<PythonType, PyCallable>
+    memory: UMemory<PythonType, PyCallable>,
 ): InterpretedSymbolicPythonObject =
     if (isStaticHeapRef(resultAddress)) {
         val type = memory.typeStreamOf(resultAddress).first()
@@ -137,7 +152,7 @@ private fun InterpretedInputSymbolicPythonObject.constructResultObject(
 fun InterpretedInputSymbolicPythonObject.readDictRefElement(
     ctx: PyContext,
     key: InterpretedSymbolicPythonObject,
-    memory: UMemory<PythonType, PyCallable>
+    memory: UMemory<PythonType, PyCallable>,
 ): InterpretedSymbolicPythonObject {
     val lvalue = URefMapEntryLValue(ctx.addressSort, address, key.address, RefDictType)
     val elemAddress = modelHolder.model.read(lvalue) as UConcreteHeapRef
@@ -146,7 +161,7 @@ fun InterpretedInputSymbolicPythonObject.readDictRefElement(
 
 fun InterpretedInputSymbolicPythonObject.dictContainsRef(
     ctx: PyContext,
-    key: InterpretedSymbolicPythonObject
+    key: InterpretedSymbolicPythonObject,
 ): Boolean {
     val lvalue = URefSetEntryLValue(address, key.address, RefDictType)
     val result = modelHolder.model.read(lvalue)
@@ -156,7 +171,7 @@ fun InterpretedInputSymbolicPythonObject.dictContainsRef(
 fun InterpretedInputSymbolicPythonObject.readDictIntElement(
     ctx: PyContext,
     key: KInterpretedValue<KIntSort>,
-    memory: UMemory<PythonType, PyCallable>
+    memory: UMemory<PythonType, PyCallable>,
 ): InterpretedSymbolicPythonObject {
     val lvalue = UMapEntryLValue(ctx.intSort, ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
     val resultAddress = modelHolder.model.read(lvalue) as UConcreteHeapRef
@@ -165,7 +180,7 @@ fun InterpretedInputSymbolicPythonObject.readDictIntElement(
 
 fun InterpretedInputSymbolicPythonObject.dictContainsInt(
     ctx: PyContext,
-    key: KInterpretedValue<KIntSort>
+    key: KInterpretedValue<KIntSort>,
 ): Boolean {
     val lvalue = USetEntryLValue(ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
     return !dictIsEmpty(ctx) && modelHolder.model.read(lvalue).isTrue

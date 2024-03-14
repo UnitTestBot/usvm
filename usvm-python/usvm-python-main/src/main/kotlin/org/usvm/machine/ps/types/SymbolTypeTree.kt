@@ -1,28 +1,51 @@
 package org.usvm.machine.ps.types
 
-import org.usvm.language.*
+import org.usvm.language.MpAssSubscriptMethod
+import org.usvm.language.MpSubscriptMethod
+import org.usvm.language.NbAddMethod
+import org.usvm.language.NbBoolMethod
+import org.usvm.language.NbIntMethod
+import org.usvm.language.NbMatrixMultiplyMethod
+import org.usvm.language.NbMultiplyMethod
+import org.usvm.language.NbNegativeMethod
+import org.usvm.language.NbPositiveMethod
+import org.usvm.language.NbSubtractMethod
+import org.usvm.language.SqLengthMethod
+import org.usvm.language.TpCallMethod
+import org.usvm.language.TpGetattro
+import org.usvm.language.TpIterMethod
+import org.usvm.language.TpRichcmpMethod
+import org.usvm.language.TpSetattro
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getConcreteStrIfDefined
-import org.utpython.types.*
+import org.utpython.types.PythonAnyTypeDescription
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.createBinaryProtocol
+import org.utpython.types.createProtocolWithAttribute
+import org.utpython.types.createPythonCallableType
+import org.utpython.types.createUnaryProtocol
 import org.utpython.types.general.FunctionTypeCreator
 import org.utpython.types.general.UtType
 import org.utpython.types.inference.TypeInferenceEdgeWithBound
 import org.utpython.types.inference.TypeInferenceNode
 import org.utpython.types.inference.addEdge
+import org.utpython.types.pythonAnyType
+import org.utpython.types.pythonDescription
 
 class SymbolTypeTree(
     private val state: PyState,
     private val typeHintsStorage: PythonTypeHintsStorage,
     rootSymbol: UninterpretedSymbolicPythonObject,
-    private val maxDepth: Int = 5
+    private val maxDepth: Int = 5,
 ) {
     private val root = SymbolTreeNode(rootSymbol)
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
         state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
             val protocol =
-                 when (mockHeader.method) {
+                when (mockHeader.method) {
                     MpAssSubscriptMethod ->
                         { returnType: UtType -> createBinaryProtocol("__setitem__", pythonAnyType, returnType) }
                     MpSubscriptMethod ->
@@ -77,17 +100,17 @@ class SymbolTypeTree(
                     is TpCallMethod -> { returnType: UtType ->
                         createProtocolWithAttribute(
                             "__call__",
-                                createPythonCallableType(
-                                    1,
-                                    listOf(PythonCallableTypeDescription.ArgKind.ARG_STAR),
-                                    listOf(null)
-                                ) {
-                                    FunctionTypeCreator.InitializationData(
-                                        listOf(pythonAnyType),
-                                        returnType
-                                    )
-                                }
-                            )
+                            createPythonCallableType(
+                                1,
+                                listOf(PythonCallableTypeDescription.ArgKind.ARG_STAR),
+                                listOf(null)
+                            ) {
+                                FunctionTypeCreator.InitializationData(
+                                    listOf(pythonAnyType),
+                                    returnType
+                                )
+                            }
+                        )
                     }
                 }
             val originalHint = protocol(pythonAnyType)
@@ -101,8 +124,9 @@ class SymbolTypeTree(
         }
 
     private fun generateNodes(node: SymbolTreeNode, depth: Int) {
-        if (depth >= maxDepth)
+        if (depth >= maxDepth) {
             return
+        }
         generateSuccessors(node).forEach {
             generateNodes(it, depth + 1)
         }
@@ -135,7 +159,7 @@ class SymbolTypeTree(
     }
 }
 
-class SymbolTreeNode(val symbol: UninterpretedSymbolicPythonObject): TypeInferenceNode {
+class SymbolTreeNode(val symbol: UninterpretedSymbolicPythonObject) : TypeInferenceNode {
     override val partialType: UtType = pythonAnyType
     override val ingoingEdges = mutableListOf<SymbolTreeEdge>()
     override val outgoingEdges = mutableListOf<SymbolTreeEdge>()
@@ -145,7 +169,7 @@ class SymbolTreeNode(val symbol: UninterpretedSymbolicPythonObject): TypeInferen
 class SymbolTreeEdge(
     override val from: SymbolTreeNode,
     override val to: SymbolTreeNode,
-    override val dependency: (UtType) -> List<UtType>
-): TypeInferenceEdgeWithBound {
+    override val dependency: (UtType) -> List<UtType>,
+) : TypeInferenceEdgeWithBound {
     override val boundType: TypeInferenceEdgeWithBound.BoundType = TypeInferenceEdgeWithBound.BoundType.Upper
 }

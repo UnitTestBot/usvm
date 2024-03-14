@@ -9,18 +9,19 @@ import org.usvm.machine.ps.weightedRandom
 import kotlin.random.Random
 
 
-class WeightedActionStrategy<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>>(
+class WeightedActionStrategy<DFState : DelayedForkState, DFGraph : DelayedForkGraph<DFState>>(
     private val random: Random,
     private val actions: List<Action<DFState, DFGraph>>,
-    private val weights: List<Double>
-): PyPathSelectorActionStrategy<DFState, DFGraph> {
+    private val weights: List<Double>,
+) : PyPathSelectorActionStrategy<DFState, DFGraph> {
     init {
         require(actions.size == weights.size)
     }
     override fun chooseAction(graph: DFGraph): PyPathSelectorAction<DFState>? {
         val availableActions = actions.mapIndexedNotNull { idx, action ->
-            if (!action.isAvailable(graph))
+            if (!action.isAvailable(graph)) {
                 return@mapIndexedNotNull null
+            }
             action to weights[idx]
         }
         if (availableActions.isEmpty()) {

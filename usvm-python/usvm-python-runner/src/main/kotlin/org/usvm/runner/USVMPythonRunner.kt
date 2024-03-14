@@ -5,7 +5,7 @@ import java.io.File
 import java.net.InetSocketAddress
 import java.nio.channels.ServerSocketChannel
 
-open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable {
+open class USVMPythonRunner(private val config: USVMPythonConfig) : AutoCloseable {
     protected val serverSocketChannel: ServerSocketChannel = ServerSocketChannel.open()
     private val port: InetSocketAddress
 
@@ -56,7 +56,9 @@ open class USVMPythonRunner(private val config: USVMPythonConfig): AutoCloseable
         val processBuilder = ProcessBuilder(args)
         val env = processBuilder.environment()
         if (System.getProperty("os.name")!!.lowercase().startsWith("windows")) {
-            env["PATH"] = (System.getProperty("PATH")?.let { "$it:" } ?: "") + "${File(layout.cpythonPath, "DLLs").canonicalPath};${layout.cpythonPath.canonicalPath}"
+            env["PATH"] = (System.getProperty("PATH")?.let {
+                "$it:"
+            } ?: "") + "${File(layout.cpythonPath, "DLLs").canonicalPath};${layout.cpythonPath.canonicalPath}"
         } else {
             env["LD_LIBRARY_PATH"] = "${File(layout.cpythonPath, "lib").canonicalPath}:${layout.cpythonPath.canonicalPath}"
             env["LD_PRELOAD"] = File(layout.cpythonPath, "lib/libpython3.so").canonicalPath

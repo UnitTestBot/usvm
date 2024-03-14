@@ -1,6 +1,6 @@
 package org.usvm.runner
 
-class DebugRunner(config: USVMPythonConfig): USVMPythonRunner(config) {
+class DebugRunner(config: USVMPythonConfig) : USVMPythonRunner(config) {
     fun runProcessAndPrintInfo(runConfig: USVMPythonRunConfig) {
         val builder = setupEnvironment(runConfig)
         builder.redirectError(ProcessBuilder.Redirect.INHERIT)

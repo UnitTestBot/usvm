@@ -2,15 +2,19 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.symbolicobjects.memory.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.memory.addIntToSet
+import org.usvm.machine.symbolicobjects.memory.addRefToSet
+import org.usvm.machine.symbolicobjects.memory.getToIntContent
+import org.usvm.machine.symbolicobjects.memory.setContainsInt
+import org.usvm.machine.symbolicobjects.memory.setContainsRef
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
 fun handlerSetContainsKt(
     ctx: ConcolicRunContext,
     set: UninterpretedSymbolicPythonObject,
-    elem: UninterpretedSymbolicPythonObject
+    elem: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     set.addSupertype(ctx, ctx.typeSystem.pythonSet)
@@ -18,7 +22,7 @@ fun handlerSetContainsKt(
     val elemType = elem.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (elemType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return  // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = elem.getToIntContent(ctx) ?: return
             set.setContainsInt(ctx, intValue)
@@ -36,12 +40,12 @@ fun handlerSetContainsKt(
 private fun addItem(
     ctx: ConcolicRunContext,
     set: UninterpretedSymbolicPythonObject,
-    elem: UninterpretedSymbolicPythonObject
+    elem: UninterpretedSymbolicPythonObject,
 ) {
     val elemType = elem.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     when (elemType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return  // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = elem.getToIntContent(ctx) ?: return
             set.addIntToSet(ctx, intValue)
@@ -58,7 +62,7 @@ private fun addItem(
 fun handlerSetAddKt(
     ctx: ConcolicRunContext,
     set: UninterpretedSymbolicPythonObject,
-    elem: UninterpretedSymbolicPythonObject
+    elem: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     set.addSupertype(ctx, ctx.typeSystem.pythonSet)
@@ -75,7 +79,7 @@ fun handlerCreateEmptySetKt(ctx: ConcolicRunContext): UninterpretedSymbolicPytho
 
 fun handlerCreateSetKt(
     ctx: ConcolicRunContext,
-    elemsStream: Stream<UninterpretedSymbolicPythonObject>
+    elemsStream: Stream<UninterpretedSymbolicPythonObject>,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val elems = elemsStream.asSequence().toList()

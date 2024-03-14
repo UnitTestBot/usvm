@@ -5,20 +5,20 @@ import org.usvm.python.model.PyIdentifier
 
 sealed class PythonType
 
-object MockType: PythonType()
+object MockType : PythonType()
 
-open class InternalType: PythonType()
+open class InternalType : PythonType()
 
-sealed class InternalDictType: InternalType()
-object ObjectDictType: InternalDictType()
-object RefDictType: InternalDictType()
-object IntDictType: InternalDictType()
+sealed class InternalDictType : InternalType()
+object ObjectDictType : InternalDictType()
+object RefDictType : InternalDictType()
+object IntDictType : InternalDictType()
 
-sealed class InternalSetType: InternalType()
-object RefSetType: InternalSetType()
-object IntSetType: InternalSetType()
+sealed class InternalSetType : InternalType()
+object RefSetType : InternalSetType()
+object IntSetType : InternalSetType()
 
-abstract class VirtualPythonType: PythonType() {
+abstract class VirtualPythonType : PythonType() {
     abstract fun accepts(type: PythonType): Boolean
 }
 
@@ -27,8 +27,8 @@ sealed class ConcretePythonType(
     val typeName: String,
     val id: PyIdentifier,
     val isHidden: Boolean = false,
-    val addressGetter: () -> PyObject
-): PythonType() {
+    val addressGetter: () -> PyObject,
+) : PythonType() {
     val asObject: PyObject
         get() = owner.addressOfConcreteType(this)
 
@@ -45,8 +45,8 @@ class PrimitiveConcretePythonType(
     typeName: String,
     id: PyIdentifier,
     isHidden: Boolean = false,
-    addressGetter: () -> PyObject
-): ConcretePythonType(owner, typeName, id, isHidden, addressGetter)
+    addressGetter: () -> PyObject,
+) : ConcretePythonType(owner, typeName, id, isHidden, addressGetter)
 
 class ArrayLikeConcretePythonType(
     val elementConstraints: Set<ElementConstraint>,
@@ -54,5 +54,5 @@ class ArrayLikeConcretePythonType(
     typeName: String,
     id: PyIdentifier,
     val innerType: PythonType? = null,
-    addressGetter: () -> PyObject
-): ConcretePythonType(owner, typeName, id,false, addressGetter)
+    addressGetter: () -> PyObject,
+) : ConcretePythonType(owner, typeName, id, false, addressGetter)

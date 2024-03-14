@@ -10,7 +10,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 fun UninterpretedSymbolicPythonObject.initializeEnumerate(
     ctx: ConcolicRunContext,
-    arg: UninterpretedSymbolicPythonObject
+    arg: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     require(ctx.curState != null)
     ctx.curState!!.memory.writeField(address, EnumerateContents.iterator, addressSort, arg.address, trueExpr)
@@ -18,7 +18,7 @@ fun UninterpretedSymbolicPythonObject.initializeEnumerate(
 }
 
 fun UninterpretedSymbolicPythonObject.getEnumerateIterator(
-    ctx: ConcolicRunContext
+    ctx: ConcolicRunContext,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val result = ctx.curState!!.memory.readField(address, EnumerateContents.iterator, ctx.ctx.addressSort)
@@ -26,10 +26,16 @@ fun UninterpretedSymbolicPythonObject.getEnumerateIterator(
 }
 
 fun UninterpretedSymbolicPythonObject.getEnumerateIndexAndIncrement(
-    ctx: ConcolicRunContext
+    ctx: ConcolicRunContext,
 ): UExpr<KIntSort> = with(ctx.ctx) {
     require(ctx.curState != null)
     val result = ctx.curState!!.memory.readField(address, EnumerateContents.index, intSort)
-    ctx.curState!!.memory.writeField(address, EnumerateContents.index, intSort, mkArithAdd(result, mkIntNum(1)), trueExpr)
+    ctx.curState!!.memory.writeField(
+        address,
+        EnumerateContents.index,
+        intSort,
+        mkArithAdd(result, mkIntNum(1)),
+        trueExpr
+    )
     return result
 }

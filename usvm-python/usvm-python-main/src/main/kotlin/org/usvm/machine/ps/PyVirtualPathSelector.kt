@@ -4,24 +4,33 @@ import mu.KLogging
 import org.usvm.UPathSelector
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.api.typeStreamOf
-import org.usvm.machine.types.MockType
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.toPyModel
-import org.usvm.machine.ps.strategies.*
+import org.usvm.machine.ps.strategies.DelayedForkGraph
+import org.usvm.machine.ps.strategies.DelayedForkGraphCreation
+import org.usvm.machine.ps.strategies.DelayedForkGraphInnerVertex
+import org.usvm.machine.ps.strategies.DelayedForkGraphRootVertex
+import org.usvm.machine.ps.strategies.DelayedForkGraphVertex
+import org.usvm.machine.ps.strategies.DelayedForkState
+import org.usvm.machine.ps.strategies.DelayedForkStrategy
+import org.usvm.machine.ps.strategies.MakeDelayedFork
+import org.usvm.machine.ps.strategies.Peek
+import org.usvm.machine.ps.strategies.PyPathSelectorActionStrategy
 import org.usvm.machine.ps.types.makeTypeRating
 import org.usvm.machine.results.observers.NewStateObserver
+import org.usvm.machine.types.MockType
+import org.usvm.machine.types.PythonType
 import org.usvm.types.TypesResult
 
-class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>>(
+class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGraph<DFState>>(
     private val ctx: PyContext,
     private val actionStrategy: PyPathSelectorActionStrategy<DFState, DFGraph>,
     private val delayedForkStrategy: DelayedForkStrategy<DFState>,
     private val graphCreation: DelayedForkGraphCreation<DFState, DFGraph>,
-    private val newStateObserver: NewStateObserver
-): UPathSelector<PyState> {
+    private val newStateObserver: NewStateObserver,
+) : UPathSelector<PyState> {
     private val graph = graphCreation.createOneVertexGraph(DelayedForkGraphRootVertex())
     override fun isEmpty(): Boolean = nullablePeek() == null
 
@@ -85,8 +94,9 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
     private var peekCache: PyState? = null
 
     private fun nullablePeek(): PyState? {
-        if (peekCache != null)
+        if (peekCache != null) {
             return peekCache
+        }
         while (true) {
             when (val action = actionStrategy.chooseAction(graph)) {
                 null -> {
@@ -121,7 +131,9 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
         return peekCache
     }
 
-    private fun generateStateWithConcreteType(delayedFork: DelayedFork, delayedForkState: DFState): PyState? = with(ctx) {
+    private fun generateStateWithConcreteType(delayedFork: DelayedFork, delayedForkState: DFState): PyState? = with(
+        ctx
+    ) {
         val typeRating = delayedForkStrategy.chooseTypeRating(delayedForkState)
         while (typeRating.types.isNotEmpty() && typeRating.types.first() in delayedForkState.usedTypes) {
             typeRating.types.removeAt(0)
@@ -160,10 +172,11 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
             ctx.mkConcreteHeapRef(addressRaw)
         }
         val typeStreamsRaw = objects.map {
-            if (it.address == 0)
+            if (it.address == 0) {
                 state.possibleTypesForNull
-            else
+            } else {
                 state.pyModel.typeStreamOf(it)
+            }
         }
         val typeStreams = typeStreamsRaw.map {
             @Suppress("unchecked_cast")
@@ -176,7 +189,7 @@ class PyVirtualPathSelector<DFState: DelayedForkState, DFGraph: DelayedForkGraph
             return null
         }
         require(typeStreams.all { it.first() == MockType })
-        val types = typeStreams.map {it.take(2).last()}
+        val types = typeStreams.map { it.take(2).last() }
         (objects zip types).forEach { (objAddress, type) ->
             state.pyModel.forcedConcreteTypes[objAddress] = type
         }

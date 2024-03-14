@@ -3,11 +3,11 @@ package org.usvm.machine.symbolicobjects
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.machine.types.PythonType
-import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.memory.UMemory
 
 class PreallocatedObjects(
@@ -16,15 +16,17 @@ class PreallocatedObjects(
     val falseObject: UninterpretedSymbolicPythonObject,
     private val concreteStrToSymbol: MutableMap<String, UninterpretedSymbolicPythonObject>,
     private val symbolToConcreteStr: MutableMap<UninterpretedSymbolicPythonObject, String>,
-    private val refOfString: MutableMap<String, PyObject>
+    private val refOfString: MutableMap<String, PyObject>,
 ) {
 
     fun allocateStr(ctx: ConcolicRunContext, string: String, ref: PyObject): UninterpretedSymbolicPythonObject {
         require(ctx.curState != null)
         val cached = concreteStrToSymbol[string]
-        if (cached != null)
+        if (cached != null) {
             return cached
-        val result = constructEmptyStaticObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
+        }
+        val result =
+            constructEmptyStaticObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
         symbolToConcreteStr[result] = string
         refOfString[string] = ref
@@ -56,12 +58,18 @@ class PreallocatedObjects(
             ctx: PyContext,
             initialMemory: UMemory<PythonType, PyCallable>,
             initialPathConstraints: UPathConstraints<PythonType>,
-            typeSystem: PythonTypeSystem
+            typeSystem: PythonTypeSystem,
         ): PreallocatedObjects =
             PreallocatedObjects(
                 noneObject = constructEmptyStaticObject(ctx, initialMemory, typeSystem, typeSystem.pythonNoneType),
                 trueObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.trueExpr),
-                falseObject = constructInitialBool(ctx, initialMemory, initialPathConstraints, typeSystem, ctx.falseExpr),
+                falseObject = constructInitialBool(
+                    ctx,
+                    initialMemory,
+                    initialPathConstraints,
+                    typeSystem,
+                    ctx.falseExpr
+                ),
                 concreteStrToSymbol = mutableMapOf(),
                 symbolToConcreteStr = mutableMapOf(),
                 refOfString = mutableMapOf()

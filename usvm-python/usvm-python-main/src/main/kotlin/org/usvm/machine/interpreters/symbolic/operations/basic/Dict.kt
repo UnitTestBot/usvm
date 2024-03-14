@@ -3,22 +3,30 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.machine.symbolicobjects.*
-import org.usvm.machine.symbolicobjects.memory.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.memory.dictContainsInt
+import org.usvm.machine.symbolicobjects.memory.dictContainsRef
+import org.usvm.machine.symbolicobjects.memory.dictIsEmpty
+import org.usvm.machine.symbolicobjects.memory.getToIntContent
+import org.usvm.machine.symbolicobjects.memory.readArrayElement
+import org.usvm.machine.symbolicobjects.memory.readDictIntElement
+import org.usvm.machine.symbolicobjects.memory.readDictRefElement
+import org.usvm.machine.symbolicobjects.memory.writeDictIntElement
+import org.usvm.machine.symbolicobjects.memory.writeDictRefElement
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
 fun handlerDictGetItemKt(
     ctx: ConcolicRunContext,
     dict: UninterpretedSymbolicPythonObject,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     addHashableTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     return when (keyType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> null  // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> null // TODO
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = key.getToIntContent(ctx) ?: return null
             val containsCond = dict.dictContainsInt(ctx, intValue)
@@ -48,11 +56,11 @@ private fun setItem(
     ctx: ConcolicRunContext,
     dict: UninterpretedSymbolicPythonObject,
     key: UninterpretedSymbolicPythonObject,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     val typeSystem = ctx.typeSystem
     when (val keyType = key.getTypeIfDefined(ctx)) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit  // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit // TODO
         typeSystem.pythonInt -> {
             val intValue = key.getToIntContent(ctx) ?: return
             dict.writeDictIntElement(ctx, intValue, value)
@@ -70,7 +78,7 @@ fun handlerDictSetItemKt(
     ctx: ConcolicRunContext,
     dict: UninterpretedSymbolicPythonObject,
     key: UninterpretedSymbolicPythonObject,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     addHashableTypeConstrains(ctx, key)
@@ -82,7 +90,7 @@ fun handlerDictSetItemKt(
 fun handlerCreateDictKt(
     ctx: ConcolicRunContext,
     keysStream: Stream<UninterpretedSymbolicPythonObject>,
-    elemsStream: Stream<UninterpretedSymbolicPythonObject>
+    elemsStream: Stream<UninterpretedSymbolicPythonObject>,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val keys = keysStream.asSequence().toList()
@@ -101,7 +109,7 @@ fun handlerCreateDictKt(
 fun handlerCreateDictConstKeyKt(
     ctx: ConcolicRunContext,
     keys: UninterpretedSymbolicPythonObject,
-    elemsStream: Stream<UninterpretedSymbolicPythonObject>
+    elemsStream: Stream<UninterpretedSymbolicPythonObject>,
 ): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val elems = elemsStream.asSequence().toList()
@@ -120,14 +128,14 @@ fun handlerCreateDictConstKeyKt(
 fun handlerDictContainsKt(
     ctx: ConcolicRunContext,
     dict: UninterpretedSymbolicPythonObject,
-    key: UninterpretedSymbolicPythonObject
+    key: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     addHashableTypeConstrains(ctx, key)
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (keyType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return  // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = key.getToIntContent(ctx) ?: return
             dict.dictContainsInt(ctx, intValue)
@@ -144,7 +152,7 @@ fun handlerDictContainsKt(
 
 fun handlerDictIterKt(
     ctx: ConcolicRunContext,
-    dict: UninterpretedSymbolicPythonObject
+    dict: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     myFork(ctx, dict.dictIsEmpty(ctx))
@@ -152,7 +160,7 @@ fun handlerDictIterKt(
 
 fun handlerDictLengthKt(
     ctx: ConcolicRunContext,
-    dict: UninterpretedSymbolicPythonObject
+    dict: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
     myFork(ctx, dict.dictIsEmpty(ctx))

@@ -1,6 +1,7 @@
 package org.usvm.machine.symbolicobjects.memory
 
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapContains
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
@@ -8,21 +9,24 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isStaticHeapRef
+import org.usvm.isTrue
 import org.usvm.language.PyCallable
-import org.usvm.machine.types.ConcretePythonType
-import org.usvm.machine.types.ObjectDictType
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.ObjectDictType
+import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 import org.usvm.types.first
 
 fun UninterpretedSymbolicPythonObject.getFieldValue(
     ctx: ConcolicRunContext,
-    name: UninterpretedSymbolicPythonObject
+    name: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     name.addSupertype(ctx, typeSystem.pythonStr)
@@ -33,7 +37,7 @@ fun UninterpretedSymbolicPythonObject.getFieldValue(
 fun UninterpretedSymbolicPythonObject.setFieldValue(
     ctx: ConcolicRunContext,
     name: UninterpretedSymbolicPythonObject,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     require(ctx.curState != null)
     name.addSupertypeSoft(ctx, typeSystem.pythonStr)
@@ -42,7 +46,7 @@ fun UninterpretedSymbolicPythonObject.setFieldValue(
 
 fun UninterpretedSymbolicPythonObject.containsField(
     ctx: ConcolicRunContext,
-    name: UninterpretedSymbolicPythonObject
+    name: UninterpretedSymbolicPythonObject,
 ): UBoolExpr {
     require(ctx.curState != null)
     name.addSupertype(ctx, typeSystem.pythonStr)
@@ -50,7 +54,7 @@ fun UninterpretedSymbolicPythonObject.containsField(
 }
 
 fun InterpretedInputSymbolicPythonObject.containsField(
-    name: InterpretedSymbolicPythonObject
+    name: InterpretedSymbolicPythonObject,
 ): Boolean {
     require(!isAllocatedConcreteHeapRef(name.address))
     val result = modelHolder.model.read(URefSetEntryLValue(address, name.address, ObjectDictType))
@@ -60,14 +64,14 @@ fun InterpretedInputSymbolicPythonObject.containsField(
 fun InterpretedInputSymbolicPythonObject.getFieldValue(
     ctx: PyContext,
     name: InterpretedSymbolicPythonObject,
-    memory: UMemory<PythonType, PyCallable>
+    memory: UMemory<PythonType, PyCallable>,
 ): InterpretedSymbolicPythonObject {
     require(!isAllocatedConcreteHeapRef(name.address))
     val result = modelHolder.model.read(URefMapEntryLValue(ctx.addressSort, address, name.address, ObjectDictType))
     require((result as UConcreteHeapRef).address <= 0)
-    return if (!isStaticHeapRef(result))
+    return if (!isStaticHeapRef(result)) {
         InterpretedInputSymbolicPythonObject(result, modelHolder, typeSystem)
-    else {
+    } else {
         val type = memory.typeStreamOf(result).first()
         require(type is ConcretePythonType)
         InterpretedAllocatedOrStaticSymbolicPythonObject(result, type, typeSystem)

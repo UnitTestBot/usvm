@@ -1,27 +1,34 @@
 import org.usvm.UMachineOptions
 import org.usvm.language.PrimitivePyProgram
 import org.usvm.language.PyProgram
-import org.usvm.machine.*
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.StructuredPyProgram
+import org.usvm.machine.PyMachine
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
 import org.usvm.machine.results.DefaultPyMachineResultsReceiver
 import org.usvm.machine.results.serialization.ObjectWithDictSerializer
-import org.usvm.machine.types.*
+import org.usvm.machine.types.BasicPythonTypeSystem
+import org.usvm.machine.types.PythonAnyType
+import org.usvm.machine.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
+import org.usvm.machine.types.getTypeFromTypeHint
+import org.usvm.machine.utils.withAdditionalPaths
+import org.usvm.python.model.PyResultFailure
+import org.usvm.python.model.PyResultSuccess
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
-import org.usvm.machine.utils.withAdditionalPaths
-import org.usvm.python.model.PyResultFailure
-import org.usvm.python.model.PyResultSuccess
-import org.utpython.types.*
+import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonConcreteCompositeTypeDescription
 import org.utpython.types.general.FunctionType
 import org.utpython.types.general.UtType
 import org.utpython.types.mypy.MypyBuildDirectory
 import org.utpython.types.mypy.buildMypyInfo
 import org.utpython.types.mypy.readMypyInfoBuild
+import org.utpython.types.pythonDescription
+import org.utpython.types.pythonTypeRepresentation
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
@@ -72,20 +79,25 @@ private fun getFunctionInfo(
     name: String,
     module: String,
     typeSystem: PythonTypeSystemWithMypyInfo,
-    program: StructuredPyProgram
+    program: StructuredPyProgram,
 ): PyUnpinnedCallable? {
-    //println("Module: $module, name: $name")
+    // println("Module: $module, name: $name")
     val description = type.pythonDescription()
-    if (description !is PythonCallableTypeDescription)
+    if (description !is PythonCallableTypeDescription) {
         return null
-    if (ignoreFunctions.contains(name))
+    }
+    if (ignoreFunctions.contains(name)) {
         return null
-    //if (module != "requests.cookies")
+    }
+    // if (module != "requests.cookies")
     //    return null
-    //if (name != "remove_cookie_by_name")
+    // if (name != "remove_cookie_by_name")
     //    return null
-    if (description.argumentKinds.any { it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2 })
+    if (description.argumentKinds.any {
+            it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
+        }) {
         return null
+    }
     runCatching {
         withAdditionalPaths(program.roots, typeSystem) {
             val namespace = program.getNamespaceOfModule(module)!!
@@ -132,16 +144,17 @@ private fun buildProjectRunConfig(): RunConfig {
     val program = StructuredPyProgram(setOf(File(projectPath)))
     val typeSystem = PythonTypeSystemWithMypyInfo(mypyBuild, program)
     val functions = modules.flatMap { module ->
-        //println("Module: $module")
-        if (module in ignoreModules)
+        // println("Module: $module")
+        if (module in ignoreModules) {
             return@flatMap emptyList()
+        }
         runCatching {
             withAdditionalPaths(program.roots, typeSystem) {
                 program.getNamespaceOfModule(module)
             }
-        }.getOrNull() ?: return@flatMap emptyList()  // skip bad modules
+        }.getOrNull() ?: return@flatMap emptyList() // skip bad modules
         mypyBuild.definitions[module]!!.flatMap { (defName, def) ->
-            //println("Def name: $defName")
+            // println("Def name: $defName")
             val type = def.getUtBotType()
             val description = type.pythonDescription()
             if (defName.startsWith("__")) {
@@ -223,7 +236,9 @@ private fun analyze(runConfig: RunConfig) {
                 if (machine.statistics.functionStatistics.last().coverage == 0.0) {
                     emptyCoverage.add(f.tag)
                 }
-                println("Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations.")
+                println(
+                    "Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations."
+                )
                 println("FUNCTION STATISTICS")
                 println(machine.statistics.functionStatistics.last().writeReport())
                 println()
@@ -242,7 +257,7 @@ private fun analyze(runConfig: RunConfig) {
 private data class RunConfig(
     val program: PyProgram,
     val typeSystem: PythonTypeSystem,
-    val functions: List<PyUnpinnedCallable>
+    val functions: List<PyUnpinnedCallable>,
 )
 
 @Suppress("SameParameterValue")

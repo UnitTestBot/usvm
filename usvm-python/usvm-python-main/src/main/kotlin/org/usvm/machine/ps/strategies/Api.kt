@@ -1,19 +1,19 @@
 package org.usvm.machine.ps.strategies
 
 import org.usvm.UPathSelector
-import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
+import org.usvm.machine.types.ConcretePythonType
 
-interface PyPathSelectorActionStrategy<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>> {
+interface PyPathSelectorActionStrategy<DFState : DelayedForkState, DFGraph : DelayedForkGraph<DFState>> {
     fun chooseAction(graph: DFGraph): PyPathSelectorAction<DFState>?
 }
 
-interface DelayedForkStrategy<DFState: DelayedForkState> {
+interface DelayedForkStrategy<DFState : DelayedForkState> {
     fun chooseTypeRating(state: DFState): TypeRating
 }
 
-interface DelayedForkGraphCreation<DFState: DelayedForkState, DFGraph: DelayedForkGraph<DFState>> {
+interface DelayedForkGraphCreation<DFState : DelayedForkState, DFGraph : DelayedForkGraph<DFState>> {
     fun createEmptyDelayedForkState(): DFState
     fun createOneVertexGraph(root: DelayedForkGraphRootVertex<DFState>): DFGraph
 }
@@ -34,8 +34,8 @@ open class DelayedForkState {
     }
 }
 
-abstract class DelayedForkGraph<DFState: DelayedForkState>(
-    val root: DelayedForkGraphRootVertex<DFState>
+abstract class DelayedForkGraph<DFState : DelayedForkState>(
+    val root: DelayedForkGraphRootVertex<DFState>,
 ) {
     private val vertices: MutableMap<DelayedFork, DelayedForkGraphInnerVertex<DFState>> = mutableMapOf()
     open fun addVertex(df: DelayedFork, vertex: DelayedForkGraphInnerVertex<DFState>) {
@@ -51,26 +51,26 @@ abstract class DelayedForkGraph<DFState: DelayedForkState>(
         vertices[df]
 }
 
-sealed class DelayedForkGraphVertex<DFState: DelayedForkState>
+sealed class DelayedForkGraphVertex<DFState : DelayedForkState>
 
-class DelayedForkGraphRootVertex<DFState: DelayedForkState>: DelayedForkGraphVertex<DFState>()
+class DelayedForkGraphRootVertex<DFState : DelayedForkState> : DelayedForkGraphVertex<DFState>()
 
-class DelayedForkGraphInnerVertex<DFState: DelayedForkState>(
+class DelayedForkGraphInnerVertex<DFState : DelayedForkState>(
     val delayedForkState: DFState,
     val delayedFork: DelayedFork,
-    val parent: DelayedForkGraphVertex<DFState>
-):  DelayedForkGraphVertex<DFState>()
+    val parent: DelayedForkGraphVertex<DFState>,
+) : DelayedForkGraphVertex<DFState>()
 
-sealed class PyPathSelectorAction<DFState: DelayedForkState>
-class Peek<DFState: DelayedForkState>(
-    val pathSelector: UPathSelector<PyState>
-): PyPathSelectorAction<DFState>()
-class MakeDelayedFork<DFState: DelayedForkState>(
-    val vertex: DelayedForkGraphInnerVertex<DFState>
-): PyPathSelectorAction<DFState>()
+sealed class PyPathSelectorAction<DFState : DelayedForkState>
+class Peek<DFState : DelayedForkState>(
+    val pathSelector: UPathSelector<PyState>,
+) : PyPathSelectorAction<DFState>()
+class MakeDelayedFork<DFState : DelayedForkState>(
+    val vertex: DelayedForkGraphInnerVertex<DFState>,
+) : PyPathSelectorAction<DFState>()
 
 class TypeRating(
     val types: MutableList<ConcretePythonType>,
     val numberOfHints: Int,
-    var numberOfUsed: Int = 0
+    var numberOfUsed: Int = 0,
 )

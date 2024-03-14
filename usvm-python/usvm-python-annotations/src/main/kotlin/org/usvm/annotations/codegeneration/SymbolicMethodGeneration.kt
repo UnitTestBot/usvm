@@ -50,8 +50,8 @@ fun generateSymbolicMethodInitialization(): String {
         """.trimIndent()
     }
     return "#define SYMBOLIC_METHOD_INITIALIZATION \\\n" +
-            prefix.replace("\n", "\\\n") + "\\\n" +
-            items.joinToString("\n").replace("\n", "\\\n") + "\n"
+        prefix.replace("\n", "\\\n") + "\\\n" +
+        items.joinToString("\n").replace("\n", "\\\n") + "\n"
 }
 
 fun generateMethodCheck(): String {

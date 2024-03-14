@@ -1,7 +1,7 @@
 package org.usvm.machine.utils
 
-import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.types.PythonTypeSystem
 import java.io.File
 
 fun <T> withAdditionalPaths(additionalPaths: Collection<File>, typeSystem: PythonTypeSystem?, block: () -> T): T {
@@ -20,7 +20,11 @@ fun <T> withAdditionalPaths(additionalPaths: Collection<File>, typeSystem: Pytho
         namespace,
         """
             import sys, copy
-            sys.path += ${additionalPaths.joinToString(prefix = "[", separator = ", ", postfix = "]") { "r\"${it.canonicalPath}\"" }}
+            sys.path += ${additionalPaths.joinToString(
+            prefix = "[",
+            separator = ", ",
+            postfix = "]"
+        ) { "r\"${it.canonicalPath}\"" }}
         """.trimIndent()
     )
 

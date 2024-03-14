@@ -5,7 +5,14 @@ import org.usvm.language.PyInstruction
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.model.PyModelHolder
-import org.usvm.machine.ps.strategies.impls.*
+import org.usvm.machine.ps.strategies.impls.BaselineDFGraphCreation
+import org.usvm.machine.ps.strategies.impls.BaselineDelayedForkStrategy
+import org.usvm.machine.ps.strategies.impls.DelayedForkByInstructionGraphCreation
+import org.usvm.machine.ps.strategies.impls.TypeRatingByNumberOfHints
+import org.usvm.machine.ps.strategies.impls.makeBaselinePriorityActionStrategy
+import org.usvm.machine.ps.strategies.impls.makeBaselineWeightedActionStrategy
+import org.usvm.machine.ps.strategies.impls.makeDelayedForkByInstructionPriorityStrategy
+import org.usvm.machine.ps.strategies.impls.makeDelayedForkByInstructionWeightedStrategy
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
@@ -24,7 +31,7 @@ fun createPyPathSelector(
     type: PyPathSelectorType,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> {
     val initialNode = initialState.pathNode
     val selector = when (type) {
@@ -44,7 +51,12 @@ fun createPyPathSelector(
             createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.BaselinePriorityNumberOfInstructionsRandomTree ->
-            createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+            createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(
+                initialNode,
+                ctx,
+                random,
+                newStateObserver
+            )
 
         PyPathSelectorType.BaselinePriorityPlusTypeRatingByHintsDfs ->
             createTypeRatingByHintsDfsPyPathSelector(ctx, random, newStateObserver)
@@ -59,17 +71,31 @@ fun createPyPathSelector(
             createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfVirtualRandomTree ->
-            createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+            createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelector(
+                initialNode,
+                ctx,
+                random,
+                newStateObserver
+            )
 
         PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfInstructionsDfs ->
             createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(ctx, random, newStateObserver)
 
         PyPathSelectorType.DelayedForkByInstructionPriorityNumberOfInstructionsRandomTree ->
-            createDelayedForkByInstructionPriorityNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
+            createDelayedForkByInstructionPriorityNumberOfInstructionsRandomTreePyPathSelector(
+                initialNode,
+                ctx,
+                random,
+                newStateObserver
+            )
 
         PyPathSelectorType.DelayedForkByInstructionWeightedNumberOfInstructionsRandomTree ->
-            createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSelector(initialNode, ctx, random, newStateObserver)
-
+            createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSelector(
+                initialNode,
+                ctx,
+                random,
+                newStateObserver
+            )
     }
     selector.add(listOf(initialState))
     return selector
@@ -78,7 +104,7 @@ fun createPyPathSelector(
 fun createBaselinePriorityDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -91,7 +117,7 @@ fun createBaselinePriorityDfsPyPathSelector(
 fun createBaselineWeightedDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -104,14 +130,19 @@ fun createBaselineWeightedDfsPyPathSelector(
 fun createBaselinePriorityNumberOfVirtualDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
         makeBaselinePriorityActionStrategy(random),
         BaselineDelayedForkStrategy(),
         BaselineDFGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = true,
+                ::calculateNumberOfVirtual,
+                ::mockWeight
+            ) {
                 DfsPathSelector()
             }
         },
@@ -122,7 +153,7 @@ fun createBaselineWeightedNumberOfVirtualRandomTreePyPathSelector(
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -147,7 +178,7 @@ fun createBaselineWeightedNumberOfVirtualRandomTreePyPathSelector(
 fun createBaselinePriorityNumberOfInstructionsDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -170,7 +201,7 @@ fun createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -195,7 +226,7 @@ fun createBaselinePriorityNumberOfInstructionsRandomTreePyPathSelector(
 fun createDelayedForkByInstructionWeightedDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -209,7 +240,7 @@ fun createDelayedForkByInstructionWeightedRandomTreePyPathSelector(
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -227,14 +258,19 @@ fun createDelayedForkByInstructionWeightedRandomTreePyPathSelector(
 fun createDelayedForkByInstructionPriorityNumberOfVirtualDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
         makeDelayedForkByInstructionPriorityStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = true, ::calculateNumberOfVirtual, ::mockWeight) {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = true,
+                ::calculateNumberOfVirtual,
+                ::mockWeight
+            ) {
                 DfsPathSelector()
             }
         },
@@ -246,7 +282,7 @@ fun createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelecto
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -271,14 +307,19 @@ fun createDelayedForkByInstructionWeightedNumberOfVirtualRandomTreePyPathSelecto
 fun createDelayedForkByInstructionPriorityNumberOfInstructionsDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
         makeDelayedForkByInstructionPriorityStrategy(random),
         BaselineDelayedForkStrategy(),
         DelayedForkByInstructionGraphCreation {
-            WeightedPyPathSelector(random, proportionalToSelectorSize = false, ::calculateNumberOfInstructions, ::instructionWeight) {
+            WeightedPyPathSelector(
+                random,
+                proportionalToSelectorSize = false,
+                ::calculateNumberOfInstructions,
+                ::instructionWeight
+            ) {
                 DfsPathSelector()
             }
         },
@@ -289,7 +330,7 @@ fun createDelayedForkByInstructionPriorityNumberOfInstructionsRandomTreePyPathSe
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -315,7 +356,7 @@ fun createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSe
     initialNode: PathNode<PyInstruction>,
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -340,7 +381,7 @@ fun createDelayedForkByInstructionWeightedNumberOfInstructionsRandomTreePyPathSe
 fun createTypeRatingByHintsDfsPyPathSelector(
     ctx: PyContext,
     random: Random,
-    newStateObserver: NewStateObserver
+    newStateObserver: NewStateObserver,
 ): PyVirtualPathSelector<*, *> =
     PyVirtualPathSelector(
         ctx,
@@ -352,16 +393,16 @@ fun createTypeRatingByHintsDfsPyPathSelector(
 
 
 private fun calculateNumberOfVirtual(state: PyState): Int =
-   runCatching {
-       val modelHolder = PyModelHolder(state.pyModel)
-       val builder = PyObjectModelBuilder(state, modelHolder)
-       val models = state.inputSymbols.map { symbol ->
-           val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
-           builder.convert(interpreted)
-       }
-       val tupleOfModels = PyTupleObject(models)
-       calculateNumberOfMocks(tupleOfModels)
-   }.getOrDefault(5)
+    runCatching {
+        val modelHolder = PyModelHolder(state.pyModel)
+        val builder = PyObjectModelBuilder(state, modelHolder)
+        val models = state.inputSymbols.map { symbol ->
+            val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
+            builder.convert(interpreted)
+        }
+        val tupleOfModels = PyTupleObject(models)
+        calculateNumberOfMocks(tupleOfModels)
+    }.getOrDefault(5)
 
 
 private fun mockWeight(mocks: Int) = 1.0 / max(1, mocks + 1)

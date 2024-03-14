@@ -2,25 +2,29 @@ package org.usvm.machine.model
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KIntSort
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
+import org.usvm.machine.types.PythonType
 import org.usvm.model.UModelBase
 import org.usvm.regions.Region
 import org.usvm.solver.UExprTranslator
 
 data class PathConstraintsInfo(
     val setRefKeys: Set<UConcreteHeapRef>,
-    val setIntKeys: Set<KInterpretedValue<KIntSort>>
+    val setIntKeys: Set<KInterpretedValue<KIntSort>>,
 )
 
 fun getPathConstraintsInfo(
     ctx: PyContext,
     ps: UPathConstraints<PythonType>,
-    underlyingModel: UModelBase<PythonType>
+    underlyingModel: UModelBase<PythonType>,
 ): PathConstraintsInfo {
     val visitor = ConstraintsVisitor(ctx)
     ps.constraints(visitor).toList()
@@ -39,7 +43,7 @@ fun getPathConstraintsInfo(
 
 
 @Suppress("unchecked_cast")
-private class ConstraintsVisitor(ctx: PyContext): UExprTranslator<PythonType, KIntSort>(ctx) {
+private class ConstraintsVisitor(ctx: PyContext) : UExprTranslator<PythonType, KIntSort>(ctx) {
     val refKeys: MutableSet<UHeapRef> = mutableSetOf()
     val intKeys: MutableSet<UExpr<KIntSort>> = mutableSetOf()
 
@@ -49,8 +53,9 @@ private class ConstraintsVisitor(ctx: PyContext): UExprTranslator<PythonType, KI
     }
 
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(expr: UInputSetReading<PythonType, ElemSort, Reg>): UBoolExpr {
-        if (expr.element.sort == ctx.intSort)
+        if (expr.element.sort == ctx.intSort) {
             intKeys.add(expr.element as UExpr<KIntSort>)
+        }
         return super.transform(expr)
     }
 }

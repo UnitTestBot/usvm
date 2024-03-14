@@ -3,24 +3,27 @@ package org.usvm.machine.types
 import org.usvm.language.StructuredPyProgram
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
+import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.types.streams.PyMockTypeStream
 import org.usvm.machine.types.streams.TypeFilter
-import org.usvm.types.USupportTypeStream
-import org.usvm.types.UTypeStream
-import org.usvm.types.UTypeSystem
 import org.usvm.machine.utils.withAdditionalPaths
 import org.usvm.python.model.PyIdentifier
-import org.utpython.types.*
-import org.utpython.types.general.UtType
+import org.usvm.types.UTypeStream
+import org.usvm.types.UTypeSystem
+import org.utpython.types.PythonTypeHintsStorage
+import org.utpython.types.PythonTypeWrapperForEqualityCheck
 import org.utpython.types.general.DefaultSubstitutionProvider
+import org.utpython.types.general.UtType
 import org.utpython.types.general.getBoundedParameters
 import org.utpython.types.mypy.MypyInfoBuild
+import org.utpython.types.pythonAnyType
+import org.utpython.types.pythonModuleName
+import org.utpython.types.pythonName
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-abstract class PythonTypeSystem: UTypeSystem<PythonType> {
+abstract class PythonTypeSystem : UTypeSystem<PythonType> {
     override val typeOperationsTimeout: Duration
         get() = 1000.milliseconds
 
@@ -107,8 +110,9 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     override fun findSubtypes(type: PythonType): Sequence<PythonType> {
-        if (isFinal(type))
+        if (isFinal(type)) {
             return emptySequence()
+        }
         return (listOf(MockType) + allConcreteTypes.filter { isSupertype(type, it) }).asSequence()
     }
 
@@ -117,10 +121,16 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 
     private fun createConcreteTypeByName(name: String, isHidden: Boolean = false): ConcretePythonType =
-        addPrimitiveType(isHidden, PyIdentifier("builtins", name)) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+        addPrimitiveType(
+            isHidden,
+            PyIdentifier("builtins", name)
+        ) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
 
     private fun createArrayLikeTypeByName(name: String, constraints: Set<ElementConstraint>): ArrayLikeConcretePythonType =
-        addArrayLikeType(constraints, PyIdentifier("builtins", name)) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
+        addArrayLikeType(
+            constraints,
+            PyIdentifier("builtins", name)
+        ) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
 
     val pythonInt = createConcreteTypeByName("int")
     val pythonBool = createConcreteTypeByName("bool")
@@ -156,7 +166,7 @@ abstract class PythonTypeSystem: UTypeSystem<PythonType> {
     }
 }
 
-class BasicPythonTypeSystem: PythonTypeSystem() {
+class BasicPythonTypeSystem : PythonTypeSystem() {
     init {
         allConcreteTypes = basicTypes
     }
@@ -164,15 +174,15 @@ class BasicPythonTypeSystem: PythonTypeSystem() {
 
 class PythonTypeSystemWithMypyInfo(
     mypyBuild: MypyInfoBuild,
-    private val program: StructuredPyProgram
-): PythonTypeSystem() {
+    private val program: StructuredPyProgram,
+) : PythonTypeSystem() {
     val typeHintsStorage = PythonTypeHintsStorage.get(mypyBuild)
 
     private fun typeAlreadyInStorage(typeRef: PyObject): Boolean = addressToConcreteType.keys.contains(typeRef)
 
     private fun isWorkableType(typeRef: PyObject): Boolean {
         return ConcretePythonInterpreter.getPythonObjectTypeName(typeRef) == "type" &&
-                (ConcretePythonInterpreter.typeHasStandardNew(typeRef) || basicTypeRefs.contains(typeRef))
+            (ConcretePythonInterpreter.typeHasStandardNew(typeRef) || basicTypeRefs.contains(typeRef))
     }
 
     private val utTypeOfConcretePythonType = mutableMapOf<ConcretePythonType, UtType>()
@@ -186,12 +196,13 @@ class PythonTypeSystemWithMypyInfo(
 
     fun resortTypes(module: String) {
         allConcreteTypes = allConcreteTypes.sortedBy {
-            if (it in basicTypes)
+            if (it in basicTypes) {
                 0
-            else if (it.typeModule == module)
+            } else if (it.typeModule == module) {
                 1
-            else
+            } else {
                 2
+            }
         }
     }
 
@@ -215,8 +226,9 @@ class PythonTypeSystemWithMypyInfo(
                     return@mapNotNull null
                 }
                 ConcretePythonInterpreter.incref(ref)
-                if (!isWorkableType(ref))
+                if (!isWorkableType(ref)) {
                     return@mapNotNull null
+                }
 
                 if (typeAlreadyInStorage(ref)) {
                     utTypeOfConcretePythonType[concreteTypeOnAddress(ref)!!] = utType

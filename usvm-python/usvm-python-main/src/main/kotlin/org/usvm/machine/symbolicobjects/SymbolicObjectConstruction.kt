@@ -2,16 +2,28 @@ package org.usvm.machine.symbolicobjects
 
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KIntSort
-import org.usvm.*
+import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
+import org.usvm.UExpr
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.*
+import org.usvm.language.PyCallable
+import org.usvm.machine.PyContext
+import org.usvm.machine.symbolicobjects.memory.FloatUninterpretedContent
+import org.usvm.machine.symbolicobjects.memory.SliceUninterpretedField
+import org.usvm.machine.symbolicobjects.memory.setFloatContent
+import org.usvm.machine.symbolicobjects.memory.setIntContent
+import org.usvm.machine.symbolicobjects.memory.setListIteratorContent
+import org.usvm.machine.symbolicobjects.memory.setRangeContent
+import org.usvm.machine.symbolicobjects.memory.setRangeIteratorContent
+import org.usvm.machine.symbolicobjects.memory.setSliceStart
+import org.usvm.machine.symbolicobjects.memory.setSliceStep
+import org.usvm.machine.symbolicobjects.memory.setSliceStop
+import org.usvm.machine.symbolicobjects.memory.setTupleIteratorContent
 import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
-import org.usvm.machine.PyContext
-import org.usvm.machine.symbolicobjects.memory.*
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 
@@ -21,7 +33,7 @@ fun constructInputObject(
     ctx: PyContext,
     memory: UMemory<PythonType, PyCallable>,
     pathConstraints: UPathConstraints<PythonType>,
-    typeSystem: PythonTypeSystem
+    typeSystem: PythonTypeSystem,
 ): UninterpretedSymbolicPythonObject {
     @Suppress("unchecked_cast")
     val address = memory.read(URegisterStackLValue(ctx.addressSort, stackIndex)) as UExpr<UAddressSort>
@@ -35,7 +47,7 @@ fun constructEmptyAllocatedObject(
     ctx: PyContext,
     memory: UMemory<PythonType, PyCallable>,
     typeSystem: PythonTypeSystem,
-    type: ConcretePythonType
+    type: ConcretePythonType,
 ): UninterpretedSymbolicPythonObject {
     val address = memory.allocConcrete(type)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
@@ -47,7 +59,7 @@ fun constructEmptyStaticObject(
     ctx: PyContext,
     memory: UMemory<PythonType, PyCallable>,
     typeSystem: PythonTypeSystem,
-    type: ConcretePythonType
+    type: ConcretePythonType,
 ): UninterpretedSymbolicPythonObject {
     val address = memory.allocStatic(type)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
@@ -90,7 +102,7 @@ fun constructInitialBool(
     memory: UMemory<PythonType, PyCallable>,
     pathConstraints: UPathConstraints<PythonType>,
     typeSystem: PythonTypeSystem,
-    expr: UExpr<KBoolSort>
+    expr: UExpr<KBoolSort>,
 ): UninterpretedSymbolicPythonObject {
     val address = memory.allocStatic(typeSystem.pythonBool)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
@@ -145,7 +157,7 @@ fun constructSlice(
     ctx: ConcolicRunContext,
     start: SliceUninterpretedField,
     stop: SliceUninterpretedField,
-    step: SliceUninterpretedField
+    step: SliceUninterpretedField,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val typeSystem = ctx.typeSystem

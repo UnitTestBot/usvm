@@ -1,17 +1,29 @@
 package org.usvm.machine.symbolicobjects
 
 import io.ksmt.sort.KIntSort
-import org.usvm.*
-import org.usvm.api.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.UHeapRef
+import org.usvm.api.readField
+import org.usvm.api.typeStreamOf
+import org.usvm.api.writeField
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isStaticHeapRef
+import org.usvm.isTrue
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.model.getConcreteType
 import org.usvm.machine.model.getFirstType
-import org.usvm.machine.types.*
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.ConcreteTypeNegation
+import org.usvm.machine.types.MockType
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.memory.UMemory
 import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
@@ -20,11 +32,12 @@ import org.usvm.types.first
 
 sealed class SymbolicPythonObject(
     open val address: UHeapRef,
-    val typeSystem: PythonTypeSystem
+    val typeSystem: PythonTypeSystem,
 ) {
     override fun equals(other: Any?): Boolean {
-        if (other !is SymbolicPythonObject)
+        if (other !is SymbolicPythonObject) {
             return false
+        }
         return address == other.address
     }
 
@@ -35,18 +48,20 @@ sealed class SymbolicPythonObject(
 
 class UninterpretedSymbolicPythonObject(
     address: UHeapRef,
-    typeSystem: PythonTypeSystem
-): SymbolicPythonObject(address, typeSystem) {
+    typeSystem: PythonTypeSystem,
+) : SymbolicPythonObject(address, typeSystem) {
     fun addSupertype(ctx: ConcolicRunContext, type: PythonType) {
-        if (address is UConcreteHeapRef)
+        if (address is UConcreteHeapRef) {
             return
+        }
         require(ctx.curState != null)
         myAssert(ctx, evalIs(ctx, type))
     }
 
     fun addSupertypeSoft(ctx: ConcolicRunContext, type: PythonType) {
-        if (address is UConcreteHeapRef)
+        if (address is UConcreteHeapRef) {
             return
+        }
         require(ctx.curState != null)
         myAssert(ctx, evalIsSoft(ctx, type))
     }
@@ -63,7 +78,7 @@ class UninterpretedSymbolicPythonObject(
     fun evalIs(
         ctx: PyContext,
         typeConstraints: UTypeConstraints<PythonType>,
-        type: PythonType
+        type: PythonType,
     ): UBoolExpr {
         if (type is ConcretePythonType) {
             return with(ctx) {
@@ -81,11 +96,12 @@ class UninterpretedSymbolicPythonObject(
     fun evalIsSoft(
         ctx: PyContext,
         typeConstraints: UTypeConstraints<PythonType>,
-        type: PythonType
+        type: PythonType,
     ): UBoolExpr {
         var result: UBoolExpr = typeConstraints.evalIsSubtype(address, type)
-        if (type is ConcretePythonType)
+        if (type is ConcretePythonType) {
             result = with(ctx) { result and mkHeapRefEq(address, nullRef).not() }
+        }
         return result
     }
 
@@ -99,12 +115,12 @@ class UninterpretedSymbolicPythonObject(
         return interpreted.address.address == 0
     }
 
-    fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> {  // must not be called on nullref
+    fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> { // must not be called on nullref
         require(ctx.curState != null)
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
-    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PyCallable>) {  // must not be called on nullref
+    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PyCallable>) { // must not be called on nullref
         memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-1_000_000_000), ctx.trueExpr)
     }
 
@@ -116,8 +132,8 @@ class UninterpretedSymbolicPythonObject(
 
 sealed class InterpretedSymbolicPythonObject(
     override val address: UConcreteHeapRef,
-    typeSystem: PythonTypeSystem
-): SymbolicPythonObject(address, typeSystem) {
+    typeSystem: PythonTypeSystem,
+) : SymbolicPythonObject(address, typeSystem) {
     abstract fun getConcreteType(): ConcretePythonType?
     abstract fun getFirstType(): PythonType?
     abstract fun getTypeStream(): UTypeStream<PythonType>?
@@ -126,26 +142,29 @@ sealed class InterpretedSymbolicPythonObject(
 class InterpretedInputSymbolicPythonObject(
     address: UConcreteHeapRef,
     val modelHolder: PyModelHolder,
-    typeSystem: PythonTypeSystem
-): InterpretedSymbolicPythonObject(address, typeSystem) {
+    typeSystem: PythonTypeSystem,
+) : InterpretedSymbolicPythonObject(address, typeSystem) {
     init {
         require(!isStaticHeapRef(address) && !isAllocatedConcreteHeapRef(address))
     }
     override fun getFirstType(): PythonType? {
-        if (address.address == 0)
+        if (address.address == 0) {
             return MockType
+        }
         return modelHolder.model.getFirstType(address)
     }
 
     override fun getConcreteType(): ConcretePythonType? {
-        if (address.address == 0)
+        if (address.address == 0) {
             return null
+        }
         return modelHolder.model.getConcreteType(address)
     }
 
     override fun getTypeStream(): UTypeStream<PythonType>? {
-        if (address.address == 0)
+        if (address.address == 0) {
             return null
+        }
         return modelHolder.model.typeStreamOf(address)
     }
 }
@@ -153,8 +172,8 @@ class InterpretedInputSymbolicPythonObject(
 class InterpretedAllocatedOrStaticSymbolicPythonObject(
     override val address: UConcreteHeapRef,
     val type: ConcretePythonType,
-    typeSystem: PythonTypeSystem
-): InterpretedSymbolicPythonObject(address, typeSystem) {
+    typeSystem: PythonTypeSystem,
+) : InterpretedSymbolicPythonObject(address, typeSystem) {
     init {
         require(isAllocatedConcreteHeapRef(address) || isStaticHeapRef(address))
     }
@@ -167,7 +186,7 @@ class InterpretedAllocatedOrStaticSymbolicPythonObject(
 
 fun interpretSymbolicPythonObject(
     ctx: ConcolicRunContext,
-    obj: UninterpretedSymbolicPythonObject
+    obj: UninterpretedSymbolicPythonObject,
 ): InterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     return interpretSymbolicPythonObject(ctx.modelHolder, ctx.curState!!.memory, obj)
@@ -176,7 +195,7 @@ fun interpretSymbolicPythonObject(
 fun interpretSymbolicPythonObject(
     modelHolder: PyModelHolder,
     memory: UMemory<PythonType, PyCallable>,
-    obj: UninterpretedSymbolicPythonObject
+    obj: UninterpretedSymbolicPythonObject,
 ): InterpretedSymbolicPythonObject {
     val evaluated = modelHolder.model.eval(obj.address) as UConcreteHeapRef
     if (isAllocatedConcreteHeapRef(evaluated) || isStaticHeapRef(evaluated)) {

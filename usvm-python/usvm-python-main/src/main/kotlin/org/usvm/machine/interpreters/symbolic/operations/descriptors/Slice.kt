@@ -3,7 +3,8 @@ package org.usvm.machine.interpreters.symbolic.operations.descriptors
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
 import org.usvm.language.SymbolForCPython
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.SliceUninterpretedField
 import org.usvm.machine.symbolicobjects.memory.getSliceStart
 import org.usvm.machine.symbolicobjects.memory.getSliceStep
@@ -22,28 +23,31 @@ private fun constructResult(field: SliceUninterpretedField, ctx: ConcolicRunCont
     )
 }
 
-object SliceStartDescriptor: MemberDescriptor() {
+object SliceStartDescriptor : MemberDescriptor() {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
-        if (ctx.curState == null)
+        if (ctx.curState == null) {
             return null
+        }
         owner ?: return null
         return constructResult(owner.getSliceStart(ctx), ctx)
     }
 }
 
-object SliceStopDescriptor: MemberDescriptor() {
+object SliceStopDescriptor : MemberDescriptor() {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
-        if (ctx.curState == null)
+        if (ctx.curState == null) {
             return null
+        }
         owner ?: return null
         return constructResult(owner.getSliceStop(ctx), ctx)
     }
 }
 
-object SliceStepDescriptor: MemberDescriptor() {
+object SliceStepDescriptor : MemberDescriptor() {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
-        if (ctx.curState == null)
+        if (ctx.curState == null) {
             return null
+        }
         owner ?: return null
         return constructResult(owner.getSliceStep(ctx), ctx)
     }

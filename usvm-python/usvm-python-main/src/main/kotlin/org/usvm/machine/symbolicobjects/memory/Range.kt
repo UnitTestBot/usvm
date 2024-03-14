@@ -11,7 +11,7 @@ fun UninterpretedSymbolicPythonObject.setRangeContent(
     ctx: ConcolicRunContext,
     start: UExpr<KIntSort>,
     stop: UExpr<KIntSort>,
-    step: UExpr<KIntSort>
+    step: UExpr<KIntSort>,
 ) = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, typeSystem.pythonRange)

@@ -4,11 +4,16 @@ import org.usvm.UPathSelector
 import org.usvm.language.PyInstruction
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
-import org.usvm.machine.ps.strategies.*
+import org.usvm.machine.ps.strategies.DelayedForkGraphCreation
+import org.usvm.machine.ps.strategies.DelayedForkGraphInnerVertex
+import org.usvm.machine.ps.strategies.DelayedForkGraphRootVertex
+import org.usvm.machine.ps.strategies.DelayedForkState
+import org.usvm.machine.ps.strategies.MakeDelayedFork
+import org.usvm.machine.ps.strategies.PyPathSelectorAction
 import kotlin.random.Random
 
 fun makeDelayedForkByInstructionPriorityStrategy(
-    random: Random
+    random: Random,
 ): RandomizedPriorityActionStrategy<DelayedForkState, DelayedForkByInstructionGraph> =
     RandomizedPriorityActionStrategy(
         random,
@@ -23,7 +28,7 @@ fun makeDelayedForkByInstructionPriorityStrategy(
     )
 
 fun makeDelayedForkByInstructionWeightedStrategy(
-    random: Random
+    random: Random,
 ): WeightedActionStrategy<DelayedForkState, DelayedForkByInstructionGraph> =
     WeightedActionStrategy(
         random,
@@ -37,7 +42,7 @@ fun makeDelayedForkByInstructionWeightedStrategy(
         baselineWeights
     )
 
-sealed class DelayedForkByInstructionAction: Action<DelayedForkState, DelayedForkByInstructionGraph>() {
+sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedForkByInstructionGraph>() {
     protected fun findAvailableInstructions(
         graph: DelayedForkByInstructionGraph,
         isAvailable: (DelayedForkGraphInnerVertex<DelayedForkState>) -> Boolean,
@@ -50,7 +55,7 @@ sealed class DelayedForkByInstructionAction: Action<DelayedForkState, DelayedFor
     protected fun chooseDelayedFork(
         graph: DelayedForkByInstructionGraph,
         isAvailable: (DelayedForkGraphInnerVertex<DelayedForkState>) -> Boolean,
-        random: Random
+        random: Random,
     ): DelayedForkGraphInnerVertex<DelayedForkState> {
         val availableInstructions = findAvailableInstructions(graph, isAvailable)
         val size = availableInstructions.size
@@ -64,7 +69,7 @@ sealed class DelayedForkByInstructionAction: Action<DelayedForkState, DelayedFor
     }
 }
 
-object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction() {
+object ServeNewDelayedForkByInstruction : DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isEmpty() && node.delayedForkState.size > 0
     }
@@ -74,14 +79,14 @@ object ServeNewDelayedForkByInstruction: DelayedForkByInstructionAction() {
 
     override fun makeAction(
         graph: DelayedForkByInstructionGraph,
-        random: Random
+        random: Random,
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
 
     override fun toString(): String = "ServeNewDelayedForkByInstruction"
 }
 
-object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction() {
+object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isNotEmpty() && node.delayedForkState.size > 0
     }
@@ -91,7 +96,7 @@ object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction() {
 
     override fun makeAction(
         graph: DelayedForkByInstructionGraph,
-        random: Random
+        random: Random,
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
 
@@ -100,9 +105,10 @@ object ServeOldDelayedForkByInstruction: DelayedForkByInstructionAction() {
 
 class DelayedForkByInstructionGraph(
     basePathSelectorCreation: () -> UPathSelector<PyState>,
-    root: DelayedForkGraphRootVertex<DelayedForkState>
-): BaselineDelayedForkGraph(basePathSelectorCreation, root) {
-    internal val nodesByInstruction = mutableMapOf<PyInstruction, MutableSet<DelayedForkGraphInnerVertex<DelayedForkState>>>()
+    root: DelayedForkGraphRootVertex<DelayedForkState>,
+) : BaselineDelayedForkGraph(basePathSelectorCreation, root) {
+    internal val nodesByInstruction =
+        mutableMapOf<PyInstruction, MutableSet<DelayedForkGraphInnerVertex<DelayedForkState>>>()
 
     override fun addVertex(df: DelayedFork, vertex: DelayedForkGraphInnerVertex<DelayedForkState>) {
         super.addVertex(df, vertex)
@@ -116,8 +122,8 @@ class DelayedForkByInstructionGraph(
 }
 
 class DelayedForkByInstructionGraphCreation(
-    private val basePathSelectorCreation: () -> UPathSelector<PyState>
-): DelayedForkGraphCreation<DelayedForkState, DelayedForkByInstructionGraph> {
+    private val basePathSelectorCreation: () -> UPathSelector<PyState>,
+) : DelayedForkGraphCreation<DelayedForkState, DelayedForkByInstructionGraph> {
     override fun createEmptyDelayedForkState(): DelayedForkState =
         DelayedForkState()
 

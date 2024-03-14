@@ -16,32 +16,39 @@ open class PyObjectModelVisitor {
     }
     open fun visit(obj: PyCompositeObject) {
         visited.add(obj)
-        if (obj.constructor !in visited)
+        if (obj.constructor !in visited) {
             visit(obj.constructor)
+        }
         obj.constructorArgs.forEach {
-            if (it !in visited)
+            if (it !in visited) {
                 visit(it)
+            }
         }
         obj.listItems?.forEach { item ->
-            if (item !in visited)
+            if (item !in visited) {
                 visit(item)
+            }
         }
         obj.dictItems?.forEach { (key, value) ->
-            if (key !in visited)
+            if (key !in visited) {
                 visit(key)
-            if (value !in visited)
+            }
+            if (value !in visited) {
                 visit(value)
+            }
         }
         obj.fieldDict?.values?.forEach { item ->
-            if (item !in visited)
+            if (item !in visited) {
                 visit(item)
+            }
         }
     }
     open fun visit(obj: PyTupleObject) {
         visited.add(obj)
         obj.items.forEach {
-            if (it !in visited)
+            if (it !in visited) {
                 visit(it)
+            }
         }
     }
 }

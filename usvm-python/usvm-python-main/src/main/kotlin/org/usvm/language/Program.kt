@@ -1,9 +1,9 @@
 package org.usvm.language
 
-import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.concrete.PyNamespace
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 
@@ -11,18 +11,18 @@ sealed class PyProgram(val additionalPaths: Set<File>) {
     abstract fun <T> withPinnedCallable(
         callable: PyUnpinnedCallable,
         typeSystem: PythonTypeSystem,
-        block: (PyPinnedCallable) -> T
+        block: (PyPinnedCallable) -> T,
     ): T
 }
 
 class PrimitivePyProgram internal constructor(
     private val namespaceGetter: () -> PyNamespace,
-    additionalPaths: Set<File>
-): PyProgram(additionalPaths) {
+    additionalPaths: Set<File>,
+) : PyProgram(additionalPaths) {
     override fun <T> withPinnedCallable(
         callable: PyUnpinnedCallable,
         typeSystem: PythonTypeSystem,
-        block: (PyPinnedCallable) -> T
+        block: (PyPinnedCallable) -> T,
     ): T {
         require(callable.module == null)
         val namespace = namespaceGetter()
@@ -42,14 +42,14 @@ class PrimitivePyProgram internal constructor(
     }
 }
 
-class StructuredPyProgram(val roots: Set<File>): PyProgram(roots) {
+class StructuredPyProgram(val roots: Set<File>) : PyProgram(roots) {
     override fun <T> withPinnedCallable(
         callable: PyUnpinnedCallable,
         typeSystem: PythonTypeSystem,
-        block: (PyPinnedCallable) -> T
+        block: (PyPinnedCallable) -> T,
     ): T = withAdditionalPaths(roots, typeSystem) {
         if (callable.module == null) {
-            val pinned = PyPinnedCallable(callable.reference(emptyNamespace))  // for lambdas
+            val pinned = PyPinnedCallable(callable.reference(emptyNamespace)) // for lambdas
             block(pinned)
         } else {
             val namespace = getNamespaceOfModule(callable.module) ?: error("Couldn't get namespace of function module")
@@ -67,8 +67,9 @@ class StructuredPyProgram(val roots: Set<File>): PyProgram(roots) {
             "$acc$name."
         }
         val resultAsObj = ConcretePythonInterpreter.eval(namespace, "$module.__dict__")
-        if (ConcretePythonInterpreter.getPythonObjectTypeName(resultAsObj) != "dict")
+        if (ConcretePythonInterpreter.getPythonObjectTypeName(resultAsObj) != "dict") {
             return null
+        }
         return PyNamespace(resultAsObj.address)
     }
 

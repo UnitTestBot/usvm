@@ -4,13 +4,19 @@ import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.concrete.PyObject
-import org.usvm.python.model.*
+import org.usvm.python.model.PyCompositeObject
+import org.usvm.python.model.PyIdentifier
+import org.usvm.python.model.PyMockObject
+import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyPrimitive
+import org.usvm.python.model.PyTupleObject
 
 class PyObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
     private val converted = mutableMapOf<PyObjectModel, PyObject>()
     fun convert(model: PyObjectModel): PyObject {
-        if (model in converted)
+        if (model in converted) {
             return converted[model]!!
+        }
         val result = when (model) {
             is PyPrimitive -> convertPrimitive(model)
             is PyIdentifier -> convertIdentifier(model)
@@ -87,8 +93,9 @@ class PyObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
 
     private val virtualObjects = mutableSetOf<Pair<VirtualPythonObject, PyObject>>()
     private fun convertMock(model: PyMockObject): PyObject {
-        if (useNoneInsteadOfMock)
+        if (useNoneInsteadOfMock) {
             return ConcretePythonInterpreter.eval(emptyNamespace, "None")
+        }
         val virtual = VirtualPythonObject(model.id)
         val result = ConcretePythonInterpreter.allocateVirtualObject(virtual)
         virtualObjects.add(virtual to result)

@@ -1,13 +1,13 @@
 package org.usvm.machine.interpreters.symbolic
 
 import mu.KLogging
-import org.usvm.*
+import org.usvm.StepResult
+import org.usvm.UInterpreter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyPinnedCallable
-import org.usvm.machine.symbolicobjects.*
 import org.usvm.language.SymbolForCPython
-import org.usvm.machine.types.PythonTypeSystem
-import org.usvm.machine.*
+import org.usvm.machine.PyContext
+import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
@@ -16,13 +16,19 @@ import org.usvm.machine.interpreters.symbolic.operations.basic.UnregisteredVirtu
 import org.usvm.machine.interpreters.symbolic.operations.tracing.CancelledExecutionException
 import org.usvm.machine.interpreters.symbolic.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModelHolder
+import org.usvm.machine.results.PyMachineResultsReceiver
+import org.usvm.machine.results.serialization.ReprObjectSerializer
+import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.LengthOverflowException
 import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
 import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
-import org.usvm.machine.results.*
-import org.usvm.machine.results.serialization.ReprObjectSerializer
+import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
-import org.usvm.python.model.*
+import org.usvm.python.model.PyInputModel
+import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyResultFailure
+import org.usvm.python.model.PyResultSuccess
+import org.usvm.python.model.PyTest
 
 class USVMPythonInterpreter<PyObjectRepr>(
     private val ctx: PyContext,
@@ -77,7 +83,6 @@ class USVMPythonInterpreter<PyObjectRepr>(
                 concolicRunContext,
                 printErrorMsg
             )
-
         } catch (exception: Throwable) {
             if (exception is CPythonExecutionException) {
                 val realCPythonException = processCPythonExceptionDuringConcolicRun(
@@ -108,7 +113,6 @@ class USVMPythonInterpreter<PyObjectRepr>(
             }
             logger.debug("Finished step on state: {}", concolicRunContext.curState)
             StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
-
         } else {
             logger.debug("Ended step with path diversion")
             StepResult(emptySequence(), !state.isTerminated())
@@ -117,9 +121,9 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun processConcreteInput(
         concrete: List<PyObject>,
-        renderer: PyObjectRenderer
+        renderer: PyObjectRenderer,
     ): List<PyObjectRepr>? {
-        if (logger.isDebugEnabled) {  // getting __repr__ might be slow
+        if (logger.isDebugEnabled) { // getting __repr__ might be slow
             logger.debug(
                 "Generated inputs: {}",
                 concrete.joinToString(", ") {
@@ -138,7 +142,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
     private fun processSuccessfulExecution(
         result: PyObject,
         inputModel: PyInputModel,
-        inputReprs: List<PyObjectRepr>?
+        inputReprs: List<PyObjectRepr>?,
     ) {
         if (logger.isDebugEnabled) {
             logger.debug("Step result: Successful run. Returned ${ReprObjectSerializer.serialize(result)}")
@@ -157,7 +161,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
     private fun processJavaException(
         concolicRunContext: ConcolicRunContext,
         exception: Throwable,
-        renderer: PyObjectRenderer
+        renderer: PyObjectRenderer,
     ) {
         when (exception) {
             is UnregisteredVirtualOperation -> processUnregisteredVirtualOperation(concolicRunContext, renderer)
@@ -173,7 +177,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         exception: CPythonExecutionException,
         renderer: PyObjectRenderer,
         inputModel: PyInputModel,
-        inputReprs: List<PyObjectRepr>?
+        inputReprs: List<PyObjectRepr>?,
     ): Boolean {
         require(exception.pythonExceptionType != null)
         require(exception.pythonExceptionValue != null)
@@ -201,7 +205,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun processUnregisteredVirtualOperation(
         concolicRunContext: ConcolicRunContext,
-        renderer: PyObjectRenderer
+        renderer: PyObjectRenderer,
     ) {
         logger.debug("Step result: Unregistrered virtual operation")
         val resultState = concolicRunContext.curState
@@ -238,7 +242,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun constructConcolicRunContext(
         state: PyState,
-        modelHolder: PyModelHolder
+        modelHolder: PyModelHolder,
     ): ConcolicRunContext {
         val start = System.currentTimeMillis()
         return ConcolicRunContext(

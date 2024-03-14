@@ -5,7 +5,7 @@ import org.usvm.machine.interpreters.concrete.PyObject
 
 data class PyInstruction(
     val numberInBytecode: Int,
-    val code: PyObject
+    val code: PyObject,
 )
 
 fun extractInstructionsFromCode(code: PyObject): List<PyInstruction> {

@@ -6,6 +6,6 @@ abstract class InputModelObserver {
     abstract fun onInputModel(inputModel: PyInputModel)
 }
 
-object EmptyInputModelObserver: InputModelObserver() {
+object EmptyInputModelObserver : InputModelObserver() {
     override fun onInputModel(inputModel: PyInputModel) = run {}
 }

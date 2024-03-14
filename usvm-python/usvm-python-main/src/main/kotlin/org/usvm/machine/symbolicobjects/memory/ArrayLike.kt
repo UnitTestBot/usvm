@@ -2,17 +2,26 @@ package org.usvm.machine.symbolicobjects.memory
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.sort.KIntSort
-import org.usvm.*
-import org.usvm.api.*
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
+import org.usvm.api.typeStreamOf
+import org.usvm.api.writeArrayIndex
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.isStaticHeapRef
+import org.usvm.machine.PyContext
+import org.usvm.machine.PyState
+import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
+import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.types.ArrayLikeConcretePythonType
 import org.usvm.machine.types.ArrayType
 import org.usvm.machine.types.ConcretePythonType
 import org.usvm.machine.types.HasElementConstraint
-import org.usvm.machine.PyContext
-import org.usvm.machine.PyState
-import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
-import org.usvm.machine.symbolicobjects.*
 import org.usvm.types.first
 
 fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): UExpr<KIntSort> {
@@ -30,15 +39,16 @@ fun InterpretedInputSymbolicPythonObject.readArrayLength(ctx: PyContext): UExpr<
 
 fun UninterpretedSymbolicPythonObject.readArrayElement(
     ctx: ConcolicRunContext,
-    index: UExpr<KIntSort>
+    index: UExpr<KIntSort>,
 ): UninterpretedSymbolicPythonObject {
     require(ctx.curState != null)
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     val elemAddress = ctx.curState!!.memory.readArrayIndex(address, index, ArrayType, ctx.ctx.addressSort)
     val elem = UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
-    if (isAllocatedObject(ctx))
+    if (isAllocatedObject(ctx)) {
         return elem
+    }
     val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
         ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, elem, ctx))
     }
@@ -48,7 +58,7 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
 
 fun InterpretedInputSymbolicPythonObject.readArrayElement(
     indexExpr: KInterpretedValue<KIntSort>,
-    state: PyState
+    state: PyState,
 ): InterpretedSymbolicPythonObject {
     val ctx = state.ctx
     val element = modelHolder.model.readArrayIndex(
@@ -69,7 +79,7 @@ fun InterpretedInputSymbolicPythonObject.readArrayElement(
 fun UninterpretedSymbolicPythonObject.writeArrayElement(
     ctx: ConcolicRunContext,
     index: UExpr<KIntSort>,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ) {
     require(ctx.curState != null)
     val type = getTypeIfDefined(ctx)
@@ -92,7 +102,7 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
 
 fun UninterpretedSymbolicPythonObject.extendArrayConstraints(
     ctx: ConcolicRunContext,
-    on: UninterpretedSymbolicPythonObject
+    on: UninterpretedSymbolicPythonObject,
 ) {
     require(ctx.curState != null)
     val type = getTypeIfDefined(ctx)

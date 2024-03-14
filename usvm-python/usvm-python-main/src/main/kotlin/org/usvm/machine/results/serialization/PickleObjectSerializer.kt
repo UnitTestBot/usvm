@@ -3,7 +3,7 @@ package org.usvm.machine.results.serialization
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 
-object PickleObjectSerializer: PythonObjectSerializer<String?>() {
+object PickleObjectSerializer : PythonObjectSerializer<String?>() {
     override fun serialize(obj: PyObject): String? {
         return runCatching {
             val namespace = ConcretePythonInterpreter.getNewNamespace()

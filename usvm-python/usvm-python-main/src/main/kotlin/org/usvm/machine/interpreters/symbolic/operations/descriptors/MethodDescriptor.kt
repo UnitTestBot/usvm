@@ -7,8 +7,11 @@ import org.usvm.language.SymbolForCPython
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-class MethodDescriptor(private val id: SymbolicMethodId): MemberDescriptor() {
+class MethodDescriptor(private val id: SymbolicMethodId) : MemberDescriptor() {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython {
-        return ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(owner?.let { SymbolForCPython(it, 0) }, id)
+        return ConcretePythonInterpreter.constructPartiallyAppliedSymbolicMethod(
+            owner?.let { SymbolForCPython(it, 0) },
+            id
+        )
     }
 }

@@ -3,14 +3,14 @@ package org.usvm.machine.interpreters.concrete
 import org.usvm.annotations.ids.ApproximationId
 import org.usvm.annotations.ids.NativeId
 import org.usvm.annotations.ids.SymbolicMethodId
-import org.usvm.language.SymbolForCPython
-import org.usvm.language.VirtualPythonObject
 import org.usvm.interpreter.CPythonAdapter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
-import org.usvm.machine.interpreters.symbolic.SymbolicClonesOfGlobals
+import org.usvm.language.SymbolForCPython
+import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.venv.VenvConfig
 import org.usvm.machine.interpreters.concrete.venv.activateThisScript
+import org.usvm.machine.interpreters.symbolic.SymbolicClonesOfGlobals
 import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 
@@ -20,8 +20,9 @@ object ConcretePythonInterpreter {
 
     fun getNewNamespace(): PyNamespace {
         val result = pythonAdapter.newNamespace
-        if (result == 0L)
+        if (result == 0L) {
             throw CPythonExecutionException()
+        }
         return PyNamespace(result)
     }
 
@@ -35,10 +36,11 @@ object ConcretePythonInterpreter {
         val result = pythonAdapter.concreteRun(globals.address, code, printErrorMsg, setHook)
         if (result != 0) {
             val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
-            if (op != null)
+            if (op != null) {
                 throw IllegalOperationException(op)
-            else
+            } else {
                 throw CPythonExecutionException()
+            }
         }
     }
 
@@ -46,24 +48,26 @@ object ConcretePythonInterpreter {
         val result = pythonAdapter.eval(globals.address, expr, printErrorMsg, setHook)
         if (result == 0L) {
             val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
-            if (op != null)
+            if (op != null) {
                 throw IllegalOperationException(op)
-            else
+            } else {
                 throw CPythonExecutionException()
+            }
         }
         return PyObject(result)
     }
 
     private fun wrap(address: Long): PyObject? {
-        if (address == 0L)
+        if (address == 0L) {
             return null
+        }
         return PyObject(address)
     }
 
     fun concreteRunOnFunctionRef(
         functionRef: PyObject,
         concreteArgs: Collection<PyObject>,
-        setHook: Boolean = false
+        setHook: Boolean = false,
     ): PyObject {
         pythonAdapter.thrownException = 0L
         pythonAdapter.thrownExceptionType = 0L
@@ -72,17 +76,19 @@ object ConcretePythonInterpreter {
             concreteArgs.map { it.address }.toLongArray(),
             setHook
         )
-        if (result != 0L)
+        if (result != 0L) {
             return PyObject(result)
+        }
 
         val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null
-        if (op != null)
+        if (op != null) {
             throw IllegalOperationException(op)
-        else
+        } else {
             throw CPythonExecutionException(
                 wrap(pythonAdapter.thrownException),
                 wrap(pythonAdapter.thrownExceptionType)
             )
+        }
     }
 
     fun concolicRun(
@@ -91,7 +97,7 @@ object ConcretePythonInterpreter {
         virtualArgs: Collection<PyObject>,
         symbolicArgs: List<SymbolForCPython>,
         ctx: ConcolicRunContext,
-        printErrorMsg: Boolean = false
+        printErrorMsg: Boolean = false,
     ): PyObject {
         pythonAdapter.thrownException = 0L
         pythonAdapter.thrownExceptionType = 0L
@@ -104,12 +110,14 @@ object ConcretePythonInterpreter {
             SymbolicClonesOfGlobals.getNamedSymbols(),
             printErrorMsg
         )
-        if (result != 0L)
+        if (result != 0L) {
             return PyObject(result)
+        }
 
         val op = pythonAdapter.checkForIllegalOperation()
-        if (op != null)
+        if (op != null) {
             throw IllegalOperationException(op)
+        }
 
         throw CPythonExecutionException(wrap(pythonAdapter.thrownException), wrap(pythonAdapter.thrownExceptionType))
     }
@@ -154,8 +162,9 @@ object ConcretePythonInterpreter {
 
     fun allocateVirtualObject(virtualObject: VirtualPythonObject): PyObject {
         val ref = pythonAdapter.allocateVirtualObject(virtualObject)
-        if (ref == 0L)
+        if (ref == 0L) {
             throw CPythonExecutionException()
+        }
         return PyObject(ref)
     }
 
@@ -217,8 +226,9 @@ object ConcretePythonInterpreter {
 
     private fun createTypeQuery(checkMethod: (Long) -> Int): (PyObject) -> Boolean = { pythonObject ->
         val result = checkMethod(pythonObject.address)
-        if (result < 0)
+        if (result < 0) {
             error("Given Python object is not a type")
+        }
         result != 0
     }
 
@@ -259,8 +269,9 @@ object ConcretePythonInterpreter {
         pythonAdapter.finalizePython()
         initialize()
         SymbolicClonesOfGlobals.restart()
-        if (venvConfig != null)
+        if (venvConfig != null) {
             activateVenv(venvConfig!!)
+        }
     }
 
     fun setVenv(config: VenvConfig) {
@@ -325,11 +336,13 @@ object ConcretePythonInterpreter {
         val initialModules = listOf("sys", "copy", "builtins", "ctypes", "array")
         pythonAdapter.concreteRun(namespace, "import " + initialModules.joinToString(", "), true, false)
         initialSysPath = PyObject(pythonAdapter.eval(namespace, "copy.copy(sys.path)", true, false))
-        if (initialSysPath.address == 0L)
+        if (initialSysPath.address == 0L) {
             throw CPythonExecutionException()
+        }
         initialSysModulesKeys = PyObject(pythonAdapter.eval(namespace, "sys.modules.keys()", true, false))
-        if (initialSysModulesKeys.address == 0L)
+        if (initialSysModulesKeys.address == 0L) {
             throw CPythonExecutionException()
+        }
     }
 
     private fun activateVenv(config: VenvConfig) {
@@ -342,7 +355,7 @@ object ConcretePythonInterpreter {
 
     private var venvConfig: VenvConfig? = null
     lateinit var initialSysPath: PyObject
-    lateinit var  initialSysModulesKeys: PyObject
+    lateinit var initialSysModulesKeys: PyObject
     var pyEQ: Int = 0
     var pyNE: Int = 0
     var pyLT: Int = 0
@@ -356,7 +369,7 @@ object ConcretePythonInterpreter {
         initialize()
     }
 
-    fun printIdInfo() {  // for debugging
+    fun printIdInfo() { // for debugging
         println("SymbolicMethodId:")
         SymbolicMethodId.values().forEach {
             println(it)
@@ -373,8 +386,8 @@ object ConcretePythonInterpreter {
 
 class CPythonExecutionException(
     val pythonExceptionValue: PyObject? = null,
-    val pythonExceptionType: PyObject? = null
-): Exception()
+    val pythonExceptionType: PyObject? = null,
+) : Exception()
 
 data class PyObject(val address: Long) {
     init {
@@ -388,4 +401,4 @@ data class PyNamespace(val address: Long) {
     }
 }
 
-data class IllegalOperationException(val operation: String): Exception()
+data class IllegalOperationException(val operation: String) : Exception()

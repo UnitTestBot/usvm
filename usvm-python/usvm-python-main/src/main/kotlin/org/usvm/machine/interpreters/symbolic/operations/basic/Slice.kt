@@ -8,15 +8,16 @@ import org.usvm.machine.symbolicobjects.memory.getIntContent
 
 private fun getFieldContent(
     ctx: ConcolicRunContext,
-    value: UninterpretedSymbolicPythonObject
+    value: UninterpretedSymbolicPythonObject,
 ): SliceUninterpretedField {
     val typeSystem = ctx.typeSystem
     val isNone = value.evalIs(ctx, typeSystem.pythonNoneType)
     val content =
-        if (value.getTypeIfDefined(ctx) == typeSystem.pythonInt)
+        if (value.getTypeIfDefined(ctx) == typeSystem.pythonInt) {
             value.getIntContent(ctx)
-        else
+        } else {
             ctx.ctx.mkIntNum(0)
+        }
     myFork(ctx, value.evalIs(ctx, typeSystem.pythonInt))
     myAssert(ctx, ctx.ctx.mkOr(value.evalIs(ctx, typeSystem.pythonInt), value.evalIs(ctx, typeSystem.pythonNoneType)))
     return SliceUninterpretedField(isNone, content)
@@ -26,10 +27,11 @@ fun handlerCreateSliceKt(
     ctx: ConcolicRunContext,
     start: UninterpretedSymbolicPythonObject,
     stop: UninterpretedSymbolicPythonObject,
-    step: UninterpretedSymbolicPythonObject
+    step: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
-    if (ctx.curState == null)
+    if (ctx.curState == null) {
         return null
+    }
     val startContent = getFieldContent(ctx, start)
     val stopContent = getFieldContent(ctx, stop)
     val stepContent = getFieldContent(ctx, step)

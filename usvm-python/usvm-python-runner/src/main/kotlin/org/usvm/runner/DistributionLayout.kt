@@ -9,7 +9,7 @@ abstract class DistributionLayout {
     abstract val jarPath: File
 }
 
-class StandardLayout(distributionPath: File): DistributionLayout() {
+class StandardLayout(distributionPath: File) : DistributionLayout() {
     override val cpythonPath: File = File(distributionPath, "cpython")
     override val approximationsPath: File = File(distributionPath, "lib")
     override val nativeLibPath: File = File(distributionPath, "lib")

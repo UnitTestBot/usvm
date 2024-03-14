@@ -9,17 +9,19 @@ import org.utpython.types.typesAreEqual
 
 fun getTypeFromTypeHint(
     hint: UtType,
-    typeSystem: PythonTypeSystemWithMypyInfo
+    typeSystem: PythonTypeSystemWithMypyInfo,
 ): PythonType {
-    if (typesAreEqual(hint, pythonAnyType))
+    if (typesAreEqual(hint, pythonAnyType)) {
         return PythonAnyType
+    }
     val hintAfterSubstitution = DefaultSubstitutionProvider.substitute(
         hint,
         hint.getBoundedParameters().associateWith { pythonAnyType }
     )
     val fromTypeSystem = typeSystem.concreteTypeFromTypeHint(hintAfterSubstitution)
-    if (fromTypeSystem != null)
+    if (fromTypeSystem != null) {
         return fromTypeSystem
+    }
     val storage = typeSystem.typeHintsStorage
     val substitutedDict = DefaultSubstitutionProvider.substituteAll(
         storage.pythonDict,

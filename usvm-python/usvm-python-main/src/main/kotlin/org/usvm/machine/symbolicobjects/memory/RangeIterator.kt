@@ -11,7 +11,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 fun UninterpretedSymbolicPythonObject.setRangeIteratorContent(
     ctx: ConcolicRunContext,
-    range: UninterpretedSymbolicPythonObject
+    range: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonRangeIterator)
@@ -26,7 +26,7 @@ fun UninterpretedSymbolicPythonObject.setRangeIteratorContent(
 }
 
 fun UninterpretedSymbolicPythonObject.getRangeIteratorState(
-    ctx: ConcolicRunContext
+    ctx: ConcolicRunContext,
 ): Pair<UExpr<KIntSort>, UExpr<KIntSort>> = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
@@ -36,7 +36,7 @@ fun UninterpretedSymbolicPythonObject.getRangeIteratorState(
 }
 
 fun UninterpretedSymbolicPythonObject.getRangeIteratorNext(
-    ctx: ConcolicRunContext
+    ctx: ConcolicRunContext,
 ): UExpr<KIntSort> = with(ctx.ctx) {
     require(ctx.curState != null)
     addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)

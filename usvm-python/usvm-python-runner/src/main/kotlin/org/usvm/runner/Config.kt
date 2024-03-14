@@ -9,24 +9,24 @@ data class USVMPythonConfig(
     val mypyBuildDir: String,
     val roots: Set<String>,
     val venvConfig: VenvConfig?,
-    val pathSelector: PyPathSelectorType
+    val pathSelector: PyPathSelectorType,
 )
 
 sealed class USVMPythonCallableConfig
 
 data class USVMPythonFunctionConfig(
     val module: String,
-    val name: String
-): USVMPythonCallableConfig()
+    val name: String,
+) : USVMPythonCallableConfig()
 
 data class USVMPythonMethodConfig(
     val module: String,
     val name: String,
-    val cls: String
-): USVMPythonCallableConfig()
+    val cls: String,
+) : USVMPythonCallableConfig()
 
 data class USVMPythonRunConfig(
     val callableConfig: USVMPythonCallableConfig,
     val timeoutMs: Long,
-    val timeoutPerRunMs: Long
+    val timeoutPerRunMs: Long,
 )

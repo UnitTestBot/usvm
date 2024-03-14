@@ -1,18 +1,23 @@
 package org.usvm.machine
 
-import org.usvm.*
+import org.usvm.UMachine
+import org.usvm.UPathSelector
 import org.usvm.constraints.UPathConstraints
-import org.usvm.language.*
-import org.usvm.machine.types.PythonType
-import org.usvm.machine.types.PythonTypeSystem
-import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
+import org.usvm.language.PyCallable
+import org.usvm.language.PyPinnedCallable
+import org.usvm.language.PyProgram
+import org.usvm.language.PyUnpinnedCallable
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.createPyPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.observers.NewStateObserver
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.PreallocatedObjects
+import org.usvm.machine.symbolicobjects.constructInputObject
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.utils.PyMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.machine.utils.isGenerator
@@ -28,8 +33,8 @@ class PyMachine(
     private val program: PyProgram,
     private val typeSystem: PythonTypeSystem,
     private val pathSelectorType: PyPathSelectorType = PyPathSelectorType.BaselinePriorityNumberOfInstructionsRandomTree,
-    private val printErrorMsg: Boolean = false
-): UMachine<PyState>() {
+    private val printErrorMsg: Boolean = false,
+) : UMachine<PyState>() {
     private val ctx = PyContext(typeSystem)
 
     private val random = Random(0)
@@ -40,7 +45,7 @@ class PyMachine(
         saver: PyMachineResultsReceiver<PyObjectRepr>,
         allowPathDiversion: Boolean,
         maxInstructions: Int,
-        isCancelled: (Long) -> Boolean
+        isCancelled: (Long) -> Boolean,
     ): USVMPythonInterpreter<PyObjectRepr> =
         USVMPythonInterpreter(
             ctx,
@@ -67,8 +72,9 @@ class PyMachine(
             constructInputObject(index, type, ctx, memory, pathConstraints, typeSystem)
         }
         val solverRes = ctx.solver<PythonType>().check(pathConstraints)
-        if (solverRes !is USatResult)
+        if (solverRes !is USatResult) {
             error("Failed to construct initial model")
+        }
         return PyState(
             ctx,
             target,
@@ -85,7 +91,7 @@ class PyMachine(
 
     private fun getPathSelector(
         target: PyUnpinnedCallable,
-        newStateObserver: NewStateObserver
+        newStateObserver: NewStateObserver,
     ): UPathSelector<PyState> {
         val initialState = getInitialState(target)
         newStateObserver.onNewState(initialState)
@@ -100,7 +106,7 @@ class PyMachine(
         maxInstructions: Int = 1_000_000_000,
         timeoutMs: Long? = null,
         timeoutPerRunMs: Long? = null,
-        unfoldGenerator: Boolean = true
+        unfoldGenerator: Boolean = true,
     ): Int {
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)
@@ -124,7 +130,7 @@ class PyMachine(
                 maxInstructions
             ) { startIterationTime ->
                 (timeoutPerRunMs?.let { (System.currentTimeMillis() - startIterationTime) >= it } ?: false) ||
-                        (stopTime != null && System.currentTimeMillis() >= stopTime)
+                    (stopTime != null && System.currentTimeMillis() >= stopTime)
             }
             val pathSelector = getPathSelector(pythonCallable, saver.newStateObserver)
             run(
@@ -134,7 +140,7 @@ class PyMachine(
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
                     pyObserver.iterations >= maxIterations ||
-                            (stopTime != null && System.currentTimeMillis() >= stopTime)
+                        (stopTime != null && System.currentTimeMillis() >= stopTime)
                 }
             )
             pyObserver.iterations
@@ -150,17 +156,19 @@ class PyMachine(
     }
 
     private class PythonMachineObserver(
-        val newStateObserver: NewStateObserver
-    ): UMachineObserver<PyState> {
+        val newStateObserver: NewStateObserver,
+    ) : UMachineObserver<PyState> {
         var iterations: Int = 0
         override fun onState(parent: PyState, forks: Sequence<PyState>) {
             super.onState(parent, forks)
             iterations += 1
-            if (!parent.isTerminated())
+            if (!parent.isTerminated()) {
                 newStateObserver.onNewState(parent)
+            }
             forks.forEach {
-                if (!it.isTerminated())
+                if (!it.isTerminated()) {
                     newStateObserver.onNewState(it)
+                }
             }
         }
     }

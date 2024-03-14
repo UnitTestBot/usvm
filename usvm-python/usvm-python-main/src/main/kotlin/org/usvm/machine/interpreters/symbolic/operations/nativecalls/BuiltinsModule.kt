@@ -7,10 +7,11 @@ import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.interpreters.symbolic.operations.basic.myFork
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-object EvalConstraint: NativeCallConstraint(NativeId.Eval) {
+object EvalConstraint : NativeCallConstraint(NativeId.Eval) {
     override fun apply(ctx: ConcolicRunContext, args: List<UninterpretedSymbolicPythonObject>) {
-        if (args.size > 3 || args.isEmpty())
+        if (args.size > 3 || args.isEmpty()) {
             return
+        }
         val cmd = args[0]
         cmd.addSupertype(ctx, ctx.typeSystem.pythonStr)
         args.drop(1).forEach {

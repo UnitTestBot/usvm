@@ -26,9 +26,9 @@ class TypeFilter(
     fun filterTypes(types: Sequence<PythonType>): Sequence<PythonType> =
         types.filter { type ->
             supertypes.all { typeSystem.isSupertype(it, type) } &&
-                    notSupertypes.all { !typeSystem.isSupertype(it, type) } &&
-                    subtypes.all { typeSystem.isSupertype(type, it) } &&
-                    notSubtypes.all { !typeSystem.isSupertype(type, it) }
+                notSupertypes.all { !typeSystem.isSupertype(it, type) } &&
+                subtypes.all { typeSystem.isSupertype(type, it) } &&
+                notSubtypes.all { !typeSystem.isSupertype(type, it) }
         }
 
     companion object {

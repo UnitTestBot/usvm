@@ -14,12 +14,13 @@ import javax.lang.model.element.TypeElement
 @SupportedAnnotationTypes("org.usvm.annotations.CPythonAdapterJavaMethod")
 @SupportedOptions("headerPath")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-class CPythonAdapterJavaMethodProcessor: AbstractProcessor() {
+class CPythonAdapterJavaMethodProcessor : AbstractProcessor() {
     private val converter = ConverterToJNITypeDescriptor()
 
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        if (annotations.size != 1)
+        if (annotations.size != 1) {
             return false
+        }
         val annotation = annotations.stream().findFirst().get()
         val annotatedElements = roundEnv.getElementsAnnotatedWith(annotation)
         val usedNames = mutableSetOf<String>()

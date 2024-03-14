@@ -4,22 +4,31 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
-import org.usvm.*
+import org.usvm.PathNode
+import org.usvm.UAddressSort
+import org.usvm.UCallStack
+import org.usvm.UMockSymbol
+import org.usvm.UPathSelector
+import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
-import org.usvm.language.*
+import org.usvm.language.PyCallable
+import org.usvm.language.PyInstruction
+import org.usvm.language.PyUnpinnedCallable
+import org.usvm.language.TypeMethod
+import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.memory.UMemory
-import org.usvm.targets.UTarget
-import org.usvm.types.UTypeStream
 import org.usvm.model.UModelBase
+import org.usvm.targets.UTarget
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.UTypeStream
 
-object PyTarget: UTarget<PyInstruction, PyTarget>()
+object PyTarget : UTarget<PyInstruction, PyTarget>()
 private val targets = UTargetsSet.empty<PyTarget, PyInstruction>()
 
 class PyState(
@@ -39,8 +48,8 @@ class PyState(
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
-    var uniqueInstructions: PersistentSet<PyInstruction> = persistentSetOf()
-): UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
+    var uniqueInstructions: PersistentSet<PyInstruction> = persistentSetOf(),
+) : UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
     ctx,
     callStack,
     pathConstraints,
@@ -68,14 +77,14 @@ class PyState(
             forkPoints,
             concolicQueries,
             delayedForks,
-            mocks.toMutableMap(),  // copy
-            mockedObjects.toMutableSet(),  // copy
+            mocks.toMutableMap(), // copy
+            mockedObjects.toMutableSet(), // copy
             uniqueInstructions
         )
     }
 
     override val entrypoint = pythonCallable
-    override val isExceptional: Boolean = false  // TODO
+    override val isExceptional: Boolean = false // TODO
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
         get() = models.first() as? PyModel ?: error("Model PyState must be PyModel")
@@ -83,8 +92,9 @@ class PyState(
 
     fun mock(what: MockHeader): MockResult {
         val cached = mocks[what]
-        if (cached != null)
+        if (cached != null) {
             return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
+        }
         val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
         mocks[what] = result
         what.methodOwner?.let { mockedObjects.add(it) }
@@ -93,10 +103,11 @@ class PyState(
 
     fun getMocksForSymbol(symbol: UninterpretedSymbolicPythonObject): List<Pair<MockHeader, UninterpretedSymbolicPythonObject>> =
         mocks.mapNotNull { (mockHeader, mockResult) ->
-            if (mockHeader.methodOwner == symbol)
+            if (mockHeader.methodOwner == symbol) {
                 mockHeader to UninterpretedSymbolicPythonObject(mockResult, typeSystem)
-            else
+            } else {
                 null
+            }
         }
 
     fun isTerminated(): Boolean {
@@ -112,19 +123,19 @@ class DelayedFork(
     val state: PyState,
     val symbol: UninterpretedSymbolicPythonObject,
     val possibleTypes: UTypeStream<PythonType>,
-    val delayedForkPrefix: PersistentList<DelayedFork>
+    val delayedForkPrefix: PersistentList<DelayedFork>,
 )
 
 data class MockHeader(
     val method: TypeMethod,
     val args: List<UninterpretedSymbolicPythonObject>,
-    var methodOwner: UninterpretedSymbolicPythonObject?
+    var methodOwner: UninterpretedSymbolicPythonObject?,
 )
 
 data class MockResult(
     val mockedObject: UninterpretedSymbolicPythonObject,
     val isNew: Boolean,
-    val mockSymbol: UMockSymbol<UAddressSort>
+    val mockSymbol: UMockSymbol<UAddressSort>,
 )
 
 class PythonExecutionStateMeta {
@@ -133,5 +144,5 @@ class PythonExecutionStateMeta {
     var wasInterrupted: Boolean = false
     var modelDied: Boolean = false
     var objectsWithoutConcreteTypes: Collection<VirtualPythonObject>? = null
-    var generatedFrom: String = ""  // for debugging only
+    var generatedFrom: String = "" // for debugging only
 }

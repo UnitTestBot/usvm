@@ -6,9 +6,13 @@ import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.PyContext
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.IntContents
+import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 fun UninterpretedSymbolicPythonObject.setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {

@@ -8,22 +8,25 @@ import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import java.util.concurrent.Callable
 
 private val logger = object : KLogging() {}.logger
-object PathDiversionException: Exception() {
+object PathDiversionException : Exception() {
     private fun readResolve(): Any = PathDiversionException
 }
 
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
-    resultSupplier: Callable<T?>
+    resultSupplier: Callable<T?>,
 ): T? {
-    if (context.isCancelled.call())
+    if (context.isCancelled.call()) {
         throw CancelledExecutionException
+    }
     context.instructionCounter += 1
-    if (context.instructionCounter > context.maxInstructions)
+    if (context.instructionCounter > context.maxInstructions) {
         throw InstructionLimitExceededException
-    if (context.curState == null)
+    }
+    if (context.curState == null) {
         return null
+    }
     if (newEventParameters is NextInstruction) {
         context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
         val state = context.curState!!
@@ -31,8 +34,9 @@ fun <T : Any> withTracing(
     }
     if (context.pathPrefix.isEmpty()) {
         val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
-        if (context.curState == null)
+        if (context.curState == null) {
             return null
+        }
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
         context.curState!!.concolicQueries = context.curState!!.concolicQueries.add(eventRecord)
         if (newEventParameters is NextInstruction) {
@@ -57,8 +61,9 @@ fun <T : Any> withTracing(
 
 
 fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, result: Boolean) {
-    if (context.curState == null)
+    if (context.curState == null) {
         return
+    }
     val obj = cond.obj ?: return
 
     val expectedResult = obj.getToBoolValue(context)?.let {
@@ -74,10 +79,10 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
     }
 }
 
-object InstructionLimitExceededException: Exception() {
+object InstructionLimitExceededException : Exception() {
     private fun readResolve(): Any = InstructionLimitExceededException
 }
 
-object CancelledExecutionException: Exception() {
+object CancelledExecutionException : Exception() {
     private fun readResolve(): Any = CancelledExecutionException
 }

@@ -8,7 +8,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 fun addConstraintsFromNativeId(
     ctx: ConcolicRunContext,
     function: PyObject,
-    args: List<UninterpretedSymbolicPythonObject>
+    args: List<UninterpretedSymbolicPythonObject>,
 ) {
     constraintHolder.forEach {
         if (function.address == it.id.cRef) {

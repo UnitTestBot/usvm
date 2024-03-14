@@ -10,8 +10,8 @@ class WeightedPyPathSelector(
     private val proportionalToSelectorSize: Boolean,
     private val counter: (PyState) -> Int,
     private val weight: (Int) -> Double,
-    private val baseBaseSelectorCreation: () -> UPathSelector<PyState>
-): UPathSelector<PyState> {
+    private val baseBaseSelectorCreation: () -> UPathSelector<PyState>,
+) : UPathSelector<PyState> {
     private val selectors = mutableMapOf<Int, UPathSelector<PyState>>()
     private val selectorSizes = mutableMapOf<Int, Int>()
     private val countOfState = mutableMapOf<PyState, Int?>()

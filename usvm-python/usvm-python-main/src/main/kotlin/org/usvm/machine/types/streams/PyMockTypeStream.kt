@@ -1,7 +1,14 @@
 package org.usvm.machine.types.streams
 
 import mu.KLogging
-import org.usvm.machine.types.*
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.ConcreteTypeNegation
+import org.usvm.machine.types.InternalType
+import org.usvm.machine.types.MockType
+import org.usvm.machine.types.PythonAnyType
+import org.usvm.machine.types.PythonType
+import org.usvm.machine.types.PythonTypeSystem
+import org.usvm.machine.types.VirtualPythonType
 import org.usvm.types.TypesResult
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeStream
@@ -10,7 +17,7 @@ import org.usvm.types.emptyTypeStream
 
 class PyMockTypeStream(
     private val typeSystem: PythonTypeSystem,
-    private val filter: TypeFilter
+    private val filter: TypeFilter,
 ) : UTypeStream<PythonType> {
     private fun singleOfEmpty(type: PythonType): UTypeStream<PythonType> {
         val filtered = sequenceOf(type).filter(filter).take(1).toList()
@@ -52,7 +59,7 @@ class PyMockTypeStream(
         return if (result.isEmpty()) {
             TypesResult.EmptyTypesResult
         } else {
-            if (result.first() !is MockType) {  // TODO: PyMockTypeStream must start with MockType
+            if (result.first() !is MockType) { // TODO: PyMockTypeStream must start with MockType
                 logger.warn("Bad start of PyMockTypeStream")
                 return TypesResult.SuccessfulTypesResult(listOf(result.first()))
             }

@@ -3,7 +3,7 @@ package org.usvm.annotations.codegeneration
 data class DefinitionDescriptor(
     val cName: String,
     val javaName: String,
-    val javaSignature: String
+    val javaSignature: String,
 )
 
 fun generateCPythonAdapterDefs(defs: List<DefinitionDescriptor>): String {

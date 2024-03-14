@@ -1,10 +1,10 @@
 package org.usvm.machine.ps.types
 
-import org.usvm.machine.types.ConcretePythonType
-import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.ps.strategies.TypeRating
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.utils.MAX_CONCRETE_TYPES_TO_CONSIDER
 import org.usvm.types.TypesResult
 import org.utpython.types.PythonSubtypeChecker

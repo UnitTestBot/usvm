@@ -1,13 +1,21 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
-import org.usvm.*
+import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
+import org.usvm.UMockSymbol
 import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.*
+import org.usvm.isTrue
+import org.usvm.language.NbBoolMethod
+import org.usvm.language.SqLengthMethod
+import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.model.substituteModel
-import org.usvm.machine.symbolicobjects.*
+import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
+import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getBoolContent
 import org.usvm.machine.symbolicobjects.memory.getIntContent
 
@@ -15,8 +23,9 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
     ctx.curState ?: throw UnregisteredVirtualOperation
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
-    if (ctx.curOperation?.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef)
-        throw UnregisteredVirtualOperation  // path diversion
+    if (ctx.curOperation?.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef) {
+        throw UnregisteredVirtualOperation // path diversion
+    }
 
     val oldModel = ctx.modelHolder.model
     val (interpretedObj, _) = internalVirtualCallKt(ctx) { mockSymbol ->
@@ -27,7 +36,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
                 trueObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             ),
@@ -35,7 +44,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
                 falseObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             )
@@ -61,7 +70,7 @@ fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = w
 
 private fun internalVirtualCallKt(
     ctx: ConcolicRunContext,
-    customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModel, UBoolExpr>> = { emptyList() }
+    customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModel, UBoolExpr>> = { emptyList() },
 ): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(ctx.ctx) {
     ctx.curOperation ?: throw UnregisteredVirtualOperation
     ctx.curState ?: throw UnregisteredVirtualOperation
@@ -78,16 +87,17 @@ private fun internalVirtualCallKt(
     if (ctx.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
         val customNewModels = customNewModelsCreation(mockSymbol)
         val (newModel, constraint) =
-            if (customNewModels.isEmpty())
+            if (customNewModels.isEmpty()) {
                 constructModelWithNewMockEvaluator(
                     ctx.ctx,
                     ctx.modelHolder.model,
                     mockSymbol,
-                    ctx.curState!!.pathConstraints,  // one constraint will be missing (TODO: is it ok?)
+                    ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
                     useOldPossibleRefs = true
                 )
-            else
+            } else {
                 customNewModels.first()
+            }
 
         customNewModels.drop(1).forEach { (nextNewModel, constraint) ->
             val newState = ctx.curState!!.clone()
@@ -120,6 +130,6 @@ fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObj
     return result
 }
 
-object UnregisteredVirtualOperation: Exception() {
+object UnregisteredVirtualOperation : Exception() {
     private fun readResolve(): Any = UnregisteredVirtualOperation
 }

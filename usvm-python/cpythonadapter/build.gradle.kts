@@ -1,6 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.internal.jvm.Jvm
-import java.io.*
 
 // Example project: https://github.com/vladsoroka/GradleJniSample
 
