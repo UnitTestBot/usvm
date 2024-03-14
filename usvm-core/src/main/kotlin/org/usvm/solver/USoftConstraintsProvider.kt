@@ -143,9 +143,13 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
     ): UExpr<USizeSort> = computeSideEffect(expr) {
         with(ctx) {
             val addressIsNull = provide(expr.address)
-            val arraySize = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
+            val arraySize1 = mkSizeLeExpr(expr, mkSizeExpr(1))
+            val arraySize16 = mkSizeLeExpr(expr, mkSizeExpr(16))
+            val arraySize256 = mkSizeLeExpr(expr, mkSizeExpr(256))
+            val arraySize16000 = mkSizeLeExpr(expr, mkSizeExpr(16_000))
+            val arraySize100000 = mkSizeLeExpr(expr, mkSizeExpr(100_000))
 
-            caches[expr] = addressIsNull + arraySize
+            caches[expr] = addressIsNull + arraySize1 + arraySize16 + arraySize256 + arraySize16000 + arraySize100000
         }
     }
 

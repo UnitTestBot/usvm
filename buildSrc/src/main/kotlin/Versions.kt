@@ -17,4 +17,6 @@ object Versions {
     const val samplesJetbrainsAnnotations = "16.0.2"
     const val rd = "2023.2.0"
     const val ini4j = "0.5.4"
+
+    const val pythonTypesAPIHash="139b81d"
 }

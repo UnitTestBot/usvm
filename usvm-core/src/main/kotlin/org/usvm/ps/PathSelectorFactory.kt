@@ -333,7 +333,7 @@ private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State
     )
 }
 
-private fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createForkDepthPathSelector(
+fun <Method, Statement, State : UState<*, Method, Statement, *, *, State>> createForkDepthPathSelector(
     random: Random? = null,
 ): UPathSelector<State> {
     if (random == null) {
