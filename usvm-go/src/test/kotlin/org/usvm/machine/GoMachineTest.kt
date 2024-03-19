@@ -367,4 +367,34 @@ class GoMachineTest {
         val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "simple", false)
         println(results)
     }
+
+    @Test
+    fun testDeferRecoverSimple() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                coverageZone = CoverageZone.TRANSITIVE
+            )
+        )
+        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "panicRecover", false)
+        println(results)
+    }
+
+    @Test
+    fun testAppendSimple() {
+        val results = machine.analyzeAndResolve(Path.getProgram("builtin.go"), "appendSimple", false)
+        println(results)
+    }
+
+    @Test
+    fun testDeleteSimple() {
+        val results = machine.analyzeAndResolve(Path.getProgram("builtin.go"), "deleteSimple", false)
+        println(results)
+    }
+
+    @Test
+    fun testCopySimple() {
+        val results = machine.analyzeAndResolve(Path.getProgram("builtin.go"), "copySimple", true)
+        println(results)
+    }
 }

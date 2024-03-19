@@ -9,6 +9,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.ULValuePointer
 import org.usvm.USort
+import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
@@ -45,6 +46,7 @@ import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeLtExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
@@ -177,16 +179,108 @@ class Api(
     }
 
     private fun mkCallBuiltin(buf: ByteBuffer, inst: GoInst) = with(ctx) {
-        val index = resolveIndex(VarKind.LOCAL, buf.int)
+        val l = readVar(buf)
         val builtin = BuiltinFunction.valueOf(buf.byte)
+        val args = Array(buf.int) { readVar(buf) }
+
         when (builtin) {
+            BuiltinFunction.APPEND -> {
+                val source = args[0]
+                val append = args[1]
+                val lvalue = URegisterStackLValue(addressSort, l.index)
+
+                scope.doWithState {
+                    val sliceType = source.underlyingType.let { getSliceType(it) ?: it }
+                    val sliceValueSort = mapSort(GoSort.valueOf(buf.byte))
+
+                    val sourceRef = source.expr.asExpr(addressSort)
+                    val sourceLength = scope.calcOnState {
+                        mkIte(
+                            mkHeapRefEq(sourceRef, nullRef).not(),
+                            { memory.readArrayLength(sourceRef, sliceType, sizeSort) },
+                            { mkSizeExpr(0) }
+                        )
+                    }
+
+                    val appendRef = append.expr.asExpr(addressSort)
+                    val appendLength = scope.calcOnState {
+                        mkIte(
+                            mkHeapRefEq(appendRef, nullRef).not(),
+                            { memory.readArrayLength(appendRef, sliceType, sizeSort) },
+                            { mkSizeExpr(0) }
+                        )
+                    }
+
+                    checkLength(sourceLength) ?: throw IllegalStateException()
+                    checkLength(appendLength) ?: throw IllegalStateException()
+
+                    val length = mkSizeAddExpr(sourceLength, appendLength)
+                    val ref = memory.allocConcrete(sliceType)
+
+                    memory.writeArrayLength(ref, length, sliceType, sizeSort)
+                    memory.memcpy(sourceRef, ref, sliceType, sliceValueSort, mkSizeExpr(0), mkSizeExpr(0), sourceLength)
+                    memory.memcpy(appendRef, ref, sliceType, sliceValueSort, mkSizeExpr(0), sourceLength, appendLength)
+                    memory.write(lvalue, ref.asExpr(addressSort), trueExpr)
+                }
+            }
+
+            BuiltinFunction.COPY -> {
+                val lvalue = URegisterStackLValue(sizeSort, l.index)
+
+                val dst = args[0]
+                val dstRef = dst.expr.asExpr(addressSort)
+                val dstType = dst.underlyingType
+                val dstLength = scope.calcOnState { memory.readArrayLength(dstRef, dstType, sizeSort) }
+
+                val src = args[1]
+                val srcRef = src.expr.asExpr(addressSort)
+                val srcType = src.underlyingType
+                val srcLength = scope.calcOnState { memory.readArrayLength(srcRef, srcType, sizeSort) }
+
+                val sliceValueSort = mapSort(GoSort.valueOf(buf.byte))
+
+                checkLength(srcLength) ?: throw IllegalStateException()
+                checkLength(dstLength) ?: throw IllegalStateException()
+
+                val numCopied = mkIte(mkSizeLtExpr(srcLength, dstLength), srcLength, dstLength)
+
+                scope.doWithState {
+                    memory.memcpy(srcRef, dstRef, srcType, sliceValueSort, mkSizeExpr(0), mkSizeExpr(0), numCopied)
+                    memory.write(lvalue, numCopied.asExpr(sizeSort), trueExpr)
+                }
+            }
+
+            BuiltinFunction.CLOSE -> noop()
+            BuiltinFunction.DELETE -> {
+                val map = args[0]
+                val key = args[1]
+
+                val keySort = key.sort
+                val isRefSet = keySort == addressSort
+
+                val mapType = map.underlyingType
+                val mapRef = map.expr.asExpr(addressSort)
+
+                scope.ensureObjectMapSizeCorrect(mapRef, mapType) ?: throw IllegalStateException()
+
+                scope.doWithState {
+                    if (isRefSet) {
+                        symbolicObjectMapRemove(mapRef, key.expr.asExpr(addressSort), mapType)
+                    } else {
+                        symbolicPrimitiveMapRemove(mapRef, key.expr.asExpr(keySort), mapType, USizeExprKeyInfo())
+                    }
+                }
+            }
+
+            BuiltinFunction.PRINT, BuiltinFunction.PRINTLN -> noop()
+
             BuiltinFunction.LEN, BuiltinFunction.CAP -> {
-                val arg = readVar(buf)
+                val arg = args[0]
                 val collection = scope.calcOnState {
                     memory.read(URegisterStackLValue(addressSort, arg.index)).asExpr(addressSort)
                 }
                 val type = arg.underlyingType.let { getSliceType(it) ?: it }
-                val lvalue = URegisterStackLValue(sizeSort, index)
+                val lvalue = URegisterStackLValue(sizeSort, l.index)
 
                 scope.fork(
                     mkHeapRefEq(collection, nullRef).not(),
@@ -196,7 +290,12 @@ class Api(
                                 memory.readArrayLength(collection, type, sizeSort)
                             }
 
-                            GoSort.MAP -> symbolicObjectMapSize(collection, type)
+                            GoSort.MAP -> {
+                                scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
+
+                                symbolicObjectMapSize(collection, type)
+                            }
+
                             else -> throw IllegalStateException()
                         }
 
@@ -209,8 +308,20 @@ class Api(
                 )
             }
 
-            BuiltinFunction.SSA_WRAP_NIL_CHECK -> {}
+            BuiltinFunction.MIN -> TODO()
+            BuiltinFunction.MAX -> TODO()
+            BuiltinFunction.REAL -> noop()
+            BuiltinFunction.IMAG -> noop()
+            BuiltinFunction.COMPLEX -> noop()
+            BuiltinFunction.PANIC -> {
+                scope.doWithState { panic(readVar(buf).expr) }
+            }
 
+            BuiltinFunction.RECOVER -> {
+                scope.doWithState { recover() }
+            }
+
+            BuiltinFunction.SSA_WRAP_NIL_CHECK -> noop()
             else -> throw UnknownFunctionException()
         }
     }
@@ -332,11 +443,23 @@ class Api(
 
     private fun mkAlloc(buf: ByteBuffer) = with(ctx) {
         val index = resolveIndex(VarKind.LOCAL, buf.int)
+        val sort = GoSort.valueOf(buf.byte)
         val type = buf.long
 
         val lvalue = URegisterStackLValue(pointerSort, index)
         scope.doWithState {
-            val ref = memory.allocConcrete(type)
+            val ref = if (sort == GoSort.ARRAY) {
+                val length = mkSizeExpr(buf.long.toInt())
+                val sliceType = buf.long
+                setSliceType(type, sliceType)
+
+                val ref = memory.allocConcrete(sliceType)
+                memory.writeArrayLength(ref, length, sliceType, sizeSort)
+                ref
+            } else {
+                memory.allocConcrete(type)
+            }
+
             memory.write(GoPointerLValue(ref, addressSort), ref, trueExpr)
             memory.write(lvalue, mkAddressPointer(ref.address), trueExpr)
         }
@@ -389,7 +512,7 @@ class Api(
         val targetType = target.underlyingType
 
         val source = readVar(buf)
-        val sourceType = source.underlyingType
+        val sourceType = source.underlyingType.let { getSliceType(it) ?: it }
         val sourceRef = source.expr.let {
             if (it.sort == pointerSort) {
                 deref(it, addressSort)
@@ -418,6 +541,7 @@ class Api(
         val length = mkSizeSubExpr(high, low)
 
         checkNotNull(sourceRef) ?: throw IllegalStateException()
+        checkLength(sourceLength) ?: throw IllegalStateException()
         checkNegativeIndex(low) ?: throw IllegalStateException()
         checkNegativeIndex(high) ?: throw IllegalStateException()
         checkIndexOutOfBounds(high, mkSizeAddExpr(sourceLength, mkSizeExpr(1))) ?: throw IllegalStateException()
@@ -445,25 +569,12 @@ class Api(
         }
     }
 
-    private fun mkRunDefers(): Boolean = with(ctx) {
-        val method = scope.calcOnState { lastEnteredMethod }
-        val deferred = getDeferred(method)
-
-        if (!deferred.isEmpty()) {
-            scope.doWithState {
-                addCall(deferred.removeLast(), currentStatement)
-            }
-
-            return true
-        }
-
-        return false
+    private fun mkRunDefers(): Boolean {
+        return scope.calcOnState { runDefers() }
     }
 
     private fun mkPanic(buf: ByteBuffer) {
-        scope.doWithState {
-            panic(readVar(buf))
-        }
+        scope.doWithState { panic(readVar(buf)) }
     }
 
     private fun mkVariable(buf: ByteBuffer) = with(ctx) {
@@ -489,7 +600,7 @@ class Api(
                 val valueSort = mapSort(GoSort.valueOf(buf.byte))
 
                 val isRefSet = keySort == addressSort
-                val mapType = collectionVar.type
+                val mapType = collectionVar.underlyingType
                 val map = copyMap(collectionVar, keySort, valueSort)
 
                 val key = if (isRefSet) {
@@ -575,10 +686,12 @@ class Api(
     private fun mkMapLookup(buf: ByteBuffer, nextInst: GoInst) = with(ctx) {
         val value = readVar(buf)
 
-        val mapVar = readVar(buf)
-        val mapType = mapVar.underlyingType
-        val map = mapVar.expr.asExpr(addressSort)
-        checkNotNull(map) ?: throw IllegalStateException()
+        val map = readVar(buf)
+        val mapType = map.underlyingType
+        val mapRef = map.expr.asExpr(addressSort)
+
+        checkNotNull(mapRef) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(mapRef, mapType) ?: throw IllegalStateException()
 
         val key = readVar(buf).expr
         val isRefKey = key.sort == addressSort
@@ -588,9 +701,9 @@ class Api(
 
         val contains = scope.calcOnState {
             if (isRefKey) {
-                memory.refSetContainsElement(map, key.asExpr(addressSort), mapType)
+                memory.refSetContainsElement(mapRef, key.asExpr(addressSort), mapType)
             } else {
-                memory.setContainsElement(map, key, mapType, USizeExprKeyInfo())
+                memory.setContainsElement(mapRef, key, mapType, USizeExprKeyInfo())
             }
         }
         val lvalue = URegisterStackLValue(value.sort, value.index)
@@ -598,9 +711,9 @@ class Api(
             contains,
             blockOnTrueState = {
                 val entry = if (isRefKey) {
-                    URefMapEntryLValue(mapValueSort, map, key.asExpr(addressSort), mapType)
+                    URefMapEntryLValue(mapValueSort, mapRef, key.asExpr(addressSort), mapType)
                 } else {
-                    UMapEntryLValue(key.sort, mapValueSort, map, key, mapType, USizeExprKeyInfo())
+                    UMapEntryLValue(key.sort, mapValueSort, mapRef, key, mapType, USizeExprKeyInfo())
                 }
                 val rvalue = memory.read(entry).let {
                     if (commaOk) {
@@ -626,26 +739,31 @@ class Api(
     }
 
     private fun mkMapUpdate(buf: ByteBuffer) = with(ctx) {
-        val mapVar = readVar(buf)
-        val mapType = mapVar.underlyingType
-        val map = mapVar.expr.asExpr(addressSort)
+        val map = readVar(buf)
+        val mapType = map.underlyingType
+        val mapRef = map.expr.asExpr(addressSort)
         val key = readVar(buf).expr
         val value = readVar(buf).expr
 
-        checkNotNull(map) ?: throw IllegalStateException()
+        checkNotNull(mapRef) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(mapRef, mapType) ?: throw IllegalStateException()
 
         scope.doWithState {
-            val mapContainsLValue = USetEntryLValue(key.sort, map, key, mapType, USizeExprKeyInfo())
-            val currentSize = symbolicObjectMapSize(map, mapType)
+            val mapContainsLValue = USetEntryLValue(key.sort, mapRef, key, mapType, USizeExprKeyInfo())
+            val currentSize = symbolicObjectMapSize(mapRef, mapType)
 
             val keyIsInMap = memory.read(mapContainsLValue)
             val keyIsNew = mkNot(keyIsInMap)
 
-            memory.write(UMapEntryLValue(key.sort, value.sort, map, key, mapType, USizeExprKeyInfo()), value, trueExpr)
+            memory.write(
+                UMapEntryLValue(key.sort, value.sort, mapRef, key, mapType, USizeExprKeyInfo()),
+                value,
+                trueExpr
+            )
             memory.write(mapContainsLValue, trueExpr, trueExpr)
 
             val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
-            memory.write(UMapLengthLValue(map, mapType, sizeSort), updatedSize, keyIsNew)
+            memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
         }
     }
 
@@ -668,9 +786,10 @@ class Api(
                 if (unboxed.goSort != GoSort.INTERFACE) {
                     error = "interface conversion: type mismatch: interface is $unboxedType, not $assertedType"
                 } else if (!bridge.isSupertype(unboxedType, assertedType)) {
-                    error = "interface conversion: type mismatch: interface $assertedType does not implement $unboxedType"
+                    error = "interface conversion: interface $assertedType does not implement $unboxedType"
                 }
             }
+
             else -> if (unboxedSort != assertedSort) {
                 error = "interface conversion: sort mismatch: interface is $unboxedSort, not $assertedSort"
             }
@@ -724,7 +843,9 @@ class Api(
         valueSort: USort,
     ): UHeapRef = with(ctx) {
         val srcMap = mapVar.expr.asExpr(addressSort)
+
         checkNotNull(srcMap) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(srcMap, mapVar.underlyingType) ?: throw IllegalStateException()
 
         val mapType = mapVar.underlyingType
         val isRefSet = keySort == addressSort
@@ -753,7 +874,7 @@ class Api(
 
         var index = 0
         val expr = when (kind) {
-            VarKind.CONST -> readConst(buf, type, sort)
+            VarKind.CONST -> readConst(buf, type, goSort, sort)
             VarKind.PARAMETER, VarKind.FREE_VARIABLE, VarKind.LOCAL -> scope.calcOnState {
                 index = resolveIndex(kind, buf.int)
                 memory.read(URegisterStackLValue(sort, index))
@@ -764,7 +885,7 @@ class Api(
         return Var(expr.asExpr(sort), type, underlyingType, goSort, sort, index)
     }
 
-    private fun readConst(buf: ByteBuffer, type: GoType, sort: USort): UExpr<out USort> = with(ctx) {
+    private fun readConst(buf: ByteBuffer, type: GoType, goSort: GoSort, sort: USort): UExpr<out USort> = with(ctx) {
         when (sort) {
             voidSort -> voidValue
             boolSort -> mkBool(buf.bool)
@@ -774,10 +895,14 @@ class Api(
             bv64Sort -> mkBv(buf.long, bv64Sort)
             fp32Sort -> mkFp(buf.float, fp32Sort)
             fp64Sort -> mkFp(buf.double, fp64Sort)
-            stringSort -> scope.calcOnState {
-                val length = buf.int
-                val content = Array(length) { mkBv(buf.int) }.asSequence()
-                memory.allocateArrayInitialized(type, bv32Sort, sizeSort, content)
+            addressSort -> when (goSort) {
+                GoSort.STRING -> scope.calcOnState {
+                    val length = buf.int
+                    val content = Array(length) { mkBv(buf.int) }.asSequence()
+                    memory.allocateArrayInitialized(type, bv32Sort, sizeSort, content)
+                }
+
+                else -> nullRef
             }
 
             else -> throw UnknownTypeException()
@@ -858,8 +983,8 @@ class Api(
         val method = scope.calcOnState { lastEnteredMethod }
         when (kind) {
             VarKind.PARAMETER -> value
-            VarKind.FREE_VARIABLE -> value + getArgsCount(method)
-            VarKind.LOCAL -> value + getArgsCount(method) + getFreeVariablesCount(method)
+            VarKind.FREE_VARIABLE -> value + freeVariableOffset(method)
+            VarKind.LOCAL -> value + localVariableOffset(method)
             else -> -1
         }
     }
@@ -919,19 +1044,19 @@ class Api(
     }
 
     private fun checkIndexOutOfBounds(index: UExpr<USizeSort>, length: UExpr<USizeSort>): Unit? = with(ctx) {
-        scope.fork(mkBvSignedLessExpr(index, length), blockOnFalseState = {
+        scope.fork(mkSizeLtExpr(index, length), blockOnFalseState = {
             panic("index out of bounds")
         })
     }
 
     private fun checkNegativeIndex(value: UExpr<USizeSort>): Unit? = with(ctx) {
-        scope.fork(mkBvSignedGreaterOrEqualExpr(value, mkBv(0)), blockOnFalseState = {
+        scope.fork(mkSizeGeExpr(value, mkSizeExpr(0)), blockOnFalseState = {
             panic("negative index")
         })
     }
 
     private fun checkLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
-        scope.fork(mkBvSignedGreaterOrEqualExpr(length, mkBv(0)), blockOnFalseState = {
+        scope.fork(mkSizeGeExpr(length, mkSizeExpr(0)), blockOnFalseState = {
             panic("length < 0")
         })
     }
@@ -960,22 +1085,17 @@ class Api(
         return ref
     }
 
-    private fun GoState.addCall(call: GoCall, returnInst: GoInst? = null) {
-        val methodInfo = ctx.getMethodInfo(call.method)
-
-        callStack.push(call.method, returnInst)
-        memory.stack.push(call.parameters, methodInfo.variablesCount)
-
-        ctx.getFreeVariables(call.method)?.forEachIndexed { index, variable ->
-            val lvalue = URegisterStackLValue(variable.sort, resolveIndex(VarKind.FREE_VARIABLE, index))
-            memory.write(lvalue, variable, ctx.trueExpr)
-        }
-
-        newInst(call.entrypoint)
-    }
-
     private fun GoState.panic(expr: Any) {
         methodResult = GoMethodResult.Panic(expr)
+    }
+
+    private fun GoState.recover(): Any = with(ctx) {
+        if (methodResult is GoMethodResult.Panic) {
+            val result = (methodResult as GoMethodResult.Panic).value
+            methodResult = GoMethodResult.NoCall
+            return result
+        }
+        return voidValue
     }
 
     private fun GoState.getIterCurrentKeyValue(
@@ -998,6 +1118,8 @@ class Api(
         val keySort = mapSort(GoSort.valueOf(buf.byte))
         val valueSort = mapSort(GoSort.valueOf(buf.byte))
 
+        scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
+
         val key = memory.readField(iter, 2, keySort)
         val value = if (keySort == addressSort) {
             symbolicObjectMapGet(collection, key.asExpr(addressSort), type, valueSort)
@@ -1018,6 +1140,8 @@ class Api(
         if (isString) {
             return mkBvAddExpr(oldKey.asExpr(sizeSort), mkBv(1))
         }
+
+        scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
 
         val keySort = oldKey.sort
         if (keySort == addressSort) {
@@ -1066,7 +1190,7 @@ private enum class Method(val value: Byte) {
     MK_MAKE_CLOSURE(32);
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownMethodException()
     }
@@ -1081,7 +1205,7 @@ private enum class UnOp(val value: Byte) {
     INV(5);
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownUnaryOperationException()
     }
@@ -1108,7 +1232,7 @@ private enum class BinOp(val value: Byte) {
     GE(17);
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownBinaryOperationException()
     }
@@ -1122,7 +1246,7 @@ private enum class VarKind(val value: Byte) {
     LOCAL(4);
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownVarKindException()
     }
@@ -1130,12 +1254,25 @@ private enum class VarKind(val value: Byte) {
 
 private enum class BuiltinFunction(val value: Byte) {
     UNKNOWN(0),
-    LEN(1),
-    CAP(2),
-    SSA_WRAP_NIL_CHECK(3);
+    APPEND(1),
+    COPY(2),
+    CLOSE(3),
+    DELETE(4),
+    PRINT(5),
+    PRINTLN(6),
+    LEN(7),
+    CAP(8),
+    MIN(9),
+    MAX(10),
+    REAL(11),
+    IMAG(12),
+    COMPLEX(13),
+    PANIC(14),
+    RECOVER(15),
+    SSA_WRAP_NIL_CHECK(16);
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownFunctionException()
     }
