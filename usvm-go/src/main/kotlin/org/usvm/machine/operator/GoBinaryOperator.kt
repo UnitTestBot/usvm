@@ -2,6 +2,7 @@ package org.usvm.machine.operator
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
@@ -15,6 +16,7 @@ sealed class GoBinaryOperator(
     val onBool: GoContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onBv: GoContext.(UExpr<UBvSort>, UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onFp: GoContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
+    val onAddress: GoContext.(UExpr<UAddressSort>, UExpr<UAddressSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
     object Add : GoBinaryOperator(
         onBv = GoContext::mkBvAddExpr,
@@ -75,6 +77,7 @@ sealed class GoBinaryOperator(
         onBool = GoContext::mkEq,
         onBv = GoContext::mkEq,
         onFp = GoContext::mkFpEqualExpr,
+        onAddress = GoContext::mkHeapRefEq,
     )
 
     class Lt(signed: Boolean) : GoBinaryOperator(
@@ -112,6 +115,7 @@ sealed class GoBinaryOperator(
             lhsSort is UBoolSort -> lhs.goCtx.onBool(lhs.cast(), rhs.cast())
             lhsSort is UBvSort -> lhs.goCtx.onBv(lhs.cast(), rhs.cast())
             lhsSort is UFpSort -> lhs.goCtx.onFp(lhs.cast(), rhs.cast())
+            lhsSort is UAddressSort -> lhs.goCtx.onAddress(lhs.cast(), rhs.cast())
             else -> error("Unexpected sorts: $lhsSort, $rhsSort")
         }
     }
