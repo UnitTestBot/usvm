@@ -45,7 +45,7 @@ enum class GoSort(val value: Byte) {
     }
 
     companion object {
-        private val values = values()
+        private val values = entries.toTypedArray()
 
         fun valueOf(value: Byte) = values.firstOrNull { it.value == value } ?: throw UnknownTypeException()
     }

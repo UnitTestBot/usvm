@@ -8,6 +8,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 
 	"usvm/domain"
+	"usvm/sort"
 )
 
 const bufSize = 1 << 16
@@ -118,6 +119,17 @@ func (b *ByteBuffer) WriteMethodInfo(i domain.MethodInfo) *ByteBuffer {
 	for _, t := range i.ParametersTypes {
 		b.WriteType(t)
 	}
+	return b
+}
+
+func (b *ByteBuffer) WriteSliceElementSort(v ssa.Value) *ByteBuffer {
+	switch t := v.Type().(type) {
+	case *types.Slice:
+		b.Write(byte(sort.MapSort(t.Elem(), false)))
+	default:
+		b.Write(byte(sort.Int32))
+	}
+
 	return b
 }
 
