@@ -6,12 +6,14 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
+import org.usvm.machine.GoCall
 import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoTarget
 import org.usvm.machine.type.GoType
 import org.usvm.memory.UMemory
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
@@ -99,8 +101,7 @@ class GoState(
     }
 
     fun returnValue(valueToReturn: UExpr<USort>) {
-        val returnFromMethod = callStack.lastMethod()
-        // TODO: think about it later
+        val returnFromMethod = lastEnteredMethod
         val returnSite = callStack.pop()
         if (callStack.isNotEmpty()) {
             memory.stack.pop()
@@ -113,8 +114,12 @@ class GoState(
         }
     }
 
-    fun panic() {
+    fun handlePanic(): Boolean {
         require(methodResult is GoMethodResult.Panic)
+
+        if (runDefers()) {
+            return true
+        }
 
         val returnSite = callStack.pop()
         if (callStack.isNotEmpty()) {
@@ -124,6 +129,34 @@ class GoState(
         if (returnSite != null) {
             newInst(returnSite)
         }
+
+        return false
+    }
+
+    fun runDefers(): Boolean = with(ctx) {
+        val deferred = getDeferred(lastEnteredMethod)
+
+        if (!deferred.isEmpty()) {
+            addCall(deferred.removeLast(), currentStatement)
+
+            return true
+        }
+
+        return false
+    }
+
+    fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
+        val methodInfo = getMethodInfo(call.method)
+
+        callStack.push(call.method, returnInst)
+        memory.stack.push(call.parameters, methodInfo.variablesCount)
+
+        getFreeVariables(call.method)?.forEachIndexed { index, variable ->
+            val lvalue = URegisterStackLValue(variable.sort, index + freeVariableOffset(call.method))
+            memory.write(lvalue, variable, trueExpr)
+        }
+
+        newInst(call.entrypoint)
     }
 
     override fun toString(): String = buildString {

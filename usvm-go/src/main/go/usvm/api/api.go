@@ -206,39 +206,57 @@ type BuiltinFunc byte
 
 const (
 	_ BuiltinFunc = iota
+	Append
+	Copy
+	Close
+	Delete
+	Print
+	Println
 	Len
 	Cap
+	Min
+	Max
+	Real
+	Imag
+	Complex
+	Panic
+	Recover
 	SsaWrapNilCheck
 )
 
+var Builtins = map[string]BuiltinFunc{
+	"append":         Append,
+	"copy":           Copy,
+	"close":          Close,
+	"delete":         Delete,
+	"print":          Print,
+	"println":        Println,
+	"len":            Len,
+	"cap":            Cap,
+	"min":            Min,
+	"max":            Max,
+	"real":           Real,
+	"imag":           Imag,
+	"complex":        Complex,
+	"panic":          Panic,
+	"recover":        Recover,
+	"ssa:wrapnilchk": SsaWrapNilCheck,
+}
+
 func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	a.buf.Write(byte(MethodMkCallBuiltin))
-	a.buf.WriteInt32(resolveRegister(inst))
-
-	switch name {
-	case "append":
-	case "copy":
-	case "close":
-	case "delete":
-	case "print", "println":
-	case "len":
-		a.buf.Write(byte(Len))
-	case "cap":
-		a.buf.Write(byte(Cap))
-	case "min":
-	case "max":
-	case "real":
-	case "imag":
-	case "complex":
-	case "panic":
-	case "recover":
-	case "ssa:wrapnilchk":
-		a.buf.Write(byte(SsaWrapNilCheck))
-	}
+	a.writeVar(inst)
+	a.buf.Write(byte(Builtins[name]))
 
 	args := inst.Call.Args
+	a.buf.WriteInt32(int32(len(args)))
 	for i := range args {
 		a.writeVar(args[i])
+	}
+
+	switch name {
+	case "append", "copy":
+		a.buf.WriteSliceElementSort(inst)
 	}
 }
 
@@ -302,7 +320,14 @@ func (a *api) MkDefer(inst *ssa.Defer) {
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
 	a.buf.WriteInt32(resolveRegister(inst))
+	a.buf.Write(byte(sort.GetSort(inst, true)))
 	a.buf.WriteValueUnderlyingType(inst)
+
+	e := inst.Type().Underlying().(*types.Pointer).Elem().Underlying()
+	if arrayType, ok := e.(*types.Array); ok {
+		a.buf.WriteInt64(arrayType.Len())
+		a.buf.WriteType(types.NewSlice(arrayType.Elem()))
+	}
 }
 
 func (a *api) MkMakeSlice(inst *ssa.MakeSlice) {
@@ -329,13 +354,7 @@ func (a *api) MkExtract(inst *ssa.Extract) {
 func (a *api) MkSlice(inst *ssa.Slice) {
 	a.buf.Write(byte(MethodMkSlice))
 	a.writeVar(inst)
-	switch t := inst.Type().(type) {
-	case *types.Slice:
-		a.buf.Write(byte(sort.MapSort(t.Elem(), false)))
-	default:
-		a.buf.Write(byte(sort.Int32))
-	}
-
+	a.buf.WriteSliceElementSort(inst)
 	a.writeVar(inst.X)
 	a.writeVar(inst.Low)
 	a.writeVar(inst.High)

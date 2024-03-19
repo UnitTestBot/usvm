@@ -27,8 +27,6 @@ class GoContext(
     private var freeVariables: MutableMap<GoMethod, Array<UExpr<USort>>> = hashMapOf()
     private var deferred: MutableMap<GoMethod, ArrayDeque<GoCall>> = hashMapOf()
 
-    fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
-
     fun getReturnType(method: GoMethod): GoType = methodInfo[method]!!.returnType
 
     fun getMethodInfo(method: GoMethod) = methodInfo[method]!!
@@ -39,13 +37,11 @@ class GoContext(
 
     fun getFreeVariables(method: GoMethod): Array<UExpr<USort>>? = freeVariables[method]
 
-    fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
-
     fun setFreeVariables(method: GoMethod, freeVariables: Array<UExpr<USort>>) {
         this.freeVariables[method] = freeVariables
     }
 
-    fun getDeferred(method: GoMethod): ArrayDeque<GoCall> = deferred[method]!!
+    fun getDeferred(method: GoMethod): ArrayDeque<GoCall> = deferred[method] ?: ArrayDeque()
 
     fun addDeferred(method: GoMethod, call: GoCall) {
         if (method !in deferred) {
@@ -66,8 +62,6 @@ class GoContext(
 
     val voidValue by lazy { GoVoidValue(this) }
 
-    val stringSort by lazy { addressSort }
-
     fun mapSort(sort: GoSort): USort = when (sort) {
         GoSort.VOID -> voidSort
         GoSort.BOOL -> boolSort
@@ -77,8 +71,7 @@ class GoContext(
         GoSort.INT64, GoSort.UINT64 -> bv64Sort
         GoSort.FLOAT32 -> fp32Sort
         GoSort.FLOAT64 -> fp64Sort
-        GoSort.STRING -> stringSort
-        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE, GoSort.FUNCTION -> addressSort
+        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE, GoSort.FUNCTION, GoSort.STRING -> addressSort
         GoSort.POINTER -> pointerSort
         else -> throw UnknownSortException()
     }
@@ -115,4 +108,12 @@ class GoContext(
     fun setSliceType(arrayType: GoType, sliceType: GoType) {
         arrayTypeToSliceType[arrayType] = sliceType
     }
+
+    fun freeVariableOffset(method: GoMethod) = getArgsCount(method)
+
+    fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
+
+    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
+
+    private fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
 }

@@ -45,13 +45,12 @@ class GoInterpreter(
     override fun step(state: GoState): StepResult<GoState> {
         logger.debug("Step: {} ({})", bridge.instInfo(state.currentStatement), state.currentStatement)
 
-        val inst = state.currentStatement
         val scope = GoStepScope(state, forkBlackList)
-        if (state.methodResult is GoMethodResult.Panic) {
-            state.panic()
+        if (state.methodResult is GoMethodResult.Panic && !state.handlePanic()) {
             return scope.stepResult()
         }
 
+        val inst = state.currentStatement
         val newInst = bridge.step(Api(ctx, bridge, scope), inst)
         if (newInst != 0L) {
             state.newInst(newInst)
