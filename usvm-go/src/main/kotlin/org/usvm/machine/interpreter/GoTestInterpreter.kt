@@ -121,7 +121,7 @@ class GoTestInterpreter(
         }
 
         fun resolveArray(array: UHeapRef, type: GoType): List<Any?>? = with(ctx) {
-            if (array == mkConcreteHeapRef(NULL_ADDRESS)) {
+            if (array == mkConcreteHeapRef(NULL_ADDRESS) || array == nullRef) {
                 return null
             }
 
