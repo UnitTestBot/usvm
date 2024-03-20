@@ -27,6 +27,8 @@ type Api interface {
 	MkIf(inst *ssa.If)
 	MkJump(inst *ssa.Jump)
 	MkDefer(inst *ssa.Defer)
+	MkGo(inst *ssa.Go)
+	MkMakeChan(inst *ssa.MakeChan)
 	MkAlloc(inst *ssa.Alloc)
 	MkMakeSlice(inst *ssa.MakeSlice)
 	MkMakeMap(inst *ssa.MakeMap)
@@ -46,6 +48,7 @@ type Api interface {
 	MkTypeAssert(inst *ssa.TypeAssert)
 	MkMakeClosure(inst *ssa.MakeClosure)
 	MkPhi(inst *ssa.Phi)
+	MkSelect(inst *ssa.Select)
 
 	SetLastBlock(block int)
 	WriteLastBlock()
@@ -82,6 +85,8 @@ const (
 	MethodMkIf
 	MethodMkJump
 	MethodMkDefer
+	MethodMkGo
+	MethodMkMakeChan
 	MethodMkAlloc
 	MethodMkMakeSlice
 	MethodMkMakeMap
@@ -101,6 +106,7 @@ const (
 	MethodMkMapUpdate
 	MethodMkTypeAssert
 	MethodMkMakeClosure
+	MethodMkSelect
 )
 
 type UnOp byte
@@ -317,6 +323,14 @@ func (a *api) MkDefer(inst *ssa.Defer) {
 	a.writeCall(inst.Common())
 }
 
+func (a *api) MkGo(_ *ssa.Go) {
+	a.buf.Write(byte(MethodMkGo))
+}
+
+func (a *api) MkMakeChan(_ *ssa.MakeChan) {
+	a.buf.Write(byte(MethodMkMakeChan))
+}
+
 func (a *api) MkAlloc(inst *ssa.Alloc) {
 	a.buf.Write(byte(MethodMkAlloc))
 	a.buf.WriteInt32(resolveRegister(inst))
@@ -478,6 +492,10 @@ func (a *api) MkPhi(inst *ssa.Phi) {
 	}
 
 	a.mkVariable(inst, edge)
+}
+
+func (a *api) MkSelect(_ *ssa.Select) {
+	a.buf.Write(byte(MethodMkSelect))
 }
 
 func (a *api) SetLastBlock(block int) {

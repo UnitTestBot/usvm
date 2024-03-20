@@ -229,10 +229,10 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkDefer(inst)
 
 	case *ssa.Go:
-		panic("Go")
+		api.MkGo(inst)
 
 	case *ssa.MakeChan:
-		panic("MakeChan")
+		api.MkMakeChan(inst)
 
 	case *ssa.Alloc:
 		api.MkAlloc(inst)
@@ -277,7 +277,7 @@ func (i *Interpreter) visit(api api.Api, instr ssa.Instruction) continuation {
 		api.MkPhi(inst)
 
 	case *ssa.Select:
-		panic("Select")
+		api.MkSelect(inst)
 
 	default:
 		panic(fmt.Sprintf("unexpected instruction: %T", inst))

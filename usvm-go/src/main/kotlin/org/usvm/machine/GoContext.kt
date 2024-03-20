@@ -11,12 +11,14 @@ import org.usvm.UBvSort
 import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.machine.operator.GoUnaryOperator
 import org.usvm.machine.type.GoType
 import org.usvm.machine.type.GoSort
 import org.usvm.machine.type.GoVoidSort
 import org.usvm.machine.type.GoVoidValue
 import org.usvm.memory.ULValue
+import org.usvm.sizeSort
 
 internal typealias USizeSort = UBv32Sort
 

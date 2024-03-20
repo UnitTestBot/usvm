@@ -376,7 +376,7 @@ class GoMachineTest {
                 coverageZone = CoverageZone.TRANSITIVE
             )
         )
-        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "panicRecover", false)
+        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "panicRecover", true)
         println(results)
     }
 
@@ -394,7 +394,25 @@ class GoMachineTest {
 
     @Test
     fun testCopySimple() {
-        val results = machine.analyzeAndResolve(Path.getProgram("builtin.go"), "copySimple", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("builtin.go"), "copySimple", false)
+        println(results)
+    }
+
+    @Test
+    fun testLeetcodeTwoSum() {
+        val results = machine.analyzeAndResolve(Path.getProgram("leetcode.go"), "twoSum", false)
+        println(results)
+    }
+
+    @Test
+    fun testLeetcodeContainsNearbyDuplicate() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                coverageZone = CoverageZone.TRANSITIVE
+            )
+        )
+        val results = machine.analyzeAndResolve(Path.getProgram("leetcode.go"), "containsNearbyDuplicate", false)
         println(results)
     }
 }

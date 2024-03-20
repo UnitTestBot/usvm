@@ -2,6 +2,7 @@ package org.usvm.api
 
 import io.ksmt.expr.KBitVec64Value
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.usvm.UAddressPointer
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
@@ -80,6 +81,8 @@ class Api(
             Method.MK_IF -> mkIf(buf)
             Method.MK_JUMP -> noop()
             Method.MK_DEFER -> mkDefer(buf)
+            Method.MK_GO -> noop()
+            Method.MK_MAKE_CHAN -> noop()
             Method.MK_ALLOC -> mkAlloc(buf)
             Method.MK_MAKE_SLICE -> mkMakeSlice(buf)
             Method.MK_MAKE_MAP -> mkMakeMap(buf)
@@ -99,6 +102,7 @@ class Api(
             Method.MK_MAP_UPDATE -> mkMapUpdate(buf)
             Method.MK_TYPE_ASSERT -> mkTypeAssert(buf)
             Method.MK_MAKE_CLOSURE -> mkMakeClosure(buf)
+            Method.MK_SELECT -> noop()
             Method.UNKNOWN -> throw UnknownMethodException()
         }
 
@@ -574,7 +578,7 @@ class Api(
     }
 
     private fun mkPanic(buf: ByteBuffer) {
-        scope.doWithState { panic(readVar(buf)) }
+        scope.doWithState { panic(readVar(buf).expr) }
     }
 
     private fun mkVariable(buf: ByteBuffer) = with(ctx) {
@@ -1085,8 +1089,12 @@ class Api(
         return ref
     }
 
-    private fun GoState.panic(expr: Any) {
-        methodResult = GoMethodResult.Panic(expr)
+    private fun GoState.panic(expr: String) {
+        panic(mkString(expr))
+    }
+
+    private fun GoState.panic(expr: UExpr<out USort>) {
+        methodResult = GoMethodResult.Panic(expr.cast())
     }
 
     private fun GoState.recover(): Any = with(ctx) {
@@ -1152,6 +1160,15 @@ class Api(
         symbolicPrimitiveMapRemove(collection, oldKey, type, USizeExprKeyInfo())
         return symbolicPrimitiveMapAnyKey(collection, type, keySort, USizeExprKeyInfo())
     }
+
+    private fun GoState.mkString(value: String): UHeapRef = with(ctx) {
+        memory.allocateArrayInitialized(
+            123,
+            bv32Sort,
+            sizeSort,
+            value.toByteArray().map { mkBv(it.toInt()) }.asSequence()
+        )
+    }
 }
 
 private enum class Method(val value: Byte) {
@@ -1169,25 +1186,28 @@ private enum class Method(val value: Byte) {
     MK_IF(11),
     MK_JUMP(12),
     MK_DEFER(13),
-    MK_ALLOC(14),
-    MK_MAKE_SLICE(15),
-    MK_MAKE_MAP(16),
-    MK_EXTRACT(17),
-    MK_SLICE(18),
-    MK_RETURN(19),
-    MK_RUN_DEFERS(20),
-    MK_PANIC(21),
-    MK_VARIABLE(22),
-    MK_RANGE(23),
-    MK_NEXT(24),
-    MK_POINTER_FIELD_READING(25),
-    MK_FIELD_READING(26),
-    MK_POINTER_ARRAY_READING(27),
-    MK_ARRAY_READING(28),
-    MK_MAP_LOOKUP(29),
-    MK_MAP_UPDATE(30),
-    MK_TYPE_ASSERT(31),
-    MK_MAKE_CLOSURE(32);
+    MK_GO(14),
+    MK_MAKE_CHAN(15),
+    MK_ALLOC(16),
+    MK_MAKE_SLICE(17),
+    MK_MAKE_MAP(18),
+    MK_EXTRACT(19),
+    MK_SLICE(20),
+    MK_RETURN(21),
+    MK_RUN_DEFERS(22),
+    MK_PANIC(23),
+    MK_VARIABLE(24),
+    MK_RANGE(25),
+    MK_NEXT(26),
+    MK_POINTER_FIELD_READING(27),
+    MK_FIELD_READING(28),
+    MK_POINTER_ARRAY_READING(29),
+    MK_ARRAY_READING(30),
+    MK_MAP_LOOKUP(31),
+    MK_MAP_UPDATE(32),
+    MK_TYPE_ASSERT(33),
+    MK_MAKE_CLOSURE(34),
+    MK_SELECT(35);
 
     companion object {
         private val values = entries.toTypedArray()
