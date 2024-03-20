@@ -18,17 +18,17 @@ sealed class GoBinaryOperator(
     val onFp: GoContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onAddress: GoContext.(UExpr<UAddressSort>, UExpr<UAddressSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
-    object Add : GoBinaryOperator(
+    data object Add : GoBinaryOperator(
         onBv = GoContext::mkBvAddExpr,
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Sub : GoBinaryOperator(
+    data object Sub : GoBinaryOperator(
         onBv = GoContext::mkBvSubExpr,
         onFp = { lhs, rhs -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    object Mul : GoBinaryOperator(
+    data object Mul : GoBinaryOperator(
         onBv = GoContext::mkBvMulExpr,
         onFp = { lhs, rhs -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
@@ -43,22 +43,22 @@ sealed class GoBinaryOperator(
         onFp = GoContext::mkFpRemExpr,
     )
 
-    object And : GoBinaryOperator(
+    data object And : GoBinaryOperator(
         onBool = GoContext::mkAnd,
         onBv = GoContext::mkBvAndExpr,
     )
 
-    object Or : GoBinaryOperator(
+    data object Or : GoBinaryOperator(
         onBool = GoContext::mkOr,
         onBv = GoContext::mkBvOrExpr,
     )
 
-    object Xor : GoBinaryOperator(
+    data object Xor : GoBinaryOperator(
         onBool = GoContext::mkXor,
         onBv = GoContext::mkBvXorExpr,
     )
 
-    object Shl : GoBinaryOperator(
+    data object Shl : GoBinaryOperator(
         onBv = { arg, shift -> mkBvShiftLeftExpr(arg, normalizeBvShift(shift)) }
     )
 
@@ -69,11 +69,11 @@ sealed class GoBinaryOperator(
         }
     )
 
-    object AndNot : GoBinaryOperator(
+    data object AndNot : GoBinaryOperator(
         onBv = { lhs, rhs -> mkBvAndExpr(lhs, mkBvNegationExpr(rhs)) }
     )
 
-    object Eq : GoBinaryOperator(
+    data object Eq : GoBinaryOperator(
         onBool = GoContext::mkEq,
         onBv = GoContext::mkEq,
         onFp = GoContext::mkFpEqualExpr,
@@ -90,10 +90,11 @@ sealed class GoBinaryOperator(
         onFp = GoContext::mkFpGreaterExpr,
     )
 
-    object Neq : GoBinaryOperator(
+    data object Neq : GoBinaryOperator(
         onBool = { lhs, rhs -> lhs.neq(rhs) },
         onBv = { lhs, rhs -> lhs.neq(rhs) },
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
+        onAddress = { lhs, rhs -> mkHeapRefEq(lhs, rhs).not() },
     )
 
     class Le(signed: Boolean) : GoBinaryOperator(

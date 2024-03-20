@@ -5,7 +5,7 @@ import org.usvm.USort
 import org.usvm.machine.GoMethod
 
 sealed interface GoMethodResult {
-    object NoCall : GoMethodResult
+    data object NoCall : GoMethodResult
 
     class Success(
         val method: GoMethod,
@@ -13,6 +13,6 @@ sealed interface GoMethodResult {
     ) : GoMethodResult
 
     class Panic(
-        val value: Any,
+        val value: UExpr<USort>,
     ) : GoMethodResult
 }
