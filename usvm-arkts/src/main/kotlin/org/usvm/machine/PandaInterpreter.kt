@@ -13,6 +13,7 @@ import org.usvm.targets.UTargetsSet
 
 typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaContext>
 
+@Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
 
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
