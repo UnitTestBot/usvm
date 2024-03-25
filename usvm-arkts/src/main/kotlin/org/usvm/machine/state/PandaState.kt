@@ -16,22 +16,34 @@ import org.usvm.targets.UTargetsSet
 
 class PandaState(
     ctx: PandaContext,
+    override val entrypoint: PandaMethod,
     callStack: UCallStack<PandaMethod, PandaInst>,
     pathConstraints: UPathConstraints<PandaType>,
     memory: UMemory<PandaType, PandaMethod>,
     models: List<UModelBase<PandaType>>,
     pathNode: PathNode<PandaInst>,
     forkPoints: PathNode<PathNode<PandaInst>>,
+    var methodResult: PandaMethodResult = PandaMethodResult.NoCall,
     targets: UTargetsSet<PandaTarget, PandaInst>,
 ) : UState<PandaType, PandaMethod, PandaInst, PandaContext, PandaTarget, PandaState>(
     ctx, callStack, pathConstraints, memory, models, pathNode, forkPoints, targets
 ) {
     override fun clone(newConstraints: UPathConstraints<PandaType>?): PandaState {
-        TODO("Not yet implemented")
+        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+        return PandaState(
+            ctx,
+            entrypoint,
+            callStack.clone(),
+            clonedConstraints,
+            memory.clone(clonedConstraints.typeConstraints),
+            models,
+            pathNode,
+            forkPoints,
+            methodResult,
+            targets.clone(),
+        )
     }
 
-    override val entrypoint: PandaMethod
-        get() = TODO("Not yet implemented")
     override val isExceptional: Boolean
-        get() = TODO("Not yet implemented")
+        get() = methodResult is PandaMethodResult.PandaException
 }
