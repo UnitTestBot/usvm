@@ -3,8 +3,15 @@ package org.usvm.machine
 import io.ksmt.expr.KBitVec64Value
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.symfpu.solver.KSymFpuSolver
 import org.jacodb.panda.dynamic.api.PandaType
-import org.usvm.*
+import org.usvm.SolverType
+import org.usvm.UBoolExpr
+import org.usvm.UComponents
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UMachineOptions
+import org.usvm.USizeExprProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 
@@ -13,20 +20,23 @@ import org.usvm.solver.UTypeSolver
  */
 class PandaComponents(
     private val typeSystem: PandaTypeSystem,
-    private val options: UMachineOptions
+    private val options: UMachineOptions,
 ) : UComponents<PandaType, PandaFp64Sort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
     override val useSolverForForks: Boolean get() = options.useSolverForForks
 
+
     override fun <Context : UContext<PandaFp64Sort>> mkSolver(ctx: Context): USolverBase<PandaType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
-        val solver = when (options.solverType) {
-            SolverType.YICES -> KYicesSolver(ctx)
+        val smtSolver = when (options.solverType) {
+            SolverType.YICES -> KSymFpuSolver(KYicesSolver(ctx), ctx)
             SolverType.Z3 -> KZ3Solver(ctx)
         }
+        closeableResources += smtSolver
+
         val typeSolver = UTypeSolver(typeSystem)
 
-        return USolverBase(ctx, solver, typeSolver, translator, decoder, options.solverTimeout)
+        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
 
     fun close() {
@@ -43,7 +53,7 @@ class PandaComponents(
 }
 
 class PandaFpSortSizeExprProvider(
-    override val ctx: PandaContext
+    override val ctx: PandaContext,
 ) : USizeExprProvider<PandaFp64Sort> {
     override val sizeSort: PandaFp64Sort = ctx.fp64Sort
 
@@ -52,14 +62,19 @@ class PandaFpSortSizeExprProvider(
 
     override fun mkSizeSubExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UExpr<PandaFp64Sort> =
         ctx.mkFpSubExpr(ctx.fpRoundingModeSortDefaultValue(), lhs, rhs)
+
     override fun mkSizeAddExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UExpr<PandaFp64Sort> =
         ctx.mkFpAddExpr(ctx.fpRoundingModeSortDefaultValue(), lhs, rhs)
+
     override fun mkSizeGtExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UBoolExpr =
         ctx.mkFpGreaterExpr(lhs, rhs)
+
     override fun mkSizeGeExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UBoolExpr =
         ctx.mkFpGreaterOrEqualExpr(lhs, rhs)
+
     override fun mkSizeLtExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UBoolExpr =
         ctx.mkFpLessExpr(lhs, rhs)
+
     override fun mkSizeLeExpr(lhs: UExpr<PandaFp64Sort>, rhs: UExpr<PandaFp64Sort>): UBoolExpr =
         ctx.mkFpLessOrEqualExpr(lhs, rhs)
 }
