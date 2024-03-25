@@ -7,20 +7,19 @@ import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
-import org.usvm.machine.state.JcMethodResult
+import org.usvm.machine.state.PandaMethodResult
 import org.usvm.machine.state.PandaState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import kotlin.time.Duration.Companion.seconds
 
-@Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 class PandaMachine(
     project: PandaProject,
     private val options: UMachineOptions,
@@ -36,6 +35,10 @@ class PandaMachine(
         targets: List<PandaTarget> = emptyList(),
     ): List<PandaState> {
         val initialStates = mutableMapOf<PandaMethod, PandaState>()
+
+        methods.forEach {
+            initialStates[it] = interpreter.getInitialState(it, targets)
+        }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
@@ -62,20 +65,19 @@ class PandaMachine(
             }
 
         val pathSelector = createPathSelector(
-            initialStates,
+            initialStates.values.single(),
             options,
             applicationGraph,
-            TimeStatistics<PandaMethod, PandaState>(),
-//            coverageStatistics = { coverageStatistics },
-            cfgStatisticsFactory = { null },
-//            callGraphStatistics = { callGraphStatistics },
+            coverageStatisticsFactory = { coverageStatistics },
+            cfgStatisticsFactory = { CfgStatisticsImpl(applicationGraph) },
+            callGraphStatisticsFactory = { callGraphStatistics },
             loopStatisticFactory = { null }
         )
 
         val statesCollector =
             when (options.stateCollectionStrategy) {
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<PandaState>(coverageStatistics) {
-                    it.methodResult is JcMethodResult.JcException
+                    it.methodResult is PandaMethodResult.PandaException
                 }
 
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
@@ -98,6 +100,6 @@ class PandaMachine(
     }
 
     override fun close() {
-        TODO("Not yet implemented")
+        components.close()
     }
 }

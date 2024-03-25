@@ -17,14 +17,14 @@ import org.usvm.targets.UTargetsSet
 class PandaState(
     ctx: PandaContext,
     override val entrypoint: PandaMethod,
-    callStack: UCallStack<PandaMethod, PandaInst>,
-    pathConstraints: UPathConstraints<PandaType>,
-    memory: UMemory<PandaType, PandaMethod>,
-    models: List<UModelBase<PandaType>>,
-    pathNode: PathNode<PandaInst>,
-    forkPoints: PathNode<PathNode<PandaInst>>,
+    callStack: UCallStack<PandaMethod, PandaInst> = UCallStack(),
+    pathConstraints: UPathConstraints<PandaType> = UPathConstraints(ctx),
+    memory: UMemory<PandaType, PandaMethod> = UMemory(ctx, pathConstraints.typeConstraints),
+    models: List<UModelBase<PandaType>> = listOf(),
+    pathNode: PathNode<PandaInst> = PathNode.root(),
+    forkPoints: PathNode<PathNode<PandaInst>> = PathNode.root(),
     var methodResult: PandaMethodResult = PandaMethodResult.NoCall,
-    targets: UTargetsSet<PandaTarget, PandaInst>,
+    targets: UTargetsSet<PandaTarget, PandaInst> = UTargetsSet.empty(),
 ) : UState<PandaType, PandaMethod, PandaInst, PandaContext, PandaTarget, PandaState>(
     ctx, callStack, pathConstraints, memory, models, pathNode, forkPoints, targets
 ) {
