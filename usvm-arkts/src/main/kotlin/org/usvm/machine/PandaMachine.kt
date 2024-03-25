@@ -4,13 +4,19 @@ import org.jacodb.panda.dynamic.api.PandaInst
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaProject
 import org.usvm.CoverageZone
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.PandaState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.TimeStatistics
+import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.collectors.AllStatesCollector
+import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import kotlin.time.Duration.Companion.seconds
 
@@ -66,14 +72,29 @@ class PandaMachine(
             loopStatisticFactory = { null }
         )
 
+        val statesCollector =
+            when (options.stateCollectionStrategy) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<PandaState>(coverageStatistics) {
+                    it.methodResult is JcMethodResult.JcException
+                }
+
+                StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector()
+            }
+
+        val observers = mutableListOf<UMachineObserver<PandaState>>(coverageStatistics)
+        observers.add(statesCollector)
+
+
         run(
             interpreter,
             pathSelector,
-            CompositeUMachineObserver(emptyList()),
+            observer = CompositeUMachineObserver(observers),
             isStateTerminated = { false },
             stopStrategy = { false }
         )
-        TODO()
+
+        return statesCollector.collectedStates
     }
 
     override fun close() {
