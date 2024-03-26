@@ -18,4 +18,18 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             { _ -> true }
         )
     }
+
+    @Test
+    fun testBasicSamples() {
+        internalCheck(
+            target = "BasicSamples" to "add",
+            ignoreNumberOfAnalysisResults,
+            emptyArray(),
+            emptyArray(),
+            { _ -> emptyList() },
+            emptyArray(),
+            CheckMode.MATCH_PROPERTIES,
+            { _ -> true }
+        )
+    }
 }
