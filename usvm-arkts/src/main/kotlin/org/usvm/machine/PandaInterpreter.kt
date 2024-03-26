@@ -47,7 +47,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(method.parameters.size, 15) // TODO locals count)
+        state.memory.stack.push(method.parameters.size, method.localVarsCount)
         state.pathNode += method.instructions.first()
 
         return state
