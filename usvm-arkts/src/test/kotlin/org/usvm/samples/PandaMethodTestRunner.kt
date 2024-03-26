@@ -2,7 +2,6 @@ package org.usvm.samples
 
 import org.jacodb.panda.dynamic.api.PandaAnyType
 import org.jacodb.panda.dynamic.api.PandaType
-import org.jacodb.panda.dynamic.parser.ByteCodeParser
 import org.jacodb.panda.dynamic.parser.IRParser
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
@@ -10,9 +9,6 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.PandaExecutionResult
 import org.usvm.machine.PandaMachine
 import org.usvm.test.util.TestRunner
-import java.io.FileInputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -32,21 +28,15 @@ open class PandaMethodTestRunner : TestRunner<PandaExecutionResult, Pair<PathStr
     override val runner: (Pair<PathString, MethodName>, UMachineOptions) -> List<PandaExecutionResult>
         get() = { id, options ->
             val filePath = "/samples/" + id.first + ".abc"
-            val bcParser = javaClass.getResource(filePath)
-                ?.path
-                ?.let { FileInputStream(it).readBytes() }
-                ?.let { ByteBuffer.wrap(it).order(ByteOrder.LITTLE_ENDIAN) }
-                ?.let { ByteCodeParser(it) }
-                ?.also { it.parseABC() }
 
             // TODO Automatic parser?????
             val jsonWithoutExtension = "/samples/${id.first}.json"
             val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
-            val parser = IRParser(sampleFilePath, bcParser!!)
+            val parser = IRParser(sampleFilePath)
             val project = parser.getProject()
 
             // TODO class name??????
-            val method = project.findMethodOrNull(id.second, "L_GLOBAL") ?: error("TODO")
+            val method = project.findMethodOrNull(id.second, "GLOBAL") ?: error("TODO")
             val machine = PandaMachine(project, options)
 
             machine.analyze(listOf(method))
