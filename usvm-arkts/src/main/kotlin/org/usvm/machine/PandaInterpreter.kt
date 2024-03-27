@@ -122,7 +122,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         TODO()
     }
 
-    private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<String, Int>>() // (method, localName) -> idx
+    private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<Int, Int>>() // (method, localIdx) -> idx
 
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: PandaMethod, local: PandaLocal) =
@@ -130,8 +130,8 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             is PandaLocalVar -> localVarToIdx
                 .getOrPut(method) { mutableMapOf() }
                 .run {
-                    // TODO replace with name, fix parameters count as in Java
-                    getOrPut(local.toString()) { method.parameters.count() + size }
+                    // TODO fix parameters count as in Java
+                    getOrPut(local.index) { method.parameters.count() + size }
                 }
 
             is PandaThis -> 0
