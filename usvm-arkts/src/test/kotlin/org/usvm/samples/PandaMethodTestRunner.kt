@@ -9,14 +9,36 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.PandaExecutionResult
 import org.usvm.machine.PandaMachine
 import org.usvm.test.util.TestRunner
+import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+private typealias FileName = String
 private typealias MethodName = String
+private typealias ArgsNumber = Int
 private typealias Coverage = Int
-private typealias PathString = String
+private typealias MethodIdentifier = Triple<FileName, MethodName, ArgsNumber>
 
-open class PandaMethodTestRunner : TestRunner<PandaExecutionResult, Pair<PathString, MethodName>, PandaType?, Coverage>() {
+open class PandaMethodTestRunner
+    : TestRunner<PandaExecutionResult, MethodIdentifier, PandaType?, Coverage>() {
+
+    protected fun discoverProperties(
+        methodIdentifier: MethodIdentifier,
+        analysisResultMatchers: Array<out Function<Boolean>>,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { _ -> emptyList() },
+            expectedTypesForExtractedValues = emptyArray(),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = { _ -> true }
+        )
+    }
+
     override val typeTransformer: (Any?) -> PandaType
         get() = { _ -> PandaAnyType } // TODO("Not yet implemented")
 
@@ -24,11 +46,8 @@ open class PandaMethodTestRunner : TestRunner<PandaExecutionResult, Pair<PathStr
     override val checkType: (PandaType?, PandaType?) -> Boolean
         get() = { expected, actual -> true } // TODO("Not yet implemented")
 
-    @Suppress("UNUSED_ANONYMOUS_PARAMETER", "UNUSED_VARIABLE")
-    override val runner: (Pair<PathString, MethodName>, UMachineOptions) -> List<PandaExecutionResult>
+    override val runner: (MethodIdentifier, UMachineOptions) -> List<PandaExecutionResult>
         get() = { id, options ->
-            val filePath = "/samples/" + id.first + ".abc"
-
             // TODO Automatic parser?????
             val jsonWithoutExtension = "/samples/${id.first}.json"
             val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
