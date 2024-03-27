@@ -1,6 +1,13 @@
 package org.usvm.machine
 
-import org.jacodb.panda.dynamic.api.*
+import org.jacodb.panda.dynamic.api.PandaAssignInst
+import org.jacodb.panda.dynamic.api.PandaCallInst
+import org.jacodb.panda.dynamic.api.PandaIfInst
+import org.jacodb.panda.dynamic.api.PandaInst
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaReturnInst
+import org.jacodb.panda.dynamic.api.PandaThrowInst
+import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -53,10 +60,20 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         return state
     }
 
-    private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {}
-    private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {}
-    private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {}
-    private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {}
-    private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {}
+    private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
+        TODO()
+    }
+    private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
+        TODO()
+    }
+    private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
+        TODO()
+    }
+    private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {
+        TODO()
+    }
+    private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
+        TODO()
+    }
 
 }
