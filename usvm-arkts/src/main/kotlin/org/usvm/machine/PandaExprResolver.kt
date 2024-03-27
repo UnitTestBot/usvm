@@ -46,7 +46,7 @@ import org.usvm.memory.URegisterStackLValue
 
 class PandaExprResolver(
     private val ctx: PandaContext,
-    @Suppress("unused") private val scope: PandaStepScope,
+    private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int
 ) : PandaExprVisitor<UExpr<out USort>?> {
     fun resolveLValue(value: PandaValue): ULValue<*, *>? =
