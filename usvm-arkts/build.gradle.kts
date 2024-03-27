@@ -5,10 +5,10 @@ plugins {
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:d76318942f")
-    implementation("com.github.UnitTestBot.jacodb:jacodb-core:d76318942f")
-    implementation("com.github.UnitTestBot.jacodb:jacodb-panda-dynamic:d76318942f")
-    implementation("com.github.UnitTestBot.jacodb:jacodb-panda-static:d76318942f")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-analysis:${Versions.arktsJacoDBVersion}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-core:${Versions.arktsJacoDBVersion}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-panda-dynamic:${Versions.arktsJacoDBVersion}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-panda-static:${Versions.arktsJacoDBVersion}")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
