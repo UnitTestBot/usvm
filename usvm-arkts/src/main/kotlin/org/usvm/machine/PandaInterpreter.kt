@@ -14,7 +14,9 @@ import org.jacodb.panda.dynamic.api.PandaThrowInst
 import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.USort
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.state.PandaMethodResult
 import org.usvm.machine.state.PandaState
@@ -69,7 +71,33 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
-        TODO()
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
+
+        val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
+        // TODO process the type
+        val valueToReturn = stmt.returnValue
+            ?.let { exprResolver.resolvePandaExpr(it) }
+            ?: error("TODO")
+
+        scope.doWithState {
+            returnValue(valueToReturn)
+        }
+    }
+
+    // TODO extract
+    private fun PandaState.returnValue(valueToReturn: UExpr<out USort>) {
+        val returnFromMethod = callStack.lastMethod()
+        // TODO: think about it later
+        val returnSite = callStack.pop()
+        if (callStack.isNotEmpty()) {
+            memory.stack.pop()
+        }
+
+        methodResult = PandaMethodResult.Success(returnFromMethod, valueToReturn)
+
+        if (returnSite != null) {
+            newStmt(returnSite)
+        }
     }
 
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {

@@ -17,3 +17,4 @@ fun UWritableMemory<*>.write(lValue: ULValue<*, *>, expr: KExpr<out USort>) {
 fun PandaState.newStmt(stmt: PandaInst) {
     pathNode += stmt
 }
+
