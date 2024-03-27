@@ -5,6 +5,7 @@ import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.panda.dynamic.api.PandaAddExpr
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaArrayAccess
+import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaCastExpr
 import org.jacodb.panda.dynamic.api.PandaCmpExpr
 import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
@@ -66,6 +67,24 @@ class PandaExprResolver(
     // TODO do we need a type?
     fun resolvePandaExpr(expr: PandaExpr): UExpr<out USort>? = expr.accept(this)
 
+    private fun resolveBinaryOperator(
+        operator: PandaBinaryOperator,
+        expr: PandaBinaryExpr
+    ): UExpr<out USort>? = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
+        operator(lhs, rhs) // TODO fix issues
+    }
+
+    private inline fun <T> resolveAfterResolved(
+        dependency0: PandaExpr,
+        dependency1: PandaExpr,
+        block: (UExpr<out USort>, UExpr<out USort>) -> T,
+    ): T? {
+        val result0 = resolvePandaExpr(dependency0) ?: return null
+        val result1 = resolvePandaExpr(dependency1) ?: return null
+        return block(result0, result1)
+    }
+
+
     override fun visitCommonCallExpr(expr: CommonExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
@@ -82,9 +101,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaAddExpr(expr: PandaAddExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
-    }
+    override fun visitPandaAddExpr(expr: PandaAddExpr): UExpr<out USort>? =
+        resolveBinaryOperator(PandaBinaryOperator.Add, expr)
 
     override fun visitPandaArgument(expr: PandaArgument): UExpr<out USort>? {
         TODO("Not yet implemented")
@@ -134,8 +152,9 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaLocalVar(expr: PandaLocalVar): UExpr<out USort>? {
-        TODO("Not yet implemented")
+    override fun visitPandaLocalVar(expr: PandaLocalVar): UExpr<out USort> {
+        val ref = resolveLocal(expr)
+        return scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitPandaLtExpr(expr: PandaLtExpr): UExpr<out USort>? {
@@ -158,8 +177,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaNumberConstant(expr: PandaNumberConstant): UExpr<out USort>? {
-        TODO("Not yet implemented")
+    override fun visitPandaNumberConstant(expr: PandaNumberConstant): UExpr<out USort> = with(ctx) {
+        mkFp64(expr.value.toDouble())
     }
 
     override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): UExpr<out USort>? {

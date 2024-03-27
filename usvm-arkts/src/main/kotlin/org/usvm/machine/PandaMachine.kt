@@ -12,12 +12,15 @@ import org.usvm.machine.state.PandaState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StepsStatistics
+import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
+import org.usvm.stopstrategies.createStopStrategy
 import kotlin.time.Duration.Companion.seconds
 
 class PandaMachine(
@@ -87,13 +90,25 @@ class PandaMachine(
         val observers = mutableListOf<UMachineObserver<PandaState>>(coverageStatistics)
         observers.add(statesCollector)
 
+        val timeStatistics = TimeStatistics<PandaMethod, PandaState>()
+        val stepsStatistics = StepsStatistics<PandaMethod, PandaState>()
+
+        // TODO add statistics
+        val stopStrategy = createStopStrategy(
+            options,
+            targets,
+            timeStatisticsFactory = { timeStatistics },
+            stepsStatisticsFactory = { stepsStatistics },
+            coverageStatisticsFactory = { coverageStatistics },
+            getCollectedStatesCount = { statesCollector.collectedStates.size }
+        )
 
         run(
             interpreter,
             pathSelector,
             observer = CompositeUMachineObserver(observers),
-            isStateTerminated = { false },
-            stopStrategy = { false }
+            isStateTerminated = { state -> state.callStack.isEmpty() },
+            stopStrategy = stopStrategy
         )
 
         return statesCollector.collectedStates

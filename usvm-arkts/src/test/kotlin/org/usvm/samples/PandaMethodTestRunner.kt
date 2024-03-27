@@ -56,11 +56,15 @@ open class PandaMethodTestRunner
 
             // TODO class name??????
             val method = project.findMethodOrNull(id.second, "GLOBAL") ?: error("TODO")
-            val machine = PandaMachine(project, options)
 
-            machine.analyze(listOf(method))
 
-            TODO()
+            PandaMachine(project, options).use {
+                val states = it.analyze(listOf(method))
+                states.map {
+                    println(it)
+                    PandaExecutionResult() // TODO transform
+                }
+            }
         }
 
     override val coverageRunner: (List<PandaExecutionResult>) -> Coverage
