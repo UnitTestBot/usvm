@@ -8,15 +8,20 @@ import org.jacodb.panda.dynamic.api.PandaArrayAccess
 import org.jacodb.panda.dynamic.api.PandaCastExpr
 import org.jacodb.panda.dynamic.api.PandaCmpExpr
 import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
+import org.jacodb.panda.dynamic.api.PandaDivExpr
 import org.jacodb.panda.dynamic.api.PandaEqExpr
+import org.jacodb.panda.dynamic.api.PandaExpr
 import org.jacodb.panda.dynamic.api.PandaExprVisitor
 import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
 import org.jacodb.panda.dynamic.api.PandaLeExpr
 import org.jacodb.panda.dynamic.api.PandaLoadedValue
+import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaLocalVar
 import org.jacodb.panda.dynamic.api.PandaLtExpr
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaMulExpr
 import org.jacodb.panda.dynamic.api.PandaNeqExpr
 import org.jacodb.panda.dynamic.api.PandaNewExpr
 import org.jacodb.panda.dynamic.api.PandaNullConstant
@@ -24,17 +29,43 @@ import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
 import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
 import org.jacodb.panda.dynamic.api.PandaStringConstant
+import org.jacodb.panda.dynamic.api.PandaSubExpr
 import org.jacodb.panda.dynamic.api.PandaThis
 import org.jacodb.panda.dynamic.api.PandaToNumericExpr
 import org.jacodb.panda.dynamic.api.PandaTypeofExpr
 import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
+import org.jacodb.panda.dynamic.api.PandaValue
 import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
 import org.jacodb.panda.dynamic.api.TODOConstant
 import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.memory.ULValue
+import org.usvm.memory.URegisterStackLValue
 
-class PandaExprResolver : PandaExprVisitor<UExpr<out USort>?> {
+class PandaExprResolver(
+    private val ctx: PandaContext,
+    @Suppress("unused") private val scope: PandaStepScope,
+    private val localIdxMapper: (PandaMethod, PandaLocal) -> Int
+) : PandaExprVisitor<UExpr<out USort>?> {
+    fun resolveLValue(value: PandaValue): ULValue<*, *>? =
+        when (value) {
+            is PandaFieldRef -> TODO()
+            is PandaArrayAccess -> TODO()
+            is PandaLocal -> resolveLocal(value)
+            else -> error("Unexpected value: $value")
+        }
+
+    fun resolveLocal(local: PandaLocal): URegisterStackLValue<*> {
+        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
+        val localIdx = localIdxMapper(method, local)
+        val sort = ctx.typeToSort(local.type)
+        return URegisterStackLValue(sort, localIdx)
+    }
+
+    // TODO do we need a type?
+    fun resolvePandaExpr(expr: PandaExpr): UExpr<out USort>? = expr.accept(this)
+
     override fun visitCommonCallExpr(expr: CommonExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
@@ -75,6 +106,10 @@ class PandaExprResolver : PandaExprVisitor<UExpr<out USort>?> {
         TODO("Not yet implemented")
     }
 
+    override fun visitPandaDivExpr(expr: PandaDivExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaEqExpr(expr: PandaEqExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
@@ -107,6 +142,10 @@ class PandaExprResolver : PandaExprVisitor<UExpr<out USort>?> {
         TODO("Not yet implemented")
     }
 
+    override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaNeqExpr(expr: PandaNeqExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
@@ -132,6 +171,10 @@ class PandaExprResolver : PandaExprVisitor<UExpr<out USort>?> {
     }
 
     override fun visitPandaStringConstant(expr: PandaStringConstant): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaSubExpr(expr: PandaSubExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 

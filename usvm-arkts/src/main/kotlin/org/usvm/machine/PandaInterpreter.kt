@@ -1,11 +1,15 @@
 package org.usvm.machine
 
+import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaAssignInst
 import org.jacodb.panda.dynamic.api.PandaCallInst
 import org.jacodb.panda.dynamic.api.PandaIfInst
 import org.jacodb.panda.dynamic.api.PandaInst
+import org.jacodb.panda.dynamic.api.PandaLocal
+import org.jacodb.panda.dynamic.api.PandaLocalVar
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaReturnInst
+import org.jacodb.panda.dynamic.api.PandaThis
 import org.jacodb.panda.dynamic.api.PandaThrowInst
 import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.StepResult
@@ -63,17 +67,50 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
         TODO()
     }
+
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
         TODO()
     }
+
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
-        TODO()
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
+
+        val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
+        val expr = exprResolver.resolvePandaExpr(stmt.rhv) ?: return
+
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt
+            memory.write(lValue, expr)
+            newStmt(nextStmt)
+        }
     }
+
+
     private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {
         TODO()
     }
+
     private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
         TODO()
     }
 
+    private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<String, Int>>() // (method, localName) -> idx
+
+    // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
+    private fun mapLocalToIdxMapper(method: PandaMethod, local: PandaLocal) =
+        when (local) {
+            is PandaLocalVar -> localVarToIdx
+                .getOrPut(method) { mutableMapOf() }
+                .run {
+                    // TODO replace with name, fix parameters count as in Java
+                    getOrPut(local.toString()) { method.parameters.count() + size }
+                }
+
+            is PandaThis -> 0
+            is PandaArgument -> local.index // TODO static????
+            else -> error("Unexpected local: $local")
+        }
+
+
+    private val PandaInst.nextStmt get() = location.let { it.method.instructions[it.index + 1] }
 }
