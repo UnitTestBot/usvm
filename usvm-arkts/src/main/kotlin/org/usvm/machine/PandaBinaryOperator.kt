@@ -17,6 +17,21 @@ sealed class PandaBinaryOperator(
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
+    object Sub : PandaBinaryOperator(
+        onBv = PandaContext::mkBvSubExpr,
+        onFp = { lhs, rhs -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
+    )
+
+    object Mul : PandaBinaryOperator(
+        onBv = PandaContext::mkBvMulExpr,
+        onFp = { lhs, rhs -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
+    )
+
+    object Div : PandaBinaryOperator(
+        onBv = PandaContext::mkBvSignedDivExpr,
+        onFp = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
+    )
+
     internal open operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
