@@ -19,4 +19,12 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             emptyArray()
         )
     }
+
+    @Test
+    fun testSomeOps() {
+        discoverProperties(
+            Triple("BasicSamples", "someOps", 2),
+            emptyArray()
+        )
+    }
 }

@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import io.ksmt.sort.KSort
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaAssignInst
 import org.jacodb.panda.dynamic.api.PandaCallInst
@@ -71,7 +72,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
 
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         // TODO process the type
@@ -101,10 +102,17 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
 
-        val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
         val expr = exprResolver.resolvePandaExpr(stmt.rhv) ?: return
+
+        (stmt.lhv as? PandaLocalVar)?.let {
+            if (expr.sort != ctx.anySort) {
+                saveSortInfo(it, scope.calcOnState { lastEnteredMethod }, expr.sort)
+            }
+        }
+
+        val lValue = exprResolver.resolveLValue(stmt.lhv, alternativeSortInfo = expr.sort) ?: return
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt
@@ -122,7 +130,11 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         TODO()
     }
 
-    private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<Int, Int>>() // (method, localIdx) -> idx
+    // (method, localIdx) -> idx
+    private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<Int, Int>>()
+
+    // (method, localIdx) -> Sort
+    private val additionalLocalVarSortInfo = mutableMapOf<PandaMethod, MutableMap<Int, KSort>>()
 
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: PandaMethod, local: PandaLocal) =
@@ -138,6 +150,22 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             is PandaArgument -> local.index // TODO static????
             else -> error("Unexpected local: $local")
         }
+
+    private fun saveSortInfo(pandaLocalVar: PandaLocalVar, method: PandaMethod, sort: USort) {
+        additionalLocalVarSortInfo
+            .getOrPut(method) { mutableMapOf() }
+            .run {
+                require(pandaLocalVar.index !in this.keys) { "TODO" }
+                put(pandaLocalVar.index, sort)
+            }
+    }
+
+    private fun extractSortInfo(pandaLocalVar: PandaLocalVar, method: PandaMethod) =
+        additionalLocalVarSortInfo
+            .getOrPut(method) { mutableMapOf() }
+            .run {
+                getOrPut(pandaLocalVar.index) { ctx.typeToSort(pandaLocalVar.type) }
+            }
 
 
     private val PandaInst.nextStmt get() = location.let { it.method.instructions[it.index + 1] }
