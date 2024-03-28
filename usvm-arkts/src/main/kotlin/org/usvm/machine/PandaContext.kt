@@ -16,7 +16,7 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
     val undefinedSort: PandaUndefinedSort by lazy { PandaUndefinedSort(this) }
 
     fun typeToSort(type: PandaType): USort = when (type) {
-        is PandaAnyType -> addressSort // TODO("?????????") can we replace it with address sort????
+        is PandaAnyType -> fp64Sort // TODO("?????????") can we replace it with address sort????
         is PandaVoidType -> voidSort
         is PandaUndefinedType -> undefinedSort
         is PandaRefType -> addressSort

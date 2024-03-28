@@ -59,7 +59,7 @@ class PandaExprResolver(
             else -> error("Unexpected value: $value")
         }
 
-    fun resolveLocal(local: PandaLocal, alternativeSortInfo: USort?): URegisterStackLValue<*> {
+    fun resolveLocal(local: PandaLocal, alternativeSortInfo: USort? = null): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localIdxMapper(method, local)
         val sort = alternativeSortInfo
@@ -109,7 +109,8 @@ class PandaExprResolver(
         resolveBinaryOperator(PandaBinaryOperator.Add, expr)
 
     override fun visitPandaArgument(expr: PandaArgument): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val ref = resolveLocal(expr)
+        return scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitPandaArrayAccess(expr: PandaArrayAccess): UExpr<out USort>? {
@@ -128,9 +129,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaDivExpr(expr: PandaDivExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
-    }
+    override fun visitPandaDivExpr(expr: PandaDivExpr): UExpr<out USort>? =
+        resolveBinaryOperator(PandaBinaryOperator.Div, expr)
 
     override fun visitPandaEqExpr(expr: PandaEqExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
@@ -165,9 +165,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
-    }
+    override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? =
+        resolveBinaryOperator(PandaBinaryOperator.Mul, expr)
 
     override fun visitPandaNeqExpr(expr: PandaNeqExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
@@ -197,9 +196,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaSubExpr(expr: PandaSubExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
-    }
+    override fun visitPandaSubExpr(expr: PandaSubExpr): UExpr<out USort>? =
+        resolveBinaryOperator(PandaBinaryOperator.Sub, expr)
 
     override fun visitPandaTODOConstant(expr: TODOConstant): UExpr<out USort>? {
         TODO("Not yet implemented")
