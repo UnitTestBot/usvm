@@ -47,20 +47,24 @@ import org.usvm.memory.URegisterStackLValue
 class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
-    private val localIdxMapper: (PandaMethod, PandaLocal) -> Int
+    private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
+    private val saveSortInfo: (PandaLocalVar, PandaMethod, USort) -> Unit,
+    private val extractSortInfo: (PandaLocalVar, PandaMethod) -> USort
 ) : PandaExprVisitor<UExpr<out USort>?> {
-    fun resolveLValue(value: PandaValue): ULValue<*, *>? =
+    fun resolveLValue(value: PandaValue, alternativeSortInfo: USort? = null): ULValue<*, *>? =
         when (value) {
             is PandaFieldRef -> TODO()
             is PandaArrayAccess -> TODO()
-            is PandaLocal -> resolveLocal(value)
+            is PandaLocal -> resolveLocal(value, alternativeSortInfo)
             else -> error("Unexpected value: $value")
         }
 
-    fun resolveLocal(local: PandaLocal): URegisterStackLValue<*> {
+    fun resolveLocal(local: PandaLocal, alternativeSortInfo: USort?): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localIdxMapper(method, local)
-        val sort = ctx.typeToSort(local.type)
+        val sort = alternativeSortInfo
+            ?: (local as? PandaLocalVar)?.let { extractSortInfo(it, method) }
+            ?: ctx.typeToSort(local.type)
         return URegisterStackLValue(sort, localIdx)
     }
 
@@ -153,7 +157,7 @@ class PandaExprResolver(
     }
 
     override fun visitPandaLocalVar(expr: PandaLocalVar): UExpr<out USort> {
-        val ref = resolveLocal(expr)
+        val ref = resolveLocal(expr, alternativeSortInfo = null)
         return scope.calcOnState { memory.read(ref) }
     }
 
