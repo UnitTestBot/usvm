@@ -1,0 +1,79 @@
+ String bar = ValueTypeStart@String@ValueTypeEnd;
+        try {
+            int i = 1 / 0;
+            bar = "123";
+        } catch (java.lang.ArithmeticException e) {
+
+        }
+        ValueTypeStart@String@ValueTypeEnd = bar;
+---------
+    for (int i = 0; i < 0; i++) {
+        ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.replace('/', '.');
+    }
+---------
+    for (int i = 0; i < ValueTypeStart@int@ValueTypeEnd; i++) {
+        ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.replace('/', '.');
+    }
+---------
+String bar = ValueTypeStart@String@ValueTypeEnd
+try {
+	for (int i = 0; i < 0; i++) {
+		bar = ValueTypeStart@String@ValueTypeEnd;
+	}
+} catch(e: Throwable) {
+	bar = ValueTypeStart@String@ValueTypeEnd.replace('/', '.')
+} finally {
+	bar = "123";
+}
+ValueTypeStart@String@ValueTypeEnd = bar
+---------
+        for (int i = 0; i < 10; i++) {
+            if (i < 9) {
+                continue;
+            }
+            if (i == 9) {
+                break;
+            }
+            ValueTypeStart@String@ValueTypeEnd = "123";
+        }
+---------
+        String bar = ValueTypeStart@String@ValueTypeEnd;
+        for (int i = 0; i < 10; i++) {
+            if (i < 9) {
+                continue;
+            }
+            if (i == 9) {
+                try {
+                    bar = "123";
+                } catch (Throwable e) {
+                    ValueTypeStart@String@ValueTypeEnd = bar;
+                }
+            }
+        }
+---------
+        for (int i = 0; i < 10; i++) {
+            if (i == 5) {
+                break;
+            }
+            if (i > 5) {
+                ValueTypeStart@String@ValueTypeEnd = "";
+            }
+        }
+---------
+        for (int i = 0; i < 10; i++) {
+            try {
+                throw new IllegalAccessError();
+            } catch (Exception e) {
+                ValueTypeStart@String@ValueTypeEnd = "";
+            } catch (Error e) {
+
+            }
+        }
+---------
+        class A {
+            public void set(String val) {
+                val += "1234";
+            }
+        }
+        A a = new A();
+        a.set(ValueTypeStart@String@ValueTypeEnd);

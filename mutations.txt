@@ -1,0 +1,13 @@
+a. constructor chains 
+2. Условия (path-sensitivity): if, switch, pattern matching, lazy conditionals 
+3. Циклы, рекурсия: for, while, foreach, mutual recursion 
+4. virtual calls 
+5. lambdas 
+6. DI 
+7. Конфиги 
+8. async/await 
+9. exceptions 
+10. collections (maps, etc.) 
+11. strings, regex 
+12. concurrency 
+13. type hierarchies, generics, covariance, etc.

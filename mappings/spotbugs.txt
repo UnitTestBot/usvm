@@ -1,0 +1,152 @@
+﻿Potential external control of configuration (EXTERNAL_CONFIG_CONTROL),15,664
+JavaBeans Property Injection (BEAN_PROPERTY_INJECTION),15,664
+Untrusted servlet parameter (SERVLET_PARAMETER),20,707
+Untrusted session cookie value (SERVLET_SESSION_ID),20,707
+Untrusted query string (SERVLET_QUERY_STRING),20,707
+Found JAX-WS SOAP endpoint (JAXWS_ENDPOINT),20,707
+Found JAX-RS REST endpoint (JAXRS_ENDPOINT),20,707
+Found Tapestry page (TAPESTRY_ENDPOINT),20,707
+Found Wicket WebPage (WICKET_ENDPOINT),20,707
+Struts Form without input validation (STRUTS_FORM_VALIDATION),20,707
+XMLDecoder usage (XML_DECODER),20,707
+Potential Path Traversal (file read) (PATH_TRAVERSAL_IN),22,664
+Potential Path Traversal (file write) (PATH_TRAVERSAL_OUT),22,664
+Potential Path Traversal using Scala API (file read) (SCALA_PATH_TRAVERSAL_IN),22,664
+Tainted filename read (FILE_UPLOAD_FILENAME),22,664
+Regex DOS (ReDOS) (REDOS),22,664
+PT: Relative path traversal in servlet (PT_RELATIVE_PATH_TRAVERSAL),23,664
+PT: Absolute path traversal in servlet (PT_ABSOLUTE_PATH_TRAVERSAL),36,664
+Potential Command Injection (COMMAND_INJECTION),78,707
+Potential Command Injection (Scala) (SCALA_COMMAND_INJECTION),78,707
+XSSRequestWrapper is a weak XSS protection (XSS_REQUEST_WRAPPER),79,707
+Escaping of special XML characters is disabled (JSP_JSTL_OUT),79,707
+Potential XSS in JSP (XSS_JSP_PRINT),79,707
+Potential XSS in Servlet (XSS_SERVLET),79,707
+WebView with JavaScript enabled (Android) (ANDROID_WEB_VIEW_JAVASCRIPT),79,707
+Potential XSS in Scala Twirl template engine (SCALA_XSS_TWIRL),79,707
+Potential XSS in Scala MVC API engine (SCALA_XSS_MVC_API),79,707
+Disabling HTML escaping put the application at risk for XSS (WICKET_XSS1),79,707
+XSS: Servlet reflected cross site scripting vulnerability in error page (XSS_REQUEST_PARAMETER_TO_SEND_ERROR),79,707
+XSS: Servlet reflected cross site scripting vulnerability (XSS_REQUEST_PARAMETER_TO_SERVLET_WRITER),79,707
+XSS: JSP reflected cross site scripting vulnerability (XSS_REQUEST_PARAMETER_TO_JSP_WRITER),79,707
+Potential injection (custom) (CUSTOM_INJECTION),89,707
+Potential SQL Injection (SQL_INJECTION),89,707
+Potential SQL Injection with Turbine (SQL_INJECTION_TURBINE),89,707
+Potential SQL/JDOQL Injection (JDO) (SQL_INJECTION_JDO),89,707
+Potential SQL/JPQL Injection (JPA) (SQL_INJECTION_JPA),89,707
+Potential JDBC Injection (Spring JDBC) (SQL_INJECTION_SPRING_JDBC),89,707
+Potential JDBC Injection (SQL_INJECTION_JDBC),89,707
+Potential Scala Slick Injection (SCALA_SQL_INJECTION_SLICK),89,707
+Potential Scala Anorm Injection (SCALA_SQL_INJECTION_ANORM),89,707
+Potential SQL Injection with Vert.x Sql Client (SQL_INJECTION_VERTX),89,707
+Potential Android SQL Injection (SQL_INJECTION_ANDROID),89,707
+SQL: Nonconstant string passed to execute or addBatch method on an SQL statement (SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE),89,707
+SQL: A prepared statement is generated from a nonconstant String (SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING),89,707
+Potential LDAP Injection (LDAP_INJECTION),90,707
+SMTP Header Injection (SMTP_HEADER_INJECTION),93,707
+Potential code injection when using Script Engine (SCRIPT_ENGINE_INJECTION),94,707
+Potential code injection when using Spring Expression (SPEL_INJECTION),94,707
+Potential code injection when using Expression Language (EL) (EL_INJECTION),94,707
+Potential code injection in Seam logging call (SEAM_LOG_INJECTION),94,707
+Dynamic variable in Spring expression (JSP_SPRING_EVAL),94,707
+Potential HTTP Response Splitting (HTTP_RESPONSE_SPLITTING),113,435
+HRS: HTTP Response splitting vulnerability (HRS_REQUEST_PARAMETER_TO_HTTP_HEADER),113,435
+HRS: HTTP cookie formed from untrusted input (HRS_REQUEST_PARAMETER_TO_COOKIE),113,435
+Potential CRLF Injection for logs (CRLF_INJECTION_LOGS),117,707
+Format String Manipulation (FORMAT_STRING_MANIPULATION),134,664
+FilenameUtils not filtering null bytes (WEAK_FILENAMEUTILS),158,707
+Improper handling of Unicode transformations (IMPROPER_UNICODE),176,707
+Potential information leakage in Scala Play (SCALA_SENSITIVE_DATA_EXPOSURE),200,664
+Unsafe hash equals (UNSAFE_HASH_EQUALS),203,664
+Information Exposure Through An Error Message (INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE),209,664， 703
+Unexpected property leak (ENTITY_LEAK),212,664
+Hard coded password (HARD_CODE_PASSWORD),259,"284, 693, 710"
+Hard coded key (HARD_CODE_KEY),259,"284, 693, 710"
+Dm: Empty database password (DMI_EMPTY_DB_PASSWORD),261,"284, 693"
+TrustManager that accept any certificates (WEAK_TRUST_MANAGER),295,693
+HostnameVerifier that accept any signed certificates (WEAK_HOSTNAME_VERIFIER),295,693
+Insecure SMTP SSL connection (INSECURE_SMTP_SSL),297,693
+Use of ESAPI Encryptor (ESAPI_ENCRYPTOR),310,693
+External file access (Android) (ANDROID_EXTERNAL_FILE_ACCESS),312,693
+World writable file (Android) (ANDROID_WORLD_WRITABLE),312,693
+Potentially sensitive data in a cookie (COOKIE_USAGE),315,693
+Unencrypted Socket (UNENCRYPTED_SOCKET),319,693
+Unencrypted Server Socket (UNENCRYPTED_SERVER_SOCKET),319,693
+Dm: Hardcoded constant database password (DMI_CONSTANT_DB_PASSWORD),321,693
+Hazelcast symmetric encryption (HAZELCAST_SYMMETRIC_ENCRYPTION),326,693
+DES is insecure (DES_USAGE),326,693
+DESede is insecure (TDES_USAGE),326,693
+RSA with no padding is insecure (RSA_NO_PADDING),326,693
+Blowfish usage with short key (BLOWFISH_KEY_SIZE),326,693
+RSA usage with short key (RSA_KEY_SIZE),326,693
+"MD2, MD4 and MD5 are weak hash functions (WEAK_MESSAGE_DIGEST_MD5)",327,693
+SHA-1 is a weak hash function (WEAK_MESSAGE_DIGEST_SHA1),327,693
+Message digest is custom (CUSTOM_MESSAGE_DIGEST),327,693
+NullCipher is insecure (NULL_CIPHER),327,693
+Static IV (STATIC_IV),329,710
+Predictable pseudorandom number generator (PREDICTABLE_RANDOM),330,693
+Predictable pseudorandom number generator (Scala) (PREDICTABLE_RANDOM_SCALA),330,693
+Spring CSRF protection disabled (SPRING_CSRF_PROTECTION_DISABLED),352,693
+Spring CSRF unrestricted RequestMapping (SPRING_CSRF_UNRESTRICTED_REQUEST_MAPPING),352,693
+Trust Boundary Violation (TRUST_BOUNDARY_VIOLATION),501,664
+Object deserialization is used (OBJECT_DESERIALIZATION),502,664
+This class could be used as deserialization gadget (DESERIALIZATION_GADGET),502,664
+Persistent Cookie Usage (COOKIE_PERSISTENT),539,"284, 664"
+Struts File Disclosure (STRUTS_FILE_DISCLOSURE),552,664
+Spring File Disclosure (SPRING_FILE_DISCLOSURE),552,664
+RequestDispatcher File Disclosure (REQUESTDISPATCHER_FILE_DISCLOSURE),552,664
+Potential SQL/HQL Injection (Hibernate) (SQL_INJECTION_HIBERNATE),564,707
+Unvalidated Redirect (UNVALIDATED_REDIRECT),601,664
+Unvalidated Redirect (Play Framework) (PLAY_UNVALIDATED_REDIRECT),601,664
+Spring Unvalidated Redirect (SPRING_UNVALIDATED_REDIRECT),601,664
+XML parsing vulnerable to XXE (XMLStreamReader) (XXE_XMLSTREAMREADER),611,664
+XML parsing vulnerable to XXE (XPathExpression) (XXE_XPATH),611,664
+XML parsing vulnerable to XXE (SAXParser) (XXE_SAXPARSER),611,664
+XML parsing vulnerable to XXE (XMLReader) (XXE_XMLREADER),611,664
+XML parsing vulnerable to XXE (DocumentBuilder) (XXE_DOCUMENT),611,664
+XML parsing vulnerable to XXE (TransformerFactory) (XXE_DTD_TRANSFORM_FACTORY),611,664
+XSLT parsing vulnerable to XXE (TransformerFactory) (XXE_XSLT_TRANSFORM_FACTORY),611,664
+Cookie without the secure flag (INSECURE_COOKIE),614,664
+Potential XPath Injection (XPATH_INJECTION),643,707
+Cipher is susceptible to Padding Oracle (PADDING_ORACLE),696,691
+Cipher with no integrity (CIPHER_INTEGRITY),696,691
+Bad hexadecimal concatenation (BAD_HEXA_CONVERSION),704,664
+Overly permissive file permission (OVERLY_PERMISSIVE_FILE_PERMISSION),732,"284, 664"
+WebView with JavaScript interface (Android) (ANDROID_WEB_VIEW_JAVASCRIPT_INTERFACE),749,"664, 691"
+Untrusted Content-Type header (SERVLET_CONTENT_TYPE),807,693
+Untrusted Hostname header (SERVLET_SERVER_NAME),807,693
+HTTP headers untrusted (SERVLET_HEADER),807,693
+Untrusted Referer header (SERVLET_HEADER_REFERER),807,693
+Untrusted User-Agent header (SERVLET_HEADER_USER_AGENT),807,664
+Mass assignment (ENTITY_MASS_ASSIGNMENT),915,664
+Scala Play Server-Side Request Forgery (SSRF) (SCALA_PLAY_SSRF),918,664
+URLConnection Server-Side Request Forgery (SSRF) and File Disclosure (URLCONNECTION_SSRF_FD),918,664
+Broadcast (Android) (ANDROID_BROADCAST),925,284
+AWS Query Injection (AWS_QUERY_INJECTION),943,707
+Enabling extensions in Apache XML RPC server or client. (RPC_ENABLED_EXTENSIONS),,
+DefaultHttpClient with default constructor is not compatible with TLS 1.2 (DEFAULT_HTTP_CLIENT),,
+Weak SSLContext (SSL_CONTEXT),,
+Found Struts 1 endpoint (STRUTS1_ENDPOINT),,
+Found Struts 2 endpoint (STRUTS2_ENDPOINT),,
+Found Spring endpoint (SPRING_ENDPOINT),,
+Potential code injection when using OGNL expression (OGNL_INJECTION),,
+Potential code injection when using GroovyShell (GROOVY_SHELL),,
+Dynamic JSP inclusion (JSP_INCLUDE),,
+ECB mode is insecure (ECB_MODE),,
+WebView with geolocation activated (Android) (ANDROID_GEOLOCATION),,
+Cookie without the HttpOnly flag (HTTPONLY_COOKIE),,
+Unsafe Jackson deserialization configuration (JACKSON_UNSAFE_DESERIALIZATION),,
+A malicious XSLT could be provided to the JSP tag (JSP_XSLT),,
+A malicious XSLT could be provided (MALICIOUS_XSLT),,
+Potential template injection with Velocity (TEMPLATE_INJECTION_VELOCITY),,
+Potential template injection with Freemarker (TEMPLATE_INJECTION_FREEMARKER),,
+Potential template injection with Pebble (TEMPLATE_INJECTION_PEBBLE),,
+Overly permissive CORS policy (PERMISSIVE_CORS),,
+Anonymous LDAP bind (LDAP_ANONYMOUS),,
+LDAP Entry Poisoning (LDAP_ENTRY_POISONING),,
+URL rewriting method (URL_REWRITING),,
+HTTP Parameter Pollution (HTTP_PARAMETER_POLLUTION),,
+Ignoring XML comments in SAML may lead to authentication bypass (SAML_IGNORE_COMMENTS),,
+String is modified after validation and not before it (MODIFICATION_AFTER_VALIDATION),,
+String is normalzied after validation and not before it (NORMALIZATION_AFTER_VALIDATION),,
+Dangerous combination of permissions granted (DANGEROUS_PERMISSION_COMBINATION),,

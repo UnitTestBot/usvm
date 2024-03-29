@@ -1,0 +1,146 @@
+java.jboss.security.seam-log-injection.seam-log-injection,Seam Logging API support an expression language to introduce bean property,95,691
+java.lang.security.audit.ognl-injection.ognl-injection,A expression is built with a dynamic value. The source of the value(s),94,691
+java.lang.security.audit.dangerous-groovy-shell.dangerous-groovy-shell,A expression is built with a dynamic value. The source of the value(s),94,691
+java.lang.security.audit.el-injection.el-injection,An expression is built with a dynamic value. The source of the value(s),94,691
+java.spring.security.audit.spel-injection.spel-injection,A Spring expression is built with a dynamic value. The source of the value(s),94,691
+java.lang.security.audit.script-engine-injection.script-engine-injection,Detected potential code injection using ScriptEngine. Ensure user-controlled,94,691
+java.lang.security.audit.crlf-injection-logs.crlf-injection-logs,When data from an untrusted source is put into a logger and not neutralized,94,691
+mobsf.mobsfscan.hidden_ui.android_hidden_ui,Hidden elements in view can be used to hide data from user. But this data,919,"284, 664, 691"
+mobsf.mobsfscan.root_detection.android_root_detection,This app does not have root detection capabilities. Running a sensitive,919,"284, 664, 691"
+contrib.owasp.java.ssrf.ssrf.owasp.java.ssrf.java.net.url,A parameter being passed directly into java.net.URL function most likely,918,664
+contrib.owasp.java.ssrf.ssrf.owasp.java.ssrf.org.apache.commons.httpclient,A parameter being passed directly into HttpClient functions most likely,918,664
+contrib.owasp.java.ssrf.ssrf.owasp.java.ssrf.possible.import.statements,Non-exhaustive list of Libraries that provide functionality to accept URL,918,664
+contrib.owasp.java.ssrf.ssrf.owasp.java.ssrf.org.apache.http.impl.client.CloseableHttpClient,A parameter being passed directly into CloseableHttpClient functions most,918,664
+java.lang.security.audit.ldap-entry-poisoning.ldap-entry-poisoning,An object-returning LDAP search will allow attackers to control the LDAP,90,707
+java.lang.security.audit.ldap-injection.ldap-injection,Detected non-constant data passed into an LDAP query. If this data can,90,707
+java.lang.security.audit.tainted-ldapi-from-http-request.tainted-ldapi-from-http-request,Detected input from a HTTPServletRequest going into an LDAP query. This,90,707
+java.jboss.security.session_sqli.find-sql-string-concatenation," In $METHOD, $X is used to construct a SQL query via string concatenation.",89,707
+java.lang.security.audit.jdbc-sql-formatted-string.jdbc-sql-formatted-string,Possible JDBC injection detected. Use the parameterized query feature,89,707
+java.aws-lambda.security.tainted-sqli.tainted-sqli,Detected SQL statement that is tainted by `$EVENT` object. This could lead,89,707
+java.lang.security.audit.sqli.tainted-sql-from-http-request.tainted-sql-from-http-request,Detected input from a HTTPServletRequest going into a SQL sink or statement.,89,707
+java.spring.security.injection.tainted-sql-string.tainted-sql-string,User data flows into this manually-constructed SQL string. User data can,89,707
+java.lang.security.audit.formatted-sql-string.formatted-sql-string,Detected a formatted string in a SQL statement. This could lead to SQL,89,707
+java.aws-lambda.security.tainted-sql-string.tainted-sql-string,Detected user input used to manually construct a SQL string. This is usually,89,707
+java.java-jwt.security.jwt-hardcode.java-jwt-hardcoded-secret,A hard-coded credential was detected. It is not recommended  to store credentials,798,693
+mobsf.mobsfscan.secrets.hardcoded_password,A hardcoded password in plain text is identified.,798,693
+mobsf.mobsfscan.secrets.hardcoded_username,A hardcoded username in plain text is identified.,798,693
+mobsf.mobsfscan.secrets.hardcoded_api_key,A hardcoded Key is identified.,798,693
+mobsf.mobsfscan.secrets.hardcoded_secret,A hardcoded secret is identified.,798,693
+java.lang.security.audit.xssrequestwrapper-is-insecure.xssrequestwrapper-is-insecure,It looks like you're using an implementation of XSSRequestWrapper from,79,707
+java.lang.security.servletresponse-writer-xss.servletresponse-writer-xss,Cross-site scripting detected in HttpServletResponse writer with variable,79,707
+java.lang.security.audit.xss.no-direct-response-writer.no-direct-response-writer,Detected a request with potential user-input going into a OutputStream,79,707
+mobsf.mobsfscan.rsa_no_oeap.rsa_no_oeap,This App uses RSA Crypto without OAEP padding. The purpose of the padding,780,693
+java.lang.security.audit.tainted-cmd-from-http-request.tainted-cmd-from-http-request,Detected input from a HTTPServletRequest going into a 'ProcessBuilder',78,707
+java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call,A formatted or concatenated string was detected as input to a java.lang.Runtime,78,707
+java.lang.security.audit.command-injection-process-builder.command-injection-process-builder,A formatted or concatenated string was detected as input to a ProcessBuilder,78,707
+mobsf.mobsfscan.command_injection.command_injection,User controlled strings in exec() will result in command execution.,78,707
+mobsf.mobsfscan.command_injection_formated.command_injection_warning,A formatted or concatenated string was detected as input to a java.lang.Runtime,78,707
+mobsf.mobsfscan.sqlite_injection.sqlite_injection,App uses SQLite Database and execute raw SQL query. Untrusted user input,78,707
+mobsf.mobsfscan.default_http_client_tls.default_http_client_tls,DefaultHTTPClient() with default constructor is not compatible with TLS,757,693
+mobsf.mobsfscan.webview_external_storage.webview_external_storage,WebView load files from external storage. Files in external storage can,749,"664, 691"
+mobsf.mobsfscan.webview_javascript_interface.webview_javascript_interface,Ensure that javascript interface is implemented securely. Execution of,749,"664, 691"
+java.log4j.security.log4j-message-lookup-injection.log4j-message-lookup-injection,Possible Lookup injection into Log4j messages. Lookups provide a way to,74,707
+java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion,''Integer.toHexString()'' strips leading zeroes from each byte if read,326,693
+java.lang.security.audit.cbc-padding-oracle.cbc-padding-oracle,Using CBC with PKCS5Padding is susceptible to padding oracle attacks. A,696,691
+mobsf.mobsfscan.cbc_padding_oracle.cbc_padding_oracle,The App uses the encryption mode CBC with PKCS5/PKCS7 padding. This configuration,649,693
+java.lang.security.audit.tainted-xpath-from-http-request.tainted-xpath-from-http-request,Detected input from a HTTPServletRequest going into a XPath evaluate or,643,707
+java.lang.security.audit.cookie-missing-secure-flag.cookie-missing-secure-flag,A cookie was detected without setting the 'secure' flag. The 'secure' flag,614,693
+java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-false.documentbuilderfactory-disallow-doctype-decl-false,DOCTYPE declarations are enabled for this DocumentBuilderFactory. Without,611,664
+java.lang.security.audit.xxe.documentbuilderfactory-external-general-entities-true.documentbuilderfactory-external-general-entities-true,External entities are allowed for this DocumentBuilderFactory. This is,611,664
+java.lang.security.audit.xxe.documentbuilderfactory-external-parameter-entities-true.documentbuilderfactory-external-parameter-entities-true,External entities are allowed for this DocumentBuilderFactory. This is,611,664
+contrib.owasp.java.xxe.digester3-digester.owasp.java.xxe.org.apache.commons.digester3.Digester,Digester being instantiated without calling the setFeature functions that,611,664
+contrib.owasp.java.xxe.saxbuilder.owasp.java.xxe.org.jdom2.input.SAXBuilder,SAXBuilder being instantiated without calling the setFeature functions,611,664
+contrib.owasp.java.xxe.saxreader.owasp.java.xxe.org.dom4j.io.SAXReader,SAXReader being instantiated without calling the setFeature functions that,611,664
+contrib.owasp.java.xxe.xmlreader.owasp.java.xxe.org.xml.sax.XMLReader,XMLReader being instantiated without calling the setFeature functions that,611,664
+contrib.owasp.java.xxe.xmlinputfactory.owasp.java.xxe.javax.xml.stream.XMLInputFactory,XMLInputFactory being instantiated without calling the setProperty functions,611,664
+java.lang.security.audit.xml-decoder.xml-decoder,XMLDecoder should not be used to parse untrusted data. Deserializing user,611,664
+java.lang.security.xmlinputfactory-external-entities-enabled.xmlinputfactory-external-entities-enabled,XML external entities are enabled for this XMLInputFactory. This is vulnerable,611,664
+java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe,XML external entities are not explicitly disabled for this XMLInputFactory.,611,664
+java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-disallow-doctype-decl-missing,DOCTYPE declarations are enabled for this DocumentBuilderFactory. This,611,664
+contrib.owasp.java.xxe.xxe-imports.owasp.java.xxe.possible.import.statements,Non-exhaustive list of Libraries that provide functionality to accept XML,611,664
+mobsf.mobsfscan.xmldecoder_xxe.xml_decoder_xxe,XMLDecoder should not be used to parse untrusted data.,611,664
+mobsf.mobsfscan.xmlfactory_external_entities_enabled.xmlinputfactory_xxe_enabled,XML external entities are enabled for this XMLInputFactory. This is vulnerable,611,664
+mobsf.mobsfscan.xmlfactory_xxe.xmlinputfactory_xxe,XML external entities are not explicitly disabled for this XMLInputFactory.,611,664
+java.lang.security.audit.unvalidated-redirect.unvalidated-redirect,Application redirects to a destination URL specified by a user-supplied,601,664
+java.spring.security.audit.spring-unvalidated-redirect.spring-unvalidated-redirect,Application redirects a user to a destination URL specified by a user supplied,601,664
+mobsf.mobsfscan.logging.android_logging,The App logs information. Please ensure that sensitive information is never,532,664
+java.lang.security.audit.object-deserialization.object-deserialization,Found object deserialization using ObjectInputStream. Deserializing entire,502,664
+java.lang.security.use-snakeyaml-constructor.use-snakeyaml-constructor," Used SnakeYAML org.yaml.snakeyaml.Yaml() constructor with no arguments,",502,664
+java.jax-rs.security.insecure-resteasy.insecure-resteasy-deserialization,When a Restful webservice endpoint is configured to use wildcard mediaType,502,664
+java.lang.security.insecure-jms-deserialization.insecure-jms-deserialization,JMS Object messages depend on Java Serialization for marshalling/unmarshalling,502,664
+java.rmi.security.server-dangerous-class-deserialization.server-dangerous-class-deserialization,Using a non-primitive class with Java RMI may be an insecure deserialization,502,664
+java.rmi.security.server-dangerous-object-deserialization.server-dangerous-object-deserialization,Using an arbitrary object ('Object $PARAM') with Java RMI is an insecure,502,664
+mobsf.mobsfscan.jackson_deserialization.jackson_deserialization,The app uses jackson deserialization library. Deserialization of untrusted,502,664
+mobsf.mobsfscan.object_deserialization.object_deserialization,Found object deserialization using ObjectInputStream. Deserializing entire,502,664
+java.lang.security.audit.tainted-session-from-http-request.tainted-session-from-http-request," Detected input from a HTTPServletRequest going into a session command,",501,664
+mobsf.mobsfscan.webview_debugging.webview_debugging,Remote WebView debugging is enabled. This allows an attacker with debugging,489,710
+java.lang.security.audit.unsafe-reflection.unsafe-reflection,If an attacker can supply values that the application then uses to determine,470,664
+mobsf.mobsfscan.android_safetynetapi.android_safetynet_api,This app does not uses SafetyNet Attestation API that provides cryptographically-signed,353,693
+java.spring.security.unrestricted-request-mapping.unrestricted-request-mapping,Detected a method annotated with 'RequestMapping' that does not specify,352,693
+java.lang.security.audit.cookie-missing-samesite.cookie-missing-samesite,Detected cookie without the SameSite attribute.,352,693
+java.spring.security.audit.spring-csrf-disabled.spring-csrf-disabled,CSRF is disabled for this configuration. This is a security risk.,352,693
+java.java-jwt.security.audit.jwt-decode-without-verify.java-jwt-decode-without-verify,Detected the decoding of a JWT token without a verify step. JWT tokens,345,693
+java.lang.security.audit.crypto.weak-random.weak-random,Detected use of the functions `Math.random()` or `java.util.Random()`.,330,693
+mobsf.mobsfscan.insecure_random.java_insecure_random,The App uses an insecure Random Number Generator.,330,693
+java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector,Initialization Vectors (IVs) for block ciphers should be randomly generated,329,710
+mobsf.mobsfscan.cbc_static_iv.cbc_static_iv,The IV for AES CBC mode should be random. A static IV makes the ciphertext,329,710
+java.lang.security.audit.crypto.use-of-md5.use-of-md5,Detected MD5 hash algorithm which is considered insecure. MD5 is not collision,328,693
+java.lang.security.audit.crypto.use-of-sha1.use-of-sha1,Detected SHA1 hash algorithm which is considered insecure. SHA1 is not,328,693
+java.lang.security.audit.md5-used-as-password.md5-used-as-password,It looks like MD5 is used as a password hash. MD5 is not considered a secure,327,693
+java.lang.security.audit.crypto.weak-hash.use-of-sha1,Detected SHA1 hash algorithm which is considered insecure. SHA1 is not,327,693
+java.lang.security.audit.crypto.weak-hash.use-of-md5,Detected MD5 hash algorithm which is considered insecure. MD5 is not collision,327,693
+java.java-jwt.security.jwt-none-alg.java-jwt-none-alg,Detected use of the 'none' algorithm in a JWT token. The 'none' algorithm,327,693
+java.jjwt.security.jwt-none-alg.jjwt-none-alg,Detected use of the 'none' algorithm in a JWT token. The 'none' algorithm,327,693
+java.lang.security.audit.crypto.ecb-cipher.ecb-cipher,Cipher in ECB mode is detected. ECB mode produces the same output for the,327,693
+java.lang.security.audit.crypto.ssl.avoid-implementing-custom-digests.avoid-implementing-custom-digests,Cryptographic algorithms are notoriously difficult to get right. By implementing,327,693
+java.lang.security.audit.crypto.no-null-cipher.no-null-cipher,NullCipher was detected. This will not encrypt anything; the cipher text,327,693
+mobsf.mobsfscan.insecure_ssl_v3.insecure_sslv3,SSLv3 is insecure and has multiple known vulnerabilities.,327,693
+mobsf.mobsfscan.weak_ciphers.weak_cipher,Weak encryption algorithm identified. This algorithm is vulnerable to cryptographic,327,693
+mobsf.mobsfscan.weak_hashes.weak_hash,Weak Hash algorithm used. The hash algorithm is known to have hash collisions.,327,693
+mobsf.mobsfscan.aes_ecb.aes_ecb_mode,The App uses ECB mode in Cryptographic encryption algorithm. ECB mode is,327,693
+mobsf.mobsfscan.aes_ecb.aes_ecb_mode_default," Calling Cipher.getInstance(""AES"") will return AES ECB mode by default.",327,693
+mobsf.mobsfscan.sha1_hash.sha1_hash,SHA1 Hash algorithm used. The SHA1 hash is known to have hash collisions.,327,693
+java.lang.security.audit.crypto.weak-rsa.use-of-weak-rsa-key,RSA keys should be at least 2048 bits based on NIST recommendation.,327,693
+java.lang.security.audit.weak-ssl-context.weak-ssl-context," An insecure SSL context was detected. TLS versions 1.0, 1.1, and all SSL",326,693
+java.lang.security.audit.crypto.rsa-no-padding.rsa-no-padding,Using RSA without OAEP mode weakens the encryption.,326,693
+java.lang.security.audit.crypto.desede-is-deprecated.desede-is-deprecated,Triple DES (3DES or DESede) is considered deprecated. AES is the recommended,326,693
+java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated," DefaultHttpClient is deprecated. Further, it does not support connections",326,693
+java.lang.security.audit.blowfish-insufficient-key-size.blowfish-insufficient-key-size,Using less than 128 bits for Blowfish is considered insecure. Use 128 bits,326,693
+java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated,DES is considered deprecated. AES is the recommended cipher. Upgrade to,326,693
+mobsf.mobsfscan.weak_key_size.weak_key_size,Cryptographic implementations with insufficient key length is susceptible,326,693
+java.lang.security.audit.crypto.gcm-detection.gcm-detection," GCM detected, please check that IV/nonce is not reused,an Initialization",323,693
+mobsf.mobsfscan.aes_encryption_keys.aes_hardcoded_key,Hardcoded encryption key makes AES symmetric encryption useless. An attacker,321,693
+problem-based-packs.insecure-transport.java-spring.bypass-tls-verification.bypass-tls-verification,Checks for redefinitions of functions that check TLS/SSL certificate verification.,319,693
+problem-based-packs.insecure-transport.java-stdlib.disallow-old-tls-versions1.disallow-old-tls-versions1,Detects direct creations of SSLConnectionSocketFactories that don't disallow,319,693
+problem-based-packs.insecure-transport.java-stdlib.disallow-old-tls-versions2.disallow-old-tls-versions2,Detects setting client protocols to insecure versions of TLS and SSL. These,319,693
+problem-based-packs.insecure-transport.java-stdlib.tls-renegotiation.tls-renegotiation,Checks for cases where java applications are allowing unsafe renegotiation.,319,693
+problem-based-packs.insecure-transport.java-stdlib.unirest-http-request.unirest-http-request,Checks for requests sent via Unirest to http:// URLS. This is dangerous,319,693
+problem-based-packs.insecure-transport.java-stdlib.httpclient-http-request.httpclient-http-request,Checks for requests sent via HttpClient to http:// URLS. This is dangerous,319,693
+java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket,This socket is not encrypted. The traffic could be read by an attacker,319,693
+java.servlets.security.cookie-issecure-false.cookie-issecure-false,Default session middleware settings: `setSecure` not set to true. This,319,693
+problem-based-packs.insecure-transport.java-spring.spring-ftp-request.spring-ftp-request,Checks for outgoing connections to ftp servers via Spring plugin ftpSessionFactory.,319,693
+problem-based-packs.insecure-transport.java-stdlib.httpurlconnection-http-request.httpurlconnection-http-request,Checks for requests sent via HttpURLConnection and URLObj to http:// URLS.,319,693
+problem-based-packs.insecure-transport.java-stdlib.socket-request.socket-request," Insecure transport rules to catch socket connections to http, telnet, and",319,693
+problem-based-packs.insecure-transport.java-stdlib.telnet-request.telnet-request,Checks for attempts to connect through telnet. This is insecure as the,319,693
+problem-based-packs.insecure-transport.java-spring.spring-http-request.spring-http-request,Checks for requests sent via Java Spring RestTemplate API to http:// URLS.,319,693
+problem-based-packs.insecure-transport.java-stdlib.bypass-tls-verification.bypass-tls-verification,Checks for redefinitions of the checkServerTrusted function in the X509TrustManager,319,693
+problem-based-packs.insecure-transport.java-stdlib.ftp-request.ftp-request," Checks for outgoing connections to ftp servers. FTP does not encrypt traffic,",319,693
+problem-based-packs.insecure-transport.java-stdlib.http-components-request.http-components-request,Checks for requests sent via Apache HTTP Components to http:// URLS. This,319,693
+java.lang.security.audit.insecure-smtp-connection.insecure-smtp-connection,Insecure SMTP connection detected. This connection will trust any SSL certificate.,297,693
+java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier,Insecure HostnameVerifier implementation detected. This will accept any,295,693
+java.lang.security.audit.crypto.ssl.insecure-trust-manager.insecure-trust-manager,Detected empty trust manager implementations. This is dangerous because,295,693
+mobsf.mobsfscan.tls_certificate_transparency.android_certificate_transparency,This app does not enforce TLS Certificate Transparency that helps to detect,295,693
+mobsf.mobsfscan.tls_pinning.android_certificate_pinning,This app does not use a TLS/SSL certificate or public key pinning in code,295,693
+mobsf.mobsfscan.webview_ignore_ssl_errors.ignore_ssl_certificate_errors,Insecure WebView Implementation. WebView ignores SSL Certificate errors,295,693
+mobsf.mobsfscan.accept_self_signed.accept_self_signed_certificate,Insecure Implementation of SSL. Trusting all the certificates or accepting,295,693
+java.lang.security.audit.anonymous-ldap-bind.anonymous-ldap-bind,Detected anonymous LDAP bind. This permits anonymous users to execute LDAP,287,284
+java.lang.security.audit.overly-permissive-file-permission.overly-permissive-file-permission,It is generally a bad practices to set overly permissive file permission,276,"284, 664"
+mobsf.mobsfscan.word_readable_writable.world_readable,The file is World Readable. Any App can read from the file.,276,"284, 664"
+mobsf.mobsfscan.word_readable_writable.world_writeable,The file is World Readable and Writable. Any App can read/write to the,276,"284, 664"
+java.jax-rs.security.jax-rs-path-traversal.jax-rs-path-traversal,Detected a potential path traversal. A malicious actor could control the,22,664
+java.lang.security.httpservlet-path-traversal.httpservlet-path-traversal,Detected a potential path traversal. A malicious actor could control the,22,664
+java.lang.security.audit.url-rewriting.url-rewriting,URL rewriting has significant security risks. Since session ID appears,200,664
+mobsf.mobsfscan.flag_secure.android_prevent_screenshot,This app does not have capabilities to prevent against Screenshots from,200,664
+mobsf.mobsfscan.tapjacking.android_detect_tapjacking,This app does not have capabilities to prevent tapjacking attacks. An attacker,200,664
+mobsf.mobsfscan.weak_iv.weak_iv," The App may use weak IVs like ""0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00""",1204,693
+java.lang.security.audit.http-response-splitting.http-response-splitting," Older Java application servers are vulnerable to HTTP response splitting,",113,435
