@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import io.ksmt.sort.KSort
+import io.ksmt.utils.asExpr
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaAssignInst
 import org.jacodb.panda.dynamic.api.PandaCallInst
@@ -68,7 +69,11 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
-        TODO()
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
+
+        val boolExpr = exprResolver
+            .resolvePandaExpr(stmt.condition)
+            ?.asExpr(ctx.boolSort)
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {

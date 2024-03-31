@@ -27,4 +27,12 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             emptyArray()
         )
     }
+
+    @Test
+    fun testBasicIf() {
+        discoverProperties(
+            Triple("BasicSamples", "basicIf", 1),
+            emptyArray()
+        )
+    }
 }
