@@ -1,11 +1,7 @@
 package org.usvm.machine
 
 import io.ksmt.utils.cast
-import org.usvm.UBoolSort
-import org.usvm.UBvSort
-import org.usvm.UExpr
-import org.usvm.UFpSort
-import org.usvm.USort
+import org.usvm.*
 
 sealed class PandaBinaryOperator(
     val onBool: PandaContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = { _, _ -> error("TODO") },
@@ -32,12 +28,30 @@ sealed class PandaBinaryOperator(
         onFp = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
+    object Gt : PandaBinaryOperator(
+        onBv = PandaContext::mkBvSignedGreaterExpr,
+        onFp = PandaContext::mkFpGreaterExpr
+    )
+
+    object Eq : PandaBinaryOperator(
+        onBool = PandaContext::mkEq,
+        onBv = PandaContext::mkEq,
+        onFp = PandaContext::mkFpEqualExpr,
+    )
+
+    object Neq : PandaBinaryOperator(
+        onBool = { lhs, rhs -> lhs.neq(rhs) },
+        onBv = { lhs, rhs -> lhs.neq(rhs) },
+        onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
+    )
+
     internal open operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
 
         return when {
-            lhsSort != rhsSort -> error("Expressions sorts mismatch: $lhsSort, $rhsSort")
+            // TODO: JS automatic typecasts to consider (they can do ANYTHING!)
+//            lhsSort != rhsSort -> error("Expressions sorts mismatch: $lhsSort, $rhsSort")
 
             lhsSort is UBoolSort -> lhs.pctx.onBool(lhs.cast(), rhs.cast())
 
