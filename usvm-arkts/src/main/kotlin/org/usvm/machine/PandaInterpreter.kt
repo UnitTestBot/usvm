@@ -74,6 +74,18 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         val boolExpr = exprResolver
             .resolvePandaExpr(stmt.condition)
             ?.asExpr(ctx.boolSort)
+            ?: return
+
+        val instList = stmt.location.method.instructions
+        val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]
+
+        scope.forkWithBlackList(
+            boolExpr,
+            posStmt,
+            negStmt,
+            blockOnTrueState = { newStmt(posStmt) },
+            blockOnFalseState = { newStmt(negStmt) }
+        )
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
