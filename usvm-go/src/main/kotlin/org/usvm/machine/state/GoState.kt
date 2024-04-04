@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import io.ksmt.utils.cast
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UExpr
@@ -30,6 +31,7 @@ class GoState(
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
     var methodResult: GoMethodResult = GoMethodResult.NoCall,
     var lastBlock: Int = -1,
+    var data: GoStateData = GoStateData()
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
     callStack,
@@ -53,7 +55,8 @@ class GoState(
             forkPoints,
             targets.clone(),
             methodResult,
-            lastBlock
+            lastBlock,
+            data.clone()
         )
     }
 
@@ -79,6 +82,8 @@ class GoState(
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
         mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
+        val mergedData = data.mergeWith(other.data)
+
         return GoState(
             ctx,
             entrypoint,
@@ -90,7 +95,8 @@ class GoState(
             mergedForkPoints,
             mergedTargets,
             methodResult,
-            lastBlock
+            lastBlock,
+            mergedData
         )
     }
 
@@ -107,19 +113,17 @@ class GoState(
             memory.stack.pop()
         }
 
-        methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn)
+        if (!isExceptional) {
+            methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn)
+        }
 
         if (returnSite != null) {
             newInst(returnSite)
         }
     }
 
-    fun handlePanic(): Boolean {
+    fun handlePanic() {
         require(methodResult is GoMethodResult.Panic)
-
-        if (runDefers()) {
-            return true
-        }
 
         val returnSite = callStack.pop()
         if (callStack.isNotEmpty()) {
@@ -129,19 +133,57 @@ class GoState(
         if (returnSite != null) {
             newInst(returnSite)
         }
-
-        return false
     }
 
-    fun runDefers(): Boolean = with(ctx) {
-        val deferred = getDeferred(lastEnteredMethod)
+    fun panic(expr: UExpr<out USort>) {
+        methodResult = GoMethodResult.Panic(expr.cast())
+    }
 
+    fun recover(method: GoMethod, inst: GoInst): UExpr<out USort> = with(ctx) {
+        if (methodResult is GoMethodResult.Panic) {
+            val result = (methodResult as GoMethodResult.Panic).value
+            methodResult = GoMethodResult.NoCall
+            data.setRecover(method, inst)
+            return result
+        }
+        return voidValue
+    }
+
+    fun getRecoverInst(method: GoMethod): GoInst? {
+        val methodRecover = data.getRecover(method)
+        if (methodRecover != null && data.recoverInst == null) {
+            data.recoverInst = methodRecover
+            return methodRecover
+        }
+        return null
+    }
+
+    fun getDeferInst(method: GoMethod, inst: GoInst): GoInst? {
+        val deferInst = data.getDeferInst(method)
+        if (deferInst == inst) {
+            if (addDeferredCall()) {
+                return 0L
+            }
+            return data.getDeferNextInst(method)
+        }
+        return null
+    }
+
+    fun runDefers(method: GoMethod, inst: GoInst) {
+        data.setDeferInst(method, currentStatement)
+        data.setDeferNextInst(method, inst)
+        data.flowStatus = GoFlowStatus.DEFER
+    }
+
+    private fun addDeferredCall(): Boolean {
+        val deferred = data.getDeferredCalls(lastEnteredMethod)
         if (!deferred.isEmpty()) {
             addCall(deferred.removeLast(), currentStatement)
 
             return true
         }
 
+        data.flowStatus = GoFlowStatus.NORMAL
         return false
     }
 

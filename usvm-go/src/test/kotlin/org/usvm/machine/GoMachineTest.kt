@@ -376,7 +376,7 @@ class GoMachineTest {
                 coverageZone = CoverageZone.TRANSITIVE
             )
         )
-        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "panicRecover", true)
+        val results = machine.analyzeAndResolve(Path.getProgram("defer.go"), "panicRecover", false)
         println(results)
     }
 
