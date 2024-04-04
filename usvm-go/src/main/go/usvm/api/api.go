@@ -263,6 +263,10 @@ func (a *api) MkCallBuiltin(inst *ssa.Call, name string) {
 	switch name {
 	case "append", "copy":
 		a.buf.WriteSliceElementSort(inst)
+	case "recover":
+		method := inst.Parent().Parent()
+		a.buf.WriteUintptr(util.ToPointer(method))
+		a.buf.WriteUintptr(util.ToPointer(&method.Recover.Instrs[0]))
 	}
 }
 

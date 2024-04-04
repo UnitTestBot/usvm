@@ -11,7 +11,7 @@ import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.GoMethod
 import org.usvm.machine.GoTarget
-import org.usvm.machine.state.GoMethodResult
+import org.usvm.machine.state.GoFlowStatus
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoType
 import org.usvm.solver.USatResult
@@ -43,17 +43,29 @@ class GoInterpreter(
     }
 
     override fun step(state: GoState): StepResult<GoState> {
-        logger.debug("Step: {} ({})", bridge.instInfo(state.currentStatement), state.currentStatement)
-
+        val inst = state.currentStatement
+        val method = state.lastEnteredMethod
         val scope = GoStepScope(state, forkBlackList)
-        if (state.methodResult is GoMethodResult.Panic && !state.handlePanic()) {
-            return scope.stepResult()
+
+        val instInfo = bridge.instInfo(inst)
+        logger.debug("State {}: Step: {} ({})", state.id, instInfo, inst)
+
+        if (state.isExceptional && state.data.flowStatus != GoFlowStatus.DEFER) {
+            if (state.data.getDeferredCalls(method).isEmpty()) {
+                state.handlePanic()
+                return scope.stepResult()
+            } else {
+                state.runDefers(method, 0)
+            }
         }
 
-        val inst = state.currentStatement
-        val newInst = bridge.step(Api(ctx, bridge, scope), inst)
-        if (newInst != 0L) {
-            state.newInst(newInst)
+        val nextInst: GoInst = when(state.data.flowStatus) {
+            GoFlowStatus.NORMAL -> state.getRecoverInst(method)
+            GoFlowStatus.DEFER -> state.getDeferInst(method, inst)
+        } ?: bridge.step(Api(ctx, bridge, scope), inst)
+
+        if (nextInst != 0L) {
+            state.newInst(nextInst)
         }
         return scope.stepResult()
     }
