@@ -10,6 +10,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIndexedMocker
 import org.usvm.UMockEvaluator
 import org.usvm.UMocker
 import org.usvm.USort
@@ -93,7 +94,7 @@ class UMemory<Type, Method>(
     internal val ctx: UContext<*>,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
-    private val mocks: UMocker<Method> = ctx.mocker(),
+    private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
     persistentRegions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
 ) : UWritableMemory<Type>, UMergeable<UMemory<Type, Method>, MergeGuard> {
     private val regions = persistentRegions.builder()

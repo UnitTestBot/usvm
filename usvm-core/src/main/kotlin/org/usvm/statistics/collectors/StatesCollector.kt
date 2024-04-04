@@ -1,8 +1,5 @@
 package org.usvm.statistics.collectors
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.runBlocking
 import org.usvm.statistics.UMachineObserver
 
 /**
@@ -12,20 +9,6 @@ import org.usvm.statistics.UMachineObserver
 interface StatesCollector<State> {
     val count: Int
     fun addState(state: State)
-}
-
-class FlowStatesCollector<State> : StatesCollector<State> {
-    private var statesCount: Int = 0
-    override val count: Int
-        get() = statesCount
-
-    private val flow = MutableSharedFlow<State>()
-    val collectedStatesFlow: Flow<State> = flow
-
-    override fun addState(state: State) = runBlocking {
-        statesCount++
-        flow.emit(state)
-    }
 }
 
 class ListStatesCollector<State> : StatesCollector<State> {

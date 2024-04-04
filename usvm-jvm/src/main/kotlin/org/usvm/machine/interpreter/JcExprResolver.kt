@@ -95,7 +95,6 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isFalse
-import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.USizeSort

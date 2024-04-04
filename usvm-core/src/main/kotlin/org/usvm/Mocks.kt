@@ -14,7 +14,7 @@ interface UMockEvaluator {
 
 interface TrackedLiteral
 
-interface UMocker<Method> : UMockEvaluator, UMergeable<UMocker<Method>, MergeGuard> {
+interface UMocker<Method> : UMockEvaluator {
     fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
@@ -33,7 +33,7 @@ class UIndexedMocker<Method>(
     private var methodMockClauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentHashMapOf(),
     private var trackedSymbols: PersistentMap<TrackedLiteral, UExpr<out USort>> = persistentHashMapOf(),
     private var untrackedSymbols: PersistentList<UExpr<out USort>> = persistentListOf(),
-) : UMocker<Method> {
+) : UMocker<Method>, UMergeable<UIndexedMocker<Method>, MergeGuard> {
     override fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
@@ -42,8 +42,8 @@ class UIndexedMocker<Method>(
         val currentClauses = methodMockClauses.getOrDefault(method, persistentListOf())
         val index = currentClauses.size
         val const = sort.uctx.mkIndexedMethodReturnValue(method, index, sort)
-
         methodMockClauses = methodMockClauses.put(method, currentClauses.add(const))
+
         return const
     }
 

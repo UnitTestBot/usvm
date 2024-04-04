@@ -94,7 +94,7 @@ class SampleMachine(
                     it.exceptionRegister != null
                 }
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector(stateCollector)
-                StateCollectionStrategy.ALL -> AllStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector(stateCollector)
             }
 
         val stepsStatistics = StepsStatistics<Method<*>, SampleState>()

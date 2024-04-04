@@ -148,7 +148,7 @@ class USupportTypeStream<Type> private constructor(
             filter(newFiltering)
                 .run {
                     if (size < maxSize && filtering(type) && newFiltering(type) && type !in this) {
-                        this + type
+                       this + type
                     } else {
                         this
                     }

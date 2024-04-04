@@ -9,12 +9,12 @@ import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.LocationType
 import org.jacodb.api.ext.constructors
-import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.findTypeOrNull
 import org.jacodb.api.ext.toType
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIndexedMethodReturnValue
@@ -35,7 +35,6 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestMockObject
-import org.usvm.instrumentation.testcase.api.UTestNullExpression
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.machine.JcContext
@@ -89,7 +88,7 @@ class JcTestExecutor(
         val resolvedMethodMocks = methodMocks.entries.groupBy({ model.eval(it.key) }, { it.value })
             .mapValues { it.value.flatten() }
 
-        val memoryScope = MemoryScope(ctx, model, state.memory, classConstants, resolvedMethodMocks, method)
+        val memoryScope = MemoryScope(ctx, model, state.memory, method, resolvedMethodMocks)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -220,7 +219,8 @@ class JcTestExecutor(
         model: UModelBase<JcType>,
         finalStateMemory: UReadOnlyMemory<JcType>,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, classConstants, method) {
+        val resolvedMethodMocks: Map<UHeapRef, List<UMockSymbol<*>>>,
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 

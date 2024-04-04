@@ -22,6 +22,7 @@ import org.jacodb.api.ext.int
 import org.jacodb.api.ext.isAssignable
 import org.jacodb.api.ext.isEnum
 import org.jacodb.api.ext.long
+import org.jacodb.api.ext.objectClass
 import org.jacodb.api.ext.objectType
 import org.jacodb.api.ext.short
 import org.jacodb.api.ext.toType
@@ -77,6 +78,7 @@ import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
+import org.usvm.types.firstOrNull
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
@@ -248,7 +250,7 @@ abstract class JcTestStateResolver<T>(
 
     abstract fun allocateClassInstance(type: JcClassType): T
 
-    fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
+    open fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
         val decoder = decoders.findDecoder(type.jcClass)
         if (decoder != null) {
             return decodeObject(ref, type, decoder)
@@ -325,8 +327,13 @@ abstract class JcTestStateResolver<T>(
         val ordinalLValue = UFieldLValue(ctx.sizeSort, heapRef, ctx.enumOrdinalField)
         val ordinalFieldValue = resolvePrimitiveInt(memory.read(ordinalLValue))
 
-        val enumField = enumAncestor.enumValues?.get(ordinalFieldValue)
-            ?: error("Cant find enum field with index $ordinalFieldValue")
+        val enumValues = enumAncestor.enumValues
+            ?: error("Cant find enum values from enum type $enumAncestor")
+
+        val enumField = enumValues.getOrNull(ordinalFieldValue)
+            // It means we do not have any constraints for this enum value (including correctness constraints),
+            // so we can choose any enum value
+            ?: enumValues.first()
 
         return decoderApi.getField(enumField, decoderApi.createNullConst(ctx.cp.objectType))
     }
@@ -340,7 +347,14 @@ abstract class JcTestStateResolver<T>(
         val classTypeRef = memoryToResolveClassType.read(classTypeLValue) as? UConcreteHeapRef
             ?: error("No type for allocated class")
 
-        val classType = memoryToResolveClassType.typeStreamOf(classTypeRef).first()
+        if (classTypeRef.address == NULL_ADDRESS) {
+            return decoderApi.createClassConst(ctx.cp.objectType)
+        }
+
+        val classTypes = memoryToResolveClassType.typeStreamOf(classTypeRef)
+
+        val classType = typeSelector.firstOrNull(classTypes, ctx.cp.objectClass)
+            ?: ctx.cp.objectType
 
         return decoderApi.createClassConst(classType)
     }
@@ -357,6 +371,12 @@ abstract class JcTestStateResolver<T>(
                 resolveExpr(expr, valueField.fieldType)
             }
         } else {
+            val valueRef = memory.read(strValueLValue)
+
+            if ((evaluateInModel(valueRef) as UConcreteHeapRef).address == NULL_ADDRESS) {
+                return decoderApi.createStringConst("")
+            }
+
             resolveLValue(strValueLValue, valueField.fieldType)
         }
 

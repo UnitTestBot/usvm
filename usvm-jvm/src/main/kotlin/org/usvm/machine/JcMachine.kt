@@ -3,7 +3,6 @@ package org.usvm.machine
 import mu.KLogging
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.humanReadableSignature
 import org.jacodb.api.ext.methods
@@ -60,7 +59,7 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
-    fun analyze(methods: List<JcMethod>, targets: List<JcTarget> = emptyList()): List<JcState> {
+    fun analyze(methods: List<JcMethod>, statesCollector: StatesCollector<JcState>, targets: List<JcTarget> = emptyList()) {
         logger.debug("{}.analyze({})", this, methods)
         val initialStates = mutableMapOf<JcMethod, JcState>()
         methods.forEach {
@@ -118,7 +117,7 @@ class JcMachine(
                 }
 
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector(statesCollector)
-                StateCollectionStrategy.ALL -> AllStatesCollector()
+                StateCollectionStrategy.ALL -> AllStatesCollector(statesCollector)
             }
 
         val stepsStatistics = StepsStatistics<JcMethod, JcState>()

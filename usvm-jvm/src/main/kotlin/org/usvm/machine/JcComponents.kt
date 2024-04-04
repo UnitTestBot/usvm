@@ -66,5 +66,6 @@ class JcComponents(
         ctx: Context,
     ): USoftConstraintsProvider<JcType, USizeSort> = JcSoftConstraintsProvider(ctx)
 
-    override fun <Method> mkMocker(): UMocker<Method> = JcMocker().cast()
+    @Suppress("UNCHECKED_CAST")
+    override fun <Method> mkMocker(): UMocker<Method> = JcMocker() as UMocker<Method>
 }
