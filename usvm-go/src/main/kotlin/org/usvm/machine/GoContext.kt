@@ -11,23 +11,20 @@ import org.usvm.UBvSort
 import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.machine.operator.GoUnaryOperator
 import org.usvm.machine.type.GoType
 import org.usvm.machine.type.GoSort
 import org.usvm.machine.type.GoVoidSort
 import org.usvm.machine.type.GoVoidValue
 import org.usvm.memory.ULValue
-import org.usvm.sizeSort
 
 internal typealias USizeSort = UBv32Sort
 
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
-    private var methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
-    private var freeVariables: MutableMap<GoMethod, Array<UExpr<USort>>> = hashMapOf()
-    private var deferred: MutableMap<GoMethod, ArrayDeque<GoCall>> = hashMapOf()
+    private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
+    private val freeVariables: MutableMap<GoMethod, Array<UExpr<USort>>> = hashMapOf()
 
     fun getReturnType(method: GoMethod): GoType = methodInfo[method]!!.returnType
 
@@ -39,17 +36,8 @@ class GoContext(
 
     fun getFreeVariables(method: GoMethod): Array<UExpr<USort>>? = freeVariables[method]
 
-    fun setFreeVariables(method: GoMethod, freeVariables: Array<UExpr<USort>>) {
-        this.freeVariables[method] = freeVariables
-    }
-
-    fun getDeferred(method: GoMethod): ArrayDeque<GoCall> = deferred[method] ?: ArrayDeque()
-
-    fun addDeferred(method: GoMethod, call: GoCall) {
-        if (method !in deferred) {
-            deferred[method] = ArrayDeque()
-        }
-        deferred[method]!!.addLast(call)
+    fun setFreeVariables(method: GoMethod, variables: Array<UExpr<USort>>) {
+        freeVariables[method] = variables
     }
 
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
