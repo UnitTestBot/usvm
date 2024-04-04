@@ -2,7 +2,6 @@ package org.usvm.api
 
 import io.ksmt.expr.KBitVec64Value
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import org.usvm.UAddressPointer
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
@@ -71,7 +70,7 @@ class Api(
             Method.MK_UN_OP -> mkUnOp(buf)
             Method.MK_BIN_OP -> mkBinOp(buf)
             Method.MK_CALL -> mkCall(buf, lastBlock).let { if (it) nextInst = 0L }
-            Method.MK_CALL_BUILTIN -> mkCallBuiltin(buf, inst)
+            Method.MK_CALL_BUILTIN -> mkCallBuiltin(buf, nextInst)
             Method.MK_CHANGE_INTERFACE -> mkChangeInterface(buf)
             Method.MK_CHANGE_TYPE -> mkChangeType(buf)
             Method.MK_CONVERT -> mkConvert(buf)
@@ -89,8 +88,8 @@ class Api(
             Method.MK_EXTRACT -> mkExtract(buf)
             Method.MK_SLICE -> mkSlice(buf)
             Method.MK_RETURN -> mkReturn(buf)
-            Method.MK_RUN_DEFERS -> mkRunDefers().let { if (it) nextInst = 0L }
-            Method.MK_PANIC -> mkPanic(buf)
+            Method.MK_RUN_DEFERS -> mkRunDefers(nextInst).let { nextInst = it }
+            Method.MK_PANIC -> mkPanic(buf).let { nextInst = it }
             Method.MK_VARIABLE -> mkVariable(buf)
             Method.MK_RANGE -> mkRange(buf)
             Method.MK_NEXT -> mkNext(buf, nextInst)
@@ -322,7 +321,11 @@ class Api(
             }
 
             BuiltinFunction.RECOVER -> {
-                scope.doWithState { recover() }
+                val lvalue = URegisterStackLValue(l.sort, l.index)
+                scope.doWithState {
+                    val rvalue = recover(buf.long, buf.long).let { if (it == voidValue) nullRef else it }
+                    memory.write(lvalue, rvalue.asExpr(l.sort), trueExpr)
+                }
             }
 
             BuiltinFunction.SSA_WRAP_NIL_CHECK -> noop()
@@ -439,10 +442,11 @@ class Api(
         )
     }
 
-    private fun mkDefer(buf: ByteBuffer) = with(ctx) {
+    private fun mkDefer(buf: ByteBuffer) {
         val call = readCall(buf)
-        val method = scope.calcOnState { lastEnteredMethod }
-        addDeferred(method, call)
+        scope.doWithState {
+            data.addDeferredCall(lastEnteredMethod, call)
+        }
     }
 
     private fun mkAlloc(buf: ByteBuffer) = with(ctx) {
@@ -573,12 +577,18 @@ class Api(
         }
     }
 
-    private fun mkRunDefers(): Boolean {
-        return scope.calcOnState { runDefers() }
+    private fun mkRunDefers(inst: GoInst): GoInst {
+        return scope.calcOnState {
+            runDefers(lastEnteredMethod, inst)
+            currentStatement
+        }
     }
 
-    private fun mkPanic(buf: ByteBuffer) {
-        scope.doWithState { panic(readVar(buf).expr) }
+    private fun mkPanic(buf: ByteBuffer): GoInst {
+        return scope.calcOnState {
+            panic(readVar(buf).expr)
+            currentStatement
+        }
     }
 
     private fun mkVariable(buf: ByteBuffer) = with(ctx) {
@@ -1091,19 +1101,6 @@ class Api(
 
     private fun GoState.panic(expr: String) {
         panic(mkString(expr))
-    }
-
-    private fun GoState.panic(expr: UExpr<out USort>) {
-        methodResult = GoMethodResult.Panic(expr.cast())
-    }
-
-    private fun GoState.recover(): Any = with(ctx) {
-        if (methodResult is GoMethodResult.Panic) {
-            val result = (methodResult as GoMethodResult.Panic).value
-            methodResult = GoMethodResult.NoCall
-            return result
-        }
-        return voidValue
     }
 
     private fun GoState.getIterCurrentKeyValue(
