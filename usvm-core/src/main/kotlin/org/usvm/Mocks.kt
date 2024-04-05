@@ -14,7 +14,7 @@ interface UMockEvaluator {
 
 interface TrackedLiteral
 
-interface UMocker<Method> : UMockEvaluator {
+interface UMocker<Method> : UMockEvaluator, UMergeable<UMocker<Method>, MergeGuard> {
     fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
@@ -33,7 +33,7 @@ class UIndexedMocker<Method>(
     private var methodMockClauses: PersistentMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentHashMapOf(),
     private var trackedSymbols: PersistentMap<TrackedLiteral, UExpr<out USort>> = persistentHashMapOf(),
     private var untrackedSymbols: PersistentList<UExpr<out USort>> = persistentListOf(),
-) : UMocker<Method>, UMergeable<UIndexedMocker<Method>, MergeGuard> {
+) : UMocker<Method>{
     override fun <Sort : USort> call(
         method: Method,
         args: Sequence<UExpr<out USort>>,
@@ -83,7 +83,9 @@ class UIndexedMocker<Method>(
      *
      * @return the merged indexed mocker.
      */
-    override fun mergeWith(other: UIndexedMocker<Method>, by: MergeGuard): UIndexedMocker<Method>? {
+    override fun mergeWith(other: UMocker<Method>, by: MergeGuard): UIndexedMocker<Method>? {
+        if (other !is UIndexedMocker<Method>) return null
+
         if (methodMockClauses !== other.methodMockClauses
             || trackedSymbols !== other.trackedSymbols
             || untrackedSymbols !== other.untrackedSymbols

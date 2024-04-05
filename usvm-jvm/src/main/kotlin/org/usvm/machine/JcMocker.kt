@@ -14,6 +14,7 @@ import org.usvm.UHeapRef
 import org.usvm.UMockSymbol
 import org.usvm.UMocker
 import org.usvm.USort
+import org.usvm.merging.MergeGuard
 import org.usvm.uctx
 
 class JcMocker(
@@ -51,6 +52,13 @@ class JcMocker(
 
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
         return symbol
+    }
+
+    override fun mergeWith(other: UMocker<JcMethod>, by: MergeGuard): UMocker<JcMethod>? {
+        if (this === other) return this
+
+        // todo: merge
+        return null
     }
 
     override val trackedLiterals: Collection<TrackedLiteral>

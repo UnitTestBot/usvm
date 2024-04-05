@@ -23,8 +23,10 @@ import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.StaticFieldValue
+import org.usvm.api.util.JcTestInterpreter
 import org.usvm.api.util.JcTestResolver
 import org.usvm.api.util.JcTestStateResolver
+import org.usvm.api.util.JcTestStateResolver.ResolveMode
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.testcase.UTest
@@ -92,7 +94,7 @@ class JcTestExecutor(
 
         val before: JcParametersState
         val after: JcParametersState
-        val uTest = memoryScope.createUTest()
+        val uTest = memoryScope.withMode(ResolveMode.MODEL) { (this as MemoryScope).createUTest() }
 
         val execResult = runBlocking {
             runner.executeAsync(uTest)
