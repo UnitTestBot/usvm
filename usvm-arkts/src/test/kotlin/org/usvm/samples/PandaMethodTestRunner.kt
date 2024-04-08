@@ -7,8 +7,8 @@ import org.jacodb.panda.dynamic.parser.TSParser
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
-import org.usvm.machine.PandaExecutionResult
 import org.usvm.machine.PandaMachine
+import org.usvm.machine.PandaTest
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.time.Duration
@@ -21,7 +21,7 @@ private typealias Coverage = Int
 private typealias MethodIdentifier = Triple<FileName, MethodName, ArgsNumber>
 
 open class PandaMethodTestRunner
-    : TestRunner<PandaExecutionResult, MethodIdentifier, PandaType?, Coverage>() {
+    : TestRunner<PandaTest, MethodIdentifier, PandaType?, Coverage>() {
 
     protected fun discoverProperties(
         methodIdentifier: MethodIdentifier,
@@ -47,7 +47,7 @@ open class PandaMethodTestRunner
     override val checkType: (PandaType?, PandaType?) -> Boolean
         get() = { expected, actual -> true } // TODO("Not yet implemented")
 
-    override val runner: (MethodIdentifier, UMachineOptions) -> List<PandaExecutionResult>
+    override val runner: (MethodIdentifier, UMachineOptions) -> List<PandaTest>
         get() = { id, options ->
             // TODO Automatic parser?????
             val jsonWithoutExtension = "/samples/${id.first}.json"
@@ -65,16 +65,16 @@ open class PandaMethodTestRunner
             val method = project.findMethodOrNull(id.second, "GLOBAL") ?: error("TODO")
 
 
-            PandaMachine(project, options).use {
-                val states = it.analyze(listOf(method))
-                states.map {
-                    println(it)
-                    PandaExecutionResult() // TODO transform
+            PandaMachine(project, options).use { machine ->
+                val states = machine.analyze(listOf(method))
+                states.map { state ->
+                    val resolver = PandaTestResolver()
+                    resolver.resolve(method, state).also { println(it) }
                 }
             }
         }
 
-    override val coverageRunner: (List<PandaExecutionResult>) -> Coverage
+    override val coverageRunner: (List<PandaTest>) -> Coverage
         get() = { _ -> 0 } // TODO("Not yet implemented")
 
     override var options: UMachineOptions = UMachineOptions(

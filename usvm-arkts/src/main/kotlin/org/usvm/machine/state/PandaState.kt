@@ -46,4 +46,6 @@ class PandaState(
 
     override val isExceptional: Boolean
         get() = methodResult is PandaMethodResult.PandaException
+
+    override fun toString(): String = currentStatement.toString()
 }

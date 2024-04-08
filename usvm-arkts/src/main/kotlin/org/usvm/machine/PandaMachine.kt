@@ -27,7 +27,7 @@ class PandaMachine(
     project: PandaProject,
     private val options: UMachineOptions,
 ) : UMachine<PandaState>() {
-    private val typeSystem = PandaTypeSystem(1.seconds)
+    private val typeSystem = PandaTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = PandaComponents(typeSystem, options)
     private val ctx: PandaContext = PandaContext(components)
     private val interpreter: PandaInterpreter = PandaInterpreter(ctx)

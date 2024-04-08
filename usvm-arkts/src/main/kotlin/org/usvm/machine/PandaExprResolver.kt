@@ -2,47 +2,102 @@ package org.usvm.machine
 
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
-import org.jacodb.panda.dynamic.api.*
+import org.jacodb.panda.dynamic.api.PandaAddExpr
+import org.jacodb.panda.dynamic.api.PandaArgument
+import org.jacodb.panda.dynamic.api.PandaArrayAccess
+import org.jacodb.panda.dynamic.api.PandaBinaryExpr
+import org.jacodb.panda.dynamic.api.PandaBoolConstant
+import org.jacodb.panda.dynamic.api.PandaCastExpr
+import org.jacodb.panda.dynamic.api.PandaCmpExpr
+import org.jacodb.panda.dynamic.api.PandaCmpOp
+import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
+import org.jacodb.panda.dynamic.api.PandaDivExpr
+import org.jacodb.panda.dynamic.api.PandaEqExpr
+import org.jacodb.panda.dynamic.api.PandaExpr
+import org.jacodb.panda.dynamic.api.PandaExprVisitor
+import org.jacodb.panda.dynamic.api.PandaFieldRef
+import org.jacodb.panda.dynamic.api.PandaGeExpr
+import org.jacodb.panda.dynamic.api.PandaGtExpr
+import org.jacodb.panda.dynamic.api.PandaLeExpr
+import org.jacodb.panda.dynamic.api.PandaLoadedValue
+import org.jacodb.panda.dynamic.api.PandaLocal
+import org.jacodb.panda.dynamic.api.PandaLocalVar
+import org.jacodb.panda.dynamic.api.PandaLtExpr
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaMulExpr
+import org.jacodb.panda.dynamic.api.PandaNegExpr
+import org.jacodb.panda.dynamic.api.PandaNeqExpr
+import org.jacodb.panda.dynamic.api.PandaNewExpr
+import org.jacodb.panda.dynamic.api.PandaNullConstant
+import org.jacodb.panda.dynamic.api.PandaNumberConstant
+import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
+import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
+import org.jacodb.panda.dynamic.api.PandaStringConstant
+import org.jacodb.panda.dynamic.api.PandaSubExpr
+import org.jacodb.panda.dynamic.api.PandaThis
+import org.jacodb.panda.dynamic.api.PandaToNumericExpr
+import org.jacodb.panda.dynamic.api.PandaTypeofExpr
+import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
+import org.jacodb.panda.dynamic.api.PandaValue
+import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
+import org.jacodb.panda.dynamic.api.TODOConstant
+import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
+@Suppress("unused")
 class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
-    private val saveSortInfo: (PandaLocalVar, PandaMethod, USort) -> Unit,
-    private val extractSortInfo: (PandaLocalVar, PandaMethod) -> USort
 ) : PandaExprVisitor<PandaUExprWrapper?> {
-    fun resolveLValue(value: PandaValue, alternativeSortInfo: USort? = null): ULValue<*, *>? =
+    fun resolveLValue(value: PandaValue): ULValue<*, *>? =
         when (value) {
             is PandaFieldRef -> TODO()
             is PandaArrayAccess -> TODO()
-            is PandaLocal -> resolveLocal(value, alternativeSortInfo)
+            is PandaLocal -> resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
-    fun resolveLocal(local: PandaLocal, alternativeSortInfo: USort? = null): URegisterStackLValue<*> {
+    fun resolveLocal(local: PandaLocal): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localIdxMapper(method, local)
-        val sort = alternativeSortInfo
-            ?: (local as? PandaLocalVar)?.let { extractSortInfo(it, method) }
-            ?: ctx.typeToSort(local.type)
+        val sort = ctx.addressSort // TODO ?????
         return URegisterStackLValue(sort, localIdx)
     }
 
     // TODO do we need a type?
-    fun resolvePandaExpr(expr: PandaExpr): PandaUExprWrapper? = expr.accept(this)
+    fun resolvePandaExpr(expr: PandaExpr): PandaUExprWrapper? {
+        if (expr is PandaBinaryOperationAuxiliaryExpr) {
+            return resolveAuxiliaryExpr(expr)
+        }
+
+        return expr.accept(this)
+    }
 
     private fun resolveBinaryOperator(
         operator: PandaBinaryOperator,
-        expr: PandaBinaryExpr
-    ): UExpr<out USort>? = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
-        operator(lhs, rhs) // TODO fix issues
+        lhv: PandaValue,
+        rhv: PandaValue
+    ) : UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
+        operator(
+            lhs,
+            rhs,
+            typeExtractor = { ref -> scope.calcOnState { memory.typeStreamOf(ref) } },
+            fieldReader = { fieldLValue -> scope.calcOnState { memory.read(fieldLValue) } },
+            scope
+        )
     }
 
-    private fun wrap(expr: PandaExpr, wrapper: () -> UExpr<out USort>?) : PandaUExprWrapper? {
+    private fun resolveBinaryOperator(
+        operator: PandaBinaryOperator,
+        expr: PandaBinaryExpr,
+    ): UExpr<out USort>? = resolveBinaryOperator(operator, expr.lhv, expr.rhv)
+
+    private fun wrap(expr: PandaExpr, wrapper: () -> UExpr<out USort>?): PandaUExprWrapper? {
         wrapper()?.let {
             return PandaUExprWrapper(expr, it)
         } ?: return null
@@ -58,6 +113,13 @@ class PandaExprResolver(
         return block(result0, result1)
     }
 
+    override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? {
+        if (expr is PandaBinaryOperationAuxiliaryExpr) {
+            return resolveAuxiliaryExpr(expr)
+        }
+
+        return resolvePandaExpr(expr)
+    }
 
     override fun visitCommonCallExpr(expr: CommonExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
@@ -116,11 +178,6 @@ class PandaExprResolver(
         resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
     }
 
-    override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? {
-        TODO("Not yet implemented")
-    }
-
-
     override fun visitPandaFieldRef(expr: PandaFieldRef): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
@@ -143,7 +200,7 @@ class PandaExprResolver(
     }
 
     override fun visitPandaLocalVar(expr: PandaLocalVar): PandaUExprWrapper? = wrap(expr) {
-        val ref = resolveLocal(expr, alternativeSortInfo = null)
+        val ref = resolveLocal(expr)
         scope.calcOnState { memory.read(ref) }
     }
 
@@ -222,5 +279,48 @@ class PandaExprResolver(
 
     override fun visitTODOExpr(expr: TODOExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
+    }
+
+    fun resolveAuxiliaryExpr(
+        pandaBinaryOperationAuxiliaryExpr: PandaBinaryOperationAuxiliaryExpr,
+    ): PandaUExprWrapper? {
+        val pandaUExprWrapper = when (pandaBinaryOperationAuxiliaryExpr) {
+            is PandaBinaryOperationAuxiliaryExpr.BooleanToBoolean -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
+            is PandaBinaryOperationAuxiliaryExpr.BooleanToNumber -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.BooleanToObjects -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.BooleanToString -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.NumberToBoolean -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.NumberToNumber -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
+            is PandaBinaryOperationAuxiliaryExpr.NumberToObject -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.NumberToString -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.ObjectToBoolean -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.ObjectToNumber -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.ObjectToObjects -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
+            is PandaBinaryOperationAuxiliaryExpr.ObjectToString -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.StringToBoolean -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.StringToNumber -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.StringToObject -> TODO()
+            is PandaBinaryOperationAuxiliaryExpr.StringToString -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
+        }
+        return pandaUExprWrapper
+    }
+
+    private fun PandaBinaryExpr.operator(): PandaBinaryOperator = when (this) {
+        is PandaAddExpr -> PandaBinaryOperator.Add
+        is PandaSubExpr -> PandaBinaryOperator.Sub
+        is PandaMulExpr -> PandaBinaryOperator.Mul
+        is PandaDivExpr -> PandaBinaryOperator.Div
+        is PandaGtExpr -> PandaBinaryOperator.Gt
+        is PandaEqExpr -> PandaBinaryOperator.Eq
+        is PandaNeqExpr -> PandaBinaryOperator.Neq
+        else -> TODO("")
     }
 }
