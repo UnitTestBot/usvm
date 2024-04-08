@@ -1,7 +1,7 @@
 package org.usvm.machine
 
-import io.ksmt.utils.asExpr
 import org.jacodb.api.common.cfg.CommonExpr
+import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.panda.dynamic.api.PandaAddExpr
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaArrayAccess
@@ -44,46 +44,6 @@ import org.jacodb.panda.dynamic.api.PandaValue
 import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
 import org.jacodb.panda.dynamic.api.TODOConstant
 import org.jacodb.panda.dynamic.api.TODOExpr
-import org.jacodb.api.common.cfg.CommonValue
-import org.jacodb.panda.dynamic.api.PandaAddExpr
-import org.jacodb.panda.dynamic.api.PandaArgument
-import org.jacodb.panda.dynamic.api.PandaArrayAccess
-import org.jacodb.panda.dynamic.api.PandaBinaryExpr
-import org.jacodb.panda.dynamic.api.PandaBoolConstant
-import org.jacodb.panda.dynamic.api.PandaCastExpr
-import org.jacodb.panda.dynamic.api.PandaCmpExpr
-import org.jacodb.panda.dynamic.api.PandaCmpOp
-import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
-import org.jacodb.panda.dynamic.api.PandaDivExpr
-import org.jacodb.panda.dynamic.api.PandaEqExpr
-import org.jacodb.panda.dynamic.api.PandaExpr
-import org.jacodb.panda.dynamic.api.PandaExprVisitor
-import org.jacodb.panda.dynamic.api.PandaFieldRef
-import org.jacodb.panda.dynamic.api.PandaGeExpr
-import org.jacodb.panda.dynamic.api.PandaGtExpr
-import org.jacodb.panda.dynamic.api.PandaLeExpr
-import org.jacodb.panda.dynamic.api.PandaLoadedValue
-import org.jacodb.panda.dynamic.api.PandaLocal
-import org.jacodb.panda.dynamic.api.PandaLocalVar
-import org.jacodb.panda.dynamic.api.PandaLtExpr
-import org.jacodb.panda.dynamic.api.PandaMethod
-import org.jacodb.panda.dynamic.api.PandaMulExpr
-import org.jacodb.panda.dynamic.api.PandaNeqExpr
-import org.jacodb.panda.dynamic.api.PandaNewExpr
-import org.jacodb.panda.dynamic.api.PandaNullConstant
-import org.jacodb.panda.dynamic.api.PandaNumberConstant
-import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
-import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
-import org.jacodb.panda.dynamic.api.PandaStringConstant
-import org.jacodb.panda.dynamic.api.PandaSubExpr
-import org.jacodb.panda.dynamic.api.PandaThis
-import org.jacodb.panda.dynamic.api.PandaToNumericExpr
-import org.jacodb.panda.dynamic.api.PandaTypeofExpr
-import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
-import org.jacodb.panda.dynamic.api.PandaValue
-import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
-import org.jacodb.panda.dynamic.api.TODOConstant
-import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.memory.ULValue
@@ -119,27 +79,15 @@ class PandaExprResolver(
     ): UExpr<out USort>? = resolveAfterResolved(expr.lhv, expr.rhv) { lhs, rhs ->
         val cornerTypes = mutableListOf<PandaType>(PandaNumberType, PandaBoolType)
 
-        val conditions = scope.calcOnState {
-            val lhsRef = lhs.asExpr(ctx.addressSort)
-            val rhsRef = rhs.asExpr(ctx.addressSort)
-            cornerTypes.flatMap { fstType ->
-                cornerTypes.map { sndType ->
-                    ctx.mkAnd(
-                        memory.types.evalIsSubtype(lhsRef, fstType),
-                        memory.types.evalIsSubtype(rhsRef, sndType)
-                    ) to {
-                        operator(lhs, rhs)
-                        newStmt(TODO())
-                    } // todo cast bool to int
-                }
-            }
-        }
 
-        val actions = conditions.map {
-
-        }
 
         operator(lhs, rhs) // TODO fix issues
+    }
+
+    fun <T> resolveAuxiliaryExpr(
+        pandaBinaryOperationAuxiliaryExpr: PandaBinaryOperationAuxiliaryExpr
+    ) : T {
+        TODO()
     }
 
     private fun wrap(expr: PandaExpr, wrapper: () -> UExpr<out USort>?) : PandaUExprWrapper? {

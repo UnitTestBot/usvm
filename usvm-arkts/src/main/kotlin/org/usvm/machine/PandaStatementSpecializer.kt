@@ -1,7 +1,6 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
-import org.graalvm.compiler.bytecode.Bytecodes.operator
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallInst
 import org.jacodb.api.common.cfg.CommonGotoInst
@@ -9,6 +8,7 @@ import org.jacodb.api.common.cfg.CommonIfInst
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.common.cfg.CommonReturnInst
 import org.jacodb.panda.dynamic.api.PandaAssignInst
+import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaCallInst
 import org.jacodb.panda.dynamic.api.PandaIfInst
@@ -20,20 +20,24 @@ import org.jacodb.panda.dynamic.api.PandaNumberType
 import org.jacodb.panda.dynamic.api.PandaReturnInst
 import org.jacodb.panda.dynamic.api.PandaThrowInst
 import org.jacodb.panda.dynamic.api.TODOInst
+import org.usvm.UBoolExpr
+import org.usvm.machine.state.PandaState
 
 class PandaStatementSpecializer(
-    private val localIdxMapper: (PandaMethod, PandaLocal) -> Int
+    private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
 ) : PandaInstVisitor<PandaInst> {
     private var stepScope: PandaStepScope? = null
-    private var wasForked: Boolean = false
+    private var somethingWasSpecialized: Boolean = false
 
-    fun specialize(scope: PandaStepScope, inst: PandaInst): Boolean {
-        if (inst is PandaBinaryOperationAuxiliaryExpr) {
-            return false
-        }
-
+    fun specialize(scope: PandaStepScope, inst: PandaInst): Boolean{
         stepScope = scope
-        return inst.accept(this).also { stepScope = null }
+
+        inst.accept(this)
+
+        return somethingWasSpecialized.also {
+            stepScope = null
+            somethingWasSpecialized = false
+        }
     }
 
     override fun visitCommonAssignInst(inst: CommonAssignInst<*, *>): PandaInst {
@@ -61,41 +65,43 @@ class PandaStatementSpecializer(
     }
 
     override fun visitPandaAssignInst(inst: PandaAssignInst): PandaInst {
-        val stepScope = requireNotNull(stepScope)
-
-        val types = listOf(PandaNumberType, PandaBoolType, /*PandaStringType*/)
-
-        val exprs = types.flatMap { fst ->
-            types.map { snd ->
-                PandaBinaryOperationAuxiliaryExpr.specializeBinaryOperation(inst.rhv, fst, snd)
-            }
-        }
-
-        if (exprs.singleOrNull() == inst.rhv) {
+        if (inst.rhv !is PandaBinaryExpr || inst.rhv is PandaBinaryOperationAuxiliaryExpr) {
             return inst
         }
 
+        val rhv = inst.rhv as PandaBinaryExpr
+
+        val stepScope = requireNotNull(stepScope)
+
+        val types = listOf(PandaNumberType, PandaBoolType /*PandaStringType*/)
+
         val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper)
 
-        val conditions = stepScope.calcOnState {
-            val (lhs, rhs) = inst.rhv.operands.let {
+        val conditions: List<Pair<UBoolExpr, PandaState.() -> Unit>> = stepScope.calcOnState {
+            val (lhs, rhs) = rhv.operands.let {
                 exprResolver.resolvePandaExpr(it.first()) to exprResolver.resolvePandaExpr(it.last())
             }
 
-            val lhsRef = lhs?.asExpr(ctx.addressSort) ?: return@calcOnState
-            val rhsRef = rhs?.asExpr(ctx.addressSort) ?: return@calcOnState
+            val lhsRef = lhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
+            val rhsRef = rhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
 
             types.flatMap { fstType ->
                 types.map { sndType ->
                     ctx.mkAnd(
                         memory.types.evalIsSubtype(lhsRef, fstType),
                         memory.types.evalIsSubtype(rhsRef, sndType)
-                    ) to {
-                        newStmt(TODO)
+                    ) to { state: PandaState ->
+                        val newExpr = PandaBinaryOperationAuxiliaryExpr.specializeBinaryOperation(rhv, fstType, sndType)
+                        state.newStmt(PandaAssignInst(inst.location, inst.lhv, newExpr))
                     } // todo cast bool to int
                 }
             }
         }
+
+        somethingWasSpecialized = true
+        stepScope.forkMulti(conditions)
+
+        return inst
     }
 
     override fun visitPandaCallInst(inst: PandaCallInst): PandaInst {

@@ -34,7 +34,7 @@ typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaCont
 
 @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
-    private val specializer: PandaStatementSpecializer = PandaStatementSpecializer()
+    private val specializer: PandaStatementSpecializer = PandaStatementSpecializer(::mapLocalToIdxMapper)
 
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
 
@@ -47,13 +47,19 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             TODO()
         }
 
-        when (val updatedStmt = specializer.specialize(scope, stmt)) {
-            is PandaIfInst -> visitIfStmt(scope, updatedStmt)
-            is PandaReturnInst -> visitReturnStmt(scope, updatedStmt)
-            is PandaAssignInst -> visitAssignInst(scope, updatedStmt)
-            is PandaCallInst -> visitCallStmt(scope, updatedStmt)
-            is PandaThrowInst -> visitThrowStmt(scope, updatedStmt)
-            else -> error("Unknown stmt: $updatedStmt")
+        val somethingWasSpecialized = specializer.specialize(scope, stmt)
+
+        if (somethingWasSpecialized) {
+            return scope.stepResult()
+        }
+
+        when (stmt) {
+            is PandaIfInst -> visitIfStmt(scope, stmt)
+            is PandaReturnInst -> visitReturnStmt(scope, stmt)
+            is PandaAssignInst -> visitAssignInst(scope, stmt)
+            is PandaCallInst -> visitCallStmt(scope, stmt)
+            is PandaThrowInst -> visitThrowStmt(scope, stmt)
+            else -> error("Unknown stmt: $stmt")
         }
 
         return scope.stepResult()
