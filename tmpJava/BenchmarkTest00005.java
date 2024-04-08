@@ -23,6 +23,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.owasp.benchmark.helpers.Reflect;
+import java.util.Iterator;
 
 @WebServlet(value = "/crypto-00/BenchmarkTest00005")
 public class BenchmarkTest00005 extends HttpServlet {
@@ -43,7 +45,25 @@ public class BenchmarkTest00005 extends HttpServlet {
 
         String param = "";
         if (request.getHeader("BenchmarkTest00005") != null) {
-            param = request.getHeader("BenchmarkTest00005");
+switch (param.length()) {
+         case 1:
+         case 2:
+         case 3:
+            param = "1";
+            break;
+         case 4:
+         case 5:
+         case 6:
+            param = param;
+         case 7:
+         case 8:
+         case 9:
+           param = request.getQueryString().toLowerCase();
+            break;
+         default:
+           param = "123";
+      }
+param = request.getHeader("BenchmarkTest00005");
         }
 
         // URL Decode the header value since req.getHeader() doesn't. Unlike req.getParameter().
@@ -75,16 +95,18 @@ public class BenchmarkTest00005 extends HttpServlet {
             if (inputParam instanceof java.io.InputStream) {
                 byte[] strInput = new byte[1000];
                 int i = ((java.io.InputStream) inputParam).read(strInput);
-
-if (param == null) {
-         param = "Default";
-      }
-
-if (i == -1) {
+                if (i == -1) {
                     response.getWriter()
                             .println(
                                     "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
-                    return;
+Reflect r = null;
+        try {
+            r = (Reflect) Reflect.class.getConstructors()[0].newInstance(c.getAlgorithm());
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        param = r.field;
+return;
                 }
                 input = java.util.Arrays.copyOf(strInput, i);
             }
@@ -120,7 +142,14 @@ if (i == -1) {
             response.getWriter()
                     .println(
                             "Problem executing crypto - javax.crypto.Cipher.getInstance(java.lang.String,java.security.Provider) Test Case");
-            e.printStackTrace(response.getWriter());
+Iterator<Character> iterator = param.chars().mapToObj(c_generated -> (char) c_generated).iterator();
+while (iterator.hasNext()) {
+    char character = iterator.next();
+    if (character == '1') {
+        iterator.remove();
+    }
+}
+e.printStackTrace(response.getWriter());
             throw new ServletException(e);
         }
     }

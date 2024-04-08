@@ -7,7 +7,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
-import com.spbpu.bbfinfrastructure.util.name
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.kcheck.asCharSequence
@@ -35,11 +34,14 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileReader
+import java.lang.reflect.Method
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.function.BiPredicate
 import kotlin.reflect.KClass
+import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.kotlinFunction
 
 fun KtProperty.getLeft(): List<PsiElement> =
     if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
@@ -294,7 +296,8 @@ inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiEleme
 
 inline fun <reified T : PsiElement, reified U : PsiElement, reified S : PsiElement, reified R : PsiElement, reified K>
         PsiElement.getAllPSIChildrenOfFiveTypes(): List<PsiElement> =
-    this.node.getAllChildrenNodes().asSequence().filter { it.psi is T || it.psi is U || it.psi is S || it.psi is R || it.psi is K}
+    this.node.getAllChildrenNodes().asSequence()
+        .filter { it.psi is T || it.psi is U || it.psi is S || it.psi is R || it.psi is K }
         .map { it.psi }
         .toList()
 
@@ -458,7 +461,7 @@ fun String.filterLines(cond: (String) -> Boolean): String =
 fun String.filterNotLines(cond: (String) -> Boolean): String =
     this.lines().filterNot { cond(it) }.joinToString("\n")
 
-fun kotlin.random.Random.getTrue(prop: Int) = Random().nextInRange(0, 100) < prop
+fun kotlin.random.Random.getTrue(prob: Int) = Random().nextInRange(0, 100) < prob
 
 fun KtFile.findFunByName(name: String): KtNamedFunction? =
     this.getAllPSIChildrenOfType<KtNamedFunction>().find { it.name == name }
@@ -499,7 +502,6 @@ fun <T : Any> List<Any>.flatten(type: KClass<T>): List<T> {
     }
     return res
 }
-
 
 
 inline fun <reified T : Any> List<Any>.flatten(): List<T> = this.flatten(T::class)
@@ -593,5 +595,17 @@ fun KtForExpression.getLoopParameterType(context: BindingContext): KotlinType? {
     val memberScope = loopRangeType.memberScope.getDescriptorsFiltered { true }
     val member = memberScope.firstOrNull { it.name.asString() == "first" } as? PropertyDescriptor
         ?: memberScope.firstOrNull { it.name.asString() == "get" } as? FunctionDescriptor
+    "".stripIndent()
     return member?.returnType
 }
+
+fun Method.isDeprecated(): Boolean =
+    if (declaringClass == String::class.java) {
+        val isDepInKotlin = String::class.functions.find { it.name == name }?.annotations?.any { it.annotationClass == Deprecated::class } ?: false
+        val isDepInJava = this.annotations.any { it.annotationClass.simpleName == "Deprecated" }
+        isDepInJava || isDepInKotlin
+    } else {
+        this.annotations.any { it.annotationClass.simpleName == "Deprecated" }
+    }
+
+

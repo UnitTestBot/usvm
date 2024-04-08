@@ -27,7 +27,7 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
         checkedConfigurations[allTexts]?.let { return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
-            // log.debug("Wrong syntax or breaks conditions")
+            println("Wrong syntax or breaks conditions")
             checkedConfigurations[allTexts] = false
             return false
         }

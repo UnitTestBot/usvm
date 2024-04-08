@@ -30,6 +30,9 @@ class JavaTestSuite {
         project.files.forEach { bbfFile ->
             val psiFile = bbfFile.psiFile
             val name = bbfFile.name
+            if (!name.contains("Benchmark")) {
+                return@forEach
+            }
             val classes = psiFile.getAllPSIChildrenOfType<PsiClass>()
             for (cl in classes) {
                 cl.nameIdentifier?.let {
@@ -44,7 +47,8 @@ class JavaTestSuite {
 
     fun flushSuiteOnServer(remoteDirForSources: String, pathToCsv: String) {
         val remoteToLocalPaths = mutableMapOf<String, String>()
-        val tmpPath = "tmp/projects"
+        val helpersDir = remoteDirForSources.substringBeforeLast('/') + "/helpers/"
+        val tmpPath = "tmp/projects/"
         File(tmpPath).deleteRecursively()
         File(tmpPath).mkdirs()
         val csv = File("$tmpPath/expected_results.csv")
@@ -57,6 +61,10 @@ class JavaTestSuite {
             val localPaths = project.saveToDir(tmpPath)
             localPaths.forEach { localPath ->
                 val fileName = localPath.substringAfter(tmpPath)
+                if (!fileName.contains("Benchmark")) {
+                    remoteToLocalPaths["$helpersDir/$fileName"] = localPath
+                    return@forEach
+                }
                 val nameWithoutExt = localPath.substringAfterLast('/').substringBefore(".java")
                 //BenchmarkTest00013,xss,true,79
                 csv.appendText("$nameWithoutExt,unknown,unknown,0\n")
@@ -66,17 +74,20 @@ class JavaTestSuite {
         }
         remoteToLocalPaths[pathToCsv] = csv.absolutePath
         val fsi = FuzzServerInteract()
+        val cmdToRm =
+            remoteToLocalPaths.filterNot { it.key.contains("BenchmarkTest") }.keys.joinToString(" ") { "rm $it;" }
+        fsi.execCommand(cmdToRm)
         fsi.execCommand("rm -rf ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode; mkdir ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode")
         fsi.downloadFilesToRemote(remoteToLocalPaths)
         fsi.execCommand("cd ~; rm -rf BenchmarkJavaFuzz/scorecard/; rm -rf BenchmarkJavaFuzz/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh")
         val scoreCardDir = "/home/stepanov/BenchmarkJavaFuzz/scorecard"
         val pathToScoreCards = mapOf(
             "$scoreCardDir/Benchmark_v1.2_Scorecard_for_CodeQL_v2.16.5.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_CodeQL_v2.16.5.csv",
-            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_Semgrep_v1.65.0.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_Semgrep_v1.65.0.csv",
+            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_Semgrep_v1.67.0.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_Semgrep_v1.67.0.csv",
             "$scoreCardDir/Benchmark_v1.2_Scorecard_for_SonarQube_v10.4.1.88267.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_SonarQube_v10.4.1.88267.csv",
             "$scoreCardDir/Benchmark_v1.2_Scorecard_for_SpotBugs_v1.13.0.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_SpotBugs_v1.13.0.csv",
 
-        )
+            )
         fsi.downloadFilesFromRemote(pathToScoreCards)
         val scoreCards = ScoreCardParser.parseAndSaveDiff("tmp/scorecards", tmpPath)
     }

@@ -1,79 +1,795 @@
- String bar = ValueTypeStart@String@ValueTypeEnd;
-        try {
-            int i = 1 / 0;
-            bar = "123";
-        } catch (java.lang.ArithmeticException e) {
+~main class start~
+~template start~
+ String bar = ~[String]~;
+   	 try {
+   		 int i = 1 / 0;
+   		 bar = "123";
+   	 } catch (java.lang.ArithmeticException e) {
 
-        }
-        ValueTypeStart@String@ValueTypeEnd = bar;
+   	 }
+   	 ~[String]~ = bar;
+~template end~
+~main class end~
 ---------
+~main class start~
+~template start~
     for (int i = 0; i < 0; i++) {
-        ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.replace('/', '.');
+   	 ~[String]~ = ~[String]~.replace('/', '.');
     }
+~template end~
+~main class end~
 ---------
-    for (int i = 0; i < ValueTypeStart@int@ValueTypeEnd; i++) {
-        ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.replace('/', '.');
+~main class start~
+~template start~
+    for (int i = 0; i < ~[int]~; i++) {
+   	 ~[String]~ = ~[String]~.replace('/', '.');
     }
+~template end~
+~main class end~
 ---------
-String bar = ValueTypeStart@String@ValueTypeEnd
+~main class start~
+~template start~
+String bar = ~[String]~;
 try {
 	for (int i = 0; i < 0; i++) {
-		bar = ValueTypeStart@String@ValueTypeEnd;
+  	  bar = ~[String]~;
 	}
-} catch(e: Throwable) {
-	bar = ValueTypeStart@String@ValueTypeEnd.replace('/', '.')
+} catch(Throwable e) {
+	bar = ~[String]~.replace('/', '.');
 } finally {
 	bar = "123";
 }
-ValueTypeStart@String@ValueTypeEnd = bar
+~[String]~ = bar;
+~template end~
+~main class end~
 ---------
-        for (int i = 0; i < 10; i++) {
-            if (i < 9) {
-                continue;
-            }
-            if (i == 9) {
-                break;
-            }
-            ValueTypeStart@String@ValueTypeEnd = "123";
-        }
+~main class start~
+~template start~
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i < 9) {
+       		 continue;
+   		 }
+   		 if (i == 9) {
+       		 break;
+   		 }
+   		 ~[String]~ = "123";
+   	 }
+~template end~
+~main class end~
 ---------
-        String bar = ValueTypeStart@String@ValueTypeEnd;
-        for (int i = 0; i < 10; i++) {
-            if (i < 9) {
-                continue;
-            }
-            if (i == 9) {
-                try {
-                    bar = "123";
-                } catch (Throwable e) {
-                    ValueTypeStart@String@ValueTypeEnd = bar;
-                }
-            }
-        }
+~main class start~
+~template start~
+   	 String bar = ~[String]~;
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i < 9) {
+       		 continue;
+   		 }
+   		 if (i == 9) {
+       		 try {
+           		 bar = "123";
+       		 } catch (Throwable e) {
+           		 ~[String]~ = bar;
+       		 }
+   		 }
+   	 }
+~template end~
+~main class end~
 ---------
-        for (int i = 0; i < 10; i++) {
-            if (i == 5) {
-                break;
-            }
-            if (i > 5) {
-                ValueTypeStart@String@ValueTypeEnd = "";
-            }
-        }
+~main class start~
+~template start~
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i == 5) {
+       		 break;
+   		 }
+   		 if (i > 5) {
+       		 ~[String]~ = "";
+   		 }
+   	 }
+~template end~
+~main class end~
 ---------
-        for (int i = 0; i < 10; i++) {
-            try {
-                throw new IllegalAccessError();
-            } catch (Exception e) {
-                ValueTypeStart@String@ValueTypeEnd = "";
-            } catch (Error e) {
+~main class start~
+~template start~
+   	 for (int i = 0; i < 10; i++) {
+   		 try {
+       		 throw new IllegalAccessError();
+   		 } catch (Exception e) {
+       		 ~[String]~ = "";
+   		 } catch (Error e) {
 
-            }
-        }
+   		 }
+   	 }
+~template end~
+~main class end~
 ---------
-        class A {
-            public void set(String val) {
-                val += "1234";
+~class org.owasp.benchmark.helpers.ConstructorChains start~
+package org.owasp.benchmark.helpers;
+
+public class ConstructorChains {
+
+	private final int number;
+	private final String text;
+
+	public ConstructorChains(String text) {
+    	this(1, text);
+	}
+
+	public ConstructorChains(int number, String text) {
+    	this.number = number;
+    	if (number == 1) {
+        	this.text = text;
+    	} else {
+        	this.text = "empty";
+    	}
+	}
+
+	public String getText(int n) {
+    	if (n == 1) {
+        	return text;
+    	} else {
+        	return "";
+    	}
+	}
+
+}
+~class org.owasp.benchmark.helpers.ConstructorChains end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.ConstructorChains;~
+~template start~
+ConstructorChains cc = new ConstructorChains(~[String]~);
+~[String]~ = cc.getText(1);
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[int]~ >= ~[int]~ && ~[String]~.isEmpty()) {
+	~[String]~ = "123";
+} else {
+	~[String]~ = ~[String]~ + "123";
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[int]~ >= ~[int]~ || ~[String]~.isEmpty()) {
+	~[String]~ = "123";
+} else {
+	~[String]~ = ~[String]~ + "123";
+}
+~template end~
+~main class end~
+---------~main class start~
+~template start~
+if (~[int]~ >= ~[int]~ && ~[String]~.isEmpty()) {
+	~[String]~ = "123";
+} else {
+	~[String]~ = ~[String]~ + "123";
+}
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.StringHolder start~
+package org.owasp.benchmark.helpers;
+
+public interface StringHolder {
+	void replaceString(String newString);
+}
+
+~class org.owasp.benchmark.helpers.StringHolder end~
+~class org.owasp.benchmark.helpers.ImmutableStringHolder start~
+package org.owasp.benchmark.helpers;
+
+public class ImmutableStringHolder implements StringHolder{
+
+	public String getS() {
+    	return s;
+	}
+
+	String s;
+
+	public ImmutableStringHolder(String s) {
+    	this.s = s;
+	}
+
+	@Override
+	public void replaceString(String newString) {
+	}
+}
+~class org.owasp.benchmark.helpers.ImmutableStringHolder end~
+
+~class org.owasp.benchmark.helpers.MutableStringHolder start~
+package org.owasp.benchmark.helpers;
+
+public class MutableStringHolder implements StringHolder {
+	String s;
+
+	public String getS() {
+    	return s;
+	}
+
+	@Override
+	public void replaceString(String newString) {
+    	s = newString;
+	}
+}
+~class org.owasp.benchmark.helpers.MutableStringHolder end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.ConstructorChains;~
+~template start~
+StringHolder ish = new ImmutableStringHolder(~[String]~);
+ish.replaceString(~[String]~);
+~[String]~ = ish.getS();
+~template end~
+~template start~
+StringHolder ish = new MutableStringHolder(~[String]~);
+ish.replaceString(~[String]~);
+~[String]~ = ish.getS();
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*;~
+~template start~
+List<String> names = new ArrayList<>();
+names.add(~[String]~);
+names.add(~[String]~);
+names.add(~[String]~);
+names.add(~[String]~);
+
+if(names.stream().anyMatch(name -> name.equals(~[String]~))) {
+	~[String]~ = names.get(0);
+} else {
+	~[String]~ += names.get(0);
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*;~
+~template start~
+List<String> names = new ArrayList<>();
+names.add("Alice");
+names.add("Bob");
+names.add("Charlie");
+names.add("David");
+
+if(names.stream().anyMatch(name -> name.equals("Alice"))) {
+	~[String]~ = names.get(0);
+} else {
+	~[String]~ += names.get(0);
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*;~
+~template start~
+List<String> names = new ArrayList<>();
+names.add("Alice");
+names.add("Bob");
+names.add("Charlie");
+names.add("David");
+
+if(names.stream().anyMatch(name -> name.equals("Vlad"))) {
+	~[String]~ = names.get(0);
+} else {
+	~[String]~ += names.get(0);
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+List<Integer> numbers = new ArrayList<>();
+numbers.add(1);
+numbers.add(2);
+numbers.add(3);
+numbers.add(4);
+
+numbers.removeIf(number -> number % 2 == 0);
+if (numbers.contains(1) && numbers.contains(3)) {
+   ~[String]~ = "";
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+List<Integer> numbers = new ArrayList<>();
+numbers.add(~[int]~);
+numbers.add(~[int]~);
+numbers.add(~[int]~);
+numbers.add(~[int]~);
+
+numbers.removeIf(number -> number % ~[int]~ == 0);
+if (numbers.contains(~[int]~) && numbers.contains(~[int]~)) {
+   ~[String]~ = "";
+}
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.StringModifier start~
+package org.owasp.benchmark.helpers;
+@FunctionalInterface
+public interface StringModifier {
+	String modify(String input);
+
+	default String addPrefix(String input, String prefix) {
+    	    return prefix + input;
+	}
+}
+~class org.owasp.benchmark.helpers.StringModifier end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.StringModifier;~
+~template start~
+StringModifier modifier = (input) -> "Empty";
+~[String]~ = modifier.modify(~[String]~);
+~[String]~ = modifier.addPrefix(~[String]~, ~[String]~);
+~template end~
+~template start~
+StringModifier modifier = (input) -> "Empty";
+~[String]~ = modifier.addPrefix(~[String]~, ~[String]~);
+~template end~
+~template start~
+StringModifier modifier = (input) -> input + "ALL";
+~[String]~ = modifier.modify(~[String]~)
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.StringChecker start~
+package org.owasp.benchmark.helpers;
+
+public interface StringChecker {
+	String check(String param1, String param2);
+}
+~class org.owasp.benchmark.helpers.StringChecker end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.StringChecker;~
+~template start~
+StringChecker sh = (param1, param2) -> {
+	if (param1.equals(param2)) {
+    		return param1;
+	}
+	return "123";
+};
+~[String]~ = sh.check(~[String]~, ~[String]~);
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.Client start~
+package org.owasp.benchmark.helpers;
+
+public class Client {
+	private final Service service;
+
+	// Конструктор, принимающий зависимость
+	public Client(Service service) {
+    	this.service = service;
+	}
+
+	// Метод, использующий сервис
+	public String mutate(String str) {
+    	return service.mutateString(str);
+	}
+}
+~class org.owasp.benchmark.helpers.Client end~
+~class org.owasp.benchmark.helpers.Service start~
+package org.owasp.benchmark.helpers;
+
+public interface Service {
+	String mutateString(String str);
+}
+
+
+~class org.owasp.benchmark.helpers.Service end~
+~class org.owasp.benchmark.helpers.ServiceImpl start~
+package org.owasp.benchmark.helpers;
+
+public class ServiceImpl implements Service {
+
+	@Override
+	public String mutateString(String str) {
+    	if (str.contains("USERS")) {
+        	return str;
+    	} else {
+        	return "EMPTY";
+    	}
+	}
+}
+~class org.owasp.benchmark.helpers.ServiceImpl end~
+~main class start~
+~import org.owasp.benchmark.helpers.Client;~
+~import org.owasp.benchmark.helpers.Service;~
+~import org.owasp.benchmark.helpers.ServiceImpl;~
+~template start~
+Client cl = new Client(new ServiceImpl());
+~[String]~ = cl.mutate(~[String]~);
+~template end~
+~template start~
+Client cl = new Client(new Service() {
+	@Override
+	public String mutateString(String str) {
+    		return str;
+	}
+});
+~[String]~ = cl.mutate(~[String]~);
+~template end~
+~template start~
+Client cl = new Client(new Service() {
+	@Override
+	public String mutateString(String str) {
+    	if (~[Map]~.isEmpty()) {
+        	return "EMPTY MAP";
+    	} else {
+        	return str;
+    	}
+}
+});
+~[String]~ = cl.mutate(~[String]~);
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[ArrayList]~.size() > ~[int]~ || ~[int]~ == ~[int]~) {
+       ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[int]~ > 0 && ~[int]~ <= ~[int]~ || ~[int]~ < 0 && ~[int]~ <= ~[int]~) {
+         while(true) {
+            ++~[int]~;
+            if (~[int]~ > 1) {
+               throw new AssertionError("Loop should be executed once");
+            }
+
+            if (~[int]~ == ~[int]~) {
+               break;
+            }
+
+            ~[String]~ = ~[String]~;
+         }
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*;~
+~template start~
+if (~[Object]~ instanceof List) {
+         int i = 0;
+
+         for(int var3 = ((List)~[Object]~).size(); ~[int]~ < ~[int]~; ++~[int]~) {
+            ~[int]~ = ~[int]~ * 10 + ~[int]~;
+            ~[String]~ = ~[String]~;
+         }
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[Object]~ instanceof List) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*;~
+~template start~
+if (~[int]~ <= ~[int]~) {
+         while(true) {
+            Integer var6 = ~[int]~;
+            ((Collection)~[List]~).add(~[Integer]~);
+            if (~[int]~ == ~[int]~) {
+               ~[String]~ = ~[String]~;
+               break;
+            }
+
+            ~[int]~ -= 2;
+         }
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (!~[booleanean]~) {
+         ~[String]~ = ~[String]~;
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[String]~ == null) {
+         ~[String]~ = ~[String]~;
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.Iterator;~
+~template start~
+Iterator<Character> iterator = param.chars().mapToObj(c_generated -> (char) c_generated).iterator();
+while (iterator.hasNext()) {
+    char character = iterator.next();
+    if (character == '1') {
+        iterator.remove();
+    }
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+        do {
+            ~[String]~ = ~[String]~.replace(~[char]~, ~[char]~)
+        } while (~[booleanean]~)
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+        StringBuilder sb = new StringBuilder();
+        sb.append(~[String]~);
+        sb.append(~[char]~);
+        sb.replace(~[int]~, ~[int]~, ~[String]~)
+        ~[String]~ = sb.toString();
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*~
+~template start~
+        ArrayList<String> arr = new ArrayList<>();
+        arr.add(~[String]~);
+        arr.remove(~[String]~);
+        if (arr.remove(~[String]~)) {
+            ~[String]~ = ~[String]~;
+        }
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.util.*~
+~template start~
+        ArrayList<String> arr = new ArrayList<>();
+        arr.add(~[String]~);
+        arr.remove(~[int]~);
+        if (arr.remove(~[String]~)) {
+            ~[String]~ = ~[String]~;
+        }
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.Reflect start~
+package org.owasp.benchmark.helpers;
+
+public class Reflect {
+
+    public String field;
+
+    public Reflect(String field) {
+        this.field = field;
+    }
+}
+
+~class org.owasp.benchmark.helpers.Reflect end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.Reflect;~
+~template start~
+        Reflect r = null;
+        try {
+            r = (Reflect) Reflect.class.getConstructors()[0].newInstance(~[String]~);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        ~[String]~ = r.field;
+~template end~
+~template start~
+        Reflect r = null;
+        try {
+            r = (Reflect) Reflect.class.getConstructors()[0].newInstance(~[String]~);
+        } catch (Throwable e) { }
+        ~[String]~ = r.field.replace(~[char]~, ~[char]~)
+~template end~
+~main class end~
+---------
+~class org.owasp.benchmark.helpers.Reflect start~
+package org.owasp.benchmark.helpers;
+
+public class Reflect {
+
+    public String field;
+
+    public Reflect(String field) {
+        this.field = "123";
+    }
+}
+
+~class org.owasp.benchmark.helpers.Reflect end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.Reflect;~
+~template start~
+        Reflect r = null;
+        try {
+            r = (Reflect) Reflect.class.getConstructors()[0].newInstance(~[String]~);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        ~[String]~ = r.field;
+~template end~
+~template start~
+        Reflect r = null;
+        try {
+            r = (Reflect) Reflect.class.getConstructors()[0].newInstance(~[String]~);
+        } catch (Throwable e) { }
+        ~[String]~ = r.field.replace(~[char]~, ~[char]~)
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[int]~ != null) {
+               if (~[int]~ == ~[int]~) {
+                  ~[String]~ = "123";
+               }
+            }
+~template end~
+~main class end~
+---------
+~main class start~
+~import java.io.*;~
+~template start~
+        if (new File(~[String]~).exists()) {
+            ~[String]~ = ~[String]~;
+        }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[int]~ == 6) {
+         if (~[int]~ == 6) {
+            ~[String]~ = ~[String]~ + "a";
+         } else {
+            ~[String]~ = "123";
+         }
+      } else {
+         ~[String]~ = ~[String]~;
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (!(~[Object]~ instanceof String)) {
+           ~[String]~ = ~[String]~;
+     }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+        if (!(~[String]~ instanceof String)) {
+            try {
+                throw new IllegalArgumentException();
+            } catch (IllegalArgumentException e) {
+                ~[String]~ = ~[String]~;
+            } catch (Throwable e) {
+                ~[String]~ = ~[String]~;
             }
         }
-        A a = new A();
-        a.set(ValueTypeStart@String@ValueTypeEnd);
+~template end~
+~main class end~
+---------
+~main class start~
+~import jdk.internal.net.http.common.Pair;~
+~template start~
+        Pair<String, String> p = new Pair("1", "2");
+        if (p.first.contains("123")) {
+            ~[String]~ = p.second;
+        }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+switch (~[int]~) {
+         case 1:
+         case 2:
+         case 3:
+            ~[String]~ = "1";
+            break;
+         case 4:
+         case 5:
+         case 6:
+            ~[String]~ = ~[String]~;
+         case 7:
+         case 8:
+         case 9:
+           ~[String]~ = ~[String]~.toLowerCase();
+            break;
+         default:
+           ~[String]~ = "123";
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+if (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+for(int i = ~[int]~; i < 6; ++i) {
+         ~[ArrayList]~.add(~[int]~);
+         if (~[ArrayList]~.size() > 23) {
+            ~[String]~ = "123";
+            break;
+         }
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+for(int i = 10; ~[int]~ < 6; ++~[int]~) {
+         ~[ArrayList]~.add(~[int]~);
+         if (~[ArrayList]~.size() > ~[int]~) {
+            ~[String]~ = "123";
+            break;
+         }
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+switch (~[int]~) {
+         case 100:
+            ~[int]~ = 1;
+            break;
+         case 200:
+            ~[int]~ = ~[int]~ / 100;
+            break;
+         case 300:
+             ~[String]~ = ~[String]~;
+            break;
+         default:
+            ~[int]~ = 4;
+      }
+~template end~
+~main class end~
+---------
+~main class start~
+~template start~
+for(char i = 'g'; 'b' < ~[char]~; ~[char]~ = (char)(~[char]~ + -1)) {
+                                 ~[ArrayList]~.add(~[char]~);
+                                 if (~[ArrayList]~.size() > 23) {
+                                    ~[String]~ = "123";
+                                    break;
+                                 }
+                              }
+~template end~
+~main class end~

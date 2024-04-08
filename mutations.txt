@@ -1,11 +1,20 @@
 a. constructor chains 
 2. Условия (path-sensitivity): if, switch, pattern matching, lazy conditionals 
 3. Циклы, рекурсия: for, while, foreach, mutual recursion 
-4. virtual calls 
-5. lambdas 
+4. virtual calls, fun interfaces
+5. lambdas
+5.5. anon classes
 6. DI 
-7. Конфиги 
-8. async/await 
+7. Конфиги (?)
+8. async/await
+//берем рандомный блок и засовываем в async
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
+    CompletableFuture<Void> asyncTask = CompletableFuture.runAsync(() -> {
+        try {
+        //BLOCK
+        } catch (Throwable e) {}
+    }, executorService);
+    asyncTask.join();
 9. exceptions 
 10. collections (maps, etc.) 
 11. strings, regex 

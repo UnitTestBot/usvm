@@ -61,6 +61,10 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
     }
 
     override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
+        File(CompilerArgs.pathToTmpJava).apply {
+            deleteRecursively()
+            mkdir()
+        }
         val pathToFiles = project.saveOrRemoveToTmp(true).split(" ").map { File(it) }
         val compiler = ToolProvider.getSystemJavaCompiler()
         val diagnostics = DiagnosticCollector<JavaFileObject>()
@@ -74,6 +78,9 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()
         val errorDiagnostics = diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
+        if (errorDiagnostics.isNotEmpty()) {
+            println("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
+        }
         project.saveOrRemoveToTmp(false)
         return if (errorDiagnostics.isEmpty()) {
             CompilingResult(0, pathToTmpDir)

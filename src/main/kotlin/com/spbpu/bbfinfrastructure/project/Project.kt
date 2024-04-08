@@ -31,6 +31,11 @@ class Project(
             return Project(Header.createHeader(""), javaFiles, LANGUAGE.JAVA)
         }
 
+        fun createJavaProjectFromCode(code: String, name: String): Project {
+            val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code, Factory.file.project))
+            return Project(Header.createHeader(""), listOf(bbfFile), LANGUAGE.JAVA)
+        }
+
         fun createFromCode(code: String): Project {
             val configuration = Header.createHeader(getCommentSection(code))
             val files = BBFFileFactory(code, configuration).createBBFFiles() ?: return Project(configuration, listOf())

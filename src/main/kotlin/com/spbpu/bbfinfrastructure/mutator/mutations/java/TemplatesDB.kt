@@ -6,6 +6,7 @@ object TemplatesDB {
     val manualTemplates = mutableListOf<String>()
     val minedTemplates = mutableListOf<String>()
     val kotlinTemplates = mutableListOf<String>()
+    val testTemplates = mutableListOf<String>()
 
     init {
         File("manualTemplates.txt").readText().split("---------").forEach {
@@ -16,6 +17,9 @@ object TemplatesDB {
         }
         File("kotlinTemplates.txt").readText().split("---------").forEach {
             kotlinTemplates.add(it)
+        }
+        File("testTemplates.txt").readText().split("---------").forEach {
+            testTemplates.add(it)
         }
     }
 }

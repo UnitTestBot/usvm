@@ -7,6 +7,9 @@ plugins {
 group 'org.example'
 version '1.0-SNAPSHOT'
 
+sourceCompatibility = '11' // Change this to your desired Java version
+targetCompatibility = '11' // Change this to your desired Java version
+
 repositories {
     mavenCentral()
     maven() {

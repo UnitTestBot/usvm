@@ -1,5 +1,7 @@
 package com.spbpu.bbfinfrastructure.psicreator.util
 
+import com.intellij.core.JavaCoreApplicationEnvironment
+import com.intellij.core.JavaCoreProjectEnvironment
 import com.intellij.mock.MockProject
 import com.intellij.openapi.util.Disposer
 import com.intellij.pom.PomModel
@@ -11,6 +13,7 @@ import com.intellij.psi.impl.source.codeStyle.IndentHelper
 import org.apache.commons.cli.CommandLine
 import com.spbpu.bbfinfrastructure.psicreator.idea.MockCodeStyleManager
 import com.spbpu.bbfinfrastructure.psicreator.idea.MockIndentHelper
+import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector

@@ -1,867 +1,867 @@
-if (ValueTypeStart@String[]@ValueTypeEnd != null) ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String[]@ValueTypeEnd[0];
+if (~[String[]]~ != null) ~[String]~ = ~[String[]]~[0];
 ---------
-if (ValueTypeStart@Enumeration<String>@ValueTypeEnd != null && ValueTypeStart@Enumeration<String>@ValueTypeEnd.hasMoreElements()) {
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@Enumeration<String>@ValueTypeEnd.nextElement(); // just grab first element
+if (~[Enumeration<String>]~ != null && ~[Enumeration<String>]~.hasMoreElements()) {
+            ~[String]~ = ~[Enumeration<String>]~.nextElement(); // just grab first element
         }
 ---------
-if (ValueTypeStart@Cookie[]@ValueTypeEnd != null) {
-                for (int i = 0; !ValueTypeStart@boolean@ValueTypeEnd && ValueTypeStart@int@ValueTypeEnd < ValueTypeStart@Cookie[]@ValueTypeEnd.length; ValueTypeStart@int@ValueTypeEnd++) {
-                    javax.servlet.http.Cookie cookie = ValueTypeStart@Cookie[]@ValueTypeEnd[ValueTypeStart@int@ValueTypeEnd];
-                    if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                        if (ValueTypeStart@Cookie@ValueTypeEnd.getValue()
-                                .equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                            ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[Cookie[]]~ != null) {
+                for (int i = 0; !~[boolean]~ && ~[int]~ < ~[Cookie[]]~.length; ~[int]~++) {
+                    javax.servlet.http.Cookie cookie = ~[Cookie[]]~[~[int]~];
+                    if (~[String]~.equals(~[Cookie]~.getName())) {
+                        if (~[Cookie]~.getValue()
+                                .equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                            ~[boolean]~ = true;
                         }
                     }
                 }
             }
 ---------
-for (int i = 0; !ValueTypeStart@boolean@ValueTypeEnd && ValueTypeStart@int@ValueTypeEnd < ValueTypeStart@Cookie[]@ValueTypeEnd.length; ValueTypeStart@int@ValueTypeEnd++) {
-                    javax.servlet.http.Cookie cookie = ValueTypeStart@Cookie[]@ValueTypeEnd[ValueTypeStart@int@ValueTypeEnd];
-                    if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                        if (ValueTypeStart@Cookie@ValueTypeEnd.getValue()
-                                .equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                            ValueTypeStart@boolean@ValueTypeEnd = true;
+for (int i = 0; !~[boolean]~ && ~[int]~ < ~[Cookie[]]~.length; ~[int]~++) {
+                    javax.servlet.http.Cookie cookie = ~[Cookie[]]~[~[int]~];
+                    if (~[String]~.equals(~[Cookie]~.getName())) {
+                        if (~[Cookie]~.getValue()
+                                .equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                            ~[boolean]~ = true;
                         }
                     }
                 }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                        if (ValueTypeStart@Cookie@ValueTypeEnd.getValue()
-                                .equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                            ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[String]~.equals(~[Cookie]~.getName())) {
+                        if (~[Cookie]~.getValue()
+                                .equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                            ~[boolean]~ = true;
                         }
                     }
 ---------
-if (ValueTypeStart@Cookie@ValueTypeEnd.getValue()
-                                .equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                            ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[Cookie]~.getValue()
+                                .equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                            ~[boolean]~ = true;
                         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd == null) ValueTypeStart@String@ValueTypeEnd = "";
+if (~[String]~ == null) ~[String]~ = "";
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.substring(0, ValueTypeStart@String@ValueTypeEnd.length() - 1);
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            ~[String]~ = ~[String]~.substring(0, ~[String]~.length() - 1);
         }
 ---------
-if (ValueTypeStart@Object@ValueTypeEnd instanceof String) ValueTypeStart@byte[]@ValueTypeEnd = ((String) ValueTypeStart@Object@ValueTypeEnd).getBytes();
+if (~[Object]~ instanceof String) ~[byte[]]~ = ((String) ~[Object]~).getBytes();
 ---------
-if (ValueTypeStart@Object@ValueTypeEnd instanceof java.io.InputStream) {
+if (~[Object]~ instanceof java.io.InputStream) {
                 byte[] strInput = new byte[1000];
-                int i = ((java.io.InputStream) ValueTypeStart@Object@ValueTypeEnd).read(ValueTypeStart@byte[]@ValueTypeEnd);
-                if (ValueTypeStart@int@ValueTypeEnd == -1) {
-                    ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+                int i = ((java.io.InputStream) ~[Object]~).read(~[byte[]]~);
+                if (~[int]~ == -1) {
+                    ~[HttpServletResponse]~.getWriter()
                             .println(
                                     "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
                     return;
                 }
-                ValueTypeStart@byte[]@ValueTypeEnd = ref.text.util.Arrays.copyOf(ValueTypeStart@byte[]@ValueTypeEnd, ValueTypeStart@int@ValueTypeEnd);
+                ~[byte[]]~ = ref.text.util.Arrays.copyOf(~[byte[]]~, ~[int]~);
             }
 ---------
-if (ValueTypeStart@int@ValueTypeEnd == -1) {
-                    ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+if (~[int]~ == -1) {
+                    ~[HttpServletResponse]~.getWriter()
                             .println(
                                     "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
                     return;
                 }
 ---------
-switch (ValueTypeStart@char@ValueTypeEnd) {
+switch (~[char]~) {
             case 'A':
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                ~[String]~ = ~[String]~;
                 break;
             case 'B':
-                ValueTypeStart@String@ValueTypeEnd = "bob";
+                ~[String]~ = "bob";
                 break;
             case 'C':
             case 'D':
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                ~[String]~ = ~[String]~;
                 break;
             default:
-                ValueTypeStart@String@ValueTypeEnd = "bob's your uncle";
+                ~[String]~ = "bob's your uncle";
                 break;
         }
 ---------
-if (ValueTypeStart@File@ValueTypeEnd.exists()) {
-            ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println(" And file already exists.");
+if (~[File]~.exists()) {
+            ~[HttpServletResponse]~.getWriter().println(" And file already exists.");
         } else {
-            ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println(" But file doesn't exist yet.");
+            ~[HttpServletResponse]~.getWriter().println(" But file doesn't exist yet.");
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
-                ValueTypeStart@String@ValueTypeEnd =
+if (~[String]~ != null) {
+                ~[String]~ =
                         new String(
                                 ref.text.apache.commons.codec.binary.Base64.decodeBase64(
                                         ref.text.apache.commons.codec.binary.Base64.encodeBase64(
-                                                ValueTypeStart@String@ValueTypeEnd.getBytes())));
+                                                ~[String]~.getBytes())));
             }
 ---------
-while (ValueTypeStart@NamingEnumeration<SearchResult>@ValueTypeEnd.hasMore()) {
+while (~[NamingEnumeration<SearchResult>]~.hasMore()) {
                 javax.naming.directory.SearchResult sr =
-                        (javax.naming.directory.SearchResult) ValueTypeStart@NamingEnumeration<SearchResult>@ValueTypeEnd.next();
-                javax.naming.directory.Attributes attrs = ValueTypeStart@SearchResult@ValueTypeEnd.getAttributes();
+                        (javax.naming.directory.SearchResult) ~[NamingEnumeration<SearchResult>]~.next();
+                javax.naming.directory.Attributes attrs = ~[SearchResult]~.getAttributes();
 
-                javax.naming.directory.Attribute attr = ValueTypeStart@Attributes@ValueTypeEnd.get("uid");
-                javax.naming.directory.Attribute attr2 = ValueTypeStart@Attributes@ValueTypeEnd.get("street");
-                if (ValueTypeStart@Attribute@ValueTypeEnd != null) {
-                    ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+                javax.naming.directory.Attribute attr = ~[Attributes]~.get("uid");
+                javax.naming.directory.Attribute attr2 = ~[Attributes]~.get("street");
+                if (~[Attribute]~ != null) {
+                    ~[HttpServletResponse]~.getWriter()
                             .println(
                                     "LDAP query results:<br>"
                                             + "Record found with name "
-                                            + ValueTypeStart@Attribute@ValueTypeEnd.get()
+                                            + ~[Attribute]~.get()
                                             + "<br>"
                                             + "Address: "
-                                            + ValueTypeStart@Attribute@ValueTypeEnd.get()
+                                            + ~[Attribute]~.get()
                                             + "<br>");
                     // System.out.println("record found " + attr.get());
-                    ValueTypeStart@boolean@ValueTypeEnd = true;
+                    ~[boolean]~ = true;
                 }
             }
 ---------
-if (!ValueTypeStart@boolean@ValueTypeEnd) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+if (!~[boolean]~) {
+                ~[HttpServletResponse]~.getWriter()
                         .println(
                                 "LDAP query results: nothing found for query: "
-                                        + ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(ValueTypeStart@String@ValueTypeEnd));
+                                        + ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(~[String]~));
             }
 ---------
-if (ValueTypeStart@Attribute@ValueTypeEnd != null) {
-                    ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+if (~[Attribute]~ != null) {
+                    ~[HttpServletResponse]~.getWriter()
                             .println(
                                     "LDAP query results:<br>"
                                             + "Record found with name "
-                                            + ValueTypeStart@Attribute@ValueTypeEnd.get()
+                                            + ~[Attribute]~.get()
                                             + "<br>"
                                             + "Address: "
-                                            + ValueTypeStart@Attribute@ValueTypeEnd.get()
+                                            + ~[Attribute]~.get()
                                             + "<br>");
                     // System.out.println("record found " + attr.get());
-                    ValueTypeStart@boolean@ValueTypeEnd = true;
+                    ~[boolean]~ = true;
                 }
 ---------
-switch (ValueTypeStart@char@ValueTypeEnd) {
+switch (~[char]~) {
             case 'A':
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                ~[String]~ = ~[String]~;
                 break;
             case 'B':
-                ValueTypeStart@String@ValueTypeEnd = "bobs_your_uncle";
+                ~[String]~ = "bobs_your_uncle";
                 break;
             case 'C':
             case 'D':
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                ~[String]~ = ~[String]~;
                 break;
             default:
-                ValueTypeStart@String@ValueTypeEnd = "bobs_your_uncle";
+                ~[String]~ = "bobs_your_uncle";
                 break;
         }
 ---------
-if (ValueTypeStart@Cookie[]@ValueTypeEnd != null) {
-            for (int i = 0; !ValueTypeStart@boolean@ValueTypeEnd && ValueTypeStart@int@ValueTypeEnd < ValueTypeStart@Cookie[]@ValueTypeEnd.length; ValueTypeStart@int@ValueTypeEnd++) {
-                javax.servlet.http.Cookie cookie = ValueTypeStart@Cookie[]@ValueTypeEnd[ValueTypeStart@int@ValueTypeEnd];
-                if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                    if (ValueTypeStart@Cookie@ValueTypeEnd.getValue().equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                        ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[Cookie[]]~ != null) {
+            for (int i = 0; !~[boolean]~ && ~[int]~ < ~[Cookie[]]~.length; ~[int]~++) {
+                javax.servlet.http.Cookie cookie = ~[Cookie[]]~[~[int]~];
+                if (~[String]~.equals(~[Cookie]~.getName())) {
+                    if (~[Cookie]~.getValue().equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                        ~[boolean]~ = true;
                     }
                 }
             }
         }
 ---------
-for (int i = 0; !ValueTypeStart@boolean@ValueTypeEnd && ValueTypeStart@int@ValueTypeEnd < ValueTypeStart@Cookie[]@ValueTypeEnd.length; ValueTypeStart@int@ValueTypeEnd++) {
-                javax.servlet.http.Cookie cookie = ValueTypeStart@Cookie[]@ValueTypeEnd[ValueTypeStart@int@ValueTypeEnd];
-                if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                    if (ValueTypeStart@Cookie@ValueTypeEnd.getValue().equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                        ValueTypeStart@boolean@ValueTypeEnd = true;
+for (int i = 0; !~[boolean]~ && ~[int]~ < ~[Cookie[]]~.length; ~[int]~++) {
+                javax.servlet.http.Cookie cookie = ~[Cookie[]]~[~[int]~];
+                if (~[String]~.equals(~[Cookie]~.getName())) {
+                    if (~[Cookie]~.getValue().equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                        ~[boolean]~ = true;
                     }
                 }
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.equals(ValueTypeStart@Cookie@ValueTypeEnd.getName())) {
-                    if (ValueTypeStart@Cookie@ValueTypeEnd.getValue().equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                        ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[String]~.equals(~[Cookie]~.getName())) {
+                    if (~[Cookie]~.getValue().equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                        ~[boolean]~ = true;
                     }
                 }
 ---------
-if (ValueTypeStart@Cookie@ValueTypeEnd.getValue().equals(ValueTypeStart@HttpServletRequest@ValueTypeEnd.getSession().getAttribute(ValueTypeStart@String@ValueTypeEnd))) {
-                        ValueTypeStart@boolean@ValueTypeEnd = true;
+if (~[Cookie]~.getValue().equals(~[HttpServletRequest]~.getSession().getAttribute(~[String]~))) {
+                        ~[boolean]~ = true;
                     }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
-            ValueTypeStart@String@ValueTypeEnd =
+if (~[String]~ != null) {
+            ~[String]~ =
                     new String(
                             ref.text.apache.commons.codec.binary.Base64.decodeBase64(
                                     ref.text.apache.commons.codec.binary.Base64.encodeBase64(
-                                            ValueTypeStart@String@ValueTypeEnd.getBytes())));
+                                            ~[String]~.getBytes())));
         }
 ---------
-for (int i = 0; ValueTypeStart@int@ValueTypeEnd < ValueTypeStart@NodeList@ValueTypeEnd.getLength(); ValueTypeStart@int@ValueTypeEnd++) {
-                org.w3c.dom.Element value = (org.w3c.dom.Element) ValueTypeStart@NodeList@ValueTypeEnd.item(ValueTypeStart@int@ValueTypeEnd);
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println(ValueTypeStart@Element@ValueTypeEnd.getTextContent() + "<br/>");
+for (int i = 0; ~[int]~ < ~[NodeList]~.getLength(); ~[int]~++) {
+                org.w3c.dom.Element value = (org.w3c.dom.Element) ~[NodeList]~.item(~[int]~);
+                ~[HttpServletResponse]~.getWriter().println(~[Element]~.getTextContent() + "<br/>");
             }
 ---------
-switch (ValueTypeStart@char@ValueTypeEnd) {
+switch (~[char]~) {
                 case 'A':
-                    ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                    ~[String]~ = ~[String]~;
                     break;
                 case 'B':
-                    ValueTypeStart@String@ValueTypeEnd = "bobs_your_uncle";
+                    ~[String]~ = "bobs_your_uncle";
                     break;
                 case 'C':
                 case 'D':
-                    ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                    ~[String]~ = ~[String]~;
                     break;
                 default:
-                    ValueTypeStart@String@ValueTypeEnd = "bobs_your_uncle";
+                    ~[String]~ = "bobs_your_uncle";
                     break;
             }
 ---------
-if (ValueTypeStart@String[]@ValueTypeEnd != null && ValueTypeStart@String[]@ValueTypeEnd.length > 0) ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String[]@ValueTypeEnd[0];
-        else ValueTypeStart@String@ValueTypeEnd = "";
+if (~[String[]]~ != null && ~[String[]]~.length > 0) ~[String]~ = ~[String[]]~[0];
+        else ~[String]~ = "";
 ---------
-if ((7 * 42) - ValueTypeStart@int@ValueTypeEnd > 200) ValueTypeStart@String@ValueTypeEnd = "This_should_always_happen";
-            else ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+if ((7 * 42) - ~[int]~ > 200) ~[String]~ = "This_should_always_happen";
+            else ~[String]~ = ~[String]~;
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) ValueTypeStart@int@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.indexOf(ValueTypeStart@String@ValueTypeEnd);
+if (~[String]~ != null) ~[int]~ = ~[String]~.indexOf(~[String]~);
 ---------
-if (ValueTypeStart@int@ValueTypeEnd != -1) {
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.substring(ValueTypeStart@int@ValueTypeEnd + ValueTypeStart@String@ValueTypeEnd.length(), ValueTypeStart@int@ValueTypeEnd);
+if (~[int]~ != -1) {
+            ~[String]~ = ~[String]~.substring(~[int]~ + ~[String]~.length(), ~[int]~);
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.indexOf("Windows") != -1) {
-            ValueTypeStart@String@ValueTypeEnd = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("echo");
+if (~[String]~.indexOf("Windows") != -1) {
+            ~[String]~ = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("echo");
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.indexOf("Windows") != -1) {
-            ValueTypeStart@String@ValueTypeEnd = "cmd.exe";
-            ValueTypeStart@String@ValueTypeEnd = "/c";
-            ValueTypeStart@String@ValueTypeEnd = "echo ";
-            ValueTypeStart@String[]@ValueTypeEnd = new String[] {ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd};
+if (~[String]~.indexOf("Windows") != -1) {
+            ~[String]~ = "cmd.exe";
+            ~[String]~ = "/c";
+            ~[String]~ = "echo ";
+            ~[String[]]~ = new String[] {~[String]~, ~[String]~, ~[String]~, ~[String]~};
         } else {
-            ValueTypeStart@String@ValueTypeEnd = "sh";
-            ValueTypeStart@String@ValueTypeEnd = "-c";
-            ValueTypeStart@String@ValueTypeEnd = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("ls ");
-            ValueTypeStart@String[]@ValueTypeEnd = new String[] {ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd + ValueTypeStart@String@ValueTypeEnd};
+            ~[String]~ = "sh";
+            ~[String]~ = "-c";
+            ~[String]~ = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("ls ");
+            ~[String[]]~ = new String[] {~[String]~, ~[String]~, ~[String]~ + ~[String]~};
         }
 ---------
-if ((500 / 42) + ValueTypeStart@int@ValueTypeEnd > 200) ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
-        else ValueTypeStart@String@ValueTypeEnd = "This should never happen";
+if ((500 / 42) + ~[int]~ > 200) ~[String]~ = ~[String]~;
+        else ~[String]~ = "This should never happen";
 ---------
-while (ValueTypeStart@Enumeration<String>@ValueTypeEnd.hasMoreElements()) {
-            String name = (String) ValueTypeStart@Enumeration<String>@ValueTypeEnd.nextElement();
+while (~[Enumeration<String>]~.hasMoreElements()) {
+            String name = (String) ~[Enumeration<String>]~.nextElement();
 
-            if (ref.text.owasp.benchmark.helpers.Utils.commonHeaders.contains(ValueTypeStart@String@ValueTypeEnd)) {
+            if (ref.text.owasp.benchmark.helpers.Utils.commonHeaders.contains(~[String]~)) {
                 continue; // If standard header, move on to next one
             }
 
-            java.util.Enumeration<String> values = ValueTypeStart@HttpServletRequest@ValueTypeEnd.getHeaders(ValueTypeStart@String@ValueTypeEnd);
-            if (ValueTypeStart@Enumeration<String>@ValueTypeEnd != null && ValueTypeStart@Enumeration<String>@ValueTypeEnd.hasMoreElements()) {
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd; // Grabs the name of the first non-standard header as the parameter
+            java.util.Enumeration<String> values = ~[HttpServletRequest]~.getHeaders(~[String]~);
+            if (~[Enumeration<String>]~ != null && ~[Enumeration<String>]~.hasMoreElements()) {
+                ~[String]~ = ~[String]~; // Grabs the name of the first non-standard header as the parameter
                 // value
                 break;
             }
         }
 ---------
-if (ref.text.owasp.benchmark.helpers.Utils.commonHeaders.contains(ValueTypeStart@String@ValueTypeEnd)) {
+if (ref.text.owasp.benchmark.helpers.Utils.commonHeaders.contains(~[String]~)) {
                 continue; // If standard header, move on to next one
             }
 ---------
-if (ValueTypeStart@Enumeration<String>@ValueTypeEnd != null && ValueTypeStart@Enumeration<String>@ValueTypeEnd.hasMoreElements()) {
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd; // Grabs the name of the first non-standard header as the parameter
+if (~[Enumeration<String>]~ != null && ~[Enumeration<String>]~.hasMoreElements()) {
+                ~[String]~ = ~[String]~; // Grabs the name of the first non-standard header as the parameter
                 // value
                 break;
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz84406 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz84406 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.substring(0, ValueTypeStart@String@ValueTypeEnd.length() - 1);
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                ~[String]~ = ~[String]~.substring(0, ~[String]~.length() - 1);
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
+if (~[String]~ != null) {
             java.util.List<String> valuesList = new java.util.ArrayList<String>();
-            ValueTypeStart@List<String>@ValueTypeEnd.add("safe");
-            ValueTypeStart@List<String>@ValueTypeEnd.add(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@List<String>@ValueTypeEnd.add("moresafe");
+            ~[List<String>]~.add("safe");
+            ~[List<String>]~.add(~[String]~);
+            ~[List<String>]~.add("moresafe");
 
-            ValueTypeStart@List<String>@ValueTypeEnd.remove(0); // remove the 1st safe value
+            ~[List<String>]~.remove(0); // remove the 1st safe value
 
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@List<String>@ValueTypeEnd.get(1); // get the last 'safe' value
+            ~[String]~ = ~[List<String>]~.get(1); // get the last 'safe' value
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
+if (~[String]~ != null) {
             java.util.List<String> valuesList = new java.util.ArrayList<String>();
-            ValueTypeStart@List<String>@ValueTypeEnd.add("safe");
-            ValueTypeStart@List<String>@ValueTypeEnd.add(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@List<String>@ValueTypeEnd.add("moresafe");
+            ~[List<String>]~.add("safe");
+            ~[List<String>]~.add(~[String]~);
+            ~[List<String>]~.add("moresafe");
 
-            ValueTypeStart@List<String>@ValueTypeEnd.remove(0); // remove the 1st safe value
+            ~[List<String>]~.remove(0); // remove the 1st safe value
 
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@List<String>@ValueTypeEnd.get(0); // get the param value
+            ~[String]~ = ~[List<String>]~.get(0); // get the param value
         }
 ---------
-for (Object o : ValueTypeStart@List<Map<String, Object>>@ValueTypeEnd) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+for (Object o : ~[List<Map<String, Object>>]~) {
+                ~[HttpServletResponse]~.getWriter()
                         .println(
-                                ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(ValueTypeStart@Object@ValueTypeEnd.toString())
+                                ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(~[Object]~.toString())
                                         + "<br>");
                 //			System.out.println(o.toString());
             }
 ---------
 if (ref.text.owasp.benchmark.helpers.DatabaseHelper.hideSQLErrors) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println("Error processing request.");
+                ~[HttpServletResponse]~.getWriter().println("Error processing request.");
                 return;
-            } else throw new ServletException(ValueTypeStart@DataAccessException@ValueTypeEnd);
+            } else throw new ServletException(~[DataAccessException]~);
 ---------
-if ((7 * 42) - ValueTypeStart@int@ValueTypeEnd > 200) ValueTypeStart@String@ValueTypeEnd = "This_should_always_happen";
-        else ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+if ((7 * 42) - ~[int]~ > 200) ~[String]~ = "This_should_always_happen";
+        else ~[String]~ = ~[String]~;
 ---------
 if (ref.text.owasp.benchmark.helpers.DatabaseHelper.hideSQLErrors) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println("Error processing request.");
-            } else throw new ServletException(ValueTypeStart@DataAccessException@ValueTypeEnd);
+                ~[HttpServletResponse]~.getWriter().println("Error processing request.");
+            } else throw new ServletException(~[DataAccessException]~);
 ---------
 if (ref.text.owasp.benchmark.helpers.DatabaseHelper.hideSQLErrors) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println("Error processing request.");
+                ~[HttpServletResponse]~.getWriter().println("Error processing request.");
                 return;
-            } else throw new ServletException(ValueTypeStart@SQLException@ValueTypeEnd);
+            } else throw new ServletException(~[SQLException]~);
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.indexOf("Windows") != -1) {
-            ValueTypeStart@List<String>@ValueTypeEnd.add("cmd.exe");
-            ValueTypeStart@List<String>@ValueTypeEnd.add("/c");
+if (~[String]~.indexOf("Windows") != -1) {
+            ~[List<String>]~.add("cmd.exe");
+            ~[List<String>]~.add("/c");
         } else {
-            ValueTypeStart@List<String>@ValueTypeEnd.add("sh");
-            ValueTypeStart@List<String>@ValueTypeEnd.add("-c");
+            ~[List<String>]~.add("sh");
+            ~[List<String>]~.add("-c");
         }
 ---------
-if (ValueTypeStart@Object@ValueTypeEnd instanceof String) ValueTypeStart@String@ValueTypeEnd = ((String) ValueTypeStart@Object@ValueTypeEnd);
+if (~[Object]~ instanceof String) ~[String]~ = ((String) ~[Object]~);
 ---------
-if (ValueTypeStart@Object@ValueTypeEnd instanceof java.io.InputStream) {
-            int i = ((java.io.InputStream) ValueTypeStart@Object@ValueTypeEnd).read(ValueTypeStart@byte[]@ValueTypeEnd);
-            if (ValueTypeStart@int@ValueTypeEnd == -1) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+if (~[Object]~ instanceof java.io.InputStream) {
+            int i = ((java.io.InputStream) ~[Object]~).read(~[byte[]]~);
+            if (~[int]~ == -1) {
+                ~[HttpServletResponse]~.getWriter()
                         .println(
                                 "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
                 return;
             }
-            ValueTypeStart@String@ValueTypeEnd = new String(ValueTypeStart@byte[]@ValueTypeEnd, 0, ValueTypeStart@int@ValueTypeEnd);
+            ~[String]~ = new String(~[byte[]]~, 0, ~[int]~);
         }
 ---------
-if ("".equals(ValueTypeStart@String@ValueTypeEnd)) ValueTypeStart@String@ValueTypeEnd = "No cookie value supplied";
+if ("".equals(~[String]~)) ~[String]~ = "No cookie value supplied";
 ---------
-if (ValueTypeStart@int@ValueTypeEnd == -1) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+if (~[int]~ == -1) {
+                ~[HttpServletResponse]~.getWriter()
                         .println(
                                 "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
                 return;
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
-            ValueTypeStart@int@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.length();
-            ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().write(ValueTypeStart@String@ValueTypeEnd.toCharArray(), 0, ValueTypeStart@int@ValueTypeEnd);
+if (~[String]~ != null) {
+            ~[int]~ = ~[String]~.length();
+            ~[HttpServletResponse]~.getWriter().write(~[String]~.toCharArray(), 0, ~[int]~);
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
+if (~[String]~ != null) {
                 java.util.List<String> valuesList = new java.util.ArrayList<String>();
-                ValueTypeStart@List<String>@ValueTypeEnd.add("safe");
-                ValueTypeStart@List<String>@ValueTypeEnd.add(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@List<String>@ValueTypeEnd.add("moresafe");
+                ~[List<String>]~.add("safe");
+                ~[List<String>]~.add(~[String]~);
+                ~[List<String>]~.add("moresafe");
 
-                ValueTypeStart@List<String>@ValueTypeEnd.remove(0); // remove the 1st safe value
+                ~[List<String>]~.remove(0); // remove the 1st safe value
 
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@List<String>@ValueTypeEnd.get(1); // get the last 'safe' value
+                ~[String]~ = ~[List<String>]~.get(1); // get the last 'safe' value
             }
 ---------
 if (ref.text.getProperty("os.name").indexOf("Windows") != -1)
-            if (ref.text.getProperty("os.name").indexOf("Windows") != -1) ValueTypeStart@String@ValueTypeEnd = "/";
-            else ValueTypeStart@String@ValueTypeEnd = "//";
+            if (ref.text.getProperty("os.name").indexOf("Windows") != -1) ~[String]~ = "/";
+            else ~[String]~ = "//";
 ---------
-if (ref.text.getProperty("os.name").indexOf("Windows") != -1) ValueTypeStart@String@ValueTypeEnd = "/";
-            else ValueTypeStart@String@ValueTypeEnd = "//";
+if (ref.text.getProperty("os.name").indexOf("Windows") != -1) ~[String]~ = "/";
+            else ~[String]~ = "//";
 ---------
-if (ValueTypeStart@File@ValueTypeEnd.exists()) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println(" And file already exists.");
+if (~[File]~.exists()) {
+                ~[HttpServletResponse]~.getWriter().println(" And file already exists.");
             } else {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().println(" But file doesn't exist yet.");
+                ~[HttpServletResponse]~.getWriter().println(" But file doesn't exist yet.");
             }
 ---------
-if (ValueTypeStart@HttpServletRequest@ValueTypeEnd.getHeader("Referer") != null) {
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@HttpServletRequest@ValueTypeEnd.getHeader("Referer");
+if (~[HttpServletRequest]~.getHeader("Referer") != null) {
+            ~[String]~ = ~[HttpServletRequest]~.getHeader("Referer");
         }
 ---------
-if (ValueTypeStart@FileOutputStream@ValueTypeEnd != null) {
+if (~[FileOutputStream]~ != null) {
                 try {
-                    ValueTypeStart@FileOutputStream@ValueTypeEnd.close();
-                    ValueTypeStart@FileOutputStream@ValueTypeEnd = null;
+                    ~[FileOutputStream]~.close();
+                    ~[FileOutputStream]~ = null;
                 } catch (Exception e) {
                     // we tried...
                 }
             }
 ---------
-if (ValueTypeStart@Provider[]@ValueTypeEnd.length > 1) {
+if (~[Provider[]]~.length > 1) {
 
-                ValueTypeStart@MessageDigest@ValueTypeEnd = ref.text.security.MessageDigest.getInstance("sha-384", ValueTypeStart@Provider[]@ValueTypeEnd[0]);
+                ~[MessageDigest]~ = ref.text.security.MessageDigest.getInstance("sha-384", ~[Provider[]]~[0]);
             } else {
-                ValueTypeStart@MessageDigest@ValueTypeEnd = ref.text.security.MessageDigest.getInstance("sha-384", "SUN");
+                ~[MessageDigest]~ = ref.text.security.MessageDigest.getInstance("sha-384", "SUN");
             }
 ---------
-if (ValueTypeStart@FileInputStream@ValueTypeEnd != null) {
+if (~[FileInputStream]~ != null) {
                 try {
-                    ValueTypeStart@FileInputStream@ValueTypeEnd.close();
-                    ValueTypeStart@FileInputStream@ValueTypeEnd = null;
+                    ~[FileInputStream]~.close();
+                    ~[FileInputStream]~ = null;
                 } catch (Exception e) {
                     // we tried...
                 }
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz39213 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz39213 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.split(" ")[0];
+if (~[String]~ != null) ~[String]~ = ~[String]~.split(" ")[0];
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
-            ValueTypeStart@int@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd.length();
-            ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter().write(ValueTypeStart@String@ValueTypeEnd, 0, ValueTypeStart@int@ValueTypeEnd);
+if (~[String]~ != null) {
+            ~[int]~ = ~[String]~.length();
+            ~[HttpServletResponse]~.getWriter().write(~[String]~, 0, ~[int]~);
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null) {
+if (~[String]~ != null) {
                 java.util.List<String> valuesList = new java.util.ArrayList<String>();
-                ValueTypeStart@List<String>@ValueTypeEnd.add("safe");
-                ValueTypeStart@List<String>@ValueTypeEnd.add(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@List<String>@ValueTypeEnd.add("moresafe");
+                ~[List<String>]~.add("safe");
+                ~[List<String>]~.add(~[String]~);
+                ~[List<String>]~.add("moresafe");
 
-                ValueTypeStart@List<String>@ValueTypeEnd.remove(0); // remove the 1st safe value
+                ~[List<String>]~.remove(0); // remove the 1st safe value
 
-                ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@List<String>@ValueTypeEnd.get(0); // get the param value
+                ~[String]~ = ~[List<String>]~.get(0); // get the param value
             }
 ---------
-if ((500 / 42) + ValueTypeStart@int@ValueTypeEnd > 200) ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
-            else ValueTypeStart@String@ValueTypeEnd = "This should never happen";
+if ((500 / 42) + ~[int]~ > 200) ~[String]~ = ~[String]~;
+            else ~[String]~ = "This should never happen";
 ---------
-switch (ValueTypeStart@char@ValueTypeEnd) {
+switch (~[char]~) {
                 case 'A':
-                    ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                    ~[String]~ = ~[String]~;
                     break;
                 case 'B':
-                    ValueTypeStart@String@ValueTypeEnd = "bob";
+                    ~[String]~ = "bob";
                     break;
                 case 'C':
                 case 'D':
-                    ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@String@ValueTypeEnd;
+                    ~[String]~ = ~[String]~;
                     break;
                 default:
-                    ValueTypeStart@String@ValueTypeEnd = "bob's your uncle";
+                    ~[String]~ = "bob's your uncle";
                     break;
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz28389 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz28389 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz47470 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz47470 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.indexOf("Windows") != -1) {
-            ValueTypeStart@String@ValueTypeEnd = "cmd.exe";
-            ValueTypeStart@String@ValueTypeEnd = "/c";
-            ValueTypeStart@String@ValueTypeEnd = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("echo");
-            ValueTypeStart@String[]@ValueTypeEnd = new String[] {ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd};
+if (~[String]~.indexOf("Windows") != -1) {
+            ~[String]~ = "cmd.exe";
+            ~[String]~ = "/c";
+            ~[String]~ = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("echo");
+            ~[String[]]~ = new String[] {~[String]~, ~[String]~, ~[String]~, ~[String]~};
         } else {
-            ValueTypeStart@String@ValueTypeEnd = "sh";
-            ValueTypeStart@String@ValueTypeEnd = "-c";
-            ValueTypeStart@String@ValueTypeEnd = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("ping -c1 ");
-            ValueTypeStart@String[]@ValueTypeEnd = new String[] {ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd, ValueTypeStart@String@ValueTypeEnd + ValueTypeStart@String@ValueTypeEnd};
+            ~[String]~ = "sh";
+            ~[String]~ = "-c";
+            ~[String]~ = ref.text.owasp.benchmark.helpers.Utils.getOSCommandString("ping -c1 ");
+            ~[String[]]~ = new String[] {~[String]~, ~[String]~, ~[String]~ + ~[String]~};
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz69250 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz69250 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd.indexOf("Windows") != -1) {
-            ValueTypeStart@String@ValueTypeEnd = "cmd.exe";
-            ValueTypeStart@String@ValueTypeEnd = "/c";
+if (~[String]~.indexOf("Windows") != -1) {
+            ~[String]~ = "cmd.exe";
+            ~[String]~ = "/c";
         } else {
-            ValueTypeStart@String@ValueTypeEnd = "sh";
-            ValueTypeStart@String@ValueTypeEnd = "-c";
+            ~[String]~ = "sh";
+            ~[String]~ = "-c";
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz82472 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz82472 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz57216 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz57216 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz12198 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz12198 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@Provider[]@ValueTypeEnd.length > 1) {
+if (~[Provider[]]~.length > 1) {
 
-                ValueTypeStart@MessageDigest@ValueTypeEnd = ref.text.security.MessageDigest.getInstance("SHA1", ValueTypeStart@Provider[]@ValueTypeEnd[0]);
+                ~[MessageDigest]~ = ref.text.security.MessageDigest.getInstance("SHA1", ~[Provider[]]~[0]);
             } else {
-                ValueTypeStart@MessageDigest@ValueTypeEnd = ref.text.security.MessageDigest.getInstance("SHA1", "SUN");
+                ~[MessageDigest]~ = ref.text.security.MessageDigest.getInstance("SHA1", "SUN");
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz28240 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz28240 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz18866 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz18866 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz57919 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz57919 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-while (ValueTypeStart@SqlRowSet@ValueTypeEnd.next()) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
+while (~[SqlRowSet]~.next()) {
+                ~[HttpServletResponse]~.getWriter()
                         .println(
                                 ref.text.owasp
                                                 .esapi
                                                 .ESAPI
                                                 .encoder()
-                                                .encodeForHTML(ValueTypeStart@SqlRowSet@ValueTypeEnd.getString("USERNAME"))
+                                                .encodeForHTML(~[SqlRowSet]~.getString("USERNAME"))
                                         + " ");
                 //			System.out.println(results.getString("USERNAME"));
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz2940 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz2940 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@InputStream@ValueTypeEnd != null) {
+if (~[InputStream]~ != null) {
                 try {
-                    ValueTypeStart@InputStream@ValueTypeEnd.close();
-                    ValueTypeStart@InputStream@ValueTypeEnd = null;
+                    ~[InputStream]~.close();
+                    ~[InputStream]~ = null;
                 } catch (Exception e) {
                     // we tried...
                 }
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz98255 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz98255 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz97281 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz97281 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz85369 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz85369 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz68995 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz68995 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-for (String s : ValueTypeStart@List<String>@ValueTypeEnd) {
-                ValueTypeStart@HttpServletResponse@ValueTypeEnd.getWriter()
-                        .println(ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(ValueTypeStart@String@ValueTypeEnd) + "<br>");
+for (String s : ~[List<String>]~) {
+                ~[HttpServletResponse]~.getWriter()
+                        .println(ref.text.owasp.esapi.ESAPI.encoder().encodeForHTML(~[String]~) + "<br>");
             }
 ---------
 if (ref.text.owasp.benchmark.helpers.DatabaseHelper
                                                 .hideSQLErrors) {
                                             return "Error processing query.";
-                                        } else throw ValueTypeStart@SQLException@ValueTypeEnd;
+                                        } else throw ~[SQLException]~;
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz33222 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz33222 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz19350 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz19350 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz15757 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz15757 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz90224 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz90224 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz18041 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz18041 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz10228 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz10228 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz41549 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz41549 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz92030 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz92030 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz52473 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz52473 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz25489 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz25489 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz83647 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz83647 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz42950 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz42950 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz58438 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz58438 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz52014 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz52014 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz76583 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz76583 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz3774 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz3774 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz90035 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz90035 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz57216 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz57216 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz42704 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz42704 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz40853 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz40853 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz38384 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz38384 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz40917 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz40917 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz71288 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz71288 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz43804 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz43804 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz61588 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz61588 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz67327 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz67327 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz18731 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz18731 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz9692 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz9692 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz37461 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz37461 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz65591 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz65591 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz14220 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz14220 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz84277 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz84277 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz11630 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz11630 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz67457 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz67457 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz71523 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz71523 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz77085 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz77085 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz33448 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz33448 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz47256 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz47256 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz52006 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz52006 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz6576 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz6576 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz14623 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz14623 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-            StringBuilder sbxyz51189 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-            ValueTypeStart@String@ValueTypeEnd = ValueTypeStart@StringBuilder@ValueTypeEnd.replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z").toString();
+if (~[String]~ != null && ~[String]~.length() > 1) {
+            StringBuilder sbxyz51189 = new StringBuilder(~[String]~);
+            ~[String]~ = ~[StringBuilder]~.replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z").toString();
         }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz82048 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz82048 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }
 ---------
-if (ValueTypeStart@String@ValueTypeEnd != null && ValueTypeStart@String@ValueTypeEnd.length() > 1) {
-                StringBuilder sbxyz50709 = new StringBuilder(ValueTypeStart@String@ValueTypeEnd);
-                ValueTypeStart@String@ValueTypeEnd =
-                        ValueTypeStart@StringBuilder@ValueTypeEnd
-                                .replace(ValueTypeStart@String@ValueTypeEnd.length() - "Z".length(), ValueTypeStart@String@ValueTypeEnd.length(), "Z")
+if (~[String]~ != null && ~[String]~.length() > 1) {
+                StringBuilder sbxyz50709 = new StringBuilder(~[String]~);
+                ~[String]~ =
+                        ~[StringBuilder]~
+                                .replace(~[String]~.length() - "Z".length(), ~[String]~.length(), "Z")
                                 .toString();
             }

@@ -23,6 +23,10 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Iterator;
+import org.owasp.benchmark.helpers.Client;
+import org.owasp.benchmark.helpers.Service;
+import org.owasp.benchmark.helpers.ServiceImpl;
 
 @WebServlet(value = "/crypto-00/BenchmarkTest00005")
 public class BenchmarkTest000050 extends HttpServlet {
@@ -58,8 +62,22 @@ public class BenchmarkTest000050 extends HttpServlet {
         //		};
         java.security.SecureRandom random = new java.security.SecureRandom();
         byte[] iv = random.generateSeed(8); // DES requires 8 byte keys
-
-        try {
+for (int i = 0; i < 10; i++) {
+   		 if (i == 5) {
+       		 break;
+   		 }
+Client cl = new Client(new Service() {
+	@Override
+	public String mutateString(String str) {
+    		return str;
+	}
+});
+param = cl.mutate(request.getContextPath());
+if (i > 5) {
+       		 param = "";
+   		 }
+   	 }
+try {
             javax.crypto.Cipher c = javax.crypto.Cipher.getInstance("DES/CBC/PKCS5Padding");
 
             // Prepare the cipher to encrypt
@@ -69,18 +87,20 @@ public class BenchmarkTest000050 extends HttpServlet {
             c.init(javax.crypto.Cipher.ENCRYPT_MODE, key, paramSpec);
 
             // encrypt and store the results
-            byte[] input = {(byte) '?'};
+Iterator<Character> iterator = param.chars().mapToObj(c_generated -> (char) c_generated).iterator();
+while (iterator.hasNext()) {
+    char character = iterator.next();
+    if (character == '1') {
+        iterator.remove();
+    }
+}
+byte[] input = {(byte) '?'};
             Object inputParam = param;
             if (inputParam instanceof String) input = ((String) inputParam).getBytes();
             if (inputParam instanceof java.io.InputStream) {
                 byte[] strInput = new byte[1000];
                 int i = ((java.io.InputStream) inputParam).read(strInput);
-
-if (param == null) {
-         param = "Default";
-      }
-
-if (i == -1) {
+                if (i == -1) {
                     response.getWriter()
                             .println(
                                     "This input source requires a POST, not a GET. Incompatible UI for the InputStream source.");
