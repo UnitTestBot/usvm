@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import io.ksmt.sort.KSort
 import io.ksmt.utils.asExpr
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaAssignInst
@@ -10,26 +9,32 @@ import org.jacodb.panda.dynamic.api.PandaInst
 import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaLocalVar
 import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaRefType
 import org.jacodb.panda.dynamic.api.PandaReturnInst
 import org.jacodb.panda.dynamic.api.PandaThis
 import org.jacodb.panda.dynamic.api.PandaThrowInst
 import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.state.PandaMethodResult
 import org.usvm.machine.state.PandaState
 import org.usvm.machine.state.lastStmt
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.first
 
 typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaContext>
 
 @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
+    private val specializer: PandaStatementSpecializer = PandaStatementSpecializer()
 
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
 
@@ -42,13 +47,13 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             TODO()
         }
 
-        when (stmt) {
-            is PandaIfInst -> visitIfStmt(scope, stmt)
-            is PandaReturnInst -> visitReturnStmt(scope, stmt)
-            is PandaAssignInst -> visitAssignInst(scope, stmt)
-            is PandaCallInst -> visitCallStmt(scope, stmt)
-            is PandaThrowInst -> visitThrowStmt(scope, stmt)
-            else -> error("Unknown stmt: $stmt")
+        when (val updatedStmt = specializer.specialize(scope, stmt)) {
+            is PandaIfInst -> visitIfStmt(scope, updatedStmt)
+            is PandaReturnInst -> visitReturnStmt(scope, updatedStmt)
+            is PandaAssignInst -> visitAssignInst(scope, updatedStmt)
+            is PandaCallInst -> visitCallStmt(scope, updatedStmt)
+            is PandaThrowInst -> visitThrowStmt(scope, updatedStmt)
+            else -> error("Unknown stmt: $updatedStmt")
         }
 
         return scope.stepResult()
@@ -69,7 +74,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val boolExpr = exprResolver
             .resolvePandaExpr(stmt.condition)?.uExpr
@@ -89,7 +94,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         // TODO process the type
@@ -98,6 +103,19 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             ?: error("TODO")
 
         scope.doWithState {
+            @Suppress("UNCHECKED_CAST")
+            if (valueToReturn is UConcreteHeapRef) {
+                val type = memory.typeStreamOf(valueToReturn as UHeapRef).first()
+
+                if (type !is PandaRefType) {
+                    val sort = ctx.typeToSort(type)
+                    val lvalue = ctx.constructAuxiliaryFieldLValue(valueToReturn, sort)
+                    val realReturnValue = memory.read(lvalue)
+
+                    returnValue(realReturnValue)
+                    return@doWithState
+                }
+            }
             returnValue(valueToReturn)
         }
     }
@@ -119,17 +137,27 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, ::saveSortInfo, ::extractSortInfo)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val expr = exprResolver.resolvePandaExpr(stmt.rhv)?.uExpr ?: return
+        val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
 
-        (stmt.lhv as? PandaLocalVar)?.let {
-            if (expr.sort != ctx.anySort) {
-                saveSortInfo(it, scope.calcOnState { lastEnteredMethod }, expr.sort)
+        if (expr.sort != ctx.addressSort) {
+            val auxiliaryExpr = scope.calcOnState {
+                val type = ctx.nonRefSortToType(expr.sort)
+                memory.allocConcrete(type)
             }
-        }
+            scope.doWithState {
+                val nextStmt = stmt.nextStmt
+                val fieldLValue = ctx.constructAuxiliaryFieldLValue(auxiliaryExpr, expr.sort)
 
-        val lValue = exprResolver.resolveLValue(stmt.lhv, alternativeSortInfo = expr.sort) ?: return
+                memory.write(fieldLValue, expr)
+                memory.write(lValue, auxiliaryExpr)
+
+                newStmt(nextStmt)
+            }
+            return
+        }
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt
@@ -150,9 +178,6 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     // (method, localIdx) -> idx
     private val localVarToIdx = mutableMapOf<PandaMethod, MutableMap<Int, Int>>()
 
-    // (method, localIdx) -> Sort
-    private val additionalLocalVarSortInfo = mutableMapOf<PandaMethod, MutableMap<Int, KSort>>()
-
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: PandaMethod, local: PandaLocal) =
         when (local) {
@@ -167,23 +192,6 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             is PandaArgument -> local.index // TODO static????
             else -> error("Unexpected local: $local")
         }
-
-    private fun saveSortInfo(pandaLocalVar: PandaLocalVar, method: PandaMethod, sort: USort) {
-        additionalLocalVarSortInfo
-            .getOrPut(method) { mutableMapOf() }
-            .run {
-                require(pandaLocalVar.index !in this.keys) { "TODO" }
-                put(pandaLocalVar.index, sort)
-            }
-    }
-
-    private fun extractSortInfo(pandaLocalVar: PandaLocalVar, method: PandaMethod) =
-        additionalLocalVarSortInfo
-            .getOrPut(method) { mutableMapOf() }
-            .run {
-                getOrPut(pandaLocalVar.index) { ctx.typeToSort(pandaLocalVar.type) }
-            }
-
 
     private val PandaInst.nextStmt get() = location.let { it.method.instructions[it.index + 1] }
 }

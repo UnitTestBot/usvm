@@ -67,8 +67,8 @@ open class PandaMethodTestRunner
 
             PandaMachine(project, options).use {
                 val states = it.analyze(listOf(method))
-                states.map {
-                    println(it)
+                states.map { state ->
+                    println(state.methodResult)
                     PandaExecutionResult() // TODO transform
                 }
             }

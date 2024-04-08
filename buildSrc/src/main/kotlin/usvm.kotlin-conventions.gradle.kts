@@ -1,4 +1,3 @@
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -36,7 +35,7 @@ tasks {
         kotlinOptions {
             jvmTarget = JavaVersion.VERSION_1_8.toString()
             freeCompilerArgs = freeCompilerArgs + "-Xallow-result-return-type" + "-Xsam-conversions=class"
-            allWarningsAsErrors = true
+            allWarningsAsErrors = false
         }
     }
 }

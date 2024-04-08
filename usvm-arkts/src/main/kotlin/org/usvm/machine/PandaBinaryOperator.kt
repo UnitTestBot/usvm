@@ -1,6 +1,11 @@
 package org.usvm.machine
 
 import io.ksmt.utils.cast
+import org.usvm.UBoolSort
+import org.usvm.UBvSort
+import org.usvm.UExpr
+import org.usvm.UFpSort
+import org.usvm.USort
 import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.usvm.*
 
@@ -10,6 +15,7 @@ sealed class PandaBinaryOperator(
     val onFp: PandaContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = { _, _ -> error("TODO") },
 ) {
     object Add : PandaBinaryOperator(
+        onBool = TODO(),
         onBv = PandaContext::mkBvAddExpr,
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
