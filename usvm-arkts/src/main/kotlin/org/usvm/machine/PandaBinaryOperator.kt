@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import io.ksmt.utils.cast
+import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.usvm.*
 
 sealed class PandaBinaryOperator(
@@ -45,21 +46,44 @@ sealed class PandaBinaryOperator(
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
     )
 
-    internal open operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
-        val lhsSort = lhs.sort
-        val rhsSort = rhs.sort
+    internal open operator fun invoke(lhs: PandaUExprWrapper, rhs: PandaUExprWrapper): UExpr<out USort> {
+        val lhsUExpr = lhs.uExpr
+        var rhsUExpr = rhs.uExpr
+        if (lhsUExpr.sort != rhsUExpr.sort) {
+            rhsUExpr = rhs.withSort(lhsUExpr.ctx as PandaContext, lhsUExpr.sort).uExpr
+        }
+
+        val lhsSort = lhsUExpr.sort
+        val rhsSort = rhsUExpr.sort
 
         return when {
-            // TODO: JS automatic typecasts to consider (they can do ANYTHING!)
-//            lhsSort != rhsSort -> error("Expressions sorts mismatch: $lhsSort, $rhsSort")
 
-            lhsSort is UBoolSort -> lhs.pctx.onBool(lhs.cast(), rhs.cast())
+            lhsSort is UBoolSort -> lhsUExpr.pctx.onBool(lhsUExpr.cast(), rhsUExpr.cast())
 
-            lhsSort is UBvSort -> lhs.pctx.onBv(lhs.cast(), rhs.cast())
+            lhsSort is UBvSort -> lhsUExpr.pctx.onBv(lhsUExpr.cast(), rhsUExpr.cast())
 
-            lhsSort is UFpSort -> lhs.pctx.onFp(lhs.cast(), rhs.cast())
+            lhsSort is UFpSort -> lhsUExpr.pctx.onFp(lhsUExpr.cast(), rhsUExpr.cast())
 
             else -> error("Unexpected sorts: $lhsSort, $rhsSort")
         }
+
     }
+}
+
+fun PandaUExprWrapper.withSort(ctx: PandaContext, sort: USort): PandaUExprWrapper {
+    val newUExpr = when(from) {
+        is PandaNumberConstant -> from.withSort(ctx, sort, uExpr)
+        else -> uExpr
+    }
+
+    return PandaUExprWrapper(from, newUExpr)
+}
+
+fun PandaNumberConstant.withSort(
+    ctx: PandaContext,
+    sort: USort,
+    default: UExpr<out USort>
+): UExpr<out USort> = when(sort) {
+    is PandaBoolSort -> ctx.mkBool(value == 1)
+    else -> default
 }
