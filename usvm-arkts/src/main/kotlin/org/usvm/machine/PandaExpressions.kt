@@ -4,12 +4,19 @@ import io.ksmt.KAst
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.sort.KSortVisitor
+import org.jacodb.panda.dynamic.api.PandaExpr
+import org.usvm.UExpr
 import org.usvm.USort
 
 typealias PandaNumberSort = KFp64Sort
 typealias PandaBoolSort = KBoolSort
 
 val KAst.pctx get() = ctx as PandaContext
+
+data class PandaUExprWrapper(
+    val from: PandaExpr,
+    val uExpr: UExpr<out USort>
+)
 
 class PandaAnySort(ctx: PandaContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
