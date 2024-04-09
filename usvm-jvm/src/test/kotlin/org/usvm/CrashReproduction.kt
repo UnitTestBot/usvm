@@ -70,7 +70,7 @@ val crashPackPath = Path("D:") / "JCrashPack"
 fun main() {
     val crashPack = Json.decodeFromStream<CrashPack>((crashPackPath / "jcrashpack.json").inputStream())
 
-    for (crash in crashPack.crashes.values.sortedBy { it.id }.take(1)) {
+    for (crash in crashPack.crashes.values.sortedBy { it.id }) {
         analyzeCrash(crash)
     }
 }
@@ -209,10 +209,9 @@ private class CrashReproductionAnalysis(
     }
 
     private fun propagateLocationTarget(state: JcState) {
-        val parent = state.pathLocation.parent ?: error("This is impossible by construction")
         val targets = state.targets
             .filterIsInstance<CrashReproductionLocationTarget>()
-            .filter { it.location == parent.statement }
+            .filter { it.location == state.currentStatement }
 
         targets.forEach { it.propagate(state) }
 
@@ -226,16 +225,18 @@ private class CrashReproductionAnalysis(
                 it.propagate(state)
             }
         }
+
+        logger.debug { state.targets.toList() }
     }
 }
 
 private fun reproduceCrash(cp: JcClasspath, targets: List<CrashReproductionTarget>) {
     val options = UMachineOptions(
-        targetSearchDepth = 10u,
+        targetSearchDepth = 2u, // high values (e.g. 10) significantly degrade performance
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED_RANDOM),
         stopOnTargetsReached = true,
         stopOnCoverage = -1,
-        timeoutMs = null
+        timeoutMs = 120_000
     )
     val crashReproduction = CrashReproductionAnalysis(targets.toMutableList())
 
