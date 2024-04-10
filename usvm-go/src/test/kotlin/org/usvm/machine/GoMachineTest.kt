@@ -100,6 +100,13 @@ class GoMachineTest {
     }
 
     @Test
+    fun testSumMatrix() {
+        val machine = GoMachine(UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH)))
+        val results = machine.analyzeAndResolve(Path.getProgram("slice.go"), "sumMatrix", false)
+        println(results)
+    }
+
+    @Test
     fun testStruct() {
         val results = machine.analyzeAndResolve(Path.getProgram("struct.go"), "isOld", false)
         println(results)
@@ -413,6 +420,18 @@ class GoMachineTest {
             )
         )
         val results = machine.analyzeAndResolve(Path.getProgram("leetcode.go"), "containsNearbyDuplicate", false)
+        println(results)
+    }
+
+    @Test
+    fun testLeetcodeCanVisitAllRooms() {
+        val machine = GoMachine(
+            UMachineOptions(
+                listOf(PathSelectionStrategy.FORK_DEPTH),
+                coverageZone = CoverageZone.TRANSITIVE
+            )
+        )
+        val results = machine.analyzeAndResolve(Path.getProgram("leetcode.go"), "canVisitAllRooms", false)
         println(results)
     }
 }
