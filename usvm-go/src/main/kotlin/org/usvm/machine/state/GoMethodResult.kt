@@ -3,6 +3,7 @@ package org.usvm.machine.state
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.GoMethod
+import org.usvm.machine.type.GoType
 
 sealed interface GoMethodResult {
     data object NoCall : GoMethodResult
@@ -14,5 +15,6 @@ sealed interface GoMethodResult {
 
     class Panic(
         val value: UExpr<USort>,
+        val type: GoType
     ) : GoMethodResult
 }

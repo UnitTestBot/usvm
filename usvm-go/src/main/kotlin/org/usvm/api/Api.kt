@@ -317,7 +317,9 @@ class Api(
             BuiltinFunction.IMAG -> noop()
             BuiltinFunction.COMPLEX -> noop()
             BuiltinFunction.PANIC -> {
-                scope.doWithState { panic(readVar(buf).expr) }
+                scope.doWithState {
+                    panic(readVar(buf))
+                }
             }
 
             BuiltinFunction.RECOVER -> {
@@ -586,7 +588,7 @@ class Api(
 
     private fun mkPanic(buf: ByteBuffer): GoInst {
         return scope.calcOnState {
-            panic(readVar(buf).expr)
+            panic(readVar(buf))
             currentStatement
         }
     }
@@ -1099,8 +1101,12 @@ class Api(
         return ref
     }
 
-    private fun GoState.panic(expr: String) {
-        panic(mkString(expr))
+    private fun GoState.panic(variable: Var) {
+        panic(variable.expr, variable.type)
+    }
+
+    private fun GoState.panic(expr: String) = with(ctx) {
+        panic(mkString(expr), getStringType())
     }
 
     private fun GoState.getIterCurrentKeyValue(
@@ -1160,7 +1166,7 @@ class Api(
 
     private fun GoState.mkString(value: String): UHeapRef = with(ctx) {
         memory.allocateArrayInitialized(
-            123,
+            getStringType(),
             bv32Sort,
             sizeSort,
             value.toByteArray().map { mkBv(it.toInt()) }.asSequence()

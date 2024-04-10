@@ -40,6 +40,14 @@ class GoContext(
         freeVariables[method] = variables
     }
 
+    fun freeVariableOffset(method: GoMethod) = getArgsCount(method)
+
+    fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
+
+    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
+
+    private fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
+
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
         return UAddressPointer(this, address).asExpr(pointerSort)
     }
@@ -99,11 +107,11 @@ class GoContext(
         arrayTypeToSliceType[arrayType] = sliceType
     }
 
-    fun freeVariableOffset(method: GoMethod) = getArgsCount(method)
+    private var stringType: GoType = 0L
 
-    fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
+    fun getStringType() = stringType
 
-    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
-
-    private fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
+    fun setStringType(type: GoType) {
+        stringType = type
+    }
 }
