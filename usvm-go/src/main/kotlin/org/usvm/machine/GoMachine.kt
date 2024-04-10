@@ -53,6 +53,7 @@ class GoMachine(
 
     private fun analyze(file: String, entrypoint: String, debug: Boolean): List<GoState> {
         bridge.initialize(file, debug)
+        ctx.setStringType(bridge.getStringType())
 
         val entryPoint = bridge.getMethod(entrypoint)
         val startCode = bridge.start()

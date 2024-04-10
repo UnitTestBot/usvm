@@ -86,6 +86,8 @@ class GoBridge {
 
     fun getAnyType(): GoType = Bridge.getAnyType()
 
+    fun getStringType(): GoType = Bridge.getStringType()
+
     fun findSubTypes(type: GoType): Pair<LongArray, Int> = toArray(types) { arr, len ->
         Bridge.findSubTypes(type, arr, len)
     }

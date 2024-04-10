@@ -135,8 +135,8 @@ class GoState(
         }
     }
 
-    fun panic(expr: UExpr<out USort>) {
-        methodResult = GoMethodResult.Panic(expr.cast())
+    fun panic(expr: UExpr<out USort>, type: GoType) {
+        methodResult = GoMethodResult.Panic(expr.cast(), type)
     }
 
     fun recover(method: GoMethod, inst: GoInst): UExpr<out USort> = with(ctx) {

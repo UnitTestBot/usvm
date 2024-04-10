@@ -83,6 +83,10 @@ object Bridge {
 
     @JvmStatic
     @Link
+    external fun getStringType(): TypePointer
+
+    @JvmStatic
+    @Link
     external fun findSubTypes(type: TypePointer, types: LongArray, len: Int): Int
 
     @JvmStatic

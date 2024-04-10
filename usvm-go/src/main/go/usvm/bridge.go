@@ -25,6 +25,7 @@ import (
 )
 
 var anyType = types.Type(types.NewInterfaceType(nil, nil).Complete())
+var stringType = types.Type(types.Typ[types.String])
 
 var bridge = &Bridge{}
 
@@ -291,6 +292,11 @@ func statementsOf(pointer C.jlong, arr *C.jlong, size C.jint) C.jint {
 //export getAnyType
 func getAnyType() C.jlong {
 	return C.jlong(util.ToPointer(&anyType))
+}
+
+//export getStringType
+func getStringType() C.jlong {
+	return C.jlong(util.ToPointer(&stringType))
 }
 
 //export findSubTypes
