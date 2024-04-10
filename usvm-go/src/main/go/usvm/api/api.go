@@ -401,7 +401,12 @@ func (a *api) MkRunDefers(_ *ssa.RunDefers) {
 
 func (a *api) MkPanic(inst *ssa.Panic) {
 	a.buf.Write(byte(MethodMkPanic))
-	a.writeVar(inst.X)
+	switch v := inst.X.(type) {
+	case *ssa.MakeInterface:
+		a.writeVar(v.X)
+	default:
+		a.writeVar(ssa.NewConst(constant.MakeString(inst.X.String()), types.Typ[types.String]))
+	}
 }
 
 func (a *api) MkRange(inst *ssa.Range) {

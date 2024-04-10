@@ -63,7 +63,8 @@ class GoTestInterpreter(
         val inputModel = InputModel(inputValues)
 
         return if (state.isExceptional) {
-            UnsuccessfulExecutionResult(inputModel, (state.methodResult as GoMethodResult.Panic).value)
+            val panic = state.methodResult as GoMethodResult.Panic
+            UnsuccessfulExecutionResult(inputModel, outputScope.convertExpr(panic.value, panic.type) ?: "unknown exception")
         } else {
             val result = state.methodResult as GoMethodResult.Success
             val expr = result.let { outputScope.convertExpr(it.value, methodInfo.returnType) }
