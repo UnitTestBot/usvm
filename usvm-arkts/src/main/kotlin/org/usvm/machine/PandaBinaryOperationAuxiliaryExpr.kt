@@ -1,5 +1,7 @@
 package org.usvm.machine
 
+import io.ksmt.utils.cast
+import io.ksmt.utils.uncheckedCast
 import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaExpr
@@ -19,7 +21,7 @@ sealed class PandaBinaryOperationAuxiliaryExpr(val originalExpr: PandaBinaryExpr
             TODO("Not yet implemented")
         }
 
-        return visitor.resolveAuxiliaryExpr(this)
+        return visitor.resolvePandaExpr(this)
     }
 
     class NumberToNumber(originalExpr: PandaBinaryExpr) : PandaBinaryOperationAuxiliaryExpr(originalExpr)
