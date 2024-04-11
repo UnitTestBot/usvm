@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id("org.gradle.application")
     id("usvm.kotlin-conventions")
@@ -16,12 +18,18 @@ tasks {
             "--add-opens", "java.base/java.nio=ALL-UNNAMED"
         )
     }
+    withType<KotlinCompile> {
+        kotlinOptions {
+            allWarningsAsErrors = false
+        }
+    }
 }
 
 dependencies {
     implementation(project(":usvm-core"))
 
     implementation(files("libs/nalim.jar"))
+    implementation(files("libs/jacodb-api-core-1.4-SNAPSHOT.jar"))
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
