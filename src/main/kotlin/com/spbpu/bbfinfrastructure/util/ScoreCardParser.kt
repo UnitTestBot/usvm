@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.util
 
+import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
 import java.io.File
 import kotlin.random.Random
 
@@ -15,12 +16,11 @@ object ScoreCardParser {
                 it.split(",").let { it[0] to setOf(it.last().toInt()) }
             }
 
-    var cweToFind: Set<Int>? = null
-    var originalFileName: String? = "EMPTY"
+//    var cweToFind: Set<Int>? = null
+//    var originalFileName: String? = "EMPTY"
 
-    fun initCweToFind(name: String) {
-        cweToFind = groundTrue[name]
-        originalFileName = name
+    fun initCweToFind(name: String): Set<Int>? {
+        return groundTrue[name]
     }
 
     fun parseAndSaveDiff(dir: String, pathToSources: String) {
@@ -42,24 +42,31 @@ object ScoreCardParser {
                 }
             }
         }
-        if (cweToFind == null) return
+
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
+            val originalProject =
+                GlobalTestSuite.javaTestSuite.suiteProjects.find { it.files.any { it.name == "$name.java" } }
+                    ?: error("Cant find original project with name $name")
+            val cweToFind = originalProject.configuration.initialCWEs.toSet()
+            val originalFileName = originalProject.configuration.sourceFileName
             val cwes = results.map { it.second }
             val firstBenchRes = cwes.first()
             if (firstBenchRes.isEmpty()) {
                 println("ZERO DEFECTS")
                 continue
             }
-            if (cwes.all { it.intersect(cweToFind!!).isNotEmpty() }) {
+            if (cwes.all { it.intersect(cweToFind).isNotEmpty() }) {
                 println("ALL TOOLS FOUND BUG IN $name")
-            } else if (cwes.all { it.intersect(cweToFind!!).isEmpty() }){
+            } else if (cwes.all { it.intersect(cweToFind).isEmpty() }) {
                 println("ALL TOOLS CANT FIND BUG IN $name")
             } else {
                 println("DIFF FOUND!!")
                 val text =
 """//Analysis results: ${results.joinToString(separator = "\n//")}
-//Program (original file $originalFileName):
+//Original file name: $originalFileName
+//Original file CWE's: $cweToFind
+//Program:
 ${File("$pathToSources/$name.java").readText()}
 """.trimIndent()
                 File("results/${Random.getRandomVariableName(5)}.java").writeText(text)

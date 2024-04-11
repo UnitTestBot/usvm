@@ -595,7 +595,6 @@ fun KtForExpression.getLoopParameterType(context: BindingContext): KotlinType? {
     val memberScope = loopRangeType.memberScope.getDescriptorsFiltered { true }
     val member = memberScope.firstOrNull { it.name.asString() == "first" } as? PropertyDescriptor
         ?: memberScope.firstOrNull { it.name.asString() == "get" } as? FunctionDescriptor
-    "".stripIndent()
     return member?.returnType
 }
 

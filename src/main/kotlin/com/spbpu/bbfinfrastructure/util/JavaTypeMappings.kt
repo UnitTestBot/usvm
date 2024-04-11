@@ -6,6 +6,17 @@ object JavaTypeMappings {
     val mappings = initMappings(mutableMapOf())
 
     private fun initMappings(mappings: MutableMap<String, String>): MutableMap<String, String> {
+        JarFile(CompilerArgs.pathToOwaspJar).use { jar ->
+            val entries = jar.entries()
+
+            while (entries.hasMoreElements()) {
+                val entry = entries.nextElement()
+                if (entry.name.endsWith(".class")) {
+                    val className = entry.name.replace("/", ".").removeSuffix(".class")
+                    mappings[className.substringAfterLast(".")] = className
+                }
+            }
+        }
         mappings.putAll(
             mapOf(
                 "String" to "java.lang.String",
@@ -95,17 +106,6 @@ object JavaTypeMappings {
                 "ZipEntry" to "java.util.zip.ZipEntry",
             )
         )
-        JarFile(CompilerArgs.pathToOwaspJar).use { jar ->
-            val entries = jar.entries()
-
-            while (entries.hasMoreElements()) {
-                val entry = entries.nextElement()
-                if (entry.name.endsWith(".class")) {
-                    val className = entry.name.replace("/", ".").removeSuffix(".class")
-                    mappings[className.substringAfterLast(".")] = className
-                }
-            }
-        }
         return mappings
     }
 }

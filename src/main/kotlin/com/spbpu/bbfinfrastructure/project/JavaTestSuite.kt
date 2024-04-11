@@ -6,6 +6,7 @@ import com.spbpu.bbfinfrastructure.compiler.JCompiler
 import com.spbpu.bbfinfrastructure.server.FuzzServerInteract
 import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
+import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.ScoreCardParser
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.util.replaceThis
@@ -33,7 +34,10 @@ class JavaTestSuite {
             if (!name.contains("Benchmark")) {
                 return@forEach
             }
-            val classes = psiFile.getAllPSIChildrenOfType<PsiClass>()
+            val classes =
+                psiFile
+                    .getAllPSIChildrenOfType<PsiClass>()
+                    .filter { it.name?.contains("BenchmarkTest") ?: false }
             for (cl in classes) {
                 cl.nameIdentifier?.let {
                     val newIdentifier = PsiIdentifierImpl("${it.text}$projectIndex")
@@ -48,19 +52,18 @@ class JavaTestSuite {
     fun flushSuiteOnServer(remoteDirForSources: String, pathToCsv: String) {
         val remoteToLocalPaths = mutableMapOf<String, String>()
         val helpersDir = remoteDirForSources.substringBeforeLast('/') + "/helpers/"
-        val tmpPath = "tmp/projects/"
-        File(tmpPath).deleteRecursively()
-        File(tmpPath).mkdirs()
-        val csv = File("$tmpPath/expected_results.csv")
+        File(CompilerArgs.tmpPath).deleteRecursively()
+        File(CompilerArgs.tmpPath).mkdirs()
+        val csv = File("${CompilerArgs.tmpPath}/expected_results.csv")
         if (csv.exists()) {
             csv.delete()
         }
         csv.createNewFile()
         csv.appendText("# test name, category, real vulnerability, cwe, Benchmark version: 1.2, 2016-06-1\n")
         for (project in suiteProjects) {
-            val localPaths = project.saveToDir(tmpPath)
+            val localPaths = project.saveToDir(CompilerArgs.tmpPath)
             localPaths.forEach { localPath ->
-                val fileName = localPath.substringAfter(tmpPath)
+                val fileName = localPath.substringAfter(CompilerArgs.tmpPath)
                 if (!fileName.contains("Benchmark")) {
                     remoteToLocalPaths["$helpersDir/$fileName"] = localPath
                     return@forEach
@@ -76,20 +79,21 @@ class JavaTestSuite {
         val fsi = FuzzServerInteract()
         val cmdToRm =
             remoteToLocalPaths.filterNot { it.key.contains("BenchmarkTest") }.keys.joinToString(" ") { "rm $it;" }
+        File("tmp/scorecards/").deleteRecursively()
+        File("tmp/scorecards/").mkdirs()
         fsi.execCommand(cmdToRm)
         fsi.execCommand("rm -rf ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode; mkdir ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode")
         fsi.downloadFilesToRemote(remoteToLocalPaths)
         fsi.execCommand("cd ~; rm -rf BenchmarkJavaFuzz/scorecard/; rm -rf BenchmarkJavaFuzz/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh")
         val scoreCardDir = "/home/stepanov/BenchmarkJavaFuzz/scorecard"
-        val pathToScoreCards = mapOf(
-            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_CodeQL_v2.16.5.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_CodeQL_v2.16.5.csv",
-            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_Semgrep_v1.67.0.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_Semgrep_v1.67.0.csv",
-            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_SonarQube_v10.4.1.88267.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_SonarQube_v10.4.1.88267.csv",
-            "$scoreCardDir/Benchmark_v1.2_Scorecard_for_SpotBugs_v1.13.0.csv" to "tmp/scorecards/Benchmark_v1.2_Scorecard_for_SpotBugs_v1.13.0.csv",
-
-            )
+        val scoreCardsPaths = fsi.execCommand("find $scoreCardDir -name \"*Scorecard*.csv\"")!!
+        val pathToScoreCards =
+            scoreCardsPaths
+                .split("\n")
+                .drop(1)
+                .dropLast(1)
+                .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
         fsi.downloadFilesFromRemote(pathToScoreCards)
-        val scoreCards = ScoreCardParser.parseAndSaveDiff("tmp/scorecards", tmpPath)
     }
 
     @OptIn(ExperimentalTime::class)
@@ -160,5 +164,11 @@ class JavaTestSuite {
     enum class CheckingResult {
         EQUAL, DIFF
     }
+
+    class SuiteProject(
+        val project: Project,
+        val originalFileName: String,
+        val initialCWE: String
+    )
 
 }

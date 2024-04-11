@@ -1,0 +1,40 @@
+~main class start~
+~import java.util.function.Supplier;~
+~import java.io.*;~
+
+~template start~
+boolean conditionMet = false;
+if (~[boolean]~) {
+    conditionMet = true;
+}
+if (!conditionMet && ~[boolean]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+    Supplier<String> lazyValue = () -> "123";
+    ~[String]~ = lazyValue.get();
+~template end~
+~template start~
+if (~[String]~ != null && ~[String]~.contains(~[String]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~ != null && ~[String]~.charAt(~[CONST_int]~) == ~[CONST_char]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~ != null && !~[String]~.isEmpty()) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+    File f = new File(~[String]~);
+    if (f.exists() && f.isFile()) {
+        ~[String]~ = ~[String]~;
+    }
+~template end~
+~main class end~
+

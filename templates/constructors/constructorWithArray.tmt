@@ -1,0 +1,33 @@
+~class org.owasp.benchmark.helpers.ArrayHolder start~
+package org.owasp.benchmark.helpers;
+
+public class ArrayHolder {
+    private String[] values;
+
+    public ArrayHolder(String value) {
+        this(new String[] {value, "A", "B"}); // Динамическая инициализация
+    }
+
+    public ArrayHolder(String[] initialValues) {
+        this.values = initialValues;
+    }
+
+    public String[] getValues() {
+        return values;
+    }
+}
+~class org.owasp.benchmark.helpers.ArrayHolder end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.ArrayHolder;~
+~import java.util.*;~
+~template start~
+ArrayHolder ah = new ArrayHolder(~[String]~);
+~[String]~ = ah.getValues()[~[int]~];
+~template end~
+~template start~
+ArrayHolder ah = new ArrayHolder(~[VAR_String]~);
+~[String]~ = ah.getValues()[~[int]~];
+~template end~
+~main class end~

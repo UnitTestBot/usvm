@@ -32,7 +32,10 @@ class FuzzServerInteract {
             while (inputStream.available() > 0) {
                 val read = inputStream.read(buffer)
                 if (read < 0) break
-                println(String(buffer, 0, read))
+                String(buffer, 0, read).let {
+                    println(it)
+                    output.append(it)
+                }
             }
             if (channel.isClosed) {
                 if (inputStream.available() > 0) continue

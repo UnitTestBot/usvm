@@ -1,0 +1,31 @@
+~class org.owasp.benchmark.helpers.CollectionHolder start~
+package org.owasp.benchmark.helpers;
+
+import java.util.*;
+
+public class CollectionHolder {
+    public List<String> list;
+
+    public CollectionHolder(String value) {
+        this(Arrays.asList(value, "EMPTY"));
+    }
+
+    private CollectionHolder(List<String> initialList) {
+        this.list = new ArrayList<>(initialList);
+    }
+}
+~class org.owasp.benchmark.helpers.CollectionHolder end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.CollectionHolder;~
+~import java.util.*;~
+~template start~
+CollectionHolder ch = new CollectionHolder(~[String]~);
+~[String]~ = ch.list.get(~[int]~);
+~template end~
+~template start~
+CollectionHolder ch = new CollectionHolder(~[VAR_String]~);
+~[String]~ = ch.list.get(~[int]~);
+~template end~
+~main class end~

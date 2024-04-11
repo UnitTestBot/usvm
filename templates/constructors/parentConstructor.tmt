@@ -1,0 +1,47 @@
+~class org.owasp.benchmark.helpers.BaseClass start~
+package org.owasp.benchmark.helpers;
+
+public class BaseClass {
+    public String baseValue;
+
+    public BaseClass(String value) {
+        this.baseValue = value;
+    }
+}
+
+~class org.owasp.benchmark.helpers.BaseClass end~
+
+~class org.owasp.benchmark.helpers.DerivedClass start~
+package org.owasp.benchmark.helpers;
+
+public class DerivedClass extends BaseClass {
+    public DerivedClass() {
+        super("EMPTY");
+        this.baseValue += "DerivedClass";
+    }
+
+    public DerivedClass(String value) {
+        super(value);
+        this.baseValue += "FROM";
+    }
+}
+
+~class org.owasp.benchmark.helpers.DerivedClass end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.BaseClass;~
+~import org.owasp.benchmark.helpers.DerivedClass;~
+~import java.util.*;~
+~template start~
+DerivedClass dc = new DerivedClass(~[String]~);
+~[String]~ = dc.baseValue;
+~template end~
+~template start~
+DerivedClass dc = new DerivedClass(~[VAR_String]~);
+~[String]~ = dc.baseValue;
+~template end~
+~template start~
+DerivedClass dc = new DerivedClass();
+~[String]~ = dc.baseValue;
+~template end~
+~main class end~

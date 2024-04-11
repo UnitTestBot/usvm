@@ -1,0 +1,56 @@
+~class org.owasp.benchmark.helpers.Mode start~
+
+package org.owasp.benchmark.helpers;
+
+public enum Mode {
+    DEFAULT, CUSTOM
+}
+~class org.owasp.benchmark.helpers.Mode end~
+
+
+~class org.owasp.benchmark.helpers.ModeSelector start~
+package org.owasp.benchmark.helpers;
+
+public class ModeSelector {
+    private Mode mode;
+
+    public ModeSelector() {
+        this(Mode.DEFAULT);
+    }
+
+    public ModeSelector(Mode mode) {
+        this.mode = mode;
+    }
+
+    public Mode getMode() {
+        return mode;
+    }
+}
+~class org.owasp.benchmark.helpers.ModeSelector end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.Mode;~
+~import org.owasp.benchmark.helpers.ModeSelector;~
+~import java.util.*;~
+~template start~
+        ModeSelector ms = new ModeSelector();
+        switch (ms.getMode()) {
+            case DEFAULT:
+                ~[String]~ = ~[String]~;
+                break;
+            default:
+                ~[String]~ = ~[String]~;
+        }
+~template end~
+~template start~
+        ModeSelector ms = new ModeSelector();
+        switch (ms.getMode()) {
+            case CUSTOM:
+                ~[String]~ = ~[String]~;
+                break;
+            default:
+                ~[String]~ = ~[String]~;
+        }
+~template end~
+~main class end~

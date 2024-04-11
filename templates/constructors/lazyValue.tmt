@@ -1,0 +1,28 @@
+~class org.owasp.benchmark.helpers.LazyInitialized start~
+package org.owasp.benchmark.helpers;
+
+public class LazyInitialized {
+    private volatile String value;
+
+    public String getValue(String val) {
+        if (value == null) {
+            synchronized (this) {
+                if (value == null) {
+                    value = "~[String]~";
+                }
+            }
+        }
+        return value;
+    }
+}
+~class org.owasp.benchmark.helpers.LazyInitialized end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.LazyInitialized;~
+~import java.util.*;~
+~template start~
+LazyInitialized li = new LazyInitialized();
+~[String]~ = li.getValue(~[String]~);
+~template end~
+~main class end~
+

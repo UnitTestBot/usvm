@@ -22,30 +22,31 @@ class Project(
 
     companion object {
 
-        fun createJavaProjectFromFiles(files: List<File>): Project {
+        fun createJavaProjectFromFiles(files: List<File>, originalFileName: String = "", originalCWEs: List<Int> = listOf()): Project {
             val javaFiles =
                 files.map {
                     val text = it.readText()
                     BBFFile(it.name, PSICreator.getPsiForJava(text, Factory.file.project))
                 }
-            return Project(Header.createHeader(""), javaFiles, LANGUAGE.JAVA)
+            return Project(Header(originalFileName, originalCWEs), javaFiles, LANGUAGE.JAVA)
         }
 
         fun createJavaProjectFromCode(code: String, name: String): Project {
             val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code, Factory.file.project))
-            return Project(Header.createHeader(""), listOf(bbfFile), LANGUAGE.JAVA)
+            return Project(Header.createEmptyHeader(), listOf(bbfFile), LANGUAGE.JAVA)
         }
 
         fun createFromCode(code: String): Project {
-            val configuration = Header.createHeader(getCommentSection(code))
-            val files = BBFFileFactory(code, configuration).createBBFFiles() ?: return Project(configuration, listOf())
-            val language =
-                when {
-                    files.any { it.getLanguage() == LANGUAGE.UNKNOWN } -> LANGUAGE.UNKNOWN
-                    files.any { it.getLanguage() == LANGUAGE.JAVA } -> LANGUAGE.KJAVA
-                    else -> LANGUAGE.KOTLIN
-                }
-            return Project(configuration, files, language)
+            TODO()
+//            val configuration = Header.createEmptyHeader()
+//            val files = BBFFileFactory(code, configuration).createBBFFiles() ?: return Project(configuration, listOf())
+//            val language =
+//                when {
+//                    files.any { it.getLanguage() == LANGUAGE.UNKNOWN } -> LANGUAGE.UNKNOWN
+//                    files.any { it.getLanguage() == LANGUAGE.JAVA } -> LANGUAGE.KJAVA
+//                    else -> LANGUAGE.KOTLIN
+//                }
+//            return Project(configuration, files, language)
         }
     }
 
@@ -87,51 +88,6 @@ class Project(
         return files.joinToString(" ") { "${CompilerArgs.pathToTmpJava}/${it.name}" }
     }
 
-    fun moveAllCodeInOneFile() =
-        StringBuilder().apply {
-            append(configuration.toString());
-            if (configuration.isWithCoroutines())
-                files.getAllWithoutLast().forEach { appendLine(it.toString()) }
-            else files.forEach { appendLine(it.toString()) }
-        }.toString()
-
-
-    fun saveInOneFile(pathToSave: String) {
-        val text = moveAllCodeInOneFile()
-        File(pathToSave).writeText(text)
-    }
-
-
-    fun isBackendIgnores(backend: String): Boolean = configuration.ignoreBackends.contains(backend)
-
-    fun getProjectSettingsAsCompilerArgs(backendType: String): CommonCompilerArguments {
-        val args = when (backendType) {
-            "JVM" -> K2JVMCompilerArguments()
-            else -> K2JSCompilerArguments()
-        }
-        val languageDirective = "-XXLanguage:"
-        val languageFeaturesAsArgs = configuration.languageSettings.joinToString(
-            separator = " $languageDirective",
-            prefix = languageDirective,
-        ).split(" ")
-        when (backendType) {
-            "JVM" -> args.apply {
-                K2JVMCompiler().parseArguments(
-                    languageFeaturesAsArgs.toTypedArray(),
-                    this as K2JVMCompilerArguments
-                )
-            }
-
-            "JS" -> args.apply {
-                K2JSCompiler().parseArguments(
-                    languageFeaturesAsArgs.toTypedArray(),
-                    this as K2JSCompilerArguments
-                )
-            }
-        }
-        args.optIn = configuration.useExperimental.toTypedArray()
-        return args
-    }
 
     fun addMain(): Project {
         if (files.map { it.text }.any { it.contains("fun main(") }) return Project(configuration, files, language)

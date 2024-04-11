@@ -1,7 +1,6 @@
 package com.stepanov.bbf.bugfinder.executor.compilers
 
 import com.spbpu.bbfinfrastructure.compiler.*
-import com.spbpu.bbfinfrastructure.project.Directives
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.MsgCollector
@@ -58,32 +57,33 @@ open class JVMCompiler(override val arguments: String = "") : CommonCompiler() {
     }
 
     private fun prepareArgs(project: Project, path: String, destination: String): K2JVMCompilerArguments {
-        val destFile = File(destination)
-        if (destFile.isFile) destFile.delete()
-        else if (destFile.isDirectory) FileUtils.cleanDirectory(destFile)
-        val projectArgs = project.getProjectSettingsAsCompilerArgs("JVM") as K2JVMCompilerArguments
-        val compilerArgs =
-            if (arguments.isEmpty())
-                "$path -d $destination".split(" ")
-            else
-                "$path $arguments -d $destination".split(" ")
-        projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
-        //projectArgs.compileJava = true
-        projectArgs.classpath =
-            "${
-                CompilerArgs.jvmStdLibPaths.joinToString(
-                    separator = ":"
-                )
-            }:${System.getProperty("java.class.path")}:${CompilerArgs.pathToOwaspJar}"
-                .split(":")
-                .filter { it.isNotEmpty() }
-                .toSet().toList()
-                .joinToString(":")
-        projectArgs.jvmTarget = "1.8"
-        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi", "kotlin.contracts.ExperimentalContracts")
-        if (project.configuration.jvmDefault.isNotEmpty())
-            projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
-        return projectArgs
+        TODO()
+//        val destFile = File(destination)
+//        if (destFile.isFile) destFile.delete()
+//        else if (destFile.isDirectory) FileUtils.cleanDirectory(destFile)
+//        val projectArgs = project.getProjectSettingsAsCompilerArgs("JVM") as K2JVMCompilerArguments
+//        val compilerArgs =
+//            if (arguments.isEmpty())
+//                "$path -d $destination".split(" ")
+//            else
+//                "$path $arguments -d $destination".split(" ")
+//        projectArgs.apply { K2JVMCompiler().parseArguments(compilerArgs.toTypedArray(), this) }
+//        //projectArgs.compileJava = true
+//        projectArgs.classpath =
+//            "${
+//                CompilerArgs.jvmStdLibPaths.joinToString(
+//                    separator = ":"
+//                )
+//            }:${System.getProperty("java.class.path")}:${CompilerArgs.pathToOwaspJar}"
+//                .split(":")
+//                .filter { it.isNotEmpty() }
+//                .toSet().toList()
+//                .joinToString(":")
+//        projectArgs.jvmTarget = "1.8"
+//        projectArgs.optIn = arrayOf("kotlin.ExperimentalStdlibApi", "kotlin.contracts.ExperimentalContracts")
+//        if (project.configuration.jvmDefault.isNotEmpty())
+//            projectArgs.jvmDefault = project.configuration.jvmDefault.substringAfter(Directives.jvmDefault)
+//        return projectArgs
     }
 
     private fun executeCompiler(project: Project, args: K2JVMCompilerArguments): KotlincInvokeStatus {

@@ -1,0 +1,81 @@
+~main class start~
+~import java.util.*;~
+~import java.io.*;~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+for (int i = ~[int]~; i >= 0; i--) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+String[] stringArray = {~[String]~, ~[String]~, ~[String]~};
+for (int i = 0; i < stringArray.length; i++) {
+    if(stringArray[i].equals(stringArray[i + 1])) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    if (~[boolean]~) {
+        continue;
+    }
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    if (~[boolean]~) {
+        break;
+    }
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    for (int j = 0; j < ~[int]~; j++) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i += ~[int]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+for (int i = ~[int]~; i < ~[int]~; i++) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[String]~.length(); i++) {
+    char c = ~[String]~.charAt(i);
+    ~[String]~ = ~[String]~ + c;
+}
+~template end~
+~template start~
+try (BufferedReader br = new BufferedReader(new FileReader(~[String]~))) {
+    String line;
+    while ((line = br.readLine()) != null) {
+        ~[String]~ += line;
+    }
+} catch (IOException e) {
+    e.printStackTrace();
+}
+~template end~
+~template start~
+try (BufferedReader br = new BufferedReader(new FileReader(~[String]~))) {
+    String line;
+    while ((line = br.readLine()) != null) {
+        if (line.contains(~[String]~)) ~[String]~ += line;
+    }
+} catch (IOException e) {
+    e.printStackTrace();
+}
+~template end~
+~main class end~

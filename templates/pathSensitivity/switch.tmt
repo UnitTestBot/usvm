@@ -1,0 +1,72 @@
+~main class start~
+~import java.util.*;~
+~template start~
+switch (~[VAR_String]~) {
+    case ~[CONST_String]~:
+        break;
+    case ~[CONST_String]~:
+        ~[String]~ = ~[String]~;
+        break;
+    default:
+        ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+switch (~[String]~) {
+    case ~[CONST_String]~:
+        break;
+    case ~[CONST_String]~:
+        ~[String]~ = ~[String]~;
+        break;
+    default:
+        ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+switch (~[int]~) {
+    case ~[CONST_int]~:
+         ~[String]~ = ~[String]~;
+        break;
+    case ~[CONST_int]~:
+         ~[String]~ += ~[String]~;
+        break;
+    default:
+         ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+switch (~[String]~) {
+    default:
+        ~[String]~ = ~[String]~;
+        break;
+    case ~[CONST_String]~:
+        break;
+    case ~[CONST_String]~:
+        ~[String]~ = ~[String]~;
+        break;
+}
+~template end~
+~template start~
+switch (~[VAR_String]~) {
+    default:
+        ~[String]~ = ~[String]~;
+        break;
+    case ~[CONST_String]~:
+        break;
+    case ~[CONST_String]~:
+        ~[String]~ = ~[String]~;
+        break;
+}
+~template end~
+~template start~
+switch (~[VAR_String]~) {
+    case ~[CONST_String]~:
+        ~[String]~ += ~[String]~;
+    case ~[CONST_String]~:
+        ~[String]~ += ~[String]~;
+        break;
+    default:
+        ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~

@@ -98,6 +98,8 @@ object CompilerArgs {
     val pathToTmpDir = pathToTmpFile.substringBeforeLast("/")
     val pathToTmpJava = "tmpJava"
     val pathToSpotBugs = "lib/spotbugs"
+    val tmpPath = "tmp/projects/"
+
 
 
     //RESULT

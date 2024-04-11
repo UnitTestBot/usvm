@@ -5,6 +5,8 @@ import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 class ExpressionGenerator {
@@ -14,7 +16,7 @@ class ExpressionGenerator {
     fun generateExpressionOfType(
         scope: List<JavaScopeCalculator.JavaScopeComponent>,
         type: String
-    ):String? {
+    ): String? {
         repeat(MAX_TRIES) {
             gen(scope, type)?.let { return it }
         }
@@ -37,11 +39,31 @@ class ExpressionGenerator {
             "Float" -> Random.nextDouble().toFloat().toString()
             "double" -> Random.nextDouble().toString()
             "Double" -> Random.nextDouble().toString()
-            "char" -> Random.nextInt().toChar().toString()
-            "Character" -> Random.nextInt().toChar().toString()
-            "String" -> Random.getRandomVariableName(5)
+            "char" -> "'${('a'..'z').random()}'"
+            "Character" -> "'${('a'..'z').random()}'"
+            "String" -> "\"${Random.getRandomVariableName(5)}\""
             else -> null
         }
+
+    fun genConstant(type: String): String? {
+        generateLiteral(type.substringAfterLast('.'))?.let { return it }
+        return when (type.substringAfterLast('.')) {
+            "Collection" -> generateCollection()
+            "Iterable" -> generateCollection()
+            "List" -> generateCollection()
+            "ArrayList" -> "new ArrayList<>(${generateCollection()})"
+            else -> null
+        }
+    }
+
+    private fun getRandomPrimitiveType(): String =
+        listOf("boolean", "short", "byte", "int", "long", "float", "double", "char", "String").random()
+
+    private fun generateCollection(): String {
+        val collectionType = getRandomPrimitiveType()
+        val values = (0..Random.nextInt(1, 4)).map { generateLiteral(collectionType)!! }
+        return "Arrays.asList(${values.joinToString(", ")})"
+    }
 
     private fun gen(
         scope: List<JavaScopeCalculator.JavaScopeComponent>,
@@ -82,7 +104,7 @@ class ExpressionGenerator {
         if (randomSuitableMethod != null) {
             return "$randomScopeVarName.${randomSuitableMethod.constructMethodInvocation(scope)}"
         }
-        return null
+        return genConstant(type)
     }
 
     private fun Method.canBeInvokedWithScopeVariables(scope: List<JavaScopeCalculator.JavaScopeComponent>): Boolean =

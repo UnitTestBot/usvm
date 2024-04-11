@@ -1,0 +1,18 @@
+~main class start~
+~import java.util.*;~
+~template start~
+if (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[boolean]~) {
+    ~[String]~ = "";
+}
+~template end~
+~template start~
+if (~[boolean]~) {
+    ~[Object]~ = null;
+}
+~template end~
+~main class end~

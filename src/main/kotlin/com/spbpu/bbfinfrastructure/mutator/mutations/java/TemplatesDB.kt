@@ -3,10 +3,23 @@ package com.spbpu.bbfinfrastructure.mutator.mutations.java
 import java.io.File
 
 object TemplatesDB {
+
+    private val featureToTemplates = mutableMapOf<String, String>(
+        "CONSTRUCTORS" to "templates/constructors",
+        "PATH_SENSITIVITY" to "templates/pathSensitivity",
+    )
+
+
     val manualTemplates = mutableListOf<String>()
     val minedTemplates = mutableListOf<String>()
     val kotlinTemplates = mutableListOf<String>()
     val testTemplates = mutableListOf<String>()
+
+
+    fun getTemplatesForFeature(featureName: String): List<String>? {
+        val dirToTemplates = featureToTemplates[featureName] ?: return null
+        return File(dirToTemplates).listFiles()?.map { it.readText() }
+    }
 
     init {
         File("manualTemplates.txt").readText().split("---------").forEach {

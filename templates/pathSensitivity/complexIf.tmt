@@ -1,0 +1,70 @@
+~main class start~
+~import java.util.*;~
+~template start~
+if (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+} else if (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+} else {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+} else {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[boolean]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+if (~[boolean]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    } else if (~[boolean]~) {
+          ~[String]~ = ~[String]~;
+    } else {
+          ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+if (~[String]~.equals(~[String]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~.compareTo(~[String]~) == 0) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (Integer.compare(~[int]~, ~[int]~) == 0) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[Object]~ != null) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+~[String]~ = (~[boolean]~) ? ~[String]~ : ~[String]~;
+~template end~
+~template start~
+if (~[Collection]~.contains(~[Object]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[Object]~.equals(~[Object]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~

@@ -4,20 +4,23 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
+import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.project.JavaTestSuite
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
+import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
 class TemplatesInserter : Transformation() {
 
-    private val testSuite = JavaTestSuite()
+    private val testSuite = GlobalTestSuite.javaTestSuite
     private val originalPsiText = file.text
-    private val numOfSuccessfulMutationsToAdd = 3
+    private val numOfSuccessfulMutationsToAdd = 1
     private var curNumOfSuccessfulMutations = 0
-    private val numberOfProjectsToCheck = 100
+    private var addedProjects = 0
+    private val numberOfProjectsToCheck = 10
 
 
     override fun transform() {
@@ -26,6 +29,9 @@ class TemplatesInserter : Transformation() {
             println("TRY $it")
             try {
                 tryToTransform()
+            }
+            catch (e: MutationFinishedException) {
+                return
             } catch (e: Throwable) {
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(fileBackupText))
             }
@@ -34,7 +40,8 @@ class TemplatesInserter : Transformation() {
     }
 
     private fun tryToTransform(): Boolean {
-        val randomTemplate = (TemplatesDB.manualTemplates).randomOrNull() ?: return false
+        val randomTemplate = (TemplatesDB.getTemplatesForFeature("PATH_SENSITIVITY"))!![1] ?: return false
+//        val randomTemplate = (TemplatesDB.getTemplatesForFeature("PATH_SENSITIVITY"))?.randomOrNull() ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
         val regex = Regex("""~\[(.*?)\]~""")
@@ -51,9 +58,13 @@ class TemplatesInserter : Transformation() {
                 (PSICreator.getPsiForJava("$oldImportList\n$additionalImports") as PsiJavaFile).importList!!
             (file as PsiJavaFile).importList?.replaceThis(newImportList) ?: return false
         }
-        val randomTemplateBody = parsedTemplates.templates.random()
+        println("TEMPLATES = ${parsedTemplates.templates.size}")
+        val randomTemplateBody = parsedTemplates.templates[1]
         val newText = regex.replace(randomTemplateBody) { result ->
-            val capturedType = JavaTypeMappings.mappings[result.groupValues[1]] ?: result.groupValues[1]
+            val hole = result.groupValues.getOrNull(1) ?: throw IllegalArgumentException()
+            val isVar = hole.startsWith("VAR_")
+            val type = if (isVar) hole.substringAfter("VAR_") else hole
+            val capturedType = JavaTypeMappings.mappings[type] ?: type
             if (capturedType == "boolean" || capturedType == "java.lang.Boolean") {
                 ConditionGenerator(scope).generate()?.let { return@replace it }
             }
@@ -65,15 +76,15 @@ class TemplatesInserter : Transformation() {
                 false
             }
             val randomValueWithCompatibleType =
-                if (Random.getTrue(20) || isAssign) {
-                    if (capturedType == "Object") {
+                if (Random.getTrue(20) || isAssign || isVar) {
+                    if (capturedType == "java.lang.Object") {
                         scope.randomOrNull()?.name
                     } else {
                         scope.filter { it.type == capturedType }
                             .randomOrNull()?.name
                     }
                 } else null
-            if (isAssign && randomValueWithCompatibleType == null) {
+            if ((isVar || isAssign) && randomValueWithCompatibleType == null) {
                 println("CANT FIND VARIABLE OF TYPE $capturedType for assignment")
                 throw IllegalArgumentException()
             }
@@ -97,15 +108,17 @@ class TemplatesInserter : Transformation() {
             checker.curFile.changePsiFile(PSICreator.getPsiForJava(file.text))
             if (++curNumOfSuccessfulMutations == numOfSuccessfulMutationsToAdd) {
                 curNumOfSuccessfulMutations = 0
+                addedProjects++
                 testSuite.addProject(project.copy())
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
             }
-            if (testSuite.suiteProjects.size >= numberOfProjectsToCheck) {
-                testSuite.flushSuiteOnServer(
-                    "/home/stepanov/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode",
-                    "/home/stepanov/BenchmarkJavaFuzz/expectedresults-1.2.csv"
-                )
-                exitProcess(0)
+            if (addedProjects >= numberOfProjectsToCheck) {
+                throw MutationFinishedException()
+//                testSuite.flushSuiteOnServer(
+//                    "/home/stepanov/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode",
+//                    "/home/stepanov/BenchmarkJavaFuzz/expectedresults-1.2.csv"
+//                )
+//                exitProcess(0)
 //
 //                val projectToCheckRes = testSuite.flushOnDiskAndCheck()
 //                for ((project, checkingResult) in projectToCheckRes) {

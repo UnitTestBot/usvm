@@ -1,0 +1,41 @@
+~class org.owasp.benchmark.helpers.OuterClass start~
+
+package org.owasp.benchmark.helpers;
+
+public class OuterClass {
+    private InnerClass innerObject;
+    private String value;
+
+    public OuterClass(String value) {
+        this.innerObject = this.new InnerClass(value);
+    }
+
+    public InnerClass getInnerObject() {
+        return innerObject;
+    }
+
+
+    public class InnerClass {
+        public String innerValue;
+
+        InnerClass(String value) {
+            this.innerValue = value;
+        }
+    }
+}
+~class org.owasp.benchmark.helpers.OuterClass end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.OuterClass;~
+~import java.util.*;~
+~template start~
+OuterClass oc = new OuterClass(~[String]~);
+~[String]~ = oc.getInnerObject().innerValue;
+~template end~
+~template start~
+OuterClass oc = new OuterClass(~[VAR_String]~);
+~[String]~ = oc.getInnerObject().innerValue;
+~template end~
+~main class end~
+
