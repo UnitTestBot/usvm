@@ -1,7 +1,5 @@
 package org.usvm.machine
 
-import io.ksmt.utils.cast
-import io.ksmt.utils.uncheckedCast
 import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaExpr
@@ -17,11 +15,7 @@ sealed class PandaBinaryOperationAuxiliaryExpr(val originalExpr: PandaBinaryExpr
         get() = originalExpr.type
 
     override fun <T> accept(visitor: PandaExprVisitor<T>): T {
-        if (visitor !is PandaExprResolver) {
-            TODO("Not yet implemented")
-        }
-
-        return visitor.resolvePandaExpr(this)
+        return visitor.visitPandaExpr(this)
     }
 
     class NumberToNumber(originalExpr: PandaBinaryExpr) : PandaBinaryOperationAuxiliaryExpr(originalExpr)

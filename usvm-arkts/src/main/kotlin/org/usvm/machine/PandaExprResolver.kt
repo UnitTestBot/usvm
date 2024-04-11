@@ -25,6 +25,7 @@ import org.jacodb.panda.dynamic.api.PandaLocalVar
 import org.jacodb.panda.dynamic.api.PandaLtExpr
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaMulExpr
+import org.jacodb.panda.dynamic.api.PandaNegExpr
 import org.jacodb.panda.dynamic.api.PandaNeqExpr
 import org.jacodb.panda.dynamic.api.PandaNewExpr
 import org.jacodb.panda.dynamic.api.PandaNullConstant
@@ -105,6 +106,13 @@ class PandaExprResolver(
         return block(result0, result1)
     }
 
+    override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? {
+        if (expr is PandaBinaryOperationAuxiliaryExpr) {
+            return resolveAuxiliaryExpr(expr)
+        }
+
+        return resolvePandaExpr(expr)
+    }
 
     override fun visitCommonCallExpr(expr: CommonExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
