@@ -105,6 +105,10 @@ fun analyzeCrash(crash: CrashPackCrash) {
 data class RawTraceEntry(val cls: JcClassOrInterface, val methodName: String, val line: Int)
 
 private fun analyzeCrash(cp: JcClasspath, trace: String, crash: CrashPackCrash) {
+    println("#".repeat(50))
+    println("Try reproduce crash: ${crash.application} | ${crash.id}")
+    println(trace)
+
     val allTraceEntries = trace.lines().map { it.trim() }
     val relevantTracePattern = Regex(crash.targetFrames)
     val relevantTrace = allTraceEntries.dropLastWhile { !relevantTracePattern.matches(it) }
@@ -130,19 +134,32 @@ private fun analyzeCrash(cp: JcClasspath, trace: String, crash: CrashPackCrash) 
 
     if (rawTraceEntries.isEmpty()) return
 
-    println("-".repeat(50))
-    println("Try reproduce crash: ${crash.application} | ${crash.id}")
-    println(trace)
-
     val targets = createTargets(exceptionType, rawTraceEntries)
 
-    reproduceCrash(cp, targets)
+    println("Targets:")
+    targets?.forEach { printTarget(it) }
+
+    if (targets == null) return
+
+    println("-".repeat(50))
+
+    val states = reproduceCrash(cp, targets)
+
+    println("+".repeat(50))
+    println("Found states: ${states.size}")
 }
+
+private fun printTarget(target: JcTarget, indent: Int = 0) {
+    println("\t".repeat(indent) + target)
+    target.children.forEach { printTarget(it, indent + 1) }
+}
+
+private fun JcInst.printInst() = "${location.method.enclosingClass.name}#${location.method.name} | $this"
 
 sealed class CrashReproductionTarget(location: JcInst? = null) : JcTarget(location)
 
 class CrashReproductionLocationTarget(location: JcInst) : CrashReproductionTarget(location) {
-    override fun toString(): String = "$location"
+    override fun toString(): String = location?.printInst() ?: ""
 }
 
 class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : CrashReproductionTarget() {
@@ -152,7 +169,7 @@ class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : Cras
 private fun createTargets(
     exception: JcClassOrInterface,
     trace: List<RawTraceEntry>
-): List<CrashReproductionTarget> {
+): List<CrashReproductionTarget>? {
     var initialTargets: List<CrashReproductionTarget>? = null
     var currentTargets: List<CrashReproductionTarget> = emptyList()
     for (entry in trace.asReversed()) {
@@ -160,7 +177,8 @@ private fun createTargets(
         var possibleLocations = possibleMethods.flatMap { it.instList.filter { it.lineNumber == entry.line } }
 
         if (possibleLocations.isEmpty()) {
-            TODO("No locations")
+            // todo: no locations
+            continue
         }
 
 //        val preferredInstructions = possibleLocations.filter { it.callExpr != null || it is JcThrowInst }
@@ -194,7 +212,7 @@ private fun createTargets(
         parent.addChild(CrashReproductionExceptionTarget(exception))
     }
 
-    return requireNotNull(initialTargets)
+    return initialTargets
 }
 
 private class CrashReproductionAnalysis(
@@ -226,17 +244,20 @@ private class CrashReproductionAnalysis(
             }
         }
 
-        logger.debug { state.targets.toList() }
+        logger.info {
+            state.currentStatement.printInst().padEnd(120) + "@@@  " + "${state.targets.toList()}"
+        }
     }
 }
 
-private fun reproduceCrash(cp: JcClasspath, targets: List<CrashReproductionTarget>) {
+private fun reproduceCrash(cp: JcClasspath, targets: List<CrashReproductionTarget>): List<JcState> {
     val options = UMachineOptions(
         targetSearchDepth = 2u, // high values (e.g. 10) significantly degrade performance
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED_RANDOM),
         stopOnTargetsReached = true,
         stopOnCoverage = -1,
-        timeoutMs = 120_000
+        timeoutMs = 120_000,
+        solverUseSoftConstraints = false
     )
     val crashReproduction = CrashReproductionAnalysis(targets.toMutableList())
 
@@ -246,5 +267,5 @@ private fun reproduceCrash(cp: JcClasspath, targets: List<CrashReproductionTarge
         machine.analyze(entrypoint, targets)
     }
 
-    println("Found states: ${crashReproduction.collectedStates.size}")
+    return crashReproduction.collectedStates
 }
