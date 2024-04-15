@@ -167,7 +167,7 @@ fun KtFile.getAvailableValuesToInsertIn(
 
 fun PsiElement.addAfterThisWithWhitespace(psiElement: PsiElement, whiteSpace: String): PsiElement {
     return try {
-        val placeToInsert = this.allChildren.lastOrNull() ?: this
+        val placeToInsert = this
         placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
         val res = placeToInsert.add(psiElement)
         placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))

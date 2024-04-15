@@ -1,7 +1,10 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java
 
+import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.impl.source.PsiClassImpl
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
@@ -10,6 +13,7 @@ import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
+import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
@@ -40,8 +44,7 @@ class TemplatesInserter : Transformation() {
     }
 
     private fun tryToTransform(): Boolean {
-        val randomTemplate = (TemplatesDB.getTemplatesForFeature("PATH_SENSITIVITY"))!![1] ?: return false
-//        val randomTemplate = (TemplatesDB.getTemplatesForFeature("PATH_SENSITIVITY"))?.randomOrNull() ?: return false
+        val randomTemplate = (TemplatesDB.getTemplatesForFeature("CYCLES"))?.randomOrNull() ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
         val regex = Regex("""~\[(.*?)\]~""")
@@ -58,8 +61,14 @@ class TemplatesInserter : Transformation() {
                 (PSICreator.getPsiForJava("$oldImportList\n$additionalImports") as PsiJavaFile).importList!!
             (file as PsiJavaFile).importList?.replaceThis(newImportList) ?: return false
         }
-        println("TEMPLATES = ${parsedTemplates.templates.size}")
-        val randomTemplateBody = parsedTemplates.templates[1]
+
+        val (auxMethods, randomTemplateBody) = parsedTemplates.templates.randomOrNull() ?: return false
+        for (auxMethod in auxMethods) {
+            val psiClass = randomPlaceToInsert.parents.find { it is PsiClass } as? PsiClassImpl ?: return false
+            val m = Factory.javaPsiFactory.createMethodFromText(auxMethod, null)
+            val lastMethod = psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass } ?: return false
+            lastMethod.addAfterThisWithWhitespace(m, "\n\n")
+        }
         val newText = regex.replace(randomTemplateBody) { result ->
             val hole = result.groupValues.getOrNull(1) ?: throw IllegalArgumentException()
             val isVar = hole.startsWith("VAR_")
@@ -144,15 +153,29 @@ class TemplatesInserter : Transformation() {
         val mainClassTemplateBody = regexForMainClass.find(template)?.groupValues?.lastOrNull() ?: return null
         val importsRegex = Regex("""~import (.*?)~""", RegexOption.DOT_MATCHES_ALL)
         val templateRegex = Regex("""~template start~\s*(.*?)\s*~template end~""", RegexOption.DOT_MATCHES_ALL)
+        val auxMethodsRegex =
+            Regex("""~function\s+(\S+)\s+start~\s*(.*?)\s*~function\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
         importsRegex.findAll(mainClassTemplateBody).forEach { imports.add(it.groupValues.last()) }
         val templatesBodies =
-            templateRegex.findAll(mainClassTemplateBody).map { it.groupValues.last() }.toList()
+            templateRegex.findAll(mainClassTemplateBody)
+                .map {
+                    val body = it.groupValues.last()
+                    val auxMethods = auxMethodsRegex.findAll(body).map { it.groupValues.last() }.toList()
+                    val templateBody = body.substringAfterLast("end~\n")
+                    TemplateBody(auxMethods, templateBody)
+                }
+                .toList()
         return Template(auxClasses, imports, templatesBodies)
     }
 
     private class Template(
         val auxClasses: List<Pair<String, String>>,
         val imports: List<String>,
-        val templates: List<String>
+        val templates: List<TemplateBody>
+    )
+
+    private data class TemplateBody(
+        val auxMethods: List<String>,
+        val templateBody: String
     )
 }

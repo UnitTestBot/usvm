@@ -1,0 +1,141 @@
+~main class start~
+~import java.util.*;~
+~template start~
+for (int i = 0; i < 0; i++) {
+ ~[String]~ = ~[String]~.replace('/', '.');
+}
+~template end~
+~template start~
+for (int i = ~[int]~; i < ~[int]~; i++) {
+ ~[String]~ = ~[String]~.replace('/', '.');
+}
+~template end~
+~template start~
+for (int i = ~[int]~; i >= ~[int]~; i--) {
+ ~[String]~ = ~[String]~.replace('/', '.');
+}
+~template end~
+~template start~
+for (int i = ~[int]~; i >= ~[int]~; i += ~[int]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+for (~[String]~ ~[el]~ : ~[Collection]~) {
+     ~[String]~ = ~[String]~ + ~[el]~;
+}
+~template end~
+~template start~
+~template start~
+for (~[int]~ ~[el]~ : ~[Collection]~) {
+      if (el > ~[int]~) {
+        ~[String]~ = ~[CONST_String]~;
+     }
+}
+~template end~
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    for (int j = 0; j < ~[int]~; j++) {
+        if (i == ~[int]~ && j == ~[int]~) {
+            ~[String]~ = ~[String]~;
+        }
+    }
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[String]~.length(); i++) {
+    char ch = ~[String]~.charAt(i);
+    ~[String]~ = ~[String]~ + ch;
+}
+~template end~
+~template start~
+for (int i = 0; i < ~[int]~; i++) {
+    if (i % ~[int]~ != 0) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+for (int i = 0; ~[boolean]~; i++) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+String bar = ~[String]~;
+try {
+	for (int i = 0; i < 0; i++) {
+  	  bar = ~[String]~;
+	}
+} catch(Throwable e) {
+	bar = ~[String]~.replace('/', '.');
+} finally {
+	bar = "123";
+}
+~template end~
+~template start~
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i < 9) {
+       		 continue;
+   		 }
+   		 if (i == 9) {
+       		 break;
+   		 }
+   		 ~[String]~ = "123";
+   	 }
+~template end~
+~template start~
+   	 String bar = ~[String]~;
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i < 9) {
+       		 continue;
+   		 }
+   		 if (i == 9) {
+       		 try {
+           		 bar = "123";
+       		 } catch (Throwable e) {
+           		 ~[String]~ = bar;
+       		 }
+   		 }
+   	 }
+~template end~
+~template start~
+   	 for (int i = 0; i < 10; i++) {
+   		 if (i == 5) {
+       		 break;
+   		 }
+   		 if (i > 5) {
+       		 ~[String]~ = "";
+   		 }
+   	 }
+~template end~
+~template start~
+for(int i = ~[int]~; i < 6; ++i) {
+         ~[ArrayList]~.add(~[int]~);
+         if (~[ArrayList]~.size() > 23) {
+            ~[String]~ = "123";
+            break;
+         }
+}
+~template end~
+~template start~
+for(int i = 10; ~[int]~ < 6; ++~[int]~) {
+         ~[ArrayList]~.add(~[int]~);
+         if (~[ArrayList]~.size() > ~[int]~) {
+            ~[String]~ = "123";
+            break;
+         }
+}
+~template end~
+~template start~
+for(char i = 'g'; 'b' < ~[char]~; ~[char]~ = (char)(~[char]~ + -1)) {
+         ~[ArrayList]~.add(~[char]~);
+         if (~[ArrayList]~.size() > 23) {
+            ~[String]~ = "123";
+            break;
+         }
+}
+~template end~
+~main class end~

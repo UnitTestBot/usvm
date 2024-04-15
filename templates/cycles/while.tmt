@@ -1,0 +1,78 @@
+~main class start~
+~import java.util.*;~
+~template start~
+while (~[boolean]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+while (~[boolean]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~template start~
+boolean flag = true;
+while (flag) {
+    if (~[boolean]~) {
+        ~[flag]~ = false;
+    }
+}
+if (!flag) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+int index = ~[int]~;
+while (index < ~[int]~) {
+    ~[String]~ = ~[String]~;
+    index++;
+}
+~template end~
+~template start~
+int index = ~[int]~;
+while (index < ~[int]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    }
+    index++;
+}
+~template end~
+~template start~
+int index = ~[int]~;
+while (index < ~[int]~) {
+    if (~[boolean]~) {
+        ~[String]~ = ~[String]~;
+    }
+    index += 2;
+}
+~template end~
+~template start~
+int index = 0;
+while (~[index]~ < ~[Collection]~.size()) {
+    if(~[Collection]~.get(~[int]~).equals(~[Object]~)) {
+        ~[String]~ = ~[String]~;
+    }
+    ~[index]~++;
+}
+~template end~
+~template start~
+int index = ~[int]~;
+while (~[boolean]~ && index < ~[int]~) {
+    ~[String]~ = ~[String]~;
+    index += ~[int]~;
+}
+~template end~
+~template start~
+int value = ~[int]~;
+int prevValue = 0;
+while (value != prevValue) {
+    ~[previous_value]~ = ~[value]~;
+    value = ~[int]~;
+    if (value > previous_value / 2) {
+        ~[String]~ = ~[String]~;
+    }
+}
+~template end~
+~main class end~

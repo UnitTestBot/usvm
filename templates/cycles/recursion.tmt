@@ -1,0 +1,215 @@
+~main class start~
+~import java.util.*;~
+~template start~
+~function func1 start~
+public String func1(int value, String param) {
+    if (param.length() == value) {
+        return param;
+    } else if (value > param.length()) {
+        func1(--value, param);
+    } else {
+        return "123";
+    }
+    return "";
+}
+~function func1 end~
+
+~[String]~ = func1(~[int]~, ~[String]~);
+~template end~
+~template start~
+~function func1 start~
+public String func1(int value, String param) {
+    if (param.length() == value) {
+        return param;
+    } else if (value > param.length()) {
+        func1(--value, param);
+    } else {
+        return "123";
+    }
+    return "";
+}
+~function func1 end~
+
+~[String]~ = func1(~[int]~, ~[VAR_String]~);
+~template end~
+
+~template start~
+~function func1 start~
+public String func1(int value, String param) {
+    if (param.length() == value) {
+        return param;
+    } else if (value > param.length()) {
+        param = func2(param);
+        return func1(value, param);
+    } else {
+        return "123";
+    }
+    return "";
+}
+~function func1 end~
+
+~function func2 start~
+public String func2(String param) {
+    return param + "1";
+}
+~function func2 end~
+
+~[String]~ = func1(~[int]~, ~[VAR_String]~);
+~template end~
+~template start~
+
+~function countVowels start~
+    public int countVowels(String s) {
+        if (s.isEmpty()) {
+            return 0;
+        } else {
+            char c = s.charAt(0);
+            if (isVowel(c)) {
+                return 1 + countConsonants(s.substring(1));
+            } else {
+                return countVowels(s.substring(1));
+            }
+        }
+    }
+
+~function countVowels end~
+
+~function countConsonants start~
+
+    public int countConsonants(String s) {
+        if (s.isEmpty()) {
+            return 0;
+        } else {
+            char c = s.charAt(0);
+            if (isVowel(c)) {
+                return countConsonants(s.substring(1));
+            } else {
+                return 1 + countVowels(s.substring(1));
+            }
+        }
+    }
+~function countConsonants end~
+
+~function isVowel start~
+    public boolean isVowel(char c) {
+        return "aeiou".contains(Character.toString(c).toLowerCase());
+    }
+~function isVowel end~
+
+if (countConsonants(~[String]~) == ~[int]~) {
+    ~[String]~ = ~[CONST_String]~;
+}
+
+~template end~
+
+~template start~
+
+~function countVowels start~
+    public int countVowels(String s) {
+        if (s.isEmpty()) {
+            return 0;
+        } else {
+            char c = s.charAt(0);
+            if (isVowel(c)) {
+                return 1 + countConsonants(s.substring(1));
+            } else {
+                return countVowels(s.substring(1));
+            }
+        }
+    }
+
+~function countVowels end~
+
+~function countConsonants start~
+
+    public int countConsonants(String s) {
+        if (s.isEmpty()) {
+            return 0;
+        } else {
+            char c = s.charAt(0);
+            if (isVowel(c)) {
+                return countConsonants(s.substring(1));
+            } else {
+                return 1 + countVowels(s.substring(1));
+            }
+        }
+    }
+~function countConsonants end~
+
+~function isVowel start~
+    public boolean isVowel(char c) {
+        return "aeiou".contains(Character.toString(c).toLowerCase());
+    }
+~function isVowel end~
+
+if (countVowels(~[VAR_String]~) != 0) {
+    ~[String]~ = ~[String]~;
+}
+
+~template end~
+
+~template start~
+~function compareStrings start~
+    public int compareStrings(String s1, String s2) {
+        if (s1.isEmpty()) {
+            return s2.isEmpty() ? 0 : -1;
+        } else if (s2.isEmpty()) {
+            return 1;
+        } else if (s1.charAt(0) < s2.charAt(0)) {
+            return -1;
+        } else if (s1.charAt(0) > s2.charAt(0)) {
+            return 1;
+        } else {
+            return compareStrings(s1.substring(1), s2.substring(1));
+        }
+    }
+~function compareStrings end~
+~function isLessThan start~
+    public boolean isLessThan(String s1, String s2) {
+        return compareStrings(s1, s2) < 0;
+    }
+~function isLessThan end~
+~function isGreaterThan start~
+    public boolean isGreaterThan(String s1, String s2) {
+        return compareStrings(s1, s2) > 0;
+    }
+~function isGreaterThan end~
+
+if (compareStrings(~[String]~, ~[String]~)) {
+    ~[String]~ = ~[CONST_String]~;
+}
+~template end~
+
+~template start~
+~function compareStrings start~
+    public int compareStrings(String s1, String s2) {
+        if (s1.isEmpty()) {
+            return s2.isEmpty() ? 0 : -1;
+        } else if (s2.isEmpty()) {
+            return 1;
+        } else if (s1.charAt(0) < s2.charAt(0)) {
+            return -1;
+        } else if (s1.charAt(0) > s2.charAt(0)) {
+            return 1;
+        } else {
+            return compareStrings(s1.substring(1), s2.substring(1));
+        }
+    }
+~function compareStrings end~
+~function isLessThan start~
+    public boolean isLessThan(String s1, String s2) {
+        return compareStrings(s1, s2) < 0;
+    }
+~function isLessThan end~
+~function isGreaterThan start~
+    public boolean isGreaterThan(String s1, String s2) {
+        return compareStrings(s1, s2) > 0;
+    }
+~function isGreaterThan end~
+
+if (compareStrings(~[VAR_String]~, ~[VAR_String]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+
+~main class end~

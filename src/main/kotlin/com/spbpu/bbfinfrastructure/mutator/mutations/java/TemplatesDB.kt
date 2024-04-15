@@ -7,6 +7,7 @@ object TemplatesDB {
     private val featureToTemplates = mutableMapOf<String, String>(
         "CONSTRUCTORS" to "templates/constructors",
         "PATH_SENSITIVITY" to "templates/pathSensitivity",
+        "CYCLES" to "templates/cycles"
     )
 
 
