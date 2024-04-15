@@ -36,6 +36,8 @@ typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaCont
 class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
     private val specializer: PandaStatementSpecializer = PandaStatementSpecializer(::mapLocalToIdxMapper)
 
+    private val enableForksForPrimitiveOperations = true
+
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
 
     override fun step(state: PandaState): StepResult<PandaState> {
@@ -47,10 +49,12 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             TODO()
         }
 
-        val somethingWasSpecialized = specializer.specialize(scope, stmt)
+        if (enableForksForPrimitiveOperations) {
+            val somethingWasSpecialized = specializer.specialize(scope, stmt)
 
-        if (somethingWasSpecialized) {
-            return scope.stepResult()
+            if (somethingWasSpecialized) {
+                return scope.stepResult()
+            }
         }
 
         when (stmt) {

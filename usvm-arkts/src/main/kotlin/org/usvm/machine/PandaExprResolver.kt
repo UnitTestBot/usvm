@@ -283,22 +283,30 @@ class PandaExprResolver(
         pandaBinaryOperationAuxiliaryExpr: PandaBinaryOperationAuxiliaryExpr,
     ): PandaUExprWrapper? {
         val pandaUExprWrapper = when (pandaBinaryOperationAuxiliaryExpr) {
-            is PandaBinaryOperationAuxiliaryExpr.BooleanToBoolean -> resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            is PandaBinaryOperationAuxiliaryExpr.BooleanToBoolean -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
             is PandaBinaryOperationAuxiliaryExpr.BooleanToNumber -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.BooleanToObjects -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.BooleanToString -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.NumberToBoolean -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.NumberToNumber -> resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            is PandaBinaryOperationAuxiliaryExpr.NumberToNumber -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
             is PandaBinaryOperationAuxiliaryExpr.NumberToObject -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.NumberToString -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.ObjectToBoolean -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.ObjectToNumber -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.ObjectToObjects -> resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            is PandaBinaryOperationAuxiliaryExpr.ObjectToObjects -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
             is PandaBinaryOperationAuxiliaryExpr.ObjectToString -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.StringToBoolean -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.StringToNumber -> TODO()
             is PandaBinaryOperationAuxiliaryExpr.StringToObject -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.StringToString -> resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            is PandaBinaryOperationAuxiliaryExpr.StringToString -> {
+                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
+            }
         }
         return pandaUExprWrapper
     }
