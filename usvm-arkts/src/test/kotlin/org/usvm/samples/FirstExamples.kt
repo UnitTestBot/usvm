@@ -35,4 +35,12 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             emptyArray()
         )
     }
+
+    @Test
+    fun testMinValue() {
+        discoverProperties(
+            Triple("MinValue", "findMinValue", 1),
+            emptyArray()
+        )
+    }
 }
