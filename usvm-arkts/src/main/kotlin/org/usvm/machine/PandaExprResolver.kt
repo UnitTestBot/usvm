@@ -44,6 +44,7 @@ import org.jacodb.panda.dynamic.api.TODOConstant
 import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
@@ -82,7 +83,13 @@ class PandaExprResolver(
         lhv: PandaValue,
         rhv: PandaValue
     ) : UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(lhs, rhs)
+        operator(
+            lhs,
+            rhs,
+            typeExtractor = { ref -> scope.calcOnState { memory.typeStreamOf(ref) } },
+            fieldReader = { fieldLValue -> scope.calcOnState { memory.read(fieldLValue) } },
+            scope
+        )
     }
 
     private fun resolveBinaryOperator(

@@ -5,6 +5,7 @@ import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaExpr
 import org.jacodb.panda.dynamic.api.PandaExprVisitor
 import org.jacodb.panda.dynamic.api.PandaNumberType
+import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaType
 import org.jacodb.panda.dynamic.api.PandaValue
 
@@ -43,21 +44,35 @@ sealed class PandaBinaryOperationAuxiliaryExpr(val originalExpr: PandaBinaryExpr
             expr: PandaBinaryExpr,
             fst: PandaType,
             snd: PandaType,
-        ) : PandaExpr {
+        ): PandaExpr {
             return when (fst) {
                 is PandaNumberType -> when (snd) {
                     is PandaNumberType -> NumberToNumber(expr)
                     is PandaBoolType -> NumberToBoolean(expr)
+                    is PandaStringType -> NumberToString(expr)
                     else -> NumberToObject(expr)
-//                is PandaStringConstant -> NumberToNumberInst(stmt)
                 }
+
                 is PandaBoolType -> when (snd) {
                     is PandaNumberType -> BooleanToNumber(expr)
                     is PandaBoolType -> BooleanToBoolean(expr)
+                    is PandaStringType -> BooleanToString(expr)
                     else -> BooleanToObjects(expr)
-//                is PandaStringConstant -> NumberToNumberInst(stmt)
                 }
-                else -> TODO()
+
+                is PandaStringType -> when (snd) {
+                    is PandaNumberType -> StringToNumber(expr)
+                    is PandaBoolType -> StringToBoolean(expr)
+                    is PandaStringType -> StringToString(expr)
+                    else -> StringToObject(expr)
+                }
+
+                else -> when (snd) {
+                    is PandaNumberType -> ObjectToNumber(expr)
+                    is PandaBoolType -> ObjectToBoolean(expr)
+                    is PandaStringType -> ObjectToString(expr)
+                    else -> ObjectToObjects(expr)
+                }
             }
         }
     }

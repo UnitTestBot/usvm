@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import io.ksmt.expr.KInterpretedValue
 import io.ksmt.utils.asExpr
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallInst
@@ -17,7 +18,9 @@ import org.jacodb.panda.dynamic.api.PandaInstVisitor
 import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaNumberType
+import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaReturnInst
+import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaThrowInst
 import org.jacodb.panda.dynamic.api.TODOInst
 import org.usvm.UBoolExpr
@@ -29,7 +32,7 @@ class PandaStatementSpecializer(
     private var stepScope: PandaStepScope? = null
     private var somethingWasSpecialized: Boolean = false
 
-    fun specialize(scope: PandaStepScope, inst: PandaInst): Boolean{
+    fun specialize(scope: PandaStepScope, inst: PandaInst): Boolean {
         stepScope = scope
 
         inst.accept(this)
@@ -73,7 +76,7 @@ class PandaStatementSpecializer(
 
         val stepScope = requireNotNull(stepScope)
 
-        val types = listOf(PandaNumberType, PandaBoolType /*PandaStringType*/)
+        val types = listOf(PandaNumberType, PandaBoolType, PandaStringType, PandaObjectType)
 
         val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper)
 
@@ -81,6 +84,18 @@ class PandaStatementSpecializer(
             val (lhs, rhs) = rhv.operands.let {
                 exprResolver.resolvePandaExpr(it.first()) to exprResolver.resolvePandaExpr(it.last())
             }
+
+            if (lhs?.uExpr is KInterpretedValue && rhs?.uExpr is KInterpretedValue) {
+                val fstType = ctx.nonRefSortToType(lhs.uExpr.sort)
+                val sndType = ctx.nonRefSortToType(lhs.uExpr.sort)
+
+                return@calcOnState listOf(ctx.trueExpr to { state: PandaState ->
+                    val newExpr = PandaBinaryOperationAuxiliaryExpr.specializeBinaryOperation(rhv, fstType, sndType)
+                    state.newStmt(PandaAssignInst(inst.location, inst.lhv, newExpr))
+                })
+            }
+
+            // TODO partial cases
 
             val lhsRef = lhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
             val rhsRef = rhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
