@@ -3,6 +3,7 @@ package org.usvm.samples
 import org.jacodb.panda.dynamic.api.PandaAnyType
 import org.jacodb.panda.dynamic.api.PandaType
 import org.jacodb.panda.dynamic.parser.IRParser
+import org.jacodb.panda.dynamic.parser.TSParser
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
@@ -50,8 +51,14 @@ open class PandaMethodTestRunner
         get() = { id, options ->
             // TODO Automatic parser?????
             val jsonWithoutExtension = "/samples/${id.first}.json"
+            val tsWithoutExtension = "/samples/${id.first}.ts"
+            // TODO: Make tsFile parsing here optional
+            val sampleTsFilePath = javaClass.getResource(tsWithoutExtension)?.toURI()!!
             val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
-            val parser = IRParser(sampleFilePath)
+
+            val tsParser = TSParser(sampleTsFilePath)
+            val tsFunctions = tsParser.collectFunctions()
+            val parser = IRParser(sampleFilePath, tsFunctions)
             val project = parser.getProject()
 
             // TODO class name??????
