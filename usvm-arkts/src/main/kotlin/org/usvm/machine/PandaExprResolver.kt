@@ -178,11 +178,6 @@ class PandaExprResolver(
         resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
     }
 
-    override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? {
-        TODO("Not yet implemented")
-    }
-
-
     override fun visitPandaFieldRef(expr: PandaFieldRef): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }

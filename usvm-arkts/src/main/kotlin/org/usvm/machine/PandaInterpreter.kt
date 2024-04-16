@@ -36,7 +36,7 @@ typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaCont
 class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
     private val specializer: PandaStatementSpecializer = PandaStatementSpecializer(::mapLocalToIdxMapper)
 
-    private val enableForksForPrimitiveOperations = true
+    private val enableForksForPrimitiveOperations = false
 
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
 
