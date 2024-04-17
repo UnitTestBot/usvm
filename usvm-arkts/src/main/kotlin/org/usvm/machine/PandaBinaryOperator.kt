@@ -6,18 +6,18 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.panda.dynamic.api.PandaBoolType
-import org.jacodb.panda.dynamic.api.PandaField
 import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.jacodb.panda.dynamic.api.PandaNumberType
 import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaType
+import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collection.field.UFieldLValue
+import org.usvm.memory.ULValue
 import org.usvm.types.UTypeStream
 import org.usvm.types.single
 
@@ -41,6 +41,9 @@ sealed class PandaBinaryOperator(
     )
 
     object Mul : PandaBinaryOperator(
+        onBool = { lhs, rhs ->
+            mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs.toNumber(), rhs.toNumber())
+        },
         onNumber = { lhs, rhs -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
@@ -66,7 +69,7 @@ sealed class PandaBinaryOperator(
         lhs: PandaUExprWrapper,
         rhs: PandaUExprWrapper,
         typeExtractor: (UConcreteHeapRef) -> UTypeStream<PandaType>,
-        fieldReader: (UFieldLValue<PandaField, USort>) -> UExpr<out USort>,
+        fieldReader: (ULValue<*, out USort>) -> UExpr<out USort>,
         scope: PandaStepScope,
     ): UExpr<out USort> {
         var lhsUExpr = lhs.uExpr
@@ -137,7 +140,8 @@ sealed class PandaBinaryOperator(
                     falseBranch = mkIte(
                         condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
                         trueBranch = run {
-                            error("TODO")
+                            val value = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, ctx.stringSort)) }
+                            commonAdditionalWork(lhs, value, this)
                         },
                         falseBranch = rhs
                     )
@@ -166,8 +170,11 @@ sealed class PandaBinaryOperator(
                     },
                     falseBranch = mkIte(
                         condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaStringType) },
-                        trueBranch = run { error("TODO") },
-                        falseBranch = lhs
+                        trueBranch = run {
+                            val value = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort)) }
+                            commonAdditionalWork(value, rhs, this)
+                        },
+                        falseBranch = commonAdditionalWork(lhs, rhs, scope)
                     )
                 )
             )
@@ -184,19 +191,27 @@ sealed class PandaBinaryOperator(
             fp64Sort -> when (rhs.sort) {
                 fp64Sort -> numberToNumber(lhs.cast(), rhs.cast(), scope)
                 boolSort -> numberToBool(lhs.cast(), rhs.cast(), scope)
-                /* string????? */
+                stringSort -> numberToString(lhs.cast(), rhs.cast(), scope)
                 else -> numberToObject(lhs.cast(), rhs.cast(), scope)
             }
+
             boolSort -> when (rhs.sort) {
                 fp64Sort -> boolToNumber(lhs.cast(), rhs.cast(), scope)
                 boolSort -> boolToBool(lhs.cast(), rhs.cast(), scope)
-                /* string????? */
+                stringSort -> boolToString(lhs.cast(), rhs.cast(), scope)
                 else -> boolToObject(lhs.cast(), rhs.cast(), scope)
+            }
+
+            stringSort -> when (rhs.sort) {
+                fp64Sort -> stringToNumber(lhs.cast(), rhs.cast(), scope)
+                boolSort -> stringToBool(lhs.cast(), rhs.cast(), scope)
+                stringSort -> stringToString(lhs.cast(), rhs.cast(), scope)
+                else -> stringToObject(lhs.cast(), rhs.cast(), scope)
             }
             else -> when (rhs.sort) {
                 fp64Sort -> objectToNumber(lhs.cast(), rhs.cast(), scope)
                 boolSort -> objectToBool(lhs.cast(), rhs.cast(), scope)
-                /* string????? */
+                stringSort -> objectToString(lhs.cast(), rhs.cast(), scope)
                 else -> objectToObject(lhs.cast(), rhs.cast(), scope)
             }
         }
@@ -221,15 +236,26 @@ sealed class PandaBinaryOperator(
                         falseBranch = mkIte(
                             condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
                             trueBranch = run {
-                                val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
+                                val rhsValue =
+                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
                                 commonAdditionalWork(lhsValue, rhsValue, this)
                             },
-                            falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-//                            falseBranch = mkIte(
-//                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-//                                trueBranch = run { error("TODO") },
-//                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-//                            )
+//                            falseBranch = commonAdditionalWork(lhsValue, rhs, this)
+                            falseBranch = mkIte(
+                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
+                                trueBranch = run {
+                                    val rhsValue = calcOnState {
+                                        memory.read(
+                                            ctx.constructAuxiliaryFieldLValue(
+                                                rhs,
+                                                ctx.stringSort
+                                            )
+                                        )
+                                    }
+                                    commonAdditionalWork(lhsValue, rhsValue, this)
+                                },
+                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
+                            )
                         )
                     )
                 },
@@ -240,47 +266,112 @@ sealed class PandaBinaryOperator(
                         mkIte(
                             condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
                             trueBranch = run {
-                                val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
+                                val rhsValue =
+                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
                                 commonAdditionalWork(lhsValue, rhsValue, this)
                             },
                             falseBranch = mkIte(
                                 condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
                                 trueBranch = run {
-                                    val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
+                                    val rhsValue =
+                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
                                     commonAdditionalWork(lhsValue, rhsValue, this)
                                 },
-//                                falseBranch = mkIte(
-//                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-//                                    trueBranch = run { error("TODO") },
-//                                    falseBranch = commonAdditionalWork(lhsValue, rhs, scope)
-//                                )
-                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
+                                falseBranch = mkIte(
+                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
+                                    trueBranch = run {
+                                        val rhsValue = calcOnState {
+                                            memory.read(
+                                                ctx.constructAuxiliaryFieldLValue(
+                                                    rhs,
+                                                    ctx.stringSort
+                                                )
+                                            )
+                                        }
+                                        commonAdditionalWork(lhsValue, rhsValue, this)
+                                    },
+                                    falseBranch = commonAdditionalWork(lhsValue, rhs, scope)
+                                )
+//                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
                             )
                         )
                     },
                     falseBranch = mkIte(
                         condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaStringType) },
-                        trueBranch = run { error("TODO") },
+                        trueBranch = run {
+                            val lhsValue =
+                                calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort)) }
+                            mkIte(
+                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
+                                trueBranch = run {
+                                    val rhsValue =
+                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
+                                    commonAdditionalWork(lhsValue, rhsValue, this)
+                                },
+                                falseBranch = mkIte(
+                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
+                                    trueBranch = run {
+                                        val rhsValue = calcOnState {
+                                            memory.read(
+                                                ctx.constructAuxiliaryFieldLValue(
+                                                    rhs,
+                                                    boolSort
+                                                )
+                                            )
+                                        }
+                                        commonAdditionalWork(lhsValue, rhsValue, this)
+                                    },
+//                            falseBranch = commonAdditionalWork(lhsValue, rhs, this)
+                                    falseBranch = mkIte(
+                                        condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
+                                        trueBranch = run {
+                                            val rhsValue = calcOnState {
+                                                memory.read(
+                                                    ctx.constructAuxiliaryFieldLValue(
+                                                        rhs,
+                                                        ctx.stringSort
+                                                    )
+                                                )
+                                            }
+                                            commonAdditionalWork(lhsValue, rhsValue, this)
+                                        },
+                                        falseBranch = commonAdditionalWork(lhsValue, rhs, this)
+                                    )
+                                )
+                            )
+                        },
                         falseBranch = mkIte(
                             condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
                             trueBranch = run {
-                                val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, fp64Sort)) }
+                                val rhsValue =
+                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, fp64Sort)) }
                                 commonAdditionalWork(lhs, rhsValue, this)
                             },
                             falseBranch = mkIte(
                                 condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
                                 trueBranch = run {
-                                    val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
+                                    val rhsValue =
+                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
                                     commonAdditionalWork(lhs, rhsValue, this)
                                 },
-//                                falseBranch = mkIte(
-//                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-//                                    trueBranch = run { error("TODO") },
-//                                    falseBranch = commonAdditionalWork(lhs, rhs, scope)
-//                                )
-                                falseBranch = run {
-                                    commonAdditionalWork(lhs, rhs, this)
-                                }
+                                falseBranch = mkIte(
+                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
+                                    trueBranch = run {
+                                        val rhsValue = calcOnState {
+                                            memory.read(
+                                                ctx.constructAuxiliaryFieldLValue(
+                                                    rhs,
+                                                    ctx.stringSort
+                                                )
+                                            )
+                                        }
+                                        commonAdditionalWork(lhs, rhsValue, this)
+                                    },
+                                    falseBranch = commonAdditionalWork(lhs, rhs, scope)
+                                )
+//                                falseBranch = run {
+//                                    commonAdditionalWork(lhs, rhs, this)
+//                                }
                             )
                         )
                     )
@@ -305,15 +396,20 @@ sealed class PandaBinaryOperator(
     }
 
     private fun numberToString(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
-    private fun numberToObject(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+    // TODO ignore args completely????
+    private fun numberToObject(
+        lhs: UExpr<KFp64Sort>,
+        rhs: UExpr<UAddressSort>,
+        scope: PandaStepScope,
+    ): UConcreteHeapRef {
+        return createFakeString(scope)
     }
 
-    private fun boolToNumber(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+    private fun boolToNumber(lhs: UExpr<KBoolSort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
+        return numberToBool(rhs, lhs, scope)
     }
 
     private fun boolToBool(lhs: UExpr<KBoolSort>, rhs: UExpr<KBoolSort>, scope: PandaStepScope): UConcreteHeapRef {
@@ -324,43 +420,50 @@ sealed class PandaBinaryOperator(
     }
 
     private fun boolToString(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun boolToObject(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun stringToNumber(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun stringToBool(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun stringToString(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun stringToObject(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun objectToNumber(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun objectToBool(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun objectToString(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
     }
 
     private fun objectToObject(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        TODO()
+        return createFakeString(scope)
+    }
+
+    private fun createFakeString(scope: PandaStepScope): UConcreteHeapRef {
+        val value = scope.calcOnState { memory.mocker.createMockSymbol(trackedLiteral = null, ctx.stringSort) }
+        val address = scope.calcOnState { memory.allocConcrete(PandaStringType) }
+        scope.doWithState { memory.write(ctx.constructAuxiliaryFieldLValue(address, ctx.stringSort), value) }
+        return address
     }
 }
 
