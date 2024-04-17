@@ -47,7 +47,7 @@ class TemplatesInserter : Transformation() {
     }
 
     private fun tryToTransform(): Boolean {
-        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature.dir) ?: return false
+        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature) ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)

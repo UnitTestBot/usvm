@@ -6,29 +6,19 @@ import java.nio.file.Paths
 
 object TemplatesDB {
 
-    private val featureToTemplates = mutableMapOf<String, String>(
-        "CONSTRUCTORS" to "templates/constructors",
-        "PATH_SENSITIVITY" to "templates/pathSensitivity",
-        "CYCLES" to "templates/cycles",
-        "RANDOM" to "templates/"
-    )
-
-
     val manualTemplates = mutableListOf<String>()
     val minedTemplates = mutableListOf<String>()
     val kotlinTemplates = mutableListOf<String>()
     val testTemplates = mutableListOf<String>()
 
 
-    fun getTemplatesForFeature(featureName: String): List<String>? {
-        val dirToTemplates = featureToTemplates[featureName] ?: return null
-        val templates = getTemplates(dirToTemplates) ?: return null
+    fun getTemplatesForFeature(feature: TestingFeature): List<String>? {
+        val templates = getTemplates(feature.dir) ?: return null
         return templates.map { it.readText() }
     }
 
-    fun getRandomTemplateForFeature(featureName: String): Pair<String, String>? {
-        val dirToTemplates = featureToTemplates[featureName] ?: return null
-        val templates = getTemplates(dirToTemplates) ?: return null
+    fun getRandomTemplateForFeature(feature: TestingFeature): Pair<String, String>? {
+        val templates = getTemplates(feature.dir) ?: return null
         return templates.randomOrNull()?.let { it.readText() to it.path }
     }
 
