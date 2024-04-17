@@ -25,7 +25,7 @@ class TemplatesInserter : Transformation() {
     private var addedProjects = 0
     private val numberOfProjectsToCheck = 10
     private val currentMutationChain = mutableListOf<MutationInfo>()
-    private val testingFeature = "CONSTRUCTORS"
+    private val testingFeature = "RANDOM"
 
 
     override fun transform() {

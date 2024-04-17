@@ -1,13 +1,17 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlin.streams.toList
 
 object TemplatesDB {
 
     private val featureToTemplates = mutableMapOf<String, String>(
         "CONSTRUCTORS" to "templates/constructors",
         "PATH_SENSITIVITY" to "templates/pathSensitivity",
-        "CYCLES" to "templates/cycles"
+        "CYCLES" to "templates/cycles",
+        "RANDOM" to "templates/"
     )
 
 
@@ -19,13 +23,22 @@ object TemplatesDB {
 
     fun getTemplatesForFeature(featureName: String): List<String>? {
         val dirToTemplates = featureToTemplates[featureName] ?: return null
-        return File(dirToTemplates).listFiles()?.map { it.readText() }
+        val templates = getTemplates(dirToTemplates) ?: return null
+        return templates.map { it.readText() }
     }
 
     fun getRandomTemplateForFeature(featureName: String): Pair<String, String>? {
         val dirToTemplates = featureToTemplates[featureName] ?: return null
-        return File(dirToTemplates).listFiles()?.randomOrNull()?.let { it.readText() to it.path }
+        val templates = getTemplates(dirToTemplates) ?: return null
+        return templates.randomOrNull()?.let { it.readText() to it.path }
     }
+
+    private fun getTemplates(dir: String) =
+        Files.walk(Paths.get(dir))
+            .map { it.toFile() }
+            .filter { it.isFile && it.extension == "tmt" }
+            .toList().ifEmpty { null }
+
 
     init {
         File("manualTemplates.txt").readText().split("---------").forEach {
