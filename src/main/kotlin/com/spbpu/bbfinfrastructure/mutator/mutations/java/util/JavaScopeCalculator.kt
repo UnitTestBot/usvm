@@ -1,14 +1,12 @@
-package com.spbpu.bbfinfrastructure.mutator.mutations.java
+package com.spbpu.bbfinfrastructure.mutator.mutations.java.util
 
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.PsiMethodImpl
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.util.JavaTypeMappings
 import com.spbpu.bbfinfrastructure.util.getAllChildrenOfCurLevel
 import com.spbpu.bbfinfrastructure.util.getAllChildrenWithItself
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.resolve.BindingContext
 
 class JavaScopeCalculator(private val file: PsiFile, private val project: Project) {
 

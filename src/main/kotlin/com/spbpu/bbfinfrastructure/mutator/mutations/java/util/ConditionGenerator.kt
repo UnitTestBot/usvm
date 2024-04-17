@@ -1,4 +1,4 @@
-package com.spbpu.bbfinfrastructure.mutator.mutations.java
+package com.spbpu.bbfinfrastructure.mutator.mutations.java.util
 
 import com.spbpu.bbfinfrastructure.util.getTrue
 import kotlin.random.Random

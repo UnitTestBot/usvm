@@ -1,11 +1,9 @@
 package com.spbpu.bbfinfrastructure.mutator
 
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.ReplacePsiNodeToNodeOfSameType
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.TemplatesInserter
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesInserter
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.*
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.project.Project
-import org.apache.log4j.Logger
 import kotlin.random.Random
 
 class Mutator(val project: Project) {

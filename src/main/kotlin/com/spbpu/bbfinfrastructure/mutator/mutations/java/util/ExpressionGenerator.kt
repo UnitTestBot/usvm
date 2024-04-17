@@ -1,12 +1,10 @@
-package com.spbpu.bbfinfrastructure.mutator.mutations.java
+package com.spbpu.bbfinfrastructure.mutator.mutations.java.util
 
 import com.spbpu.bbfinfrastructure.util.*
 import org.jetbrains.kotlin.util.capitalizeDecapitalize.capitalizeAsciiOnly
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 class ExpressionGenerator {

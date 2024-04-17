@@ -1,4 +1,4 @@
-package com.spbpu.bbfinfrastructure.mutator.mutations.java
+package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiJavaFile
@@ -6,6 +6,9 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.source.PsiClassImpl
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationLocation
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ConditionGenerator
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ExpressionGenerator
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaScopeCalculator
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
@@ -25,7 +28,7 @@ class TemplatesInserter : Transformation() {
     private var addedProjects = 0
     private val numberOfProjectsToCheck = 10
     private val currentMutationChain = mutableListOf<MutationInfo>()
-    private val testingFeature = "RANDOM"
+    private val testingFeature = TestingFeature.RANDOM
 
 
     override fun transform() {
@@ -44,7 +47,7 @@ class TemplatesInserter : Transformation() {
     }
 
     private fun tryToTransform(): Boolean {
-        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature) ?: return false
+        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature.dir) ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)

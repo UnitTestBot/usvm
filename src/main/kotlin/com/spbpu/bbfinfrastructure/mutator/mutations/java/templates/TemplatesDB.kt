@@ -1,9 +1,8 @@
-package com.spbpu.bbfinfrastructure.mutator.mutations.java
+package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlin.streams.toList
 
 object TemplatesDB {
 
