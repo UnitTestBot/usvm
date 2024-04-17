@@ -17,7 +17,6 @@ object ScoreCardParser {
             .associate {
                 it.split(",").let { it[0] to setOf(it.last().toInt()) }
             }
-    val duplicatesFilter = DuplicatesFilter("results")
 
 //    var cweToFind: Set<Int>? = null
 //    var originalFileName: String? = "EMPTY"
@@ -48,14 +47,15 @@ object ScoreCardParser {
 
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
-            val originalProject =
-                GlobalTestSuite.javaTestSuite.suiteProjects.find { (project, _) -> project.files.any { it.name == "$name.java" } }
-                    ?: error("Cant find original project with name $name")
             val originalFileName = "BenchmarkTest" + name.substringAfter("BenchmarkTest").take(5)
             val originalExpectedResults = File("lib/BenchmarkJavaTemplate/expectedresults-1.2.csv").readText()
             val originExpectedResults =
                 originalExpectedResults.split("\n").find { it.startsWith(originalFileName) } ?: continue
             val cweToFind = originExpectedResults.substringAfterLast(',').toIntOrNull()?.let { setOf(it) } ?: continue
+            val originalProject =
+                GlobalTestSuite.javaTestSuite.suiteProjects.find { (project, _) -> project.files.any { it.name == "$name.java" } }
+                    ?: error("Cant find original project with name $name")
+
             val cwes = results.map { it.second }
             val firstBenchRes = cwes.first()
             if (firstBenchRes.isEmpty()) {
@@ -70,11 +70,8 @@ object ScoreCardParser {
                 println("DIFF FOUND!!")
                 val resultHeader = ResultHeader(results, originalFileName, cweToFind, originalProject.second.map { it.mutationDescription })
                 val dirToSave =
-                    if (duplicatesFilter.hasDuplicates(resultHeader)) {
-                        "results/duplicates"
-                    } else {
-                        "results"
-                    }
+                    "results/CWE-${cweToFind.joinToString("_")}"
+                        .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader)  } ?: "results/duplicates"
                 File(dirToSave).let { resultsDirectory -> resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }}
                 val text =
 """${resultHeader.convertToString()}
