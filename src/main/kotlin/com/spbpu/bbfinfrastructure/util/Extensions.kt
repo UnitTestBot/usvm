@@ -600,11 +600,20 @@ fun KtForExpression.getLoopParameterType(context: BindingContext): KotlinType? {
 
 fun Method.isDeprecated(): Boolean =
     if (declaringClass == String::class.java) {
-        val isDepInKotlin = String::class.functions.find { it.name == name }?.annotations?.any { it.annotationClass == Deprecated::class } ?: false
+        val isDepInKotlin =
+            String::class.functions.find { it.name == name }?.annotations?.any { it.annotationClass == Deprecated::class }
+                ?: false
         val isDepInJava = this.annotations.any { it.annotationClass.simpleName == "Deprecated" }
         isDepInJava || isDepInKotlin
     } else {
         this.annotations.any { it.annotationClass.simpleName == "Deprecated" }
     }
+
+fun <T> List<T>.randomOrNullWithIndex(): Pair<T, Int>? = try {
+    val randomIndex = kotlin.random.Random.nextInt(0, size)
+    get(randomIndex) to randomIndex
+} catch (e: Throwable) {
+    null
+}
 
 

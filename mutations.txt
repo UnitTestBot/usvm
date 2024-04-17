@@ -1,4 +1,4 @@
-a. constructor chains 
+1. constructor chains
 2. Условия (path-sensitivity): if, switch, pattern matching, lazy conditionals 
 3. Циклы, рекурсия: for, while, foreach, mutual recursion 
 4. virtual calls, fun interfaces

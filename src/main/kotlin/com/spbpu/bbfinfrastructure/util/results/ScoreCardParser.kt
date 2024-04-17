@@ -1,12 +1,14 @@
-package com.spbpu.bbfinfrastructure.util
+package com.spbpu.bbfinfrastructure.util.results
 
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
+import com.spbpu.bbfinfrastructure.util.getRandomVariableName
+import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
 import kotlin.random.Random
 
 object ScoreCardParser {
 
-    val groundTrue =
+    private val groundTrue =
         File("lib/expectedresults-1.2.csv")
             .readText()
             .split("\n")
@@ -15,6 +17,7 @@ object ScoreCardParser {
             .associate {
                 it.split(",").let { it[0] to setOf(it.last().toInt()) }
             }
+    val duplicatesFilter = DuplicatesFilter("results")
 
 //    var cweToFind: Set<Int>? = null
 //    var originalFileName: String? = "EMPTY"
@@ -46,10 +49,13 @@ object ScoreCardParser {
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
             val originalProject =
-                GlobalTestSuite.javaTestSuite.suiteProjects.find { it.files.any { it.name == "$name.java" } }
+                GlobalTestSuite.javaTestSuite.suiteProjects.find { (project, _) -> project.files.any { it.name == "$name.java" } }
                     ?: error("Cant find original project with name $name")
-            val cweToFind = originalProject.configuration.initialCWEs.toSet()
-            val originalFileName = originalProject.configuration.sourceFileName
+            val originalFileName = "BenchmarkTest" + name.substringAfter("BenchmarkTest").take(5)
+            val originalExpectedResults = File("lib/BenchmarkJavaTemplate/expectedresults-1.2.csv").readText()
+            val originExpectedResults =
+                originalExpectedResults.split("\n").find { it.startsWith(originalFileName) } ?: continue
+            val cweToFind = originExpectedResults.substringAfterLast(',').toIntOrNull()?.let { setOf(it) } ?: continue
             val cwes = results.map { it.second }
             val firstBenchRes = cwes.first()
             if (firstBenchRes.isEmpty()) {
@@ -62,14 +68,20 @@ object ScoreCardParser {
                 println("ALL TOOLS CANT FIND BUG IN $name")
             } else {
                 println("DIFF FOUND!!")
+                val resultHeader = ResultHeader(results, originalFileName, cweToFind, originalProject.second.map { it.mutationDescription })
+                val dirToSave =
+                    if (duplicatesFilter.hasDuplicates(resultHeader)) {
+                        "results/duplicates"
+                    } else {
+                        "results"
+                    }
+                File(dirToSave).let { resultsDirectory -> resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }}
                 val text =
-"""//Analysis results: ${results.joinToString(separator = "\n//")}
-//Original file name: $originalFileName
-//Original file CWE's: $cweToFind
+"""${resultHeader.convertToString()}
 //Program:
 ${File("$pathToSources/$name.java").readText()}
 """.trimIndent()
-                File("results/${Random.getRandomVariableName(5)}.java").writeText(text)
+                File("$dirToSave/${Random.getRandomVariableName(5)}.java").writeText(text)
             }
         }
     }

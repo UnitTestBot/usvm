@@ -2,12 +2,11 @@ package com.spbpu.bbfinfrastructure.project
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl
-import com.spbpu.bbfinfrastructure.compiler.JCompiler
+import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.server.FuzzServerInteract
 import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import com.spbpu.bbfinfrastructure.util.ScoreCardParser
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.util.replaceThis
 import java.io.File
@@ -15,18 +14,15 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
-import kotlin.system.exitProcess
-import kotlin.time.ExperimentalTime
-import kotlin.time.measureTimedValue
 
 class JavaTestSuite {
 
-    val suiteProjects = mutableListOf<Project>()
+    val suiteProjects = mutableListOf<Pair<Project, List<MutationInfo>>>()
     private val analysisTools = listOf(SpotBugs(), SemGrep())
     private val dirToFlushBinaries = "lib/BenchmarkJavaTemplate/binaries"
     private val dirToFlushSources = "lib/BenchmarkJavaTemplate/src/main/java/org/owasp/benchmark/testcode"
 
-    fun addProject(project: Project, shouldCheck: Boolean = true) {
+    fun addProject(project: Project, mutationChain: List<MutationInfo> , shouldCheck: Boolean = true) {
         val projectIndex = suiteProjects.size
         project.files.forEach { bbfFile ->
             val psiFile = bbfFile.psiFile
@@ -46,7 +42,7 @@ class JavaTestSuite {
             }
             bbfFile.name = "${name.substringBefore(".java")}$projectIndex.java"
         }
-        suiteProjects.add(project)
+        suiteProjects.add(project to mutationChain)
     }
 
     fun flushSuiteOnServer(remoteDirForSources: String, pathToCsv: String) {
@@ -60,7 +56,7 @@ class JavaTestSuite {
         }
         csv.createNewFile()
         csv.appendText("# test name, category, real vulnerability, cwe, Benchmark version: 1.2, 2016-06-1\n")
-        for (project in suiteProjects) {
+        for ((project, _) in suiteProjects) {
             val localPaths = project.saveToDir(CompilerArgs.tmpPath)
             localPaths.forEach { localPath ->
                 val fileName = localPath.substringAfter(CompilerArgs.tmpPath)
@@ -96,43 +92,43 @@ class JavaTestSuite {
         fsi.downloadFilesFromRemote(pathToScoreCards)
     }
 
-    @OptIn(ExperimentalTime::class)
-    fun flushOnDiskAndCheck(): List<Pair<Project, CheckingResult>> {
-        File(dirToFlushSources).deleteRecursively()
-        File(dirToFlushBinaries).deleteRecursively()
-        File(dirToFlushSources).mkdirs()
-        File(dirToFlushBinaries).mkdirs()
-        val resList = mutableListOf<Pair<Project, CheckingResult>>()
-        for (project in suiteProjects) {
-            val compilationResult = JCompiler().compile(project)
-            if (compilationResult.status != 0) continue
-            copyDirectory(compilationResult.pathToCompiled, dirToFlushBinaries)
-            project.saveToDir(dirToFlushSources)
-        }
-        val spotBugsResults = measureTimedValue {
-            SpotBugs().test(dirToFlushBinaries)
-        }.also { println("SPOT BUGS = ${it.duration}") }.value
-        val semGrepResults = measureTimedValue {
-            SemGrep().test(dirToFlushSources)
-        }.also { println("SemGrep BUGS = ${it.duration}") }.value
-        for ((index, project) in suiteProjects.withIndex()) {
-            val semGrepProjectResults =
-                semGrepResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
-            val spotBugsProjectResults =
-                spotBugsResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
-            println("SEM GREP RESULTS FOR ${project.files.first().name} = $semGrepProjectResults")
-            println("SPOT BUGS RESULTS FOR ${project.files.first().name} = $spotBugsProjectResults")
-            if (semGrepProjectResults == spotBugsProjectResults) {
-                resList.add(project to CheckingResult.EQUAL)
-                println("EQUAL")
-            } else {
-                resList.add(project to CheckingResult.DIFF)
-                println("DIFF")
-            }
-        }
-        suiteProjects.clear()
-        return resList
-    }
+//    @OptIn(ExperimentalTime::class)
+//    fun flushOnDiskAndCheck(): List<Pair<Project, CheckingResult>> {
+//        File(dirToFlushSources).deleteRecursively()
+//        File(dirToFlushBinaries).deleteRecursively()
+//        File(dirToFlushSources).mkdirs()
+//        File(dirToFlushBinaries).mkdirs()
+//        val resList = mutableListOf<Pair<Project, CheckingResult>>()
+//        for (project in suiteProjects) {
+//            val compilationResult = JCompiler().compile(project)
+//            if (compilationResult.status != 0) continue
+//            copyDirectory(compilationResult.pathToCompiled, dirToFlushBinaries)
+//            project.saveToDir(dirToFlushSources)
+//        }
+//        val spotBugsResults = measureTimedValue {
+//            SpotBugs().test(dirToFlushBinaries)
+//        }.also { println("SPOT BUGS = ${it.duration}") }.value
+//        val semGrepResults = measureTimedValue {
+//            SemGrep().test(dirToFlushSources)
+//        }.also { println("SemGrep BUGS = ${it.duration}") }.value
+//        for ((index, project) in suiteProjects.withIndex()) {
+//            val semGrepProjectResults =
+//                semGrepResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
+//            val spotBugsProjectResults =
+//                spotBugsResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
+//            println("SEM GREP RESULTS FOR ${project.files.first().name} = $semGrepProjectResults")
+//            println("SPOT BUGS RESULTS FOR ${project.files.first().name} = $spotBugsProjectResults")
+//            if (semGrepProjectResults == spotBugsProjectResults) {
+//                resList.add(project to CheckingResult.EQUAL)
+//                println("EQUAL")
+//            } else {
+//                resList.add(project to CheckingResult.DIFF)
+//                println("DIFF")
+//            }
+//        }
+//        suiteProjects.clear()
+//        return resList
+//    }
 
 
     private fun copyDirectory(source: String, target: String) {

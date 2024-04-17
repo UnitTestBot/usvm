@@ -1,21 +1,20 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java
 
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.source.PsiClassImpl
+import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
+import com.spbpu.bbfinfrastructure.mutator.mutations.MutationLocation
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
-import com.spbpu.bbfinfrastructure.project.JavaTestSuite
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
-import kotlin.system.exitProcess
 
 class TemplatesInserter : Transformation() {
 
@@ -25,16 +24,17 @@ class TemplatesInserter : Transformation() {
     private var curNumOfSuccessfulMutations = 0
     private var addedProjects = 0
     private val numberOfProjectsToCheck = 10
+    private val currentMutationChain = mutableListOf<MutationInfo>()
+    private val testingFeature = "CONSTRUCTORS"
 
 
     override fun transform() {
-        repeat(1_000_000) {
+        repeat(1_000) {
             val fileBackupText = file.text
             println("TRY $it")
             try {
                 tryToTransform()
-            }
-            catch (e: MutationFinishedException) {
+            } catch (e: MutationFinishedException) {
                 return
             } catch (e: Throwable) {
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(fileBackupText))
@@ -44,11 +44,12 @@ class TemplatesInserter : Transformation() {
     }
 
     private fun tryToTransform(): Boolean {
-        val randomTemplate = (TemplatesDB.getTemplatesForFeature("CYCLES"))?.randomOrNull() ?: return false
+        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature) ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
+        val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
         val regex = Regex("""~\[(.*?)\]~""")
-        val parsedTemplates = parseTemplate(randomTemplate) ?: return false
+        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
         for (auxClass in parsedTemplates.auxClasses) {
             val bbfFile =
                 BBFFile("${auxClass.first.substringAfterLast('.')}.java", PSICreator.getPsiForJava(auxClass.second))
@@ -62,11 +63,15 @@ class TemplatesInserter : Transformation() {
             (file as PsiJavaFile).importList?.replaceThis(newImportList) ?: return false
         }
 
-        val (auxMethods, randomTemplateBody) = parsedTemplates.templates.randomOrNull() ?: return false
+        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
+        val auxMethods = randomTemplate.auxMethods
+        val randomTemplateBody = randomTemplate.templateBody
         for (auxMethod in auxMethods) {
             val psiClass = randomPlaceToInsert.parents.find { it is PsiClass } as? PsiClassImpl ?: return false
             val m = Factory.javaPsiFactory.createMethodFromText(auxMethod, null)
-            val lastMethod = psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass } ?: return false
+            val lastMethod =
+                psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass }
+                    ?: return false
             lastMethod.addAfterThisWithWhitespace(m, "\n\n")
         }
         val newText = regex.replace(randomTemplateBody) { result ->
@@ -114,11 +119,19 @@ class TemplatesInserter : Transformation() {
         if (!checker.checkCompiling()) {
             throw IllegalArgumentException()
         } else {
+            currentMutationChain.add(
+                MutationInfo(
+                    "TemplateInsertion",
+                    "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
+                    MutationLocation(file.name, randomPlaceToInsertLineNumber)
+                )
+            )
             checker.curFile.changePsiFile(PSICreator.getPsiForJava(file.text))
             if (++curNumOfSuccessfulMutations == numOfSuccessfulMutationsToAdd) {
                 curNumOfSuccessfulMutations = 0
                 addedProjects++
-                testSuite.addProject(project.copy())
+                testSuite.addProject(project.copy(), currentMutationChain.toList())
+                currentMutationChain.clear()
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
             }
             if (addedProjects >= numberOfProjectsToCheck) {

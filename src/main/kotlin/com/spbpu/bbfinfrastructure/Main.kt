@@ -6,11 +6,13 @@ import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
+import com.spbpu.bbfinfrastructure.project.Header
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import com.spbpu.bbfinfrastructure.util.ScoreCardParser
+import com.spbpu.bbfinfrastructure.util.results.ResultHeader
+import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 import java.io.File
 import kotlin.system.exitProcess
 

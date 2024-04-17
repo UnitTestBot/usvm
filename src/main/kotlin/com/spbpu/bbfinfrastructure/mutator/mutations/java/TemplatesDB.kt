@@ -22,6 +22,11 @@ object TemplatesDB {
         return File(dirToTemplates).listFiles()?.map { it.readText() }
     }
 
+    fun getRandomTemplateForFeature(featureName: String): Pair<String, String>? {
+        val dirToTemplates = featureToTemplates[featureName] ?: return null
+        return File(dirToTemplates).listFiles()?.randomOrNull()?.let { it.readText() to it.path }
+    }
+
     init {
         File("manualTemplates.txt").readText().split("---------").forEach {
             manualTemplates.add(it)
