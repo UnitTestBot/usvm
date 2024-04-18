@@ -8,6 +8,7 @@ import org.usvm.SolverType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase

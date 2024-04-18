@@ -7,6 +7,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
+import org.usvm.UMachineOptions
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
@@ -14,6 +15,8 @@ import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import kotlin.time.Duration.Companion.INFINITE
+import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface USolverResult<out T>
 
@@ -36,7 +39,7 @@ open class USolverBase<Type>(
     protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
     protected val softConstraintsProvider: USoftConstraintsProvider<Type, *>,
-    protected val  useSoftConstraints: Boolean = true
+    protected val options: UMachineOptions? = null
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
     protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
@@ -110,7 +113,7 @@ open class USolverBase<Type>(
 
     fun checkWithSoftConstraints(
         pc: UPathConstraints<Type>,
-    ) = internalCheck(pc, useSoftConstraints = useSoftConstraints)
+    ) = internalCheck(pc, useSoftConstraints = options?.solverUseSoftConstraints ?: true)
 
     private fun internalCheck(
         pc: UPathConstraints<Type>,
@@ -196,18 +199,19 @@ open class USolverBase<Type>(
     private fun internalCheckWithSoftConstraints(
         softConstraints: MutableList<UBoolExpr>,
     ): KSolverStatus {
+        val timeout = options?.solverQueryTimeoutMs?.milliseconds ?: INFINITE
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
-            status = smtSolver.checkWithAssumptions(softConstraints)
+            status = smtSolver.checkWithAssumptions(softConstraints, timeout)
 
             while (status == KSolverStatus.UNSAT) {
                 val unsatCore = smtSolver.unsatCore().toHashSet()
                 if (unsatCore.isEmpty()) break
                 softConstraints.removeAll { it in unsatCore }
-                status = smtSolver.checkWithAssumptions(softConstraints)
+                status = smtSolver.checkWithAssumptions(softConstraints, timeout)
             }
         } else {
-            status = smtSolver.check()
+            status = smtSolver.check(timeout)
         }
         return status
     }
