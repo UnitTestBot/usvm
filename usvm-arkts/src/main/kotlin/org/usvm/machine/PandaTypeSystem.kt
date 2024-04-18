@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import org.jacodb.panda.dynamic.api.PandaClassTypeImpl
+import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
@@ -21,6 +21,6 @@ class PandaTypeSystem(override val typeOperationsTimeout: Duration) : UTypeSyste
 
     override fun topTypeStream(): UTypeStream<PandaType> = USupportTypeStream.from(
         this,
-        PandaClassTypeImpl("GLOBAL")
+        PandaObjectType
     )
 }

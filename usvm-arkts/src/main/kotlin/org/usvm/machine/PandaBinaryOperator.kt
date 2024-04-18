@@ -77,25 +77,8 @@ sealed class PandaBinaryOperator(
 
         val ctx = lhsUExpr.pctx
 
-        if (lhsUExpr is UConcreteHeapRef) {
-            val type = typeExtractor(lhsUExpr).single()
-            lhsUExpr = when (type) {
-                PandaNumberType -> fieldReader(ctx.constructAuxiliaryFieldLValue(lhsUExpr, ctx.fp64Sort))
-                PandaBoolType -> fieldReader(ctx.constructAuxiliaryFieldLValue(lhsUExpr, ctx.boolSort))
-                PandaStringType -> TODO()
-                else -> lhsUExpr
-            }
-        }
-
-        if (rhsUExpr is UConcreteHeapRef) {
-            val type = typeExtractor(rhsUExpr).single()
-            rhsUExpr = when (type) {
-                PandaNumberType -> fieldReader(ctx.constructAuxiliaryFieldLValue(rhsUExpr, ctx.fp64Sort))
-                PandaBoolType -> fieldReader(ctx.constructAuxiliaryFieldLValue(rhsUExpr, ctx.boolSort))
-                PandaStringType -> TODO()
-                else -> rhsUExpr
-            }
-        }
+        lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhsUExpr, typeExtractor, fieldReader)
+        rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhsUExpr, typeExtractor, fieldReader)
 
         val types = listOf(PandaNumberType, PandaStringType, PandaBoolType, PandaObjectType)
 
@@ -117,6 +100,24 @@ sealed class PandaBinaryOperator(
         require(lhsUExpr.sort === addressSort && rhsUExpr.sort === addressSort)
 
         return makeAdditionalWork(lhsUExpr.asExpr(addressSort), rhsUExpr.asExpr(addressSort), scope)
+    }
+
+    private fun PandaContext.extractPrimitiveValueIfRequired(
+        uExpr: UExpr<out USort>,
+        typeExtractor: (UConcreteHeapRef) -> UTypeStream<PandaType>,
+        fieldReader: (ULValue<*, out USort>) -> UExpr<out USort>,
+    ): UExpr<out USort> {
+        if (uExpr !is UConcreteHeapRef) {
+            return uExpr
+        }
+
+        val type = typeExtractor(uExpr).single()
+        return when (type) {
+            PandaNumberType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, fp64Sort))
+            PandaBoolType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, boolSort))
+            PandaStringType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, stringSort))
+            else -> uExpr
+        }
     }
 
     private fun makeAdditionalWork(

@@ -26,6 +26,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.state.PandaMethodResult
 import org.usvm.machine.state.PandaState
 import org.usvm.machine.state.lastStmt
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.first
@@ -71,6 +72,15 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
 
     fun getInitialState(method: PandaMethod, targets: List<PandaTarget>): PandaState {
         val state = PandaState(ctx, method, targets = UTargetsSet.from(targets))
+
+        with(ctx) {
+            val params = method.parameters.mapIndexed { idx, param ->
+                URegisterStackLValue(addressSort, idx)
+            }
+            val refs = params.map { state.memory.read(it) }
+
+            state.pathConstraints += mkAnd(refs.map { mkEq(it.asExpr(addressSort), nullRef).not() })
+        }
 
         val solver = ctx.solver<PandaType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
