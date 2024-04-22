@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package org.usvm
 
 import kotlinx.coroutines.runBlocking
@@ -72,28 +74,37 @@ data class CrashPack(
 
 val crashPackPath = Path("D:") / "JCrashPack"
 
+val goodIds = setOf(
+    "LANG-1b",
+    "LANG-20b",
+    "LANG-2b",
+    "LANG-33b",
+    "LANG-35b",
+    "LANG-45b",
+    "LANG-47b",
+    "LANG-51b",
+    "LANG-54b",
+    "LANG-57b",
+    "LANG-5b",
+    "MATH-70b",
+    "MATH-89b",
+)
+
+val badIds = setOf("ES-19891")
+
+val idToCheck = "CHART-4b"
+
 @OptIn(ExperimentalSerializationApi::class)
 fun main() {
     val crashPack = Json.decodeFromStream<CrashPack>((crashPackPath / "jcrashpack.json").inputStream())
 
-    val goodIds = setOf(
-        "LANG-1b",
-        "LANG-20b",
-        "LANG-2b",
-        "LANG-33b",
-        "LANG-35b",
-        "LANG-45b",
-        "LANG-47b",
-        "LANG-51b",
-        "LANG-54b",
-        "LANG-57b",
-        "LANG-5b",
-        "MATH-70b",
-        "MATH-89b",
-    )
-    val badIds = setOf("ES-19891")
+    val crashes = crashPack.crashes.values
+        .sortedBy { it.id }
+        .filter { it.id !in badIds }
+//        .filter { it.id in goodIds }
+        .filter { it.id == idToCheck }
 
-    for (crash in crashPack.crashes.values.sortedBy { it.id }.filter { it.id !in badIds }) {
+    for (crash in crashes) {
         try {
             analyzeCrash(crash)
         } catch (ex: Throwable) {
