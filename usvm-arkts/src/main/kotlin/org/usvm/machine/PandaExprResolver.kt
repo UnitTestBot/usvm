@@ -71,10 +71,6 @@ class PandaExprResolver(
 
     // TODO do we need a type?
     fun resolvePandaExpr(expr: PandaExpr): PandaUExprWrapper? {
-        if (expr is PandaBinaryOperationAuxiliaryExpr) {
-            return resolveAuxiliaryExpr(expr)
-        }
-
         return expr.accept(this)
     }
 
@@ -114,10 +110,6 @@ class PandaExprResolver(
     }
 
     override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? {
-        if (expr is PandaBinaryOperationAuxiliaryExpr) {
-            return resolveAuxiliaryExpr(expr)
-        }
-
         return resolvePandaExpr(expr)
     }
 
@@ -279,38 +271,6 @@ class PandaExprResolver(
 
     override fun visitTODOExpr(expr: TODOExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
-    }
-
-    fun resolveAuxiliaryExpr(
-        pandaBinaryOperationAuxiliaryExpr: PandaBinaryOperationAuxiliaryExpr,
-    ): PandaUExprWrapper? {
-        val pandaUExprWrapper = when (pandaBinaryOperationAuxiliaryExpr) {
-            is PandaBinaryOperationAuxiliaryExpr.BooleanToBoolean -> {
-                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
-            }
-            is PandaBinaryOperationAuxiliaryExpr.BooleanToNumber -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.BooleanToObjects -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.BooleanToString -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.NumberToBoolean -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.NumberToNumber -> {
-                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
-            }
-            is PandaBinaryOperationAuxiliaryExpr.NumberToObject -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.NumberToString -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.ObjectToBoolean -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.ObjectToNumber -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.ObjectToObjects -> {
-                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
-            }
-            is PandaBinaryOperationAuxiliaryExpr.ObjectToString -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.StringToBoolean -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.StringToNumber -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.StringToObject -> TODO()
-            is PandaBinaryOperationAuxiliaryExpr.StringToString -> {
-                resolvePandaExpr(pandaBinaryOperationAuxiliaryExpr.originalExpr)
-            }
-        }
-        return pandaUExprWrapper
     }
 
     private fun PandaBinaryExpr.operator(): PandaBinaryOperator = when (this) {
