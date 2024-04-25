@@ -8,17 +8,14 @@ import io.ksmt.utils.cast
 import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.jacodb.panda.dynamic.api.PandaNumberType
-import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaStringType
-import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.ULValue
-import org.usvm.types.UTypeStream
+import org.usvm.api.typeStreamOf
 import org.usvm.types.single
 
 sealed class PandaBinaryOperator(
@@ -68,8 +65,6 @@ sealed class PandaBinaryOperator(
     internal open operator fun invoke(
         lhs: PandaUExprWrapper,
         rhs: PandaUExprWrapper,
-        typeExtractor: (UConcreteHeapRef) -> UTypeStream<PandaType>,
-        fieldReader: (ULValue<*, out USort>) -> UExpr<out USort>,
         scope: PandaStepScope,
     ): UExpr<out USort> {
         var lhsUExpr = lhs.uExpr
@@ -77,10 +72,8 @@ sealed class PandaBinaryOperator(
 
         val ctx = lhsUExpr.pctx
 
-        lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhsUExpr, typeExtractor, fieldReader)
-        rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhsUExpr, typeExtractor, fieldReader)
-
-        val types = listOf(PandaNumberType, PandaStringType, PandaBoolType, PandaObjectType)
+        lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhsUExpr, scope)
+        rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhsUExpr, scope)
 
         if (lhsUExpr is KInterpretedValue && rhsUExpr is KInterpretedValue) {
             return commonAdditionalWork(lhsUExpr, rhsUExpr, scope)
@@ -104,24 +97,29 @@ sealed class PandaBinaryOperator(
 
     private fun PandaContext.extractPrimitiveValueIfRequired(
         uExpr: UExpr<out USort>,
-        typeExtractor: (UConcreteHeapRef) -> UTypeStream<PandaType>,
-        fieldReader: (ULValue<*, out USort>) -> UExpr<out USort>,
+        scope: PandaStepScope,
     ): UExpr<out USort> {
         if (uExpr !is UConcreteHeapRef) {
             return uExpr
         }
 
-        val type = typeExtractor(uExpr).single()
+        val type = scope.calcOnState { memory.typeStreamOf(uExpr) }.single()
         return when (type) {
-            PandaNumberType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, fp64Sort))
-            PandaBoolType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, boolSort))
-            PandaStringType -> fieldReader(constructAuxiliaryFieldLValue(uExpr, stringSort))
+            PandaNumberType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, fp64Sort)) }
+            PandaBoolType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, boolSort)) }
+            PandaStringType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, stringSort)) }
             else -> uExpr
         }
     }
 
     private fun makeAdditionalWork(
         lhs: KInterpretedValue<out USort>,
+        rhs: UHeapRef,
+        scope: PandaStepScope,
+    ): UHeapRef = constructIteWithFixedLeftOperandType(lhs, rhs, scope)
+
+    private fun constructIteWithFixedLeftOperandType(
+        lhs: UExpr<out USort>,
         rhs: UHeapRef,
         scope: PandaStepScope,
     ): UHeapRef = with(lhs.ctx) {
@@ -141,10 +139,11 @@ sealed class PandaBinaryOperator(
                     falseBranch = mkIte(
                         condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
                         trueBranch = run {
-                            val value = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, ctx.stringSort)) }
+                            val value =
+                                calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, ctx.stringSort)) }
                             commonAdditionalWork(lhs, value, this)
                         },
-                        falseBranch = rhs
+                        falseBranch = commonAdditionalWork(lhs, rhs, this)
                     )
                 )
             )
@@ -172,7 +171,9 @@ sealed class PandaBinaryOperator(
                     falseBranch = mkIte(
                         condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaStringType) },
                         trueBranch = run {
-                            val value = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort)) }
+                            val value = calcOnState {
+                                memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort))
+                            }
                             commonAdditionalWork(value, rhs, this)
                         },
                         falseBranch = commonAdditionalWork(lhs, rhs, scope)
@@ -182,7 +183,39 @@ sealed class PandaBinaryOperator(
         }
     }
 
-    // TODO STRINGS
+    private fun makeAdditionalWork(
+        lhs: UHeapRef,
+        rhs: UHeapRef,
+        scope: PandaStepScope,
+    ): UHeapRef = with(lhs.ctx) {
+        with(scope) {
+            mkIte(
+                condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaNumberType) },
+                trueBranch = run {
+                    val lhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, fp64Sort)) }
+                    constructIteWithFixedLeftOperandType(lhsValue, rhs, scope)
+                },
+                falseBranch = mkIte(
+                    condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaBoolType) },
+                    trueBranch = run {
+                        val lhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, boolSort)) }
+                        constructIteWithFixedLeftOperandType(lhsValue, rhs, scope)
+                    },
+                    falseBranch = mkIte(
+                        condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaStringType) },
+                        trueBranch = run {
+                            val lhsValue = calcOnState {
+                                memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort))
+                            }
+                            constructIteWithFixedLeftOperandType(lhsValue, rhs, scope)
+                        },
+                        falseBranch = constructIteWithFixedLeftOperandType(lhs, rhs, scope)
+                    )
+                )
+            )
+        }
+    }
+
     private fun commonAdditionalWork(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
@@ -209,6 +242,7 @@ sealed class PandaBinaryOperator(
                 stringSort -> stringToString(lhs.cast(), rhs.cast(), scope)
                 else -> stringToObject(lhs.cast(), rhs.cast(), scope)
             }
+
             else -> when (rhs.sort) {
                 fp64Sort -> objectToNumber(lhs.cast(), rhs.cast(), scope)
                 boolSort -> objectToBool(lhs.cast(), rhs.cast(), scope)
@@ -218,168 +252,6 @@ sealed class PandaBinaryOperator(
         }
     }
 
-    private fun makeAdditionalWork(
-        lhs: UHeapRef,
-        rhs: UHeapRef,
-        scope: PandaStepScope,
-    ): UHeapRef = with(lhs.ctx) {
-        with(scope) {
-            mkIte(
-                condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaNumberType) },
-                trueBranch = run {
-                    val lhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, fp64Sort)) }
-                    mkIte(
-                        condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
-                        trueBranch = run {
-                            val rhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
-                            commonAdditionalWork(lhsValue, rhsValue, this)
-                        },
-                        falseBranch = mkIte(
-                            condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
-                            trueBranch = run {
-                                val rhsValue =
-                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
-                                commonAdditionalWork(lhsValue, rhsValue, this)
-                            },
-//                            falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-                            falseBranch = mkIte(
-                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-                                trueBranch = run {
-                                    val rhsValue = calcOnState {
-                                        memory.read(
-                                            ctx.constructAuxiliaryFieldLValue(
-                                                rhs,
-                                                ctx.stringSort
-                                            )
-                                        )
-                                    }
-                                    commonAdditionalWork(lhsValue, rhsValue, this)
-                                },
-                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-                            )
-                        )
-                    )
-                },
-                falseBranch = mkIte(
-                    condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaBoolType) },
-                    trueBranch = run {
-                        val lhsValue = calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, boolSort)) }
-                        mkIte(
-                            condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
-                            trueBranch = run {
-                                val rhsValue =
-                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
-                                commonAdditionalWork(lhsValue, rhsValue, this)
-                            },
-                            falseBranch = mkIte(
-                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
-                                trueBranch = run {
-                                    val rhsValue =
-                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
-                                    commonAdditionalWork(lhsValue, rhsValue, this)
-                                },
-                                falseBranch = mkIte(
-                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-                                    trueBranch = run {
-                                        val rhsValue = calcOnState {
-                                            memory.read(
-                                                ctx.constructAuxiliaryFieldLValue(
-                                                    rhs,
-                                                    ctx.stringSort
-                                                )
-                                            )
-                                        }
-                                        commonAdditionalWork(lhsValue, rhsValue, this)
-                                    },
-                                    falseBranch = commonAdditionalWork(lhsValue, rhs, scope)
-                                )
-//                                falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-                            )
-                        )
-                    },
-                    falseBranch = mkIte(
-                        condition = calcOnState { memory.types.evalIsSubtype(lhs, PandaStringType) },
-                        trueBranch = run {
-                            val lhsValue =
-                                calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, ctx.stringSort)) }
-                            mkIte(
-                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
-                                trueBranch = run {
-                                    val rhsValue =
-                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, fp64Sort)) }
-                                    commonAdditionalWork(lhsValue, rhsValue, this)
-                                },
-                                falseBranch = mkIte(
-                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
-                                    trueBranch = run {
-                                        val rhsValue = calcOnState {
-                                            memory.read(
-                                                ctx.constructAuxiliaryFieldLValue(
-                                                    rhs,
-                                                    boolSort
-                                                )
-                                            )
-                                        }
-                                        commonAdditionalWork(lhsValue, rhsValue, this)
-                                    },
-//                            falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-                                    falseBranch = mkIte(
-                                        condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-                                        trueBranch = run {
-                                            val rhsValue = calcOnState {
-                                                memory.read(
-                                                    ctx.constructAuxiliaryFieldLValue(
-                                                        rhs,
-                                                        ctx.stringSort
-                                                    )
-                                                )
-                                            }
-                                            commonAdditionalWork(lhsValue, rhsValue, this)
-                                        },
-                                        falseBranch = commonAdditionalWork(lhsValue, rhs, this)
-                                    )
-                                )
-                            )
-                        },
-                        falseBranch = mkIte(
-                            condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaNumberType) },
-                            trueBranch = run {
-                                val rhsValue =
-                                    calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(lhs, fp64Sort)) }
-                                commonAdditionalWork(lhs, rhsValue, this)
-                            },
-                            falseBranch = mkIte(
-                                condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaBoolType) },
-                                trueBranch = run {
-                                    val rhsValue =
-                                        calcOnState { memory.read(ctx.constructAuxiliaryFieldLValue(rhs, boolSort)) }
-                                    commonAdditionalWork(lhs, rhsValue, this)
-                                },
-                                falseBranch = mkIte(
-                                    condition = calcOnState { memory.types.evalIsSubtype(rhs, PandaStringType) },
-                                    trueBranch = run {
-                                        val rhsValue = calcOnState {
-                                            memory.read(
-                                                ctx.constructAuxiliaryFieldLValue(
-                                                    rhs,
-                                                    ctx.stringSort
-                                                )
-                                            )
-                                        }
-                                        commonAdditionalWork(lhs, rhsValue, this)
-                                    },
-                                    falseBranch = commonAdditionalWork(lhs, rhs, scope)
-                                )
-//                                falseBranch = run {
-//                                    commonAdditionalWork(lhs, rhs, this)
-//                                }
-                            )
-                        )
-                    )
-                )
-            )
-        }
-    }
 
     private fun numberToNumber(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
         val value = with(lhs.pctx) { onNumber(lhs, rhs) }
@@ -465,6 +337,18 @@ sealed class PandaBinaryOperator(
         val address = scope.calcOnState { memory.allocConcrete(PandaStringType) }
         scope.doWithState { memory.write(ctx.constructAuxiliaryFieldLValue(address, ctx.stringSort), value) }
         return address
+    }
+
+    private fun returnNanIfRequired(
+        lhs: UExpr<USort>,
+        rhs: UExpr<USort>,
+        applyOperator: () -> UConcreteHeapRef,
+    ): UHeapRef = with(lhs.pctx) {
+        if (this@PandaBinaryOperator !is Add || !(lhs.sort == fp64Sort && rhs.sort == fp64Sort)) {
+            TODO()
+        }
+
+        return applyOperator()
     }
 }
 

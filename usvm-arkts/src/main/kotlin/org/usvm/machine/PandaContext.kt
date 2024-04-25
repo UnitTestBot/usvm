@@ -26,6 +26,7 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
     val stringSort: PandaStringSort by lazy { PandaStringSort(this) }
 
     val undefinedObject: UExpr<PandaUndefinedSort> = undefinedSort.mkConst("UndefinedObject") // TODO replace?
+    val nanObject: UExpr<PandaNumberSort> = fp64Sort.mkConst("NanObject")
 
     fun typeToSort(type: PandaType): USort = when (type) {
         is PandaAnyType -> addressSort // TODO("?????????") can we replace it with address sort????

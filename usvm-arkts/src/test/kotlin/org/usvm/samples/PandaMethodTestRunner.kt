@@ -14,17 +14,13 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-private typealias FileName = String
-private typealias MethodName = String
-private typealias ArgsNumber = Int
 private typealias Coverage = Int
-private typealias MethodIdentifier = Triple<FileName, MethodName, ArgsNumber>
 
 open class PandaMethodTestRunner
-    : TestRunner<PandaTest, MethodIdentifier, PandaType?, Coverage>() {
+    : TestRunner<PandaTest, MethodDescriptor, PandaType?, Coverage>() {
 
     protected fun discoverProperties(
-        methodIdentifier: MethodIdentifier,
+        methodIdentifier: MethodDescriptor,
         analysisResultMatchers: Array<out Function<Boolean>>,
         invariants: Array<out Function<Boolean>> = emptyArray(),
     ) {
@@ -47,11 +43,11 @@ open class PandaMethodTestRunner
     override val checkType: (PandaType?, PandaType?) -> Boolean
         get() = { expected, actual -> true } // TODO("Not yet implemented")
 
-    override val runner: (MethodIdentifier, UMachineOptions) -> List<PandaTest>
+    override val runner: (MethodDescriptor, UMachineOptions) -> List<PandaTest>
         get() = { id, options ->
             // TODO Automatic parser?????
-            val jsonWithoutExtension = "/samples/${id.first}.json"
-            val tsWithoutExtension = "/samples/${id.first}.ts"
+            val jsonWithoutExtension = "/samples/${id.className}.json"
+            val tsWithoutExtension = "/samples/${id.className}.ts"
             // TODO: Make tsFile parsing here optional
             val sampleTsFilePath = javaClass.getResource(tsWithoutExtension)?.toURI()!!
             val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
@@ -62,7 +58,7 @@ open class PandaMethodTestRunner
             val project = parser.getProject()
 
             // TODO class name??????
-            val method = project.findMethodOrNull(id.second, "GLOBAL") ?: error("TODO")
+            val method = project.findMethodOrNull(id.methodName, "GLOBAL") ?: error("TODO")
 
 
             PandaMachine(project, options).use { machine ->
@@ -87,3 +83,9 @@ open class PandaMethodTestRunner
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 }
+
+data class MethodDescriptor(
+    val className: String,
+    val methodName: String,
+    val argumentsNumber: Int
+)

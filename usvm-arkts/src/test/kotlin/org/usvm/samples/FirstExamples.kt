@@ -7,40 +7,72 @@ class FirstExamplesTest : PandaMethodTestRunner() {
     @Test
     fun testDataFlowSecurity() {
         discoverProperties(
-            Triple("DataFlowSecurity" , "validate", 1),
-            emptyArray()
+            methodIdentifier = MethodDescriptor(
+                className = "DataFlowSecurity",
+                methodName = "validate",
+                argumentsNumber = 1
+            ),
+            analysisResultMatchers = emptyArray()
         )
     }
 
     @Test
     fun testBasicSamples() {
         discoverProperties(
-            Triple("BasicSamples" , "add", 0),
-            emptyArray()
+            methodIdentifier = MethodDescriptor(
+                className = "BasicSamples",
+                methodName = "add",
+                argumentsNumber = 0
+            ),
+            analysisResultMatchers = emptyArray()
         )
     }
 
     @Test
     fun testSomeOps() {
         discoverProperties(
-            Triple("BasicSamples", "someOps", 2),
-            emptyArray()
+            methodIdentifier = MethodDescriptor(
+                className = "BasicSamples",
+                methodName = "someOps",
+                argumentsNumber = 2
+            ),
+            analysisResultMatchers = emptyArray()
         )
     }
 
     @Test
     fun testBasicIf() {
         discoverProperties(
-            Triple("BasicSamples", "basicIf", 1),
-            emptyArray()
+            methodIdentifier = MethodDescriptor(
+                className = "BasicSamples",
+                methodName = "basicIf",
+                argumentsNumber = 1
+            ),
+            analysisResultMatchers = emptyArray()
         )
     }
 
     @Test
     fun testMinValue() {
         discoverProperties(
-            Triple("MinValue", "findMinValue", 1),
-            emptyArray()
+            methodIdentifier = MethodDescriptor(
+                className = "MinValue",
+                methodName = "findMinValue",
+                argumentsNumber = 1
+            ),
+            analysisResultMatchers = emptyArray()
+        )
+    }
+
+    @Test
+    fun testMethodCollision() {
+        discoverProperties(
+            methodIdentifier = MethodDescriptor(
+                className = "MethodCollision",
+                methodName = "main",
+                argumentsNumber = 0
+            ),
+            analysisResultMatchers = emptyArray()
         )
     }
 }

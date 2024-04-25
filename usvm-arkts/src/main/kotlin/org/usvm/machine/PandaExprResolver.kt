@@ -79,13 +79,7 @@ class PandaExprResolver(
         lhv: PandaValue,
         rhv: PandaValue
     ) : UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(
-            lhs,
-            rhs,
-            typeExtractor = { ref -> scope.calcOnState { memory.typeStreamOf(ref) } },
-            fieldReader = { fieldLValue -> scope.calcOnState { memory.read(fieldLValue) } },
-            scope
-        )
+        operator(lhs, rhs, scope)
     }
 
     private fun resolveBinaryOperator(
