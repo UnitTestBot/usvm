@@ -52,7 +52,7 @@
           "id": "v3",
           "imms": [
            0,
-           382,
+           374,
            1
           ],
           "inputs": [
@@ -60,11 +60,12 @@
           ],
           "intrinsic_id": "Intrinsic.definefunc",
           "opcode": "Intrinsic",
+          "string_data": "",
           "type": "any",
           "users": [
            "v5"
           ],
-          "visit": "intrinsic"
+          "visit": "ldobjbyname"
          },
          {
           "id": "v6",
@@ -79,7 +80,7 @@
           "id": "v5",
           "imms": [
            1,
-           220
+           212
           ],
           "inputs": [
            "v3",
@@ -87,8 +88,9 @@
           ],
           "intrinsic_id": "Intrinsic.stglobalvar",
           "opcode": "Intrinsic",
+          "string_data": "findMinValue",
           "type": "void",
-          "visit": "intrinsic"
+          "visit": "ldobjbyname"
          },
          {
           "id": "v8",
@@ -144,11 +146,6 @@
        }
       ],
       "name": "func_main_0",
-      "parameters": [
-       "any",
-       "any",
-       "any"
-      ],
       "returnType": "any",
       "signature": ".func_main_0"
      },
@@ -262,7 +259,7 @@
           "id": "v4",
           "imms": [
            0,
-           234
+           226
           ],
           "inputs": [
            "v3",
@@ -270,7 +267,7 @@
           ],
           "intrinsic_id": "Intrinsic.ldobjbyname",
           "opcode": "Intrinsic",
-          "stringData": "length",
+          "string_data": "length",
           "type": "any",
           "users": [
            "v7"
@@ -356,14 +353,14 @@
           "id": "v12",
           "imms": [
            3,
-           213
+           205
           ],
           "inputs": [
            "v13"
           ],
           "intrinsic_id": "Intrinsic.tryldglobalbyname",
           "opcode": "Intrinsic",
-          "stringData": "Error",
+          "string_data": "Error",
           "type": "any",
           "users": [
            "v17"
@@ -385,8 +382,8 @@
            "v14"
           ],
           "opcode": "LoadString",
-          "stringData": "Array is empty!",
-          "stringOffset": 196,
+          "string": "Array is empty!",
+          "stringOffset": 188,
           "type": "ref",
           "users": [
            "v16"
@@ -709,7 +706,7 @@
           "id": "v36",
           "imms": [
            8,
-           234
+           226
           ],
           "inputs": [
            "27p",
@@ -717,7 +714,7 @@
           ],
           "intrinsic_id": "Intrinsic.ldobjbyname",
           "opcode": "Intrinsic",
-          "stringData": "length",
+          "string_data": "length",
           "type": "any",
           "users": [
            "v38"
@@ -1040,12 +1037,6 @@
        }
       ],
       "name": "findMinValue",
-      "parameters": [
-       "any",
-       "any",
-       "any",
-       "any"
-      ],
       "returnType": "any",
       "signature": ".findMinValue"
      },
