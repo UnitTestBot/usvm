@@ -1,10 +1,10 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.JcBranchingInst
-import org.jacodb.api.cfg.JcBytecodeGraph
-import org.jacodb.api.cfg.JcCatchInst
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.JcBranchingInst
+import org.jacodb.api.jvm.cfg.JcBytecodeGraph
+import org.jacodb.api.jvm.cfg.JcCatchInst
+import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.jacodb.impl.cfg.util.JcLoop
 import org.jacodb.impl.cfg.util.loops
@@ -92,6 +92,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
             private val loopBodyInstructions: Set<JcInst>
         ) : JcBytecodeGraph<Any>, List<Any> by instructionsWithIterationExit {
             override val entries: List<Any> = listOf(LOOP_ITERATION_EXIT)
+            override val instructions: List<Any> get() = instructionsWithIterationExit
 
             override fun predecessors(node: Any): Set<Any> {
                 if (node === LOOP_ITERATION_EXIT) return emptySet()

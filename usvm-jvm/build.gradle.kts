@@ -22,15 +22,15 @@ val `usvm-api` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "d9d6f30985"
+val approximationsVersion = "0f081f101e"
 
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
+    implementation("${Versions.jacodbPackage}:jacodb-analysis:${Versions.jacodb}")
 
-    implementation("org.jacodb:jacodb-approximations:${Versions.jcdb}")
+    implementation("${Versions.jacodbPackage}:jacodb-approximations:${Versions.jacodb}")
 
     implementation(`usvm-api`.output)
 
@@ -55,7 +55,7 @@ dependencies {
 
 val `usvm-apiCompileOnly`: Configuration by configurations.getting
 dependencies {
-    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
+    `usvm-apiCompileOnly`("${Versions.jacodbPackage}:jacodb-api-jvm:${Versions.jacodb}")
 }
 
 val samplesImplementation: Configuration by configurations.getting
@@ -76,8 +76,8 @@ val `sample-approximationsCompileOnly`: Configuration by configurations.getting
 dependencies {
     `sample-approximationsCompileOnly`(samples.output)
     `sample-approximationsCompileOnly`(`usvm-api`.output)
-    `sample-approximationsCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
-    `sample-approximationsCompileOnly`("org.jacodb:jacodb-approximations:${Versions.jcdb}")
+    `sample-approximationsCompileOnly`("${Versions.jacodbPackage}:jacodb-api-jvm:${Versions.jacodb}")
+    `sample-approximationsCompileOnly`("${Versions.jacodbPackage}:jacodb-approximations:${Versions.jacodb}")
 }
 
 val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {

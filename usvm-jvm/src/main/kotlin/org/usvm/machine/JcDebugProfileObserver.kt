@@ -1,8 +1,8 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.JcInst
 import org.usvm.PathNode
 import org.usvm.StateId
 import org.usvm.UPathSelector

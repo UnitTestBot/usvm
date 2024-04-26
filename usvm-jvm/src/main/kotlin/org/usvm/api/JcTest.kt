@@ -1,9 +1,9 @@
 package org.usvm.api
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcField
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.cfg.JcInst
 
 // Reflection-based API
 

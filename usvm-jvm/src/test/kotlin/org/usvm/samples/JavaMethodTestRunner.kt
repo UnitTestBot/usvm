@@ -1,6 +1,6 @@
 package org.usvm.samples
 
-import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassOrInterface
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.CoverageZone

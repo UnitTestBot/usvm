@@ -1,8 +1,8 @@
 package org.usvm.api.util
 
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypedMethod
 import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState

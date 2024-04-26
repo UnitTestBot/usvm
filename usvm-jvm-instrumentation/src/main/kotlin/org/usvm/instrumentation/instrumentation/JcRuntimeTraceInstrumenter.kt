@@ -1,9 +1,9 @@
 package org.usvm.instrumentation.instrumentation
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.*
-import org.jacodb.api.ext.isEnum
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.*
+import org.jacodb.api.jvm.ext.isEnum
 import org.jacodb.impl.cfg.MethodNodeBuilder
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode

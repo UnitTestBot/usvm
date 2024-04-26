@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.testcase.api
 
-import org.jacodb.api.*
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.*
+import org.jacodb.api.jvm.ext.*
 import org.jacodb.impl.types.JcArrayTypeImpl
 
 /**

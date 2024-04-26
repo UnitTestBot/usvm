@@ -1,9 +1,9 @@
 package org.usvm.instrumentation.mock
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.*
-import org.jacodb.api.ext.methods
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.*
+import org.jacodb.api.jvm.ext.methods
 import org.jacodb.impl.cfg.*
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualClassImpl
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualFieldImpl
@@ -83,7 +83,7 @@ class MockClassRebuilder(
             is JcRawShort -> JcRawShort(value, typeName)
             is JcRawStringConstant -> JcRawStringConstant(value, typeName)
             is JcRawArgument -> JcRawArgument(index, name, typeName)
-            is JcRawLocalVar -> JcRawLocalVar(name, typeName)
+            is JcRawLocalVar -> JcRawLocalVar(index, name, typeName)
             is JcRawThis -> JcRawThis(mockedJcVirtualClass.typename)
         }
     }
@@ -302,7 +302,7 @@ class MockClassRebuilder(
     }
 
     override fun visitJcRawLocalVar(value: JcRawLocalVar): JcRawExpr {
-        return JcRawLocalVar(value.name, value.typeName)
+        return JcRawLocalVar(value.index, value.name, value.typeName)
     }
 
     override fun visitJcRawLong(value: JcRawLong): JcRawExpr {

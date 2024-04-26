@@ -41,8 +41,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("org.jacodb:jacodb-core:${Versions.jcdb}")
-    implementation("org.jacodb:jacodb-analysis:${Versions.jcdb}")
+    implementation("${Versions.jacodbPackage}:jacodb-api-jvm:${Versions.jacodb}")
+    implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
 
     implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
     implementation("org.ini4j:ini4j:${Versions.ini4j}")

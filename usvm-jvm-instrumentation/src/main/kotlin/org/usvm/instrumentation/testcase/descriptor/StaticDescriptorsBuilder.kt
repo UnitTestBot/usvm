@@ -1,9 +1,9 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcField
-import org.jacodb.api.ext.enumValues
-import org.jacodb.api.ext.isEnum
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.ext.enumValues
+import org.jacodb.api.jvm.ext.isEnum
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.*

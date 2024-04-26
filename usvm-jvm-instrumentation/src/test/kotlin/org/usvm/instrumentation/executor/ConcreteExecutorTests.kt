@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.executor
 
 import com.jetbrains.rd.util.first
-import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.jvm.ext.findTypeOrNull
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled

@@ -1,8 +1,8 @@
 package org.usvm.machine.mocks
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.void
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.ext.void
 import org.usvm.UMocker
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcMethodCall

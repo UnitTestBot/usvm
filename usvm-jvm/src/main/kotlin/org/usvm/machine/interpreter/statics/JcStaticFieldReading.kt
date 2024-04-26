@@ -4,7 +4,7 @@ import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
-import org.jacodb.api.JcField
+import org.jacodb.api.jvm.JcField
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort

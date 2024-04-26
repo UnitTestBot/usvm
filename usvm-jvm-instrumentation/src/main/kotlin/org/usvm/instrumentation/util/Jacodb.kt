@@ -1,8 +1,8 @@
 package org.usvm.instrumentation.util
 
-import org.jacodb.api.*
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.*
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.ext.*
 import org.jacodb.impl.types.TypeNameImpl
 import org.usvm.instrumentation.testcase.executor.TestExecutorException
 import java.lang.reflect.Constructor

@@ -1,10 +1,10 @@
 package org.usvm.api.util
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcRefType
-import org.jacodb.api.ext.allSuperHierarchySequence
-import org.jacodb.api.ext.fields
-import org.jacodb.api.ext.findTypeOrNull
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.ext.allSuperHierarchySequence
+import org.jacodb.api.jvm.ext.fields
+import org.jacodb.api.jvm.ext.findTypeOrNull
 import java.nio.ByteBuffer
 import java.security.CodeSource
 import java.security.SecureClassLoader
