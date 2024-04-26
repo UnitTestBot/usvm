@@ -1,8 +1,8 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.jacodb.api.JcField
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor

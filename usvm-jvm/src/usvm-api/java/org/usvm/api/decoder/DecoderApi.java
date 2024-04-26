@@ -1,9 +1,9 @@
 package org.usvm.api.decoder;
 
-import org.jacodb.api.JcClassOrInterface;
-import org.jacodb.api.JcField;
-import org.jacodb.api.JcMethod;
-import org.jacodb.api.JcType;
+import org.jacodb.api.jvm.JcClassOrInterface;
+import org.jacodb.api.jvm.JcField;
+import org.jacodb.api.jvm.JcMethod;
+import org.jacodb.api.jvm.JcType;
 
 import java.util.List;
 

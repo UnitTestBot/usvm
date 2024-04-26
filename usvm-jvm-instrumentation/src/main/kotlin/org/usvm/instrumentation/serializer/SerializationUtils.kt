@@ -1,10 +1,10 @@
 package org.usvm.instrumentation.serializer
 
 import com.jetbrains.rd.framework.AbstractBuffer
-import org.jacodb.api.*
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.findFieldOrNull
-import org.jacodb.api.ext.findMethodOrNull
+import org.jacodb.api.jvm.*
+import org.jacodb.api.jvm.ext.findClass
+import org.jacodb.api.jvm.ext.findFieldOrNull
+import org.jacodb.api.jvm.ext.findMethodOrNull
 import org.usvm.instrumentation.util.toStringType
 
 fun AbstractBuffer.writeJcMethod(jcMethod: JcMethod) = with(jcMethod) {

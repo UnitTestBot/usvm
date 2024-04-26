@@ -1,9 +1,9 @@
 package org.usvm.api.util
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcType
 import org.usvm.api.StaticFieldValue
 import org.usvm.api.decoder.DecoderApi
 import org.usvm.api.util.Reflection.allocateInstance

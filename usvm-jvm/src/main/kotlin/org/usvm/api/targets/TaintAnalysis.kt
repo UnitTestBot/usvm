@@ -2,12 +2,12 @@ package org.usvm.api.targets
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
-import org.jacodb.api.cfg.JcAssignInst
-import org.jacodb.api.cfg.JcCallExpr
-import org.jacodb.api.cfg.JcCallInst
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcInstanceCallExpr
-import org.jacodb.api.ext.cfg.callExpr
+import org.jacodb.api.jvm.cfg.JcAssignInst
+import org.jacodb.api.jvm.cfg.JcCallExpr
+import org.jacodb.api.jvm.cfg.JcCallInst
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcInstanceCallExpr
+import org.jacodb.api.jvm.ext.cfg.callExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef

@@ -1,10 +1,10 @@
 package org.usvm.util
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcClasspathFeature
-import org.jacodb.api.JcDatabase
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcClasspathFeature
+import org.jacodb.api.jvm.JcDatabase
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.types.JcClassTypeImpl
 import org.usvm.machine.logger

@@ -1,8 +1,8 @@
 package org.usvm.instrumentation.util
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.ext.isSubClassOf
-import org.jacodb.api.ext.objectClass
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.ext.isSubClassOf
+import org.jacodb.api.jvm.ext.objectClass
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Label

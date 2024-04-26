@@ -1,8 +1,8 @@
 package org.usvm.samples
 
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcDatabase
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcDatabase
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy

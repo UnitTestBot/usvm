@@ -1,9 +1,9 @@
 @file:Suppress("UNCHECKED_CAST")
 package org.usvm.instrumentation.testcase.executor
 
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcField
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.mock.MockHelper

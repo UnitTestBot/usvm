@@ -1,15 +1,15 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcPrimitiveType
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypeVariable
-import org.jacodb.api.ext.isAssignable
-import org.jacodb.api.ext.objectType
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcPrimitiveType
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypeVariable
+import org.jacodb.api.jvm.ext.isAssignable
+import org.jacodb.api.jvm.ext.objectType
+import org.jacodb.api.jvm.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream

@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.jacodb.api.JcField
-import org.jacodb.api.JcType
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcType
 import org.usvm.instrumentation.testcase.api.UTestInst
 
 sealed class UTestValueDescriptor {

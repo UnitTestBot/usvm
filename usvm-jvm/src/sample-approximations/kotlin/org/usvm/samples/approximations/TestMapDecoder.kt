@@ -1,6 +1,6 @@
 package org.usvm.samples.approximations
 
-import org.jacodb.api.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassOrInterface
 import org.usvm.api.decoder.DecoderApi
 import org.usvm.api.decoder.DecoderFor
 import org.usvm.api.decoder.ObjectData

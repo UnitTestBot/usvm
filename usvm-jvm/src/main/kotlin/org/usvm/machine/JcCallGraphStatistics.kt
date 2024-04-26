@@ -1,8 +1,8 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.ext.toType
 import org.usvm.algorithms.limitedBfsTraversal
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.types.TypesResult

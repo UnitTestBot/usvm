@@ -1,6 +1,6 @@
 package org.usvm.api.decoder;
 
-import org.jacodb.api.JcClassOrInterface;
+import org.jacodb.api.jvm.JcClassOrInterface;
 
 public interface ObjectDecoder {
     <T> T createInstance(

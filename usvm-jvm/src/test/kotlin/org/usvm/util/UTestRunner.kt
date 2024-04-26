@@ -1,6 +1,6 @@
 package org.usvm.util
 
-import org.jacodb.api.JcClasspath
+import org.jacodb.api.jvm.JcClasspath
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
 import org.usvm.instrumentation.util.InstrumentationModuleConstants

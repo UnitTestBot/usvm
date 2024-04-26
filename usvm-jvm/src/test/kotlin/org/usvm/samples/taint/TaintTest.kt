@@ -1,7 +1,7 @@
 package org.usvm.samples.taint
 
 import io.ksmt.utils.cast
-import org.jacodb.api.JcField
+import org.jacodb.api.jvm.JcField
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.Argument

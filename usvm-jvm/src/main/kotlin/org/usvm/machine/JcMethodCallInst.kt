@@ -1,12 +1,12 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcRefType
-import org.jacodb.api.cfg.JcDynamicCallExpr
-import org.jacodb.api.cfg.JcExpr
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcInstLocation
-import org.jacodb.api.cfg.JcInstVisitor
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.cfg.JcDynamicCallExpr
+import org.jacodb.api.jvm.cfg.JcExpr
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcInstLocation
+import org.jacodb.api.jvm.cfg.JcInstVisitor
 import org.jacodb.impl.cfg.JcInstLocationImpl
 import org.usvm.UExpr
 import org.usvm.UHeapRef

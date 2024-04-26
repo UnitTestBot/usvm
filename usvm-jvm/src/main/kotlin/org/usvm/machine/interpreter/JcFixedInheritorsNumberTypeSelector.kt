@@ -1,11 +1,11 @@
 package org.usvm.machine.interpreter
 
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.constructors
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.ext.constructors
 import org.usvm.machine.logger
 import org.usvm.types.TypesResult
 import org.usvm.types.UTypeStream

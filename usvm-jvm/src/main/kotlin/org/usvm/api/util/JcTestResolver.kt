@@ -1,6 +1,6 @@
 package org.usvm.api.util
 
-import org.jacodb.api.JcTypedMethod
+import org.jacodb.api.jvm.JcTypedMethod
 import org.usvm.api.JcTest
 import org.usvm.machine.state.JcState
 

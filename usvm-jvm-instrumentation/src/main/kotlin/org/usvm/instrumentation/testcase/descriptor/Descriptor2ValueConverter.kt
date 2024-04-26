@@ -1,6 +1,6 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.ext.*
 import org.usvm.instrumentation.util.*
 import java.util.*
 

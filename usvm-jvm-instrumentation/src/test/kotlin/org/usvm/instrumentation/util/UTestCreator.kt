@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.util
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.ext.*
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.ext.*
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.*
 import java.lang.IllegalArgumentException

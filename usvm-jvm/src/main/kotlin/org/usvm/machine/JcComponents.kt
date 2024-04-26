@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import org.jacodb.api.JcType
+import org.jacodb.api.jvm.JcType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
 import org.usvm.UComposer

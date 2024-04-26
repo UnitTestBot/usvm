@@ -1,6 +1,6 @@
 package org.usvm.instrumentation.util
 
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcInst
 import java.io.PrintStream
 
 object TracePrinter {

@@ -3,8 +3,8 @@ package org.usvm.machine
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
-import org.jacodb.api.JcField
-import org.jacodb.api.JcType
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcType
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UExpr

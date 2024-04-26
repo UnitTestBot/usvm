@@ -1,11 +1,11 @@
 package org.usvm.instrumentation.instrumentation
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.cfg.JcRawCallInst
-import org.jacodb.api.cfg.JcRawStaticCallExpr
-import org.jacodb.api.cfg.JcRawValue
-import org.jacodb.api.ext.long
-import org.jacodb.api.ext.objectType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.cfg.JcRawCallInst
+import org.jacodb.api.jvm.cfg.JcRawStaticCallExpr
+import org.jacodb.api.jvm.cfg.JcRawValue
+import org.jacodb.api.jvm.ext.long
+import org.jacodb.api.jvm.ext.objectType
 import org.jacodb.impl.cfg.JcRawLong
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualClassImpl
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualMethod
