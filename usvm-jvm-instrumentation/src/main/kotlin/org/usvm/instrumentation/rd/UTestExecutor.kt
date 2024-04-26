@@ -1,9 +1,9 @@
 package org.usvm.instrumentation.rd
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcField
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.ext.findClass
+import org.jacodb.api.jvm.ext.toType
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.TraceCollector

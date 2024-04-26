@@ -1,12 +1,12 @@
 package org.usvm.instrumentation.instrumentation
 
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcRawFieldRef
-import org.jacodb.api.ext.methods
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcRawFieldRef
+import org.jacodb.api.jvm.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.enclosingClass

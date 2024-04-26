@@ -4,11 +4,11 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentListOf
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcField
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
-import org.jacodb.api.PredefinedPrimitives
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.PredefinedPrimitives
 import org.jacodb.impl.bytecode.JcFieldImpl
 import org.jacodb.impl.cfg.util.isPrimitive
 import org.jacodb.impl.types.FieldInfo

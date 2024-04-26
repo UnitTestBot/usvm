@@ -7,10 +7,10 @@ import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import com.jetbrains.rd.util.threading.SynchronousScheduler
 import kotlinx.coroutines.delay
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.methods
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.ext.methods
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull

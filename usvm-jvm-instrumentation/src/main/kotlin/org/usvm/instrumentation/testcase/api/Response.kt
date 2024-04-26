@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.testcase.api
 
-import org.jacodb.api.JcField
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.cfg.JcInst
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor
 

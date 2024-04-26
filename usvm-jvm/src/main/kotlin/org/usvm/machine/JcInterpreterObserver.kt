@@ -1,16 +1,16 @@
 package org.usvm.machine
 
-import org.jacodb.api.cfg.JcAssignInst
-import org.jacodb.api.cfg.JcCallExpr
-import org.jacodb.api.cfg.JcCallInst
-import org.jacodb.api.cfg.JcCatchInst
-import org.jacodb.api.cfg.JcEnterMonitorInst
-import org.jacodb.api.cfg.JcExitMonitorInst
-import org.jacodb.api.cfg.JcGotoInst
-import org.jacodb.api.cfg.JcIfInst
-import org.jacodb.api.cfg.JcReturnInst
-import org.jacodb.api.cfg.JcSwitchInst
-import org.jacodb.api.cfg.JcThrowInst
+import org.jacodb.api.jvm.cfg.JcAssignInst
+import org.jacodb.api.jvm.cfg.JcCallExpr
+import org.jacodb.api.jvm.cfg.JcCallInst
+import org.jacodb.api.jvm.cfg.JcCatchInst
+import org.jacodb.api.jvm.cfg.JcEnterMonitorInst
+import org.jacodb.api.jvm.cfg.JcExitMonitorInst
+import org.jacodb.api.jvm.cfg.JcGotoInst
+import org.jacodb.api.jvm.cfg.JcIfInst
+import org.jacodb.api.jvm.cfg.JcReturnInst
+import org.jacodb.api.jvm.cfg.JcSwitchInst
+import org.jacodb.api.jvm.cfg.JcThrowInst
 import org.usvm.machine.interpreter.JcSimpleValueResolver
 import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.statistics.UInterpreterObserver

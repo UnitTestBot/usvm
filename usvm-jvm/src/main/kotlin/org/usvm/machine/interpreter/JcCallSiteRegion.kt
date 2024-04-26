@@ -2,7 +2,7 @@ package org.usvm.machine.interpreter
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
-import org.jacodb.api.cfg.JcLambdaExpr
+import org.jacodb.api.jvm.cfg.JcLambdaExpr
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress

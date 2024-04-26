@@ -1,12 +1,12 @@
 package org.usvm.util
 
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.ext.findMethodOrNull
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.ext.findMethodOrNull
+import org.jacodb.api.jvm.ext.toType
 
 /**
  * Checks if the method can be overridden:

@@ -1,11 +1,11 @@
 package org.usvm.util
 
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.LocationType
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.LocationType
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
 import org.usvm.UExpr

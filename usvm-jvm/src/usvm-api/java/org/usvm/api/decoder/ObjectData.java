@@ -1,6 +1,6 @@
 package org.usvm.api.decoder;
 
-import org.jacodb.api.JcField;
+import org.jacodb.api.jvm.JcField;
 import org.usvm.api.SymbolicIdentityMap;
 import org.usvm.api.SymbolicList;
 import org.usvm.api.SymbolicMap;

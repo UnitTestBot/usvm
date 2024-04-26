@@ -3,7 +3,7 @@ package org.usvm.instrumentation.executor
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import kotlinx.coroutines.withTimeout
-import org.jacodb.api.JcClasspath
+import org.jacodb.api.jvm.JcClasspath
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult

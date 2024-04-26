@@ -1,28 +1,20 @@
 package org.usvm.samples.checkers
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.cfg.JcAssignInst
-import org.jacodb.api.cfg.JcBinaryExpr
-import org.jacodb.api.cfg.JcCallInst
-import org.jacodb.api.cfg.JcCatchInst
-import org.jacodb.api.cfg.JcDivExpr
-import org.jacodb.api.cfg.JcEnterMonitorInst
-import org.jacodb.api.cfg.JcExitMonitorInst
-import org.jacodb.api.cfg.JcGotoInst
-import org.jacodb.api.cfg.JcIfInst
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.cfg.JcInstVisitor
-import org.jacodb.api.cfg.JcRemExpr
-import org.jacodb.api.cfg.JcReturnInst
-import org.jacodb.api.cfg.JcSwitchInst
-import org.jacodb.api.cfg.JcThrowInst
-import org.jacodb.api.ext.int
+import org.jacodb.api.common.cfg.CommonInst
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.cfg.JcAssignInst
+import org.jacodb.api.jvm.cfg.JcBinaryExpr
+import org.jacodb.api.jvm.cfg.JcDivExpr
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcInstVisitor
+import org.jacodb.api.jvm.cfg.JcRemExpr
+import org.jacodb.api.jvm.ext.int
 import org.usvm.UBoolExpr
 import org.usvm.api.checkers.JcCheckerApi
 import org.usvm.api.checkers.JcCheckerSatResult
 
-interface JcAssignInstChecker : JcInstVisitor<Unit> {
+interface JcAssignInstChecker : JcInstVisitor.Default<Unit> {
     val api: JcCheckerApi
 
     fun matchAst(inst: JcAssignInst): Boolean
@@ -42,44 +34,12 @@ interface JcAssignInstChecker : JcInstVisitor<Unit> {
         }
     }
 
-    override fun visitExternalJcInst(inst: JcInst) {
-        /*TODO("Not yet implemented")*/
+    override fun defaultVisitJcInst(inst: JcInst) {
+        // ignore
     }
 
-    override fun visitJcCallInst(inst: JcCallInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcCatchInst(inst: JcCatchInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcEnterMonitorInst(inst: JcEnterMonitorInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcExitMonitorInst(inst: JcExitMonitorInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcGotoInst(inst: JcGotoInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcIfInst(inst: JcIfInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcReturnInst(inst: JcReturnInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcSwitchInst(inst: JcSwitchInst) {
-        /*TODO("Not yet implemented")*/
-    }
-
-    override fun visitJcThrowInst(inst: JcThrowInst) {
-        /*TODO("Not yet implemented")*/
+    override fun defaultVisitCommonInst(inst: CommonInst<*, *>) {
+        // ignore
     }
 }
 

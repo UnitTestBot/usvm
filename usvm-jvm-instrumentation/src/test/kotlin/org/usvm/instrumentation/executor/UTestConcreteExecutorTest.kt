@@ -1,7 +1,7 @@
 package org.usvm.instrumentation.executor
 
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.JcClasspath
+import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory

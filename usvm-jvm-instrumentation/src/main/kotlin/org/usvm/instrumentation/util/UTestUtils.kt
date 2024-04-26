@@ -1,6 +1,6 @@
 package org.usvm.instrumentation.util
 
-import org.jacodb.api.JcField
+import org.jacodb.api.jvm.JcField
 import org.usvm.instrumentation.testcase.descriptor.UTestEnumValueDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestObjectDescriptor
 import org.usvm.instrumentation.testcase.descriptor.UTestValueDescriptor

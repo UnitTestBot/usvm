@@ -4,9 +4,9 @@ import approximations.java.lang.StringBuffer_Tests
 import approximations.java.util.HashSet_Tests
 import approximations.java.util.zip.CRC32_Tests
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.JcMethod
-import org.jacodb.api.ext.annotation
-import org.jacodb.api.ext.objectClass
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.ext.annotation
+import org.jacodb.api.jvm.ext.objectClass
 import org.jacodb.impl.features.hierarchyExt
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments

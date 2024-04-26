@@ -1,31 +1,31 @@
 package org.usvm.api.util
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcField
-import org.jacodb.api.JcPrimitiveType
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.ext.allSuperHierarchySequence
-import org.jacodb.api.ext.boolean
-import org.jacodb.api.ext.byte
-import org.jacodb.api.ext.char
-import org.jacodb.api.ext.constructors
-import org.jacodb.api.ext.double
-import org.jacodb.api.ext.enumValues
-import org.jacodb.api.ext.findTypeOrNull
-import org.jacodb.api.ext.float
-import org.jacodb.api.ext.int
-import org.jacodb.api.ext.isAssignable
-import org.jacodb.api.ext.isEnum
-import org.jacodb.api.ext.long
-import org.jacodb.api.ext.objectType
-import org.jacodb.api.ext.short
-import org.jacodb.api.ext.toType
-import org.jacodb.api.ext.void
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcPrimitiveType
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.ext.allSuperHierarchySequence
+import org.jacodb.api.jvm.ext.boolean
+import org.jacodb.api.jvm.ext.byte
+import org.jacodb.api.jvm.ext.char
+import org.jacodb.api.jvm.ext.constructors
+import org.jacodb.api.jvm.ext.double
+import org.jacodb.api.jvm.ext.enumValues
+import org.jacodb.api.jvm.ext.findTypeOrNull
+import org.jacodb.api.jvm.ext.float
+import org.jacodb.api.jvm.ext.int
+import org.jacodb.api.jvm.ext.isAssignable
+import org.jacodb.api.jvm.ext.isEnum
+import org.jacodb.api.jvm.ext.long
+import org.jacodb.api.jvm.ext.objectType
+import org.jacodb.api.jvm.ext.short
+import org.jacodb.api.jvm.ext.toType
+import org.jacodb.api.jvm.ext.void
 import org.jacodb.approximation.JcEnrichedVirtualField
 import org.usvm.INITIAL_INPUT_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
@@ -311,8 +311,8 @@ abstract class JcTestStateResolver<T>(
                         "Class ${cls.jcClass.name} has approximated field ${field.field} but has no decoder"
                     }
 
-                    val lvalue = UFieldLValue(ctx.typeToSort(field.fieldType), heapRef, field.field)
-                    val fieldValue = resolveLValue(lvalue, field.fieldType)
+                    val lvalue = UFieldLValue(ctx.typeToSort(field.type), heapRef, field.field)
+                    val fieldValue = resolveLValue(lvalue, field.type)
                     decoderApi.setField(field.field, instance, fieldValue)
                 }
             }
@@ -349,15 +349,15 @@ abstract class JcTestStateResolver<T>(
 
     fun resolveAllocatedString(ref: UConcreteHeapRef): T {
         val valueField = ctx.stringValueField
-        val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.fieldType), ref, valueField.field)
+        val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.type), ref, valueField.field)
 
         val strValue = if (isStaticHeapRef(ref)) {
             withMode(ResolveMode.CURRENT) {
                 val expr = memory.read(strValueLValue)
-                resolveExpr(expr, valueField.fieldType)
+                resolveExpr(expr, valueField.type)
             }
         } else {
-            resolveLValue(strValueLValue, valueField.fieldType)
+            resolveLValue(strValueLValue, valueField.type)
         }
 
         return allocateString(strValue)
@@ -572,7 +572,7 @@ abstract class JcTestStateResolver<T>(
         return model.eval(expr)
     }
 
-    // TODO simple org.jacodb.api.ext.JcClasses.isEnum does not work with enums with abstract methods
+    // TODO simple org.jacodb.api.jvm.ext.JcClasses.isEnum does not work with enums with abstract methods
     private fun JcRefType.getEnumAncestorOrNull(): JcClassOrInterface? =
         (sequenceOf(jcClass) + jcClass.allSuperHierarchySequence).firstOrNull { it.isEnum }
 

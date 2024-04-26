@@ -1,11 +1,11 @@
 package org.usvm.machine
 
 import mu.KLogging
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
-import org.jacodb.api.cfg.JcInst
-import org.jacodb.api.ext.humanReadableSignature
-import org.jacodb.api.ext.methods
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.ext.humanReadableSignature
+import org.jacodb.api.jvm.ext.methods
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine

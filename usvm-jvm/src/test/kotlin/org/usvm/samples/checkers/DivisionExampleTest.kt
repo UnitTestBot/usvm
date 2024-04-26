@@ -1,12 +1,12 @@
 package org.usvm.samples.checkers
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcParameter
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.cfg.JcAssignInst
-import org.jacodb.api.cfg.JcDivExpr
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcParameter
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.cfg.JcAssignInst
+import org.jacodb.api.jvm.cfg.JcDivExpr
+import org.jacodb.api.jvm.ext.findClass
+import org.jacodb.api.jvm.ext.toType
 import org.junit.jupiter.api.Test
 import org.usvm.api.checkers.JcCheckerRunner
 import org.usvm.samples.JacoDBContainer

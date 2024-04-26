@@ -4,86 +4,89 @@ import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
-import org.jacodb.api.JcArrayType
-import org.jacodb.api.JcClassOrInterface
-import org.jacodb.api.JcClassType
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcPrimitiveType
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
-import org.jacodb.api.JcTypeVariable
-import org.jacodb.api.JcTypedField
-import org.jacodb.api.JcTypedMethod
-import org.jacodb.api.cfg.JcAddExpr
-import org.jacodb.api.cfg.JcAndExpr
-import org.jacodb.api.cfg.JcArgument
-import org.jacodb.api.cfg.JcArrayAccess
-import org.jacodb.api.cfg.JcBinaryExpr
-import org.jacodb.api.cfg.JcBool
-import org.jacodb.api.cfg.JcByte
-import org.jacodb.api.cfg.JcCastExpr
-import org.jacodb.api.cfg.JcChar
-import org.jacodb.api.cfg.JcClassConstant
-import org.jacodb.api.cfg.JcCmpExpr
-import org.jacodb.api.cfg.JcCmpgExpr
-import org.jacodb.api.cfg.JcCmplExpr
-import org.jacodb.api.cfg.JcDivExpr
-import org.jacodb.api.cfg.JcDouble
-import org.jacodb.api.cfg.JcDynamicCallExpr
-import org.jacodb.api.cfg.JcEqExpr
-import org.jacodb.api.cfg.JcExpr
-import org.jacodb.api.cfg.JcExprVisitor
-import org.jacodb.api.cfg.JcFieldRef
-import org.jacodb.api.cfg.JcFloat
-import org.jacodb.api.cfg.JcGeExpr
-import org.jacodb.api.cfg.JcGtExpr
-import org.jacodb.api.cfg.JcInstanceOfExpr
-import org.jacodb.api.cfg.JcInt
-import org.jacodb.api.cfg.JcLambdaExpr
-import org.jacodb.api.cfg.JcLeExpr
-import org.jacodb.api.cfg.JcLengthExpr
-import org.jacodb.api.cfg.JcLocal
-import org.jacodb.api.cfg.JcLocalVar
-import org.jacodb.api.cfg.JcLong
-import org.jacodb.api.cfg.JcLtExpr
-import org.jacodb.api.cfg.JcMethodConstant
-import org.jacodb.api.cfg.JcMethodType
-import org.jacodb.api.cfg.JcMulExpr
-import org.jacodb.api.cfg.JcNegExpr
-import org.jacodb.api.cfg.JcNeqExpr
-import org.jacodb.api.cfg.JcNewArrayExpr
-import org.jacodb.api.cfg.JcNewExpr
-import org.jacodb.api.cfg.JcNullConstant
-import org.jacodb.api.cfg.JcOrExpr
-import org.jacodb.api.cfg.JcPhiExpr
-import org.jacodb.api.cfg.JcRemExpr
-import org.jacodb.api.cfg.JcShlExpr
-import org.jacodb.api.cfg.JcShort
-import org.jacodb.api.cfg.JcShrExpr
-import org.jacodb.api.cfg.JcSimpleValue
-import org.jacodb.api.cfg.JcSpecialCallExpr
-import org.jacodb.api.cfg.JcStaticCallExpr
-import org.jacodb.api.cfg.JcStringConstant
-import org.jacodb.api.cfg.JcSubExpr
-import org.jacodb.api.cfg.JcThis
-import org.jacodb.api.cfg.JcUshrExpr
-import org.jacodb.api.cfg.JcValue
-import org.jacodb.api.cfg.JcVirtualCallExpr
-import org.jacodb.api.cfg.JcXorExpr
-import org.jacodb.api.ext.boolean
-import org.jacodb.api.ext.byte
-import org.jacodb.api.ext.char
-import org.jacodb.api.ext.double
-import org.jacodb.api.ext.enumValues
-import org.jacodb.api.ext.float
-import org.jacodb.api.ext.ifArrayGetElementType
-import org.jacodb.api.ext.int
-import org.jacodb.api.ext.isEnum
-import org.jacodb.api.ext.long
-import org.jacodb.api.ext.objectType
-import org.jacodb.api.ext.short
-import org.jacodb.api.ext.toType
-import org.jacodb.api.ext.void
+import org.jacodb.api.common.cfg.CommonExpr
+import org.jacodb.api.common.cfg.CommonValue
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClassType
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcPrimitiveType
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypeVariable
+import org.jacodb.api.jvm.JcTypedField
+import org.jacodb.api.jvm.JcTypedMethod
+import org.jacodb.api.jvm.cfg.JcAddExpr
+import org.jacodb.api.jvm.cfg.JcAndExpr
+import org.jacodb.api.jvm.cfg.JcArgument
+import org.jacodb.api.jvm.cfg.JcArrayAccess
+import org.jacodb.api.jvm.cfg.JcBinaryExpr
+import org.jacodb.api.jvm.cfg.JcBool
+import org.jacodb.api.jvm.cfg.JcByte
+import org.jacodb.api.jvm.cfg.JcCastExpr
+import org.jacodb.api.jvm.cfg.JcChar
+import org.jacodb.api.jvm.cfg.JcClassConstant
+import org.jacodb.api.jvm.cfg.JcCmpExpr
+import org.jacodb.api.jvm.cfg.JcCmpgExpr
+import org.jacodb.api.jvm.cfg.JcCmplExpr
+import org.jacodb.api.jvm.cfg.JcDivExpr
+import org.jacodb.api.jvm.cfg.JcDouble
+import org.jacodb.api.jvm.cfg.JcDynamicCallExpr
+import org.jacodb.api.jvm.cfg.JcEqExpr
+import org.jacodb.api.jvm.cfg.JcExpr
+import org.jacodb.api.jvm.cfg.JcExprVisitor
+import org.jacodb.api.jvm.cfg.JcFieldRef
+import org.jacodb.api.jvm.cfg.JcFloat
+import org.jacodb.api.jvm.cfg.JcGeExpr
+import org.jacodb.api.jvm.cfg.JcGtExpr
+import org.jacodb.api.jvm.cfg.JcInstanceOfExpr
+import org.jacodb.api.jvm.cfg.JcInt
+import org.jacodb.api.jvm.cfg.JcLambdaExpr
+import org.jacodb.api.jvm.cfg.JcLeExpr
+import org.jacodb.api.jvm.cfg.JcLengthExpr
+import org.jacodb.api.jvm.cfg.JcLocal
+import org.jacodb.api.jvm.cfg.JcLocalVar
+import org.jacodb.api.jvm.cfg.JcLong
+import org.jacodb.api.jvm.cfg.JcLtExpr
+import org.jacodb.api.jvm.cfg.JcMethodConstant
+import org.jacodb.api.jvm.cfg.JcMethodType
+import org.jacodb.api.jvm.cfg.JcMulExpr
+import org.jacodb.api.jvm.cfg.JcNegExpr
+import org.jacodb.api.jvm.cfg.JcNeqExpr
+import org.jacodb.api.jvm.cfg.JcNewArrayExpr
+import org.jacodb.api.jvm.cfg.JcNewExpr
+import org.jacodb.api.jvm.cfg.JcNullConstant
+import org.jacodb.api.jvm.cfg.JcOrExpr
+import org.jacodb.api.jvm.cfg.JcPhiExpr
+import org.jacodb.api.jvm.cfg.JcRemExpr
+import org.jacodb.api.jvm.cfg.JcShlExpr
+import org.jacodb.api.jvm.cfg.JcShort
+import org.jacodb.api.jvm.cfg.JcShrExpr
+import org.jacodb.api.jvm.cfg.JcSimpleValue
+import org.jacodb.api.jvm.cfg.JcSpecialCallExpr
+import org.jacodb.api.jvm.cfg.JcStaticCallExpr
+import org.jacodb.api.jvm.cfg.JcStringConstant
+import org.jacodb.api.jvm.cfg.JcSubExpr
+import org.jacodb.api.jvm.cfg.JcThis
+import org.jacodb.api.jvm.cfg.JcUshrExpr
+import org.jacodb.api.jvm.cfg.JcValue
+import org.jacodb.api.jvm.cfg.JcValueVisitor
+import org.jacodb.api.jvm.cfg.JcVirtualCallExpr
+import org.jacodb.api.jvm.cfg.JcXorExpr
+import org.jacodb.api.jvm.ext.boolean
+import org.jacodb.api.jvm.ext.byte
+import org.jacodb.api.jvm.ext.char
+import org.jacodb.api.jvm.ext.double
+import org.jacodb.api.jvm.ext.enumValues
+import org.jacodb.api.jvm.ext.float
+import org.jacodb.api.jvm.ext.ifArrayGetElementType
+import org.jacodb.api.jvm.ext.int
+import org.jacodb.api.jvm.ext.isEnum
+import org.jacodb.api.jvm.ext.long
+import org.jacodb.api.jvm.ext.objectType
+import org.jacodb.api.jvm.ext.short
+import org.jacodb.api.jvm.ext.toType
+import org.jacodb.api.jvm.ext.void
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -135,7 +138,7 @@ class JcExprResolver(
     mkTypeRef: (JcType) -> UConcreteHeapRef,
     mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
-) : JcExprVisitor<UExpr<out USort>?> {
+) : JcExprVisitor<UExpr<out USort>?>, JcExprVisitor.Default<UExpr<out USort>?> {
     val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
         ctx,
         scope,
@@ -185,7 +188,11 @@ class JcExprResolver(
             else -> error("Unexpected value: $value")
         }
 
-    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> {
+    override fun defaultVisitCommonExpr(expr: CommonExpr): UExpr<out USort>? {
+        error("Unexpected expression: $expr")
+    }
+
+    override fun defaultVisitJcExpr(expr: JcExpr): UExpr<out USort>? {
         error("Unexpected expression: $expr")
     }
 
@@ -538,12 +545,12 @@ class JcExprResolver(
                 // Ensure instance is subtype of field class
                 if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
 
-                val sort = ctx.typeToSort(field.fieldType)
+                val sort = ctx.typeToSort(field.type)
                 return UFieldLValue(sort, instanceRef, field.field)
             }
 
             return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
-                val sort = ctx.typeToSort(field.fieldType)
+                val sort = ctx.typeToSort(field.type)
                 JcStaticFieldLValue(field.field, sort)
             }
         }
@@ -631,7 +638,7 @@ class JcExprResolver(
         val enumValuesFieldLValue = JcStaticFieldLValue(enumValuesField.field, addressSort)
         val enumValuesRef = memory.read(enumValuesFieldLValue)
 
-        val enumValuesType = enumValuesField.fieldType as JcArrayType
+        val enumValuesType = enumValuesField.type as JcArrayType
         val enumValuesArrayDescriptor = arrayDescriptorOf(enumValuesType)
 
         val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor, sizeSort)
@@ -1020,7 +1027,7 @@ class JcSimpleValueResolver(
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType) -> UConcreteHeapRef,
     private val mkStringConstRef: (String) -> UConcreteHeapRef,
-) : JcExprVisitor<UExpr<out USort>> {
+) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {
     override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
@@ -1069,14 +1076,14 @@ class JcSimpleValueResolver(
             val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
 
             // String.value type depends on the JVM version
-            val charValues = when (stringValueField.fieldType.ifArrayGetElementType) {
+            val charValues = when (stringValueField.type.ifArrayGetElementType) {
                 cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
                 cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
-                else -> error("Unexpected string values type: ${stringValueField.fieldType}")
+                else -> error("Unexpected string values type: ${stringValueField.type}")
             }
 
-            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.fieldType as JcArrayType)
-            val elementType = requireNotNull(stringValueField.fieldType.ifArrayGetElementType)
+            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.type as JcArrayType)
+            val elementType = requireNotNull(stringValueField.type.ifArrayGetElementType)
             val charArrayRef = memory.allocateArrayInitialized(
                 valuesArrayDescriptor,
                 typeToSort(elementType),
@@ -1085,7 +1092,7 @@ class JcSimpleValueResolver(
             )
 
             // overwrite array type because descriptor is element type
-            memory.types.allocate(charArrayRef.address, stringValueField.fieldType)
+            memory.types.allocate(charArrayRef.address, stringValueField.type)
 
             // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
             memory.write(stringValueLValue, charArrayRef)
@@ -1124,109 +1131,10 @@ class JcSimpleValueResolver(
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitExternalJcExpr(expr: JcExpr): UExpr<out USort> =
+    override fun defaultVisitJcExpr(expr: JcExpr): UExpr<out USort> =
         error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
 
-    override fun visitJcAddExpr(expr: JcAddExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcAndExpr(expr: JcAndExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcArrayAccess(value: JcArrayAccess): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcCastExpr(expr: JcCastExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcCmpExpr(expr: JcCmpExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcCmpgExpr(expr: JcCmpgExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcCmplExpr(expr: JcCmplExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcDivExpr(expr: JcDivExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcEqExpr(expr: JcEqExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcFieldRef(value: JcFieldRef): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcGeExpr(expr: JcGeExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcGtExpr(expr: JcGtExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcInstanceOfExpr(expr: JcInstanceOfExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcLeExpr(expr: JcLeExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcLtExpr(expr: JcLtExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcMulExpr(expr: JcMulExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcNegExpr(expr: JcNegExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcNeqExpr(expr: JcNeqExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcNewExpr(expr: JcNewExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcOrExpr(expr: JcOrExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcPhiExpr(expr: JcPhiExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcRemExpr(expr: JcRemExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcShlExpr(expr: JcShlExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcShrExpr(expr: JcShrExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcSpecialCallExpr(expr: JcSpecialCallExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcStaticCallExpr(expr: JcStaticCallExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcSubExpr(expr: JcSubExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcUshrExpr(expr: JcUshrExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    override fun visitJcXorExpr(expr: JcXorExpr): UExpr<out USort> =
+    override fun defaultVisitCommonExpr(expr: CommonExpr): UExpr<out USort> =
         error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
 
     fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {

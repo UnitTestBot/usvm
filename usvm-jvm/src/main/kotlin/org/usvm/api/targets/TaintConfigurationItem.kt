@@ -1,7 +1,7 @@
 package org.usvm.api.targets
 
-import org.jacodb.api.JcField
-import org.jacodb.api.JcMethod
+import org.jacodb.api.jvm.JcField
+import org.jacodb.api.jvm.JcMethod
 
 // TODO separate cleaning actions from the ones who can taint data
 data class TaintConfiguration(

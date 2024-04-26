@@ -1,6 +1,6 @@
 package org.usvm.api.targets
 
-import org.jacodb.api.cfg.JcInst
+import org.jacodb.api.jvm.cfg.JcInst
 import org.usvm.targets.UTarget
 
 /**

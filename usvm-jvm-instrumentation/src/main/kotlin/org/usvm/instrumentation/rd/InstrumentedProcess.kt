@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Options
-import org.jacodb.api.JcClasspath
+import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.generated.models.*

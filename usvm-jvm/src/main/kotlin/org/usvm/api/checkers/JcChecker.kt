@@ -1,10 +1,10 @@
 package org.usvm.api.checkers
 
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.JcMethod
-import org.jacodb.api.JcType
-import org.jacodb.api.cfg.JcInstVisitor
-import org.jacodb.api.cfg.JcValue
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.cfg.JcInstVisitor
+import org.jacodb.api.jvm.cfg.JcValue
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UMachineOptions

@@ -2,9 +2,9 @@ package org.usvm.instrumentation.testcase.descriptor
 
 import com.jetbrains.rd.util.reactive.RdFault
 import kotlinx.coroutines.TimeoutCancellationException
-import org.jacodb.api.JcClasspath
-import org.jacodb.api.ext.findClass
-import org.jacodb.api.ext.toType
+import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.ext.findClass
+import org.jacodb.api.jvm.ext.toType
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionTimedOutResult
