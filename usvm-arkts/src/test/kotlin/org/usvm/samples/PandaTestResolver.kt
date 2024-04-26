@@ -63,7 +63,7 @@ class PandaTestResolver {
             val lvalue = pctx.constructAuxiliaryFieldLValue(concreteRef, pctx.typeToSort(type))
             val exprFromMemory = memory.read(lvalue)
 
-            return model.eval(exprFromMemory)
+            return resolveInterpreterValue(model.eval(exprFromMemory) as KInterpretedValue)
         }
 
         TODO()
