@@ -132,7 +132,7 @@ class JcMachine(
                 InterprocDistanceCalculator(
                     targetLocation = stmt,
                     applicationGraph = applicationGraph,
-                    cfgStatistics = cfgStatistics,
+                    cfgStatistics = transparentCfgStatistics(),
                     callGraphStatistics = callGraphStatistics
                 )
             }

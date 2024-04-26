@@ -31,31 +31,22 @@ class JcCallGraphStatistics(
     private val cache = ConcurrentHashMap<JcMethod, Set<JcMethod>>()
 
     private fun getCallees(method: JcMethod): Set<JcMethod> {
-        val callees = mutableSetOf<JcMethod>()
-        applicationGraph.statementsOf(method).flatMapTo(callees, applicationGraph::callees)
+        val result = hashSetOf<JcMethod>()
+        applicationGraph.statementsOf(method).flatMapTo(result, applicationGraph::callees)
 
-        if (subclassesToTake <= 0 || callees.isEmpty()) {
-            return callees
-        }
-
-        val overrides = mutableSetOf<JcMethod>()
-        for (callee in callees) {
-            if (!callee.canBeOverridden()) {
-                continue
-            }
-
+        if (method.canBeOverridden() && subclassesToTake > 0) {
             typeStream
-                .filterBySupertype(callee.enclosingClass.toType())
+                .filterBySupertype(method.enclosingClass.toType())
                 .take(subclassesToTake)
-                .mapTo(overrides) {
-                    val calleeMethod = it.findMethod(callee)?.method
+                .mapTo(result) {
+                    val calleeMethod = it.findMethod(method)?.method
                     checkNotNull(calleeMethod) {
-                        "Cannot find overridden method $callee in type $it"
+                        "Cannot find overridden method $method in type $it"
                     }
                 }
         }
 
-        return callees + overrides
+        return result
     }
 
     override fun checkReachability(methodFrom: JcMethod, methodTo: JcMethod): Boolean =
