@@ -6,55 +6,56 @@ import org.junit.jupiter.api.Test
 class FirstExamplesTest : PandaMethodTestRunner() {
     @Test
     fun testDataFlowSecurity() {
-        discoverProperties(
+        discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(
                 className = "DataFlowSecurity",
                 methodName = "validate",
                 argumentsNumber = 1
             ),
-            analysisResultMatchers = emptyArray()
+            { arg, result -> TODO() }
         )
     }
 
     @Test
     fun testBasicSamples() {
-        discoverProperties(
+        discoverProperties<Double>(
             methodIdentifier = MethodDescriptor(
                 className = "BasicSamples",
                 methodName = "add",
                 argumentsNumber = 0
             ),
-            analysisResultMatchers = emptyArray()
+            { result -> result == 4.0 }
         )
     }
 
     @Test
     fun testSomeOps() {
-        discoverProperties(
+        discoverProperties<Double, Double, Double>(
             methodIdentifier = MethodDescriptor(
                 className = "BasicSamples",
                 methodName = "someOps",
                 argumentsNumber = 2
             ),
-            analysisResultMatchers = emptyArray()
+            { a, b, result -> result == (a + b) * a - 1 }
         )
     }
 
     @Test
     fun testBasicIf() {
-        discoverProperties(
+        discoverProperties<Double, Boolean>(
             methodIdentifier = MethodDescriptor(
                 className = "BasicSamples",
                 methodName = "basicIf",
                 argumentsNumber = 1
             ),
-            analysisResultMatchers = emptyArray()
+            { a, result -> a + 2 - 3 > 10 && result == true },
+            { a, result -> !(a + 2 - 3 > 10) && result == false }
         )
     }
 
     @Test
     fun testMinValue() {
-        discoverProperties(
+        discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(
                 className = "MinValue",
                 methodName = "findMinValue",
@@ -66,7 +67,7 @@ class FirstExamplesTest : PandaMethodTestRunner() {
 
     @Test
     fun testMethodCollision() {
-        discoverProperties(
+        discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(
                 className = "MethodCollision",
                 methodName = "main",

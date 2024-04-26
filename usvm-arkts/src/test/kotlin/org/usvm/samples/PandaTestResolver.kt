@@ -1,5 +1,7 @@
 package org.usvm.samples
 
+import io.ksmt.expr.KFp64Value
+import io.ksmt.expr.KInterpretedValue
 import io.ksmt.utils.asExpr
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaPrimitiveType
@@ -7,6 +9,7 @@ import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
+import org.usvm.isTrue
 import org.usvm.machine.PandaTest
 import org.usvm.machine.pctx
 import org.usvm.machine.state.PandaMethodResult
@@ -47,6 +50,10 @@ class PandaTestResolver {
     private fun resolveExpr(expr: UExpr<out USort>): Any {
         val pctx = expr.pctx
 
+        if (expr.sort != pctx.addressSort) {
+            return resolveInterpreterValue(model.eval(expr) as KInterpretedValue)
+        }
+
         val ref = expr.asExpr(pctx.addressSort)
         val concreteRef = model.eval(ref)
 
@@ -60,5 +67,16 @@ class PandaTestResolver {
         }
 
         TODO()
+    }
+
+    private fun resolveInterpreterValue(expr: KInterpretedValue<out USort>): Any = with(expr.pctx) {
+        val sort = expr.sort
+
+        when (sort) {
+            fp64Sort -> (expr as KFp64Value).value
+            boolSort -> expr.asExpr(boolSort).isTrue
+            stringSort -> TODO()
+            else -> error("Should not be called")
+        }
     }
 }

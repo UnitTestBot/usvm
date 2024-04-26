@@ -1,7 +1,7 @@
 package org.usvm.machine
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaNumberType
 import org.jacodb.panda.dynamic.api.PandaObjectType
@@ -51,7 +51,7 @@ class PandaTypeSystem(override val typeOperationsTimeout: Duration, val project:
 
 class PandaTopTypeStream(
     private val pandaTypeSystem: PandaTypeSystem,
-    private val primitiveTypes: PersistentSet<PandaPrimitiveType> = persistentSetOf(
+    private val primitiveTypes: PersistentList<PandaPrimitiveType> = persistentListOf( // TODO replace with list
         PandaNumberType,
         PandaBoolType,
         PandaStringType
