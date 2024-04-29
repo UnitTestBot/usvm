@@ -414,20 +414,21 @@
          {
           "id": "v17",
           "imms": [
-           4
+           4,
+           2
           ],
           "inputs": [
-           "v16",
            "v12",
+           "v16",
            "v18"
           ],
-          "intrinsic_id": "Intrinsic.callarg1",
+          "intrinsic_id": "Intrinsic.newobjrange",
           "opcode": "Intrinsic",
           "type": "any",
           "users": [
            "v19"
           ],
-          "visit": "call"
+          "visit": "intrinsic"
          },
          {
           "id": "v20",
