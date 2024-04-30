@@ -35,7 +35,10 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
         stopStrategy: StopStrategy = StopStrategy { false }
     ) {
         logger.debug().bracket("$this.run($interpreter, ${pathSelector::class.simpleName})") {
+            var stepsCount: Long = 0
+
             while (!pathSelector.isEmpty() && !stopStrategy.shouldStop()) {
+                stepsCount++
                 val state = pathSelector.peek()
 
                 val (forkedStates, stateAlive) = try {
@@ -43,6 +46,16 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                 } catch (ex: Exception) {
                     logger.error(ex) { "Machine step failed:" }
                     continue
+                }
+
+                val stats = (state as UState<*, *, *, *, *, *>).ctx.stats
+
+                if (!stateAlive) {
+                    stats.dead++
+                }
+
+                if (stepsCount % 1_000 == 0L) {
+                    logger.info { "STATS: $stats" }
                 }
 
                 observer.onState(state, forkedStates)
@@ -53,6 +66,8 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                     if (!isStateTerminated(forkedState)) {
                         aliveForkedStates.add(forkedState)
                     } else {
+                        stats.terminated++
+
                         // TODO: distinguish between states terminated by exception (runtime or user) and
                         //  those which just exited
                         if (forkedState.isSat()) {
@@ -64,6 +79,9 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                 if (originalStateAlive) {
                     pathSelector.update(state)
                 } else {
+                    stats.terminated++
+                    stats.current--
+
                     pathSelector.remove(state)
                     if (state.isSat()) {
                         observer.onStateTerminated(state, stateReachable = stateAlive)
@@ -71,6 +89,7 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                 }
 
                 if (aliveForkedStates.isNotEmpty()) {
+                    stats.current += aliveForkedStates.size
                     pathSelector.add(aliveForkedStates)
                 }
             }
