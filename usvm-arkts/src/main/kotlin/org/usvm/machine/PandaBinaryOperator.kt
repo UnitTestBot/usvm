@@ -26,14 +26,15 @@ sealed class PandaBinaryOperator(
 ) {
     object Add : PandaBinaryOperator(
         onBool = { lhs, rhs ->
-            with(lhs.ctx) {
-                mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.toNumber(), rhs.toNumber())
-            }
+            mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.toNumber(), rhs.toNumber())
         },
         onNumber = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Sub : PandaBinaryOperator(
+        onBool = { lhs, rhs ->
+            mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs.toNumber(), rhs.toNumber())
+        },
         onNumber = { lhs, rhs -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
@@ -45,10 +46,14 @@ sealed class PandaBinaryOperator(
     )
 
     object Div : PandaBinaryOperator(
+        onBool = { lhs, rhs ->
+            mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs.toNumber(), rhs.toNumber())
+        },
         onNumber = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
     object Gt : PandaBinaryOperator(
+        onBool = { lhs, rhs -> mkAnd(lhs, rhs.not()) }, // lhs > rhs => lhs /\ !rhs
         onNumber = PandaContext::mkFpGreaterExpr
     )
 

@@ -32,5 +32,5 @@ val `usvm-api` by sourceSets.creating {
 }
 val `usvm-apiCompileOnly`: Configuration by configurations.getting
 dependencies {
-    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.jcdb}")
+    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.arktsJacoDBVersion}")
 }
