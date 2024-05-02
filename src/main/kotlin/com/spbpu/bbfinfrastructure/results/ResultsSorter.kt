@@ -25,7 +25,7 @@ object ResultsSorter {
                         headerToFile[it] = f
                     }
                 }
-                .filter { it.results.size == 5 }
+//                .filter { it.results.size == 4 }
                 .groupBy { calcDiff(it) }
                 .toSortedMap()
                 .mapValues { sortByLevenshteinDistance(it.value) }
