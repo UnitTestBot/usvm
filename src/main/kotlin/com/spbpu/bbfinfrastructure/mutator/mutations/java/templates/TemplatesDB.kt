@@ -22,6 +22,11 @@ object TemplatesDB {
         return templates.randomOrNull()?.let { it.readText() to it.path }
     }
 
+    fun getRandomTemplateForPath(path: String): Pair<String, String>? {
+        val templates = getTemplates(path) ?: return null
+        return templates.randomOrNull()?.let { it.readText() to it.path }
+    }
+
     private fun getTemplates(dir: String) =
         Files.walk(Paths.get(dir))
             .map { it.toFile() }

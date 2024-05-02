@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.source.PsiClassImpl
@@ -19,7 +20,7 @@ import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
 
-class TemplatesInserter : Transformation() {
+open class TemplatesInserter : Transformation() {
 
     private val testSuite = GlobalTestSuite.javaTestSuite
     private val originalPsiText = file.text
@@ -43,40 +44,63 @@ class TemplatesInserter : Transformation() {
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(fileBackupText))
             }
         }
-
     }
 
-    private fun tryToTransform(): Boolean {
-        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature) ?: return false
+    protected open fun tryToTransform(): Boolean {
+        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature)
+            ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
+        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
+        insertClasses(parsedTemplates)
+        insertImports(parsedTemplates)
+        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
+        insertAuxMethods(randomPlaceToInsert, randomTemplate).let { if (!it) return false }
+        val newText = generateNewBody(randomPlaceToInsert, randomTemplate)
+        val newPsiBlock =
+            try {
+                Factory.javaPsiFactory.createCodeBlockFromText("{\n$newText\n}", null).also {
+                    it.lBrace!!.delete()
+                    it.rBrace!!.delete()
+                }
+            } catch (e: Throwable) {
+                return false
+            }
+        randomPlaceToInsert.replaceThis(newPsiBlock)
+        checkNewCode(
+            MutationInfo(
+                mutationName = "TemplateInsertion",
+                mutationDescription = "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
+                location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
+            )
+        )
+        return true
+    }
+
+    protected fun checkNewCode(mutationInfo: MutationInfo?): Boolean {
+        return if (!checker.checkCompiling()) {
+            throw IllegalArgumentException()
+        } else {
+            mutationInfo?.let{ currentMutationChain.add(it) }
+            checker.curFile.changePsiFile(PSICreator.getPsiForJava(file.text))
+            if (++curNumOfSuccessfulMutations == numOfSuccessfulMutationsToAdd) {
+                curNumOfSuccessfulMutations = 0
+                addedProjects++
+                testSuite.addProject(project.copy(), currentMutationChain.toList())
+                currentMutationChain.clear()
+                checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
+            }
+            if (addedProjects >= numberOfProjectsToCheck) {
+                throw MutationFinishedException()
+            }
+            true
+        }
+    }
+
+    protected open fun generateNewBody(randomPlaceToInsert: PsiElement, randomTemplate: TemplateBody): String {
+        val randomTemplateBody = randomTemplate.templateBody
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
         val regex = Regex("""~\[(.*?)\]~""")
-        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
-        for (auxClass in parsedTemplates.auxClasses) {
-            val bbfFile =
-                BBFFile("${auxClass.first.substringAfterLast('.')}.java", PSICreator.getPsiForJava(auxClass.second))
-            project.addFile(bbfFile)
-        }
-        if (parsedTemplates.imports.isNotEmpty()) {
-            val oldImportList = (file as PsiJavaFile).importList?.text ?: ""
-            val additionalImports = parsedTemplates.imports.joinToString("\n") { "import $it" }
-            val newImportList =
-                (PSICreator.getPsiForJava("$oldImportList\n$additionalImports") as PsiJavaFile).importList!!
-            (file as PsiJavaFile).importList?.replaceThis(newImportList) ?: return false
-        }
-
-        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
-        val auxMethods = randomTemplate.auxMethods
-        val randomTemplateBody = randomTemplate.templateBody
-        for (auxMethod in auxMethods) {
-            val psiClass = randomPlaceToInsert.parents.find { it is PsiClass } as? PsiClassImpl ?: return false
-            val m = Factory.javaPsiFactory.createMethodFromText(auxMethod, null)
-            val lastMethod =
-                psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass }
-                    ?: return false
-            lastMethod.addAfterThisWithWhitespace(m, "\n\n")
-        }
         val newText = regex.replace(randomTemplateBody) { result ->
             val hole = result.groupValues.getOrNull(1) ?: throw IllegalArgumentException()
             val isVar = hole.startsWith("VAR_")
@@ -109,52 +133,44 @@ class TemplatesInserter : Transformation() {
                 ?: ExpressionGenerator().generateExpressionOfType(scope, capturedType)
                 ?: throw IllegalArgumentException()
         }
-        val newPsiBlock =
-            try {
-                Factory.javaPsiFactory.createCodeBlockFromText("{\n$newText\n}", null).also {
-                    it.lBrace!!.delete()
-                    it.rBrace!!.delete()
-                }
-            } catch (e: Throwable) {
-                return false
-            }
-        randomPlaceToInsert.replaceThis(newPsiBlock)
-        if (!checker.checkCompiling()) {
-            throw IllegalArgumentException()
-        } else {
-            currentMutationChain.add(
-                MutationInfo(
-                    "TemplateInsertion",
-                    "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
-                    MutationLocation(file.name, randomPlaceToInsertLineNumber)
-                )
-            )
-            checker.curFile.changePsiFile(PSICreator.getPsiForJava(file.text))
-            if (++curNumOfSuccessfulMutations == numOfSuccessfulMutationsToAdd) {
-                curNumOfSuccessfulMutations = 0
-                addedProjects++
-                testSuite.addProject(project.copy(), currentMutationChain.toList())
-                currentMutationChain.clear()
-                checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
-            }
-            if (addedProjects >= numberOfProjectsToCheck) {
-                throw MutationFinishedException()
-//                testSuite.flushSuiteOnServer(
-//                    "/home/stepanov/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode",
-//                    "/home/stepanov/BenchmarkJavaFuzz/expectedresults-1.2.csv"
-//                )
-//                exitProcess(0)
-//
-//                val projectToCheckRes = testSuite.flushOnDiskAndCheck()
-//                for ((project, checkingResult) in projectToCheckRes) {
-//                    println("CHECKING RES = $checkingResult")
-//                }
-            }
+        return newText
+    }
+
+    protected fun insertClasses(parsedTemplates: Template) {
+        for (auxClass in parsedTemplates.auxClasses) {
+            val bbfFile =
+                BBFFile("${auxClass.first.substringAfterLast('.')}.java", PSICreator.getPsiForJava(auxClass.second))
+            project.addFile(bbfFile)
+        }
+    }
+
+    protected fun insertImports(parsedTemplates: Template) {
+        if (parsedTemplates.imports.isNotEmpty()) {
+            val oldImportList = (file as PsiJavaFile).importList?.text ?: ""
+            val additionalImports = parsedTemplates.imports.joinToString("\n") { "import $it" }
+            val newImportList =
+                (PSICreator.getPsiForJava("$oldImportList\n$additionalImports") as PsiJavaFile).importList!!
+            (file as PsiJavaFile).importList?.replaceThis(newImportList) ?: return
+        }
+    }
+
+    protected fun insertAuxMethods(
+        randomPlaceToInsert: PsiElement,
+        randomTemplate: TemplatesInserter.TemplateBody
+    ): Boolean {
+        val auxMethods = randomTemplate.auxMethods
+        for (auxMethod in auxMethods) {
+            val psiClass = randomPlaceToInsert.parents.find { it is PsiClass } as? PsiClassImpl ?: return false
+            val m = Factory.javaPsiFactory.createMethodFromText(auxMethod, null)
+            val lastMethod =
+                psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass }
+                    ?: return false
+            lastMethod.addAfterThisWithWhitespace(m, "\n\n")
         }
         return true
     }
 
-    private fun parseTemplate(template: String): Template? {
+    protected fun parseTemplate(template: String): Template? {
         val regexForAuxClasses =
             Regex("""~class\s+(\S+)\s+start~\s*(.*?)\s*~class\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
         val foundAuxClasses = regexForAuxClasses.findAll(template)
@@ -184,13 +200,13 @@ class TemplatesInserter : Transformation() {
         return Template(auxClasses, imports, templatesBodies)
     }
 
-    private class Template(
+    protected class Template(
         val auxClasses: List<Pair<String, String>>,
         val imports: List<String>,
         val templates: List<TemplateBody>
     )
 
-    private data class TemplateBody(
+    protected data class TemplateBody(
         val auxMethods: List<String>,
         val templateBody: String
     )

@@ -1,9 +1,10 @@
 package com.spbpu.bbfinfrastructure.mutator
 
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesInserter
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.*
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.*
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.project.Project
+import com.spbpu.bbfinfrastructure.util.getTrue
 import kotlin.random.Random
 
 class Mutator(val project: Project) {
@@ -32,7 +33,16 @@ class Mutator(val project: Project) {
     //Stub
     private fun startJavaMutations() {
         println("STARTING JAVA MUTATIONS")
-        executeMutation(TemplatesInserter(), 100)
+        if (Random.getTrue(50)) {
+            val mutation = listOf(
+                IfTemplateBasedMutation(),
+                ForTemplateBasedMutation(),
+                WhileTemplateBasedMutation()
+            ).random()
+            executeMutation(mutation, 100)
+        } else {
+            executeMutation(TemplatesInserter(), 100)
+        }
         println("END JAVA MUTATIONS")
 //        log.debug("Verify = ${verify()}")
         return
@@ -53,7 +63,7 @@ class Mutator(val project: Project) {
     }
 
 
-//    private val log = Logger.getLogger("bugFinderLogger")
+    //    private val log = Logger.getLogger("bugFinderLogger")
     private val checker
         get() = Transformation.checker
 

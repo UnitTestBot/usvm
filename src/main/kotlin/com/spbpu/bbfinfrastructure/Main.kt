@@ -6,12 +6,11 @@ import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
-import com.spbpu.bbfinfrastructure.project.Header
 import com.spbpu.bbfinfrastructure.project.Project
+import com.spbpu.bbfinfrastructure.results.ResultsSorter
 import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import com.spbpu.bbfinfrastructure.util.results.ResultHeader
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 import java.io.File
 import kotlin.system.exitProcess
@@ -36,6 +35,7 @@ fun main(args: Array<String>) {
         "/home/stepanov/BenchmarkJavaFuzz/expectedresults-1.2.csv"
     )
     ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)
+    ResultsSorter.sortResults("./results/")
     exitProcess(0)
 }
 

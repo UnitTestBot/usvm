@@ -15,4 +15,43 @@ if (~[boolean]~) {
     ~[Object]~ = null;
 }
 ~template end~
+~template start~
+if (~[boolean]~ && ~[boolean]~) {
+    ~[String]~ = "";
+}
+~template end~
+~template start~
+boolean conditionMet = false;
+if (~[boolean]~) {
+    conditionMet = true;
+}
+if (!conditionMet && ~[boolean]~) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~.equals(~[String]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~ != null && ~[String]~.contains(~[String]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~ != null && !~[String]~.isEmpty()) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[String]~.compareTo(~[String]~) == 0) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+if (~[Object]~.equals(~[Object]~)) {
+    ~[String]~ = ~[String]~;
+}
+~template end~
 ~main class end~

@@ -38,9 +38,11 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileReader
+import java.lang.reflect.InvocationTargetException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
+import java.util.concurrent.TimeoutException
 import java.util.function.BiPredicate
 import kotlin.reflect.KClass
 
@@ -247,15 +249,37 @@ fun KotlinType.isIterable() =
 
 fun PsiElement.getLocationLineNumber()  =
     PsiDiagnosticUtils.atLocation(this).substringAfter('(').substringBefore(',').toInt()
-fun PsiFile.getRandomPlaceToInsertNewLine(): PsiElement? {
+
+fun PsiFile.getRandomPlaceToInsertNewLine() = this.getRandomPlaceToInsertNewLine(-1)
+fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int): PsiElement? {
     val lastImportStatementLineNumber = text.split("\n").indexOfLast { it.startsWith("import ") }
     return getAllPSIChildrenOfType<PsiWhiteSpace>()
         .filter { it.text.contains("\n") }
-        .filter { it.getLocationLineNumber() > lastImportStatementLineNumber }
+        .filter { it.getLocationLineNumber().let { it > lastImportStatementLineNumber && it > fromLine }}
         .randomOrNull()
 }
 
-fun getRandomNodeOfTypeFromAnotherTree(type: IElementType) {
-    val db = File("database.txt").bufferedReader().lines()
 
+fun executeWithTimeout(timeoutInMilliseconds: Long, body: () -> Any?): Any? {
+    var result: Any? = null
+    val thread = Thread {
+        result = try {
+            body()
+        } catch (e: Throwable) {
+            e
+        }
+    }
+    thread.start()
+    thread.join(timeoutInMilliseconds)
+    var isThreadStopped = false
+    while (thread.isAlive) {
+        @Suppress("DEPRECATION")
+        thread.stop()
+        isThreadStopped = true
+    }
+    when {
+        isThreadStopped -> throw TimeoutException()
+        result is InvocationTargetException -> throw (result as InvocationTargetException).cause ?: result as Throwable
+        else -> return result
+    }
 }
