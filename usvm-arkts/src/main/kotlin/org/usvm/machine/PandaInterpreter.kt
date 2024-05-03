@@ -85,7 +85,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val boolExpr = exprResolver
-            .resolvePandaExpr(stmt.condition)?.uExpr
+            .resolvePandaExpr(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: return
 
@@ -107,7 +107,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         // TODO process the type
         val valueToReturn = stmt.returnValue
-            ?.let { exprResolver.resolvePandaExpr(it) }?.uExpr
+            ?.let { exprResolver.resolvePandaExpr(it) }
             ?: error("TODO")
 
         scope.doWithState {
@@ -147,7 +147,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
-        val expr = exprResolver.resolvePandaExpr(stmt.rhv)?.uExpr ?: return
+        val expr = exprResolver.resolvePandaExpr(stmt.rhv) ?: return
         val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
 
         if (expr.sort != ctx.addressSort) {

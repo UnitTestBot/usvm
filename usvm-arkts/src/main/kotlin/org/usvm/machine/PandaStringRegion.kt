@@ -40,10 +40,10 @@ internal class PandaStringFieldMemoryRegion(
     override fun read(key: PandaStringFieldLValue): UExpr<PandaStringSort> {
         val heapRef = key.addr
         if (heapRef is UConcreteHeapRef) {
-//            return stringConstants.getValue(heapRef)
-            TODO()
+            return stringConstants.getValue(heapRef)
         }
         // TODO
+        error("Not yet implemented")
         return PandaConcreteString(key.addr.pctx, "TODO")
     }
 

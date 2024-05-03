@@ -6,7 +6,6 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.panda.dynamic.api.PandaBoolType
-import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.jacodb.panda.dynamic.api.PandaNumberType
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.usvm.UAddressSort
@@ -68,36 +67,33 @@ sealed class PandaBinaryOperator(
     )
 
     internal open operator fun invoke(
-        lhs: PandaUExprWrapper,
-        rhs: PandaUExprWrapper,
+        lhsUExpr: UExpr<out USort>,
+        rhsUExpr: UExpr<out USort>,
         scope: PandaStepScope,
     ): UExpr<out USort> {
-        var lhsUExpr = lhs.uExpr
-        var rhsUExpr = rhs.uExpr
-
         val ctx = lhsUExpr.pctx
 
-        lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhsUExpr, scope)
-        rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhsUExpr, scope)
+        val lhs = ctx.extractPrimitiveValueIfRequired(lhsUExpr, scope)
+        val rhs = ctx.extractPrimitiveValueIfRequired(rhsUExpr, scope)
 
-        if (lhsUExpr is KInterpretedValue && rhsUExpr is KInterpretedValue) {
-            return commonAdditionalWork(lhsUExpr, rhsUExpr, scope)
+        if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
+            return commonAdditionalWork(lhs, rhs, scope)
         }
 
         val addressSort = ctx.addressSort
-        if (lhsUExpr is KInterpretedValue) {
-            require(rhsUExpr.sort === addressSort) { TODO() }
-            return makeAdditionalWork(lhsUExpr, rhsUExpr.asExpr(addressSort), scope)
+        if (lhs is KInterpretedValue) {
+            require(rhs.sort === addressSort) { TODO() }
+            return makeAdditionalWork(lhs, rhs.asExpr(addressSort), scope)
         }
 
-        if (rhsUExpr is KInterpretedValue) {
-            require(lhsUExpr.sort === addressSort) { TODO() }
-            return makeAdditionalWork(lhsUExpr.asExpr(addressSort), rhsUExpr, scope)
+        if (rhs is KInterpretedValue) {
+            require(lhs.sort === addressSort) { TODO() }
+            return makeAdditionalWork(lhs.asExpr(addressSort), rhs, scope)
         }
 
-        require(lhsUExpr.sort === addressSort && rhsUExpr.sort === addressSort)
+        require(lhs.sort === addressSort && rhs.sort === addressSort)
 
-        return makeAdditionalWork(lhsUExpr.asExpr(addressSort), rhsUExpr.asExpr(addressSort), scope)
+        return makeAdditionalWork(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
     }
 
     private fun PandaContext.extractPrimitiveValueIfRequired(
@@ -225,34 +221,36 @@ sealed class PandaBinaryOperator(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: PandaStepScope,
-    ): UHeapRef = with(lhs.pctx) {
-        when (lhs.sort) {
-            fp64Sort -> when (rhs.sort) {
-                fp64Sort -> numberToNumber(lhs.cast(), rhs.cast(), scope)
-                boolSort -> numberToBool(lhs.cast(), rhs.cast(), scope)
-                stringSort -> numberToString(lhs.cast(), rhs.cast(), scope)
-                else -> numberToObject(lhs.cast(), rhs.cast(), scope)
-            }
+    ): UHeapRef = returnNanIfRequired(lhs, rhs, scope) {
+        with(lhs.pctx) {
+            when (lhs.sort) {
+                fp64Sort -> when (rhs.sort) {
+                    fp64Sort -> numberToNumber(lhs.cast(), rhs.cast(), scope)
+                    boolSort -> numberToBool(lhs.cast(), rhs.cast(), scope)
+                    stringSort -> numberToString(lhs.cast(), rhs.cast(), scope)
+                    else -> numberToObject(lhs.cast(), rhs.cast(), scope)
+                }
 
-            boolSort -> when (rhs.sort) {
-                fp64Sort -> boolToNumber(lhs.cast(), rhs.cast(), scope)
-                boolSort -> boolToBool(lhs.cast(), rhs.cast(), scope)
-                stringSort -> boolToString(lhs.cast(), rhs.cast(), scope)
-                else -> boolToObject(lhs.cast(), rhs.cast(), scope)
-            }
+                boolSort -> when (rhs.sort) {
+                    fp64Sort -> boolToNumber(lhs.cast(), rhs.cast(), scope)
+                    boolSort -> boolToBool(lhs.cast(), rhs.cast(), scope)
+                    stringSort -> boolToString(lhs.cast(), rhs.cast(), scope)
+                    else -> boolToObject(lhs.cast(), rhs.cast(), scope)
+                }
 
-            stringSort -> when (rhs.sort) {
-                fp64Sort -> stringToNumber(lhs.cast(), rhs.cast(), scope)
-                boolSort -> stringToBool(lhs.cast(), rhs.cast(), scope)
-                stringSort -> stringToString(lhs.cast(), rhs.cast(), scope)
-                else -> stringToObject(lhs.cast(), rhs.cast(), scope)
-            }
+                stringSort -> when (rhs.sort) {
+                    fp64Sort -> stringToNumber(lhs.cast(), rhs.cast(), scope)
+                    boolSort -> stringToBool(lhs.cast(), rhs.cast(), scope)
+                    stringSort -> stringToString(lhs.cast(), rhs.cast(), scope)
+                    else -> stringToObject(lhs.cast(), rhs.cast(), scope)
+                }
 
-            else -> when (rhs.sort) {
-                fp64Sort -> objectToNumber(lhs.cast(), rhs.cast(), scope)
-                boolSort -> objectToBool(lhs.cast(), rhs.cast(), scope)
-                stringSort -> objectToString(lhs.cast(), rhs.cast(), scope)
-                else -> objectToObject(lhs.cast(), rhs.cast(), scope)
+                else -> when (rhs.sort) {
+                    fp64Sort -> objectToNumber(lhs.cast(), rhs.cast(), scope)
+                    boolSort -> objectToBool(lhs.cast(), rhs.cast(), scope)
+                    stringSort -> objectToString(lhs.cast(), rhs.cast(), scope)
+                    else -> objectToObject(lhs.cast(), rhs.cast(), scope)
+                }
             }
         }
     }
@@ -293,7 +291,7 @@ sealed class PandaBinaryOperator(
     private fun boolToBool(lhs: UExpr<KBoolSort>, rhs: UExpr<KBoolSort>, scope: PandaStepScope): UConcreteHeapRef {
         val value = with(lhs.pctx) { onBool(lhs, rhs) }
         val newAddr = scope.calcOnState { memory.allocConcrete(PandaNumberType) }
-        scope.doWithState { memory.write(lhs.pctx.constructAuxiliaryFieldLValue(newAddr, ctx.boolSort), value) }
+        scope.doWithState { memory.write(lhs.pctx.constructAuxiliaryFieldLValue(newAddr, ctx.fp64Sort), value) }
         return newAddr
     }
 
@@ -345,32 +343,24 @@ sealed class PandaBinaryOperator(
     }
 
     private fun returnNanIfRequired(
-        lhs: UExpr<USort>,
-        rhs: UExpr<USort>,
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        scope: PandaStepScope,
         applyOperator: () -> UConcreteHeapRef,
-    ): UHeapRef = with(lhs.pctx) {
-        if (this@PandaBinaryOperator !is Add || !(lhs.sort == fp64Sort && rhs.sort == fp64Sort)) {
-            TODO()
+    ): UConcreteHeapRef = with(lhs.pctx) {
+        if (this@PandaBinaryOperator is Add) {
+            return applyOperator()
         }
 
-        return applyOperator()
+        if ((lhs.sort == fp64Sort || lhs.sort == boolSort) && (rhs.sort == fp64Sort || rhs.sort == boolSort)) {
+            return applyOperator()
+        }
+
+        val value = lhs.ctx.mkFp64NaN()
+        val address = scope.calcOnState { memory.allocConcrete(PandaNumberType) }
+        val lValue = lhs.pctx.constructAuxiliaryFieldLValue(address, fp64Sort)
+        scope.doWithState { memory.write(lValue, value) }
+
+        return address
     }
-}
-
-fun PandaUExprWrapper.withSort(ctx: PandaContext, sort: USort): PandaUExprWrapper {
-    val newUExpr = when (from) {
-        is PandaNumberConstant -> from.withSort(ctx, sort, uExpr)
-        else -> uExpr
-    }
-
-    return PandaUExprWrapper(from, newUExpr)
-}
-
-fun PandaNumberConstant.withSort(
-    ctx: PandaContext,
-    sort: USort,
-    default: UExpr<out USort>,
-): UExpr<out USort> = when (sort) {
-    is PandaBoolSort -> ctx.mkBool(value == 1)
-    else -> default
 }
