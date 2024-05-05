@@ -20,7 +20,7 @@ class CrashReproductionTest : JavaMethodTestRunner() {
         val otherTarget = CrashReproductionLocationTarget(m1Method.instList.first()).also { initialTarget.addChild(it) }
         CrashReproductionExceptionTarget(exception).also { otherTarget.addChild(it) }
 
-        val states = reproduceCrash(cp, listOf(initialTarget))
+        val states = reproduceCrash(cp, initialTarget)
 
         assertEquals(1, states.size)
     }
