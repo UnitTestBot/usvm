@@ -195,7 +195,8 @@ class PandaExprResolver(
 
 
     override fun visitPandaNewExpr(expr: PandaNewExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val address = scope.calcOnState { memory.allocConcrete(expr.type) }
+        return address
     }
 
     override fun visitPandaNullConstant(expr: PandaNullConstant): UExpr<out USort>? {

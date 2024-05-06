@@ -17,6 +17,18 @@ class FirstExamplesTest : PandaMethodTestRunner() {
     }
 
     @Test
+    fun testBadDataFlowSecurity() {
+        discoverProperties<Any>(
+            methodIdentifier = MethodDescriptor(
+                className = "DataFlowSecurity",
+                methodName = "bad",
+                argumentsNumber = 0
+            ),
+            { result -> TODO() }
+        )
+    }
+
+    @Test
     fun testBasicSamples() {
         discoverProperties<Double>(
             methodIdentifier = MethodDescriptor(
