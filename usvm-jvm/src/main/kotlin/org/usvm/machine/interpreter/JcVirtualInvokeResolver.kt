@@ -188,15 +188,8 @@ private fun resolveVirtualInvokeWithoutModel(
         initialGuard = ctx.trueExpr,
         ignoreNullRefs = true,
         collapseHeapRefs = false,
+        staticIsConcrete = true,
         blockOnConcrete = { _, (ref, condition) ->
-            val lambdaCallSite = findLambdaCallSite(methodCall, scope, ref)
-            if (lambdaCallSite != null) {
-                lambdaCallSitesWithConditions += lambdaCallSite to condition
-            } else {
-                refsWithConditions += ref to condition
-            }
-        },
-        blockOnStatic = { _, (ref, condition) ->
             val lambdaCallSite = findLambdaCallSite(methodCall, scope, ref)
             if (lambdaCallSite != null) {
                 lambdaCallSitesWithConditions += lambdaCallSite to condition
