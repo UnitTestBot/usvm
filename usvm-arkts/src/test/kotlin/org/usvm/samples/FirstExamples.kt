@@ -78,6 +78,18 @@ class FirstExamplesTest : PandaMethodTestRunner() {
     }
 
     @Test
+    fun testPhi() {
+        discoverProperties<Any, Any>(
+            methodIdentifier = MethodDescriptor(
+                className = "Phi",
+                methodName = "foo",
+                argumentsNumber = 1
+            ),
+            analysisResultMatchers = emptyArray()
+        )
+    }
+
+    @Test
     fun testMethodCollision() {
         discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(

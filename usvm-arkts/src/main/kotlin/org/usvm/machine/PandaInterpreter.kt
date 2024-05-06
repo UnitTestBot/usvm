@@ -1,6 +1,8 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
+import org.jacodb.panda.dynamic.api.PandaAnyType
 import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaAssignInst
 import org.jacodb.panda.dynamic.api.PandaCallInst
@@ -43,7 +45,19 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
 
         val result = state.methodResult
         if (result is PandaMethodResult.PandaException) {
-            TODO()
+            // TODO catch processing
+            scope.doWithState {
+                val returnSite = callStack.pop()
+                if (callStack.isNotEmpty()) {
+                    memory.stack.pop()
+                }
+
+                if (returnSite != null) {
+                    newStmt(returnSite)
+                }
+            }
+
+            return scope.stepResult()
         }
 
         when (stmt) {
@@ -84,10 +98,10 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
-        val boolExpr = exprResolver
-            .resolvePandaExpr(stmt.condition)
-            ?.asExpr(ctx.boolSort)
-            ?: return
+        val boolExpr = with(ctx) {
+            val value = exprResolver.resolvePandaExpr(stmt.condition) ?: return
+            extractPrimitiveValueIfRequired(value.cast(), scope).asExpr(boolSort)
+        }
 
         val instList = stmt.location.method.instructions
         val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]
@@ -180,7 +194,12 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
     }
 
     private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
-        TODO()
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
+        val addr = exprResolver.resolvePandaExpr(stmt.throwable) ?: return
+
+        scope.doWithState {
+            methodResult = PandaMethodResult.PandaException(addr.asExpr(ctx.addressSort), PandaAnyType /*TODO????*/)
+        }
     }
 
     // (method, localIdx) -> idx

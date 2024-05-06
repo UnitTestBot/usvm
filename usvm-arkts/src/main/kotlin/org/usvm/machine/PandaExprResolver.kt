@@ -1,10 +1,60 @@
 package org.usvm.machine
 
+import io.ksmt.expr.KInterpretedValue
+import io.ksmt.utils.asExpr
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
-import org.jacodb.panda.dynamic.api.*
+import org.jacodb.panda.dynamic.api.PandaAddExpr
+import org.jacodb.panda.dynamic.api.PandaAnyType
+import org.jacodb.panda.dynamic.api.PandaArgument
+import org.jacodb.panda.dynamic.api.PandaArrayAccess
+import org.jacodb.panda.dynamic.api.PandaBinaryExpr
+import org.jacodb.panda.dynamic.api.PandaBoolConstant
+import org.jacodb.panda.dynamic.api.PandaBoolType
+import org.jacodb.panda.dynamic.api.PandaCastExpr
+import org.jacodb.panda.dynamic.api.PandaCaughtError
+import org.jacodb.panda.dynamic.api.PandaCmpExpr
+import org.jacodb.panda.dynamic.api.PandaCmpOp
+import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
+import org.jacodb.panda.dynamic.api.PandaDivExpr
+import org.jacodb.panda.dynamic.api.PandaEqExpr
+import org.jacodb.panda.dynamic.api.PandaExpExpr
+import org.jacodb.panda.dynamic.api.PandaExpr
+import org.jacodb.panda.dynamic.api.PandaExprVisitor
+import org.jacodb.panda.dynamic.api.PandaField
+import org.jacodb.panda.dynamic.api.PandaFieldRef
+import org.jacodb.panda.dynamic.api.PandaGeExpr
+import org.jacodb.panda.dynamic.api.PandaGtExpr
+import org.jacodb.panda.dynamic.api.PandaLeExpr
+import org.jacodb.panda.dynamic.api.PandaLoadedValue
+import org.jacodb.panda.dynamic.api.PandaLocal
+import org.jacodb.panda.dynamic.api.PandaLocalVar
+import org.jacodb.panda.dynamic.api.PandaLtExpr
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaMulExpr
+import org.jacodb.panda.dynamic.api.PandaNegExpr
+import org.jacodb.panda.dynamic.api.PandaNeqExpr
+import org.jacodb.panda.dynamic.api.PandaNewExpr
+import org.jacodb.panda.dynamic.api.PandaNullConstant
+import org.jacodb.panda.dynamic.api.PandaNumberConstant
+import org.jacodb.panda.dynamic.api.PandaPhiValue
+import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
+import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
+import org.jacodb.panda.dynamic.api.PandaStringConstant
+import org.jacodb.panda.dynamic.api.PandaStringType
+import org.jacodb.panda.dynamic.api.PandaSubExpr
+import org.jacodb.panda.dynamic.api.PandaThis
+import org.jacodb.panda.dynamic.api.PandaToNumericExpr
+import org.jacodb.panda.dynamic.api.PandaTypeName
+import org.jacodb.panda.dynamic.api.PandaTypeofExpr
+import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
+import org.jacodb.panda.dynamic.api.PandaValue
+import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
+import org.jacodb.panda.dynamic.api.TODOConstant
+import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
@@ -139,7 +189,19 @@ class PandaExprResolver(
     }
 
     override fun visitPandaLoadedValue(expr: PandaLoadedValue): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val instance = resolvePandaExpr(expr.instance) ?: return null
+        // TODO this is field reading for now only
+        val fieldReading = UFieldLValue(
+            ctx.addressSort,
+            instance.asExpr(ctx.addressSort),
+            PandaField(
+                name = expr.property,
+                type = PandaTypeName(PandaAnyType.typeName),
+                signature = null // TODO ?????
+            )
+        )
+
+        return scope.calcOnState { memory.read(fieldReading) }
     }
 
     override fun visitPandaLocalVar(expr: PandaLocalVar): UExpr<out USort>? {
@@ -178,15 +240,52 @@ class PandaExprResolver(
         ctx.mkFp64(expr.value.toDouble())
 
     override fun visitPandaPhiValue(expr: PandaPhiValue): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        TODO()
     }
 
     override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? = with(ctx) {
+        val lhs = resolvePandaExpr(expr.lhv) ?: return null
+        val rhs = resolvePandaExpr(expr.rhv) ?: return null
+
+        if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
+            if (lhs.sort != rhs.sort) {
+                return ctx.falseExpr
+            }
+
+            return scope.calcOnState {
+                memory.wrapField(ctx.mkEq(lhs.asExpr(lhs.sort), rhs.asExpr(lhs.sort)), PandaBoolType)
+            }
+        }
+
+        if (lhs is KInterpretedValue) {
+            TODO()
+        }
+
+        if (rhs is KInterpretedValue) {
+            return when (rhs.sort) {
+                fp64Sort -> {
+                    val value = scope.calcOnState {
+                        val lvalue = constructAuxiliaryFieldLValue(lhs.asExpr(addressSort), fp64Sort)
+                        memory.read(lvalue)
+                    }
+
+                    scope.calcOnState {
+                        val equalityValue = mkEq(value.asExpr(value.sort), rhs.asExpr(value.sort))
+                        memory.wrapField(equalityValue, PandaBoolType)
+                    }
+                }
+
+                boolSort -> TODO()
+                stringSort -> TODO()
+                else -> TODO()
+            }
+        }
+
+        TODO()
     }
 
     override fun visitPandaStringConstant(expr: PandaStringConstant): UExpr<out USort>? {

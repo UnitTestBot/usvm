@@ -14,8 +14,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.typeStreamOf
-import org.usvm.types.single
 
 sealed class PandaBinaryOperator(
     // TODO undefinedObject?
@@ -82,35 +80,25 @@ sealed class PandaBinaryOperator(
 
         val addressSort = ctx.addressSort
         if (lhs is KInterpretedValue) {
-            require(rhs.sort === addressSort) { TODO() }
-            return makeAdditionalWork(lhs, rhs.asExpr(addressSort), scope)
+            return if (rhs.sort == ctx.addressSort) {
+                makeAdditionalWork(lhs, rhs.asExpr(addressSort), scope)
+            } else {
+                commonAdditionalWork(lhs, rhs, scope)
+            }
         }
 
         if (rhs is KInterpretedValue) {
-            require(lhs.sort === addressSort) { TODO() }
-            return makeAdditionalWork(lhs.asExpr(addressSort), rhs, scope)
+            return if (lhs.sort == ctx.addressSort) {
+                makeAdditionalWork(lhs.asExpr(addressSort), rhs, scope)
+            } else {
+                commonAdditionalWork(lhs, rhs, scope)
+            }
         }
 
-        require(lhs.sort === addressSort && rhs.sort === addressSort)
+        // TODO is this require the right one? mkEq operator mkEq???
+        require(lhs.sort == addressSort && rhs.sort == addressSort)
 
         return makeAdditionalWork(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
-    }
-
-    private fun PandaContext.extractPrimitiveValueIfRequired(
-        uExpr: UExpr<out USort>,
-        scope: PandaStepScope,
-    ): UExpr<out USort> {
-        if (uExpr !is UConcreteHeapRef) {
-            return uExpr
-        }
-
-        val type = scope.calcOnState { memory.typeStreamOf(uExpr) }.single()
-        return when (type) {
-            PandaNumberType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, fp64Sort)) }
-            PandaBoolType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, boolSort)) }
-            PandaStringType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, stringSort)) }
-            else -> uExpr
-        }
     }
 
     private fun makeAdditionalWork(
