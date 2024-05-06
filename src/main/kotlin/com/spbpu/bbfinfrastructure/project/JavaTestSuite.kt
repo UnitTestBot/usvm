@@ -9,11 +9,14 @@ import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.util.replaceThis
+import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
+import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import kotlin.io.path.absolutePathString
 
 class JavaTestSuite {
 
@@ -45,9 +48,9 @@ class JavaTestSuite {
         suiteProjects.add(project to mutationChain)
     }
 
-    fun flushSuiteOnServer(remoteDirForSources: String, pathToCsv: String) {
+    fun flushSuiteAndRun(pathToOwasp: String, pathToOwaspSources: String, pathToCsv: String, isLocal: Boolean) {
         val remoteToLocalPaths = mutableMapOf<String, String>()
-        val helpersDir = remoteDirForSources.substringBeforeLast('/') + "/helpers/"
+        val helpersDir = pathToOwaspSources.substringBeforeLast('/') + "/helpers/"
         File(CompilerArgs.tmpPath).deleteRecursively()
         File(CompilerArgs.tmpPath).mkdirs()
         val csv = File("${CompilerArgs.tmpPath}/expected_results.csv")
@@ -67,29 +70,73 @@ class JavaTestSuite {
                 val nameWithoutExt = localPath.substringAfterLast('/').substringBefore(".java")
                 //BenchmarkTest00013,xss,true,79
                 csv.appendText("$nameWithoutExt,unknown,unknown,0\n")
-                val remotePath = "$remoteDirForSources/$fileName"
+                val remotePath = "$pathToOwaspSources/$fileName"
                 remoteToLocalPaths[remotePath] = localPath
             }
         }
         remoteToLocalPaths[pathToCsv] = csv.absolutePath
-        val fsi = FuzzServerInteract()
         val cmdToRm =
             remoteToLocalPaths.filterNot { it.key.contains("BenchmarkTest") }.keys.joinToString(" ") { "rm $it;" }
         File("tmp/scorecards/").deleteRecursively()
         File("tmp/scorecards/").mkdirs()
-        fsi.execCommand(cmdToRm)
-        fsi.execCommand("rm -rf ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode; mkdir ~/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode")
-        fsi.downloadFilesToRemote(remoteToLocalPaths)
-        fsi.execCommand("cd ~; rm -rf BenchmarkJavaFuzz/scorecard/; rm -rf BenchmarkJavaFuzz/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh")
-        val scoreCardDir = "/home/stepanov/BenchmarkJavaFuzz/scorecard"
-        val scoreCardsPaths = fsi.execCommand("find $scoreCardDir -name \"*Scorecard*.csv\"")!!
-        val pathToScoreCards =
-            scoreCardsPaths
-                .split("\n")
-                .drop(1)
-                .dropLast(1)
-                .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
-        fsi.downloadFilesFromRemote(pathToScoreCards)
+        if (!isLocal) {
+            val fsi = FuzzServerInteract()
+            fsi.execCommand(cmdToRm)
+            fsi.execCommand("rm -rf $pathToOwaspSources; mkdir $pathToOwaspSources")
+            fsi.downloadFilesToRemote(remoteToLocalPaths)
+            fsi.execCommand("cd ~; rm -rf $pathToOwasp/scorecard/; rm -rf $pathToOwasp/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh")
+            val scoreCardDir = "$pathToOwasp/scorecard"
+            val scoreCardsPaths = fsi.execCommand("find $scoreCardDir -name \"*Scorecard*.csv\"")!!
+            val pathToScoreCards =
+                scoreCardsPaths
+                    .split("\n")
+                    .drop(1)
+                    .dropLast(1)
+                    .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
+            fsi.downloadFilesFromRemote(pathToScoreCards)
+        } else {
+            with(ProcessBuilder()) {
+                try {
+                    command("bash", "-c", cmdToRm).start().waitFor()
+                } catch (e: IOException) { }
+                try {
+                    command("bash", "-c", "rm -rf $pathToOwaspSources; mkdir $pathToOwaspSources").start()
+                        .waitFor()
+                } catch (e: IOException) {}
+                remoteToLocalPaths.entries.map {
+                    val cmd = "cp ${Paths.get(it.value).absolutePathString()} ${it.key}"
+                    command("bash", "-c", cmd).start().waitFor()
+                }
+                val execCommand =
+                    "cd ~; rm -rf $pathToOwasp/scorecard/; rm -rf $pathToOwasp/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh"
+                command("bash", "-c", execCommand).start().let { process ->
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        println(line)
+                    }
+                    reader.close()
+                    process.waitFor()
+                }
+                val scoreCardDir = "$pathToOwasp/scorecard"
+                val scoreCardsPaths = StringBuilder()
+                command("bash", "-c", "find $scoreCardDir -name \"*Scorecard*.csv\"").start().let { process ->
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        scoreCardsPaths.appendLine(line)
+                    }
+                    reader.close()
+                    process.waitFor()
+                }
+                val pathToScoreCards = scoreCardsPaths
+                    .split("\n")
+                    .dropLast(1)
+                    .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
+                val commandToCpScoreCards = pathToScoreCards.entries.joinToString("; "){"cp ${it.key} ${it.value}"}
+                command("bash", "-c", commandToCpScoreCards).start().waitFor()
+            }
+        }
     }
 
 //    @OptIn(ExperimentalTime::class)

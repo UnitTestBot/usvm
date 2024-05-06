@@ -12,12 +12,48 @@ import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
+import kotlinx.cli.ArgParser
+import kotlinx.cli.ArgType
+import kotlinx.cli.default
+import kotlinx.cli.required
 import java.io.File
 import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    val numOfFilesToCheck = 300
+    val parser = ArgParser("psi-fuzz")
+
+    val pathToOwasp by parser.option(
+        ArgType.String,
+        shortName = "d",
+        description = "Directory for OWASP"
+    ).required()
+
+    val isLocal by parser.option(
+        ArgType.Boolean,
+        shortName = "l",
+        description = "Indicates if the fuzzing process is local"
+    ).default(false)
+
+    val numOfFilesToCheck by parser.option(
+        ArgType.Int,
+        shortName = "n",
+        description = "Number of files to make a batch"
+    ).default(100)
+
+    if (args.size == 1) {
+        parser.parse(args.first().split(" ").toTypedArray())
+    } else {
+        parser.parse(args)
+    }
+
+    if (!isLocal) {
+        if (System.getenv("PRIVATE_KEY_PATH") == "null" || System.getenv("PRIVATE_KEY_PASS") == "null") {
+            println("Pass PRIVATE_KEY_PATH and PRIVATE_KEY_PASS as environment properties")
+            exitProcess(1)
+        }
+    }
+
     val files = File("lib/filteredTestCode/").listFiles()!!.toList().shuffled().take(numOfFilesToCheck)
     for (f in files) {
         val fileName = f.name
@@ -30,9 +66,11 @@ fun main(args: Array<String>) {
         println("Mutation of ${f.name} started")
         mutate(project, project.files.first())
     }
-    GlobalTestSuite.javaTestSuite.flushSuiteOnServer(
-        "/home/stepanov/BenchmarkJavaFuzz/src/main/java/org/owasp/benchmark/testcode",
-        "/home/stepanov/BenchmarkJavaFuzz/expectedresults-1.2.csv"
+    GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
+        pathToOwasp = pathToOwasp,
+        pathToOwaspSources = "$pathToOwasp/src/main/java/org/owasp/benchmark/testcode",
+        pathToCsv = "$pathToOwasp/expectedresults-1.2.csv",
+        isLocal = false
     )
     ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)
     ResultsSorter.sortResults("./results/")

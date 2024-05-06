@@ -54,6 +54,8 @@ dependencies {
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
     implementation "commons-io:commons-io:2.6"
     implementation 'com.jcraft:jsch:0.1.55'
+    implementation 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3'
+
 
 
     //Kotlin-libs
@@ -80,9 +82,25 @@ test {
 task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.MainKt'
     classpath = sourceSets.main.runtimeClasspath
+    def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
+    def privateKeyPath = project.hasProperty('privateKeyPath') ? project.privateKeyPath : null
+    def privateKeyPass = project.hasProperty('privateKeyPass') ? project.privateKeyPass : null
+    environment('PRIVATE_KEY_PATH', privateKeyPath)
+    environment('PRIVATE_KEY_PASS', privateKeyPass)
+    println(programArgs)
+    argsString programArgs
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
 }
 
 task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.runner.MainKt'
     classpath = sourceSets.main.runtimeClasspath
+    def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
+    def privateKeyPath = project.hasProperty('privateKeyPath') ? project.privateKeyPath : null
+    def privateKeyPass = project.hasProperty('privateKeyPass') ? project.privateKeyPass : null
+    environment('PRIVATE_KEY_PATH', privateKeyPath)
+    environment('PRIVATE_KEY_PASS', privateKeyPass)
+    println(programArgs)
+    argsString programArgs
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
 }
