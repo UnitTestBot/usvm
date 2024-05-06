@@ -70,7 +70,7 @@ fun main(args: Array<String>) {
         pathToOwasp = pathToOwasp,
         pathToOwaspSources = "$pathToOwasp/src/main/java/org/owasp/benchmark/testcode",
         pathToCsv = "$pathToOwasp/expectedresults-1.2.csv",
-        isLocal = false
+        isLocal = isLocal
     )
     ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)
     ResultsSorter.sortResults("./results/")
