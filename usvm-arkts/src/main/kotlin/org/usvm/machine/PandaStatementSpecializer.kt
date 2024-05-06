@@ -8,21 +8,7 @@ import org.jacodb.api.common.cfg.CommonGotoInst
 import org.jacodb.api.common.cfg.CommonIfInst
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.common.cfg.CommonReturnInst
-import org.jacodb.panda.dynamic.api.PandaAssignInst
-import org.jacodb.panda.dynamic.api.PandaBinaryExpr
-import org.jacodb.panda.dynamic.api.PandaBoolType
-import org.jacodb.panda.dynamic.api.PandaCallInst
-import org.jacodb.panda.dynamic.api.PandaIfInst
-import org.jacodb.panda.dynamic.api.PandaInst
-import org.jacodb.panda.dynamic.api.PandaInstVisitor
-import org.jacodb.panda.dynamic.api.PandaLocal
-import org.jacodb.panda.dynamic.api.PandaMethod
-import org.jacodb.panda.dynamic.api.PandaNumberType
-import org.jacodb.panda.dynamic.api.PandaObjectType
-import org.jacodb.panda.dynamic.api.PandaReturnInst
-import org.jacodb.panda.dynamic.api.PandaStringType
-import org.jacodb.panda.dynamic.api.PandaThrowInst
-import org.jacodb.panda.dynamic.api.TODOInst
+import org.jacodb.panda.dynamic.api.*
 import org.usvm.UBoolExpr
 import org.usvm.machine.state.PandaState
 
@@ -85,9 +71,9 @@ class PandaStatementSpecializer(
                 exprResolver.resolvePandaExpr(it.first()) to exprResolver.resolvePandaExpr(it.last())
             }
 
-            if (lhs?.uExpr is KInterpretedValue && rhs?.uExpr is KInterpretedValue) {
-                val fstType = ctx.nonRefSortToType(lhs.uExpr.sort)
-                val sndType = ctx.nonRefSortToType(lhs.uExpr.sort)
+            if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
+                val fstType = ctx.nonRefSortToType(lhs.sort)
+                val sndType = ctx.nonRefSortToType(lhs.sort)
 
                 return@calcOnState listOf(ctx.trueExpr to { state: PandaState ->
                     val newExpr = PandaBinaryOperationAuxiliaryExpr.specializeBinaryOperation(rhv, fstType, sndType)
@@ -97,8 +83,8 @@ class PandaStatementSpecializer(
 
             // TODO partial cases
 
-            val lhsRef = lhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
-            val rhsRef = rhs?.uExpr?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
+            val lhsRef = lhs?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
+            val rhsRef = rhs?.asExpr(ctx.addressSort) ?: return@calcOnState listOf(ctx.falseExpr to {})
 
             types.flatMap { fstType ->
                 types.map { sndType ->
@@ -120,6 +106,14 @@ class PandaStatementSpecializer(
     }
 
     override fun visitPandaCallInst(inst: PandaCallInst): PandaInst {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaCatchInst(inst: PandaCatchInst): PandaInst {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaGotoInst(inst: PandaGotoInst): PandaInst {
         TODO("Not yet implemented")
     }
 
