@@ -45,12 +45,14 @@ data class SplitHeapRefs(
  * considered unsatisfiable, so we assume their guards equal to false, and they won't be added to the result.
  * @param collapseHeapRefs if true, then collapses all [USymbolicHeapRef]s (or static refs) to the one [UIteExpr].
  * Otherwise, collects all [USymbolicHeapRef]s (and static refs) with their guards.
+ * @param staticIsConcrete if true, then collects static refs as concrete heap refs.
  */
 fun splitUHeapRef(
     ref: UHeapRef,
     initialGuard: UBoolExpr = ref.ctx.trueExpr,
     ignoreNullRefs: Boolean = true,
     collapseHeapRefs: Boolean = true,
+    staticIsConcrete: Boolean = false,
 ): SplitHeapRefs {
     val concreteHeapRefs = mutableListOf<GuardedExpr<UConcreteHeapRef>>()
     val symbolicHeapRefs = mutableListOf<GuardedExpr<UHeapRef>>()
@@ -59,7 +61,7 @@ fun splitUHeapRef(
         val expr = guarded.expr
 
         // Static refs may alias symbolic refs so they should be not filtered out
-        if (expr is UConcreteHeapRef && !isStaticHeapRef(expr)) {
+        if (expr is UConcreteHeapRef && (staticIsConcrete || !isStaticHeapRef(expr))) {
             @Suppress("UNCHECKED_CAST")
             concreteHeapRefs += guarded as GuardedExpr<UConcreteHeapRef>
             false
@@ -85,13 +87,14 @@ fun splitUHeapRef(
 
 /**
  * Accumulates value starting with [initial], traversing [ref], accumulating guards and applying the [blockOnConcrete]
- * on allocated [UConcreteHeapRef]s, the [blockOnStatic] on static [UConcreteHeapRef]s, and [blockOnSymbolic] on
+ * on allocated [UConcreteHeapRef]s, and [blockOnSymbolic] on
  * [USymbolicHeapRef]. An argument for the [blockOnSymbolic] is obtained by removing all concrete heap refs from the [ref] if it's ite.
  *
  * @param initialGuard the initial value fot the guard to be passed to [blockOnConcrete] and [blockOnSymbolic].
  * @param ignoreNullRefs if true, then null references will be ignored. It means that all leafs with nulls
  * considered unsatisfiable, so we assume their guards equal to false.
  * @param collapseHeapRefs see docs in [splitUHeapRef].
+ * @param staticIsConcrete apply [blockOnConcrete] or [blockOnSymbolic] on static [UConcreteHeapRef]s.
  */
 inline fun <R> foldHeapRef(
     ref: UHeapRef,
@@ -99,8 +102,8 @@ inline fun <R> foldHeapRef(
     initialGuard: UBoolExpr,
     ignoreNullRefs: Boolean = true,
     collapseHeapRefs: Boolean = true,
+    staticIsConcrete: Boolean = false,
     blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
-    blockOnStatic: (R, GuardedExpr<UConcreteHeapRef>) -> R,
     blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
 ): R {
     if (initialGuard.isFalse) {
@@ -108,7 +111,11 @@ inline fun <R> foldHeapRef(
     }
 
     return when {
-        isStaticHeapRef(ref) -> blockOnStatic(initial, ref with initialGuard)
+        isStaticHeapRef(ref) -> if (staticIsConcrete) {
+            blockOnConcrete(initial, ref with initialGuard)
+        } else {
+            blockOnSymbolic(initial, ref with initialGuard)
+        }
         ref is UConcreteHeapRef -> blockOnConcrete(initial, ref with initialGuard)
         ref is UNullRef -> if (!ignoreNullRefs) {
             blockOnSymbolic(initial, ref with initialGuard)
@@ -117,7 +124,11 @@ inline fun <R> foldHeapRef(
         }
         ref is USymbolicHeapRef -> blockOnSymbolic(initial, ref with initialGuard)
         ref is UIteExpr<UAddressSort> -> {
-            val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(ref, initialGuard, collapseHeapRefs = collapseHeapRefs)
+            val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(
+                ref, initialGuard,
+                collapseHeapRefs = collapseHeapRefs,
+                staticIsConcrete = staticIsConcrete
+            )
 
             var acc = initial
             symbolicHeapRefs.forEach { (ref, guard) -> acc = blockOnSymbolic(acc, ref with guard) }
@@ -146,8 +157,8 @@ inline fun <R> foldHeapRefWithStaticAsSymbolic(
     initialGuard,
     ignoreNullRefs,
     collapseHeapRefs,
+    staticIsConcrete = false,
     blockOnConcrete = blockOnConcrete,
-    blockOnStatic = blockOnSymbolic,
     blockOnSymbolic = blockOnSymbolic
 )
 
