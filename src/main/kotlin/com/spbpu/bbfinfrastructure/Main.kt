@@ -17,7 +17,7 @@ import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    val numOfFilesToCheck = 100
+    val numOfFilesToCheck = 300
     val files = File("lib/filteredTestCode/").listFiles()!!.toList().shuffled().take(numOfFilesToCheck)
     for (f in files) {
         val fileName = f.name

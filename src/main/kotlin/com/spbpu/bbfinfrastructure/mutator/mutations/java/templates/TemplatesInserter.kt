@@ -24,10 +24,10 @@ open class TemplatesInserter : Transformation() {
 
     private val testSuite = GlobalTestSuite.javaTestSuite
     private val originalPsiText = file.text
-    private val numOfSuccessfulMutationsToAdd = 1
+    private val numOfSuccessfulMutationsToAdd = 2
     private var curNumOfSuccessfulMutations = 0
     private var addedProjects = 0
-    private val numberOfProjectsToCheck = 10
+    private val numberOfProjectsToCheck = 3
     private val currentMutationChain = mutableListOf<MutationInfo>()
     private val testingFeature = TestingFeature.RANDOM
 

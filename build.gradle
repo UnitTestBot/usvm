@@ -83,6 +83,6 @@ task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
 }
 
 task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.stepanov.bbf.MainKt'
+    main = 'com.spbpu.bbfinfrastructure.runner.MainKt'
     classpath = sourceSets.main.runtimeClasspath
 }

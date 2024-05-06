@@ -23,7 +23,7 @@ open class TemplateBasedMutation(private val pathToTemplates: String) : Template
     override fun transform() {
         repeat(10_000) {
             val fileBackupText = file.text
-            println("TRY $it")
+//            println("TRY $it")
             try {
                 tryToTransform()
             } catch (e: MutationFinishedException) {

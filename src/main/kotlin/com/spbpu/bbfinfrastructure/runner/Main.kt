@@ -1,9 +1,7 @@
 package com.spbpu.bbfinfrastructure.runner
 
 import org.apache.commons.exec.*
-import org.apache.commons.io.FileUtils
 import java.io.File
-import java.util.*
 
 const val COMMAND = "gradle runFuzzer"
 const val TIMEOUT_SEC = 3600L
