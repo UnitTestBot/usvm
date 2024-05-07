@@ -43,4 +43,12 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             emptyArray()
         )
     }
+
+    @Test
+    fun testPhi() {
+        discoverProperties(
+            Triple("PhiTest", "foo", 1),
+            emptyArray()
+        )
+    }
 }

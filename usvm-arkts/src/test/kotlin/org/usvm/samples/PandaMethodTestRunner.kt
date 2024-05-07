@@ -70,7 +70,7 @@ open class PandaMethodTestRunner
                 states.map { state ->
                     val resolver = PandaTestResolver(state.models.single(), state.memory)
                     val values = resolver.resolve(method, state)
-                    TODO()
+                    values
                 }
             }
         }

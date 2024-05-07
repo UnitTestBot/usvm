@@ -8,17 +8,20 @@ import org.jacodb.panda.dynamic.api.PandaArrayAccess
 import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolConstant
 import org.jacodb.panda.dynamic.api.PandaCastExpr
+import org.jacodb.panda.dynamic.api.PandaCaughtError
 import org.jacodb.panda.dynamic.api.PandaCmpExpr
 import org.jacodb.panda.dynamic.api.PandaCmpOp
 import org.jacodb.panda.dynamic.api.PandaCreateEmptyArrayExpr
 import org.jacodb.panda.dynamic.api.PandaDivExpr
 import org.jacodb.panda.dynamic.api.PandaEqExpr
+import org.jacodb.panda.dynamic.api.PandaExpExpr
 import org.jacodb.panda.dynamic.api.PandaExpr
 import org.jacodb.panda.dynamic.api.PandaExprVisitor
 import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
 import org.jacodb.panda.dynamic.api.PandaLeExpr
+import org.jacodb.panda.dynamic.api.PandaLengthExpr
 import org.jacodb.panda.dynamic.api.PandaLoadedValue
 import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaLocalVar
@@ -30,6 +33,7 @@ import org.jacodb.panda.dynamic.api.PandaNeqExpr
 import org.jacodb.panda.dynamic.api.PandaNewExpr
 import org.jacodb.panda.dynamic.api.PandaNullConstant
 import org.jacodb.panda.dynamic.api.PandaNumberConstant
+import org.jacodb.panda.dynamic.api.PandaPhiValue
 import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
 import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
 import org.jacodb.panda.dynamic.api.PandaStringConstant
@@ -53,6 +57,7 @@ class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
+    private val prevBBId: Int
 ) : PandaExprVisitor<PandaUExprWrapper?> {
     fun resolveLValue(value: PandaValue): ULValue<*, *>? =
         when (value) {
@@ -154,6 +159,10 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
+    override fun visitPandaCaughtError(expr: PandaCaughtError): PandaUExprWrapper? {
+        TODO("Not yet implemented")
+    }
+
     // TODO: saw Cmp objects in JCBinaryOperator, needs checking
     override fun visitPandaCmpExpr(expr: PandaCmpExpr): PandaUExprWrapper? = wrap(expr) {
         when (expr.cmpOp) {
@@ -178,6 +187,10 @@ class PandaExprResolver(
         resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
     }
 
+    override fun visitPandaExpExpr(expr: PandaExpExpr): PandaUExprWrapper? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaFieldRef(expr: PandaFieldRef): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
@@ -195,6 +208,10 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
+    override fun visitPandaLengthExpr(expr: PandaLengthExpr): PandaUExprWrapper? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaLoadedValue(expr: PandaLoadedValue): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
@@ -204,8 +221,8 @@ class PandaExprResolver(
         scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitPandaLtExpr(expr: PandaLtExpr): PandaUExprWrapper? {
-        TODO("Not yet implemented")
+    override fun visitPandaLtExpr(expr: PandaLtExpr): PandaUExprWrapper? = wrap(expr) {
+        resolveBinaryOperator(PandaBinaryOperator.Lt, expr)
     }
 
     override fun visitPandaMulExpr(expr: PandaMulExpr): PandaUExprWrapper? = wrap(expr) {
@@ -235,6 +252,11 @@ class PandaExprResolver(
 
     override fun visitPandaNumberConstant(expr: PandaNumberConstant): PandaUExprWrapper? = wrap(expr) {
         ctx.mkFp64(expr.value.toDouble())
+    }
+
+    override fun visitPandaPhiValue(expr: PandaPhiValue): PandaUExprWrapper? {
+        val value = expr.valueFromBB(prevBBId)
+        return resolvePandaExpr(value)
     }
 
     override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): PandaUExprWrapper? {
@@ -269,13 +291,16 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): PandaUExprWrapper? {
-        TODO("Not yet implemented")
+    // TODO: FIX!!!
+    override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): PandaUExprWrapper? = wrap(expr) {
+        ctx.mkFp64(0.0)
     }
 
     override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
+
+
 
     override fun visitTODOExpr(expr: TODOExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")

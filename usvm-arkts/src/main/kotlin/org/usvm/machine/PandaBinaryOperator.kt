@@ -55,6 +55,10 @@ sealed class PandaBinaryOperator(
         onNumber = PandaContext::mkFpGreaterExpr
     )
 
+    object Lt : PandaBinaryOperator(
+        onNumber = PandaContext::mkFpLessExpr
+    )
+
     object Eq : PandaBinaryOperator(
         onBool = PandaContext::mkEq,
         onNumber = PandaContext::mkFpEqualExpr,
@@ -87,15 +91,18 @@ sealed class PandaBinaryOperator(
         }
 
         val addressSort = ctx.addressSort
-        if (lhsUExpr is KInterpretedValue) {
-            require(rhsUExpr.sort === addressSort) { TODO() }
+        if (lhsUExpr is KInterpretedValue && rhsUExpr.sort == addressSort) {
             return makeAdditionalWork(lhsUExpr, rhsUExpr.asExpr(addressSort), scope)
         }
 
-        if (rhsUExpr is KInterpretedValue) {
-            require(lhsUExpr.sort === addressSort) { TODO() }
+        if (lhsUExpr.sort == addressSort && rhsUExpr is KInterpretedValue) {
             return makeAdditionalWork(lhsUExpr.asExpr(addressSort), rhsUExpr, scope)
         }
+
+//        if (rhsUExpr is KInterpretedValue) {
+//            require(lhsUExpr.sort === addressSort) { TODO() }
+//            return makeAdditionalWork(lhsUExpr.asExpr(addressSort), rhsUExpr, scope)
+//        }
 
         require(lhsUExpr.sort === addressSort && rhsUExpr.sort === addressSort)
 

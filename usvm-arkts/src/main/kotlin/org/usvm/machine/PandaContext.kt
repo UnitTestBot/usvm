@@ -62,7 +62,7 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
                     name = "#stringValue",
                     type = PandaStringType.typeNameInstance,
                     signature = null, // TODO ?????
-                    enclosingClass = auxiliaryClass
+                    _enclosingClass = auxiliaryClass
                 ),
                 ref.pctx.stringSort
             )
@@ -74,7 +74,7 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
                     name = "#value$sort",
                     type = nonRefSortToType(sort).typeNameInstance,
                     signature = null, // TODO ?????
-                    enclosingClass = auxiliaryClass
+                    _enclosingClass = auxiliaryClass
                 )
             )
         }
