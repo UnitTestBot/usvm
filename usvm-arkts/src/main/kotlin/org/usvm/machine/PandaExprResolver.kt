@@ -26,6 +26,7 @@ import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
 import org.jacodb.panda.dynamic.api.PandaLeExpr
+import org.jacodb.panda.dynamic.api.PandaLengthExpr
 import org.jacodb.panda.dynamic.api.PandaLoadedValue
 import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaLocalVar
@@ -63,6 +64,7 @@ class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
+    private val prevBBId: Int
 ) : PandaExprVisitor<UExpr<out USort>?> {
     fun resolveLValue(value: PandaValue): ULValue<*, *>? =
         when (value) {
@@ -188,6 +190,10 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
+    override fun visitPandaLengthExpr(expr: PandaLengthExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaLoadedValue(expr: PandaLoadedValue): UExpr<out USort>? {
         val instance = resolvePandaExpr(expr.instance) ?: return null
         // TODO this is field reading for now only
@@ -210,7 +216,7 @@ class PandaExprResolver(
     }
 
     override fun visitPandaLtExpr(expr: PandaLtExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        return resolveBinaryOperator(PandaBinaryOperator.Lt, expr)
     }
 
     override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? =
@@ -240,7 +246,8 @@ class PandaExprResolver(
         ctx.mkFp64(expr.value.toDouble())
 
     override fun visitPandaPhiValue(expr: PandaPhiValue): UExpr<out USort>? {
-        TODO()
+        val value = expr.valueFromBB(prevBBId)
+        return resolvePandaExpr(value)
     }
 
     override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): UExpr<out USort>? {
@@ -316,8 +323,9 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
+    // TODO: FIX!!!
     override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        return ctx.mkFp64(0.0)
     }
 
     override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): UExpr<out USort>? {

@@ -66,7 +66,7 @@ class PandaTestResolver {
             return resolveInterpreterValue(model.eval(exprFromMemory) as KInterpretedValue)
         }
 
-        TODO()
+        return 1
     }
 
     private fun resolveInterpreterValue(expr: KInterpretedValue<out USort>): Any = with(expr.pctx) {

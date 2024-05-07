@@ -54,6 +54,10 @@ sealed class PandaBinaryOperator(
         onNumber = PandaContext::mkFpGreaterExpr
     )
 
+    object Lt : PandaBinaryOperator(
+        onNumber = PandaContext::mkFpLessExpr
+    )
+
     object Eq : PandaBinaryOperator(
         onBool = PandaContext::mkEq,
         onNumber = PandaContext::mkFpEqualExpr,

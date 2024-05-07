@@ -8,12 +8,30 @@ import org.jacodb.api.common.cfg.CommonGotoInst
 import org.jacodb.api.common.cfg.CommonIfInst
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.common.cfg.CommonReturnInst
-import org.jacodb.panda.dynamic.api.*
+import org.jacodb.panda.dynamic.api.PandaAssignInst
+import org.jacodb.panda.dynamic.api.PandaBinaryExpr
+import org.jacodb.panda.dynamic.api.PandaBoolType
+import org.jacodb.panda.dynamic.api.PandaCallInst
+import org.jacodb.panda.dynamic.api.PandaCatchInst
+import org.jacodb.panda.dynamic.api.PandaEmptyBBPlaceholderInst
+import org.jacodb.panda.dynamic.api.PandaGotoInst
+import org.jacodb.panda.dynamic.api.PandaIfInst
+import org.jacodb.panda.dynamic.api.PandaInst
+import org.jacodb.panda.dynamic.api.PandaInstVisitor
+import org.jacodb.panda.dynamic.api.PandaLocal
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaNumberType
+import org.jacodb.panda.dynamic.api.PandaObjectType
+import org.jacodb.panda.dynamic.api.PandaReturnInst
+import org.jacodb.panda.dynamic.api.PandaStringType
+import org.jacodb.panda.dynamic.api.PandaThrowInst
+import org.jacodb.panda.dynamic.api.TODOInst
 import org.usvm.UBoolExpr
 import org.usvm.machine.state.PandaState
 
 class PandaStatementSpecializer(
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
+    private val prevBBId: Int
 ) : PandaInstVisitor<PandaInst> {
     private var stepScope: PandaStepScope? = null
     private var somethingWasSpecialized: Boolean = false
@@ -64,7 +82,7 @@ class PandaStatementSpecializer(
 
         val types = listOf(PandaNumberType, PandaBoolType, PandaStringType, PandaObjectType)
 
-        val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper)
+        val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper, prevBBId)
 
         val conditions: List<Pair<UBoolExpr, PandaState.() -> Unit>> = stepScope.calcOnState {
             val (lhs, rhs) = rhv.operands.let {
@@ -110,6 +128,10 @@ class PandaStatementSpecializer(
     }
 
     override fun visitPandaCatchInst(inst: PandaCatchInst): PandaInst {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaEmptyBBPlaceholderInst(inst: PandaEmptyBBPlaceholderInst): PandaInst {
         TODO("Not yet implemented")
     }
 

@@ -1,4 +1,4 @@
-function foo(i) {
+function foo(i: number) {
 	var index = i
 	while (index < 10) {
 		if (index < 5) {
