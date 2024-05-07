@@ -21,7 +21,7 @@ import org.usvm.model.UModelBase
 import org.usvm.types.first
 
 class PandaTestResolver {
-    lateinit var model : UModelBase<PandaType>
+    lateinit var model: UModelBase<PandaType>
     lateinit var memory: UReadOnlyMemory<PandaType>
 
     fun resolve(method: PandaMethod, state: PandaState): PandaTest {
@@ -35,12 +35,20 @@ class PandaTestResolver {
             resolveLValue(ref, model)
         }
 
-        val resultExpr = resolveExpr((state.methodResult as PandaMethodResult.Success).value)
+        val methodResult = state.methodResult
+        val resultExpr = if (methodResult is PandaMethodResult.Success) {
+            resolveExpr(methodResult.value)
+        } else {
+            methodResult as PandaMethodResult.PandaException
+            // TODO process exceptions
+            val exceptionType = memory.types.getTypeStream(methodResult.address)
+            exceptionType.first().typeName
+        }
 
         return PandaTest(parameters, resultExpr)
     }
 
-    private fun resolveLValue(lValue: ULValue<*,*>, memory: UReadOnlyMemory<PandaType>) : Any {
+    private fun resolveLValue(lValue: ULValue<*, *>, memory: UReadOnlyMemory<PandaType>): Any {
         val expr = memory.read(lValue)
 
         return resolveExpr(expr)

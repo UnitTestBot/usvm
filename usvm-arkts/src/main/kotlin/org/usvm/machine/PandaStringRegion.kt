@@ -42,8 +42,7 @@ internal class PandaStringFieldMemoryRegion(
         if (heapRef is UConcreteHeapRef) {
             return stringConstants.getValue(heapRef)
         }
-        // TODO
-        error("Not yet implemented")
+        // TODO error
         return PandaConcreteString(key.addr.pctx, "TODO")
     }
 

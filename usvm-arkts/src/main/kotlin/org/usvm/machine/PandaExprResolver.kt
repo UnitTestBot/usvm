@@ -49,12 +49,15 @@ import org.jacodb.panda.dynamic.api.PandaToNumericExpr
 import org.jacodb.panda.dynamic.api.PandaTypeName
 import org.jacodb.panda.dynamic.api.PandaTypeofExpr
 import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
+import org.jacodb.panda.dynamic.api.PandaUndefinedType
 import org.jacodb.panda.dynamic.api.PandaValue
 import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
 import org.jacodb.panda.dynamic.api.TODOConstant
 import org.jacodb.panda.dynamic.api.TODOExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.readArrayIndex
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
@@ -138,7 +141,11 @@ class PandaExprResolver(
     }
 
     override fun visitPandaArrayAccess(expr: PandaArrayAccess): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val ref = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
+        val index = resolvePandaExpr(expr.index)?.asExpr(ctx.fp64Sort) ?: return null
+        return scope.calcOnState {
+            memory.readArrayIndex(ref, index, expr.array.type, ctx.typeToSort(expr.type))
+        }
     }
 
     override fun visitPandaCastExpr(expr: PandaCastExpr): UExpr<out USort>? {
@@ -191,7 +198,9 @@ class PandaExprResolver(
     }
 
     override fun visitPandaLengthExpr(expr: PandaLengthExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val arrayAddress = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
+        val lengthLValue = UArrayLengthLValue(arrayAddress, expr.array.type, ctx.fp64Sort) // TODO change size sort???
+         return scope.calcOnState { memory.read(lengthLValue) }
     }
 
     override fun visitPandaLoadedValue(expr: PandaLoadedValue): UExpr<out USort>? {
@@ -247,7 +256,7 @@ class PandaExprResolver(
 
     override fun visitPandaPhiValue(expr: PandaPhiValue): UExpr<out USort>? {
         val value = expr.valueFromBB(prevBBId)
-        return resolvePandaExpr(value)
+        return resolvePandaExpr(value) // TODO wrap????
     }
 
     override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): UExpr<out USort>? {
@@ -255,8 +264,11 @@ class PandaExprResolver(
     }
 
     override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? = with(ctx) {
-        val lhs = resolvePandaExpr(expr.lhv) ?: return null
-        val rhs = resolvePandaExpr(expr.rhv) ?: return null
+        var lhs = resolvePandaExpr(expr.lhv) ?: return null
+        var rhs = resolvePandaExpr(expr.rhv) ?: return null
+
+        lhs = ctx.extractPrimitiveValueIfRequired(lhs, scope)
+        rhs = ctx.extractPrimitiveValueIfRequired(rhs, scope)
 
         if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
             if (lhs.sort != rhs.sort) {
@@ -275,9 +287,13 @@ class PandaExprResolver(
         if (rhs is KInterpretedValue) {
             return when (rhs.sort) {
                 fp64Sort -> {
-                    val value = scope.calcOnState {
-                        val lvalue = constructAuxiliaryFieldLValue(lhs.asExpr(addressSort), fp64Sort)
-                        memory.read(lvalue)
+                    val value = if (lhs.sort == ctx.addressSort) {
+                        scope.calcOnState {
+                            val lvalue = constructAuxiliaryFieldLValue(lhs.asExpr(addressSort), fp64Sort)
+                            memory.read(lvalue)
+                        }
+                    } else {
+                        lhs
                     }
 
                     scope.calcOnState {
@@ -325,7 +341,9 @@ class PandaExprResolver(
 
     // TODO: FIX!!!
     override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): UExpr<out USort>? {
-        return ctx.mkFp64(0.0)
+        // TODO intern
+        val value = scope.calcOnState { memory.allocConcrete(PandaUndefinedType) }
+        return value
     }
 
     override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): UExpr<out USort>? {

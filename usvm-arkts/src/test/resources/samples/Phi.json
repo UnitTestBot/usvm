@@ -60,6 +60,7 @@
                     "opcode": "Constant",
                     "type": "i32",
                     "users": [
+                      "28p",
                       "v17"
                     ],
                     "value": 10,
@@ -87,21 +88,21 @@
                     "visit": "constant"
                   },
                   {
-                    "id": "v31",
+                    "id": "v27",
                     "opcode": "Constant",
                     "type": "i32",
                     "users": [
-                      "v32"
+                      "28p"
                     ],
                     "value": 2,
                     "visit": "constant"
                   },
                   {
-                    "id": "v37",
+                    "id": "v30",
                     "opcode": "Constant",
                     "type": "i32",
                     "users": [
-                      "v38"
+                      "v31"
                     ],
                     "value": 0,
                     "visit": "constant"
@@ -220,13 +221,11 @@
                     ],
                     "inputs": [
                       "v3",
-                      "34p"
+                      "28p"
                     ],
                     "opcode": "Phi",
                     "type": "any",
                     "users": [
-                      "v32",
-                      "v27",
                       "v23",
                       "v17"
                     ],
@@ -432,60 +431,6 @@
               },
               {
                 "id": 4,
-                "insts": [
-                  {
-                    "id": "v28",
-                    "opcode": "SaveState",
-                    "type": "void",
-                    "users": [
-                      "v27"
-                    ],
-                    "visit": "default"
-                  },
-                  {
-                    "id": "v27",
-                    "imms": [
-                      2
-                    ],
-                    "inputs": [
-                      "10p",
-                      "v28"
-                    ],
-                    "intrinsic_id": "Intrinsic.tonumeric",
-                    "opcode": "Intrinsic",
-                    "type": "any",
-                    "users": [
-                      "v29"
-                    ],
-                    "visit": "intrinsic"
-                  },
-                  {
-                    "id": "v30",
-                    "opcode": "SaveState",
-                    "type": "void",
-                    "users": [
-                      "v29"
-                    ],
-                    "visit": "default"
-                  },
-                  {
-                    "id": "v29",
-                    "imms": [
-                      3
-                    ],
-                    "inputs": [
-                      "v27",
-                      "v30"
-                    ],
-                    "intrinsic_id": "Intrinsic.inc",
-                    "opcode": "Intrinsic",
-                    "type": "any",
-                    "users": [
-                      "34p"
-                    ],
-                    "visit": "intrinsic"
-                  }
-                ],
                 "predecessors": [
                   2
                 ],
@@ -495,35 +440,6 @@
               },
               {
                 "id": 3,
-                "insts": [
-                  {
-                    "id": "v33",
-                    "opcode": "SaveState",
-                    "type": "void",
-                    "users": [
-                      "v32"
-                    ],
-                    "visit": "default"
-                  },
-                  {
-                    "id": "v32",
-                    "imms": [
-                      4
-                    ],
-                    "inputs": [
-                      "10p",
-                      "v31",
-                      "v33"
-                    ],
-                    "intrinsic_id": "Intrinsic.add2",
-                    "opcode": "Intrinsic",
-                    "type": "any",
-                    "users": [
-                      "34p"
-                    ],
-                    "visit": "intrinsic"
-                  }
-                ],
                 "predecessors": [
                   2
                 ],
@@ -535,14 +451,14 @@
                 "id": 5,
                 "insts": [
                   {
-                    "id": "34p",
+                    "id": "28p",
                     "inputBlocks": [
                       4,
                       3
                     ],
                     "inputs": [
-                      "v29",
-                      "v32"
+                      "v16",
+                      "v27"
                     ],
                     "opcode": "Phi",
                     "type": "any",
@@ -564,19 +480,19 @@
                 "id": 1,
                 "insts": [
                   {
-                    "id": "v39",
+                    "id": "v32",
                     "opcode": "SaveState",
                     "type": "void",
                     "users": [
-                      "v38"
+                      "v31"
                     ],
                     "visit": "default"
                   },
                   {
-                    "id": "v38",
+                    "id": "v31",
                     "inputs": [
-                      "v37",
-                      "v39"
+                      "v30",
+                      "v32"
                     ],
                     "intrinsic_id": "Intrinsic.return",
                     "opcode": "Intrinsic",
