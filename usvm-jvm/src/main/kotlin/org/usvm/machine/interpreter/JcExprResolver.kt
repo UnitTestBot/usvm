@@ -97,6 +97,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
+import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcContext
 import org.usvm.machine.USizeSort
 import org.usvm.machine.operator.JcBinaryOperator
@@ -107,6 +108,7 @@ import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.addConcreteMethodCallStmt
+import org.usvm.machine.state.addDynamicCall
 import org.usvm.machine.state.addVirtualMethodCallStmt
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
@@ -124,6 +126,7 @@ import org.usvm.util.write
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
+    private val applicationGraph: JcApplicationGraph,
     localToIdx: (JcMethod, JcLocal) -> Int,
     mkTypeRef: (JcType, JcState) -> UConcreteHeapRef,
     mkStringConstRef: (String, JcState) -> UConcreteHeapRef,
@@ -363,7 +366,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments, applicationGraph) }
         }
 
     override fun visitJcVirtualCallExpr(expr: JcVirtualCallExpr): UExpr<out USort>? =
@@ -383,17 +386,17 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments, applicationGraph) }
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
         resolveInvoke(
             expr.method,
             instanceExpr = null,
-            argumentExprs = expr::args,
-            argumentTypes = expr::callSiteArgTypes
-        ) { arguments ->
-            TODO("Dynamic invoke: ${expr.method.method} $arguments")
+            argumentExprs = { expr.callSiteArgs },
+            argumentTypes = { expr.callSiteArgTypes }
+        ) { callSiteArguments ->
+            scope.doWithState { addDynamicCall(expr, callSiteArguments) }
         }
 
     override fun visitJcLambdaExpr(expr: JcLambdaExpr): UExpr<out USort>? =
@@ -403,7 +406,7 @@ class JcExprResolver(
             argumentExprs = expr::args,
             argumentTypes = { expr.method.parameters.map { it.type } }
         ) { arguments ->
-            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments) }
+            scope.doWithState { addConcreteMethodCallStmt(expr.method.method, arguments, applicationGraph) }
         }
 
     private inline fun resolveInvoke(
@@ -697,7 +700,7 @@ class JcExprResolver(
         scope.doWithState {
             memory.write(initializedFlag, ctx.trueExpr)
         }
-        scope.doWithState { addConcreteMethodCallStmt(initializer, emptyList()) }
+        scope.doWithState { addConcreteMethodCallStmt(initializer, emptyList(), applicationGraph) }
         return null
     }
 
@@ -929,7 +932,7 @@ class JcExprResolver(
         val inEnumMethodFromEnumStaticInitializer =
             currentClass.isEnum && staticInitializers.any { it.method.enclosingClass == currentClass }
 
-        if (inEnumMethodFromEnumStaticInitializer) {
+        if (inEnumMethodFromEnumStaticInitializer || lastEnteredMethod.isClassInitializer) {
             return true
         }
 

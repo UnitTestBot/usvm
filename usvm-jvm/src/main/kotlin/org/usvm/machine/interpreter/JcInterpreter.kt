@@ -44,7 +44,9 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
+import org.usvm.machine.JcDynamicMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
+import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.JcMethodApproximationResolver
 import org.usvm.machine.JcMethodCall
 import org.usvm.machine.JcMethodCallBaseInst
@@ -75,6 +77,7 @@ typealias JcStepScope = StepScope<JcState, JcType, JcInst, JcContext>
 class JcInterpreter(
     private val ctx: JcContext,
     private val applicationGraph: JcApplicationGraph,
+    private val options: JcMachineOptions,
     private val observer: JcInterpreterObserver? = null,
     var forkBlackList: UForkBlackList<JcState, JcInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<JcState>() {
@@ -239,13 +242,13 @@ class JcInterpreter(
                     return
                 }
 
-                if (stmt.method.isNative) {
-                    mockNativeMethod(scope, stmt)
+                if (stmt.method.isNative || stmt.entrypoint == null) {
+                    mockMethod(scope, stmt)
                     return
                 }
 
                 scope.doWithState {
-                    addNewMethodCall(applicationGraph, stmt)
+                    addNewMethodCall(stmt)
                 }
             }
 
@@ -256,7 +259,17 @@ class JcInterpreter(
                     return
                 }
 
-                resolveVirtualInvoke(stmt, scope, typeSelector, forkOnRemainingTypes = false)
+                resolveVirtualInvoke(stmt, scope, typeSelector)
+            }
+
+            is JcDynamicMethodCallInst -> {
+                observer?.onMethodCallWithResolvedArguments(simpleValueResolver, stmt, scope)
+
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+
+                mockMethod(scope, stmt, stmt.dynamicCall.callSiteReturnType)
             }
         }
     }
@@ -434,6 +447,7 @@ class JcInterpreter(
         JcExprResolver(
             ctx,
             scope,
+            applicationGraph,
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
             ::stringConstantAllocator,
@@ -515,13 +529,13 @@ class JcInterpreter(
         return approximationResolver.approximate(scope, exprResolver, methodCall)
     }
 
-    private fun mockNativeMethod(
-        scope: JcStepScope,
-        methodCall: JcConcreteMethodCallInst,
-    ) = with(methodCall) {
-        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
+    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall) {
+        val returnType = with(applicationGraph) { methodCall.method.typed }.returnType
+        mockMethod(scope, methodCall, returnType)
+    }
 
-        val returnType = with(applicationGraph) { method.typed }.returnType
+    private fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall, returnType: JcType) = with(methodCall) {
+        logger.warn { "Mocked: ${method.enclosingClass.name}::${method.name}" }
 
         if (returnType == ctx.cp.void) {
             scope.doWithState { skipMethodInvocationWithValue(methodCall, ctx.voidValue) }

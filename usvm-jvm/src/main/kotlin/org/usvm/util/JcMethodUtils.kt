@@ -7,6 +7,7 @@ import org.jacodb.api.JcType
 import org.jacodb.api.JcTypedMethod
 import org.jacodb.api.ext.findMethodOrNull
 import org.jacodb.api.ext.toType
+import org.jacodb.impl.features.classpaths.JcUnknownType
 
 /**
  * Checks if the method can be overridden:
@@ -31,6 +32,10 @@ fun JcType.findMethod(method: JcMethod): JcTypedMethod? = when (this) {
 }
 
 private fun JcClassType.findClassMethod(name: String, desc: String): JcTypedMethod? {
+    if (this is JcUnknownType) {
+        return findMethodOrNull(name, desc)
+    }
+
     val method = findMethodOrNull { it.name == name && it.method.description == desc }
     if (method != null) return method
 

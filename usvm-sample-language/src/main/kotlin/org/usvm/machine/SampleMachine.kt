@@ -16,9 +16,7 @@ import org.usvm.statistics.TerminatedStateRemover
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
-import org.usvm.statistics.distances.CallGraphStatisticsImpl
 import org.usvm.statistics.distances.CfgStatisticsImpl
-import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 
 /**
@@ -47,22 +45,12 @@ class SampleMachine(
 
         val coverageStatistics: CoverageStatistics<Method<*>, Stmt, SampleState> = CoverageStatistics(setOf(method), applicationGraph)
 
-        val callGraphStatistics =
-            when (options.targetSearchDepth) {
-                0u -> PlainCallGraphStatistics()
-                else -> CallGraphStatisticsImpl(
-                    options.targetSearchDepth,
-                    applicationGraph
-                )
-            }
-
         val pathSelector = createPathSelector(
             initialState,
             options,
             applicationGraph,
             { coverageStatistics },
             { cfgStatistics },
-            { callGraphStatistics }
         )
 
         val statesCollector =
