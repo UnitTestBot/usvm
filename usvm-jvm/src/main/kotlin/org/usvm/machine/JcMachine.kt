@@ -18,6 +18,8 @@ import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.lastStmt
 import org.usvm.ps.StateWeighter
+import org.usvm.ps.TargetUIntWeight
+import org.usvm.ps.TargetWeight
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
@@ -185,7 +187,7 @@ class JcMachine(
     private fun targetWeighter(
         strategy: PathSelectionStrategy,
         callGraphStatistics: CallGraphStatistics<JcMethod>
-    ): StateWeighter<JcState, UInt> {
+    ): StateWeighter<JcState, TargetWeight> {
         when (strategy) {
             PathSelectionStrategy.TARGETED, PathSelectionStrategy.TARGETED_RANDOM -> {
                 val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, _> { stmt ->
@@ -197,24 +199,17 @@ class JcMachine(
                     )
                 }
 
-                val targetWeighter = (interpreterObserver as? JcTargetWeighter)
-                    ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
-
-                return StateWeighter { state ->
-                    state.targets.minOfOrNull { target ->
-                        targetWeighter?.invoke(target, state) ?: run {
-                            val location = target.location
-                            if (location == null) {
-                                0u
-                            } else {
-                                distanceCalculator.calculateDistance(
-                                    state.currentStatement,
-                                    state.callStack,
-                                    location
-                                ).logWeight()
-                            }
-                        }
-                    } ?: UInt.MAX_VALUE
+                return wrapWeighter(strategy, callGraphStatistics) { state, target ->
+                    val location = target.location
+                    if (location == null) {
+                        0u
+                    } else {
+                        distanceCalculator.calculateDistance(
+                            state.currentStatement,
+                            state.callStack,
+                            location
+                        ).logWeight()
+                    }
                 }
             }
 
@@ -227,28 +222,35 @@ class JcMachine(
                     )
                 }
 
-                val targetWeighter = (interpreterObserver as? JcTargetWeighter)
-                    ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
-
-                return StateWeighter { state ->
-                    state.targets.minOfOrNull { target ->
-                        targetWeighter?.invoke(target, state) ?: run {
-                            val location = target.location
-                            if (location == null) {
-                                0u
-                            } else {
-                                distanceCalculator.calculateDistance(
-                                    state.currentStatement,
-                                    state.callStack,
-                                    location
-                                )
-                            }
-                        }
-                    } ?: UInt.MAX_VALUE
+                return wrapWeighter(strategy, callGraphStatistics) { state, target ->
+                    val location = target.location
+                    if (location == null) {
+                        0u
+                    } else {
+                        distanceCalculator.calculateDistance(
+                            state.currentStatement,
+                            state.callStack,
+                            location
+                        )
+                    }
                 }
             }
 
             else -> error("Unexpected strategy: $strategy")
+        }
+    }
+
+    private inline fun wrapWeighter(
+        strategy: PathSelectionStrategy,
+        callGraphStatistics: CallGraphStatistics<JcMethod>,
+        default: (JcState, JcTarget) -> UInt
+    ): StateWeighter<JcState, TargetWeight> {
+        val targetWeighter = (interpreterObserver as? JcTargetWeighter<*>)
+            ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
+        return StateWeighter { state ->
+            state.targets.minOfOrNull { target ->
+                targetWeighter?.invoke(target, state) ?: TargetUIntWeight(default(state, target))
+            } ?: TargetUIntWeight(UInt.MAX_VALUE)
         }
     }
 }

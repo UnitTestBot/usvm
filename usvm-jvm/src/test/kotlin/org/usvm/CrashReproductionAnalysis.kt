@@ -15,6 +15,7 @@ import org.usvm.machine.JcTargetWeighter
 import org.usvm.machine.JcVirtualMethodCallInst
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.ps.TargetWeight
 import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CfgStatistics
@@ -39,76 +40,104 @@ class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : Cras
     override fun toString(): String = "Exception: $exception"
 }
 
-sealed interface Distance : Comparable<Distance>
+class DistanceTargetWeight(val distance: Distance) : TargetWeight {
+    override fun compareTo(other: TargetWeight): Int = if (other is DistanceTargetWeight) {
+        distance.compareTo(other.distance)
+    } else {
+        -other.compareRhs(this)
+    }
+
+    override fun compareRhs(other: TargetWeight): Int {
+        TODO("Not yet implemented")
+    }
+
+    override fun toDouble(): Double {
+        TODO("Not yet implemented")
+    }
+}
+
+sealed interface Distance : Comparable<Distance> {
+    fun addNested(other: Distance): Distance
+    fun addBias(bias: UInt): Distance
+    fun root(): Distance
+}
 
 object InfiniteDistance : Distance {
+    override fun root(): Distance = InfiniteDistance
+    override fun addNested(other: Distance): Distance = InfiniteDistance
+    override fun addBias(bias: UInt): Distance = InfiniteDistance
     override fun compareTo(other: Distance): Int = when (other) {
         is InfiniteDistance -> 0
         is ConcreteDistance -> 1
     }
 }
 
-data class ConcreteDistance(val value: UInt) : Distance {
-    override fun compareTo(other: Distance): Int = when (other) {
-        is ConcreteDistance -> value.compareTo(other.value)
-        is InfiniteDistance -> -1
-    }
-}
-
-sealed interface ScaledDistance {
-    fun toUInt(): UInt
-    fun subscale(scaling: DistanceScaling, distance: Distance): ScaledDistance
-    fun add(other: Distance): ScaledDistance
-}
-
-object InfiniteScaledDistance : ScaledDistance {
-    override fun toUInt(): UInt = UInt.MAX_VALUE
-    override fun subscale(scaling: DistanceScaling, distance: Distance): ScaledDistance = InfiniteScaledDistance
-    override fun add(other: Distance): ScaledDistance = InfiniteScaledDistance
-}
-
-class ConcreteScaledDistance(
-    private val scaling: DistanceScaling,
-    private val ticks: UInt,
-    private val value: UInt
-) : ScaledDistance {
+class ConcreteDistance(
+    private var value: UInt,
+    private val maxValue: UInt,
+) : Distance {
     init {
-        check(value < scaling.tickSize) { "Incorrect scaling" }
+        check(value <= maxValue) { "Incorrect distance" }
     }
 
-    override fun toUInt(): UInt = (ticks * scaling.tickSize + value)
-        .also { check(it < UInt.MAX_VALUE) { "Incorrect value" } }
+    private var parent: ConcreteDistance? = null
+    private var child: ConcreteDistance? = null
 
-    override fun subscale(scaling: DistanceScaling, distance: Distance): ScaledDistance = when (distance) {
-        is InfiniteDistance -> InfiniteScaledDistance
-        is ConcreteDistance -> {
-            val newScaling = DistanceScaling(this.scaling.scale * scaling.scale)
-            check(distance.value < scaling.scale) { "Incorrect subscale" }
+    override fun compareTo(other: Distance): Int {
+        when (other) {
+            is ConcreteDistance -> {
+                val valueCompare = value.compareTo(other.value)
+                if (valueCompare != 0) return valueCompare
+                val thisChild = child ?: return if (other.child == null) 0 else -1
+                val otherChild = other.child ?: return 1
+                return thisChild.compareTo(otherChild)
+            }
 
-            val newTicks = ticks * scaling.scale + distance.value
-            val newValue = value * scaling.scale + 0u
-
-            ConcreteScaledDistance(newScaling, newTicks, newValue)
+            is InfiniteDistance -> return -1
         }
     }
 
-    override fun add(other: Distance): ScaledDistance = when (other) {
-        InfiniteDistance -> InfiniteScaledDistance
+    override fun addNested(other: Distance): Distance = when (other) {
+        is InfiniteDistance -> InfiniteDistance
         is ConcreteDistance -> {
-            val clippedValue = (value + other.value).coerceAtMost(scaling.tickSize - 1u)
-            ConcreteScaledDistance(scaling, ticks, clippedValue)
+            check(child == null) { "Bounded distance" }
+
+            val otherRoot = other.root() as ConcreteDistance
+            otherRoot.parent = this
+            child = otherRoot
+
+            other
         }
     }
-}
 
-class DistanceScaling(val scale: UInt) {
-    val tickSize: UInt = UInt.MAX_VALUE / scale
+    override fun addBias(bias: UInt): Distance {
+        val newValue = value + bias
+        if (newValue <= maxValue) {
+            value = newValue
+            return this
+        }
 
-    fun scale(value: UInt) = ConcreteScaledDistance(this, value, 0u)
+        if (parent == null) {
+            value = maxValue
+            return this
+        }
+
+        val parentBias = newValue / (maxValue + 1u)
+        parent?.addBias(parentBias)
+        value = newValue % (maxValue + 1u)
+        return this
+    }
+
+    override fun root(): Distance {
+        var root: ConcreteDistance = this
+        while (root.parent != null) {
+            root = root.parent!!
+        }
+        return root
+    }
 }
 
 class CrashTargetInterprocDistanceCalculator(
-    private val baseDistance: ScaledDistance,
     private val target: CrashReproductionLocationTarget,
     private val applicationGraph: JcApplicationGraph,
     private val cfgStatistics: CfgStatistics<JcMethod, JcInst>,
@@ -119,10 +148,6 @@ class CrashTargetInterprocDistanceCalculator(
 
     private val targetCallStack by lazy {
         resolveTargetCallStack()
-    }
-
-    private val targetMethodScaling: DistanceScaling by lazy {
-        DistanceScaling(targetMethod.instList.size.toUInt())
     }
 
     private fun resolveTargetCallStack(): List<JcMethod> {
@@ -137,7 +162,7 @@ class CrashTargetInterprocDistanceCalculator(
         return targetCallStack.asReversed()
     }
 
-    fun calculateDistance(state: JcState): ScaledDistance {
+    fun calculateDistance(state: JcState): Distance {
         val hasMethodResult = state.methodResult is JcMethodResult.Success
         val statement = state.currentStatement
         val normalizedCallStack = state.callStack.toMutableList()
@@ -163,7 +188,7 @@ class CrashTargetInterprocDistanceCalculator(
         statement: JcInst,
         callStack: List<UCallStackFrame<JcMethod, JcInst>>,
         hasMethodResult: Boolean
-    ): ScaledDistance {
+    ): Distance {
         var targetIdx = 0
         var currentIdx = 0
         while (targetIdx < targetCallStack.size && currentIdx < callStack.size) {
@@ -177,39 +202,32 @@ class CrashTargetInterprocDistanceCalculator(
 
         if (targetRemain == 0 && currentRemain == 0) {
             return if (hasMethodResult) {
-                val distance = calculateMethodResultLocalDistance(statement)
-                baseDistance
-                    .subscale(targetMethodScaling, distance)
-                    .addStatementDecay(statementOccurrences = 0u)
+                calculateMethodResultLocalDistance(statement)
             } else {
                 val occurrences = incOccurrences(statement)
                 val distance = calculateLocalDistance(statement)
-                baseDistance
-                    .subscale(targetMethodScaling, distance)
-                    .addStatementDecay(occurrences)
+                distance.addStatementDecay(occurrences)
             }
         }
 
         if (targetRemain > 0 && currentRemain == 0) {
-            val upStackDistance = calculateUpStackDistance(statement, targetCallStack[targetIdx])
-            return baseDistance.add(upStackDistance) // note: no method scaling
+            return calculateUpStackDistance(statement, targetCallStack[targetIdx])
         }
 
         if (targetRemain == 0 && currentRemain > 0) {
-            val returnSite = callStack[currentIdx].returnSite ?: return InfiniteScaledDistance
+            val returnSite = callStack[currentIdx].returnSite ?: return InfiniteDistance
             val returnSiteDistance = calculateMethodResultLocalDistance(returnSite)
-            if (returnSiteDistance == InfiniteDistance) return InfiniteScaledDistance
+            if (returnSiteDistance == InfiniteDistance) return InfiniteDistance
 
             val downStackDistance = calculateDownStackDistance(statement, callStack.subList(currentIdx, callStack.size))
 
             val occurrences = incOccurrences(returnSite)
-            return baseDistance
-                .subscale(targetMethodScaling, returnSiteDistance)
+            return returnSiteDistance
                 .addStatementDecay(occurrences)
-                .add(downStackDistance)
+                .addNested(downStackDistance)
         }
 
-        return InfiniteScaledDistance
+        return InfiniteDistance
     }
 
     private fun calculateMethodResultLocalDistance(inst: JcInst): Distance =
@@ -225,7 +243,7 @@ class CrashTargetInterprocDistanceCalculator(
             "No local distance for different methods"
         }
 
-        return shortestDistance(statementMethod, statement, targetLocation)
+        return shortestLocalDistance(statementMethod, statement, targetLocation)
     }
 
     private fun calculateUpStackDistance(
@@ -237,7 +255,7 @@ class CrashTargetInterprocDistanceCalculator(
         for (statementOfMethod in applicationGraph.statementsOf(statementMethod)) {
             for (callee in applicationGraph.callees(statementOfMethod)) {
                 if (callGraphStatistics.checkReachability(callee, nextTargetMethod)) {
-                    val distanceToCall = shortestDistance(statementMethod, statement, statementOfMethod)
+                    val distanceToCall = shortestLocalDistance(statementMethod, statement, statementOfMethod)
                     minDistanceToCall = minOf(minDistanceToCall, distanceToCall)
                 }
             }
@@ -254,39 +272,66 @@ class CrashTargetInterprocDistanceCalculator(
             "Statement method not in stack"
         }
 
-        var distance = 0u
+        var distance: Distance? = null
         var currentStatement = statement
         for ((method, returnStatement) in returnStack.asReversed()) {
-            distance *= 2u
-            distance += cfgStatistics.getShortestDistanceToExit(method, currentStatement)
+            val distanceToExit = cfgStatistics.getShortestDistanceToExit(method, currentStatement)
+            val currentDistance = methodDistance(method, distanceToExit)
+            if (distance != null) {
+                currentDistance.addNested(distance)
+            }
+            distance = currentDistance
             currentStatement = returnStatement ?: break
         }
 
-        return ConcreteDistance(distance.coerceAtMost(UInt.MAX_VALUE - 1u))
+        return distance ?: InfiniteDistance
     }
 
-    private fun shortestDistance(fromMethod: JcMethod, fromStatement: JcInst, toStatement: JcInst): Distance {
-        val distance = cfgStatistics.getShortestDistance(fromMethod, fromStatement, toStatement)
-        return if (distance != UInt.MAX_VALUE) ConcreteDistance(distance) else InfiniteDistance
+    private fun shortestLocalDistance(method: JcMethod, fromStatement: JcInst, toStatement: JcInst): Distance {
+        val distance = cfgStatistics.getShortestDistance(method, fromStatement, toStatement)
+        return methodDistance(method, distance)
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    private fun ScaledDistance.addStatementDecay(statementOccurrences: UInt) = this
+    private fun methodDistance(method: JcMethod, value: UInt): Distance {
+        if (value == UInt.MAX_VALUE) return InfiniteDistance
+        return ConcreteDistance(value, method.instList.size.toUInt())
+    }
+
+    private fun Distance.addStatementDecay(statementOccurrences: UInt) =
+        addBias(statementOccurrences / DECAY_OCCURRENCES)
+
+    companion object {
+        private const val DECAY_OCCURRENCES = 100u
+    }
 }
 
 private class CrashReproductionAnalysis(
     override val targets: MutableCollection<out UTarget<*, *>>
-) : UTargetController, JcInterpreterObserver, StatesCollector<JcState>, JcTargetWeighter {
+) : UTargetController, JcInterpreterObserver, StatesCollector<JcState>, JcTargetWeighter<DistanceTargetWeight> {
 
-    private val targetWeight = hashMapOf<CrashReproductionTarget, UInt>()
+    private val targetDepth = hashMapOf<CrashReproductionTarget, UInt>()
+
     init {
         targets.forEach { computeTargetWeights(it, weight = 0u) }
     }
 
     private fun computeTargetWeights(target: UTarget<*, *>, weight: UInt) {
         if (target !is CrashReproductionTarget) return
-        targetWeight.putIfAbsent(target, weight)
+        targetDepth.putIfAbsent(target, weight)
         target.children.forEach { computeTargetWeights(it, weight + 1u) }
+    }
+
+    private var deepestTarget: CrashReproductionTarget? = null
+    private var deepestWeight: UInt = 0u
+    private fun notifyTargetUpdate(target: CrashReproductionTarget) {
+        val curWeight = targetDepth[target] ?: 0u
+        if (deepestTarget != null && curWeight <= deepestWeight) {
+            return
+        }
+
+        deepestWeight = curWeight
+        deepestTarget = target
+        logger.info { "REACH TARGET: $deepestTarget" }
     }
 
     override val collectedStates = arrayListOf<JcState>()
@@ -307,16 +352,28 @@ private class CrashReproductionAnalysis(
         applicationGraph: JcApplicationGraph,
         cfgStatistics: CfgStatistics<JcMethod, JcInst>,
         callGraphStatistics: CallGraphStatistics<JcMethod>
-    ): (JcTarget, JcState) -> UInt? = { target, state ->
+    ): (JcTarget, JcState) -> DistanceTargetWeight? = { target, state ->
         if (target !is CrashReproductionTarget) {
             null
         } else {
-            weightTarget(applicationGraph, cfgStatistics, callGraphStatistics, target, state)
+            val distance = weightTarget(applicationGraph, cfgStatistics, callGraphStatistics, target, state)
+            val root = distance.root()
+            DistanceTargetWeight(root)
         }
     }
 
     private val distanceCalculators =
         hashMapOf<CrashReproductionLocationTarget, CrashTargetInterprocDistanceCalculator>()
+
+    private fun targetDistance(target: CrashReproductionTarget): Distance = when (target) {
+        is CrashReproductionExceptionTarget -> ConcreteDistance(0u, 0u)
+        is CrashReproductionLocationTarget -> {
+            val maxDepth = targetDepth.size.toUInt()
+            val depth = targetDepth.getValue(target)
+            val distance = maxDepth - 1u - depth
+            ConcreteDistance(distance, maxDepth)
+        }
+    }
 
     private fun weightTarget(
         applicationGraph: JcApplicationGraph,
@@ -324,16 +381,11 @@ private class CrashReproductionAnalysis(
         callGraphStatistics: CallGraphStatistics<JcMethod>,
         target: CrashReproductionTarget,
         state: JcState
-    ): UInt = when (target) {
-        is CrashReproductionExceptionTarget -> 0u
+    ): Distance = when (target) {
+        is CrashReproductionExceptionTarget -> targetDistance(target)
         is CrashReproductionLocationTarget -> {
             val distanceCalculator = distanceCalculators.getOrPut(target) {
-                val maxTargetWeight = targetWeight.size.toUInt()
-                val targetScaling = DistanceScaling(maxTargetWeight)
-                val targetWeight = targetWeight.getValue(target)
-
                 CrashTargetInterprocDistanceCalculator(
-                    baseDistance = targetScaling.scale(maxTargetWeight - 1u - targetWeight),
                     target = target,
                     applicationGraph = applicationGraph,
                     cfgStatistics = cfgStatistics,
@@ -341,13 +393,15 @@ private class CrashReproductionAnalysis(
                 )
             }
 
-            val interprocDistance = distanceCalculator.calculateDistance(state)
+            val locationDistance = distanceCalculator.calculateDistance(state)
 
-            if (interprocDistance == InfiniteScaledDistance) {
+            if (locationDistance is InfiniteDistance) {
                 logger.info { "UNREACHABLE: ${target.location?.printInst()} | ${state.currentStatement.printInst()}" }
             }
 
-            interprocDistance.toUInt()
+            val targetDistance = targetDistance(target)
+
+            targetDistance.addNested(locationDistance)
         }
     }
 
@@ -388,7 +442,10 @@ private class CrashReproductionAnalysis(
 //                        && checkTargetCallStack(it, state) == ReachabilityKind.LOCAL
             }
 
-        targets.forEach { it.propagate(state) }
+        targets.forEach {
+            notifyTargetUpdate(it)
+            it.propagate(state)
+        }
     }
 
     private fun propagateExceptionTarget(state: JcState) {
@@ -399,6 +456,7 @@ private class CrashReproductionAnalysis(
                 .filter { mr.type == it.exception.toType() }
             exTargets.forEach {
                 collectedStates += state.clone()
+                notifyTargetUpdate(it)
                 it.propagate(state)
             }
         }

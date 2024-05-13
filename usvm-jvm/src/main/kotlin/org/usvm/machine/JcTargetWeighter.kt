@@ -5,14 +5,15 @@ import org.jacodb.api.cfg.JcInst
 import org.usvm.PathSelectionStrategy
 import org.usvm.api.targets.JcTarget
 import org.usvm.machine.state.JcState
+import org.usvm.ps.TargetWeight
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CfgStatistics
 
-interface JcTargetWeighter {
+interface JcTargetWeighter<T> where T : TargetWeight {
     fun createWeighter(
         strategy: PathSelectionStrategy,
         applicationGraph: JcApplicationGraph,
         cfgStatistics: CfgStatistics<JcMethod, JcInst>,
         callGraphStatistics: CallGraphStatistics<JcMethod>
-    ): (JcTarget, JcState) -> UInt?
+    ): (JcTarget, JcState) -> T?
 }
