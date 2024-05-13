@@ -11,6 +11,7 @@ import org.jacodb.panda.dynamic.api.PandaArrayAccess
 import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolConstant
 import org.jacodb.panda.dynamic.api.PandaBoolType
+import org.jacodb.panda.dynamic.api.PandaBuiltInError
 import org.jacodb.panda.dynamic.api.PandaCastExpr
 import org.jacodb.panda.dynamic.api.PandaCaughtError
 import org.jacodb.panda.dynamic.api.PandaCmpExpr
@@ -25,6 +26,7 @@ import org.jacodb.panda.dynamic.api.PandaField
 import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
+import org.jacodb.panda.dynamic.api.PandaInstanceVirtualCallExpr
 import org.jacodb.panda.dynamic.api.PandaLeExpr
 import org.jacodb.panda.dynamic.api.PandaLengthExpr
 import org.jacodb.panda.dynamic.api.PandaLoadedValue
@@ -32,6 +34,8 @@ import org.jacodb.panda.dynamic.api.PandaLocal
 import org.jacodb.panda.dynamic.api.PandaLocalVar
 import org.jacodb.panda.dynamic.api.PandaLtExpr
 import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaMethodConstant
+import org.jacodb.panda.dynamic.api.PandaModExpr
 import org.jacodb.panda.dynamic.api.PandaMulExpr
 import org.jacodb.panda.dynamic.api.PandaNegExpr
 import org.jacodb.panda.dynamic.api.PandaNeqExpr
@@ -41,6 +45,7 @@ import org.jacodb.panda.dynamic.api.PandaNumberConstant
 import org.jacodb.panda.dynamic.api.PandaPhiValue
 import org.jacodb.panda.dynamic.api.PandaStaticCallExpr
 import org.jacodb.panda.dynamic.api.PandaStrictEqExpr
+import org.jacodb.panda.dynamic.api.PandaStrictNeqExpr
 import org.jacodb.panda.dynamic.api.PandaStringConstant
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaSubExpr
@@ -51,6 +56,7 @@ import org.jacodb.panda.dynamic.api.PandaTypeofExpr
 import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
 import org.jacodb.panda.dynamic.api.PandaUndefinedType
 import org.jacodb.panda.dynamic.api.PandaValue
+import org.jacodb.panda.dynamic.api.PandaValueByInstance
 import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
 import org.jacodb.panda.dynamic.api.TODOConstant
 import org.jacodb.panda.dynamic.api.TODOExpr
@@ -59,6 +65,7 @@ import org.usvm.USort
 import org.usvm.api.readArrayIndex
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.state.PandaMethodResult
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
@@ -192,6 +199,17 @@ class PandaExprResolver(
     override fun visitPandaGtExpr(expr: PandaGtExpr): UExpr<out USort>? =
         resolveBinaryOperator(PandaBinaryOperator.Gt, expr)
 
+    override fun visitPandaInstanceVirtualCallExpr(expr: PandaInstanceVirtualCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            method = expr.method,
+            instanceExpr = expr.instance,
+            args = expr.args
+        ) { arguments ->
+            scope.doWithState {
+                addVirtualMethodCallStmt(expr.method, arguments)
+            }
+        }
+
 
     override fun visitPandaLeExpr(expr: PandaLeExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
@@ -210,7 +228,7 @@ class PandaExprResolver(
             ctx.addressSort,
             instance.asExpr(ctx.addressSort),
             PandaField(
-                name = expr.property,
+                name = "", // TODO ?????
                 type = PandaTypeName(PandaAnyType.typeName),
                 signature = null // TODO ?????
             )
@@ -226,6 +244,14 @@ class PandaExprResolver(
 
     override fun visitPandaLtExpr(expr: PandaLtExpr): UExpr<out USort>? {
         return resolveBinaryOperator(PandaBinaryOperator.Lt, expr)
+    }
+
+    override fun visitPandaMethodConstant(expr: PandaMethodConstant): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaModExpr(expr: PandaModExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
     }
 
     override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? =
@@ -250,6 +276,10 @@ class PandaExprResolver(
 
     override fun visitPandaBoolConstant(expr: PandaBoolConstant): UExpr<out USort>? =
         ctx.mkBool(expr.value)
+
+    override fun visitPandaBuiltInError(expr: PandaBuiltInError): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
 
     override fun visitPandaNumberConstant(expr: PandaNumberConstant): UExpr<out USort>? =
         ctx.mkFp64(expr.value.toDouble())
@@ -311,6 +341,10 @@ class PandaExprResolver(
         TODO()
     }
 
+    override fun visitPandaStrictNeqExpr(expr: PandaStrictNeqExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaStringConstant(expr: PandaStringConstant): UExpr<out USort>? {
         val address = scope.calcOnState { memory.allocConcrete(PandaStringType) }
         val lValue = ctx.constructAuxiliaryFieldLValue(address, ctx.stringSort)
@@ -339,15 +373,79 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    // TODO: FIX!!!
     override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): UExpr<out USort>? {
         // TODO intern
         val value = scope.calcOnState { memory.allocConcrete(PandaUndefinedType) }
         return value
     }
 
-    override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+    override fun visitPandaValueByInstance(expr: PandaValueByInstance): UExpr<out USort>? {
+        val lValue = resolveFieldRef(expr.instance, expr.property) ?: return null
+        return scope.calcOnState { memory.read(lValue) }
+
+    }
+
+    private fun resolveFieldRef(instance: PandaValue?, field: String): ULValue<*, *>? {
+        with(ctx) {
+            val instanceRef = if (instance != null) {
+                resolvePandaExpr(instance)?.asExpr(addressSort) ?: return null
+            } else {
+                null
+            }
+
+            if (instanceRef != null) {
+                return UFieldLValue(anySort, instanceRef, field)
+            }
+
+            TODO()
+        }
+    }
+
+    override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): UExpr<out USort>? =
+        resolveInvoke(
+            method = expr.method,
+            instanceExpr = null,
+            args = expr.args
+        ) { arguments ->
+            scope.doWithState {
+                addVirtualMethodCallStmt(expr.method, arguments)
+            }
+        }
+
+    private fun resolveInvoke(
+        method: PandaMethod,
+        instanceExpr: PandaValue?,
+        args: List<PandaValue>,
+        onNoCallPresent: PandaStepScope.(List<UExpr<out USort>>) -> Unit,
+    ): UExpr<out USort>? {
+        val instanceRef = if (instanceExpr != null) {
+            resolvePandaExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
+        } else {
+            null
+        }
+
+        val arguments = args.map { resolvePandaExpr(it) ?: return null }
+
+        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
+    }
+
+    private inline fun resolveInvokeNoStaticInitializationCheck(
+        onNoCallPresent: PandaStepScope.() -> Unit,
+    ): UExpr<out USort>? {
+        val result = scope.calcOnState { methodResult }
+        return when (result) {
+            is PandaMethodResult.Success -> {
+                scope.doWithState { methodResult = PandaMethodResult.NoCall }
+                result.value
+            }
+
+            is PandaMethodResult.NoCall -> {
+                scope.onNoCallPresent()
+                null
+            }
+
+            is PandaMethodResult.PandaException -> error("Exception should be handled earlier")
+        }
     }
 
     override fun visitTODOExpr(expr: TODOExpr): UExpr<out USort>? {

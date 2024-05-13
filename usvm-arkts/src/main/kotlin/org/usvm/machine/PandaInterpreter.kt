@@ -83,6 +83,7 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
         }
 
         when (stmt) {
+            is PandaMethodCallBaseInst -> visitMethodCall(scope, stmt)
             is PandaIfInst -> visitIfStmt(scope, stmt)
             is PandaReturnInst -> visitReturnStmt(scope, stmt)
             is PandaAssignInst -> visitAssignInst(scope, stmt)
@@ -92,7 +93,9 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             else -> error("Unknown stmt: $stmt")
         }
 
-        stmt.basicBlock(state).takeIf { it != stmt.nextStmt?.basicBlock(state)}?.let { prevBBId = it.id }
+        if (state.callStack.isNotEmpty()) {
+            stmt.basicBlock(state).takeIf { it != stmt.nextStmt?.basicBlock(state) }?.let { prevBBId = it.id }
+        }
 
         return scope.stepResult()
     }
@@ -122,6 +125,27 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
 
     private fun PandaInst.basicBlock(state: PandaState): PandaBasicBlock {
         return state.lastEnteredMethod.blocks.find { it.contains(this) }!!
+    }
+
+    private fun visitMethodCall(scope: PandaStepScope, stmt: PandaMethodCallBaseInst) {
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val method = stmt.method
+
+        when (stmt) {
+            is PandaConcreteMethodCallInst -> {
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+
+                TODO()
+            }
+
+            is PandaVirtualMethodCallInst -> {
+                if (approximateMethod(scope, stmt)) {
+                    return
+                }
+            }
+        }
     }
 
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
@@ -256,6 +280,11 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             is PandaArgument -> local.index // TODO static????
             else -> error("Unexpected local: $local")
         }
+
+    // TODO: currently mocked
+    private fun approximateMethod(scope: PandaStepScope, methodCall: PandaMethodCall): Boolean {
+        return true
+    }
 
     private val PandaInst.nextStmt: PandaInst?
         get() = location.let { it.method.instructions.getOrNull(it.index + 1) }

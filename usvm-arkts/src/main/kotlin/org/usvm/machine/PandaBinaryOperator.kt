@@ -55,6 +55,7 @@ sealed class PandaBinaryOperator(
     )
 
     object Lt : PandaBinaryOperator(
+        onBool = { lhs, rhs -> mkAnd(lhs.not(), rhs) }, // lhs < rhs => !lhs /\ rhs
         onNumber = PandaContext::mkFpLessExpr
     )
 
