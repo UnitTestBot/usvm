@@ -1,4 +1,7 @@
 object Versions {
+    const val kotlinVersion = "1.9.20"
+    const val ktor_version = "2.3.10"
+
     const val klogging = "1.8.3"
     const val slf4j = "1.6.1"
     const val ksmt = "0.5.21"
