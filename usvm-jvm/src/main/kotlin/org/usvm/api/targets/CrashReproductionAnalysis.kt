@@ -1,11 +1,15 @@
-package org.usvm
+package org.usvm.api.targets
 
 import org.jacodb.api.JcClassOrInterface
 import org.jacodb.api.JcClasspath
 import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.toType
-import org.usvm.api.targets.JcTarget
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.UCallStackFrame
+import org.usvm.UMachineOptions
+import org.usvm.logger
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
@@ -40,9 +44,10 @@ class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : Cras
     override fun toString(): String = "Exception: $exception"
 }
 
-class DistanceTargetWeight(val distance: Distance) : TargetWeight {
+class DistanceTargetWeight(private val distance: Distance) : TargetWeight {
+    private val distanceRoot = distance.root()
     override fun compareTo(other: TargetWeight): Int = if (other is DistanceTargetWeight) {
-        distance.compareTo(other.distance)
+        distanceRoot.compareTo(other.distanceRoot)
     } else {
         -other.compareRhs(this)
     }
@@ -58,10 +63,12 @@ sealed interface Distance : Comparable<Distance> {
     fun addNested(other: Distance): Distance
     fun addBias(bias: UInt): Distance
     fun root(): Distance
+    fun tail(): Distance
 }
 
 object InfiniteDistance : Distance {
     override fun root(): Distance = InfiniteDistance
+    override fun tail(): Distance = InfiniteDistance
     override fun addNested(other: Distance): Distance = InfiniteDistance
     override fun addBias(bias: UInt): Distance = InfiniteDistance
     override fun compareTo(other: Distance): Int = when (other) {
@@ -70,7 +77,14 @@ object InfiniteDistance : Distance {
     }
 }
 
+enum class DistanceKind {
+    TARGET,
+    METHOD,
+    PATH_LENGTH,
+}
+
 class ConcreteDistance(
+    private val kind: DistanceKind,
     private var value: UInt,
     private val maxValue: UInt,
 ) : Distance {
@@ -81,28 +95,53 @@ class ConcreteDistance(
     private var parent: ConcreteDistance? = null
     private var child: ConcreteDistance? = null
 
-    override fun compareTo(other: Distance): Int {
-        when (other) {
-            is ConcreteDistance -> {
-                val valueCompare = value.compareTo(other.value)
-                if (valueCompare != 0) return valueCompare
-                val thisChild = child ?: return if (other.child == null) 0 else -1
-                val otherChild = other.child ?: return 1
-                return thisChild.compareTo(otherChild)
-            }
-
-            is InfiniteDistance -> return -1
+    override fun compareTo(other: Distance): Int = when (other) {
+        is ConcreteDistance -> when (kind) {
+            DistanceKind.TARGET -> compareTarget(other)
+            DistanceKind.METHOD -> compareMethod(other)
+            DistanceKind.PATH_LENGTH -> comparePathLength(other)
         }
+
+        is InfiniteDistance -> -1
+    }
+
+    // target always less than others
+    private fun compareTarget(other: ConcreteDistance): Int =
+        if (other.kind != DistanceKind.TARGET) -1 else compareValueAndChildren(other)
+
+    private fun compareMethod(other: ConcreteDistance): Int = when (other.kind) {
+        // target always less than others
+        DistanceKind.TARGET -> 1
+        // Equal method distance, but current has one more method on call stack
+        DistanceKind.PATH_LENGTH -> 1
+        DistanceKind.METHOD -> compareValueAndChildren(other)
+    }
+
+    private fun comparePathLength(other: ConcreteDistance): Int = when (other.kind) {
+        // target always less than others
+        DistanceKind.TARGET -> 1
+        // Equal method distance, but other has one more method on call stack
+        DistanceKind.METHOD -> -1
+        DistanceKind.PATH_LENGTH -> compareValueAndChildren(other)
+    }
+
+    private fun compareValueAndChildren(other: ConcreteDistance): Int {
+        val valueCompare = value.compareTo(other.value)
+        if (valueCompare != 0) return valueCompare
+
+        val thisChild = child ?: return if (other.child == null) 0 else -1
+        val otherChild = other.child ?: return 1
+        return thisChild.compareTo(otherChild)
     }
 
     override fun addNested(other: Distance): Distance = when (other) {
         is InfiniteDistance -> InfiniteDistance
         is ConcreteDistance -> {
-            check(child == null) { "Bounded distance" }
-
+            val tail = tail() as ConcreteDistance
             val otherRoot = other.root() as ConcreteDistance
-            otherRoot.parent = this
-            child = otherRoot
+
+            otherRoot.parent = tail
+            tail.child = otherRoot
 
             otherRoot.updateParentBias()
 
@@ -128,6 +167,14 @@ class ConcreteDistance(
             root = root.parent!!
         }
         return root
+    }
+
+    override fun tail(): Distance {
+        var tail: ConcreteDistance = this
+        while (tail.child != null) {
+            tail = tail.child!!
+        }
+        return tail
     }
 }
 
@@ -168,7 +215,13 @@ class CrashTargetInterprocDistanceCalculator(
                 normalizedCallStack += UCallStackFrame(statement.method, statement.returnSite)
             }
         }
-        return calculateDistanceNormalized(normalizedStatement, normalizedCallStack, hasMethodResult)
+        val distance = calculateDistanceNormalized(normalizedStatement, normalizedCallStack, hasMethodResult)
+        val pathLenDistance = ConcreteDistance(
+            DistanceKind.PATH_LENGTH,
+            state.pathLocation.depth.toUInt(),
+            UInt.MAX_VALUE - 1u
+        )
+        return distance.addNested(pathLenDistance)
     }
 
     private val statementOccurrences = hashMapOf<JcInst, UInt>()
@@ -288,11 +341,12 @@ class CrashTargetInterprocDistanceCalculator(
 
     private fun methodDistance(method: JcMethod, value: UInt): Distance {
         if (value == UInt.MAX_VALUE) return InfiniteDistance
-        return ConcreteDistance(value, method.instList.size.toUInt())
+        return ConcreteDistance(DistanceKind.METHOD, value, method.instList.size.toUInt())
     }
 
-    private fun Distance.addStatementDecay(statementOccurrences: UInt) =
-        addBias(statementOccurrences / DECAY_OCCURRENCES)
+    @Suppress("UNUSED_PARAMETER")
+    private fun Distance.addStatementDecay(statementOccurrences: UInt) = this
+//        addBias(statementOccurrences / DECAY_OCCURRENCES)
 
     companion object {
         private const val DECAY_OCCURRENCES = 100u
@@ -351,8 +405,7 @@ private class CrashReproductionAnalysis(
             null
         } else {
             val distance = weightTarget(applicationGraph, cfgStatistics, callGraphStatistics, target, state)
-            val root = distance.root()
-            DistanceTargetWeight(root)
+            DistanceTargetWeight(distance)
         }
     }
 
@@ -360,12 +413,12 @@ private class CrashReproductionAnalysis(
         hashMapOf<CrashReproductionLocationTarget, CrashTargetInterprocDistanceCalculator>()
 
     private fun targetDistance(target: CrashReproductionTarget): Distance = when (target) {
-        is CrashReproductionExceptionTarget -> ConcreteDistance(0u, 0u)
+        is CrashReproductionExceptionTarget -> ConcreteDistance(DistanceKind.TARGET, 0u, 0u)
         is CrashReproductionLocationTarget -> {
             val maxDepth = targetDepth.size.toUInt()
             val depth = targetDepth.getValue(target)
             val distance = maxDepth - 1u - depth
-            ConcreteDistance(distance, maxDepth)
+            ConcreteDistance(DistanceKind.TARGET, distance, maxDepth)
         }
     }
 

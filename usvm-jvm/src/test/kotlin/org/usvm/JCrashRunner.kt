@@ -21,7 +21,13 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.features.classpaths.UnknownClasses
 import org.jacodb.impl.jacodb
+import org.usvm.api.targets.CrashReproductionExceptionTarget
+import org.usvm.api.targets.CrashReproductionLocationTarget
+import org.usvm.api.targets.CrashReproductionTarget
+import org.usvm.api.targets.printTarget
+import org.usvm.api.targets.reproduceCrash
 import org.usvm.util.classpathWithApproximations
+import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -92,25 +98,25 @@ data class CrashTrace(
     val exception: TraceException
 )
 
-val crashPackPath = Path("D:") / "JCrashPack"
-
-val crashPackDescriptionPath = crashPackPath / "jcrashpack.json"
-val crashPackTracesPath = crashPackPath / "traces.json"
-
 @OptIn(ExperimentalSerializationApi::class)
-fun main() {
+fun main(args: Array<String>) {
+    val crashPackPath = Path(args.first())
+
+    val crashPackDescriptionPath = crashPackPath / "jcrashpack.json"
     val crashPack = Json.decodeFromStream<CrashPack>(crashPackDescriptionPath.inputStream())
-//    parseCrashTraces(crashPack)
-    val traces = loadCrashTraces()
-    analyzeCrashes(crashPack, traces)
+
+//    parseCrashTraces(crashPackPath, crashPack)
+    val traces = loadCrashTraces(crashPackPath)
+
+    analyzeCrashes(crashPackPath, crashPack, traces)
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun parseCrashTraces(crashPack: CrashPack) {
+fun parseCrashTraces(crashPackPath: Path, crashPack: CrashPack) {
     val parsed = runBlocking {
         crashPack.crashes.values.mapNotNull {
             try {
-                it to parseTrace(it)
+                it to parseTrace(crashPackPath, it)
             } catch (ex: Throwable) {
                 System.err.println(ex)
                 null
@@ -121,15 +127,18 @@ fun parseCrashTraces(crashPack: CrashPack) {
     println("PARSED ${parsed.size} TOTAL ${crashPack.crashes.size}")
 
     val traces = parsed.associate { it.first.id to it.second }
+
+    val crashPackTracesPath = crashPackPath / "traces.json"
     Json.encodeToStream(traces, crashPackTracesPath.outputStream())
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun loadCrashTraces(): Map<String, CrashTrace> {
+fun loadCrashTraces(crashPackPath: Path): Map<String, CrashTrace> {
+    val crashPackTracesPath = crashPackPath / "traces.json"
     return Json.decodeFromStream(crashPackTracesPath.inputStream())
 }
 
-private suspend fun parseTrace(crash: CrashPackCrash): CrashTrace {
+private suspend fun parseTrace(crashPackPath: Path, crash: CrashPackCrash): CrashTrace {
     val crashLog = crashPackPath / "crashes" / crash.application / crash.id / "${crash.id}.log"
     val crashCp = crashPackPath / "applications" / crash.application / crash.version / "bin"
 
@@ -259,24 +268,24 @@ val badIds = setOf("ES-19891")
 
 val idToCheck = "CHART-13b"
 
-fun analyzeCrashes(crashPack: CrashPack, traces: Map<String, CrashTrace>) {
+fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String, CrashTrace>) {
     val crashes = crashPack.crashes.values
         .sortedBy { it.id }
         .filter { it.id !in badIds }
 //        .filter { it.id in goodIds }
-//        .filter { it.id == idToCheck }
+        .filter { it.id == idToCheck }
 
     for (crash in crashes) {
         val trace = traces[crash.id] ?: continue
         try {
-            analyzeCrash(crash, trace)
+            analyzeCrash(crashPackPath, crash, trace)
         } catch (ex: Throwable) {
             logger.error(ex) { "Failed" }
         }
     }
 }
 
-fun analyzeCrash(crash: CrashPackCrash, trace: CrashTrace) {
+fun analyzeCrash(crashPackPath: Path, crash: CrashPackCrash, trace: CrashTrace) {
     val crashCp = crashPackPath / "applications" / crash.application / crash.version / "bin"
 
     val cpFiles = crashCp.listDirectoryEntries("*.jar").map { it.toFile() }
@@ -309,7 +318,7 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
     logger.warn { "\n${trace.original}" }
 
     val exceptionType = cp.findClassOrNull(trace.exception.className) ?: return
-    val target = createTargets(cp, exceptionType, trace.entries) ?: return
+    val target = createTargets(cp, exceptionType, trace.entries.drop(5)) ?: return
 
     logger.warn {
         buildString {
