@@ -1,0 +1,152 @@
+~main class start~
+~import java.util.*;~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+if (list787234.size() > 1) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+if (!list787234.isEmpty()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add("");
+list787234.add("");
+list787234.set(0, ~[String]~);
+if (!list787234.isEmpty()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add("");
+list787234.add(~[String]~);
+list787234.clear();
+for (String elem : list787234) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add("");
+list787234.add(~[String]~);
+list787234.clear();
+for (String elem : list787234) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Collections.sort(list787234);
+if (!list787234.isEmpty()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Collections.sort(list787234);
+if (!list787234.isEmpty()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Collections.sort(list787234);
+if (list787234.get(0).equals("")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(~[Integer]~);
+list787234.add(0);
+if (list787234.size() > 1) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(~[Integer]~);
+list787234.add(0);
+if (!list787234.isEmpty()) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(0);
+list787234.add(0);
+list787234.set(0, ~[Integer]~);
+if (!list787234.isEmpty()) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(0);
+list787234.add(~[Integer]~);
+list787234.clear();
+for (Integer elem : list787234) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(0);
+list787234.add(~[Integer]~);
+list787234.clear();
+for (Integer elem : list787234) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(~[Integer]~);
+list787234.add(0);
+Collections.sort(list787234);
+if (!list787234.isEmpty()) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(~[Integer]~);
+list787234.add(0);
+Collections.sort(list787234);
+if (!list787234.isEmpty()) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<Integer> list787234 = new ArrayList<Integer>();
+list787234.add(~[Integer]~);
+list787234.add(0);
+Collections.sort(list787234);
+if (list787234.get(0).equals(0)) {
+  ~[Integer]~ = ~[Integer]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Collections.sort(list787234);
+if (!list787234.get(0).equals("")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
