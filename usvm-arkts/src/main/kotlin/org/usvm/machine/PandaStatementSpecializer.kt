@@ -8,24 +8,7 @@ import org.jacodb.api.common.cfg.CommonGotoInst
 import org.jacodb.api.common.cfg.CommonIfInst
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.common.cfg.CommonReturnInst
-import org.jacodb.panda.dynamic.api.PandaAssignInst
-import org.jacodb.panda.dynamic.api.PandaBinaryExpr
-import org.jacodb.panda.dynamic.api.PandaBoolType
-import org.jacodb.panda.dynamic.api.PandaCallInst
-import org.jacodb.panda.dynamic.api.PandaCatchInst
-import org.jacodb.panda.dynamic.api.PandaEmptyBBPlaceholderInst
-import org.jacodb.panda.dynamic.api.PandaGotoInst
-import org.jacodb.panda.dynamic.api.PandaIfInst
-import org.jacodb.panda.dynamic.api.PandaInst
-import org.jacodb.panda.dynamic.api.PandaInstVisitor
-import org.jacodb.panda.dynamic.api.PandaLocal
-import org.jacodb.panda.dynamic.api.PandaMethod
-import org.jacodb.panda.dynamic.api.PandaNumberType
-import org.jacodb.panda.dynamic.api.PandaObjectType
-import org.jacodb.panda.dynamic.api.PandaReturnInst
-import org.jacodb.panda.dynamic.api.PandaStringType
-import org.jacodb.panda.dynamic.api.PandaThrowInst
-import org.jacodb.panda.dynamic.api.TODOInst
+import org.jacodb.panda.dynamic.api.*
 import org.usvm.UBoolExpr
 import org.usvm.machine.state.PandaState
 
@@ -140,6 +123,14 @@ class PandaStatementSpecializer(
     }
 
     override fun visitPandaIfInst(inst: PandaIfInst): PandaInst {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaNewLexenvInst(inst: PandaNewLexenvInst): PandaInst {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitPandaPopLexenvInst(inst: PandaPopLexenvInst): PandaInst {
         TODO("Not yet implemented")
     }
 

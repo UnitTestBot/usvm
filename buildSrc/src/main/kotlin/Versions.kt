@@ -21,5 +21,5 @@ object Versions {
     const val rd = "2023.2.0"
     const val ini4j = "0.5.4"
 
-    const val arktsJacoDBVersion = "0f20f66544"
+    const val arktsJacoDBVersion = "1d0684725c"
 }
