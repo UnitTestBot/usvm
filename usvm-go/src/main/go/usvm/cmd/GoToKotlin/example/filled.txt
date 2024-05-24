@@ -1,0 +1,74 @@
+main_BigStruct 0
+Field1 Long
+0
+FieldString String
+""
+field3 Boolean
+false
+F4 Long
+0
+f5 Long
+0
+f6 array
+end
+f7 array
+end
+f8 nil
+f85 Long
+123
+f9 main_someStruct
+fl1 String
+"123"
+end
+f10 main_interfaceImpl
+fl21 array
+String
+"hello\nworld!"
+String
+"hola"
+String
+"привет"
+end
+end
+f11 map
+String
+"lolol"
+Boolean
+false
+end
+f12 map
+end
+f13 map 1
+main_someStruct
+fl1 String
+"key"
+end
+main_interfaceImpl
+fl21 array
+String
+"some"
+String
+"value"
+end
+end
+end
+f14 map
+end
+f15 array
+end
+f16 array
+end
+f17 nil
+f18 main_someStruct
+end
+f19 Long
+0
+f20 Long
+0
+f21 array
+end
+f22 map
+end
+f23 main_BigStruct 0
+f24 main_BigStruct 0
+end
