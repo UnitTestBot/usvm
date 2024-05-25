@@ -1,17 +1,19 @@
 package org.usvm.solver
 
+import io.ksmt.expr.KExpr
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
+import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
-import org.usvm.UHeapRef
 import org.usvm.UMachineOptions
-import org.usvm.constraints.UEqualityConstraints
+import org.usvm.constraints.ConstraintSource
+import org.usvm.constraints.PathConstraintsUnsatCore
 import org.usvm.constraints.UPathConstraints
+import org.usvm.constraints.UnknownConstraintSource
 import org.usvm.isFalse
-import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
@@ -24,7 +26,9 @@ open class USatResult<out Model>(
     val model: Model,
 ) : USolverResult<Model>
 
-open class UUnsatResult<Model> : USolverResult<Model>
+open class UUnsatResult<Model>(
+    val core: PathConstraintsUnsatCore
+) : USolverResult<Model>
 
 open class UUnknownResult<Model> : USolverResult<Model>
 
@@ -42,85 +46,44 @@ open class USolverBase<Type>(
     protected val options: UMachineOptions? = null
 ) : USolver<UPathConstraints<Type>, UModelBase<Type>>(), AutoCloseable {
 
-    protected fun translateLogicalConstraints(constraints: Iterable<UBoolExpr>) {
-        for (constraint in constraints) {
-            val translated = translator.translate(constraint)
-            smtSolver.assert(translated)
-        }
-    }
+    private val constraintSources = hashMapOf<KExpr<KBoolSort>, ConstraintSource>()
 
-    protected fun translateEqualityConstraints(constraints: UEqualityConstraints) {
-        var index = 1
-
-        val nullRepr = constraints.equalReferences.find(ctx.nullRef)
-        for (ref in constraints.distinctReferences) {
-            // Static refs are already translated as a values of an uninterpreted sort
-            if (isStaticHeapRef(ref)) {
-                continue
-            }
-
-            val refIndex = if (ref == nullRepr) 0 else index++
-            val translatedRef = translator.translate(ref)
-            val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
-            smtSolver.assert(ctx.mkEq(translatedRef, preInterpretedValue))
-        }
-
-        for ((key, value) in constraints.equalReferences) {
-            val translatedLeft = translator.translate(key)
-            val translatedRight = translator.translate(value)
-            smtSolver.assert(ctx.mkEq(translatedLeft, translatedRight))
-        }
-
-        val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
-
-        for ((ref1, disequalRefs) in constraints.referenceDisequalities.entries) {
-            for (ref2 in disequalRefs) {
-                if (!processedConstraints.contains(ref2 to ref1)) {
-                    processedConstraints.add(ref1 to ref2)
-                    val translatedRef1 = translator.translate(ref1)
-                    val translatedRef2 = translator.translate(ref2)
-                    smtSolver.assert(ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2)))
-                }
-            }
-        }
-
-        processedConstraints.clear()
-        val translatedNull = translator.transform(ctx.nullRef)
-        for ((ref1, disequalRefs) in constraints.nullableDisequalities.entries) {
-            for (ref2 in disequalRefs) {
-                if (!processedConstraints.contains(ref2 to ref1)) {
-                    processedConstraints.add(ref1 to ref2)
-                    val translatedRef1 = translator.translate(ref1)
-                    val translatedRef2 = translator.translate(ref2)
-
-                    val disequalityConstraint = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
-                    val nullConstraint1 = ctx.mkEq(translatedRef1, translatedNull)
-                    val nullConstraint2 = ctx.mkEq(translatedRef2, translatedNull)
-                    smtSolver.assert(ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2)))
-                }
-            }
-        }
+    private fun assertConstraint(constraint: KExpr<KBoolSort>, source: ConstraintSource) {
+        smtSolver.assertAndTrack(constraint)
+        constraintSources[constraint] = source
     }
 
     protected fun translateToSmt(pc: UPathConstraints<Type>) {
-        translateEqualityConstraints(pc.equalityConstraints)
-        translateLogicalConstraints(pc.numericConstraints.constraints().asIterable())
-        translateLogicalConstraints(pc.logicalConstraints)
+        pc.equalityConstraints.translateAndAssert(translator, ::assertConstraint)
+        pc.numericConstraints.translateAndAssert(translator, ::assertConstraint)
+        pc.logicalConstraints.translateAndAssert(translator, ::assertConstraint)
     }
 
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
-        internalCheck(query, useSoftConstraints = false)
+        internalCheckWithCleanup(query, useSoftConstraints = false)
 
-    fun checkWithSoftConstraints(
+    fun checkWithSoftConstraints(pc: UPathConstraints<Type>): USolverResult<UModelBase<Type>> =
+        internalCheckWithCleanup(pc, useSoftConstraints = options?.solverUseSoftConstraints ?: true)
+
+    protected fun cleanup() {
+        constraintSources.clear()
+    }
+
+    private fun internalCheckWithCleanup(
         pc: UPathConstraints<Type>,
-    ) = internalCheck(pc, useSoftConstraints = options?.solverUseSoftConstraints ?: true)
+        useSoftConstraints: Boolean,
+    ): USolverResult<UModelBase<Type>> = try {
+        internalCheck(pc, useSoftConstraints)
+    } finally {
+        cleanup()
+    }
 
     private fun internalCheck(
         pc: UPathConstraints<Type>,
         useSoftConstraints: Boolean,
     ): USolverResult<UModelBase<Type>> {
         if (pc.isFalse) {
-            return UUnsatResult()
+            return UUnsatResult(pc.unsatCore())
         }
 
         smtSolver.withAssertionsScope {
@@ -146,7 +109,11 @@ open class USolverBase<Type>(
                 // first, get a model from the SMT solver
                 val kModel = when (internalCheckWithSoftConstraints(softConstraints)) {
                     KSolverStatus.SAT -> smtSolver.model().detach()
-                    KSolverStatus.UNSAT -> return UUnsatResult()
+                    KSolverStatus.UNSAT -> {
+                        val unsatCore = smtSolver.unsatCore()
+                        val resolvedCore = unsatCore.map { it to (constraintSources[it] ?: UnknownConstraintSource) }
+                        return UUnsatResult(PathConstraintsUnsatCore("SMT", resolvedCore))
+                    }
                     KSolverStatus.UNKNOWN -> return UUnknownResult()
                 }
 
@@ -185,14 +152,16 @@ open class USolverBase<Type>(
                     // in case of failure, assert reference disequality expressions
                     is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
                         .map(translator::translate)
-                        .forEach(smtSolver::assert)
+                        .forEach {
+                            assertConstraint(it, UnknownConstraintSource)
+                        }
 
                     is UUnknownResult -> return UUnknownResult()
-                    is UUnsatResult -> return UUnsatResult()
+                    is UUnsatResult -> return UUnsatResult(typeResult.core)
                 }
             } while (iter < ITERATIONS_THRESHOLD || ITERATIONS_THRESHOLD == INFINITE_ITERATIONS)
 
-            return UUnsatResult()
+            return UUnsatResult(PathConstraintsUnsatCore("SMT Unknown", emptyList()))
         }
     }
 

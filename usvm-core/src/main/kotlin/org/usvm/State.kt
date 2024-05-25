@@ -122,4 +122,8 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
 
         return true
     }
+
+    fun addConstraint(constraint: UBoolExpr) {
+        pathConstraints.addConstraint(constraint, pathLocation)
+    }
 }

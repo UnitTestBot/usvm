@@ -1,5 +1,10 @@
 package org.usvm.constraints
 
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KBoolSort
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentHashMapOf
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
@@ -7,6 +12,7 @@ import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.algorithms.DisjointSets
 import org.usvm.isStaticHeapRef
+import org.usvm.solver.UExprTranslator
 
 /**
  * Represents equality constraints between symbolic heap references. There are three kinds of constraints:
@@ -28,13 +34,17 @@ class UEqualityConstraints private constructor(
     private val mutableDistinctReferences: MutableSet<UHeapRef>,
     private val mutableReferenceDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
     private val mutableNullableDisequalities: MutableMap<UHeapRef, MutableSet<UHeapRef>>,
+    private var equalityConstraints: PersistentMap<Pair<UHeapRef, UHeapRef>, ConstraintSource>,
+    private var disequalityConstraints: PersistentMap<Pair<UHeapRef, UHeapRef>, ConstraintSource>,
 ) {
     constructor(ctx: UContext<*>) : this(
         ctx,
         DisjointSets(representativeSelector = RefsRepresentativeSelector),
         mutableSetOf(ctx.nullRef),
         mutableMapOf(),
-        mutableMapOf()
+        mutableMapOf(),
+        persistentHashMapOf(),
+        persistentHashMapOf()
     )
 
     val distinctReferences: Set<UHeapRef> = mutableDistinctReferences
@@ -52,11 +62,83 @@ class UEqualityConstraints private constructor(
         equalReferences.subscribe(::rename)
     }
 
-    var isContradicting = false
-        private set
+    private var unsatCore: PathConstraintsUnsatCore? = null
 
-    private fun contradiction() {
-        isContradicting = true
+    val isContradicting: Boolean
+        get() = unsatCore != null
+
+    fun generateUnsatCore(): PathConstraintsUnsatCore? = unsatCore
+
+    fun translateAndAssert(
+        translator: UExprTranslator<*, *>,
+        smtAssert: (KExpr<KBoolSort>, ConstraintSource) -> Unit
+    ) {
+        var index = 1
+
+        val nullRepr = equalReferences.find(ctx.nullRef)
+        for (ref in distinctReferences) {
+            // Static refs are already translated as a values of an uninterpreted sort
+            if (isStaticHeapRef(ref)) {
+                continue
+            }
+
+            val refIndex = if (ref == nullRepr) 0 else index++
+            val translatedRef = translator.translate(ref)
+            val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
+            smtAssert(
+                ctx.mkEq(translatedRef, preInterpretedValue),
+                UnknownConstraintSource
+            )
+        }
+
+        for ((key, value) in this.equalReferences) {
+            val translatedLeft = translator.translate(key)
+            val translatedRight = translator.translate(value)
+            smtAssert(
+                ctx.mkEq(translatedLeft, translatedRight),
+                findEqualityConstraint(key, value)?.second ?: UnknownConstraintSource
+            )
+        }
+
+        val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
+
+        for ((ref1, disequalRefs) in this.referenceDisequalities.entries) {
+            for (ref2 in disequalRefs) {
+                if (!processedConstraints.contains(ref2 to ref1)) {
+                    processedConstraints.add(ref1 to ref2)
+                    val translatedRef1 = translator.translate(ref1)
+                    val translatedRef2 = translator.translate(ref2)
+                    smtAssert(
+                        ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2)),
+                        findDisequalityConstraint(ref1, ref2)?.second ?: UnknownConstraintSource
+                    )
+                }
+            }
+        }
+
+        processedConstraints.clear()
+        val translatedNull = translator.transform(ctx.nullRef)
+        for ((ref1, disequalRefs) in this.nullableDisequalities.entries) {
+            for (ref2 in disequalRefs) {
+                if (!processedConstraints.contains(ref2 to ref1)) {
+                    processedConstraints.add(ref1 to ref2)
+                    val translatedRef1 = translator.translate(ref1)
+                    val translatedRef2 = translator.translate(ref2)
+
+                    val disequalityConstraint = ctx.mkNot(ctx.mkEq(translatedRef1, translatedRef2))
+                    val nullConstraint1 = ctx.mkEq(translatedRef1, translatedNull)
+                    val nullConstraint2 = ctx.mkEq(translatedRef2, translatedNull)
+                    smtAssert(
+                        ctx.mkOr(disequalityConstraint, ctx.mkAnd(nullConstraint1, nullConstraint2)),
+                        findDisequalityConstraint(ref1, ref2)?.second ?: UnknownConstraintSource
+                    )
+                }
+            }
+        }
+    }
+
+    private fun contradiction(core: List<Pair<UBoolExpr, ConstraintSource>>) {
+        unsatCore = PathConstraintsUnsatCore("Equality", core)
         equalReferences.clear()
         mutableDistinctReferences.clear()
         mutableReferenceDisequalities.clear()
@@ -106,22 +188,34 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that two symbolic refs are always equal.
      */
-    internal fun makeEqual(firstSymbolicRef: USymbolicHeapRef, secondSymbolicRef: USymbolicHeapRef) {
-        makeRefEqual(firstSymbolicRef, secondSymbolicRef)
+    internal fun makeEqual(
+        firstSymbolicRef: USymbolicHeapRef,
+        secondSymbolicRef: USymbolicHeapRef,
+        source: ConstraintSource
+    ) {
+        makeRefEqual(firstSymbolicRef, secondSymbolicRef, source)
     }
 
     /**
      * Adds an assertion that the symbolic ref [symbolicRef] always equals to the static ref [staticRef].
      */
-    internal fun makeEqual(symbolicRef: USymbolicHeapRef, staticRef: UConcreteHeapRef) {
+    internal fun makeEqual(
+        symbolicRef: USymbolicHeapRef,
+        staticRef: UConcreteHeapRef,
+        source: ConstraintSource
+    ) {
         requireStaticRef(staticRef)
 
-        makeRefEqual(symbolicRef, staticRef)
+        makeRefEqual(symbolicRef, staticRef, source)
     }
 
-    private fun makeRefEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    private fun makeRefEqual(ref1: UHeapRef, ref2: UHeapRef, source: ConstraintSource? = null) {
         if (isContradicting) {
             return
+        }
+
+        if (source != null) {
+            equalityConstraints = equalityConstraints.putIfAbsent(ref1 to ref2, source)
         }
 
         equalReferences.union(ref1, ref2)
@@ -137,7 +231,7 @@ class UEqualityConstraints private constructor(
     private fun rename(to: UHeapRef, from: UHeapRef) {
         if (distinctReferences.contains(from)) {
             if (distinctReferences.contains(to)) {
-                contradiction()
+                contradiction(mkUnsatCore(from, to))
                 return
             }
             mutableDistinctReferences.remove(from)
@@ -148,7 +242,7 @@ class UEqualityConstraints private constructor(
 
         if (fromDiseqs != null) {
             if (fromDiseqs.contains(to)) {
-                contradiction()
+                contradiction(mkUnsatCore(from, to))
                 return
             }
 
@@ -240,22 +334,38 @@ class UEqualityConstraints private constructor(
     /**
      * Adds an assertion that between two [USymbolicHeapRef] refs that they are never equal.
      */
-    internal fun makeNonEqual(symbolicRef1: USymbolicHeapRef, symbolicRef2: USymbolicHeapRef) {
-        makeRefNonEqual(symbolicRef1, symbolicRef2)
+    internal fun makeNonEqual(
+        symbolicRef1: USymbolicHeapRef,
+        symbolicRef2: USymbolicHeapRef,
+        source: ConstraintSource
+    ) {
+        makeRefNonEqual(symbolicRef1, symbolicRef2, source)
     }
 
     /**
      * Adds an assertion that the symbolic ref [symbolicRef] is never equal to the static ref [staticRef].
      */
-    internal fun makeNonEqual(symbolicRef: USymbolicHeapRef, staticRef: UConcreteHeapRef) {
+    internal fun makeNonEqual(
+        symbolicRef: USymbolicHeapRef,
+        staticRef: UConcreteHeapRef,
+        source: ConstraintSource
+    ) {
         requireStaticRef(staticRef)
 
-        makeRefNonEqual(symbolicRef, staticRef)
+        makeRefNonEqual(symbolicRef, staticRef, source)
     }
 
-    private fun makeRefNonEqual(ref1: UHeapRef, ref2: UHeapRef) {
+    private fun makeRefNonEqual(
+        ref1: UHeapRef,
+        ref2: UHeapRef,
+        source: ConstraintSource? = null
+    ) {
         if (isContradicting) {
             return
+        }
+
+        if (source != null) {
+            disequalityConstraints = disequalityConstraints.putIfAbsent(ref1 to ref2, source)
         }
 
         if (isStaticHeapRef(ref1) && isStaticHeapRef(ref2) && ref1 != ref2) {
@@ -267,7 +377,7 @@ class UEqualityConstraints private constructor(
         val repr2 = equalReferences.find(ref2)
 
         if (repr1 == repr2) {
-            contradiction()
+            contradiction(mkUnsatCore(ref1, ref2))
             return
         }
 
@@ -383,8 +493,11 @@ class UEqualityConstraints private constructor(
      */
     fun clone(): UEqualityConstraints {
         if (isContradicting) {
-            val result = UEqualityConstraints(ctx, DisjointSets(), mutableSetOf(), mutableMapOf(), mutableMapOf())
-            result.isContradicting = true
+            val result = UEqualityConstraints(
+                ctx, DisjointSets(), mutableSetOf(), mutableMapOf(), mutableMapOf(),
+                persistentHashMapOf(), persistentHashMapOf()
+            )
+            result.unsatCore = unsatCore
             return result
         }
 
@@ -401,7 +514,9 @@ class UEqualityConstraints private constructor(
             newEqualReferences,
             newDistinctReferences,
             newReferenceDisequalities,
-            newNullableDisequalities
+            newNullableDisequalities,
+            equalityConstraints,
+            disequalityConstraints
         )
     }
 
@@ -418,4 +533,43 @@ class UEqualityConstraints private constructor(
         override fun shouldSelectAsRepresentative(value: UHeapRef): Boolean =
             isStaticHeapRef(value) || value is UNullRef
     }
+
+    private fun findEqualityConstraint(first: UHeapRef, second: UHeapRef): Pair<UBoolExpr, ConstraintSource>? {
+        val s1 = equalityConstraints[first to second]
+        val s2 = equalityConstraints[second to first]
+
+        if (s1 == null && s2 == null) return null
+
+        val constraint = ctx.mkEq(first, second)
+
+        if (s1 == null) return constraint to s2!!
+        if (s2 == null) return constraint to s1
+
+        if (s1 is UnknownConstraintSource) return constraint to s2
+        return constraint to s1
+    }
+
+    private fun findDisequalityConstraint(first: UHeapRef, second: UHeapRef): Pair<UBoolExpr, ConstraintSource>? {
+        val s1 = disequalityConstraints[first to second]
+        val s2 = disequalityConstraints[second to first]
+
+        if (s1 == null && s2 == null) return null
+
+        val constraint = ctx.mkNot(ctx.mkEq(first, second))
+
+        if (s1 == null) return constraint to s2!!
+        if (s2 == null) return constraint to s1
+
+        if (s1 is UnknownConstraintSource) return constraint to s2
+        return constraint to s1
+    }
+
+    private fun mkUnsatCore(first: UHeapRef, second: UHeapRef): List<Pair<UBoolExpr, ConstraintSource>> {
+        val equality = findEqualityConstraint(first, second) ?: return emptyList()
+        val disequality = findDisequalityConstraint(first, second) ?: return emptyList()
+        return listOf(equality, disequality)
+    }
+
+    private fun <K, V> PersistentMap<K, V>.putIfAbsent(key: K, value: V): PersistentMap<K, V> =
+        if (key in this) this else put(key, value)
 }

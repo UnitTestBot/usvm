@@ -7,6 +7,7 @@ import org.usvm.UIsExpr
 import org.usvm.UIsSubtypeExpr
 import org.usvm.UIsSupertypeExpr
 import org.usvm.USymbolicHeapRef
+import org.usvm.constraints.PathConstraintsUnsatCore
 import org.usvm.model.UTypeModel
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeSystem
@@ -20,7 +21,7 @@ data class TypeSolverQuery<Type>(
 
 class UTypeUnsatResult<Type>(
     val conflictLemmas: List<UBoolExpr>,
-) : UUnsatResult<UTypeModel<Type>>()
+) : UUnsatResult<UTypeModel<Type>>(PathConstraintsUnsatCore("Type solver", emptyList()))
 
 class UTypeSolver<Type>(
     private val typeSystem: UTypeSystem<Type>,
@@ -113,7 +114,7 @@ class UTypeSolver<Type>(
                 // the only way to reach here is when some of the clusters consists of a single reference
                 // because if the cluster is bigger, then we called region.isEmpty previously at least once
                 check(cluster.size == 1)
-                return UUnsatResult()
+                return UUnsatResult(PathConstraintsUnsatCore("Type solver", emptyList()))
             }
 
             typeStream

@@ -41,18 +41,17 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                 stepsCount++
                 val state = pathSelector.peek()
 
-                val (forkedStates, stateAlive) = try {
+                val stepResult = try {
                     interpreter.step(state)
                 } catch (ex: Exception) {
                     logger.error(ex) { "Machine step failed:" }
                     continue
                 }
 
-                val stats = (state as UState<*, *, *, *, *, *>).ctx.stats
+                val stateAlive = stepResult.originalStateAlive
+                val forkedStates = stepResult.forkedStates
 
-                if (!stateAlive) {
-                    stats.dead++
-                }
+                val stats = (state as UState<*, *, *, *, *, *>).ctx.stats
 
                 if (stepsCount % 1_000 == 0L) {
                     logger.info { "STATS: $stats" }
@@ -91,6 +90,11 @@ abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
                 if (aliveForkedStates.isNotEmpty()) {
                     stats.current += aliveForkedStates.size
                     pathSelector.add(aliveForkedStates)
+                }
+
+                if (!stateAlive) {
+                    observer.onStateDeath(state, stepResult.bannedStates)
+                    stats.dead++
                 }
             }
 

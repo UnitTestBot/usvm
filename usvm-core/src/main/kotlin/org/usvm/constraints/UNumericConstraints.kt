@@ -10,7 +10,9 @@ import io.ksmt.expr.KBvSignedLessExpr
 import io.ksmt.expr.KBvSignedLessOrEqualExpr
 import io.ksmt.expr.KBvSubExpr
 import io.ksmt.expr.KEqExpr
+import io.ksmt.expr.KExpr
 import io.ksmt.expr.rewrite.simplify.ExpressionOrdering
+import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.BvUtils.bvMaxValueSigned
 import io.ksmt.utils.BvUtils.bvMinValueSigned
 import io.ksmt.utils.BvUtils.bvOne
@@ -34,6 +36,7 @@ import org.usvm.UBvSort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.regions.IntIntervalsRegion
+import org.usvm.solver.UExprTranslator
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -102,6 +105,16 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         return numericConstraints.entries.asSequence()
             .flatMap { it.value.mkExpressions() }
+    }
+
+    fun translateAndAssert(
+        translator: UExprTranslator<*, *>,
+        smtAssert: (KExpr<KBoolSort>, ConstraintSource) -> Unit
+    ) {
+        for (constraint in constraints()) {
+            val translated = translator.translate(constraint)
+            smtAssert(translated, UnknownConstraintSource)
+        }
     }
 
     /**

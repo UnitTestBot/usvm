@@ -323,7 +323,7 @@ class UTypeConstraints<Type>(
         if (newRegion == region) {
             return
         }
-        equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
+        equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef, UnknownConstraintSource)
         if (newRegion.isEmpty || equalityConstraints.isContradicting) {
             contradiction()
             return
@@ -332,7 +332,7 @@ class UTypeConstraints<Type>(
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
                 // If we have two inputs of incomparable reference types, then they are non equal
-                equalityConstraints.makeNonEqual(ref, key)
+                equalityConstraints.makeNonEqual(ref, key, UnknownConstraintSource)
             }
         }
         setTypeRegion(ref, newRegion)
@@ -348,7 +348,7 @@ class UTypeConstraints<Type>(
             return
         }
         if (newRegion.isEmpty) {
-            equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
+            equalityConstraints.makeEqual(ref, ref.uctx.nullRef, UnknownConstraintSource)
         }
         for ((key, value) in _symbolicRefToTypeRegion.entries) {
             // TODO: cache intersections?

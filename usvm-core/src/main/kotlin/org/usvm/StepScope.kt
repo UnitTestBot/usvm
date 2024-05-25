@@ -3,6 +3,8 @@ package org.usvm
 import org.usvm.StepScope.StepScopeState.CANNOT_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
+import org.usvm.constraints.ConstraintSource
+import org.usvm.constraints.PathConstraintsUnsatCore
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.utils.checkSat
 
@@ -26,6 +28,8 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 ) {
     private val forkedStates = mutableListOf<T>()
 
+    val bannedStates = mutableListOf<BannedState>()
+
     private inline val alive: Boolean get() = stepScopeState != DEAD
     private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
     private inline val ctx: Context get() = originalState.ctx
@@ -39,7 +43,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     /**
      * @return forked states and the status of initial state.
      */
-    fun stepResult() = StepResult(forkedStates.asSequence(), alive)
+    fun stepResult() = StepResult(forkedStates.asSequence(), bannedStates.asSequence(), alive)
 
     /**
      * Executes [block] on a state.
@@ -76,7 +80,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState, negState) = ctx.statesForkProvider.fork(originalState, condition)
+        val (posState, negState) = ctx.statesForkProvider.fork(originalState, condition, bannedStates)
 
         posState?.blockOnTrueState()
 
@@ -112,7 +116,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
         val conditions = conditionsWithBlockOnStates.map { it.first }
 
-        val conditionStates = ctx.statesForkProvider.forkMulti(originalState, conditions)
+        val conditionStates = ctx.statesForkProvider.forkMulti(originalState, conditions, bannedStates)
 
         val forkedStates = conditionStates.mapIndexedNotNull { idx, positiveState ->
             val block = conditionsWithBlockOnStates[idx].second
@@ -143,7 +147,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
     ): Unit? {
         check(canProcessFurtherOnCurrentStep)
 
-        val (posState) = ctx.statesForkProvider.forkMulti(originalState, listOf(constraint))
+        val (posState) = ctx.statesForkProvider.forkMulti(originalState, listOf(constraint), bannedStates)
 
         posState?.block()
 
@@ -174,6 +178,9 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val shouldForkOnFalse = forkBlackList.shouldForkTo(originalState, falseStmt)
 
         if (!shouldForkOnTrue && !shouldForkOnFalse) {
+            bannedStates += BlackListBannedState(trueStmt)
+            bannedStates += BlackListBannedState(falseStmt)
+
             condition.uctx.stats.blacklisted += 2
             stepScopeState = DEAD
             // TODO: should it be null?
@@ -188,9 +195,11 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
         // TODO: asserts are implemented via forkMulti and create an unused copy of state
         if (shouldForkOnTrue) {
+            bannedStates += BlackListBannedState(falseStmt)
             return assert(condition, blockOnTrueState)
         }
 
+        bannedStates += BlackListBannedState(trueStmt)
         return assert(condition.uctx.mkNot(condition), blockOnFalseState)
     }
 
@@ -204,6 +213,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         val filteredConditionsWithBlockOnStates = forkCases
             .mapNotNull { case ->
                 if (!forkBlackList.shouldForkTo(originalState, case.stmt)) {
+                    bannedStates += BlackListBannedState(case.stmt)
                     case.condition.uctx.stats.blacklisted++
                     return@mapNotNull null
                 }
@@ -250,11 +260,9 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
  */
 class StepResult<T>(
     val forkedStates: Sequence<T>,
+    val bannedStates: Sequence<BannedState>,
     val originalStateAlive: Boolean,
-) {
-    operator fun component1() = forkedStates
-    operator fun component2() = originalStateAlive
-}
+)
 
 data class ForkCase<T, Statement>(
     /**
@@ -270,3 +278,13 @@ data class ForkCase<T, Statement>(
      */
     val block: T.() -> Unit
 )
+
+sealed interface BannedState
+
+data class BlackListBannedState<Statement>(
+    val statement: Statement
+): BannedState
+
+data class UnsatBannedState(
+    val core: PathConstraintsUnsatCore,
+): BannedState
