@@ -6,20 +6,34 @@ import org.jacodb.api.JcMethod
 import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.toType
+import org.usvm.BannedState
 import org.usvm.PathSelectionStrategy
+import org.usvm.PathsTrieNode
 import org.usvm.SolverType
 import org.usvm.UCallStackFrame
 import org.usvm.UMachineOptions
+import org.usvm.UPathSelector
+import org.usvm.UnsatBannedState
+import org.usvm.algorithms.DeterministicPriorityCollection
+import org.usvm.algorithms.UPriorityCollection
+import org.usvm.constraints.LocationConstraintSource
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.logger
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
 import org.usvm.machine.JcMachineOptions
+import org.usvm.machine.JcMethodEntrypointInst
+import org.usvm.machine.JcPathSelectorProvider
+import org.usvm.machine.JcTargetBlackLister
 import org.usvm.machine.JcTargetWeighter
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
+import org.usvm.ps.ExceptionPropagationPathSelector
+import org.usvm.ps.StateWeighter
 import org.usvm.ps.TargetWeight
+import org.usvm.ps.WeightedPathSelector
 import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.distances.CallGraphStatistics
 import org.usvm.statistics.distances.CfgStatistics
@@ -44,7 +58,7 @@ class CrashReproductionExceptionTarget(val exception: JcClassOrInterface) : Cras
     override fun toString(): String = "Exception: $exception"
 }
 
-class DistanceTargetWeight(private val distance: Distance) : TargetWeight {
+class DistanceTargetWeight(val distance: Distance) : TargetWeight {
     private val distanceRoot = distance.root()
     override fun compareTo(other: TargetWeight): Int = if (other is DistanceTargetWeight) {
         distanceRoot.compareTo(other.distanceRoot)
@@ -75,6 +89,8 @@ object InfiniteDistance : Distance {
         is InfiniteDistance -> 0
         is ConcreteDistance -> 1
     }
+
+    override fun toString(): String = "INF"
 }
 
 enum class DistanceKind {
@@ -176,6 +192,9 @@ class ConcreteDistance(
         }
         return tail
     }
+
+    override fun toString(): String =
+        "(${kind.name} $value" + (child?.toString()?.let { " $it" } ?: "") + ")"
 }
 
 class CrashTargetInterprocDistanceCalculator(
@@ -203,9 +222,8 @@ class CrashTargetInterprocDistanceCalculator(
         return targetCallStack.asReversed()
     }
 
-    fun calculateDistance(state: JcState): Distance {
+    fun calculateDistance(state: JcState, statement: JcInst): Distance {
         val hasMethodResult = state.methodResult is JcMethodResult.Success
-        val statement = state.currentStatement
         val normalizedCallStack = state.callStack.toMutableList()
         var normalizedStatement = statement.originalInst()
         if (statement is JcConcreteMethodCallInst) {
@@ -353,9 +371,237 @@ class CrashTargetInterprocDistanceCalculator(
     }
 }
 
+class BudgetPsFrame(
+    var currentBudget: UInt,
+    val location: PathsTrieNode<JcState, JcInst>,
+    val bannedLocation: PathsTrieNode<JcState, JcInst>,
+    val possibleLocationAlternatives: List<PathsTrieNode<JcState, JcInst>>,
+    val otherStates: MutableList<JcState>,
+    val parentFrame: BudgetPsFrame?
+)
+
+data class LocationBudgetInfo(
+    val requestedBudget: UInt = 0u,
+    val unusedBudget: UInt = 0u,
+)
+
+class LocationBudgetPs(
+    val base: UPathSelector<JcState>
+) : UPathSelector<JcState> {
+    private var overallStepsAmount = 0u
+    private val budgetHistory = hashMapOf<PathsTrieNode<JcState, JcInst>, LocationBudgetInfo>()
+    private var locationBudgetFrame: BudgetPsFrame? = null
+
+    private fun shouldForceLocation(location: PathsTrieNode<JcState, JcInst>, budget: UInt): Boolean {
+        val unusedLocationBudget = budgetHistory[location]?.unusedBudget ?: 0u
+        return unusedLocationBudget <= budget
+    }
+
+    private fun incRequestedBudget(location: PathsTrieNode<JcState, JcInst>, budget: UInt) {
+        val currentUsage = budgetHistory[location] ?: LocationBudgetInfo()
+        budgetHistory[location] = currentUsage.copy(requestedBudget = currentUsage.requestedBudget + budget)
+    }
+
+    private fun incUnusedBudget(location: PathsTrieNode<JcState, JcInst>, budget: UInt) {
+        val currentUsage = budgetHistory[location] ?: LocationBudgetInfo()
+        budgetHistory[location] = currentUsage.copy(unusedBudget = currentUsage.unusedBudget + budget)
+    }
+
+    fun giveBudget(
+        location: PathsTrieNode<JcState, JcInst>,
+        bannedLocation: PathsTrieNode<JcState, JcInst>,
+        possibleLocations: List<PathsTrieNode<JcState, JcInst>>,
+        budget: UInt
+    ) {
+        val unusedLocationBudget = budgetHistory[location]?.unusedBudget ?: 0u
+        if (unusedLocationBudget <= budget) {
+            giveBudget(location, bannedLocation, possibleLocations, budget, strict = true)
+            return
+        }
+
+//        val otherPossibleLocations = possibleLocations.filter { it != bannedLocation && it != location }
+//        if (otherPossibleLocations.isNotEmpty()) {
+//            // consider other locations
+//            giveBudget(
+//                otherPossibleLocations.random(),
+//                bannedLocation,
+//                otherPossibleLocations + bannedLocation,
+//                budget
+//            )
+//            return
+//        }
+
+        giveBudget(location, bannedLocation, possibleLocations, budget, strict = false)
+    }
+
+    private fun giveBudget(
+        location: PathsTrieNode<JcState, JcInst>,
+        bannedLocation: PathsTrieNode<JcState, JcInst>,
+        possibleLocations: List<PathsTrieNode<JcState, JcInst>>,
+        budget: UInt,
+        strict: Boolean
+    ) {
+        val currentFrame = locationBudgetFrame
+        if (currentFrame == null) {
+            pushForcedLocation(location, bannedLocation, possibleLocations, budget, strict)
+            return
+        }
+
+        if (location in currentFrame.possibleLocationAlternatives) {
+            logger.info { "Cyclic budget request at location: $location" }
+            popForcedLocation()
+            return
+        }
+
+        // Force location with lower forks amount
+        if (location.depth < currentFrame.location.depth) {
+            popForcedLocation(reportUnusedBudget = false)
+            giveBudget(location, bannedLocation, possibleLocations, budget, strict)
+            return
+        }
+
+        val nestedBudget = currentFrame.currentBudget / possibleLocations.size.toUInt()
+        currentFrame.currentBudget -= nestedBudget
+        if (nestedBudget == 0u) return
+
+        pushForcedLocation(location, bannedLocation, possibleLocations, nestedBudget, strict)
+    }
+
+    private fun pushForcedLocation(
+        location: PathsTrieNode<JcState, JcInst>,
+        bannedLocation: PathsTrieNode<JcState, JcInst>,
+        possibleLocations: List<PathsTrieNode<JcState, JcInst>>,
+        budget: UInt,
+        strict: Boolean
+    ) {
+        incRequestedBudget(location, budget)
+        logger.info { "Give budget $budget (${budgetHistory[location]}) to location: $location" }
+
+        val otherStates = mutableListOf<JcState>()
+        val frame = BudgetPsFrame(
+            budget, location, bannedLocation, possibleLocations, otherStates, locationBudgetFrame
+        )
+        locationBudgetFrame = frame
+
+        val statesInLocation = mutableListOf<JcState>()
+        while (!base.isEmpty()) {
+            val state = base.peek()
+            base.remove(state)
+
+            if (hasLocation(state, frame.location, strict)) {
+                statesInLocation.add(state)
+            } else {
+                frame.otherStates.add(state)
+            }
+        }
+
+        base.add(statesInLocation)
+    }
+
+    private fun popForcedLocation(reportUnusedBudget: Boolean = true) {
+        val frame = locationBudgetFrame ?: error("No forced location")
+
+        if (reportUnusedBudget) {
+            incUnusedBudget(frame.location, frame.currentBudget)
+        }
+
+        base.add(frame.otherStates)
+        locationBudgetFrame = frame.parentFrame
+    }
+
+    private fun hasLocation(
+        state: JcState,
+        location: PathsTrieNode<JcState, JcInst>,
+        strict: Boolean
+    ): Boolean {
+        var stateLocation = state.pathLocation
+        while (stateLocation.depth > location.depth) {
+            stateLocation = stateLocation.parent ?: return false
+        }
+
+        if (strict) return stateLocation == location
+
+        var loc = location
+        while (loc.depth > stateLocation.depth) {
+            loc = loc.parent ?: return false
+        }
+
+        return loc == stateLocation
+    }
+
+    override fun isEmpty(): Boolean {
+        return base.isEmpty() && (locationBudgetFrame?.otherStates?.isEmpty() ?: true)
+    }
+
+    override fun peek(): JcState {
+        overallStepsAmount++
+
+        val frame = locationBudgetFrame
+        if (frame != null && frame.currentBudget > 0u) {
+            frame.currentBudget--
+        }
+
+        if (frame?.currentBudget == 0u || base.isEmpty()) {
+            popForcedLocation()
+        }
+
+        return base.peek()
+    }
+
+    override fun update(state: JcState) {
+        base.update(state)
+    }
+
+    override fun add(states: Collection<JcState>) {
+        val frame = locationBudgetFrame
+        if (frame == null) {
+        base.add(states)
+            return
+        }
+
+        val relevantStates = mutableListOf<JcState>()
+        for (state in states) {
+            if (hasLocation(state, frame.bannedLocation, strict = true)) {
+                frame.otherStates.add(state)
+                continue
+            }
+            relevantStates.add(state)
+        }
+
+        base.add(relevantStates)
+    }
+
+    override fun remove(state: JcState) {
+        var frame = locationBudgetFrame
+        while (frame != null) {
+            if (frame.otherStates.remove(state)) return
+            frame = frame.parentFrame
+        }
+        base.remove(state)
+    }
+}
+
+private class CrashReproductionWeightedPathSelector(
+    priorityCollectionFactory: () -> UPriorityCollection<JcState, DistanceTargetWeight>,
+    private val weighter: StateWeighter<JcState, DistanceTargetWeight>
+) : WeightedPathSelector<JcState, DistanceTargetWeight>(priorityCollectionFactory, weighter) {
+    override fun add(states: Collection<JcState>) {
+        val reachableStates = states.filter {
+            val weight = weighter.weight(it)
+            weight.distance !is InfiniteDistance
+        }
+        super.add(reachableStates)
+    }
+}
+
 private class CrashReproductionAnalysis(
     override val targets: MutableCollection<out UTarget<*, *>>
-) : UTargetController, JcInterpreterObserver, StatesCollector<JcState>, JcTargetWeighter<DistanceTargetWeight> {
+) : UTargetController,
+    JcInterpreterObserver,
+    StatesCollector<JcState>,
+    JcTargetWeighter<DistanceTargetWeight>,
+    JcTargetBlackLister,
+    JcPathSelectorProvider {
 
     private val targetDepth = hashMapOf<CrashReproductionTarget, UInt>()
 
@@ -404,9 +650,72 @@ private class CrashReproductionAnalysis(
         if (target !is CrashReproductionTarget) {
             null
         } else {
-            val distance = weightTarget(applicationGraph, cfgStatistics, callGraphStatistics, target, state)
+            val distance = weightTarget(
+                applicationGraph, cfgStatistics, callGraphStatistics, target, state, state.currentStatement
+            )
             DistanceTargetWeight(distance)
         }
+    }
+
+    override fun createBlacklist(
+        baseBlackList: UForkBlackList<JcState, JcInst>,
+        applicationGraph: JcApplicationGraph,
+        cfgStatistics: CfgStatistics<JcMethod, JcInst>,
+        callGraphStatistics: CallGraphStatistics<JcMethod>
+    ): UForkBlackList<JcState, JcInst> = object : UForkBlackList<JcState, JcInst> {
+        override fun shouldForkTo(state: JcState, stmt: JcInst): Boolean {
+//            return baseBlackList.shouldForkTo(state, stmt)
+            val (crashTargets, otherTargets) = state.targets.partition { it is CrashReproductionTarget }
+            if (otherTargets.isNotEmpty()) {
+                TODO("Crash reproduction target combination")
+            }
+
+            val result = crashTargets.any { target ->
+                target as CrashReproductionTarget
+                val distance = weightTarget(applicationGraph, cfgStatistics, callGraphStatistics, target, state, stmt)
+                distance != InfiniteDistance
+            }
+
+            return result
+        }
+    }
+
+    private lateinit var targetWeightPs: WeightedPathSelector<JcState, DistanceTargetWeight>
+    private lateinit var budgetPs: LocationBudgetPs
+
+    override fun createPathSelector(
+        initialState: JcState,
+        applicationGraph: JcApplicationGraph,
+        cfgStatistics: CfgStatistics<JcMethod, JcInst>,
+        callGraphStatistics: CallGraphStatistics<JcMethod>
+    ): UPathSelector<JcState> {
+        val weighter = createWeighter(
+            PathSelectionStrategy.TARGETED, applicationGraph, cfgStatistics, callGraphStatistics
+        )
+        targetWeightPs = CrashReproductionWeightedPathSelector(
+            priorityCollectionFactory = { DeterministicPriorityCollection(Comparator.naturalOrder()) },
+            weighter = { state ->
+                val (crashTargets, otherTargets) = state.targets.partition { it is CrashReproductionTarget }
+                if (otherTargets.isNotEmpty()) {
+                    TODO("Crash reproduction target combination")
+                }
+
+                crashTargets.mapNotNull { weighter(it, state) }
+                    .minOrNull()
+                    ?: DistanceTargetWeight(InfiniteDistance)
+            }
+        )
+
+        budgetPs = LocationBudgetPs(
+//            ExceptionPropagationPathSelector(targetWeightPs)
+            targetWeightPs
+        )
+
+//        val selector = budgetPs
+        val selector = ExceptionPropagationPathSelector(budgetPs)
+        selector.add(listOf(initialState))
+
+        return selector
     }
 
     private val distanceCalculators =
@@ -427,28 +736,43 @@ private class CrashReproductionAnalysis(
         cfgStatistics: CfgStatistics<JcMethod, JcInst>,
         callGraphStatistics: CallGraphStatistics<JcMethod>,
         target: CrashReproductionTarget,
-        state: JcState
-    ): Distance = when (target) {
-        is CrashReproductionExceptionTarget -> targetDistance(target)
-        is CrashReproductionLocationTarget -> {
-            val distanceCalculator = distanceCalculators.getOrPut(target) {
-                CrashTargetInterprocDistanceCalculator(
-                    target = target,
-                    applicationGraph = applicationGraph,
-                    cfgStatistics = cfgStatistics,
-                    callGraphStatistics = callGraphStatistics
-                )
+        state: JcState,
+        statement: JcInst
+    ): Distance {
+        when (target) {
+            is CrashReproductionExceptionTarget -> return targetDistance(target)
+            is CrashReproductionLocationTarget -> {
+                val targetDistance = targetDistance(target)
+
+                if (statement is JcMethodEntrypointInst) {
+                    return targetDistance
+                }
+
+                val distanceCalculator = distanceCalculators.getOrPut(target) {
+                    CrashTargetInterprocDistanceCalculator(
+                        target = target,
+                        applicationGraph = applicationGraph,
+                        cfgStatistics = cfgStatistics,
+                        callGraphStatistics = callGraphStatistics
+                    )
+                }
+
+                val locationDistance = distanceCalculator.calculateDistance(state, statement)
+
+                if (locationDistance is InfiniteDistance) {
+                    logger.info { "UNREACHABLE: ${target.location?.printInst()} | ${statement.printInst()}" }
+                }
+
+                val result = targetDistance.addNested(locationDistance)
+
+                if (target.parent == deepestTarget) {
+                    if (target.location?.location?.method == statement.location.method) {
+                        logger.info { "DISTANCE ${result.root()} | ${statement.printInst()} | ${target.location?.printInst()}" }
+                    }
+                }
+
+                return result
             }
-
-            val locationDistance = distanceCalculator.calculateDistance(state)
-
-            if (locationDistance is InfiniteDistance) {
-                logger.info { "UNREACHABLE: ${target.location?.printInst()} | ${state.currentStatement.printInst()}" }
-            }
-
-            val targetDistance = targetDistance(target)
-
-            targetDistance.addNested(locationDistance)
         }
     }
 
@@ -467,6 +791,39 @@ private class CrashReproductionAnalysis(
             val targets = parent.targets.toList()
             parent.currentStatement.printInst().padEnd(120) + "@@@  " + "$targets"
         }
+    }
+
+    override fun onStateDeath(state: JcState, bannedStates: Sequence<BannedState>) {
+        logger.warn { "State death: ${bannedStates.toList()}" }
+
+//        if (!bannedStates.any { it is BlackListBannedState<*> }) return
+
+        val conflicts = bannedStates.filterIsInstance<UnsatBannedState>().toList()
+
+        val possibleConflictLocations = conflicts
+            .flatMap { conflict -> conflict.core.core.map { it.second } }
+            .filterIsInstance<LocationConstraintSource>()
+            .filter { it.location.depth < state.pathLocation.depth }
+            .map { it.location }
+
+        val conflictLocation = possibleConflictLocations.randomOrNull() ?: return
+        var nextToConflictLocation = state.pathLocation
+        while (nextToConflictLocation.parent != conflictLocation) {
+            nextToConflictLocation = nextToConflictLocation.parent ?: return
+        }
+
+        val possibleForks = conflictLocation.children.values.toList()
+
+        val alternativeForkLocations = possibleForks.filter { it != nextToConflictLocation }
+        if (alternativeForkLocations.isEmpty()) return
+
+        @Suppress("UNCHECKED_CAST")
+        budgetPs.giveBudget(
+            alternativeForkLocations.random() as PathsTrieNode<JcState, JcInst>,
+            nextToConflictLocation,
+            possibleForks as List<PathsTrieNode<JcState, JcInst>>,
+            state.pathLocation.depth.toUInt()
+        )
     }
 
     private fun propagateLocationTarget(state: JcState) {

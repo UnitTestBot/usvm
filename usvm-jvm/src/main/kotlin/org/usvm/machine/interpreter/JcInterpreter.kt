@@ -95,9 +95,9 @@ class JcInterpreter(
             with(ctx) {
                 val thisLValue = URegisterStackLValue(addressSort, 0)
                 val ref = state.memory.read(thisLValue).asExpr(addressSort)
-                state.pathConstraints += mkEq(ref, nullRef).not()
+                state.addConstraint(mkEq(ref, nullRef).not())
                 val thisType = typedMethod.enclosingType
-                state.pathConstraints += mkIsSubtypeExpr(ref, thisType)
+                state.addConstraint(mkIsSubtypeExpr(ref, thisType))
 
                 entrypointArguments += thisType to ref
             }
@@ -109,7 +109,7 @@ class JcInterpreter(
                 if (type is JcRefType) {
                     val argumentLValue = URegisterStackLValue(typeToSort(type), method.localIdx(idx))
                     val ref = state.memory.read(argumentLValue).asExpr(addressSort)
-                    state.pathConstraints += mkIsSubtypeExpr(ref, type)
+                    state.addConstraint(mkIsSubtypeExpr(ref, type))
 
                     entrypointArguments += type to ref
                 }

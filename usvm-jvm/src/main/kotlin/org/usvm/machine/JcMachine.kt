@@ -58,6 +58,8 @@ class JcMachine(
 
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
+    private val transparentCfgStatistics = transparentCfgStatistics()
+
     fun analyze(method: JcMethod, targets: List<JcTarget> = emptyList()): List<JcState> {
         logger.debug("{}.analyze({}, {})", this, method, targets)
         val initialState = interpreter.getInitialState(method, targets)
@@ -88,16 +90,23 @@ class JcMachine(
                 )
             }
 
-        val transparentCfgStatistics = transparentCfgStatistics()
-
-        val pathSelector = createPathSelector(
-            initialState,
-            options,
-            applicationGraph,
-            { coverageStatistics },
-            { transparentCfgStatistics },
-            { targetWeighter(it, callGraphStatistics) }
-        )
+        val pathSelector = if (interpreterObserver is JcPathSelectorProvider) {
+            interpreterObserver.createPathSelector(
+                initialState,
+                applicationGraph,
+                transparentCfgStatistics,
+                callGraphStatistics
+            )
+        } else {
+            createPathSelector(
+                initialState,
+                options,
+                applicationGraph,
+                { coverageStatistics },
+                { transparentCfgStatistics },
+                { targetWeighter(it, callGraphStatistics) }
+            )
+        }
 
         val statesCollector =
             when (options.stateCollectionStrategy) {
@@ -135,20 +144,28 @@ class JcMachine(
         }
         observers.add(statesCollector)
         // TODO: use the same calculator which is used for path selector
-        if (targets.isNotEmpty()) {
-            val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, InterprocDistance> { stmt ->
-                InterprocDistanceCalculator(
-                    targetLocation = stmt,
-                    applicationGraph = applicationGraph,
-                    cfgStatistics = transparentCfgStatistics(),
-                    callGraphStatistics = callGraphStatistics
-                )
-            }
-            interpreter.forkBlackList =
-                TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
-        } else {
-            interpreter.forkBlackList = UForkBlackList.createDefault()
+
+        interpreter.forkBlackList = UForkBlackList.createDefault()
+        if (interpreterObserver is JcTargetBlackLister) {
+            interpreter.forkBlackList = interpreterObserver.createBlacklist(
+                interpreter.forkBlackList, applicationGraph, transparentCfgStatistics, callGraphStatistics
+            )
         }
+
+//        if (targets.isNotEmpty()) {
+//            val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, InterprocDistance> { stmt ->
+//                InterprocDistanceCalculator(
+//                    targetLocation = stmt,
+//                    applicationGraph = applicationGraph,
+//                    cfgStatistics = transparentCfgStatistics(),
+//                    callGraphStatistics = callGraphStatistics
+//                )
+//            }
+//            interpreter.forkBlackList =
+//                TargetsReachableForkBlackList(distanceCalculator, shouldBlackList = { isInfinite })
+//        } else {
+//            interpreter.forkBlackList = UForkBlackList.createDefault()
+//        }
 
         run(
             interpreter,
@@ -194,7 +211,7 @@ class JcMachine(
                     InterprocDistanceCalculator(
                         targetLocation = stmt,
                         applicationGraph = applicationGraph,
-                        cfgStatistics = cfgStatistics,
+                        cfgStatistics = transparentCfgStatistics,
                         callGraphStatistics = callGraphStatistics
                     )
                 }
@@ -217,7 +234,7 @@ class JcMachine(
                 val distanceCalculator = MultiTargetDistanceCalculator<JcMethod, JcInst, _> { loc ->
                     CallStackDistanceCalculator(
                         targets = listOf(loc),
-                        cfgStatistics = cfgStatistics,
+                        cfgStatistics = transparentCfgStatistics,
                         applicationGraph = applicationGraph
                     )
                 }
@@ -246,7 +263,7 @@ class JcMachine(
         default: (JcState, JcTarget) -> UInt
     ): StateWeighter<JcState, TargetWeight> {
         val targetWeighter = (interpreterObserver as? JcTargetWeighter<*>)
-            ?.createWeighter(strategy, applicationGraph, cfgStatistics, callGraphStatistics)
+            ?.createWeighter(strategy, applicationGraph, transparentCfgStatistics, callGraphStatistics)
         return StateWeighter { state ->
             state.targets.minOfOrNull { target ->
                 targetWeighter?.invoke(target, state) ?: TargetUIntWeight(default(state, target))
