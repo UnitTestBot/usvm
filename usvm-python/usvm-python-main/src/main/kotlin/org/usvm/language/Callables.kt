@@ -13,7 +13,7 @@ class PyUnpinnedCallable(
     val signature: List<PythonType>,
     val module: String?,
     val tag: String,
-    val reference: (PyNamespace) -> /* function reference */ PyObject,
+    val reference: (PyNamespace) -> PyObject, // returns function object reference
 ) : PyCallable() {
     val numberOfArguments: Int = signature.size
     companion object {

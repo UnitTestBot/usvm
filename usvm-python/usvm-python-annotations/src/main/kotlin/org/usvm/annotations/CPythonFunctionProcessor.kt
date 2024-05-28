@@ -106,7 +106,9 @@ class CPythonFunctionProcessor : AbstractProcessor() {
                         curAnnotation.addToSymbolicAdapter
                     )
                 }
-                else -> error("Incorrect Java return type for CPythonFunction")
+                else -> {
+                    error("Incorrect Java return type $returnType for CPythonFunction")
+                }
             }
         }
 

@@ -73,7 +73,8 @@ class PyMachineStatistics {
         result.append("Mean coverage: $meanCoverage\n")
         result.append("Mean coverage without virtual objects: $meanCoverageNoVirtual\n")
         result.append(
-            "Number of functions with unregistered virtual operations: $numberOfFunctionsWithUnregisteredVirtualOperations\n"
+            "Number of functions with unregistered virtual operations: " +
+                "$numberOfFunctionsWithUnregisteredVirtualOperations\n"
         )
         result.append("Lost symbolic values (by number of functions):\n")
         result.append(writeLostSymbolicValuesReport(lostSymbolicValuesByNumberOfFunctions))

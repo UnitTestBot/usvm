@@ -76,11 +76,11 @@ class PythonSymbolicAnalysisRunnerImpl(
     ) : Thread() {
         override fun run() {
             while (readingThread.isAlive && process.isAlive && !isCancelled()) {
-                sleep(10)
+                sleep(SLEEP_TIME_IN_MILLISECONDS)
             }
             while (readingThread.isAlive) {
                 readingThread.interrupt()
-                sleep(10)
+                sleep(SLEEP_TIME_IN_MILLISECONDS)
             }
         }
     }
@@ -93,3 +93,5 @@ class PythonSymbolicAnalysisRunnerImpl(
         val logger = object : KLogging() {}.logger
     }
 }
+
+private const val SLEEP_TIME_IN_MILLISECONDS = 20L

@@ -33,19 +33,30 @@ fun nbIntKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) 
     on.addSupertypeSoft(context, HasNbInt)
 }
 
-fun nbAddKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(
+fun nbAddKt(
+    context: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+) = with(
     context.ctx
 ) {
     context.curState ?: return
     myAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
 }
 
-fun nbSubtractKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) = with(context.ctx) {
+fun nbSubtractKt(
+    context: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+) = with(context.ctx) {
     context.curState ?: return
     myAssert(context, left.evalIsSoft(context, HasNbSubtract))
 }
 
-fun nbMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject) = with(
+fun nbMultiplyKt(
+    context: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+) = with(
     context.ctx
 ) {
     context.curState ?: return
@@ -103,7 +114,11 @@ fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonOb
     myAssert(context, left.evalIsSoft(context, HasTpRichcmp))
 }
 
-fun tpGetattroKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {
+fun tpGetattroKt(
+    ctx: ConcolicRunContext,
+    on: UninterpretedSymbolicPythonObject,
+    name: UninterpretedSymbolicPythonObject,
+) {
     ctx.curState ?: return
     myAssert(ctx, on.evalIsSoft(ctx, HasTpGetattro))
     myAssert(ctx, name.evalIsSoft(ctx, ctx.typeSystem.pythonStr))
@@ -113,7 +128,11 @@ fun tpGetattroKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject,
     ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
 }
 
-fun tpSetattroKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject, name: UninterpretedSymbolicPythonObject) {
+fun tpSetattroKt(
+    context: ConcolicRunContext,
+    on: UninterpretedSymbolicPythonObject,
+    name: UninterpretedSymbolicPythonObject,
+) {
     context.curState ?: return
     myAssert(context, on.evalIsSoft(context, HasTpSetattro))
     myAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))

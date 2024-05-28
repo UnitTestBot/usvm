@@ -8,9 +8,7 @@ import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import java.util.concurrent.Callable
 
 private val logger = object : KLogging() {}.logger
-object PathDiversionException : Exception() {
-    private fun readResolve(): Any = PathDiversionException
-}
+class PathDiversionException : RuntimeException()
 
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
@@ -18,11 +16,11 @@ fun <T : Any> withTracing(
     resultSupplier: Callable<T?>,
 ): T? {
     if (context.isCancelled.call()) {
-        throw CancelledExecutionException
+        throw CancelledExecutionException()
     }
     context.instructionCounter += 1
     if (context.instructionCounter > context.maxInstructions) {
-        throw InstructionLimitExceededException
+        throw InstructionLimitExceededException()
     }
     if (context.curState == null) {
         return null
@@ -79,10 +77,5 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
     }
 }
 
-object InstructionLimitExceededException : Exception() {
-    private fun readResolve(): Any = InstructionLimitExceededException
-}
-
-object CancelledExecutionException : Exception() {
-    private fun readResolve(): Any = CancelledExecutionException
-}
+class InstructionLimitExceededException : RuntimeException()
+class CancelledExecutionException : RuntimeException()

@@ -25,14 +25,22 @@ fun makeTypeRating(state: PyState, delayedFork: DelayedFork): TypeRating? {
     return TypeRating(resultList.toMutableList(), hints)
 }
 
-fun prioritizeTypes(types: List<ConcretePythonType>, graph: SymbolTypeTree, typeSystem: PythonTypeSystemWithMypyInfo): List<ConcretePythonType> {
+fun prioritizeTypes(
+    types: List<ConcretePythonType>,
+    graph: SymbolTypeTree,
+    typeSystem: PythonTypeSystemWithMypyInfo,
+): List<ConcretePythonType> {
     val bounds = graph.boundsForRoot
     return types.sortedBy {
         -calculateScore(it, bounds, typeSystem)
     }
 }
 
-private fun calculateScore(type: ConcretePythonType, bounds: List<UtType>, typeSystem: PythonTypeSystemWithMypyInfo): Int {
+private fun calculateScore(
+    type: ConcretePythonType,
+    bounds: List<UtType>,
+    typeSystem: PythonTypeSystemWithMypyInfo,
+): Int {
     val typeHint = typeSystem.typeHintOfConcreteType(type) ?: return 0
     return bounds.fold(0) { acc, bound ->
         val boundHolds = PythonSubtypeChecker.checkIfRightIsSubtypeOfLeft(bound, typeHint, typeSystem.typeHintsStorage)

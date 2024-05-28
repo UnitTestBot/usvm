@@ -48,7 +48,9 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
         val containsMock = types.any { it is MockType }
         require((concrete == null) || !containsMock) { "Error in Python's hasCommonSubtype implementation" }
         return when (type) {
-            is InternalType -> error("Should not be reachable")
+            is InternalType -> {
+                error("Should not be reachable")
+            }
             is ConcretePythonType -> {
                 if (concrete != null) {
                     concrete == type
@@ -56,7 +58,9 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
                     types.all { isSupertype(it, type) }
                 }
             }
-            MockType -> concrete == null
+            MockType -> {
+                concrete == null
+            }
             is VirtualPythonType -> {
                 concrete == null || isSupertype(type, concrete)
             }
@@ -85,7 +89,11 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
         return type
     }
 
-    private fun addArrayLikeType(constraints: Set<ElementConstraint>, id: PyIdentifier, getter: () -> PyObject): ArrayLikeConcretePythonType {
+    private fun addArrayLikeType(
+        constraints: Set<ElementConstraint>,
+        id: PyIdentifier,
+        getter: () -> PyObject,
+    ): ArrayLikeConcretePythonType {
         val address = getter()
         require(ConcretePythonInterpreter.getPythonObjectTypeName(address) == "type")
         val type = ArrayLikeConcretePythonType(
@@ -126,7 +134,10 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
             PyIdentifier("builtins", name)
         ) { ConcretePythonInterpreter.eval(emptyNamespace, name) }
 
-    private fun createArrayLikeTypeByName(name: String, constraints: Set<ElementConstraint>): ArrayLikeConcretePythonType =
+    private fun createArrayLikeTypeByName(
+        name: String,
+        constraints: Set<ElementConstraint>,
+    ): ArrayLikeConcretePythonType =
         addArrayLikeType(
             constraints,
             PyIdentifier("builtins", name)

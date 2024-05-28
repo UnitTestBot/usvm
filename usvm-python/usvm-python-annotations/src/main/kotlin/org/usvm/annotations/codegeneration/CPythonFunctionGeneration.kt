@@ -61,7 +61,12 @@ fun generateCPythonFunction(description: CPythonFunctionDescription): Pair<Strin
     val javaArgs = (listOf("ctx->context") + List(numberOfArgs) { "java_arg_$it" }).joinToString(", ")
     val returnValueCreation =
         if (description.result.javaType != JavaType.NoType) {
-            "$javaReturnType java_return = (*ctx->env)->CallStatic${javaReturnDescr}Method(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
+            "$javaReturnType java_return = " +
+                "(*ctx->env)->CallStatic${javaReturnDescr}Method(" +
+                "ctx->env, " +
+                "ctx->cpython_adapter_cls, " +
+                "ctx->handle_$cName, $javaArgs" +
+                ");"
         } else {
             "(*ctx->env)->CallStaticVoidMethod(ctx->env, ctx->cpython_adapter_cls, ctx->handle_$cName, $javaArgs);"
         }

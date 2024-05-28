@@ -17,12 +17,20 @@ import org.usvm.machine.ps.strategies.PyPathSelectorAction
 import org.usvm.machine.ps.strategies.TypeRating
 import kotlin.random.Random
 
-val baselineProbabilities = listOf(1.0, 0.6, 0.875, 0.8, 1.0)
+// For now, these values were chosen in an arbitrary way.
+// TODO: find best possible values
+const val PROB_0 = 1.0
+const val PROB_1 = 0.6
+const val PROB_2 = 0.875
+const val PROB_3 = 0.8
+const val INF = 100.0
+
+val baselineProbabilities = listOf(PROB_0, PROB_1, PROB_2, PROB_3, 1.0)
 private val probNegations = baselineProbabilities
     .drop(1)
     .runningFold(1.0) { acc, p -> acc * (1 - p) }
 val baselineWeights = // listOf(100.0, 0.6, 0.35, 0.04, 0.01)
-    listOf(100.0) + (baselineProbabilities.drop(1) zip probNegations.dropLast(1)).map { (a, b) -> a * b }
+    listOf(INF) + (baselineProbabilities.drop(1) zip probNegations.dropLast(1)).map { (a, b) -> a * b }
 
 fun makeBaselinePriorityActionStrategy(
     random: Random,
@@ -181,7 +189,9 @@ open class BaselineDelayedForkGraph(
 
     override fun addStateToVertex(vertex: DelayedForkGraphVertex<DelayedForkState>, state: PyState) {
         when (vertex) {
-            is DelayedForkGraphRootVertex -> pathSelectorWithoutDelayedForks.add(listOf(state))
+            is DelayedForkGraphRootVertex -> {
+                pathSelectorWithoutDelayedForks.add(listOf(state))
+            }
             is DelayedForkGraphInnerVertex -> {
                 pathSelectorWithDelayedForks.add(listOf(state))
             }

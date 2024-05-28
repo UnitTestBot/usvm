@@ -44,8 +44,10 @@ class PyMachineSocketRunner(
         val description = type.pythonDescription() as? PythonCallableTypeDescription
             ?: error("Specified definition is not a function")
         if (description.argumentKinds.any {
-                it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
-            }) {
+                it == PythonCallableTypeDescription.ArgKind.ARG_STAR ||
+                    it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
+            }
+        ) {
             error("Named arguments are not supported in symbolic execution")
         }
         return type as FunctionType

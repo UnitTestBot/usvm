@@ -14,17 +14,39 @@ class DefaultPyObjectModelProvider(private val typeSystem: PythonTypeSystem) {
         require(type is ConcretePythonType)
 
         return when (type) {
-            typeSystem.pythonInt -> PyPrimitive("0")
-            typeSystem.pythonBool -> PyPrimitive("False")
-            typeSystem.pythonFloat -> PyPrimitive("0.0")
-            typeSystem.pythonObjectType -> PyCompositeObject(type.id, emptyList())
-            typeSystem.pythonNoneType -> PyPrimitive("None")
-            typeSystem.pythonList -> PyCompositeObject(type.id, emptyList())
-            typeSystem.pythonTuple -> PyCompositeObject(type.id, emptyList())
-            typeSystem.pythonStr -> PyCompositeObject(type.id, emptyList())
-            typeSystem.pythonSlice -> PyCompositeObject(type.id, listOf(PyPrimitive("0"), PyPrimitive("1")))
-            typeSystem.pythonDict -> PyCompositeObject(type.id, emptyList())
-            typeSystem.pythonSet -> PyCompositeObject(type.id, emptyList())
+            typeSystem.pythonInt -> {
+                PyPrimitive("0")
+            }
+            typeSystem.pythonBool -> {
+                PyPrimitive("False")
+            }
+            typeSystem.pythonFloat -> {
+                PyPrimitive("0.0")
+            }
+            typeSystem.pythonObjectType -> {
+                PyCompositeObject(type.id, emptyList())
+            }
+            typeSystem.pythonNoneType -> {
+                PyPrimitive("None")
+            }
+            typeSystem.pythonList -> {
+                PyCompositeObject(type.id, emptyList())
+            }
+            typeSystem.pythonTuple -> {
+                PyCompositeObject(type.id, emptyList())
+            }
+            typeSystem.pythonStr -> {
+                PyCompositeObject(type.id, emptyList())
+            }
+            typeSystem.pythonSlice -> {
+                PyCompositeObject(type.id, listOf(PyPrimitive("0"), PyPrimitive("1")))
+            }
+            typeSystem.pythonDict -> {
+                PyCompositeObject(type.id, emptyList())
+            }
+            typeSystem.pythonSet -> {
+                PyCompositeObject(type.id, emptyList())
+            }
             else -> {
                 val ref = typeSystem.addressOfConcreteType(type)
                 if (ConcretePythonInterpreter.typeHasStandardNew(ref)) {

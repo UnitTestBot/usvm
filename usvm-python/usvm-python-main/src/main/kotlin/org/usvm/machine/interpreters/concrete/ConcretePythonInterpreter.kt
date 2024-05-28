@@ -279,7 +279,8 @@ object ConcretePythonInterpreter {
         activateVenv(config)
     }
 
-    private val approximationsPath = System.getProperty("approximations.path") ?: error("approximations.path not specified")
+    private val approximationsPath = System.getProperty("approximations.path")
+        ?: error("approximations.path not specified")
 
     private fun initializeId(module: String, name: String): Long {
         val namespace = getNewNamespace()
@@ -292,7 +293,7 @@ object ConcretePythonInterpreter {
 
     private fun initializeMethodApproximations() {
         withAdditionalPaths(listOf(File(approximationsPath)), null) {
-            ApproximationId.values().forEach {
+            ApproximationId.entries.forEach {
                 it.cRef = initializeId(it.pythonModule, it.pythonName)
             }
             pythonAdapter.initializeSpecialApproximations()
@@ -300,7 +301,7 @@ object ConcretePythonInterpreter {
     }
 
     private fun initializeNativeIds() {
-        NativeId.values().forEach {
+        NativeId.entries.forEach {
             it.cRef = initializeId(it.pythonModule, it.pythonName)
         }
     }
@@ -371,13 +372,13 @@ object ConcretePythonInterpreter {
 
     fun printIdInfo() { // for debugging
         println("SymbolicMethodId:")
-        SymbolicMethodId.values().forEach {
+        SymbolicMethodId.entries.forEach {
             println(it)
             println(it.cRef)
         }
         println()
         println("ApproximationId:")
-        ApproximationId.values().forEach {
+        ApproximationId.entries.forEach {
             println(it)
             println(it.cRef)
         }

@@ -15,7 +15,13 @@ fun generateCPythonAdapterDefs(defs: List<DefinitionDescriptor>): String {
 
     val registrations = defs.fold("#define DO_REGISTRATIONS(dist, env) ") { acc, def ->
         val name = def.cName
-        acc + "dist->handle_$name = (*env)->GetStaticMethodID(env, dist->cpython_adapter_cls, handle_name_$name, handle_sig_$name);"
+        acc + "dist->handle_$name = " +
+            "(*env)->GetStaticMethodID(" +
+            "env, " +
+            "dist->cpython_adapter_cls, " +
+            "handle_name_$name, " +
+            "handle_sig_$name" +
+            ");"
     }
 
     return """

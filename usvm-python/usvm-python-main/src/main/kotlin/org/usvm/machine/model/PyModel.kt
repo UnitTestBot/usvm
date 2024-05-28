@@ -69,7 +69,9 @@ class PyModel(
             ) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>
             return WrappedArrayIndexRegion(region, this, ctx, nullRef) as UReadOnlyMemoryRegion<Key, Sort>
         }
-        if (regionId is UArrayLengthsRegionId<*, *> && regionId.sort == ctx.intSort && regionId.arrayType == ArrayType) {
+        if (regionId is UArrayLengthsRegionId<*, *> && regionId.sort == ctx.intSort &&
+            regionId.arrayType == ArrayType
+        ) {
             val region = super.getRegion(
                 regionId
             ) as UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>

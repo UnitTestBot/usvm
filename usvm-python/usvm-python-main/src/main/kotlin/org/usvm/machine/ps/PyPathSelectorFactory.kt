@@ -393,6 +393,7 @@ fun createTypeRatingByHintsDfsPyPathSelector(
         newStateObserver
     )
 
+private const val DEFAULT_NUMBER_OF_VIRTUAL = 5
 
 private fun calculateNumberOfVirtual(state: PyState): Int =
     runCatching {
@@ -404,11 +405,12 @@ private fun calculateNumberOfVirtual(state: PyState): Int =
         }
         val tupleOfModels = PyTupleObject(models)
         calculateNumberOfMocks(tupleOfModels)
-    }.getOrDefault(5)
+    }.getOrDefault(DEFAULT_NUMBER_OF_VIRTUAL)
 
 
 private fun mockWeight(mocks: Int) = 1.0 / max(1, mocks + 1)
 
 private fun calculateNumberOfInstructions(state: PyState) = state.uniqueInstructions.size
 
-private fun instructionWeight(instructions: Int) = log(instructions + 8.0, 2.0)
+private const val INSTRUCTION_SHIFT = 8.0
+private fun instructionWeight(instructions: Int) = log(instructions + INSTRUCTION_SHIFT, 2.0)

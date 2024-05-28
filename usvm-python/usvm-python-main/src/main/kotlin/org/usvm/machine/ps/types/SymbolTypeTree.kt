@@ -46,30 +46,42 @@ class SymbolTypeTree(
         state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
             val protocol =
                 when (mockHeader.method) {
-                    MpAssSubscriptMethod ->
+                    MpAssSubscriptMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__setitem__", pythonAnyType, returnType) }
-                    MpSubscriptMethod ->
+                    }
+                    MpSubscriptMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__getitem__", pythonAnyType, returnType) }
-                    NbAddMethod ->
+                    }
+                    NbAddMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__add__", pythonAnyType, returnType) }
-                    NbSubtractMethod ->
+                    }
+                    NbSubtractMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__sub__", pythonAnyType, returnType) }
-                    NbBoolMethod ->
+                    }
+                    NbBoolMethod -> {
                         { _: UtType -> createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) }
-                    NbIntMethod ->
+                    }
+                    NbIntMethod -> {
                         { _: UtType -> createUnaryProtocol("__int__", typeHintsStorage.pythonInt) }
-                    NbNegativeMethod ->
+                    }
+                    NbNegativeMethod -> {
                         { returnType: UtType -> createUnaryProtocol("__neg__", returnType) }
-                    NbPositiveMethod ->
+                    }
+                    NbPositiveMethod -> {
                         { returnType: UtType -> createUnaryProtocol("__pos__", returnType) }
-                    NbMatrixMultiplyMethod ->
+                    }
+                    NbMatrixMultiplyMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__matmul__", pythonAnyType, returnType) }
-                    NbMultiplyMethod ->
+                    }
+                    NbMultiplyMethod -> {
                         { returnType: UtType -> createBinaryProtocol("__mul__", pythonAnyType, returnType) }
-                    SqLengthMethod ->
+                    }
+                    SqLengthMethod -> {
                         { _: UtType -> createUnaryProtocol("__len__", typeHintsStorage.pythonInt) }
-                    TpIterMethod ->
+                    }
+                    TpIterMethod -> {
                         { returnType: UtType -> createUnaryProtocol("__iter__", returnType) }
+                    }
                     TpGetattro -> {
                         val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
                             ?: return@mapNotNull null
@@ -80,37 +92,47 @@ class SymbolTypeTree(
                             ?: return@mapNotNull null
                         { _: UtType -> createProtocolWithAttribute(attribute, pythonAnyType) }
                     }
-                    is TpRichcmpMethod -> { returnType: UtType ->
-                        when (mockHeader.method.op) {
-                            ConcretePythonInterpreter.pyEQ ->
-                                createBinaryProtocol("__eq__", pythonAnyType, returnType)
-                            ConcretePythonInterpreter.pyNE ->
-                                createBinaryProtocol("__ne__", pythonAnyType, returnType)
-                            ConcretePythonInterpreter.pyLT ->
-                                createBinaryProtocol("__lt__", pythonAnyType, returnType)
-                            ConcretePythonInterpreter.pyLE ->
-                                createBinaryProtocol("__le__", pythonAnyType, returnType)
-                            ConcretePythonInterpreter.pyGT ->
-                                createBinaryProtocol("__gt__", pythonAnyType, returnType)
-                            ConcretePythonInterpreter.pyGE ->
-                                createBinaryProtocol("__ge__", pythonAnyType, returnType)
-                            else -> error("Wrong OP in TpRichcmpMethod")
+                    is TpRichcmpMethod -> {
+                        { returnType: UtType ->
+                            when (mockHeader.method.op) {
+                                ConcretePythonInterpreter.pyEQ ->
+                                    createBinaryProtocol("__eq__", pythonAnyType, returnType)
+
+                                ConcretePythonInterpreter.pyNE ->
+                                    createBinaryProtocol("__ne__", pythonAnyType, returnType)
+
+                                ConcretePythonInterpreter.pyLT ->
+                                    createBinaryProtocol("__lt__", pythonAnyType, returnType)
+
+                                ConcretePythonInterpreter.pyLE ->
+                                    createBinaryProtocol("__le__", pythonAnyType, returnType)
+
+                                ConcretePythonInterpreter.pyGT ->
+                                    createBinaryProtocol("__gt__", pythonAnyType, returnType)
+
+                                ConcretePythonInterpreter.pyGE ->
+                                    createBinaryProtocol("__ge__", pythonAnyType, returnType)
+
+                                else -> error("Wrong OP in TpRichcmpMethod")
+                            }
                         }
                     }
-                    is TpCallMethod -> { returnType: UtType ->
-                        createProtocolWithAttribute(
-                            "__call__",
-                            createPythonCallableType(
-                                1,
-                                listOf(PythonCallableTypeDescription.ArgKind.ARG_STAR),
-                                listOf(null)
-                            ) {
-                                FunctionTypeCreator.InitializationData(
-                                    listOf(pythonAnyType),
-                                    returnType
-                                )
-                            }
-                        )
+                    is TpCallMethod -> {
+                        { returnType: UtType ->
+                            createProtocolWithAttribute(
+                                "__call__",
+                                createPythonCallableType(
+                                    1,
+                                    listOf(PythonCallableTypeDescription.ArgKind.ARG_STAR),
+                                    listOf(null)
+                                ) {
+                                    FunctionTypeCreator.InitializationData(
+                                        listOf(pythonAnyType),
+                                        returnType
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             val originalHint = protocol(pythonAnyType)

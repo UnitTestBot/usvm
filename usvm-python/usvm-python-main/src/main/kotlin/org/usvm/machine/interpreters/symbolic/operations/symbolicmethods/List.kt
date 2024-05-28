@@ -9,7 +9,11 @@ import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListInsert
 import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListPopIndKt
 import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListPopKt
 
-fun symbolicMethodListAppendKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+fun symbolicMethodListAppendKt(
+    ctx: ConcolicRunContext,
+    self: SymbolForCPython?,
+    args: Array<SymbolForCPython>,
+): SymbolForCPython? {
     if (self?.obj == null || args.size != 1 || args.first().obj == null) {
         return null
     }
@@ -17,7 +21,11 @@ fun symbolicMethodListAppendKt(ctx: ConcolicRunContext, self: SymbolForCPython?,
     return SymbolForCPython(result, 0)
 }
 
-fun symbolicMethodListPopKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+fun symbolicMethodListPopKt(
+    ctx: ConcolicRunContext,
+    self: SymbolForCPython?,
+    args: Array<SymbolForCPython>,
+): SymbolForCPython? {
     if (self?.obj == null || args.size > 1) {
         return null
     }
@@ -32,7 +40,11 @@ fun symbolicMethodListPopKt(ctx: ConcolicRunContext, self: SymbolForCPython?, ar
     return SymbolForCPython(result, 0)
 }
 
-fun symbolicMethodListInsertKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+fun symbolicMethodListInsertKt(
+    ctx: ConcolicRunContext,
+    self: SymbolForCPython?,
+    args: Array<SymbolForCPython>,
+): SymbolForCPython? {
     if (self?.obj == null || args.size != 2 || args[0].obj == null || args[1].obj == null) {
         return null
     }
@@ -40,7 +52,11 @@ fun symbolicMethodListInsertKt(ctx: ConcolicRunContext, self: SymbolForCPython?,
     return generateNone(ctx)
 }
 
-fun symbolicMethodListExtendKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+fun symbolicMethodListExtendKt(
+    ctx: ConcolicRunContext,
+    self: SymbolForCPython?,
+    args: Array<SymbolForCPython>,
+): SymbolForCPython? {
     if (self?.obj == null || args.size != 1 || args.first().obj == null) {
         return null
     }
@@ -48,7 +64,11 @@ fun symbolicMethodListExtendKt(ctx: ConcolicRunContext, self: SymbolForCPython?,
     return SymbolForCPython(result, 0)
 }
 
-fun symbolicMethodListClearKt(ctx: ConcolicRunContext, self: SymbolForCPython?, args: Array<SymbolForCPython>): SymbolForCPython? {
+fun symbolicMethodListClearKt(
+    ctx: ConcolicRunContext,
+    self: SymbolForCPython?,
+    args: Array<SymbolForCPython>,
+): SymbolForCPython? {
     if (self?.obj == null || args.isNotEmpty()) {
         return null
     }

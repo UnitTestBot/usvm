@@ -19,7 +19,11 @@ import org.usvm.machine.symbolicobjects.memory.mkUninterpretedNan
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedPlusInfinity
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedSignedInfinity
 
-private fun gtFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, right: FloatUninterpretedContent): UBoolExpr = with(
+private fun gtFloat(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent,
+): UBoolExpr = with(
     ctx.ctx
 ) {
     mkIte(
@@ -41,7 +45,11 @@ private fun gtFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, ri
     )
 }
 
-private fun eqFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, right: FloatUninterpretedContent): UBoolExpr = with(
+private fun eqFloat(
+    ctx: ConcolicRunContext,
+    left: FloatUninterpretedContent,
+    right: FloatUninterpretedContent,
+): UBoolExpr = with(
     ctx.ctx
 ) {
     mkIte(
@@ -55,7 +63,11 @@ private fun eqFloat(ctx: ConcolicRunContext, left: FloatUninterpretedContent, ri
     )
 }
 
-fun handlerGTFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerGTFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -65,10 +77,18 @@ fun handlerGTFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyth
     return constructBool(ctx, boolExpr)
 }
 
-fun handlerLTFloatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerLTFloatKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? =
     handlerGTFloatKt(ctx, right, left)
 
-fun handlerEQFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerEQFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -78,7 +98,11 @@ fun handlerEQFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyth
 }
 
 
-fun handlerNEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerNEFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -88,7 +112,11 @@ fun handlerNEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyth
 }
 
 
-fun handlerGEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerGEFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -97,7 +125,11 @@ fun handlerGEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyth
     return constructBool(ctx, ctx.ctx.mkOr(eqFloat(ctx, left, right), gtFloat(ctx, left, right)))
 }
 
-fun handlerLEFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject) =
+fun handlerLEFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+) =
     handlerGEFloatKt(ctx, rightObj, leftObj)
 
 
@@ -255,7 +287,11 @@ private fun constructReverseExpr(
         constructReverseExprComponent(ctx, value) { it.realValue }
     )
 
-fun handlerADDFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerADDFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -266,7 +302,11 @@ fun handlerADDFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyt
 }
 
 
-fun handlerSUBFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerSUBFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -276,7 +316,11 @@ fun handlerSUBFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyt
     return constructFloat(ctx, floatValue)
 }
 
-fun handlerMULFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerMULFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -286,7 +330,11 @@ fun handlerMULFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyt
     return constructFloat(ctx, floatValue)
 }
 
-fun handlerDIVFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPythonObject, rightObj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerDIVFloatKt(
+    ctx: ConcolicRunContext,
+    leftObj: UninterpretedSymbolicPythonObject,
+    rightObj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -297,14 +345,20 @@ fun handlerDIVFloatKt(ctx: ConcolicRunContext, leftObj: UninterpretedSymbolicPyt
     return constructFloat(ctx, floatValue)
 }
 
-fun handlerNEGFloatKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerNEGFloatKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val value = obj.getToFloatContent(ctx) ?: return null
     val result = constructNegExpr(ctx, value)
     return constructFloat(ctx, result)
 }
 
-fun handlerPOSFloatKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerPOSFloatKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val value = obj.getToFloatContent(ctx) ?: return null
     return constructFloat(ctx, value)
@@ -324,7 +378,10 @@ fun castFloatToInt(
     return constructInt(ctx, intValue)
 }
 
-private fun strToFloat(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+private fun strToFloat(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     require(ctx.curState != null && obj.getTypeIfDefined(ctx) == ctx.typeSystem.pythonStr)
     val str = ctx.curState!!.preAllocatedObjects.concreteString(obj)?.lowercase() ?: return null
     if (str == "inf" || str == "infinity") {
@@ -350,8 +407,14 @@ fun handlerFloatCastKt(
             val realValue = ctx.ctx.intToFloat(arg.getToIntContent(ctx)!!)
             constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, realValue))
         }
-        typeSystem.pythonFloat -> arg
-        typeSystem.pythonStr -> strToFloat(ctx, arg)
-        else -> null
+        typeSystem.pythonFloat -> {
+            arg
+        }
+        typeSystem.pythonStr -> {
+            strToFloat(ctx, arg)
+        }
+        else -> {
+            null
+        }
     }
 }

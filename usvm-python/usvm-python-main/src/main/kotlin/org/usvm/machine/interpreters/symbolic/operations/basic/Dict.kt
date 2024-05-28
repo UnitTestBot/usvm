@@ -26,7 +26,9 @@ fun handlerDictGetItemKt(
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     return when (keyType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> null // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> {
+            null // TODO
+        }
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = key.getToIntContent(ctx) ?: return null
             val containsCond = dict.dictContainsInt(ctx, intValue)
@@ -60,7 +62,9 @@ private fun setItem(
 ) {
     val typeSystem = ctx.typeSystem
     when (val keyType = key.getTypeIfDefined(ctx)) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> Unit // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> { // TODO
+            Unit
+        }
         typeSystem.pythonInt -> {
             val intValue = key.getToIntContent(ctx) ?: return
             dict.writeDictIntElement(ctx, intValue, value)
@@ -135,7 +139,9 @@ fun handlerDictContainsKt(
     val keyType = key.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (keyType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> { // TODO
+            return
+        }
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = key.getToIntContent(ctx) ?: return
             dict.dictContainsInt(ctx, intValue)

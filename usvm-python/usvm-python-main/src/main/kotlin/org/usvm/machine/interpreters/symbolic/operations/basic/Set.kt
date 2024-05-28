@@ -22,7 +22,9 @@ fun handlerSetContainsKt(
     val elemType = elem.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     val result: UBoolExpr = when (elemType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> { // TODO
+            return
+        }
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = elem.getToIntContent(ctx) ?: return
             set.setContainsInt(ctx, intValue)
@@ -45,7 +47,9 @@ private fun addItem(
     val elemType = elem.getTypeIfDefined(ctx)
     val typeSystem = ctx.typeSystem
     when (elemType) {
-        typeSystem.pythonFloat, typeSystem.pythonNoneType -> return // TODO
+        typeSystem.pythonFloat, typeSystem.pythonNoneType -> { // TODO
+            return
+        }
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = elem.getToIntContent(ctx) ?: return
             set.addIntToSet(ctx, intValue)

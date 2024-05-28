@@ -20,8 +20,3 @@ fun addConstraintsFromNativeId(
 abstract class NativeCallConstraint(val id: NativeId) {
     abstract fun apply(ctx: ConcolicRunContext, args: List<UninterpretedSymbolicPythonObject>)
 }
-
-val constraintHolder = listOf(
-    OsSystemConstraint,
-    EvalConstraint
-)

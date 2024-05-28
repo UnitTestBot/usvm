@@ -53,7 +53,8 @@ class PySolver<Type>(
     500.milliseconds
 ) {
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> {
-        val softConstraints = ctx.softConstraintsProvider<Type>().makeSoftConstraints(query) + query.pythonSoftConstraints
+        val softConstraints = ctx.softConstraintsProvider<Type>().makeSoftConstraints(query) +
+            query.pythonSoftConstraints
         return super.checkWithSoftConstraints(query, softConstraints)
     }
 }

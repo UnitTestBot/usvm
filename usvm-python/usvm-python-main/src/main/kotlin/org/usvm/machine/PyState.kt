@@ -101,7 +101,9 @@ class PyState(
         return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)
     }
 
-    fun getMocksForSymbol(symbol: UninterpretedSymbolicPythonObject): List<Pair<MockHeader, UninterpretedSymbolicPythonObject>> =
+    fun getMocksForSymbol(
+        symbol: UninterpretedSymbolicPythonObject,
+    ): List<Pair<MockHeader, UninterpretedSymbolicPythonObject>> =
         mocks.mapNotNull { (mockHeader, mockResult) ->
             if (mockHeader.methodOwner == symbol) {
                 mockHeader to UninterpretedSymbolicPythonObject(mockResult, typeSystem)

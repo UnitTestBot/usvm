@@ -113,7 +113,10 @@ fun constructInitialBool(
     return result
 }
 
-fun constructListIterator(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+fun constructListIterator(
+    context: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonListIteratorType)
@@ -123,7 +126,10 @@ fun constructListIterator(context: ConcolicRunContext, list: UninterpretedSymbol
     return result
 }
 
-fun constructTupleIterator(context: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+fun constructTupleIterator(
+    context: ConcolicRunContext,
+    tuple: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonTupleIteratorType)
@@ -133,7 +139,12 @@ fun constructTupleIterator(context: ConcolicRunContext, tuple: UninterpretedSymb
     }
 }
 
-fun constructRange(context: ConcolicRunContext, start: UExpr<KIntSort>, stop: UExpr<KIntSort>, step: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
+fun constructRange(
+    context: ConcolicRunContext,
+    start: UExpr<KIntSort>,
+    stop: UExpr<KIntSort>,
+    step: UExpr<KIntSort>,
+): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRange)
@@ -143,7 +154,10 @@ fun constructRange(context: ConcolicRunContext, start: UExpr<KIntSort>, stop: UE
     }
 }
 
-fun constructRangeIterator(context: ConcolicRunContext, range: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject {
+fun constructRangeIterator(
+    context: ConcolicRunContext,
+    range: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject {
     require(context.curState != null)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRangeIterator)

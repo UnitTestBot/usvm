@@ -12,10 +12,16 @@ import org.usvm.machine.symbolicobjects.memory.readArrayLength
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerCreateTupleKt(ctx: ConcolicRunContext, elements: Stream<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
+fun handlerCreateTupleKt(
+    ctx: ConcolicRunContext,
+    elements: Stream<UninterpretedSymbolicPythonObject>,
+): UninterpretedSymbolicPythonObject? =
     createIterable(ctx, elements.asSequence().toList(), ctx.typeSystem.pythonTuple)
 
-fun handlerTupleIterKt(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerTupleIterKt(
+    ctx: ConcolicRunContext,
+    tuple: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -62,7 +68,10 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
     }
 }
 
-fun handlerTupleGetSizeKt(context: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerTupleGetSizeKt(
+    context: ConcolicRunContext,
+    tuple: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? =
     getArraySize(context, tuple, context.typeSystem.pythonTuple)
 
 fun handlerTupleGetItemKt(

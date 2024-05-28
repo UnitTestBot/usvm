@@ -27,7 +27,9 @@ fun handlerCreateEnumerateKt(
         typeSystem.pythonTuple -> {
             handlerTupleIterKt(ctx, iterable) ?: return null
         }
-        else -> return null
+        else -> {
+            return null
+        }
     }
     val address = ctx.curState!!.memory.allocConcrete(ctx.typeSystem.pythonEnumerate)
     val result = UninterpretedSymbolicPythonObject(address, ctx.typeSystem)

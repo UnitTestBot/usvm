@@ -120,8 +120,12 @@ class UninterpretedSymbolicPythonObject(
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
-    fun setMinimalTimeOfCreation(ctx: PyContext, memory: UMemory<PythonType, PyCallable>) { // must not be called on nullref
-        memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-1_000_000_000), ctx.trueExpr)
+    // must not be called on nullref
+    fun setMinimalTimeOfCreation(
+        ctx: PyContext,
+        memory: UMemory<PythonType, PyCallable>,
+    ) {
+        memory.writeField(address, TimeOfCreation, ctx.intSort, ctx.mkIntNum(-INF), ctx.trueExpr)
     }
 
     fun isAllocatedObject(ctx: ConcolicRunContext): Boolean {
@@ -129,6 +133,8 @@ class UninterpretedSymbolicPythonObject(
         return evaluated.address > 0
     }
 }
+
+private const val INF = 1_000_000_000
 
 sealed class InterpretedSymbolicPythonObject(
     override val address: UConcreteHeapRef,

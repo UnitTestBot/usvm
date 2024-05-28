@@ -15,6 +15,8 @@ import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
 
+private const val NUMBER_OF_ARGUMENTS_IN_GENERATED_METHOD = 3
+
 @SupportedAnnotationTypes("org.usvm.annotations.SymbolicMethod")
 @SupportedOptions("headerPath")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
@@ -39,7 +41,7 @@ class SymbolicMethodProcessor : AbstractProcessor() {
         val result = annotatedElements.fold("") { acc, element ->
             require(element is ExecutableElement)
             val formatMsg = "Incorrect signature of SymbolicMethod ${element.simpleName}"
-            require(element.parameters.size == 3) { formatMsg }
+            require(element.parameters.size == NUMBER_OF_ARGUMENTS_IN_GENERATED_METHOD) { formatMsg }
             val arg0 = element.parameters.first().asType().toString().split(".").last()
             require(arg0 == "ConcolicRunContext") { formatMsg }
             val arg1 = element.parameters[1].asType().toString().split(".").last()
@@ -59,7 +61,7 @@ class SymbolicMethodProcessor : AbstractProcessor() {
             elementAnnotation.id.cName = name
             acc + generateSymbolicMethod(elementAnnotation.id) + "\n\n"
         }
-        SymbolicMethodId.values().forEach {
+        SymbolicMethodId.entries.forEach {
             require(it in definedIds) {
                 "SymbolicMethodId $it has no definition"
             }

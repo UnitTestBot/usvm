@@ -21,26 +21,41 @@ data class SliceInterpretedContent(
     val step: KInterpretedValue<KIntSort>?,
 )
 
-fun InterpretedInputSymbolicPythonObject.getSliceContent(ctx: PyContext, typeSystem: PythonTypeSystem): SliceInterpretedContent {
+fun InterpretedInputSymbolicPythonObject.getSliceContent(
+    ctx: PyContext,
+    typeSystem: PythonTypeSystem,
+): SliceInterpretedContent {
     require(getConcreteType() == typeSystem.pythonSlice)
     val startIsNone = modelHolder.model.readField(address, SliceContents.startIsNone, ctx.boolSort).isTrue
-    val start = if (startIsNone) null else modelHolder.model.readField(
-        address,
-        SliceContents.start,
-        ctx.intSort
-    ) as KInterpretedValue<KIntSort>
+    val start = if (startIsNone) {
+        null
+    } else {
+        modelHolder.model.readField(
+            address,
+            SliceContents.start,
+            ctx.intSort
+        ) as KInterpretedValue<KIntSort>
+    }
     val stopIsNone = modelHolder.model.readField(address, SliceContents.stopIsNone, ctx.boolSort).isTrue
-    val stop = if (stopIsNone) null else modelHolder.model.readField(
-        address,
-        SliceContents.stop,
-        ctx.intSort
-    ) as KInterpretedValue<KIntSort>
+    val stop = if (stopIsNone) {
+        null
+    } else {
+        modelHolder.model.readField(
+            address,
+            SliceContents.stop,
+            ctx.intSort
+        ) as KInterpretedValue<KIntSort>
+    }
     val stepIsNone = modelHolder.model.readField(address, SliceContents.stepIsNone, ctx.boolSort).isTrue
-    val step = if (stepIsNone) null else modelHolder.model.readField(
-        address,
-        SliceContents.step,
-        ctx.intSort
-    ) as KInterpretedValue<KIntSort>
+    val step = if (stepIsNone) {
+        null
+    } else {
+        modelHolder.model.readField(
+            address,
+            SliceContents.step,
+            ctx.intSort
+        ) as KInterpretedValue<KIntSort>
+    }
     return SliceInterpretedContent(start, stop, step)
 }
 

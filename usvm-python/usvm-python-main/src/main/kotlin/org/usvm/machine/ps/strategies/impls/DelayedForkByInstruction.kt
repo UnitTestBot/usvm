@@ -127,6 +127,8 @@ class DelayedForkByInstructionGraphCreation(
     override fun createEmptyDelayedForkState(): DelayedForkState =
         DelayedForkState()
 
-    override fun createOneVertexGraph(root: DelayedForkGraphRootVertex<DelayedForkState>): DelayedForkByInstructionGraph =
+    override fun createOneVertexGraph(
+        root: DelayedForkGraphRootVertex<DelayedForkState>,
+    ): DelayedForkByInstructionGraph =
         DelayedForkByInstructionGraph(basePathSelectorCreation, root)
 }

@@ -63,7 +63,7 @@ public class ConcolicRunContext {
         if (allowPathDiversion) {
             curState = null;
         } else {
-            throw PathDiversionException.INSTANCE;
+            throw new PathDiversionException();
         }
     }
 }

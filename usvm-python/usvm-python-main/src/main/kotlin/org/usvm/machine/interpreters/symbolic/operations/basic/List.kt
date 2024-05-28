@@ -21,13 +21,23 @@ import org.usvm.machine.types.ArrayType
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerCreateListKt(ctx: ConcolicRunContext, elements: Stream<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
+fun handlerCreateListKt(
+    ctx: ConcolicRunContext,
+    elements: Stream<UninterpretedSymbolicPythonObject>,
+): UninterpretedSymbolicPythonObject? =
     createIterable(ctx, elements.asSequence().toList(), ctx.typeSystem.pythonList)
 
-fun handlerListGetSizeKt(context: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+fun handlerListGetSizeKt(
+    context: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? =
     getArraySize(context, list, context.typeSystem.pythonList)
 
-fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListGetItemKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -35,7 +45,12 @@ fun handlerListGetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyt
     return list.readArrayElement(ctx, indexInt)
 }
 
-fun handlerListSetItemKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, index: UninterpretedSymbolicPythonObject, value: UninterpretedSymbolicPythonObject) {
+fun handlerListSetItemKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    index: UninterpretedSymbolicPythonObject,
+    value: UninterpretedSymbolicPythonObject,
+) {
     if (ctx.curState == null) {
         return
     }
@@ -77,7 +92,11 @@ private fun listConcat(
     }
 }
 
-fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, iterable: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListExtendKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    iterable: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     list.addSupertypeSoft(ctx, typeSystem.pythonList)
@@ -86,7 +105,11 @@ fun handlerListExtendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     return list
 }
 
-fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListConcatKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -103,7 +126,11 @@ fun handlerListConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPyth
     }
 }
 
-fun handlerListInplaceConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListInplaceConcatKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -115,7 +142,11 @@ fun handlerListInplaceConcatKt(ctx: ConcolicRunContext, left: UninterpretedSymbo
     return left
 }
 
-fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, elem: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListAppendKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    elem: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -131,7 +162,10 @@ fun handlerListAppendKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPyth
     }
 }
 
-fun handlerListIterKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListIterKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     if (ctx.curState == null) {
         return null
     }
@@ -140,7 +174,10 @@ fun handlerListIterKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPython
     return constructListIterator(ctx, list)
 }
 
-fun handlerListIteratorNextKt(ctx: ConcolicRunContext, iterator: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(
+fun handlerListIteratorNextKt(
+    ctx: ConcolicRunContext,
+    iterator: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? = with(
     ctx.ctx
 ) {
     if (ctx.curState == null) {
@@ -180,7 +217,10 @@ private fun listPop(
     }
 }
 
-fun handlerListPopKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListPopKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList) {
         return null
@@ -189,7 +229,11 @@ fun handlerListPopKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonO
     return listPop(ctx, list)
 }
 
-fun handlerListPopIndKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPythonObject, ind: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? {
+fun handlerListPopIndKt(
+    ctx: ConcolicRunContext,
+    list: UninterpretedSymbolicPythonObject,
+    ind: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
     if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList) {
         return null

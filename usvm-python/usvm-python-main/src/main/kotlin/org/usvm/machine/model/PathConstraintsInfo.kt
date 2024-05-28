@@ -52,7 +52,9 @@ private class ConstraintsVisitor(ctx: PyContext) : UExprTranslator<PythonType, K
         return super.transform(expr)
     }
 
-    override fun <ElemSort : USort, Reg : Region<Reg>> transform(expr: UInputSetReading<PythonType, ElemSort, Reg>): UBoolExpr {
+    override fun <ElemSort : USort, Reg : Region<Reg>> transform(
+        expr: UInputSetReading<PythonType, ElemSort, Reg>,
+    ): UBoolExpr {
         if (expr.element.sort == ctx.intSort) {
             intKeys.add(expr.element as UExpr<KIntSort>)
         }

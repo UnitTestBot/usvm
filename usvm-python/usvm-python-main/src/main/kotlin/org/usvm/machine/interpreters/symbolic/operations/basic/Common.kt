@@ -35,7 +35,11 @@ import org.utpython.types.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
-fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject, typeRef: PyObject): UninterpretedSymbolicPythonObject? = with(
+fun handlerIsinstanceKt(
+    ctx: ConcolicRunContext,
+    obj: UninterpretedSymbolicPythonObject,
+    typeRef: PyObject,
+): UninterpretedSymbolicPythonObject? = with(
     ctx.ctx
 ) {
     ctx.curState ?: return null
@@ -50,7 +54,12 @@ fun handlerIsinstanceKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPytho
     return if (concreteType == null) {
         if (type == typeSystem.pythonInt) { //  this is a common case, TODO: better solution
             val cond =
-                obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonInt)) and obj.evalIs(ctx, ConcreteTypeNegation(typeSystem.pythonBool))
+                obj.evalIs(
+                    ctx,
+                    ConcreteTypeNegation(typeSystem.pythonInt)
+                ) and obj.evalIs(
+                    ctx, ConcreteTypeNegation(typeSystem.pythonBool)
+                )
             myFork(ctx, cond)
         } else {
             myFork(ctx, obj.evalIs(ctx, type))
@@ -74,7 +83,11 @@ fun fixateTypeKt(ctx: ConcolicRunContext, obj: UninterpretedSymbolicPythonObject
     obj.addSupertype(ctx, type)
 }
 
-fun handlerAndKt(ctx: ConcolicRunContext, left: UninterpretedSymbolicPythonObject, right: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? = with(
+fun handlerAndKt(
+    ctx: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+): UninterpretedSymbolicPythonObject? = with(
     ctx.ctx
 ) {
     ctx.curState ?: return null
@@ -157,10 +170,13 @@ fun handlerIsOpKt(
     when (leftType) {
         ctx.typeSystem.pythonBool ->
             myFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
+
         ctx.typeSystem.pythonInt ->
             myFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
+
         ctx.typeSystem.pythonNoneType ->
             return
+
         else ->
             myFork(ctx, mkHeapRefEq(left.address, right.address))
     }
@@ -241,7 +257,11 @@ fun handlerStandardTpSetattroKt(
     obj.setFieldValue(ctx, name, value)
 }
 
-fun getArraySize(context: ConcolicRunContext, array: UninterpretedSymbolicPythonObject, type: ArrayLikeConcretePythonType): UninterpretedSymbolicPythonObject? {
+fun getArraySize(
+    context: ConcolicRunContext,
+    array: UninterpretedSymbolicPythonObject,
+    type: ArrayLikeConcretePythonType,
+): UninterpretedSymbolicPythonObject? {
     if (context.curState == null) {
         return null
     }

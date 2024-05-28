@@ -59,7 +59,7 @@ fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         ctx.curState!!.meta.modelDied = true
     }
     if (forkResult?.pyModel != oldModel) {
-        throw BadModelException
+        throw BadModelException()
     }
 }
 
@@ -88,6 +88,4 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     myFork(ctx, expr)
 }
 
-object BadModelException : Exception() {
-    private fun readResolve(): Any = BadModelException
-}
+class BadModelException : RuntimeException()

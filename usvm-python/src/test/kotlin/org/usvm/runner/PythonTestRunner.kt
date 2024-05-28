@@ -72,20 +72,21 @@ sealed class PythonTestRunner(
             }
         }
 
-    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(concreteRun: Boolean = true):
-        (
-            PyUnpinnedCallable,
-            AnalysisResultsNumberMatcher,
-            (PyTest<PythonObjectInfo>, PyObject) -> String?,
-            List<FUNCTION_TYPE>,
-            List<FUNCTION_TYPE>,
-        ) -> Unit =
+    private inline fun <reified FUNCTION_TYPE : Function<Boolean>> createCheckWithConcreteRun(
+        concreteRun: Boolean = true,
+    ): (
+        PyUnpinnedCallable,
+        AnalysisResultsNumberMatcher,
+        (PyTest<PythonObjectInfo>, PyObject) -> String?,
+        List<FUNCTION_TYPE>,
+        List<FUNCTION_TYPE>,
+    ) -> Unit =
         { target: PyUnpinnedCallable,
                 analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
                 compareConcolicAndConcrete: (PyTest<PythonObjectInfo>, PyObject) -> String?,
                 invariants: List<FUNCTION_TYPE>,
                 propertiesToDiscover: List<FUNCTION_TYPE>,
-                ->
+            ->
             val onAnalysisResult = { pythonTest: PyTest<PythonObjectInfo> ->
                 val executionResult = when (val result = pythonTest.result) {
                     is PyResultSuccess -> result.output
@@ -120,7 +121,7 @@ sealed class PythonTestRunner(
         (PyUnpinnedCallable, (PyTest<PythonObjectInfo>, PyObject) -> String?) -> Unit =
         { target: PyUnpinnedCallable,
                 compareConcolicAndConcrete: (PyTest<PythonObjectInfo>, PyObject) -> String?,
-                ->
+            ->
             createCheckWithConcreteRun<FUNCTION_TYPE>(concreteRun = true)(
                 target,
                 ge(0),
@@ -136,7 +137,7 @@ sealed class PythonTestRunner(
                 analysisResultsNumberMatcher: AnalysisResultsNumberMatcher,
                 invariants: List<FUNCTION_TYPE>,
                 propertiesToDiscover: List<FUNCTION_TYPE>,
-                ->
+            ->
             createCheckWithConcreteRun<FUNCTION_TYPE>(concreteRun = false)(
                 target,
                 analysisResultsNumberMatcher,
@@ -162,28 +163,34 @@ sealed class PythonTestRunner(
         createCheckWithConcreteRunAndNoPredicates<(PythonObjectInfo, PythonObjectInfo, PythonObjectInfo) -> Boolean>()
 
     val check3WithConcreteRun =
-        createCheckWithConcreteRun<(
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-        ) -> Boolean>()
+        createCheckWithConcreteRun<
+            (
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+            ) -> Boolean
+            >()
     val check3NoPredicates =
-        createCheckWithConcreteRunAndNoPredicates<(
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-        ) -> Boolean>()
+        createCheckWithConcreteRunAndNoPredicates<
+            (
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+            ) -> Boolean
+            >()
 
     val check4NoPredicates =
-        createCheckWithConcreteRunAndNoPredicates<(
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-            PythonObjectInfo,
-        ) -> Boolean>()
+        createCheckWithConcreteRunAndNoPredicates<
+            (
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+                PythonObjectInfo,
+            ) -> Boolean
+            >()
 
     protected val compareConcolicAndConcreteReprsIfSuccess:
         (PyTest<PythonObjectInfo>, PyObject) -> String? = { testFromConcolic, concreteResult ->
@@ -207,9 +214,8 @@ sealed class PythonTestRunner(
         (PyTest<PythonObjectInfo>, PyObject) -> String? = { testFromConcolic, concreteResult ->
             (testFromConcolic.result as? PyResultFailure)?.let {
                 if (ConcretePythonInterpreter.getPythonObjectTypeName(concreteResult) != "type") {
-                    "Fail in concolic (${it.exception.selfTypeName}), but success in concrete (${ConcretePythonInterpreter.getPythonObjectRepr(
-                        concreteResult
-                    )})"
+                    "Fail in concolic (${it.exception.selfTypeName}), " +
+                        "but success in concrete (${ConcretePythonInterpreter.getPythonObjectRepr(concreteResult)})"
                 } else {
                     val concolic = it.exception.selfTypeName
                     val concrete = ConcretePythonInterpreter.getNameOfPythonType(concreteResult)

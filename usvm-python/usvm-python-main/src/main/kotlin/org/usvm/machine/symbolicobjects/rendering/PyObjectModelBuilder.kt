@@ -70,19 +70,44 @@ class PyObjectModelBuilder(
         val typeSystem = state.typeSystem
         val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")
         val result: PyObjectModel = when (type) {
-            MockType -> convertMockType(obj)
-            typeSystem.pythonInt -> convertInt(obj)
-            typeSystem.pythonBool -> convertBool(obj)
-            typeSystem.pythonNoneType -> convertNone()
-            typeSystem.pythonSlice -> convertSlice(obj)
-            typeSystem.pythonFloat -> convertFloat(obj)
-            typeSystem.pythonStr -> convertString(obj)
-            typeSystem.pythonList -> convertList(obj)
-            typeSystem.pythonTuple -> convertTuple(obj)
-            typeSystem.pythonDict -> convertDict(obj)
-            typeSystem.pythonSet -> convertSet(obj)
+            MockType -> {
+                convertMockType(obj)
+            }
+            typeSystem.pythonInt -> {
+                convertInt(obj)
+            }
+            typeSystem.pythonBool -> {
+                convertBool(obj)
+            }
+            typeSystem.pythonNoneType -> {
+                convertNone()
+            }
+            typeSystem.pythonSlice -> {
+                convertSlice(obj)
+            }
+            typeSystem.pythonFloat -> {
+                convertFloat(obj)
+            }
+            typeSystem.pythonStr -> {
+                convertString(obj)
+            }
+            typeSystem.pythonList -> {
+                convertList(obj)
+            }
+            typeSystem.pythonTuple -> {
+                convertTuple(obj)
+            }
+            typeSystem.pythonDict -> {
+                convertDict(obj)
+            }
+            typeSystem.pythonSet -> {
+                convertSet(obj)
+            }
             else -> {
-                if ((type as? ConcretePythonType)?.let { ConcretePythonInterpreter.typeHasStandardNew(it.asObject) } == true) {
+                if ((type as? ConcretePythonType)?.let {
+                        ConcretePythonInterpreter.typeHasStandardNew(it.asObject)
+                    } == true
+                ) {
                     convertFromDefaultConstructor(obj, type)
                 } else {
                     error("Could not construct instance of type $type")
@@ -311,9 +336,9 @@ class PyObjectModelBuilder(
     private fun constructArrayContents(
         obj: InterpretedInputSymbolicPythonObject,
     ): List<PyObjectModel> {
-        val size = obj.readArrayLength(state.ctx) as? KInt32NumExpr ?: throw LengthOverflowException
+        val size = obj.readArrayLength(state.ctx) as? KInt32NumExpr ?: throw LengthOverflowException()
         if (size.value > MAX_INPUT_ARRAY_LENGTH) {
-            throw LengthOverflowException
+            throw LengthOverflowException()
         }
         return List(size.value) { index ->
             val indexExpr = state.ctx.mkSizeExpr(index) as KInterpretedValue<KIntSort>
@@ -323,6 +348,4 @@ class PyObjectModelBuilder(
     }
 }
 
-object LengthOverflowException : Exception() {
-    private fun readResolve(): Any = LengthOverflowException
-}
+class LengthOverflowException : RuntimeException()

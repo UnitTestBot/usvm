@@ -9,7 +9,10 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.TupleIteratorContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(ctx: ConcolicRunContext, tuple: UninterpretedSymbolicPythonObject) = with(
+fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(
+    ctx: ConcolicRunContext,
+    tuple: UninterpretedSymbolicPythonObject,
+) = with(
     ctx.ctx
 ) {
     require(ctx.curState != null)
@@ -18,7 +21,9 @@ fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(ctx: ConcolicRunCo
     ctx.curState!!.memory.writeField(address, TupleIteratorContents.index, intSort, mkIntNum(0), trueExpr)
 }
 
-fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(ctx: ConcolicRunContext): Pair<UHeapRef, UExpr<KIntSort>> = with(
+fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(
+    ctx: ConcolicRunContext,
+): Pair<UHeapRef, UExpr<KIntSort>> = with(
     ctx.ctx
 ) {
     require(ctx.curState != null)

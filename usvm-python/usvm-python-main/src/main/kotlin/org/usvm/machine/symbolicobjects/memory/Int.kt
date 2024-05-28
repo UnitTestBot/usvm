@@ -40,7 +40,10 @@ fun InterpretedInputSymbolicPythonObject.getIntContent(ctx: PyContext): UExpr<KI
     return modelHolder.model.readField(address, IntContents.content, ctx.intSort)
 }
 
-fun InterpretedSymbolicPythonObject.getIntContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): UExpr<KIntSort> {
+fun InterpretedSymbolicPythonObject.getIntContent(
+    ctx: PyContext,
+    memory: UMemory<PythonType, PyCallable>,
+): UExpr<KIntSort> {
     return when (this) {
         is InterpretedInputSymbolicPythonObject -> {
             getIntContent(ctx)

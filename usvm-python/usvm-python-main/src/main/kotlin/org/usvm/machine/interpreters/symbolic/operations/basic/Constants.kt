@@ -14,9 +14,15 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): Uninterpre
         return null
     }
     return when (ConcretePythonInterpreter.getPythonObjectTypeName(value)) {
-        "int" -> handlerLoadConstLongKt(context, value)
-        "bool" -> handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
-        "NoneType" -> context.curState?.preAllocatedObjects?.noneObject
+        "int" -> {
+            handlerLoadConstLongKt(context, value)
+        }
+        "bool" -> {
+            handlerLoadConstBoolKt(context, ConcretePythonInterpreter.getPythonObjectRepr(value))
+        }
+        "NoneType" -> {
+            context.curState?.preAllocatedObjects?.noneObject
+        }
         "tuple" -> {
             val elements = ConcretePythonInterpreter.getIterableElements(value)
             val symbolicElements = elements.map {
@@ -24,10 +30,15 @@ fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): Uninterpre
             }
             handlerLoadConstTupleKt(context, symbolicElements)
         }
-
-        "str" -> handlerLoadConstStrKt(context, value)
-        "float" -> handlerLoadConstFloatKt(context, value)
-        else -> null
+        "str" -> {
+            handlerLoadConstStrKt(context, value)
+        }
+        "float" -> {
+            handlerLoadConstFloatKt(context, value)
+        }
+        else -> {
+            null
+        }
     }
 }
 
@@ -74,5 +85,8 @@ fun handlerLoadConstBoolKt(context: ConcolicRunContext, value: String): Uninterp
     }
 }
 
-fun handlerLoadConstTupleKt(context: ConcolicRunContext, elements: List<UninterpretedSymbolicPythonObject>): UninterpretedSymbolicPythonObject? =
+fun handlerLoadConstTupleKt(
+    context: ConcolicRunContext,
+    elements: List<UninterpretedSymbolicPythonObject>,
+): UninterpretedSymbolicPythonObject? =
     createIterable(context, elements, context.typeSystem.pythonTuple)

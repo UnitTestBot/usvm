@@ -23,22 +23,38 @@ import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 sealed class FloatInterpretedContent
-object FloatNan : FloatInterpretedContent()
-object FloatPlusInfinity : FloatInterpretedContent()
-object FloatMinusInfinity : FloatInterpretedContent()
+data object FloatNan : FloatInterpretedContent()
+data object FloatPlusInfinity : FloatInterpretedContent()
+data object FloatMinusInfinity : FloatInterpretedContent()
 data class FloatNormalValue(val value: Double) : FloatInterpretedContent()
 
-private fun readBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, model: PyModel, address: UConcreteHeapRef, ctx: PyContext): UBoolExpr {
+private fun readBoolFieldWithSoftConstraint(
+    field: ContentOfType<KIntSort>,
+    model: PyModel,
+    address: UConcreteHeapRef,
+    ctx: PyContext,
+): UBoolExpr {
     val value = model.readField(address, field, field.sort(ctx))
     return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.BOUND))
 }
 
-private fun readBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext): UBoolExpr {
+private fun readBoolFieldWithSoftConstraint(
+    field: ContentOfType<KIntSort>,
+    memory: UMemory<PythonType, PyCallable>,
+    address: UHeapRef,
+    ctx: PyContext,
+): UBoolExpr {
     val value = memory.readField(address, field, field.sort(ctx))
     return ctx.mkArithGt(value, ctx.mkIntNum(FloatContents.BOUND))
 }
 
-private fun writeBoolFieldWithSoftConstraint(field: ContentOfType<KIntSort>, memory: UMemory<PythonType, PyCallable>, address: UHeapRef, ctx: PyContext, value: UBoolExpr) {
+private fun writeBoolFieldWithSoftConstraint(
+    field: ContentOfType<KIntSort>,
+    memory: UMemory<PythonType, PyCallable>,
+    address: UHeapRef,
+    ctx: PyContext,
+    value: UBoolExpr,
+) {
     val intValue = ctx.mkIte(value, ctx.mkIntNum(FloatContents.BOUND + 1), ctx.mkIntNum(0))
     memory.writeField(address, field, field.sort(ctx), intValue, ctx.trueExpr)
 }
@@ -59,7 +75,10 @@ fun InterpretedInputSymbolicPythonObject.getFloatContent(ctx: PyContext): FloatI
     return FloatNormalValue(floatValue.value)
 }
 
-fun InterpretedSymbolicPythonObject.getFloatContent(ctx: PyContext, memory: UMemory<PythonType, PyCallable>): FloatInterpretedContent {
+fun InterpretedSymbolicPythonObject.getFloatContent(
+    ctx: PyContext,
+    memory: UMemory<PythonType, PyCallable>,
+): FloatInterpretedContent {
     if (this is InterpretedInputSymbolicPythonObject) {
         return getFloatContent(ctx)
     }
