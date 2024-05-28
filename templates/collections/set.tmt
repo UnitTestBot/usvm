@@ -1,0 +1,66 @@
+~main class start~
+~import java.util.*;~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.addAll(Arrays.asList(new Integer[] { 1, 3, 1 }));
+if (a12341.size() == 2) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.addAll(Arrays.asList(new Integer[] { 1, 3, 1 }));
+if (a12341.size() == 3) {
+  ~[String]~ = "";
+}
+~template end~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.addAll(Arrays.asList(new Integer[] { 1, 3, 1 }));
+Set<Integer> a23488 = new HashSet<Integer>();
+a12341.retainAll(a23488);
+if (a12341.isEmpty()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+Integer[] arr43533 = new Integer[] { 1, 3, 1 };
+a12341.addAll(Arrays.asList(arr43533));
+if (a12341.size() == Arrays.asList(arr43533).size()) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.addAll(Arrays.asList(new Integer[] { 1, 3, 1 }));
+String tmp45745 = ~[VAR_String]~;
+~[String]~ = ~[String]~;
+Set<Integer> a23488 = new HashSet<Integer>();
+a12341.removeAll(a23488);
+if (a12341.isEmpty()) {
+  ~[String]~ = tmp45745;
+}
+~template end~
+~template start~
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.addAll(Arrays.asList(new Integer[] { 1, 3, 1 }));
+String tmp45745 = ~[VAR_String]~;
+~[String]~ = ~[String]~;
+Set<Integer> a23488 = new HashSet<Integer>();
+if (a12341.containsAll(a23488)) {
+  ~[String]~ = tmp45745;
+}
+~template end~
+~template start~
+String tmp45745 = ~[VAR_String]~;
+~[String]~ = ~[String]~;
+Set<Integer> a12341 = new HashSet<Integer>();
+a12341.add(1);
+a12341.add(1);
+a12341.remove(1);
+if (a12341.isEmpty()) {
+  ~[String]~ = tmp45745;
+}
+~template end~
+~main class end~
