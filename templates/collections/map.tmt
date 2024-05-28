@@ -1,0 +1,197 @@
+~main class start~
+~import java.util.*;~
+~template start~
+Map<String, Srting> map89458 = new HashMap<>();
+map89458.put(~[String]~, "");
+map89458.put(~[String]~, ~[String]~);
+map89458.put(~[String]~, ~[VAR_String]~);
+String value32632 = map89458.getOrDefault(~[String]~, "");
+if (!value32632.equals("")){
+  ~[String]~ = value32632;
+}
+~template end~
+~template start~
+Map<String, Srting> map89458 = new HashMap<>();
+String var274523 = ~[String]~;
+map89458.put(var274523, "");
+map89458.put(var274523, ~[String]~);
+String value32632 = map89458.getOrDefault(~[String]~, "");
+if (map89458.containtsValue(value32632)){
+  ~[String]~ = value32632;
+}
+~template end~
+~template start~
+Map<String, String> map2 = new HashMap<>();
+Map<String, String> anotherMap = new HashMap<>();
+anotherMap.put(~[String]~, ~[String]~);
+map2.putAll(anotherMap);
+String value2 = map2.getOrDefault(~[String]~, "");
+if (!value2.equals("")){
+  ~[String]~ = value2;
+}
+~template end~
+~template start~
+Map<String, String> map3 = new HashMap<>();
+map3.putIfAbsent(~[String]~, ~[String]~);
+String value3 = map3.getOrDefault(~[String]~, "");
+if (!value3.equals("")){
+  ~[String]~ = value3;
+}
+~template end~
+~template start~
+Map<String, String> map4 = new HashMap<>();
+map4.put(~[String]~, ~[String]~);
+String value4 = map4.get(~[String]~);
+if (value4 != null && !value4.equals("")){
+  ~[String]~ = value4;
+}
+~template end~
+~template start~
+Map<String, String> map5 = new HashMap<>();
+map5.put(~[String]~, ~[String]~);
+String value5 = map5.remove(~[String]~);
+if (value5 != null && !value5.equals("")){
+  ~[String]~ = value5;
+}
+~template end~
+~template start~
+Map<String, String> map6 = new HashMap<>();
+map6.put(~[String]~, ~[String]~);
+if (map6.containsKey(~[String]~)){
+  ~[String]~ = map6.get(~[String]~);
+}
+~template end~
+~template start~
+Map<String, String> map7 = new HashMap<>();
+String theKey12312 = ~[String]~;
+map7.put(theKey12312, ~[String]~);
+if (map7.containsValue(~[String]~)){
+  ~[String]~ = theKey12312;
+}
+~template end~
+~template start~
+Map<String, String> map8 = new HashMap<>();
+map8.put(~[String]~, ~[String]~);
+map8.replace(~[String]~, ~[String]~);
+String value8 = map8.getOrDefault(~[String]~, "");
+if (!value8.equals("")){
+  ~[String]~ = value8;
+}
+~template end~
+~template start~
+Map<String, String> map9 = new HashMap<>();
+map9.put(~[String]~, ~[String]~);
+map9.replace(~[String]~, ~[String]~, ~[String]~);
+String value9 = map9.getOrDefault(~[String]~, "");
+if (!value9.equals("")){
+  ~[String]~ = value9;
+}
+~template end~
+~template start~
+Map<String, String> map10 = new HashMap<>();
+map10.put(~[String]~, ~[String]~);
+int size10 = map10.size();
+if (size10 > 0){
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<String, String> map11 = new HashMap<>();
+map11.put(~[String]~, ~[String]~);
+if (!map11.isEmpty()){
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<String, String> map12 = new HashMap<>();
+map12.put(~[String]~, ~[String]~);
+map12.clear();
+if (map12.isEmpty()){
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<String, String> map13 = new HashMap<>();
+map13.put(~[String]~, ~[String]~);
+Set<String> keys = map13.keySet();
+for (String key : keys) {
+  ~[String]~ = key;
+}
+~template end~
+~template start~
+Map<String, String> map15 = new HashMap<>();
+map15.put(~[String]~, ~[String]~);
+Set<Map.Entry<String, String>> entries = map15.entrySet();
+for (Map.Entry<String, String> entry : entries) {
+  ~[String]~ = entry.getKey();
+  ~[String]~ = entry.getValue();
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+map12341.compute(1, (key, value) -> ~[String]~);
+if (map12341.containsValue(~[String]~)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+map12341.compute(1, (key, value) -> "");
+if (map12341.containsValue("")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.computeIfAbsent(1, k -> "defaultValue");
+if (map12341.containsKey(1)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+map12341.computeIfPresent(1, (key, value) -> value + " updated");
+if (map12341.containsValue("value1 updated")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+Map<Integer, String> anotherMap = new HashMap<>();
+anotherMap.put(1, "value1");
+if (map12341.equals(anotherMap)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+final String pampam = param;
+map12341.forEach((key, value) -> value = pampam);
+if (map12341.containsKey(1)) {
+  ~[String]~ = map12341.get(1);
+}
+~template end~
+~template start~
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+map12341.merge(1, "newValue", String::concat);
+if (map12341.containsValue("value1newValue")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+Map<Integer, String> map12341 = new HashMap<>();
+map12341.put(1, "value1");
+map12341.replaceAll((key, value) -> value + " updated");
+if (map12341.containsValue("value1 updated")) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
