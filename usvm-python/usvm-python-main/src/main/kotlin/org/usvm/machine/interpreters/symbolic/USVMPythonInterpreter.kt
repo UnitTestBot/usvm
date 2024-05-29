@@ -83,7 +83,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
                 concolicRunContext,
                 printErrorMsg
             )
-        } catch (exception: Throwable) {
+        } catch (exception: RuntimeException) {
             if (exception is CPythonExecutionException) {
                 val realCPythonException = processCPythonExceptionDuringConcolicRun(
                     concolicRunContext,

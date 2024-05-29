@@ -56,11 +56,11 @@ open class USVMPythonRunner(private val config: USVMPythonConfig) : AutoCloseabl
         val processBuilder = ProcessBuilder(args)
         val env = processBuilder.environment()
         if (System.getProperty("os.name")!!.lowercase().startsWith("windows")) {
-            env["PATH"] = (System.getProperty("PATH")?.let {
-                "$it:"
-            } ?: "") + "${File(layout.cpythonPath, "DLLs").canonicalPath};${layout.cpythonPath.canonicalPath}"
+            env["PATH"] = (System.getProperty("PATH")?.let { "$it:" } ?: "") +
+                "${File(layout.cpythonPath, "DLLs").canonicalPath};${layout.cpythonPath.canonicalPath}"
         } else {
-            env["LD_LIBRARY_PATH"] = "${File(layout.cpythonPath, "lib").canonicalPath}:${layout.cpythonPath.canonicalPath}"
+            env["LD_LIBRARY_PATH"] = "${File(layout.cpythonPath, "lib").canonicalPath}:" +
+                layout.cpythonPath.canonicalPath
             env["LD_PRELOAD"] = File(layout.cpythonPath, "lib/libpython3.so").canonicalPath
         }
         env["PYTHONHOME"] = layout.cpythonPath.canonicalPath

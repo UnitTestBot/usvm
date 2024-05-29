@@ -31,6 +31,7 @@ fun getLeafHeapRef(ref: UHeapRef, model: PyModel): UHeapRef =
         else -> error("Unexpected ref: $ref")
     }
 
+private const val PREFIX_SIZE = 3
 
 fun getTypeStreamForDelayedFork(
     obj: UninterpretedSymbolicPythonObject,
@@ -40,8 +41,8 @@ fun getTypeStreamForDelayedFork(
     val interpreted = interpretSymbolicPythonObject(ctx, obj)
     if (interpreted.address.address != 0) {
         val current = interpreted.getTypeStream()!!
-        val prefix = current.take(3)
-        if (prefix is TypesResult.SuccessfulTypesResult && prefix.types.size >= 3) {
+        val prefix = current.take(PREFIX_SIZE)
+        if (prefix is TypesResult.SuccessfulTypesResult && prefix.types.size >= PREFIX_SIZE) {
             return current
         }
     }

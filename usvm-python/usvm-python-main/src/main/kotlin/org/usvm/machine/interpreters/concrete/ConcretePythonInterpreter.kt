@@ -388,7 +388,7 @@ object ConcretePythonInterpreter {
 class CPythonExecutionException(
     val pythonExceptionValue: PyObject? = null,
     val pythonExceptionType: PyObject? = null,
-) : Exception()
+) : RuntimeException()
 
 data class PyObject(val address: Long) {
     init {
@@ -402,4 +402,4 @@ data class PyNamespace(val address: Long) {
     }
 }
 
-data class IllegalOperationException(val operation: String) : Exception()
+data class IllegalOperationException(val operation: String) : RuntimeException()

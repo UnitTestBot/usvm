@@ -20,11 +20,12 @@ import org.usvm.machine.symbolicobjects.memory.getBoolContent
 import org.usvm.machine.symbolicobjects.memory.getIntContent
 
 fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
-    ctx.curState ?: throw UnregisteredVirtualOperation
-    ctx.curOperation ?: throw UnregisteredVirtualOperation
+    if (ctx.curState == null || ctx.curOperation == null) {
+        throw UnregisteredVirtualOperation()
+    }
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
     if (ctx.curOperation?.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef) {
-        throw UnregisteredVirtualOperation // path diversion
+        throw UnregisteredVirtualOperation() // path diversion
     }
 
     val oldModel = ctx.modelHolder.model
@@ -55,8 +56,9 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
 }
 
 fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = with(ctx.ctx) {
-    ctx.curState ?: throw UnregisteredVirtualOperation
-    ctx.curOperation ?: throw UnregisteredVirtualOperation
+    if (ctx.curState == null || ctx.curOperation == null) {
+        throw UnregisteredVirtualOperation()
+    }
     val typeSystem = ctx.typeSystem
     val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
     require(ctx.curOperation?.method == SqLengthMethod && interpretedArg.address.address == on.interpretedObjRef)
@@ -72,9 +74,10 @@ private fun internalVirtualCallKt(
     ctx: ConcolicRunContext,
     customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModel, UBoolExpr>> = { emptyList() },
 ): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(ctx.ctx) {
-    ctx.curOperation ?: throw UnregisteredVirtualOperation
-    ctx.curState ?: throw UnregisteredVirtualOperation
-    val owner = ctx.curOperation.methodOwner ?: throw UnregisteredVirtualOperation
+    val owner = ctx.curOperation?.methodOwner
+    if (ctx.curState == null || ctx.curOperation == null || owner == null) {
+        throw UnregisteredVirtualOperation()
+    }
     val ownerIsAlreadyMocked = ctx.curState!!.mockedObjects.contains(owner)
     var clonedState = if (!ownerIsAlreadyMocked) ctx.curState!!.clone() else null
     if (clonedState != null) {
@@ -113,14 +116,14 @@ private fun internalVirtualCallKt(
 }
 
 fun virtualCallKt(ctx: ConcolicRunContext): PyObject {
-    ctx.curState ?: throw UnregisteredVirtualOperation
+    ctx.curState ?: throw UnregisteredVirtualOperation()
     val (interpreted, _) = internalVirtualCallKt(ctx)
     val objectModel = ctx.builder!!.convert(interpreted)
     return ctx.renderer!!.convert(objectModel)
 }
 
 fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {
-    ctx.curState ?: throw UnregisteredVirtualOperation
+    ctx.curState ?: throw UnregisteredVirtualOperation()
     val result = internalVirtualCallKt(ctx).second
     if (!ctx.curOperation!!.method.isMethodWithNonVirtualReturn) {
         val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
@@ -130,6 +133,4 @@ fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObj
     return result
 }
 
-object UnregisteredVirtualOperation : Exception() {
-    private fun readResolve(): Any = UnregisteredVirtualOperation
-}
+class UnregisteredVirtualOperation : RuntimeException()
