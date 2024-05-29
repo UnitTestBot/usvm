@@ -274,11 +274,12 @@ fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String
         .filter { it.id !in badIds }
 //        .filter { it.id in goodIds }
 //        .filter { it.id == idToCheck }
-//        .drop(3)
+//        .take(3)
 
-    for (crash in crashes) {
+    for ((idx, crash) in crashes.withIndex()) {
         val trace = traces[crash.id] ?: continue
         try {
+            println("Start ${crash.id}: $idx / ${crashes.size}")
             analyzeCrash(crashPackPath, crash, trace)
         } catch (ex: Throwable) {
             logger.error(ex) { "Failed" }
@@ -314,7 +315,7 @@ fun analyzeCrash(crashPackPath: Path, crash: CrashPackCrash, trace: CrashTrace) 
         }
 
         jccp.use { cp ->
-            runWithHardTimout(5.minutes) {
+            runWithHardTimout(2.minutes) {
                 analyzeCrash(cp, trace, crash)
             }
         }
@@ -342,7 +343,7 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
 
     val (states, instructions) = reproduceCrash(cp, target)
     val aggregatedUsage = aggregateUsedInstructions(instructions)
-    mergeClassInstructionUsage(usageStats, aggregatedUsage)
+    mergeClassInstructionUsage(usageStats, aggregatedUsage.filterKeys { it.declaration.location.isRuntime })
 
     logger.warn { "+".repeat(50) }
     logger.warn { "Found states: ${states.size}" }

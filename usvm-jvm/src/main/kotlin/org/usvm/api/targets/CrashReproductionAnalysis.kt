@@ -771,13 +771,14 @@ private class CrashReproductionAnalysis(
             }
         )
 
-        budgetPs = LocationBudgetPs(
-//            ExceptionPropagationPathSelector(targetWeightPs)
-            targetWeightPs
-        )
+//        budgetPs = LocationBudgetPs(
+////            ExceptionPropagationPathSelector(targetWeightPs)
+//            targetWeightPs
+//        )
 
 //        val selector = budgetPs
-        val selector = ExceptionPropagationPathSelector(budgetPs)
+//        val selector = ExceptionPropagationPathSelector(budgetPs)
+        val selector = ExceptionPropagationPathSelector(targetWeightPs)
         selector.add(listOf(initialState))
 
         return selector
@@ -861,34 +862,34 @@ private class CrashReproductionAnalysis(
     override fun onStateDeath(state: JcState, bannedStates: Sequence<BannedState>) {
         logger.warn { "State death: ${bannedStates.toList()}" }
 
-        if (!bannedStates.any { it is BlackListBannedState<*> }) return
-
-        val conflicts = bannedStates.filterIsInstance<UnsatBannedState>().toList()
-
-        val possibleConflictLocations = conflicts
-            .flatMap { conflict -> conflict.core.core.map { it.second } }
-            .filterIsInstance<LocationConstraintSource>()
-            .filter { it.location.depth < state.pathLocation.depth }
-            .map { it.location }
-
-        val conflictLocation = possibleConflictLocations.randomOrNull() ?: return
-        var nextToConflictLocation = state.pathLocation
-        while (nextToConflictLocation.parent != conflictLocation) {
-            nextToConflictLocation = nextToConflictLocation.parent ?: return
-        }
-
-        val possibleForks = conflictLocation.children.values.toList()
-
-        val alternativeForkLocations = possibleForks.filter { it != nextToConflictLocation }
-        if (alternativeForkLocations.isEmpty()) return
-
-        @Suppress("UNCHECKED_CAST")
-        budgetPs.giveBudget(
-            alternativeForkLocations.random() as PathsTrieNode<JcState, JcInst>,
-            nextToConflictLocation,
-            possibleForks as List<PathsTrieNode<JcState, JcInst>>,
-            state.pathLocation.depth.toUInt()
-        )
+//        if (!bannedStates.any { it is BlackListBannedState<*> }) return
+//
+//        val conflicts = bannedStates.filterIsInstance<UnsatBannedState>().toList()
+//
+//        val possibleConflictLocations = conflicts
+//            .flatMap { conflict -> conflict.core.core.map { it.second } }
+//            .filterIsInstance<LocationConstraintSource>()
+//            .filter { it.location.depth < state.pathLocation.depth }
+//            .map { it.location }
+//
+//        val conflictLocation = possibleConflictLocations.randomOrNull() ?: return
+//        var nextToConflictLocation = state.pathLocation
+//        while (nextToConflictLocation.parent != conflictLocation) {
+//            nextToConflictLocation = nextToConflictLocation.parent ?: return
+//        }
+//
+//        val possibleForks = conflictLocation.children.values.toList()
+//
+//        val alternativeForkLocations = possibleForks.filter { it != nextToConflictLocation }
+//        if (alternativeForkLocations.isEmpty()) return
+//
+//        @Suppress("UNCHECKED_CAST")
+//        budgetPs.giveBudget(
+//            alternativeForkLocations.random() as PathsTrieNode<JcState, JcInst>,
+//            nextToConflictLocation,
+//            possibleForks as List<PathsTrieNode<JcState, JcInst>>,
+//            state.pathLocation.depth.toUInt()
+//        )
     }
 
     private fun propagateLocationTarget(state: JcState) {

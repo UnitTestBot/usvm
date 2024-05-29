@@ -88,4 +88,6 @@ tasks.register<JavaExec>("crashReproduction") {
 
     environment("usvm.jvm.api.jar.path", usvmApiJarPath.absolutePath)
     environment("usvm.jvm.approximations.jar.path", usvmApproximationJarPath.absolutePath)
+
+    jvmArgs = listOf("-Xmx10g")
 }
