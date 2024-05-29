@@ -39,7 +39,10 @@ import org.usvm.types.first
 typealias PandaStepScope = StepScope<PandaState, PandaType, PandaInst, PandaContext>
 
 @Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
-class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>() {
+class PandaInterpreter(
+    private val ctx: PandaContext,
+    private val applicationGraph: PandaApplicationGraph
+) : UInterpreter<PandaState>() {
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
 
     private var prevBB = PandaBasicBlock(
@@ -137,13 +140,24 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
                     return
                 }
 
-                TODO()
+                val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+
+                if (entryPoint == null) {
+//                    mockMethod(scope, stmt, applicationGraph)
+                    return
+                }
+
+                scope.doWithState {
+                    addNewMethodCall(stmt, entryPoint)
+                }
             }
 
             is PandaVirtualMethodCallInst -> {
                 if (approximateMethod(scope, stmt)) {
                     return
                 }
+
+                resolveVirtualInvoke(stmt, scope)
             }
         }
     }
@@ -251,7 +265,24 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
 
 
     private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {
-        TODO()
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val callExpr = stmt.callExpr
+        val methodResult = scope.calcOnState { methodResult }
+
+        when (methodResult) {
+            is PandaMethodResult.NoCall -> {}
+
+            is PandaMethodResult.Success -> {}
+            is PandaMethodResult.PandaException -> error("Exceptions must be processed earlier")
+        }
+
+        exprResolver.resolvePandaExpr(callExpr) ?: return
+
+        stmt.nextStmt?.let { nextStmt ->
+            scope.doWithState {
+                newStmt(nextStmt)
+            }
+        }
     }
 
     private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
@@ -281,10 +312,17 @@ class PandaInterpreter(private val ctx: PandaContext) : UInterpreter<PandaState>
             else -> error("Unexpected local: $local")
         }
 
+    private val typeSelector = PandaFixedInheritorsNumberTypeSelector()
+
     // TODO: currently mocked
     private fun approximateMethod(scope: PandaStepScope, methodCall: PandaMethodCall): Boolean {
-        return true
+        return false
     }
+
+    private fun resolveVirtualInvoke(
+        methodCall: PandaVirtualMethodCallInst,
+        scope: PandaStepScope,
+    ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, false) // Set default from JcMachineOptions
 
     private val PandaInst.nextStmt: PandaInst?
         get() = location.let { it.method.instructions.getOrNull(it.index + 1) }

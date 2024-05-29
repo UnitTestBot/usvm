@@ -42,7 +42,9 @@ class PandaUndefinedSort(ctx: PandaContext) : USort(ctx) {
         builder.append("undefined sort")
     }
 
-    override fun <T> accept(visitor: KSortVisitor<T>): T = TODO("Not yet implemented")
+    override fun <T> accept(visitor: KSortVisitor<T>): T {
+        return visitor.visit(this) as T
+    }
 }
 
 class PandaStringSort(ctx: PandaContext) : USort(ctx) {

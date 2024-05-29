@@ -389,11 +389,11 @@ open class UContext<USizeSort : USort>(
 
     override fun <S : KBvSort> bvSortDefaultValue(sort: S): KExpr<S> = mkBv(0, sort)
 
-    fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
+    open fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
         return UValueSampler(this)
     }
 
-    val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
+    open val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
 
     class UValueSampler(val uctx: UContext<*>) : DefaultValueSampler(uctx) {
         override fun visit(sort: KUninterpretedSort): KExpr<*> =

@@ -2,7 +2,11 @@ package org.usvm.machine
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
+import org.jacodb.panda.dynamic.api.PandaArrayType
 import org.jacodb.panda.dynamic.api.PandaBoolType
+import org.jacodb.panda.dynamic.api.PandaClass
+import org.jacodb.panda.dynamic.api.PandaClassType
+import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaNumberType
 import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaPrimitiveType
@@ -140,4 +144,92 @@ class PandaTopTypeStream(
     override val commonSuperType: PandaType?
         get() = if (primitiveTypes.isNotEmpty()) null else objectTypeStream.commonSuperType
 
+}
+
+interface PandaTypeSelector {
+    fun choose(method: PandaMethod, typeStream: UTypeStream<out PandaType>): Collection<PandaType>
+}
+
+class PandaFixedInheritorsNumberTypeSelector(
+    private val inheritorsNumberToChoose: Int = DEFAULT_INHERITORS_NUMBER_TO_CHOOSE,
+    inheritorsNumberToSelectFrom: Int = DEFAULT_INHERITORS_NUMBER_TO_SCORE,
+) : PandaTypeSelector {
+    private val typesPriorities = PandaTypeStreamPrioritization(inheritorsNumberToSelectFrom)
+
+    override fun choose(method: PandaMethod, typeStream: UTypeStream<out PandaType>): Collection<PandaType> =
+        typesPriorities.take(typeStream, method.enclosingClass, inheritorsNumberToChoose)
+
+    companion object {
+        const val DEFAULT_INHERITORS_NUMBER_TO_CHOOSE: Int = 4
+        // TODO: elaborate on better constant choosing
+        const val DEFAULT_INHERITORS_NUMBER_TO_SCORE: Int = 100
+    }
+}
+
+class PandaTypeStreamPrioritization(private val typesToScore: Int) {
+    fun take(
+        typeStream: UTypeStream<out PandaType>,
+        referenceClass: PandaClass,
+        limit: Int
+    ): Collection<PandaType> = fetchTypes(typeStream)
+        .sortedByDescending { type -> typeScore(referenceClass, type) }
+        .take(limit)
+
+    fun firstOrNull(
+        typeStream: UTypeStream<out PandaType>,
+        referenceClass: PandaClass,
+    ): PandaType? = fetchTypes(typeStream)
+        .maxByOrNull { type -> typeScore(referenceClass, type) }
+
+    private fun fetchTypes(typeStream: UTypeStream<out PandaType>): Collection<PandaType> =
+        typeStream
+            .take(typesToScore)
+            .let {
+                when (it) {
+                    TypesResult.EmptyTypesResult -> emptyList()
+                    is TypesResult.SuccessfulTypesResult -> it
+                    is TypesResult.TypesResultWithExpiredTimeout -> it.collectedTypes
+                }
+            }
+
+    private fun typeScore(referenceClass: PandaClass, type: PandaType): Double {
+        var score = 0.0
+
+        if (type is PandaClassType) {
+            // prefer class types over arrays
+            score += 1
+
+//            if (type.isPublic) {
+//                score += 3
+//            }
+//
+//            // Prefer easy instantiable classes
+//            if (type.constructors.any { it.isPublic }) {
+//                score += 3
+//            }
+//
+//            if (type.isFinal) {
+//                score += 1
+//            }
+//
+//            if (type.outerType == null) {
+//                score += 1
+//            }
+//
+//            val typePkg = type.jcClass.name.split(".")
+//            val methodPkg = referenceClass.name.split(".")
+//
+//            for ((typePkgPart, methodPkgPart) in typePkg.zip(methodPkg)) {
+//                if (typePkgPart != methodPkgPart) break
+//                score += 1
+//            }
+        }
+
+        if (type is PandaArrayType) {
+            val elementScore = typeScore(referenceClass, type.elementType)
+            score += elementScore / 10
+        }
+
+        return score
+    }
 }

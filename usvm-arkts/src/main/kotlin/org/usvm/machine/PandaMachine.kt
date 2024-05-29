@@ -30,8 +30,8 @@ class PandaMachine(
     private val typeSystem = PandaTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = PandaComponents(typeSystem, options)
     private val ctx: PandaContext = PandaContext(components)
-    private val interpreter: PandaInterpreter = PandaInterpreter(ctx)
     private val applicationGraph: PandaApplicationGraph = PandaApplicationGraph(project)
+    private val interpreter: PandaInterpreter = PandaInterpreter(ctx, applicationGraph)
 
     fun analyze(
         methods: List<PandaMethod>,

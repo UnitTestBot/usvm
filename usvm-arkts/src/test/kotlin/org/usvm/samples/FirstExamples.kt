@@ -100,4 +100,16 @@ class FirstExamplesTest : PandaMethodTestRunner() {
             analysisResultMatchers = emptyArray()
         )
     }
+
+    @Test
+    fun testPasswordExposure() {
+        discoverProperties<Any, Any>(
+            methodIdentifier = MethodDescriptor(
+                className = "passwordExposureFP",
+                methodName = "usage1",
+                argumentsNumber = 0
+            ),
+            analysisResultMatchers = emptyArray()
+        )
+    }
 }

@@ -362,7 +362,8 @@ class PandaExprResolver(
     }
 
     override fun visitPandaThis(expr: PandaThis): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val ref = resolveLocal(expr)
+        return scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitPandaToNumericExpr(expr: PandaToNumericExpr): UExpr<out USort>? {
@@ -375,8 +376,7 @@ class PandaExprResolver(
 
     override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): UExpr<out USort>? {
         // TODO intern
-        val value = scope.calcOnState { memory.allocConcrete(PandaUndefinedType) }
-        return value
+        return ctx.undefinedObject
     }
 
     override fun visitPandaValueByInstance(expr: PandaValueByInstance): UExpr<out USort>? {
@@ -424,7 +424,13 @@ class PandaExprResolver(
             null
         }
 
-        val arguments = args.map { resolvePandaExpr(it) ?: return null }
+        val arguments = mutableListOf<UExpr<out USort>>()
+
+        if (instanceRef != null) {
+            arguments += instanceRef
+        }
+
+        arguments += args.map { resolvePandaExpr(it) ?: return null }
 
         return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
     }

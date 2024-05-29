@@ -52,7 +52,7 @@
           "id": "v3",
           "imms": [
            0,
-           451,
+           374,
            1
           ],
           "inputs": [
@@ -60,7 +60,10 @@
           ],
           "intrinsic_id": "Intrinsic.definefunc",
           "opcode": "Intrinsic",
-          "type": "any"
+          "type": "any",
+          "users": [
+           "v5"
+          ]
          },
          {
           "id": "v6",
@@ -72,12 +75,18 @@
          },
          {
           "id": "v5",
+          "imms": [
+           1,
+           212
+          ],
           "inputs": [
+           "v3",
            "v6"
           ],
-          "intrinsic_id": "Intrinsic.ldundefined",
+          "intrinsic_id": "Intrinsic.stglobalvar",
           "opcode": "Intrinsic",
-          "type": "any"
+          "string_data": "findMinValue",
+          "type": "void"
          },
          {
           "id": "v8",
@@ -91,6 +100,23 @@
           "id": "v7",
           "inputs": [
            "v8"
+          ],
+          "intrinsic_id": "Intrinsic.ldundefined",
+          "opcode": "Intrinsic",
+          "type": "any"
+         },
+         {
+          "id": "v10",
+          "opcode": "SaveState",
+          "type": "void",
+          "users": [
+           "v9"
+          ]
+         },
+         {
+          "id": "v9",
+          "inputs": [
+           "v10"
           ],
           "intrinsic_id": "Intrinsic.returnundefined",
           "opcode": "Intrinsic",
@@ -226,7 +252,7 @@
           "id": "v4",
           "imms": [
            0,
-           224
+           226
           ],
           "inputs": [
            "v3",
@@ -317,7 +343,7 @@
           "id": "v12",
           "imms": [
            3,
-           217
+           205
           ],
           "inputs": [
            "v13"
@@ -345,7 +371,7 @@
           ],
           "opcode": "LoadString",
           "string": "Array is empty!",
-          "stringOffset": 200,
+          "stringOffset": 188,
           "type": "ref",
           "users": [
            "v16"
@@ -655,7 +681,7 @@
           "id": "v36",
           "imms": [
            8,
-           224
+           226
           ],
           "inputs": [
            "27p",

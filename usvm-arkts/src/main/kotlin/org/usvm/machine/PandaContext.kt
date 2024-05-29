@@ -1,5 +1,9 @@
 package org.usvm.machine
 
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KSortVisitor
+import io.ksmt.sort.KUninterpretedSort
+import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.mkConst
 import org.jacodb.panda.dynamic.api.PandaAnyType
 import org.jacodb.panda.dynamic.api.PandaBoolType
@@ -43,10 +47,11 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
         else -> error("Unknown type: $type")
     }
 
-    fun nonRefSortToType(sort: USort): PandaPrimitiveType = when (sort) {
+    fun nonRefSortToType(sort: USort): PandaType = when (sort) {
         boolSort -> PandaBoolType
         fp64Sort -> PandaNumberType
         stringSort -> PandaStringType
+        undefinedSort -> PandaUndefinedType
         else -> error("TODO")
     }
 
@@ -113,6 +118,19 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
             else -> uExpr
         }
     }
+
+    override val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
+
+    override fun mkUValueSampler(): KPandaSortVisitor {
+        return KPandaSortVisitor(this)
+    }
+
+    class KPandaSortVisitor(ctx: PandaContext) : DefaultValueSampler(ctx) {
+
+        fun visit(sort: PandaUndefinedSort): KExpr<*> = (ctx as PandaContext).undefinedObject
+
+    }
+
 }
 
 fun UMemory<PandaType, PandaMethod>.wrapField(value: UExpr<*>, type: PandaType): UConcreteHeapRef {
