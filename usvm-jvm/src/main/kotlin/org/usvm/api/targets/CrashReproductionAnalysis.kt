@@ -7,6 +7,7 @@ import org.jacodb.api.cfg.JcInst
 import org.jacodb.api.ext.cfg.callExpr
 import org.jacodb.api.ext.toType
 import org.usvm.BannedState
+import org.usvm.BlackListBannedState
 import org.usvm.PathSelectionStrategy
 import org.usvm.PathsTrieNode
 import org.usvm.SolverType
@@ -28,6 +29,7 @@ import org.usvm.machine.JcMethodEntrypointInst
 import org.usvm.machine.JcPathSelectorProvider
 import org.usvm.machine.JcTargetBlackLister
 import org.usvm.machine.JcTargetWeighter
+import org.usvm.machine.JcTransparentInstruction
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
 import org.usvm.ps.ExceptionPropagationPathSelector
@@ -102,7 +104,7 @@ enum class DistanceKind {
 class ConcreteDistance(
     private val kind: DistanceKind,
     private var value: UInt,
-    private val maxValue: UInt,
+    val maxValue: UInt,
 ) : Distance {
     init {
         check(value <= maxValue) { "Incorrect distance" }
@@ -364,7 +366,11 @@ class CrashTargetInterprocDistanceCalculator(
 
     @Suppress("UNUSED_PARAMETER")
     private fun Distance.addStatementDecay(statementOccurrences: UInt) = this
-//        addBias(statementOccurrences / DECAY_OCCURRENCES)
+//        when (this) {
+////            is ConcreteDistance -> addBias(Random.nextUInt(0u..maxValue / 2u))
+//            is ConcreteDistance -> addBias(statementOccurrences / 100u)
+//            InfiniteDistance -> InfiniteDistance
+//        }
 
     companion object {
         private const val DECAY_OCCURRENCES = 100u
@@ -374,7 +380,7 @@ class CrashTargetInterprocDistanceCalculator(
 class BudgetPsFrame(
     var currentBudget: UInt,
     val location: PathsTrieNode<JcState, JcInst>,
-    val bannedLocation: PathsTrieNode<JcState, JcInst>,
+    val bannedLocations: List<PathsTrieNode<JcState, JcInst>>,
     val possibleLocationAlternatives: List<PathsTrieNode<JcState, JcInst>>,
     val otherStates: MutableList<JcState>,
     val parentFrame: BudgetPsFrame?
@@ -391,11 +397,6 @@ class LocationBudgetPs(
     private var overallStepsAmount = 0u
     private val budgetHistory = hashMapOf<PathsTrieNode<JcState, JcInst>, LocationBudgetInfo>()
     private var locationBudgetFrame: BudgetPsFrame? = null
-
-    private fun shouldForceLocation(location: PathsTrieNode<JcState, JcInst>, budget: UInt): Boolean {
-        val unusedLocationBudget = budgetHistory[location]?.unusedBudget ?: 0u
-        return unusedLocationBudget <= budget
-    }
 
     private fun incRequestedBudget(location: PathsTrieNode<JcState, JcInst>, budget: UInt) {
         val currentUsage = budgetHistory[location] ?: LocationBudgetInfo()
@@ -447,15 +448,23 @@ class LocationBudgetPs(
             return
         }
 
-        if (location in currentFrame.possibleLocationAlternatives) {
-            logger.info { "Cyclic budget request at location: $location" }
-            popForcedLocation()
+        if (location in currentFrame.bannedLocations) {
+//            val remainBudget = currentFrame.currentBudget
+            popForcedLocation(banIfUnusedBudget = false)
+
+//            pushBannedLocation(
+//                location,
+//                currentFrame.bannedLocations + listOf(currentFrame.location),
+//                currentFrame.possibleLocationAlternatives,
+//                remainBudget
+//            )
+
             return
         }
 
         // Force location with lower forks amount
         if (location.depth < currentFrame.location.depth) {
-            popForcedLocation(reportUnusedBudget = false)
+            popForcedLocation(banIfUnusedBudget = false)
             giveBudget(location, bannedLocation, possibleLocations, budget, strict)
             return
         }
@@ -467,19 +476,50 @@ class LocationBudgetPs(
         pushForcedLocation(location, bannedLocation, possibleLocations, nestedBudget, strict)
     }
 
+    private fun pushBannedLocation(
+        location: PathsTrieNode<JcState, JcInst>,
+        bannedLocations: List<PathsTrieNode<JcState, JcInst>>,
+        possibleLocations: List<PathsTrieNode<JcState, JcInst>>,
+        budget: UInt
+    ) = CrashReproductionAnalysis.withoutWeightLogging {
+        incRequestedBudget(location, budget)
+        logger.info { "Give ban $budget (${budgetHistory[location]}) to locations: $bannedLocations" }
+
+        val otherStates = mutableListOf<JcState>()
+        val frame = BudgetPsFrame(
+            budget, location, bannedLocations, possibleLocations, otherStates, locationBudgetFrame
+        )
+        locationBudgetFrame = frame
+
+        val relevantStates = mutableListOf<JcState>()
+        while (!base.isEmpty()) {
+            val state = base.peek()
+            base.remove(state)
+
+            if (bannedLocations.any { hasLocation(state, it, strict = true) }) {
+                frame.otherStates.add(state)
+                continue
+            }
+
+            relevantStates.add(state)
+        }
+
+        base.add(relevantStates)
+    }
+
     private fun pushForcedLocation(
         location: PathsTrieNode<JcState, JcInst>,
         bannedLocation: PathsTrieNode<JcState, JcInst>,
         possibleLocations: List<PathsTrieNode<JcState, JcInst>>,
         budget: UInt,
         strict: Boolean
-    ) {
+    ) = CrashReproductionAnalysis.withoutWeightLogging {
         incRequestedBudget(location, budget)
         logger.info { "Give budget $budget (${budgetHistory[location]}) to location: $location" }
 
         val otherStates = mutableListOf<JcState>()
         val frame = BudgetPsFrame(
-            budget, location, bannedLocation, possibleLocations, otherStates, locationBudgetFrame
+            budget, location, listOf(bannedLocation), possibleLocations, otherStates, locationBudgetFrame
         )
         locationBudgetFrame = frame
 
@@ -498,15 +538,30 @@ class LocationBudgetPs(
         base.add(statesInLocation)
     }
 
-    private fun popForcedLocation(reportUnusedBudget: Boolean = true) {
+    private fun popForcedLocation(
+        banIfUnusedBudget: Boolean = true
+    ) = CrashReproductionAnalysis.withoutWeightLogging {
         val frame = locationBudgetFrame ?: error("No forced location")
-
-        if (reportUnusedBudget) {
-            incUnusedBudget(frame.location, frame.currentBudget)
-        }
 
         base.add(frame.otherStates)
         locationBudgetFrame = frame.parentFrame
+
+        if (!banIfUnusedBudget) {
+            incUnusedBudget(frame.location, frame.currentBudget)
+        }
+
+        logger.info {
+            "End budget ${frame.currentBudget} (${budgetHistory[frame.location]}) at location: ${frame.location}"
+        }
+
+//        if (banIfUnusedBudget && frame.currentBudget > 0u && frame.location !in frame.bannedLocations) {
+//            pushBannedLocation(
+//                frame.location,
+//                frame.bannedLocations + listOf(frame.location),
+//                frame.possibleLocationAlternatives,
+//                frame.currentBudget
+//            )
+//        }
     }
 
     private fun hasLocation(
@@ -529,8 +584,16 @@ class LocationBudgetPs(
         return loc == stateLocation
     }
 
+    private fun ensureStatesInBase() {
+        while (base.isEmpty()) {
+            if (locationBudgetFrame == null) return
+            popForcedLocation(banIfUnusedBudget = true)
+        }
+    }
+
     override fun isEmpty(): Boolean {
-        return base.isEmpty() && (locationBudgetFrame?.otherStates?.isEmpty() ?: true)
+        ensureStatesInBase()
+        return base.isEmpty()
     }
 
     override fun peek(): JcState {
@@ -541,10 +604,11 @@ class LocationBudgetPs(
             frame.currentBudget--
         }
 
-        if (frame?.currentBudget == 0u || base.isEmpty()) {
-            popForcedLocation()
+        if (frame != null && frame.currentBudget == 0u) {
+            popForcedLocation(banIfUnusedBudget = true)
         }
 
+        ensureStatesInBase()
         return base.peek()
     }
 
@@ -555,20 +619,21 @@ class LocationBudgetPs(
     override fun add(states: Collection<JcState>) {
         val frame = locationBudgetFrame
         if (frame == null) {
-        base.add(states)
+            base.add(states)
             return
         }
 
-        val relevantStates = mutableListOf<JcState>()
-        for (state in states) {
-            if (hasLocation(state, frame.bannedLocation, strict = true)) {
-                frame.otherStates.add(state)
-                continue
-            }
-            relevantStates.add(state)
-        }
-
-        base.add(relevantStates)
+//        val relevantStates = mutableListOf<JcState>()
+//        for (state in states) {
+//            if (frame.bannedLocations.any { hasLocation(state, it, strict = true) }) {
+//                frame.otherStates.add(state)
+//                continue
+//            }
+//            relevantStates.add(state)
+//        }
+//
+//        base.add(relevantStates)
+        base.add(states)
     }
 
     override fun remove(state: JcState) {
@@ -765,7 +830,7 @@ private class CrashReproductionAnalysis(
 
                 val result = targetDistance.addNested(locationDistance)
 
-                if (target.parent == deepestTarget) {
+                if (targetWeightLogging && target.parent == deepestTarget) {
                     if (target.location?.location?.method == statement.location.method) {
                         logger.info { "DISTANCE ${result.root()} | ${statement.printInst()} | ${target.location?.printInst()}" }
                     }
@@ -796,7 +861,7 @@ private class CrashReproductionAnalysis(
     override fun onStateDeath(state: JcState, bannedStates: Sequence<BannedState>) {
         logger.warn { "State death: ${bannedStates.toList()}" }
 
-//        if (!bannedStates.any { it is BlackListBannedState<*> }) return
+        if (!bannedStates.any { it is BlackListBannedState<*> }) return
 
         val conflicts = bannedStates.filterIsInstance<UnsatBannedState>().toList()
 
@@ -859,15 +924,32 @@ private class CrashReproductionAnalysis(
             }
         }
     }
+
+    fun getUsedInstructions(): List<Map.Entry<JcInst, Int>> =
+        statsNoEx.entries.filterNot { it.key is JcTransparentInstruction }
+
+    companion object {
+        private var targetWeightLogging = true
+
+        fun <T> withoutWeightLogging(body: () -> T): T = try {
+            targetWeightLogging = false
+            body()
+        } finally {
+            targetWeightLogging = true
+        }
+    }
 }
 
-fun reproduceCrash(cp: JcClasspath, target: CrashReproductionTarget): List<JcState> {
+fun reproduceCrash(
+    cp: JcClasspath,
+    target: CrashReproductionTarget
+): Pair<List<JcState>, List<Map.Entry<JcInst, Int>>>{
     val options = UMachineOptions(
         targetSearchDepth = 1u, // high values (e.g. 10) significantly degrade performance
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         stopOnTargetsReached = true,
         stopOnCoverage = -1,
-        timeoutMs = 1_000_000,
+        timeoutMs = 60_000,
         solverUseSoftConstraints = false,
         solverQueryTimeoutMs = 10_000,
         solverType = SolverType.YICES
@@ -884,5 +966,7 @@ fun reproduceCrash(cp: JcClasspath, target: CrashReproductionTarget): List<JcSta
         machine.analyze(entrypoint, listOf(target))
     }
 
-    return crashReproduction.collectedStates
+    val usedInstructions = crashReproduction.getUsedInstructions()
+
+    return crashReproduction.collectedStates to usedInstructions
 }

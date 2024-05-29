@@ -9,6 +9,7 @@ plugins {
 group = "org.usvm"
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven("https://jitpack.io")
 }

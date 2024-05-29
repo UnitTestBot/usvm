@@ -273,7 +273,8 @@ fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String
         .sortedBy { it.id }
         .filter { it.id !in badIds }
 //        .filter { it.id in goodIds }
-        .filter { it.id == idToCheck }
+//        .filter { it.id == idToCheck }
+//        .drop(3)
 
     for (crash in crashes) {
         val trace = traces[crash.id] ?: continue
@@ -281,6 +282,14 @@ fun analyzeCrashes(crashPackPath: Path, crashPack: CrashPack, traces: Map<String
             analyzeCrash(crashPackPath, crash, trace)
         } catch (ex: Throwable) {
             logger.error(ex) { "Failed" }
+        }
+    }
+
+    logger.warn {
+        buildString {
+            appendLine("$".repeat(50))
+            appendLine("OVERALL USED METHODS")
+            reportUsedInstructions(usageStats, this)
         }
     }
 }
@@ -305,12 +314,14 @@ fun analyzeCrash(crashPackPath: Path, crash: CrashPackCrash, trace: CrashTrace) 
         }
 
         jccp.use { cp ->
-            runWithHardTimout(30.minutes) {
+            runWithHardTimout(5.minutes) {
                 analyzeCrash(cp, trace, crash)
             }
         }
     }
 }
+
+private val usageStats = hashMapOf<JcClassOrInterface, MutableMap<JcMethod, Int>>()
 
 private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCrash) {
     logger.warn { "#".repeat(50) }
@@ -329,10 +340,65 @@ private fun analyzeCrash(cp: JcClasspath, trace: CrashTrace, crash: CrashPackCra
 
     logger.warn { "-".repeat(50) }
 
-    val states = reproduceCrash(cp, target)
+    val (states, instructions) = reproduceCrash(cp, target)
+    val aggregatedUsage = aggregateUsedInstructions(instructions)
+    mergeClassInstructionUsage(usageStats, aggregatedUsage)
 
     logger.warn { "+".repeat(50) }
     logger.warn { "Found states: ${states.size}" }
+
+
+    logger.warn {
+        buildString {
+            appendLine("USED METHODS")
+            reportUsedInstructions(aggregatedUsage, this)
+        }
+    }
+}
+
+fun aggregateUsedInstructions(
+    instructions: List<Map.Entry<JcInst, Int>>
+): Map<JcClassOrInterface, Map<JcMethod, Int>> {
+    val methods = instructions.groupBy(
+        { it.key.callExpr?.method?.method ?: it.key.location.method },
+        { it.value }
+    ).mapValues { it.value.sum() }
+
+    return methods.entries
+        .groupBy { it.key.enclosingClass }
+        .mapValues { (_, m) -> m.associate { it.key to it.value } }
+}
+
+fun mergeClassInstructionUsage(
+    left: MutableMap<JcClassOrInterface, MutableMap<JcMethod, Int>>,
+    right: Map<JcClassOrInterface, Map<JcMethod, Int>>
+) {
+    for ((cls, stats) in right) {
+        val current = left.getOrPut(cls) { hashMapOf() }
+        mergeMethodInstructionUsage(current, stats)
+    }
+}
+
+fun mergeMethodInstructionUsage(left: MutableMap<JcMethod, Int>, right: Map<JcMethod, Int>) {
+    for ((method, stats) in right) {
+        val current = left[method] ?: 0
+        left[method] = current + stats
+    }
+}
+
+fun reportUsedInstructions(
+    classes: Map<JcClassOrInterface, Map<JcMethod, Int>>,
+    builder: StringBuilder
+) {
+    for ((cls, usedMethods) in classes.entries.sortedBy { it.value.values.sum() }) {
+        builder.appendLine("-".repeat(20))
+        builder.appendLine(cls.name)
+        usedMethods.forEach {
+            builder.append(it.key.name)
+            builder.append(" | ")
+            builder.appendLine(it.value)
+        }
+    }
 }
 
 private fun createTargets(
