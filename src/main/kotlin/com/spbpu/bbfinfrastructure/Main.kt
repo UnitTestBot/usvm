@@ -41,10 +41,21 @@ fun main(args: Array<String>) {
         description = "Number of files to make a batch"
     ).default(100)
 
+    val sortResults by parser.option(
+        ArgType.Boolean,
+        shortName = "s",
+        description = "Choose this flag if you want to sort results (may be slow)"
+    ).default(false)
+
     if (args.size == 1) {
         parser.parse(args.first().split(" ").toTypedArray())
     } else {
         parser.parse(args)
+    }
+
+    if (sortResults) {
+        ResultsSorter.sortResults("./results/")
+        exitProcess(0)
     }
 
     if (!isLocal) {
@@ -73,7 +84,6 @@ fun main(args: Array<String>) {
         isLocal = isLocal
     )
     ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)
-    ResultsSorter.sortResults("./results/")
     exitProcess(0)
 }
 
