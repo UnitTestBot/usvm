@@ -1,5 +1,5 @@
 package org.usvm.samples.stream;
-gt
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
