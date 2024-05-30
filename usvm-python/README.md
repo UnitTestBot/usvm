@@ -49,6 +49,8 @@ Official instruction: https://devguide.python.org/getting-started/setup-building
 
 Gradle tasks for building and running were tested on Windows and Ubuntu.
 
+For Windows you need MSBuild (see https://devguide.python.org/getting-started/setup-building/#windows).
+
 1. Only for Unix. Install optional dependencies.
     - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
     - __Short version (Ubuntu)__. Install the following packages with apt:
