@@ -1,5 +1,5 @@
-import org.apache.tools.ant.taskdefs.condition.Os
 import usvmpython.*
+import usvmpython.tasks.registerBuildSamplesTask
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -8,8 +8,8 @@ plugins {
 
 dependencies {
     implementation(project(":usvm-core"))
-    implementation(project(":usvm-python:usvm-python-main"))
-    implementation(project(":usvm-python:usvm-python-commons"))
+    implementation(project(":$USVM_PYTHON_MAIN_MODULE"))
+    implementation(project(":$USVM_PYTHON_COMMONS_MODULE"))
     implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
     implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
@@ -26,10 +26,9 @@ tasks.jar {
 }
 
 if (cpythonIsActivated()) {
-    val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
-    val samplesSourceDir = File(projectDir, "src/test/resources/samples")
-    val approximationsDir = File(projectDir, "python_approximations")
-    val samplesBuildDir = File(project.buildDir, "samples_build")
+    val samplesSourceDir = getSamplesSourceDir()
+    val approximationsDir = getApproximationsDir()
+    val samplesBuildDir = getSamplesBuildDir()
     val commonJVMArgs = listOf(
         "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
         "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
@@ -37,45 +36,10 @@ if (cpythonIsActivated()) {
         "-Xss50m"
     )
 
-    val cpythonPath: String = getCPythonSourcePath().canonicalPath
     val cpythonBuildPath: String = getCPythonBuildPath().canonicalPath
-    val cpythonAdapterBuildPath: String =
-        File(childProjects["cpythonadapter"]!!.buildDir, "/lib/main/debug").path  // TODO: and release?
-    val pythonBinaryPath: String =
-        if (!isWindows) {
-            "$cpythonBuildPath/bin/python3"
-        } else {
-            File(cpythonBuildPath, "python_d.exe").canonicalPath
-        }
+    val cpythonAdapterBuildPath: String = getCPythonAdapterBuildPath().path
     val pythonDllsPath: String = File(cpythonBuildPath, "DLLs").path  // for Windows
-
-    val installMypyRunner = tasks.register<Exec>("installUtbotMypyRunner") {
-        group = "samples"
-        dependsOn(":usvm-python:cpythonadapter:linkDebug")
-        dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
-        inputs.dir(cpythonPath)
-        if (isWindows) {
-            outputs.dir(File(cpythonBuildPath, "Lib/site-packages/utbot_mypy_runner"))
-        }
-        if (!isWindows) {
-            environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-        }
-        environment("PYTHONHOME" to cpythonBuildPath)
-        commandLine(pythonBinaryPath, "-m", "ensurepip")
-        commandLine(pythonBinaryPath, "-m", "pip", "install", "utbot-mypy-runner==0.2.17")
-    }
-
-    val buildSamples = tasks.register<JavaExec>("buildSamples") {
-        dependsOn(installMypyRunner)
-        inputs.files(fileTree(samplesSourceDir).exclude("**/__pycache__/**"))
-        outputs.dir(samplesBuildDir)
-        group = "samples"
-        classpath = sourceSets.test.get().runtimeClasspath
-        args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, pythonBinaryPath)
-        environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-        environment("PYTHONHOME" to cpythonBuildPath)
-        mainClass.set("org.usvm.runner.BuildSamplesKt")
-    }
+    val buildSamples = registerBuildSamplesTask()
 
     fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
         if (debug)
@@ -127,17 +91,6 @@ if (cpythonIsActivated()) {
         mainClass.set("ManualTestKt")
     }
 
-    /*
-    tasks.register<JavaExec>("manualTestRelease") {
-        group = "run"
-        registerCpython(this, debug = false)
-        dependsOn(buildSamples)
-        jvmArgs = commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml"
-        classpath = sourceSets.test.get().runtimeClasspath
-        mainClass.set("ManualTestKt")
-    }
-    */
-
     tasks.test {
         maxHeapSize = "2G"
         val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
@@ -174,7 +127,7 @@ if (cpythonIsActivated()) {
     }
 
     tasks.jar {
-        dependsOn(":usvm-python:usvm-python-main:jar")
+        dependsOn(":$USVM_PYTHON_MAIN_MODULE:jar")
         manifest {
             attributes(
                 "Main-Class" to "org.usvm.runner.UtBotPythonRunnerEntryPointKt",
@@ -188,8 +141,8 @@ if (cpythonIsActivated()) {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
-    tasks.distTar.get().dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
-    tasks.distZip.get().dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
-    tasks.distTar.get().dependsOn(":usvm-python:cpythonadapter:linkDebug")
-    tasks.distZip.get().dependsOn(":usvm-python:cpythonadapter:linkDebug")
+    tasks.distTar.get().dependsOn(":$CPYTHON_ADAPTER_MODULE:CPythonBuildDebug")
+    tasks.distZip.get().dependsOn(":$CPYTHON_ADAPTER_MODULE:CPythonBuildDebug")
+    tasks.distTar.get().dependsOn(":$CPYTHON_ADAPTER_MODULE:linkDebug")
+    tasks.distZip.get().dependsOn(":$CPYTHON_ADAPTER_MODULE:linkDebug")
 }

@@ -14,6 +14,9 @@ fun Project.cpythonIsActivated(): Boolean {
 fun Project.getCPythonModule() =
     rootProject.findProject(CPYTHON_ADAPTER_MODULE)!!
 
+fun Project.getUsvmPythonModule() =
+    rootProject.findProject(USVM_PYTHON_MODULE)!!
+
 fun Project.getCPythonBuildPath(): File {
     val cpythonModule = getCPythonModule()
     return cpythonModule.layout.buildDirectory.file("cpython_build").get().asFile
@@ -51,3 +54,21 @@ fun Project.includePipInBuildLine(): String {
 
 fun Project.getGeneratedHeadersPath(): File =
     getCPythonModule().layout.buildDirectory.file("adapter_include").get().asFile
+
+fun Project.getSamplesSourceDir(): File =
+    File(getUsvmPythonModule().projectDir, "src/test/resources/samples")
+
+fun Project.getSamplesBuildDir(): File =
+    getUsvmPythonModule().layout.buildDirectory.file("samples_build").get().asFile
+
+fun Project.getApproximationsDir(): File =
+    File(getUsvmPythonModule().projectDir, "python_approximations")
+
+fun Project.getPythonBinaryPath(): File {
+    val cpythonBuildPath = getCPythonBuildPath()
+    return if (isWindows) {
+        File(cpythonBuildPath, "python_d.exe")
+    } else {
+        File(cpythonBuildPath, "bin/python3")
+    }
+}
