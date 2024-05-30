@@ -19,6 +19,8 @@ const val CPYTHON_BUILD_DEBUG = "CPythonBuildDebug"
 const val INSTALL_MYPY_RUNNER_TASK = "installUtbotMypyRunner"
 const val BUILD_SAMPLES_TASK = "buildSamples"
 const val MANUAL_TEST_FOR_RUNNER = "manualTestOfRunner"
+const val MANUAL_TEST_DEBUG_TASK = "manualTestDebug"
+const val MANUAL_TEST_DEBUG_NO_LOGS_TASK = "manualTestDebugNoLogs"
 
 /** Property names */
 const val PROPERTY_FOR_CPYTHON_ACTIVATION = "cpythonActivated"
@@ -27,3 +29,4 @@ const val PROPERTY_FOR_CPYTHON_ACTIVATION = "cpythonActivated"
 const val BUILD_SAMPLES_ENTRY_POINT = "org.usvm.runner.BuildSamplesKt"
 const val MANUAL_TEST_FOR_RUNNER_ENTRY = "org.usvm.runner.ManualTestKt"
 const val RUNNER_ENTRY_POINT = "org.usvm.runner.UtBotPythonRunnerEntryPointKt"
+const val MANUAL_TEST_ENTRY = "ManualTestKt"

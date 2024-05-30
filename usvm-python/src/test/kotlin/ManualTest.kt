@@ -3,21 +3,18 @@ import org.usvm.language.PrimitivePyProgram
 import org.usvm.language.PyProgram
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.StructuredPyProgram
-import org.usvm.machine.PyMachine
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
-import org.usvm.machine.results.DefaultPyMachineResultsReceiver
-import org.usvm.machine.results.serialization.ObjectWithDictSerializer
 import org.usvm.machine.types.BasicPythonTypeSystem
 import org.usvm.machine.types.PythonAnyType
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.utils.withAdditionalPaths
-import org.usvm.python.model.PyResultFailure
-import org.usvm.python.model.PyResultSuccess
 import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.SamplesBuild
+import org.usvm.runner.manual.analyzers.OrdinaryAnalyzer
+import org.usvm.runner.manual.program.sampleFunction
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.utpython.types.PythonCallableTypeDescription
@@ -33,17 +30,12 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-    /*val venvConfig = VenvConfig(
-        basePath = File("/home/tochilinak/sample_venv/"),
-        libPath = File("/home/tochilinak/sample_venv/lib/python3.11/site-packages/"),
-        binPath = File("/home/tochilinak/sample_venv/bin")
-    )
-    ConcretePythonInterpreter.setVenv(venvConfig)*/
-    // ConcretePythonInterpreter.printIdInfo()
-    // val config = buildProjectRunConfig()
-    val config = buildSampleRunConfig()
-    analyze(config)
-    // checkConcolicAndConcrete(config)
+
+    val program = sampleFunction
+
+    val analyzer = OrdinaryAnalyzer
+
+    analyzer.run(program)
 }
 
 private fun buildSampleRunConfig(): RunConfig {
@@ -202,56 +194,6 @@ private fun checkConcolicAndConcrete(runConfig: RunConfig) {
             println("Illegal operation while analyzing: ${e.operation}\n")
         }
     }
-}
-
-private fun analyze(runConfig: RunConfig) {
-    val (program, typeSystem, functions) = runConfig
-    val machine = PyMachine(program, typeSystem, printErrorMsg = false)
-    val emptyCoverage = mutableListOf<String>()
-    machine.use { activeMachine ->
-        functions.forEach { f ->
-            println("Started analysing function ${f.tag}")
-            try {
-                val start = System.currentTimeMillis()
-                val saver = DefaultPyMachineResultsReceiver(ObjectWithDictSerializer)
-                val iterations = activeMachine.analyze(
-                    f,
-                    saver,
-                    maxIterations = 200,
-                    allowPathDiversion = true,
-                    maxInstructions = 50_000,
-                    timeoutPerRunMs = 4_000,
-                    timeoutMs = 30_000
-                )
-                saver.pyTestObserver.tests.forEach { test ->
-                    println("INPUT:")
-                    test.inputArgs.forEach { println(it) }
-                    println("RESULT:")
-                    when (val result = test.result) {
-                        is PyResultSuccess -> println(result.output)
-                        is PyResultFailure -> println(result.exception)
-                    }
-                    println()
-                }
-                if (machine.statistics.functionStatistics.last().coverage == 0.0) {
-                    emptyCoverage.add(f.tag)
-                }
-                println(
-                    "Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. Made $iterations iterations."
-                )
-                println("FUNCTION STATISTICS")
-                println(machine.statistics.functionStatistics.last().writeReport())
-                println()
-            } catch (e: IllegalOperationException) {
-                println("Illegal operation while analyzing: ${e.operation}\n")
-            }
-        }
-        println("GENERAL STATISTICS")
-        println(machine.statistics.writeReport())
-    }
-    println()
-    println("Empty coverage for:")
-    emptyCoverage.forEach { println(it) }
 }
 
 private data class RunConfig(

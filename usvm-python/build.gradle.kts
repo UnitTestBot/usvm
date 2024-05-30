@@ -1,4 +1,6 @@
 import usvmpython.*
+import usvmpython.tasks.javaArgumentsForPython
+import usvmpython.tasks.pythonEnvironmentVariables
 import usvmpython.tasks.registerBuildSamplesTask
 
 plugins {
@@ -26,98 +28,47 @@ tasks.jar {
 }
 
 if (cpythonIsActivated()) {
-    val samplesSourceDir = getSamplesSourceDir()
-    val approximationsDir = getApproximationsDir()
-    val samplesBuildDir = getSamplesBuildDir()
-    val commonJVMArgs = listOf(
-        "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
-        "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
-        "-Dapproximations.path=${approximationsDir.canonicalPath}",
-        "-Xss50m"
-    )
-
-    val cpythonBuildPath: String = getCPythonBuildPath().canonicalPath
-    val cpythonAdapterBuildPath: String = getCPythonAdapterBuildPath().path
-    val pythonDllsPath: String = File(cpythonBuildPath, "DLLs").path  // for Windows
     val buildSamples = registerBuildSamplesTask()
 
-    fun registerCpython(task: JavaExec, debug: Boolean) = task.apply {
-        if (debug)
-            dependsOn(":usvm-python:cpythonadapter:linkDebug")
-        else
-            dependsOn(":usvm-python:cpythonadapter:linkRelease")
-        dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
-        environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-        environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
-        environment("PYTHONHOME" to cpythonBuildPath)
+    tasks.register<JavaExec>(MANUAL_TEST_DEBUG_TASK) {
+        dependsOn(buildSamples)
+        dependsOn(":$CPYTHON_ADAPTER_MODULE:linkDebug")
+        classpath = sourceSets.test.get().runtimeClasspath
+        group = MANUAL_RUN_GROUP_NAME
+        maxHeapSize = "2G"
+        jvmArgs = javaArgumentsForPython(debugLog = true)
+        environment(pythonEnvironmentVariables())
+        mainClass.set(MANUAL_TEST_ENTRY)
     }
 
-    tasks.register<JavaExec>("manualTestDebug") {
-        group = "run"
+    tasks.register<JavaExec>(MANUAL_TEST_DEBUG_NO_LOGS_TASK) {
         dependsOn(buildSamples)
-        maxHeapSize = "2G"
-        if (!isWindows) {
-            registerCpython(this, debug = true)
-            jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-debug.xml") //, "-Xcheck:jni")
-        } else {
-            environment("PYTHONHOME" to cpythonBuildPath)
-            jvmArgs = commonJVMArgs + listOf(
-                "-Dlogback.configurationFile=logging/logback-debug.xml",
-                "-Djava.library.path=$cpythonAdapterBuildPath"
-            )
-            environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
-        }
+        dependsOn(":$CPYTHON_ADAPTER_MODULE:linkDebug")
         classpath = sourceSets.test.get().runtimeClasspath
-        mainClass.set("ManualTestKt")
-    }
-
-    tasks.register<JavaExec>("manualTestDebugNoLogs") {
-        group = "run"
-        registerCpython(this, debug = true)
-        dependsOn(buildSamples)
+        group = MANUAL_RUN_GROUP_NAME
         maxHeapSize = "2G"
-        if (!isWindows) {
-            registerCpython(this, debug = true)
-            jvmArgs = commonJVMArgs + listOf("-Dlogback.configurationFile=logging/logback-info.xml") //, "-Xcheck:jni")
-        } else {
-            environment("PYTHONHOME" to cpythonBuildPath)
-            jvmArgs = commonJVMArgs + listOf(
-                "-Dlogback.configurationFile=logging/logback-info.xml",
-                "-Djava.library.path=$cpythonAdapterBuildPath"
-            )
-            environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
-        }
-        classpath = sourceSets.test.get().runtimeClasspath
-        mainClass.set("ManualTestKt")
+        jvmArgs = javaArgumentsForPython(debugLog = false)
+        environment(pythonEnvironmentVariables())
+        mainClass.set(MANUAL_TEST_ENTRY)
     }
 
     tasks.test {
         maxHeapSize = "2G"
-        val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-info.xml").toMutableList()
-        // val args = (commonJVMArgs + "-Dlogback.configurationFile=logging/logback-debug.xml").toMutableList()
-        if (!isWindows) {
-            environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
-            environment("LD_PRELOAD" to "$cpythonBuildPath/lib/libpython3.so")
-        } else {
-            args += "-Djava.library.path=$cpythonAdapterBuildPath"
-            environment("PATH", "$cpythonBuildPath;$pythonDllsPath")
-        }
-        jvmArgs = args
-        dependsOn(":usvm-python:cpythonadapter:linkDebug")
-        dependsOn(":usvm-python:cpythonadapter:CPythonBuildDebug")
+        jvmArgs = javaArgumentsForPython(debugLog = false)
         dependsOn(buildSamples)
-        environment("PYTHONHOME" to cpythonBuildPath)
+        dependsOn(":$CPYTHON_ADAPTER_MODULE:linkDebug")
+        environment(pythonEnvironmentVariables())
     }
 
     distributions {
         main {
             contents {
                 into("lib") {
-                    from(cpythonAdapterBuildPath)
-                    from(fileTree(approximationsDir).exclude("**/__pycache__/**").exclude("**/*.iml"))
+                    from(getCPythonAdapterBuildPath())
+                    from(fileTree(getApproximationsDir()).exclude("**/__pycache__/**").exclude("**/*.iml"))
                 }
                 into("cpython") {
-                    from(fileTree(cpythonBuildPath).exclude("**/__pycache__/**"))
+                    from(fileTree(getCPythonBuildPath()).exclude("**/__pycache__/**"))
                 }
                 into("jar") {
                     from(tasks.jar)
