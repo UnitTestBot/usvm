@@ -1,8 +1,12 @@
+import usvmpython.USVM_PYTHON_ANNOTATIONS_MODULE
+import usvmpython.USVM_PYTHON_COMMONS_MODULE
+import usvmpython.getGeneratedHeadersPath
+
 plugins {
     id("usvm.kotlin-conventions")
 }
 
-val headerPath = File(parent!!.childProjects["cpythonadapter"]!!.buildDir, "adapter_include")
+val headerPath = getGeneratedHeadersPath()
 
 tasks.compileJava {
     // to suppress "No processor claimed any of these annotations: org.jetbrains.annotations.Nullable,org.jetbrains.annotations.NotNull"
@@ -13,9 +17,9 @@ tasks.compileJava {
 
 dependencies {
     implementation(project(":usvm-core"))
-    implementation(project(mapOf("path" to ":usvm-python:usvm-python-annotations")))
-    implementation(project(mapOf("path" to ":usvm-python:usvm-python-commons")))
-    annotationProcessor(project(":usvm-python:usvm-python-annotations"))
+    implementation(project(mapOf("path" to ":$USVM_PYTHON_ANNOTATIONS_MODULE")))
+    implementation(project(mapOf("path" to ":$USVM_PYTHON_COMMONS_MODULE")))
+    annotationProcessor(project(":$USVM_PYTHON_ANNOTATIONS_MODULE"))
 
     implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")

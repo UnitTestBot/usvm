@@ -130,7 +130,7 @@ if (cpythonIsActivated()) {
         dependsOn(":$USVM_PYTHON_MAIN_MODULE:jar")
         manifest {
             attributes(
-                "Main-Class" to "org.usvm.runner.UtBotPythonRunnerEntryPointKt",
+                "Main-Class" to RUNNER_ENTRY_POINT,
             )
         }
         val dependencies = configurations

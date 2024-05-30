@@ -11,15 +11,19 @@ const val USVM_PYTHON_COMMONS_MODULE = "usvm-python:usvm-python-commons"
 /** Task group names */
 const val CPYTHON_GROUP_NAME = "cpython"
 const val SAMPLE_GROUP_NAME = "samples"
+const val MANUAL_RUN_GROUP_NAME = "run"
 
 /** Task names */
 const val CPYTHON_BUILD_DEBUG_CONFIGURATION = "CPythonBuildConfigurationDebug"
 const val CPYTHON_BUILD_DEBUG = "CPythonBuildDebug"
 const val INSTALL_MYPY_RUNNER_TASK = "installUtbotMypyRunner"
 const val BUILD_SAMPLES_TASK = "buildSamples"
+const val MANUAL_TEST_FOR_RUNNER = "manualTestOfRunner"
 
 /** Property names */
 const val PROPERTY_FOR_CPYTHON_ACTIVATION = "cpythonActivated"
 
 /** Entry points */
 const val BUILD_SAMPLES_ENTRY_POINT = "org.usvm.runner.BuildSamplesKt"
+const val MANUAL_TEST_FOR_RUNNER_ENTRY = "org.usvm.runner.ManualTestKt"
+const val RUNNER_ENTRY_POINT = "org.usvm.runner.UtBotPythonRunnerEntryPointKt"

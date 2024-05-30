@@ -1,3 +1,7 @@
+import usvmpython.MANUAL_RUN_GROUP_NAME
+import usvmpython.MANUAL_TEST_FOR_RUNNER
+import usvmpython.MANUAL_TEST_FOR_RUNNER_ENTRY
+
 plugins {
     id("usvm.kotlin-conventions")
     `maven-publish`
@@ -9,11 +13,11 @@ dependencies {
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
-tasks.register<JavaExec>("manualTestOfRunner") {
-    group = "run"
+tasks.register<JavaExec>(MANUAL_TEST_FOR_RUNNER) {
+    group = MANUAL_RUN_GROUP_NAME
     classpath = sourceSets.test.get().runtimeClasspath
     jvmArgs = listOf("-Dproject.root=${projectDir.parent}")
-    mainClass.set("org.usvm.runner.ManualTestKt")
+    mainClass.set(MANUAL_TEST_FOR_RUNNER_ENTRY)
 }
 
 publishing {
