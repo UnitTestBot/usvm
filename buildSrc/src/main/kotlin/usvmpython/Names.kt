@@ -11,3 +11,5 @@ const val CPYTHON_GROUP_NAME = "cpython"
 
 const val CPYTHON_BUILD_DEBUG_CONFIGURATION = "CPythonBuildConfigurationDebug"
 const val CPYTHON_BUILD_DEBUG = "CPythonBuildDebug"
+
+const val PROPERTY_FOR_CPYTHON_ACTIVATION = "cpythonActivated"

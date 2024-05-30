@@ -5,7 +5,9 @@ import org.gradle.api.Project
 import java.io.File
 
 fun Project.cpythonIsActivated(): Boolean {
-    val prop = property("cpythonActivated") as? String
+    if (!hasProperty(PROPERTY_FOR_CPYTHON_ACTIVATION))
+        return false
+    val prop = property(PROPERTY_FOR_CPYTHON_ACTIVATION) as? String
     return prop?.lowercase() == "true"
 }
 
