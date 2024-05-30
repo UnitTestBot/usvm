@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.util.results
 
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
+import com.spbpu.bbfinfrastructure.project.ResultSarifBuilder
 import com.spbpu.bbfinfrastructure.util.getRandomVariableName
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
@@ -26,25 +27,32 @@ object ScoreCardParser {
     }
 
     fun parseAndSaveDiff(dir: String, pathToSources: String) {
+        val resultSarifBuilder = ResultSarifBuilder()
         val m = mutableMapOf<String, MutableList<Pair<String, Set<Int>>>>()
-        val scorecards = File(dir).listFiles().filter { it.path.endsWith(".csv") }
+        val scorecards = File(dir).listFiles().filter { it.path.endsWith(".sarif") }
         scorecards.map { scoreCard ->
-            val toolName = scoreCard.name.substringAfter("for_").substringBefore("_")
-            val scoreCardText = scoreCard.readText()
-            val scLines = scoreCardText.split("\n").drop(1).dropLast(1)
-            for (line in scLines) {
-                Regex("""(.*), unknown, 0, unknown, unknown, null, "\[(.*)\]"""").find(line)!!.groupValues.let {
-                    val cwes = if (it[2].isEmpty()) {
-                        listOf()
-                    } else {
-                        it[2].split(", ").map { it.trim().toInt() }
-                    }
-                    val benchmarkName = it[1]
-                    m.getOrPut(benchmarkName) { mutableListOf() }.add(toolName to cwes.toSet())
+            val decodedSarif = resultSarifBuilder.deserialize(scoreCard.readText())
+            val toolName = scoreCard.name.substringBefore('_')
+            val groupedResults = decodedSarif.runs.first().results.groupBy {
+                it.locations.first().physicalLocation.artifactLocation.uri
+            }
+            groupedResults.forEach { (pathToSrc, results) ->
+                if (!pathToSrc.matches(Regex(""".*BenchmarkTest.*java"""))) {
+                    return@forEach
+                }
+                val foundCWE = results.mapNotNull { it.ruleId.substringAfter('-').toIntOrNull() }.toSet()
+                val benchmarkName = pathToSrc.substringAfterLast("/").substringBefore(".java")
+                m.getOrPut(benchmarkName) { mutableListOf() }.add(toolName to foundCWE)
+            }
+        }
+        val toolsNames = scorecards.map { it.name.substringBefore("_") }
+        m.forEach { (_, results) ->
+            toolsNames.forEach { toolName ->
+                if (results.all { it.first != toolName }) {
+                    results.add(toolName to setOf())
                 }
             }
         }
-
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
             val originalFileName = "BenchmarkTest" + name.substringAfter("BenchmarkTest").take(5)
@@ -68,13 +76,19 @@ object ScoreCardParser {
                 println("ALL TOOLS CANT FIND BUG IN $name")
             } else {
                 println("DIFF FOUND!!")
-                val resultHeader = ResultHeader(results, originalFileName, cweToFind, originalProject.second.map { it.mutationDescription })
+                val resultHeader = ResultHeader(
+                    results,
+                    originalFileName,
+                    cweToFind,
+                    originalProject.second.map { it.mutationDescription })
                 val dirToSave =
                     "results/CWE-${cweToFind.joinToString("_")}"
-                        .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader)  } ?: "results/duplicates"
-                File(dirToSave).let { resultsDirectory -> resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }}
+                        .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader) } ?: "results/duplicates"
+                File(dirToSave).let { resultsDirectory ->
+                    resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }
+                }
                 val text =
-"""${resultHeader.convertToString()}
+                    """${resultHeader.convertToString()}
 //Program:
 ${File("$pathToSources/$name.java").readText()}
 """.trimIndent()

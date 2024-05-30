@@ -69,7 +69,7 @@ fun main(args: Array<String>) {
     GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
         pathToOwasp = pathToOwasp,
         pathToOwaspSources = "$pathToOwasp/src/main/java/org/owasp/benchmark/testcode",
-        pathToCsv = "$pathToOwasp/expectedresults-1.2.csv",
+        pathToTruthSarif = "$pathToOwasp/truth.sarif",
         isLocal = isLocal
     )
     ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)

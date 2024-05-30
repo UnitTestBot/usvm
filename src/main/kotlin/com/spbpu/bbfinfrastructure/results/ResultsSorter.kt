@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.results
 
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
+import name.fraser.neil.plaintext.Diff_match_patch
 import java.io.File
 import kotlin.math.abs
 
@@ -11,7 +12,8 @@ object ResultsSorter {
         "CodeQL" to 1.0,
         "SonarQube" to 0.25,
         "Usvm" to 1.0,
-        "Semgrep" to 0.25
+        "Semgrep" to 0.25,
+        "Insider" to 0.25
     )
 
     fun sortResults(dirToResultsDirectory: String) {
@@ -28,7 +30,7 @@ object ResultsSorter {
 //                .filter { it.results.size == 4 }
                 .groupBy { calcDiff(it) }
                 .toSortedMap()
-                .mapValues { sortByLevenshteinDistance(it.value) }
+                .mapValues { sortByDiffMatchPatch(it.value) }
                 .toList()
             val newPath = dir.absolutePath.replace(dirToResultsDirectory, "sortedResults/")
             File(newPath).deleteRecursively()
@@ -75,7 +77,22 @@ object ResultsSorter {
         return dp[m][n]
     }
 
-    private fun sortByLevenshteinDistance(headers: List<ResultHeader>): List<ResultHeader> {
+    fun diffMatchPatch(a: String, b: String): Double {
+        val patch = Diff_match_patch()
+        if (a.length + b.length == 0) return Double.MAX_VALUE
+        val diffs = patch.diff_main(a, b)
+        var sameNum = 0
+        var difNum = 0
+        for (dif in diffs) {
+            when (dif.operation.name) {
+                "EQUAL" -> sameNum += dif.text.length
+                else -> difNum += dif.text.length
+            }
+        }
+        return if (sameNum == 0) Double.MIN_VALUE else 0.5 - sameNum.toDouble() / (a.length + b.length)
+    }
+
+    private fun sortByDiffMatchPatch(headers: List<ResultHeader>): List<ResultHeader> {
         if (headers.size <= 1) return headers
 
         var furthestPoint = headers.first()
@@ -84,12 +101,12 @@ object ResultsSorter {
         remaining.remove(furthestPoint)
 
         while (remaining.isNotEmpty()) {
-            var maxDistance = 0
+            var maxDistance = 0.0
             var maxDistanceIndex = -1
             for ((i, s) in remaining.withIndex()) {
                 val distance =
                     sorted.sumOf {
-                        levenshteinDistance(
+                        diffMatchPatch(
                             it.getMutationDescriptionChainForComparison(),
                             s.getMutationDescriptionChainForComparison()
                         )
@@ -105,12 +122,12 @@ object ResultsSorter {
             }
             furthestPoint = remaining[maxDistanceIndex]
             val minDistanceToSorted = sorted.minOf {
-                levenshteinDistance(
+                diffMatchPatch(
                     it.getMutationDescriptionChainForComparison(),
                     furthestPoint.getMutationDescriptionChainForComparison()
                 )
             }
-            if (minDistanceToSorted > 10) {
+            if (minDistanceToSorted > 0.001) {
                 sorted.add(furthestPoint)
             }
             remaining.removeAt(maxDistanceIndex)

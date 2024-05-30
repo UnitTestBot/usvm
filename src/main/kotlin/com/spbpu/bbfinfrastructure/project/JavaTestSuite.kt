@@ -48,17 +48,15 @@ class JavaTestSuite {
         suiteProjects.add(project to mutationChain)
     }
 
-    fun flushSuiteAndRun(pathToOwasp: String, pathToOwaspSources: String, pathToCsv: String, isLocal: Boolean) {
+    fun flushSuiteAndRun(pathToOwasp: String, pathToOwaspSources: String, pathToTruthSarif: String, isLocal: Boolean) {
+        val sarifBuilder = SarifBuilder()
         val remoteToLocalPaths = mutableMapOf<String, String>()
         val helpersDir = pathToOwaspSources.substringBeforeLast('/') + "/helpers/"
         File(CompilerArgs.tmpPath).deleteRecursively()
         File(CompilerArgs.tmpPath).mkdirs()
-        val csv = File("${CompilerArgs.tmpPath}/expected_results.csv")
-        if (csv.exists()) {
-            csv.delete()
+        val sarif = File("${CompilerArgs.tmpPath}/truth.sarif").apply {
+            writeText(sarifBuilder.serialize(suiteProjects))
         }
-        csv.createNewFile()
-        csv.appendText("# test name, category, real vulnerability, cwe, Benchmark version: 1.2, 2016-06-1\n")
         for ((project, _) in suiteProjects) {
             val localPaths = project.saveToDir(CompilerArgs.tmpPath)
             localPaths.forEach { localPath ->
@@ -67,14 +65,11 @@ class JavaTestSuite {
                     remoteToLocalPaths["$helpersDir/$fileName"] = localPath
                     return@forEach
                 }
-                val nameWithoutExt = localPath.substringAfterLast('/').substringBefore(".java")
-                //BenchmarkTest00013,xss,true,79
-                csv.appendText("$nameWithoutExt,unknown,unknown,0\n")
                 val remotePath = "$pathToOwaspSources/$fileName"
                 remoteToLocalPaths[remotePath] = localPath
             }
         }
-        remoteToLocalPaths[pathToCsv] = csv.absolutePath
+        remoteToLocalPaths[pathToTruthSarif] = sarif.absolutePath
         val cmdToRm =
             remoteToLocalPaths.filterNot { it.key.contains("BenchmarkTest") }.keys.joinToString(" ") { "rm $it;" }
         File("tmp/scorecards/").deleteRecursively()
@@ -84,16 +79,17 @@ class JavaTestSuite {
             fsi.execCommand(cmdToRm)
             fsi.execCommand("rm -rf $pathToOwaspSources; mkdir $pathToOwaspSources")
             fsi.downloadFilesToRemote(remoteToLocalPaths)
-            fsi.execCommand("cd ~; rm -rf $pathToOwasp/scorecard/; rm -rf $pathToOwasp/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh")
-            val scoreCardDir = "$pathToOwasp/scorecard"
-            val scoreCardsPaths = fsi.execCommand("find $scoreCardDir -name \"*Scorecard*.csv\"")!!
-            val pathToScoreCards =
-                scoreCardsPaths
+            fsi.execCommand("cd ~/vulnomicon; rm -rf $pathToOwasp-output; ./scripts/runBenchmarkJavaMutated.sh")
+            val reportsDir = "$pathToOwasp-output"
+            val reportsPaths = fsi.execCommand("cd ~/vulnomicon; find $reportsDir -name \"*.sarif\"")!!
+            val pathToReports =
+                reportsPaths
                     .split("\n")
                     .drop(1)
                     .dropLast(1)
+                    .filterNot { it.contains("truth") }
                     .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
-            fsi.downloadFilesFromRemote(pathToScoreCards)
+            fsi.downloadFilesFromRemote(pathToReports)
         } else {
             with(ProcessBuilder()) {
                 try {
@@ -108,7 +104,7 @@ class JavaTestSuite {
                     command("bash", "-c", cmd).start().waitFor()
                 }
                 val execCommand =
-                    "cd ~; rm -rf $pathToOwasp/scorecard/; rm -rf $pathToOwasp/results; positive-benchmark/runReferenceTools.sh; positive-benchmark/createScorecards.sh"
+                    "cd ~/vulnomicon; rm -rf $pathToOwasp-output; ./scripts/runBenchmarkJavaMutated.sh"
                 command("bash", "-c", execCommand).start().let { process ->
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
                     var line: String?
@@ -118,9 +114,9 @@ class JavaTestSuite {
                     reader.close()
                     process.waitFor()
                 }
-                val scoreCardDir = "$pathToOwasp/scorecard"
+                val reportsDir = "$pathToOwasp-output"
                 val scoreCardsPaths = StringBuilder()
-                command("bash", "-c", "find $scoreCardDir -name \"*Scorecard*.csv\"").start().let { process ->
+                command("bash", "-c", "find $reportsDir -name \"*.sarif\"").start().let { process ->
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
@@ -129,11 +125,11 @@ class JavaTestSuite {
                     reader.close()
                     process.waitFor()
                 }
-                val pathToScoreCards = scoreCardsPaths
+                val pathToReports = scoreCardsPaths
                     .split("\n")
                     .dropLast(1)
                     .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
-                val commandToCpScoreCards = pathToScoreCards.entries.joinToString("; "){"cp ${it.key} ${it.value}"}
+                val commandToCpScoreCards = pathToReports.entries.joinToString("; "){"cp ${it.key} ${it.value}"}
                 command("bash", "-c", commandToCpScoreCards).start().waitFor()
             }
         }

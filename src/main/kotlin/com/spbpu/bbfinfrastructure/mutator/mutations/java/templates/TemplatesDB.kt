@@ -8,12 +8,6 @@ import kotlin.streams.toList
 
 object TemplatesDB {
 
-    val manualTemplates = mutableListOf<String>()
-    val minedTemplates = mutableListOf<String>()
-    val kotlinTemplates = mutableListOf<String>()
-    val testTemplates = mutableListOf<String>()
-
-
     fun getTemplatesForFeature(feature: TestingFeature): List<String>? {
         val templates = getTemplates(feature.dir)?.toList() ?: return null
         return templates.map { it.readText() }
@@ -36,19 +30,4 @@ object TemplatesDB {
             .toList()
             .ifEmpty { null }
 
-
-    init {
-        File("manualTemplates.txt").readText().split("---------").forEach {
-            manualTemplates.add(it)
-        }
-        File("templates.txt").readText().split("---------").forEach {
-            minedTemplates.add(it)
-        }
-        File("kotlinTemplates.txt").readText().split("---------").forEach {
-            kotlinTemplates.add(it)
-        }
-        File("testTemplates.txt").readText().split("---------").forEach {
-            testTemplates.add(it)
-        }
-    }
 }

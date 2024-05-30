@@ -200,13 +200,13 @@ open class TemplatesInserter : Transformation() {
         return Template(auxClasses, imports, templatesBodies)
     }
 
-    protected class Template(
+    class Template(
         val auxClasses: List<Pair<String, String>>,
         val imports: List<String>,
         val templates: List<TemplateBody>
     )
 
-    protected data class TemplateBody(
+    data class TemplateBody(
         val auxMethods: List<String>,
         val templateBody: String
     )

@@ -33,16 +33,16 @@ class Mutator(val project: Project) {
     //Stub
     private fun startJavaMutations() {
         println("STARTING JAVA MUTATIONS")
-        if (Random.getTrue(50)) {
-            val mutation = listOf(
-                IfTemplateBasedMutation(),
-                ForTemplateBasedMutation(),
-                WhileTemplateBasedMutation()
-            ).random()
-            executeMutation(mutation, 100)
-        } else {
+//        if (Random.getTrue(50)) {
+//            val mutation = listOf(
+//                IfTemplateBasedMutation(),
+//                ForTemplateBasedMutation(),
+//                WhileTemplateBasedMutation()
+//            ).random()
+//            executeMutation(mutation, 100)
+//        } else {
             executeMutation(TemplatesInserter(), 100)
-        }
+//        }
         println("END JAVA MUTATIONS")
 //        log.debug("Verify = ${verify()}")
         return
