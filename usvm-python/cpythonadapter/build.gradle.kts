@@ -1,5 +1,8 @@
-import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.internal.jvm.Jvm
+import usvmpython.*
+import usvmpython.tasks.registerCPythonClean
+import usvmpython.tasks.registerCPythonDebugBuild
+import usvmpython.tasks.registerCPythonDistClean
 
 // Example project: https://github.com/vladsoroka/GradleJniSample
 
@@ -7,94 +10,17 @@ plugins {
     `cpp-library`
 }
 
-val cpythonActivated: String? by project
-val cpythonActivatedFlag = cpythonActivated?.toLowerCase() == "true"
+if (cpythonIsActivated()) {
+    val cpythonBuildPath = getCPythonBuildPath()
+    val adapterHeaderPath = getGeneratedHeadersPath()
 
-if (cpythonActivatedFlag) {
-    val cpythonPath: String = File(projectDir, "cpython").canonicalPath
-    val cpythonBuildPath: String = File(project.buildDir.path, "cpython_build").canonicalPath
-    val cpythonTaskGroup = "cpython"
-    val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
-    val windowsBuildScript = File(cpythonPath, "PCBuild/build.bat")
+    val cpythonBuildDebugTask = registerCPythonDebugBuild()
+    val cpythonCleanTask = registerCPythonClean()
+    registerCPythonDistClean()
 
-    val configCPythonDebug =
-        if (!isWindows) {
-            tasks.register<Exec>("CPythonBuildConfigurationDebug") {
-                group = cpythonTaskGroup
-                workingDir = File(cpythonPath)
-                val includePipFile = File(projectDir, "include_pip_in_build")
-                inputs.file(includePipFile)
-                outputs.file("$cpythonPath/Makefile")
-                val pipLine = if (includePipFile.readText().trim() == "false") {
-                    "--with-ensurepip=no"
-                } else {
-                    "--with-ensurepip=yes"
-                }
-                doFirst {
-                    println("Pip line: $pipLine")
-                }
-                commandLine(
-                    "$cpythonPath/configure",
-                    "--enable-shared",
-                    "--without-static-libpython",
-                    pipLine,
-                    "--prefix=$cpythonBuildPath",
-                    "--disable-test-modules",
-                    "--with-assertions"
-                )
-            }
-        } else {
-            null
-        }
-
-    /*
-    val configCPythonRelease =
-        if (!isWindows) {
-            tasks.register<Exec>("CPythonBuildConfigurationRelease") {
-                group = cpythonTaskGroup
-                workingDir = File(cpythonPath)
-                outputs.file("$cpythonPath/Makefile")
-                commandLine(
-                    "$cpythonPath/configure",
-                    "--enable-shared",
-                    "--without-static-libpython",
-                    "--with-ensurepip=yes",
-                    "--prefix=$cpythonBuildPath",
-                    "--disable-test-modules",
-                    "--enable-optimizations"
-                )
-            }
-        } else {
-            null
-        }
-     */
-
-    val cpythonBuildDebug = tasks.register<Exec>("CPythonBuildDebug") {
-        group = cpythonTaskGroup
-        inputs.dir(File(cpythonPath, "Objects"))
-        inputs.dir(File(cpythonPath, "Python"))
-        inputs.dir(File(cpythonPath, "Include"))
-        workingDir = File(cpythonPath)
-        if (!isWindows) {
-            dependsOn(configCPythonDebug!!)
-            outputs.dirs("$cpythonBuildPath/lib", "$cpythonBuildPath/include", "$cpythonBuildPath/bin")
-            commandLine("make")
-            commandLine("make", "install")
-        } else {
-            outputs.dirs(cpythonBuildPath)
-            commandLine(
-                windowsBuildScript.canonicalPath,
-                "-c",
-                "Debug",
-                "-t",
-                "Build",
-                "--generate-layout",
-                cpythonBuildPath
-            )
-        }
+    tasks.clean {
+        dependsOn(cpythonCleanTask)
     }
-
-    val adapterHeaderPath = "${project.buildDir.path}/adapter_include"
 
     library {
         binaries.configureEach {
@@ -132,11 +58,11 @@ if (cpythonActivatedFlag) {
                 compileTask.compilerArgs.addAll(listOf("/TC"))
             }
 
-            compileTask.dependsOn(":usvm-python:usvm-python-main:compileJava")
+            compileTask.dependsOn(":$USVM_PYTHON_MAIN_MODULE:compileJava")
             if (!compileTask.isOptimized) {
-                compileTask.dependsOn(cpythonBuildDebug)
+                compileTask.dependsOn(cpythonBuildDebugTask)
             } else {
-                compileTask.dependsOn(cpythonBuildDebug)  // TODO
+                compileTask.dependsOn(cpythonBuildDebugTask)  // TODO
             }
         }
 
@@ -149,41 +75,12 @@ if (cpythonActivatedFlag) {
         }
     }
 
-    val cpythonClean = tasks.register<Exec>("CPythonClean") {
-        group = cpythonTaskGroup
-        workingDir = File(cpythonPath)
-        if (!isWindows) {
-            if (File(cpythonPath, "Makefile").exists()) {
-                commandLine("make", "clean")
-            } else {
-                commandLine("echo", "CPython Configuration is already clean")
-            }
-        } else {
-            commandLine(windowsBuildScript.canonicalPath, "-t", "Clean")
-        }
-    }
-
-    tasks.register<Exec>("CPythonDistclean") {
-        group = cpythonTaskGroup
-        workingDir = File(cpythonPath)
-        if (!isWindows) {
-            if (File(cpythonPath, "Makefile").exists()) {
-                commandLine("make", "distclean")
-            } else {
-                commandLine("echo", "CPython Configuration is already clean")
-            }
-        } else {
-            commandLine(windowsBuildScript.canonicalPath, "-t", "CleanAll")
-        }
-    }
-
-    tasks.clean {
-        dependsOn(cpythonClean)
-    }
-
+    /**
+     * Task for debugging CPython patch without JNI-calls.
+     * */
     if (!isWindows) {
         tasks.register<Exec>("cpython_check_compile") {
-            dependsOn(cpythonBuildDebug)
+            dependsOn(cpythonBuildDebugTask)
             workingDir = File("${projectDir.path}/cpython_check")
             commandLine(
                 "gcc",

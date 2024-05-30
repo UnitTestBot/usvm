@@ -1,4 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import usvmpython.*
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -13,21 +14,18 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
 
-val cpythonActivated: String? by project
-val cpythonActivatedFlag = cpythonActivated?.toLowerCase() == "true"
-
 tasks.test {
-    onlyIf { cpythonActivatedFlag }
+    onlyIf { cpythonIsActivated() }
 }
 
 tasks.jar {
     dependsOn(":usvm-util:jar")
     dependsOn(":usvm-core:jar")
-    dependsOn(":usvm-python:usvm-python-main:jar")
-    dependsOn(":usvm-python:usvm-python-commons:jar")
+    dependsOn(":$USVM_PYTHON_MAIN_MODULE:jar")
+    dependsOn(":$USVM_PYTHON_COMMONS_MODULE:jar")
 }
 
-if (cpythonActivatedFlag) {
+if (cpythonIsActivated()) {
     val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
     val samplesSourceDir = File(projectDir, "src/test/resources/samples")
     val approximationsDir = File(projectDir, "python_approximations")
@@ -39,8 +37,8 @@ if (cpythonActivatedFlag) {
         "-Xss50m"
     )
 
-    val cpythonPath: String = File(childProjects["cpythonadapter"]!!.projectDir, "cpython").path
-    val cpythonBuildPath: String = File(childProjects["cpythonadapter"]!!.buildDir, "cpython_build").path
+    val cpythonPath: String = getCPythonSourcePath().canonicalPath
+    val cpythonBuildPath: String = getCPythonBuildPath().canonicalPath
     val cpythonAdapterBuildPath: String =
         File(childProjects["cpythonadapter"]!!.buildDir, "/lib/main/debug").path  // TODO: and release?
     val pythonBinaryPath: String =
