@@ -28,7 +28,7 @@ fun UninterpretedSymbolicPythonObject.getFieldValue(
     ctx: ConcolicRunContext,
     name: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     name.addSupertype(ctx, typeSystem.pythonStr)
     val addr = ctx.curState!!.symbolicObjectMapGet(address, name.address, ObjectDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(addr, typeSystem)
@@ -39,7 +39,7 @@ fun UninterpretedSymbolicPythonObject.setFieldValue(
     name: UninterpretedSymbolicPythonObject,
     value: UninterpretedSymbolicPythonObject,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     name.addSupertypeSoft(ctx, typeSystem.pythonStr)
     ctx.curState!!.symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
 }
@@ -48,7 +48,7 @@ fun UninterpretedSymbolicPythonObject.containsField(
     ctx: ConcolicRunContext,
     name: UninterpretedSymbolicPythonObject,
 ): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     name.addSupertype(ctx, typeSystem.pythonStr)
     return ctx.curState!!.symbolicObjectMapContains(address, name.address, ObjectDictType)
 }

@@ -15,7 +15,7 @@ import org.usvm.machine.ps.strategies.impls.makeDelayedForkByInstructionPriority
 import org.usvm.machine.ps.strategies.impls.makeDelayedForkByInstructionWeightedStrategy
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
+import org.usvm.machine.symbolicobjects.rendering.PyValueBuilder
 import org.usvm.ps.DfsPathSelector
 import org.usvm.ps.RandomTreePathSelector
 import org.usvm.python.model.PyTupleObject
@@ -398,7 +398,7 @@ private const val DEFAULT_NUMBER_OF_VIRTUAL = 5
 private fun calculateNumberOfVirtual(state: PyState): Int =
     runCatching {
         val modelHolder = PyModelHolder(state.pyModel)
-        val builder = PyObjectModelBuilder(state, modelHolder)
+        val builder = PyValueBuilder(state, modelHolder)
         val models = state.inputSymbols.map { symbol ->
             val interpreted = interpretSymbolicPythonObject(modelHolder, state.memory, symbol)
             builder.convert(interpreted)

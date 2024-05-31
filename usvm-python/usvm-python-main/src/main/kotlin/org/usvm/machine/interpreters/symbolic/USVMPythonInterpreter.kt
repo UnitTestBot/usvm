@@ -20,15 +20,15 @@ import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.serialization.ReprObjectSerializer
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.LengthOverflowException
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
-import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
+import org.usvm.machine.symbolicobjects.rendering.PyValueBuilder
+import org.usvm.machine.symbolicobjects.rendering.PyValueRenderer
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.python.model.PyInputModel
-import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyResultFailure
 import org.usvm.python.model.PyResultSuccess
 import org.usvm.python.model.PyTest
+import org.usvm.python.model.PyValue
 
 class USVMPythonInterpreter<PyObjectRepr>(
     private val ctx: PyContext,
@@ -50,7 +50,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
         val symbols = state.inputSymbols
         val interpreted = symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
-        val builder = PyObjectModelBuilder(state, modelHolder)
+        val builder = PyValueBuilder(state, modelHolder)
         val objectModels = try {
             interpreted.map { builder.convert(it) }
         } catch (_: LengthOverflowException) {
@@ -62,7 +62,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         val inputModel = PyInputModel(objectModels)
         resultsReceiver.inputModelObserver.onInputModel(inputModel)
 
-        val renderer = PyObjectRenderer()
+        val renderer = PyValueRenderer()
         concolicRunContext.builder = builder
         concolicRunContext.renderer = renderer
         val concrete = getConcrete(renderer, objectModels)
@@ -121,7 +121,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun processConcreteInput(
         concrete: List<PyObject>,
-        renderer: PyObjectRenderer,
+        renderer: PyValueRenderer,
     ): List<PyObjectRepr>? {
         if (logger.isDebugEnabled) { // getting __repr__ might be slow
             logger.debug(
@@ -161,7 +161,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
     private fun processJavaException(
         concolicRunContext: ConcolicRunContext,
         exception: Throwable,
-        renderer: PyObjectRenderer,
+        renderer: PyValueRenderer,
     ) {
         when (exception) {
             is UnregisteredVirtualOperation -> processUnregisteredVirtualOperation(concolicRunContext, renderer)
@@ -175,12 +175,12 @@ class USVMPythonInterpreter<PyObjectRepr>(
     private fun processCPythonExceptionDuringConcolicRun(
         concolicRunContext: ConcolicRunContext,
         exception: CPythonExecutionException,
-        renderer: PyObjectRenderer,
+        renderer: PyValueRenderer,
         inputModel: PyInputModel,
         inputReprs: List<PyObjectRepr>?,
     ): Boolean {
-        require(exception.pythonExceptionType != null)
-        require(exception.pythonExceptionValue != null)
+        requireNotNull(exception.pythonExceptionType)
+        requireNotNull(exception.pythonExceptionValue)
         if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
             val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
             processJavaException(concolicRunContext, javaException, renderer)
@@ -205,7 +205,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun processUnregisteredVirtualOperation(
         concolicRunContext: ConcolicRunContext,
-        renderer: PyObjectRenderer,
+        renderer: PyValueRenderer,
     ) {
         logger.debug("Step result: Unregistrered virtual operation")
         val resultState = concolicRunContext.curState
@@ -229,7 +229,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         concolicRunContext.curState?.meta?.wasInterrupted = true
     }
 
-    private fun getConcrete(renderer: PyObjectRenderer, objectModels: List<PyValue>): List<PyObject>? {
+    private fun getConcrete(renderer: PyValueRenderer, objectModels: List<PyValue>): List<PyObject>? {
         try {
             return objectModels.map { renderer.convert(it) }
         } catch (_: LengthOverflowException) {

@@ -13,7 +13,7 @@ fun UninterpretedSymbolicPythonObject.setRangeIteratorContent(
     ctx: ConcolicRunContext,
     range: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonRangeIterator)
     val start = ctx.curState!!.memory.readField(range.address, RangeContents.start, intSort)
     ctx.curState!!.memory.writeField(address, RangeIteratorContents.start, intSort, start, trueExpr)
@@ -28,7 +28,7 @@ fun UninterpretedSymbolicPythonObject.setRangeIteratorContent(
 fun UninterpretedSymbolicPythonObject.getRangeIteratorState(
     ctx: ConcolicRunContext,
 ): Pair<UExpr<KIntSort>, UExpr<KIntSort>> = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
     val index = ctx.curState!!.memory.readField(address, RangeIteratorContents.index, intSort)
     val length = ctx.curState!!.memory.readField(address, RangeIteratorContents.length, intSort)
@@ -38,7 +38,7 @@ fun UninterpretedSymbolicPythonObject.getRangeIteratorState(
 fun UninterpretedSymbolicPythonObject.getRangeIteratorNext(
     ctx: ConcolicRunContext,
 ): UExpr<KIntSort> = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, ctx.typeSystem.pythonRangeIterator)
     val index = ctx.curState!!.memory.readField(address, RangeIteratorContents.index, intSort)
     val newIndex = mkArithAdd(index, mkIntNum(1))

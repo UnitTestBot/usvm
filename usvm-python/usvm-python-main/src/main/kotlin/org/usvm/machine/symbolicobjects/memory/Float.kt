@@ -122,7 +122,7 @@ fun mkUninterpretedFloatWithValue(ctx: PyContext, value: UExpr<KRealSort>): Floa
     FloatUninterpretedContent(ctx.falseExpr, ctx.falseExpr, ctx.falseExpr, value)
 
 fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, expr: FloatUninterpretedContent) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonFloat)
     writeBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.curState!!.memory, address, ctx.ctx, expr.isNan)
     writeBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.curState!!.memory, address, ctx.ctx, expr.isInf)
@@ -131,7 +131,7 @@ fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, e
 }
 
 fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonFloat)
     return FloatUninterpretedContent(
         readBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.curState!!.memory, address, ctx.ctx),

@@ -81,7 +81,6 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
             println("FUNCTION STATISTICS")
             println(machine.statistics.functionStatistics.last().writeReport())
             println()
-
         } catch (e: IllegalOperationException) {
             println("Illegal operation while analyzing: ${e.operation}\n")
         }

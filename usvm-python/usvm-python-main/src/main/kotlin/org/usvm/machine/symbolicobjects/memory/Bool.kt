@@ -21,13 +21,13 @@ import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonBool)
     return ctx.curState!!.memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx.ctx))
 }
 
 fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     return when (val type = getTypeIfDefined(ctx)) {
         typeSystem.pythonBool -> {
             getBoolContent(ctx)
@@ -81,6 +81,6 @@ fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemo
 }
 
 fun InterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     return getBoolContent(ctx.ctx, ctx.curState!!.memory)
 }

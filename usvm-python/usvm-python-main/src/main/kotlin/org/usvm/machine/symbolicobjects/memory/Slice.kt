@@ -69,7 +69,7 @@ private fun UninterpretedSymbolicPythonObject.getSliceField(
     fieldIsNone: PropertyOfPythonObject,
     field: PropertyOfPythonObject,
 ): SliceUninterpretedField {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, ctx.typeSystem.pythonSlice)
     val isNone = ctx.curState!!.memory.readField(address, fieldIsNone, ctx.ctx.boolSort)
     val value = ctx.curState!!.memory.readField(address, field, ctx.ctx.intSort)
@@ -82,7 +82,7 @@ private fun UninterpretedSymbolicPythonObject.setSliceField(
     field: PropertyOfPythonObject,
     content: SliceUninterpretedField,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
     ctx.curState!!.memory.writeField(address, fieldIsNone, ctx.ctx.boolSort, content.isNone, ctx.ctx.trueExpr)
     ctx.curState!!.memory.writeField(address, field, ctx.ctx.intSort, content.content, ctx.ctx.trueExpr)

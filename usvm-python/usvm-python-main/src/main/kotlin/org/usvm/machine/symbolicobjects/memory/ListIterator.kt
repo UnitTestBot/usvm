@@ -14,14 +14,14 @@ fun UninterpretedSymbolicPythonObject.setListIteratorContent(
     ctx: ConcolicRunContext,
     list: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonListIteratorType)
     ctx.curState!!.memory.writeField(address, ListIteratorContents.list, addressSort, list.address, trueExpr)
     ctx.curState!!.memory.writeField(address, ListIteratorContents.index, intSort, mkIntNum(0), trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.increaseListIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonListIteratorType)
     val oldIndexValue = ctx.curState!!.memory.readField(address, ListIteratorContents.index, intSort)
     ctx.curState!!.memory.writeField(
@@ -36,7 +36,7 @@ fun UninterpretedSymbolicPythonObject.increaseListIteratorCounter(ctx: ConcolicR
 fun UninterpretedSymbolicPythonObject.getListIteratorContent(
     ctx: ConcolicRunContext,
 ): Pair<UHeapRef, UExpr<KIntSort>> = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonListIteratorType)
     val listRef = ctx.curState!!.memory.readField(address, ListIteratorContents.list, addressSort)
     val index = ctx.curState!!.memory.readField(address, ListIteratorContents.index, intSort)

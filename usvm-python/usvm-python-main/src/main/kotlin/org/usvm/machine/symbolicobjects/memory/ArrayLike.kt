@@ -41,7 +41,7 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
     ctx: ConcolicRunContext,
     index: UExpr<KIntSort>,
 ): UninterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     val elemAddress = ctx.curState!!.memory.readArrayIndex(address, index, ArrayType, ctx.ctx.addressSort)
@@ -81,7 +81,7 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
     index: UExpr<KIntSort>,
     value: UninterpretedSymbolicPythonObject,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     if (!isAllocatedObject(ctx)) {
@@ -104,7 +104,7 @@ fun UninterpretedSymbolicPythonObject.extendArrayConstraints(
     ctx: ConcolicRunContext,
     on: UninterpretedSymbolicPythonObject,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     type.elementConstraints.forEach { constraint ->

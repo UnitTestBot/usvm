@@ -104,9 +104,14 @@ class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) 
             "[x.offset for x in dis.Bytecode(f) if x.opname != 'RESUME']"
         )
         val rawStr = ConcretePythonInterpreter.getPythonObjectRepr(raw)
-        rawStr.removePrefix("[").removeSuffix("]").split(", ").map { it.toInt() }.also {
-            ConcretePythonInterpreter.decref(namespace)
-        }
+        rawStr
+            .removePrefix("[")
+            .removeSuffix("]")
+            .split(", ")
+            .map { it.toInt() }
+            .also {
+                ConcretePythonInterpreter.decref(namespace)
+            }
     }
     var coverage: Double = 0.0
     var coverageNoVirtual: Double = 0.0

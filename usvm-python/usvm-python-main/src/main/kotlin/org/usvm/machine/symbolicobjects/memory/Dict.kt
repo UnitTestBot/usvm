@@ -35,14 +35,14 @@ import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.types.first
 
 fun UninterpretedSymbolicPythonObject.dictIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, DictContents.isNotEmpty, ctx.ctx.boolSort))
 }
 
 fun UninterpretedSymbolicPythonObject.setDictNotEmpty(ctx: ConcolicRunContext) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
     ctx.curState!!.memory.writeField(
@@ -58,7 +58,7 @@ fun UninterpretedSymbolicPythonObject.readDictRefElement(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val resultAddress = ctx.curState!!.symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
@@ -69,7 +69,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsRef(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
 ): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val contains = ctx.curState!!.symbolicObjectMapContains(address, key.address, RefDictType)
@@ -83,7 +83,7 @@ fun UninterpretedSymbolicPythonObject.writeDictRefElement(
     key: UninterpretedSymbolicPythonObject,
     value: UninterpretedSymbolicPythonObject,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
     setDictNotEmpty(ctx)
@@ -94,7 +94,7 @@ fun UninterpretedSymbolicPythonObject.readDictIntElement(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>,
 ): UninterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val lvalue = UMapEntryLValue(ctx.ctx.intSort, ctx.ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
@@ -106,7 +106,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsInt(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>,
 ): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val lvalue = USetEntryLValue(ctx.ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
@@ -121,7 +121,7 @@ fun UninterpretedSymbolicPythonObject.writeDictIntElement(
     key: UExpr<KIntSort>,
     value: UninterpretedSymbolicPythonObject,
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
     setDictNotEmpty(ctx)

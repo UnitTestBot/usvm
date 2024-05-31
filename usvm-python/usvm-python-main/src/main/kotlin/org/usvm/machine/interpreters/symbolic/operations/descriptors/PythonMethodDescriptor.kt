@@ -8,7 +8,7 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 object PythonMethodDescriptor : MemberDescriptor() {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython {
-        require(owner != null) { "Python method must always have an owner" }
+        requireNotNull(owner) { "Python method must always have an owner" }
         return ConcretePythonInterpreter.constructPartiallyAppliedPythonMethod(SymbolForCPython(owner, 0))
     }
 }

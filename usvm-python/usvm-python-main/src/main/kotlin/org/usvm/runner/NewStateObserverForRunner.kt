@@ -5,8 +5,8 @@ import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.results.observers.NewStateObserver
 import org.usvm.machine.results.serialization.PickleArgsSerializer
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder
-import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
+import org.usvm.machine.symbolicobjects.rendering.PyValueBuilder
+import org.usvm.machine.symbolicobjects.rendering.PyValueRenderer
 
 class NewStateObserverForRunner(
     private val communicator: PickledObjectCommunicator,
@@ -14,8 +14,8 @@ class NewStateObserverForRunner(
     private val sentData = mutableSetOf<String>()
     override fun onNewState(state: PyState) {
         val modelHolder = PyModelHolder(state.pyModel)
-        val builder = PyObjectModelBuilder(state, modelHolder)
-        val renderer = PyObjectRenderer(useNoneInsteadOfMock = true)
+        val builder = PyValueBuilder(state, modelHolder)
+        val renderer = PyValueRenderer(useNoneInsteadOfMock = true)
         val interpreted = state.inputSymbols.map {
             interpretSymbolicPythonObject(modelHolder, state.memory, it)
         }

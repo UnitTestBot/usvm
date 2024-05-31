@@ -10,7 +10,7 @@ import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.results.DefaultPyMachineResultsReceiver
 import org.usvm.machine.results.serialization.PythonObjectInfo
 import org.usvm.machine.results.serialization.StandardPythonObjectSerializer
-import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
+import org.usvm.machine.symbolicobjects.rendering.PyValueRenderer
 import org.usvm.machine.types.BasicPythonTypeSystem
 import org.usvm.machine.types.PythonAnyType
 import org.usvm.machine.types.PythonType
@@ -60,7 +60,7 @@ sealed class PythonTestRunner(
     ): String? =
         program.withPinnedCallable(target, typeSystem) { pinnedCallable ->
             val argModels = test.inputModel.inputArgs
-            val renderer = PyObjectRenderer()
+            val renderer = PyValueRenderer()
             val args = argModels.map { renderer.convert(it) }
             try {
                 val concreteResult =

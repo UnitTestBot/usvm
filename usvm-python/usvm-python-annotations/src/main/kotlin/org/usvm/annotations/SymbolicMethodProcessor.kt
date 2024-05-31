@@ -70,7 +70,7 @@ class SymbolicMethodProcessor : AbstractProcessor() {
             require(it in definedIds) {
                 "SymbolicMethodId $it has no definition"
             }
-            require(it.cName != null)
+            requireNotNull(it.cName)
         }
         return result
     }

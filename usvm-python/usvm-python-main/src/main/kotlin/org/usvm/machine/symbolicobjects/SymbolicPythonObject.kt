@@ -54,7 +54,7 @@ class UninterpretedSymbolicPythonObject(
         if (address is UConcreteHeapRef) {
             return
         }
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         myAssert(ctx, evalIs(ctx, type))
     }
 
@@ -62,12 +62,12 @@ class UninterpretedSymbolicPythonObject(
         if (address is UConcreteHeapRef) {
             return
         }
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         myAssert(ctx, evalIsSoft(ctx, type))
     }
 
     fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         val result = evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
         if (resolvesToNullInCurrentModel(ctx) && ctx.curState!!.pyModel.eval(result).isTrue) {
             ctx.curState!!.possibleTypesForNull = ctx.curState!!.possibleTypesForNull.filterBySupertype(type)
@@ -89,7 +89,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun evalIsSoft(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         return evalIsSoft(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
     }
 
@@ -116,7 +116,7 @@ class UninterpretedSymbolicPythonObject(
     }
 
     fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> { // must not be called on nullref
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
@@ -194,7 +194,7 @@ fun interpretSymbolicPythonObject(
     ctx: ConcolicRunContext,
     obj: UninterpretedSymbolicPythonObject,
 ): InterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     return interpretSymbolicPythonObject(ctx.modelHolder, ctx.curState!!.memory, obj)
 }
 

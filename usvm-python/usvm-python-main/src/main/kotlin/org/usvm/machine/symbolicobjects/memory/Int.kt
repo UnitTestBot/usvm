@@ -16,13 +16,13 @@ import org.usvm.machine.types.PythonType
 import org.usvm.memory.UMemory
 
 fun UninterpretedSymbolicPythonObject.setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonInt)
     ctx.curState!!.memory.writeField(address, IntContents.content, ctx.ctx.intSort, expr, ctx.ctx.trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonInt)
     return ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort)
 }
@@ -55,6 +55,6 @@ fun InterpretedSymbolicPythonObject.getIntContent(
 }
 
 fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     return getIntContent(ctx.ctx, ctx.curState!!.memory)
 }

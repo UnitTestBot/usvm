@@ -37,7 +37,7 @@ fun getTypeStreamForDelayedFork(
     obj: UninterpretedSymbolicPythonObject,
     ctx: ConcolicRunContext,
 ): UTypeStream<PythonType> {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val interpreted = interpretSymbolicPythonObject(ctx, obj)
     if (interpreted.address.address != 0) {
         val current = interpreted.getTypeStream()!!

@@ -41,12 +41,12 @@ import org.usvm.mkSizeExpr
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
 import org.usvm.python.model.PyMockObject
-import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyPrimitive
 import org.usvm.python.model.PyTupleObject
+import org.usvm.python.model.PyValue
 import org.usvm.types.first
 
-class PyObjectModelBuilder(
+class PyValueBuilder(
     var state: PyState,
     private val modelHolder: PyModelHolder,
 ) {
@@ -118,7 +118,7 @@ class PyObjectModelBuilder(
         return result
     }
 
-    private val defaultValueProvider = DefaultPyObjectModelProvider(state.typeSystem)
+    private val defaultValueProvider = DefaultPyValueProvider(state.typeSystem)
     private fun convertMockType(obj: InterpretedSymbolicPythonObject): PyValue {
         val default = modelHolder.model.forcedConcreteTypes[obj.address]?.let {
             defaultValueProvider.provide(it)

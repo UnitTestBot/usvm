@@ -40,8 +40,8 @@ fun generateSymbolicMethodInitialization(): String {
         jlong symbolicMethodCurRef;
     """.trimIndent()
     val clsNameDescr = "L$clsName;"
-    val items = SymbolicMethodId.values().map {
-        require(it.cName != null)
+    val items = SymbolicMethodId.entries.map {
+        requireNotNull(it.cName)
         """
             symbolicMethodCurFieldID = (*env)->GetStaticFieldID(env, symbolicMethodIdCls, "${it.name}", "$clsNameDescr");
             symbolicMethodCurObject = (*env)->GetStaticObjectField(env, symbolicMethodIdCls, symbolicMethodCurFieldID);

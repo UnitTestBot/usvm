@@ -15,7 +15,7 @@ fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(
 ) = with(
     ctx.ctx
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
     ctx.curState!!.memory.writeField(address, TupleIteratorContents.tuple, addressSort, tuple.address, trueExpr)
     ctx.curState!!.memory.writeField(address, TupleIteratorContents.index, intSort, mkIntNum(0), trueExpr)
@@ -26,7 +26,7 @@ fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(
 ): Pair<UHeapRef, UExpr<KIntSort>> = with(
     ctx.ctx
 ) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
     val tupleRef = ctx.curState!!.memory.readField(address, TupleIteratorContents.tuple, addressSort)
     val index = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
@@ -34,7 +34,7 @@ fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(
 }
 
 fun UninterpretedSymbolicPythonObject.increaseTupleIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
     val oldIndexValue = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
     ctx.curState!!.memory.writeField(

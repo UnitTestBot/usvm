@@ -21,14 +21,14 @@ import org.usvm.machine.types.RefSetType
 import org.usvm.memory.key.USizeExprKeyInfo
 
 fun UninterpretedSymbolicPythonObject.setIsEmpty(ctx: ConcolicRunContext): UBoolExpr {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonSet)
     return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, SetContents.isNotEmpty, ctx.ctx.boolSort))
 }
 
 fun UninterpretedSymbolicPythonObject.makeSetNotEmpty(ctx: ConcolicRunContext) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonSet)
     ctx.curState!!.memory.writeField(
@@ -44,7 +44,7 @@ fun UninterpretedSymbolicPythonObject.setContainsInt(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>,
 ): UBoolExpr = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val lvalue = USetEntryLValue(intSort, address, key, IntSetType, USizeExprKeyInfo())
     return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
 }
@@ -53,7 +53,7 @@ fun UninterpretedSymbolicPythonObject.addIntToSet(
     ctx: ConcolicRunContext,
     key: UExpr<KIntSort>,
 ) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     makeSetNotEmpty(ctx)
     val lvalue = USetEntryLValue(intSort, address, key, IntSetType, USizeExprKeyInfo())
     ctx.curState!!.memory.write(lvalue, trueExpr, trueExpr)
@@ -63,7 +63,7 @@ fun UninterpretedSymbolicPythonObject.setContainsRef(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
 ): UBoolExpr = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
     return setIsEmpty(ctx).not() and ctx.curState!!.memory.read(lvalue)
 }
@@ -72,7 +72,7 @@ fun UninterpretedSymbolicPythonObject.addRefToSet(
     ctx: ConcolicRunContext,
     key: UninterpretedSymbolicPythonObject,
 ) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     makeSetNotEmpty(ctx)
     val lvalue = URefSetEntryLValue(address, key.address, RefSetType)
     ctx.curState!!.memory.write(lvalue, trueExpr, trueExpr)

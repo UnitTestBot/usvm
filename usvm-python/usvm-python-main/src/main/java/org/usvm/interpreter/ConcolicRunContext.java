@@ -8,8 +8,8 @@ import org.usvm.machine.PyState;
 import org.usvm.machine.interpreters.symbolic.operations.tracing.PathDiversionException;
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent;
 import org.usvm.machine.model.PyModelHolder;
-import org.usvm.machine.symbolicobjects.rendering.PyObjectModelBuilder;
-import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer;
+import org.usvm.machine.symbolicobjects.rendering.PyValueBuilder;
+import org.usvm.machine.symbolicobjects.rendering.PyValueRenderer;
 import org.usvm.machine.types.PythonTypeSystem;
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction;
 
@@ -33,8 +33,8 @@ public class ConcolicRunContext {
     public int instructionCounter = 0;
     public boolean usesVirtualInputs = false;
     public Callable<Boolean> isCancelled;
-    public PyObjectModelBuilder builder = null;
-    public PyObjectRenderer renderer = null;
+    public PyValueBuilder builder = null;
+    public PyValueRenderer renderer = null;
 
     public ConcolicRunContext(
             @NotNull PyState curState,

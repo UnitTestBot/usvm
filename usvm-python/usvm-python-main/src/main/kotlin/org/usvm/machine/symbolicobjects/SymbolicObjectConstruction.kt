@@ -68,7 +68,7 @@ fun constructEmptyStaticObject(
 }
 
 fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonInt)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
@@ -78,7 +78,7 @@ fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): Uninterpre
 }
 
 fun constructFloat(context: ConcolicRunContext, expr: FloatUninterpretedContent): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonFloat)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
@@ -89,7 +89,7 @@ fun constructFloat(context: ConcolicRunContext, expr: FloatUninterpretedContent)
 
 
 fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
 
     val trueObj = context.curState!!.preAllocatedObjects.trueObject
     val falseObj = context.curState!!.preAllocatedObjects.falseObject
@@ -117,7 +117,7 @@ fun constructListIterator(
     context: ConcolicRunContext,
     list: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonListIteratorType)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
@@ -130,7 +130,7 @@ fun constructTupleIterator(
     context: ConcolicRunContext,
     tuple: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonTupleIteratorType)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
@@ -145,7 +145,7 @@ fun constructRange(
     stop: UExpr<KIntSort>,
     step: UExpr<KIntSort>,
 ): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRange)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
@@ -158,7 +158,7 @@ fun constructRangeIterator(
     context: ConcolicRunContext,
     range: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject {
-    require(context.curState != null)
+    requireNotNull(context.curState)
     val typeSystem = context.typeSystem
     val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRangeIterator)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
@@ -173,7 +173,7 @@ fun constructSlice(
     stop: SliceUninterpretedField,
     step: SliceUninterpretedField,
 ): UninterpretedSymbolicPythonObject {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     val address = ctx.curState!!.memory.allocConcrete(typeSystem.pythonSlice)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {

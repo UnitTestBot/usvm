@@ -67,7 +67,7 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
         }
     }
 
-    protected var allConcreteTypes: List<ConcretePythonType> = emptyList()
+    abstract val allConcreteTypes: MutableList<ConcretePythonType>
     protected val addressToConcreteType = mutableMapOf<PyObject, ConcretePythonType>()
     private val concreteTypeToAddress = mutableMapOf<ConcretePythonType, PyObject>()
     private fun addType(type: ConcretePythonType, address: PyObject) {
@@ -178,9 +178,7 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
 }
 
 class BasicPythonTypeSystem : PythonTypeSystem() {
-    init {
-        allConcreteTypes = basicTypes
-    }
+    override val allConcreteTypes = basicTypes.toMutableList()
 }
 
 class PythonTypeSystemWithMypyInfo(
@@ -206,7 +204,7 @@ class PythonTypeSystemWithMypyInfo(
     }
 
     fun resortTypes(module: String) {
-        allConcreteTypes = allConcreteTypes.sortedBy {
+        allConcreteTypes.sortBy {
             if (it in basicTypes) {
                 0
             } else if (it.typeModule == module) {
@@ -217,9 +215,9 @@ class PythonTypeSystemWithMypyInfo(
         }
     }
 
-    init {
+    override val allConcreteTypes: MutableList<ConcretePythonType> by lazy {
         withAdditionalPaths(program.additionalPaths, null) {
-            allConcreteTypes = basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utTypeRaw ->
+            basicTypes + typeHintsStorage.simpleTypes.mapNotNull { utTypeRaw ->
                 val utType = DefaultSubstitutionProvider.substituteAll(
                     utTypeRaw,
                     utTypeRaw.getBoundedParameters().map { pythonAnyType }
@@ -251,6 +249,6 @@ class PythonTypeSystemWithMypyInfo(
                     concreteTypeOfUtType[PythonTypeWrapperForEqualityCheck(utType)] = concreteType
                 }
             }
-        }
+        }.toMutableList()
     }
 }

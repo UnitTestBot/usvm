@@ -20,7 +20,7 @@ class PreallocatedObjects(
 ) {
 
     fun allocateStr(ctx: ConcolicRunContext, string: String, ref: PyObject): UninterpretedSymbolicPythonObject {
-        require(ctx.curState != null)
+        requireNotNull(ctx.curState)
         val cached = concreteStrToSymbol[string]
         if (cached != null) {
             return cached

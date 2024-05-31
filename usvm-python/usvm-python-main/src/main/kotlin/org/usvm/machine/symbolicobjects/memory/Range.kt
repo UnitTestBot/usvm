@@ -13,7 +13,7 @@ fun UninterpretedSymbolicPythonObject.setRangeContent(
     stop: UExpr<KIntSort>,
     step: UExpr<KIntSort>,
 ) = with(ctx.ctx) {
-    require(ctx.curState != null)
+    requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonRange)
     ctx.curState!!.memory.writeField(address, RangeContents.start, intSort, start, trueExpr)
     ctx.curState!!.memory.writeField(address, RangeContents.stop, intSort, stop, trueExpr)
