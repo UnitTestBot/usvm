@@ -9,8 +9,8 @@ import org.usvm.machine.types.PythonTypeSystem
 
 class StringProgramProvider(
     programCode: String,
-    functions: List<Pair<String, List<PythonType>>>
-): ProgramProvider() {
+    functions: List<Pair<String, List<PythonType>>>,
+) : ProgramProvider {
     override val program: PyProgram =
         PrimitivePyProgram.fromString(programCode)
 

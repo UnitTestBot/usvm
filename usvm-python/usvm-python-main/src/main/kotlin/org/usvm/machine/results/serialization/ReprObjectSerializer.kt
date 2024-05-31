@@ -3,7 +3,7 @@ package org.usvm.machine.results.serialization
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 
-object ReprObjectSerializer : PythonObjectSerializer<String>() {
+object ReprObjectSerializer : PythonObjectSerializer<String> {
     override fun serialize(obj: PyObject): String {
         return runCatching {
             ConcretePythonInterpreter.getPythonObjectRepr(obj)

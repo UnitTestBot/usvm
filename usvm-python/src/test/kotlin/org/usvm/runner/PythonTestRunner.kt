@@ -46,7 +46,7 @@ sealed class PythonTestRunner(
                 options.stepLimit?.toInt() ?: 300,
                 allowPathDiversion = allowPathDiversions,
                 timeoutMs = options.timeout.inWholeMilliseconds,
-                timeoutPerRunMs = timeoutPerRunMs
+                timeoutPerRunMs = timeoutPerRunMs,
             )
             saver.pyTestObserver.tests
         }
@@ -67,7 +67,7 @@ sealed class PythonTestRunner(
                     ConcretePythonInterpreter.concreteRunOnFunctionRef(pinnedCallable.asPyObject, args)
                 check(concreteResult)
             } catch (exception: CPythonExecutionException) {
-                require(exception.pythonExceptionType != null)
+                requireNotNull(exception.pythonExceptionType)
                 check(exception.pythonExceptionType!!)
             }
         }

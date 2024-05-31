@@ -41,7 +41,7 @@ import org.usvm.mkSizeExpr
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
 import org.usvm.python.model.PyMockObject
-import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyPrimitive
 import org.usvm.python.model.PyTupleObject
 import org.usvm.types.first
@@ -54,8 +54,8 @@ class PyObjectModelBuilder(
         require(state.pyModel == modelHolder.model)
     }
 
-    private val converted = mutableMapOf<UConcreteHeapRef, PyObjectModel>()
-    fun convert(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private val converted = mutableMapOf<UConcreteHeapRef, PyValue>()
+    fun convert(obj: InterpretedSymbolicPythonObject): PyValue {
         if (obj is InterpretedInputSymbolicPythonObject) {
             require(obj.modelHolder.model == state.pyModel) {
                 "Models in PyState and in InterpretedSymbolicPythonObject must be the same"
@@ -69,7 +69,7 @@ class PyObjectModelBuilder(
         }
         val typeSystem = state.typeSystem
         val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")
-        val result: PyObjectModel = when (type) {
+        val result: PyValue = when (type) {
             MockType -> {
                 convertMockType(obj)
             }
@@ -119,7 +119,7 @@ class PyObjectModelBuilder(
     }
 
     private val defaultValueProvider = DefaultPyObjectModelProvider(state.typeSystem)
-    private fun convertMockType(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertMockType(obj: InterpretedSymbolicPythonObject): PyValue {
         val default = modelHolder.model.forcedConcreteTypes[obj.address]?.let {
             defaultValueProvider.provide(it)
         }
@@ -129,10 +129,10 @@ class PyObjectModelBuilder(
         return PyMockObject(obj.address.address)
     }
 
-    private fun convertInt(obj: InterpretedSymbolicPythonObject): PyObjectModel =
+    private fun convertInt(obj: InterpretedSymbolicPythonObject): PyValue =
         PyPrimitive(obj.getIntContent(state.ctx, state.memory).toString())
 
-    private fun convertBool(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertBool(obj: InterpretedSymbolicPythonObject): PyValue {
         val repr = when (obj.getBoolContent(state.ctx, state.memory)) {
             state.ctx.trueExpr -> "True"
             state.ctx.falseExpr -> "False"
@@ -141,10 +141,10 @@ class PyObjectModelBuilder(
         return PyPrimitive(repr)
     }
 
-    private fun convertNone(): PyObjectModel =
+    private fun convertNone(): PyValue =
         PyPrimitive("None")
 
-    private fun convertSlice(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertSlice(obj: InterpretedSymbolicPythonObject): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Slice cannot be static"
         }
@@ -158,7 +158,7 @@ class PyObjectModelBuilder(
         )
     }
 
-    private fun convertFloat(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertFloat(obj: InterpretedSymbolicPythonObject): PyValue {
         val repr = when (val floatValue = obj.getFloatContent(state.ctx, state.memory)) {
             is FloatNan -> "float('nan')"
             is FloatPlusInfinity -> "float('inf')"
@@ -169,7 +169,7 @@ class PyObjectModelBuilder(
     }
 
     private var strNumber = 0
-    private fun convertString(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertString(obj: InterpretedSymbolicPythonObject): PyValue {
         if (isStaticHeapRef(obj.address)) {
             val uninterpreted = UninterpretedSymbolicPythonObject(obj.address, state.typeSystem)
             val str = state.preAllocatedObjects.concreteString(uninterpreted)
@@ -182,7 +182,7 @@ class PyObjectModelBuilder(
         return PyPrimitive("'${strNumber++}'")
     }
 
-    private fun convertList(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertList(obj: InterpretedSymbolicPythonObject): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "List object cannot be static"
         }
@@ -192,7 +192,7 @@ class PyObjectModelBuilder(
         return result
     }
 
-    private fun convertTuple(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertTuple(obj: InterpretedSymbolicPythonObject): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "List object cannot be static"
         }
@@ -202,7 +202,7 @@ class PyObjectModelBuilder(
         return result
     }
 
-    private fun convertDict(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertDict(obj: InterpretedSymbolicPythonObject): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input dict cannot be static"
         }
@@ -211,7 +211,7 @@ class PyObjectModelBuilder(
         if (obj.dictIsEmpty(state.ctx)) {
             return result
         }
-        val dictItems = mutableListOf<Pair<PyObjectModel, PyObjectModel>>()
+        val dictItems = mutableListOf<Pair<PyValue, PyValue>>()
         val model = state.pyModel
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
@@ -244,14 +244,14 @@ class PyObjectModelBuilder(
         return result
     }
 
-    private fun convertSet(obj: InterpretedSymbolicPythonObject): PyObjectModel {
+    private fun convertSet(obj: InterpretedSymbolicPythonObject): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Input set cannot be static"
         }
         if (obj.setIsEmpty(state.ctx)) {
             return PyCompositeObject(PyIdentifier("builtins", "set"), emptyList())
         }
-        val items = mutableListOf<PyObjectModel>()
+        val items = mutableListOf<PyValue>()
         val model = state.pyModel
         model.possibleRefKeys.forEach {
             val key = if (isStaticHeapRef(it)) {
@@ -283,7 +283,7 @@ class PyObjectModelBuilder(
     private fun convertFromDefaultConstructor(
         obj: InterpretedSymbolicPythonObject,
         type: ConcretePythonType,
-    ): PyObjectModel {
+    ): PyValue {
         require(obj is InterpretedInputSymbolicPythonObject) {
             "Instance of type with default constructor cannot be static"
         }
@@ -299,7 +299,7 @@ class PyObjectModelBuilder(
         if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
             return result
         }
-        val fields = mutableMapOf<String, PyObjectModel>()
+        val fields = mutableMapOf<String, PyValue>()
         state.preAllocatedObjects.listAllocatedStrs().forEach {
             val nameAddress = modelHolder.model.eval(it.address)
             require(isStaticHeapRef(nameAddress)) { "Symbolic string object must be static" }
@@ -310,32 +310,42 @@ class PyObjectModelBuilder(
                     state.typeSystem
                 )
             if (obj.containsField(nameSymbol)) {
-                val str = state.preAllocatedObjects.concreteString(it)!!
-                if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
-                    val strRef = state.preAllocatedObjects.refOfString(str)!!
-                    val namespace = ConcretePythonInterpreter.getNewNamespace()
-                    ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
-                    ConcretePythonInterpreter.concreteRun(namespace, "import keyword")
-                    val isValidName = ConcretePythonInterpreter.eval(
-                        namespace,
-                        "field.isidentifier() and not keyword.iskeyword(field)"
-                    )
-                    if (ConcretePythonInterpreter.getPythonObjectRepr(isValidName) == "True") {
-                        val symbolicValue = obj.getFieldValue(state.ctx, nameSymbol, state.memory)
-                        val value = convert(symbolicValue)
-                        fields[str] = value
-                    }
-                    ConcretePythonInterpreter.decref(namespace)
-                }
+                addFieldToObject(obj, nameSymbol, it, type, fields)
             }
         }
         result.fieldDict = fields
         return result
     }
 
+    private fun addFieldToObject(
+        obj: InterpretedInputSymbolicPythonObject,
+        nameSymbol: InterpretedSymbolicPythonObject,
+        strObj: UninterpretedSymbolicPythonObject,
+        type: ConcretePythonType,
+        fields: MutableMap<String, PyValue>,
+    ) {
+        val str = state.preAllocatedObjects.concreteString(strObj)!!
+        if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
+            val strRef = state.preAllocatedObjects.refOfString(str)!!
+            val namespace = ConcretePythonInterpreter.getNewNamespace()
+            ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
+            ConcretePythonInterpreter.concreteRun(namespace, "import keyword")
+            val isValidName = ConcretePythonInterpreter.eval(
+                namespace,
+                "field.isidentifier() and not keyword.iskeyword(field)"
+            )
+            if (ConcretePythonInterpreter.getPythonObjectRepr(isValidName) == "True") {
+                val symbolicValue = obj.getFieldValue(state.ctx, nameSymbol, state.memory)
+                val value = convert(symbolicValue)
+                fields[str] = value
+            }
+            ConcretePythonInterpreter.decref(namespace)
+        }
+    }
+
     private fun constructArrayContents(
         obj: InterpretedInputSymbolicPythonObject,
-    ): List<PyObjectModel> {
+    ): List<PyValue> {
         val size = obj.readArrayLength(state.ctx) as? KInt32NumExpr ?: throw LengthOverflowException()
         if (size.value > MAX_INPUT_ARRAY_LENGTH) {
             throw LengthOverflowException()

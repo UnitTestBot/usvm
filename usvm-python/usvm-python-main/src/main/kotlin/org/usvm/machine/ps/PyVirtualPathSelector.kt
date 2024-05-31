@@ -83,8 +83,8 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
         state.delayedForks.forEach { delayedFork ->
             val vertex = graph.getVertexByDelayedFork(delayedFork) ?: let {
                 val dfState = graphCreation.createEmptyDelayedForkState()
-                DelayedForkGraphInnerVertex(dfState, delayedFork, parent).also {
-                    graph.addVertex(delayedFork, it)
+                DelayedForkGraphInnerVertex(dfState, delayedFork, parent).also { vertex ->
+                    graph.addVertex(delayedFork, vertex)
                 }
             }
             parent = vertex

@@ -62,7 +62,7 @@ fun makeBaselineWeightedActionStrategy(
         baselineWeights
     )
 
-sealed class BaselineAction : Action<DelayedForkState, BaselineDelayedForkGraph>() {
+sealed class BaselineAction : Action<DelayedForkState, BaselineDelayedForkGraph> {
     protected fun chooseAvailableVertex(
         available: List<DelayedForkGraphInnerVertex<DelayedForkState>>,
         random: Random,

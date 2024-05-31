@@ -25,7 +25,7 @@ import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.python.model.PyInputModel
-import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyResultFailure
 import org.usvm.python.model.PyResultSuccess
 import org.usvm.python.model.PyTest
@@ -229,7 +229,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         concolicRunContext.curState?.meta?.wasInterrupted = true
     }
 
-    private fun getConcrete(renderer: PyObjectRenderer, objectModels: List<PyObjectModel>): List<PyObject>? {
+    private fun getConcrete(renderer: PyObjectRenderer, objectModels: List<PyValue>): List<PyObject>? {
         try {
             return objectModels.map { renderer.convert(it) }
         } catch (_: LengthOverflowException) {

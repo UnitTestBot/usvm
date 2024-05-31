@@ -6,7 +6,7 @@ import org.usvm.machine.ps.strategies.PyPathSelectorAction
 import kotlin.random.Random
 
 
-abstract class Action<DFState : DelayedForkState, in DFGraph : DelayedForkGraph<DFState>> {
-    abstract fun isAvailable(graph: DFGraph): Boolean
-    abstract fun makeAction(graph: DFGraph, random: Random): PyPathSelectorAction<DFState>
+interface Action<DFState : DelayedForkState, in DFGraph : DelayedForkGraph<DFState>> {
+    fun isAvailable(graph: DFGraph): Boolean
+    fun makeAction(graph: DFGraph, random: Random): PyPathSelectorAction<DFState>
 }

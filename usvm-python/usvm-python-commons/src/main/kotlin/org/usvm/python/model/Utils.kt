@@ -1,7 +1,7 @@
 package org.usvm.python.model
 
-fun calculateNumberOfMocks(obj: PyObjectModel): Int {
-    val visitor = object : PyObjectModelVisitor() {
+fun calculateNumberOfMocks(obj: PyValue): Int {
+    val visitor = object : PyValueVisitor() {
         var result = 0
         override fun visit(obj: PyMockObject) {
             result += 1

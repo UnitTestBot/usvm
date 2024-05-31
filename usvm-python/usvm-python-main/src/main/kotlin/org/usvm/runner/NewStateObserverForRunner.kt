@@ -10,7 +10,7 @@ import org.usvm.machine.symbolicobjects.rendering.PyObjectRenderer
 
 class NewStateObserverForRunner(
     private val communicator: PickledObjectCommunicator,
-) : NewStateObserver() {
+) : NewStateObserver {
     private val sentData = mutableSetOf<String>()
     override fun onNewState(state: PyState) {
         val modelHolder = PyModelHolder(state.pyModel)

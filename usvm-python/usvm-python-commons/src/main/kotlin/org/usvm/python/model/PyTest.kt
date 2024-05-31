@@ -7,7 +7,7 @@ class PyTest<PyObjectRepr>(
 )
 
 class PyInputModel(
-    val inputArgs: List<PyObjectModel>,
+    val inputArgs: List<PyValue>,
 )
 
 sealed class PyResult<PyObjectRepr>

@@ -1,5 +1,5 @@
 package org.usvm.runner
 
-abstract class USVMPythonAnalysisResultReceiver {
-    abstract fun receivePickledInputValues(pickledTuple: String)
+interface USVMPythonAnalysisResultReceiver {
+    fun receivePickledInputValues(pickledTuple: String)
 }

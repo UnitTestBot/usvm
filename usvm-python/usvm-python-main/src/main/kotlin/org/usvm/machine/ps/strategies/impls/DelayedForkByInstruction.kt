@@ -42,7 +42,7 @@ fun makeDelayedForkByInstructionWeightedStrategy(
         baselineWeights
     )
 
-sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedForkByInstructionGraph>() {
+sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedForkByInstructionGraph> {
     protected fun findAvailableInstructions(
         graph: DelayedForkByInstructionGraph,
         isAvailable: (DelayedForkGraphInnerVertex<DelayedForkState>) -> Boolean,
@@ -112,11 +112,10 @@ class DelayedForkByInstructionGraph(
 
     override fun addVertex(df: DelayedFork, vertex: DelayedForkGraphInnerVertex<DelayedForkState>) {
         super.addVertex(df, vertex)
-        var set = nodesByInstruction[vertex.delayedFork.state.pathNode.statement]
-        if (set == null) {
-            set = mutableSetOf()
-            nodesByInstruction[vertex.delayedFork.state.pathNode.statement] = set
-        }
+        val set = nodesByInstruction[vertex.delayedFork.state.pathNode.statement]
+            ?: mutableSetOf<DelayedForkGraphInnerVertex<DelayedForkState>>().also {
+                nodesByInstruction[vertex.delayedFork.state.pathNode.statement] = it
+            }
         set.add(vertex)
     }
 }

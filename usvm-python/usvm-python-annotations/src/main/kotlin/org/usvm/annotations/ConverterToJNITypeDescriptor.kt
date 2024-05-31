@@ -9,10 +9,9 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.SimpleTypeVisitor8
 
-class ConverterToJNITypeDescriptor : SimpleTypeVisitor8<String, Void>() {
-    override fun visitPrimitive(t: PrimitiveType, unused: Void?): String {
-        val kind = t.kind
-        return when (kind) {
+class ConverterToJNITypeDescriptor : SimpleTypeVisitor8<String, Unit>() {
+    override fun visitPrimitive(t: PrimitiveType, unused: Unit?): String {
+        return when (t.kind) {
             TypeKind.BOOLEAN -> "Z"
             TypeKind.BYTE -> "B"
             TypeKind.CHAR -> "C"
@@ -25,17 +24,17 @@ class ConverterToJNITypeDescriptor : SimpleTypeVisitor8<String, Void>() {
         }
     }
 
-    override fun visitNoType(t: NoType?, unused: Void?) = "V"
+    override fun visitNoType(t: NoType?, unused: Unit?) = "V"
 
-    override fun visitArray(t: ArrayType, unused: Void?): String {
+    override fun visitArray(t: ArrayType, unused: Unit?): String {
         return "[" + visit(t.componentType)
     }
 
-    override fun visitDeclared(t: DeclaredType, unused: Void?): String {
+    override fun visitDeclared(t: DeclaredType, unused: Unit?): String {
         return "L" + t.toString().replace('.', '/') + ";"
     }
 
-    override fun visitExecutable(t: ExecutableType, unused: Void?): String {
+    override fun visitExecutable(t: ExecutableType, unused: Unit?): String {
         val builder = StringBuilder()
         builder.append("(")
         for (param in t.parameterTypes) {

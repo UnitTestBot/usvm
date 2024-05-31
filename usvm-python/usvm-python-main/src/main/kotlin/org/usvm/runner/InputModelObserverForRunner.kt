@@ -7,7 +7,7 @@ import org.usvm.python.model.PyInputModel
 
 class InputModelObserverForRunner(
     private val communicator: PickledObjectCommunicator,
-) : InputModelObserver() {
+) : InputModelObserver {
     private val sentData = mutableSetOf<String>()
     override fun onInputModel(inputModel: PyInputModel) {
         val renderer = PyObjectRenderer(useNoneInsteadOfMock = true)

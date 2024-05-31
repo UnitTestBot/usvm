@@ -1,8 +1,8 @@
 package org.usvm.python.model
 
-open class PyObjectModelVisitor {
-    private val visited = mutableSetOf<PyObjectModel>()
-    fun visit(obj: PyObjectModel) {
+open class PyValueVisitor {
+    private val visited = mutableSetOf<PyValue>()
+    fun visit(obj: PyValue) {
         obj.accept(this)
     }
     open fun visit(obj: PyPrimitive) {

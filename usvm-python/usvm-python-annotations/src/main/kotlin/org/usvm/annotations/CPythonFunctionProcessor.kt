@@ -54,7 +54,12 @@ class CPythonFunctionProcessor : AbstractProcessor() {
             val curAnnotation = element.getAnnotation(CPythonFunction::class.java)
             val executable = element as? ExecutableElement ?: error("Incorrect usage of annotation CPythonFunction")
             val type = executable.asType() as ExecutableType
-            val firstType = executable.parameters.first().asType().toString().split(".").last()
+            val firstType = executable.parameters
+                .first()
+                .asType()
+                .toString()
+                .split(".")
+                .last()
             require(firstType == "ConcolicRunContext") {
                 "First argument of function annotated with CPythonFunction must be ConcolicRunContext"
             }

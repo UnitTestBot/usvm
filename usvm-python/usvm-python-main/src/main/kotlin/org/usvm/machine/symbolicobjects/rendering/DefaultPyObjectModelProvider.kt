@@ -6,11 +6,11 @@ import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
-import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyPrimitive
 
 class DefaultPyObjectModelProvider(private val typeSystem: PythonTypeSystem) {
-    fun provide(type: PythonType): PyObjectModel {
+    fun provide(type: PythonType): PyValue {
         require(type is ConcretePythonType)
 
         return when (type) {

@@ -7,13 +7,13 @@ import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
 import org.usvm.python.model.PyMockObject
-import org.usvm.python.model.PyObjectModel
+import org.usvm.python.model.PyValue
 import org.usvm.python.model.PyPrimitive
 import org.usvm.python.model.PyTupleObject
 
 class PyObjectRenderer(private val useNoneInsteadOfMock: Boolean = false) {
-    private val converted = mutableMapOf<PyObjectModel, PyObject>()
-    fun convert(model: PyObjectModel): PyObject {
+    private val converted = mutableMapOf<PyValue, PyObject>()
+    fun convert(model: PyValue): PyObject {
         if (model in converted) {
             return converted[model]!!
         }

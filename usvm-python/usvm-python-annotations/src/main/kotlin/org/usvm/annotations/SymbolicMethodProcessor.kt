@@ -42,7 +42,12 @@ class SymbolicMethodProcessor : AbstractProcessor() {
             require(element is ExecutableElement)
             val formatMsg = "Incorrect signature of SymbolicMethod ${element.simpleName}"
             require(element.parameters.size == NUMBER_OF_ARGUMENTS_IN_GENERATED_METHOD) { formatMsg }
-            val arg0 = element.parameters.first().asType().toString().split(".").last()
+            val arg0 = element.parameters
+                .first()
+                .asType()
+                .toString()
+                .split(".")
+                .last()
             require(arg0 == "ConcolicRunContext") { formatMsg }
             val arg1 = element.parameters[1].asType().toString().split(".").last()
             require(arg1 == "SymbolForCPython") { formatMsg }
