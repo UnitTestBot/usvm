@@ -51,14 +51,14 @@ if (~[EXPR_boolean]~) {
 
 ### Templates syntax description
 Templates contain special markers that indicate where specific values or expressions need to be inserted. Here are some common markers:
-* **~[EXPR_Type]~**: Expression of type **Type** (Type can be replaced by any type in the program). 
+* **\~[EXPR_Type]\~**: Expression of type **Type** (Type can be replaced by any type in the program). 
 An expression can be either a program variable or a generated expression using variables from the program. 
 For example, if we need to fill **~[EXPR_Boolean]~** placeholder, and we have `String s` in the scope, we can generate
 `s.isEmpty()`
 
-* **~[VAR_Type]~**: Available from scope variable of type **Type**
-* **~[CONST_Type]~**: Generated constant of type **Type** (currently supports *Collection*, *ArrayList*, *primitives* and *String*)
-* **~[TYPE]~**: Randomly generated type (currently support boxed primitives and String)
+* **\~[VAR_Type]\~**: Available from scope variable of type **Type**
+* **\~[CONST_Type]\~**: Generated constant of type **Type** (currently supports *Collection*, *ArrayList*, *primitives* and *String*)
+* **\~[TYPE]\~**: Randomly generated type (currently support boxed primitives and String)
 * **Referenced holes**: All holes can be referenced by suffix @ and number. This is intended to fill cells with the same data.
 For example, consider next template:
 ```
@@ -164,6 +164,6 @@ ArrayHolder ah = new ArrayHolder(~[VAR_String]~);
 ~main class end~
 ```
 * ArrayHolder -- additional class in block *~class ... ~*, which can be used in template
-* **~main class start~** -- main block, containing necessary imports and two template bodies with different cases of ArrayHolder usage\
+* **\~main class start\~** -- main block, containing necessary imports and two template bodies with different cases of ArrayHolder usage\
 \
-**More samples can be found at the templates directory**
+**More samples can be found at the templates [directory](../templates/)**
