@@ -1,77 +1,77 @@
 ~main class start~
 ~import java.util.*;~
 ~template start~
-while (~[boolean]~) {
-    ~[String]~ = ~[String]~;
+while (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-while (~[boolean]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
+while (~[EXPR_boolean]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
 boolean flag = true;
 while (flag) {
-    if (~[boolean]~) {
-        ~[flag]~ = false;
+    if (~[EXPR_boolean]~) {
+        flag = false;
     }
 }
 if (!flag) {
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-int index = ~[int]~;
-while (index < ~[int]~) {
-    ~[String]~ = ~[String]~;
+int index = ~[EXPR_int]~;
+while (index < ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
     index++;
 }
 ~template end~
 ~template start~
-int index = ~[int]~;
-while (index < ~[int]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
+int index = ~[EXPR_int]~;
+while (index < ~[EXPR_int]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
     index++;
 }
 ~template end~
 ~template start~
-int index = ~[int]~;
-while (index < ~[int]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
+int index = ~[EXPR_int]~;
+while (index < ~[EXPR_int]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
     index += 2;
 }
 ~template end~
 ~template start~
 int index = 0;
-while (~[index]~ < ~[Collection]~.size()) {
-    if(~[Collection]~.get(~[int]~).equals(~[Object]~)) {
-        ~[String]~ = ~[String]~;
+while (index < ~[EXPR_Collection]~.size()) {
+    if(~[EXPR_Collection]~.get(~[EXPR_int]~).equals(~[VAR_Object]~)) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
-    ~[index]~++;
+    index++;
 }
 ~template end~
 ~template start~
-int index = ~[int]~;
-while (~[boolean]~ && index < ~[int]~) {
-    ~[String]~ = ~[String]~;
-    index += ~[int]~;
+int index = ~[EXPR_int]~;
+while (~[EXPR_boolean]~ && index < ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+    index += ~[EXPR_int]~;
 }
 ~template end~
 ~template start~
-int value = ~[int]~;
+int value = ~[EXPR_int]~;
 int prevValue = 0;
 while (value != prevValue) {
-    ~[previous_value]~ = ~[value]~;
-    value = ~[int]~;
-    if (value > previous_value / 2) {
-        ~[String]~ = ~[String]~;
+    prevValue = value;
+    value = ~[EXPR_int]~;
+    if (value > prevValue / 2) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~

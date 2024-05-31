@@ -14,7 +14,7 @@ public String func1(int value, String param) {
 }
 ~function func1 end~
 
-~[String]~ = func1(~[int]~, ~[String]~);
+~[VAR_String]~ = func1(~[EXPR_int]~, ~[EXPR_String]~);
 ~template end~
 ~template start~
 ~function func1 start~
@@ -30,7 +30,7 @@ public String func1(int value, String param) {
 }
 ~function func1 end~
 
-~[String]~ = func1(~[int]~, ~[VAR_String]~);
+~[VAR_String]~ = func1(~[EXPR_int]~, ~[VAR_String]~);
 ~template end~
 
 ~template start~
@@ -44,7 +44,6 @@ public String func1(int value, String param) {
     } else {
         return "123";
     }
-    return "";
 }
 ~function func1 end~
 
@@ -54,7 +53,7 @@ public String func2(String param) {
 }
 ~function func2 end~
 
-~[String]~ = func1(~[int]~, ~[VAR_String]~);
+~[VAR_String]~ = func1(~[EXPR_int]~, ~[VAR_String]~);
 ~template end~
 ~template start~
 
@@ -96,8 +95,8 @@ public String func2(String param) {
     }
 ~function isVowel end~
 
-if (countConsonants(~[String]~) == ~[int]~) {
-    ~[String]~ = ~[CONST_String]~;
+if (countConsonants(~[EXPR_String]~) == ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[CONST_String]~;
 }
 
 ~template end~
@@ -143,7 +142,7 @@ if (countConsonants(~[String]~) == ~[int]~) {
 ~function isVowel end~
 
 if (countVowels(~[VAR_String]~) != 0) {
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 
 ~template end~
@@ -175,8 +174,8 @@ if (countVowels(~[VAR_String]~) != 0) {
     }
 ~function isGreaterThan end~
 
-if (compareStrings(~[String]~, ~[String]~)) {
-    ~[String]~ = ~[CONST_String]~;
+if (compareStrings(~[EXPR_String]~, ~[EXPR_String]~) == ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[CONST_String]~;
 }
 ~template end~
 
@@ -207,8 +206,8 @@ if (compareStrings(~[String]~, ~[String]~)) {
     }
 ~function isGreaterThan end~
 
-if (compareStrings(~[VAR_String]~, ~[VAR_String]~)) {
-    ~[String]~ = ~[String]~;
+if (compareStrings(~[VAR_String]~, ~[VAR_String]~) == ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 

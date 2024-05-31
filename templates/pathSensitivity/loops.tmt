@@ -2,77 +2,77 @@
 ~import java.util.*;~
 ~import java.io.*;~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    ~[String]~ = ~[String]~;
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-for (int i = ~[int]~; i >= 0; i--) {
-    ~[String]~ = ~[String]~;
+for (int i = ~[EXPR_int]~; i >= 0; i--) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-String[] stringArray = {~[String]~, ~[String]~, ~[String]~};
+String[] stringArray = {~[EXPR_String]~, ~[EXPR_String]~, ~[EXPR_String]~};
 for (int i = 0; i < stringArray.length; i++) {
     if(stringArray[i].equals(stringArray[i + 1])) {
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    if (~[boolean]~) {
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    if (~[EXPR_boolean]~) {
         continue;
     }
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    if (~[boolean]~) {
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    if (~[EXPR_boolean]~) {
         break;
     }
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    for (int j = 0; j < ~[int]~; j++) {
-        ~[String]~ = ~[String]~;
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    for (int j = 0; j < ~[EXPR_int]~; j++) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i += ~[int]~) {
-    ~[String]~ = ~[String]~;
+for (int i = 0; i < ~[EXPR_int]~; i += ~[EXPR_int]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-for (int i = ~[int]~; i < ~[int]~; i++) {
-    ~[String]~ = ~[String]~;
+for (int i = ~[EXPR_int]~; i < ~[EXPR_int]~; i++) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[String]~.length(); i++) {
-    char c = ~[String]~.charAt(i);
-    ~[String]~ = ~[String]~ + c;
+for (int i = 0; i < ~[EXPR_String]~.length(); i++) {
+    char c = ~[EXPR_String]~.charAt(i);
+    ~[VAR_String]~ = ~[EXPR_String]~ + c;
 }
 ~template end~
 ~template start~
-try (BufferedReader br = new BufferedReader(new FileReader(~[String]~))) {
+try (BufferedReader br = new BufferedReader(new FileReader(~[EXPR_String]~))) {
     String line;
     while ((line = br.readLine()) != null) {
-        ~[String]~ += line;
+        ~[EXPR_String]~ += line;
     }
 } catch (IOException e) {
     e.printStackTrace();
 }
 ~template end~
 ~template start~
-try (BufferedReader br = new BufferedReader(new FileReader(~[String]~))) {
+try (BufferedReader br = new BufferedReader(new FileReader(~[EXPR_String]~))) {
     String line;
     while ((line = br.readLine()) != null) {
-        if (line.contains(~[String]~)) ~[String]~ += line;
+        if (line.contains(~[EXPR_String]~)) ~[EXPR_String]~ += line;
     }
 } catch (IOException e) {
     e.printStackTrace();

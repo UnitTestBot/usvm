@@ -29,18 +29,18 @@ public class InstanceInitializer {
 ~import org.owasp.benchmark.helpers.InstanceInitializer;~
 ~import java.util.*;~
 ~template start~
-        InstanceInitializer.value = ~[String]~;
+        InstanceInitializer.value = ~[EXPR_String]~;
         InstanceInitializer ii = new InstanceInitializer();
-        ~[String]~ = ii.getValue();
+        ~[VAR_String]~ = ii.getValue();
 ~template end~
 ~template start~
         InstanceInitializer.value = ~[VAR_String]~;
         InstanceInitializer ii = new InstanceInitializer();
-        ~[String]~ = ii.getValue();
+        ~[VAR_String]~ = ii.getValue();
 ~template end~
 ~template start~
         InstanceInitializer ii = new InstanceInitializer();
-        ~[String]~ = ii.getValue();
+        ~[VAR_String]~ = ii.getValue();
 ~template end~
 ~main class end~
 

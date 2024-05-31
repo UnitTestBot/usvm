@@ -33,15 +33,15 @@ public class DerivedClass extends BaseClass {
 ~import org.owasp.benchmark.helpers.DerivedClass;~
 ~import java.util.*;~
 ~template start~
-DerivedClass dc = new DerivedClass(~[String]~);
-~[String]~ = dc.baseValue;
+DerivedClass dc = new DerivedClass(~[EXPR_String]~);
+~[VAR_String]~ = dc.baseValue;
 ~template end~
 ~template start~
 DerivedClass dc = new DerivedClass(~[VAR_String]~);
-~[String]~ = dc.baseValue;
+~[VAR_String]~ = dc.baseValue;
 ~template end~
 ~template start~
 DerivedClass dc = new DerivedClass();
-~[String]~ = dc.baseValue;
+~[VAR_String]~ = dc.baseValue;
 ~template end~
 ~main class end~

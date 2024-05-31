@@ -21,11 +21,11 @@ public class CollectionHolder {
 ~import org.owasp.benchmark.helpers.CollectionHolder;~
 ~import java.util.*;~
 ~template start~
-CollectionHolder ch = new CollectionHolder(~[String]~);
-~[String]~ = ch.list.get(~[int]~);
+CollectionHolder ch = new CollectionHolder(~[EXPR_String]~);
+~[VAR_String]~ = ch.list.get(~[EXPR_int]~);
 ~template end~
 ~template start~
 CollectionHolder ch = new CollectionHolder(~[VAR_String]~);
-~[String]~ = ch.list.get(~[int]~);
+~[VAR_String]~ = ch.list.get(~[EXPR_int]~);
 ~template end~
 ~main class end~

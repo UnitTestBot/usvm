@@ -23,12 +23,12 @@ public class FactoryExample {
 ~import org.owasp.benchmark.helpers.FactoryExample;~
 ~import java.util.*;~
 ~template start~
-FactoryExample fe = FactoryExample.createInstance(~[String]~);
-~[String]~ = fe.val;
+FactoryExample fe = FactoryExample.createInstance(~[EXPR_String]~);
+~[VAR_String]~ = fe.val;
 ~template end~
 ~template start~
 FactoryExample fe = FactoryExample.createInstance(~[VAR_String]~);
-~[String]~ = fe.val;
+~[VAR_String]~ = fe.val;
 ~template end~
 ~main class end~
 

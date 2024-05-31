@@ -4,36 +4,36 @@
 
 ~template start~
 boolean conditionMet = false;
-if (~[boolean]~) {
+if (~[EXPR_boolean]~) {
     conditionMet = true;
 }
-if (!conditionMet && ~[boolean]~) {
-    ~[String]~ = ~[String]~;
+if (!conditionMet && ~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
     Supplier<String> lazyValue = () -> "123";
-    ~[String]~ = lazyValue.get();
+    ~[VAR_String]~ = lazyValue.get();
 ~template end~
 ~template start~
-if (~[String]~ != null && ~[String]~.contains(~[String]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~ != null && ~[EXPR_String]~.contains(~[EXPR_String]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~ != null && ~[String]~.charAt(~[CONST_int]~) == ~[CONST_char]~) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~ != null && ~[EXPR_String]~.charAt(~[CONST_int]~) == ~[CONST_char]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~ != null && !~[String]~.isEmpty()) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~ != null && !~[EXPR_String]~.isEmpty()) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-    File f = new File(~[String]~);
+    File f = new File(~[EXPR_String]~);
     if (f.exists() && f.isFile()) {
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 ~template end~
 ~main class end~

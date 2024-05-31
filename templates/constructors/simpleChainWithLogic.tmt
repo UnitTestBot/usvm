@@ -22,15 +22,15 @@ public class Configurator {
 ~import org.owasp.benchmark.helpers.Configurator;~
 ~import java.util.*;~
 ~template start~
-Configurator conf = new Configurator(~[int]~);
-~[String]~ = conf.getConfigurationValue();
+Configurator conf = new Configurator(~[EXPR_int]~);
+~[VAR_String]~ = conf.getConfigurationValue();
 ~template end~
 ~template start~
-Configurator conf = new Configurator(~[int]~, ~[String]~);
-~[String]~ = conf.getConfigurationValue();
+Configurator conf = new Configurator(~[EXPR_int]~, ~[EXPR_String]~);
+~[VAR_String]~ = conf.getConfigurationValue();
 ~template end~
 ~template start~
-Configurator conf = new Configurator(~[int]~, ~[VAR_String]~);
-~[String]~ = conf.getConfigurationValue();
+Configurator conf = new Configurator(~[EXPR_int]~, ~[VAR_String]~);
+~[VAR_String]~ = conf.getConfigurationValue();
 ~template end~
 ~main class end~

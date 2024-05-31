@@ -5,68 +5,68 @@ switch (~[VAR_String]~) {
     case ~[CONST_String]~:
         break;
     case ~[CONST_String]~:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
     default:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-switch (~[String]~) {
+switch (~[EXPR_String]~) {
     case ~[CONST_String]~:
         break;
     case ~[CONST_String]~:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
     default:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-switch (~[int]~) {
+switch (~[EXPR_int]~) {
     case ~[CONST_int]~:
-         ~[String]~ = ~[String]~;
+         ~[VAR_String]~ = ~[EXPR_String]~;
         break;
     case ~[CONST_int]~:
-         ~[String]~ += ~[String]~;
+         ~[EXPR_String]~ += ~[EXPR_String]~;
         break;
     default:
-         ~[String]~ = ~[String]~;
+         ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-switch (~[String]~) {
+switch (~[EXPR_String]~) {
     default:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
     case ~[CONST_String]~:
         break;
     case ~[CONST_String]~:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
 }
 ~template end~
 ~template start~
 switch (~[VAR_String]~) {
     default:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
     case ~[CONST_String]~:
         break;
     case ~[CONST_String]~:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
         break;
 }
 ~template end~
 ~template start~
 switch (~[VAR_String]~) {
     case ~[CONST_String]~:
-        ~[String]~ += ~[String]~;
+        ~[EXPR_String]~ += ~[EXPR_String]~;
     case ~[CONST_String]~:
-        ~[String]~ += ~[String]~;
+        ~[EXPR_String]~ += ~[EXPR_String]~;
         break;
     default:
-        ~[String]~ = ~[String]~;
+        ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~main class end~

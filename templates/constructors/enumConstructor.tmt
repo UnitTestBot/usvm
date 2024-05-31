@@ -37,20 +37,20 @@ public class ModeSelector {
         ModeSelector ms = new ModeSelector();
         switch (ms.getMode()) {
             case DEFAULT:
-                ~[String]~ = ~[String]~;
+                ~[VAR_String]~ = ~[EXPR_String]~;
                 break;
             default:
-                ~[String]~ = ~[String]~;
+                ~[VAR_String]~ = ~[EXPR_String]~;
         }
 ~template end~
 ~template start~
         ModeSelector ms = new ModeSelector();
         switch (ms.getMode()) {
             case CUSTOM:
-                ~[String]~ = ~[String]~;
+                ~[VAR_String]~ = ~[EXPR_String]~;
                 break;
             default:
-                ~[String]~ = ~[String]~;
+                ~[VAR_String]~ = ~[EXPR_String]~;
         }
 ~template end~
 ~main class end~

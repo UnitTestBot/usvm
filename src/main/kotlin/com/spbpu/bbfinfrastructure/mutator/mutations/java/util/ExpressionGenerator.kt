@@ -30,7 +30,7 @@ class ExpressionGenerator {
             "Byte" -> Random.nextInt().toByte().toString()
             "byte" -> Random.nextInt().toByte().toString()
             "int" -> Random.nextInt().toShort().toString()
-            "Integer" -> Random.nextBoolean().toString()
+            "Integer" -> Random.nextInt().toShort().toString()
             "long" -> Random.nextLong().toString()
             "Long" -> Random.nextLong().toString()
             "float" -> Random.nextDouble().toFloat().toString()

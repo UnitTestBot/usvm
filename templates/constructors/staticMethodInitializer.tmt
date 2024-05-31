@@ -23,14 +23,14 @@ public class UtilityClass {
 ~import org.owasp.benchmark.helpers.UtilityClass;~
 ~import java.util.*;~
 ~template start~
-    UtilityClass.DEFAULT_VALUE = ~[String]~;
+    UtilityClass.DEFAULT_VALUE = ~[EXPR_String]~;
     UtilityClass uc = new UtilityClass();
-    ~[String]~ = uc.value;
+    ~[VAR_String]~ = uc.value;
 ~template end~
 ~template start~
     UtilityClass.DEFAULT_VALUE = ~[VAR_String]~;
     UtilityClass uc = new UtilityClass();
-    ~[String]~ = uc.value;
+    ~[VAR_String]~ = uc.value;
 ~template end~
 ~main class end~
 

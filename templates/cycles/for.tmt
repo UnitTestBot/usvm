@@ -2,75 +2,73 @@
 ~import java.util.*;~
 ~template start~
 for (int i = 0; i < 0; i++) {
- ~[String]~ = ~[String]~.replace('/', '.');
+ ~[VAR_String]~ = ~[EXPR_String]~.replace('/', '.');
 }
 ~template end~
 ~template start~
-for (int i = ~[int]~; i < ~[int]~; i++) {
- ~[String]~ = ~[String]~.replace('/', '.');
+for (int i = ~[EXPR_int]~; i < ~[EXPR_int]~; i++) {
+ ~[VAR_String]~ = ~[EXPR_String]~.replace('/', '.');
 }
 ~template end~
 ~template start~
-for (int i = ~[int]~; i >= ~[int]~; i--) {
- ~[String]~ = ~[String]~.replace('/', '.');
+for (int i = ~[EXPR_int]~; i >= ~[EXPR_int]~; i--) {
+ ~[VAR_String]~ = ~[EXPR_String]~.replace('/', '.');
 }
 ~template end~
 ~template start~
-for (int i = ~[int]~; i >= ~[int]~; i += ~[int]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
+for (int i = ~[EXPR_int]~; i >= ~[EXPR_int]~; i += ~[EXPR_int]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-for (~[String]~ ~[el]~ : ~[Collection]~) {
-     ~[String]~ = ~[String]~ + ~[el]~;
+for (String el : ~[EXPR_Collection]~) {
+     ~[VAR_String]~ = ~[EXPR_String]~ + el;
 }
 ~template end~
 ~template start~
-~template start~
-for (~[int]~ ~[el]~ : ~[Collection]~) {
-      if (el > ~[int]~) {
-        ~[String]~ = ~[CONST_String]~;
+for (int el : ~[EXPR_Collection]~) {
+      if (el > ~[EXPR_int]~) {
+        ~[VAR_String]~ = ~[CONST_String]~;
      }
 }
 ~template end~
-~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    for (int j = 0; j < ~[int]~; j++) {
-        if (i == ~[int]~ && j == ~[int]~) {
-            ~[String]~ = ~[String]~;
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    for (int j = 0; j < ~[EXPR_int]~; j++) {
+        if (i == ~[EXPR_int]~ && j == ~[EXPR_int]~) {
+            ~[VAR_String]~ = ~[EXPR_String]~;
         }
     }
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[String]~.length(); i++) {
-    char ch = ~[String]~.charAt(i);
-    ~[String]~ = ~[String]~ + ch;
+for (int i = 0; i < ~[EXPR_String]~.length(); i++) {
+    char ch = ~[EXPR_String]~.charAt(i);
+    ~[VAR_String]~ = ~[EXPR_String]~ + ch;
 }
 ~template end~
 ~template start~
-for (int i = 0; i < ~[int]~; i++) {
-    if (i % ~[int]~ != 0) {
-        ~[String]~ = ~[String]~;
+for (int i = 0; i < ~[EXPR_int]~; i++) {
+    if (i % ~[EXPR_int]~ != 0) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-for (int i = 0; ~[boolean]~; i++) {
-    ~[String]~ = ~[String]~;
+for (int i = 0; ~[EXPR_boolean]~; i++) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-String bar = ~[String]~;
+String bar = ~[EXPR_String]~;
 try {
 	for (int i = 0; i < 0; i++) {
-  	  bar = ~[String]~;
+  	  bar = ~[EXPR_String]~;
 	}
 } catch(Throwable e) {
-	bar = ~[String]~.replace('/', '.');
+	bar = ~[EXPR_String]~.replace('/', '.');
 } finally {
 	bar = "123";
 }
@@ -83,11 +81,11 @@ try {
    		 if (i == 9) {
        		 break;
    		 }
-   		 ~[String]~ = "123";
+   		 ~[VAR_String]~ = "123";
    	 }
 ~template end~
 ~template start~
-   	 String bar = ~[String]~;
+   	 String bar = ~[EXPR_String]~;
    	 for (int i = 0; i < 10; i++) {
    		 if (i < 9) {
        		 continue;
@@ -96,7 +94,7 @@ try {
        		 try {
            		 bar = "123";
        		 } catch (Throwable e) {
-           		 ~[String]~ = bar;
+           		 ~[VAR_String]~ = bar;
        		 }
    		 }
    	 }
@@ -107,33 +105,35 @@ try {
        		 break;
    		 }
    		 if (i > 5) {
-       		 ~[String]~ = "";
+       		 ~[VAR_String]~ = "";
    		 }
    	 }
 ~template end~
 ~template start~
-for(int i = ~[int]~; i < 6; ++i) {
-         ~[ArrayList]~.add(~[int]~);
-         if (~[ArrayList]~.size() > 23) {
-            ~[String]~ = "123";
+for(int i = ~[EXPR_int]~; i < 6; ++i) {
+         ~[EXPR_ArrayList]~.add(~[EXPR_int]~);
+         if (~[EXPR_ArrayList]~.size() > 23) {
+            ~[VAR_String]~ = "123";
             break;
          }
 }
 ~template end~
 ~template start~
-for(int i = 10; ~[int]~ < 6; ++~[int]~) {
-         ~[ArrayList]~.add(~[int]~);
-         if (~[ArrayList]~.size() > ~[int]~) {
-            ~[String]~ = "123";
+for(int i = 10; i < 6; ++i) {
+         ArrayList<Integer> arr = new ArrayList<>();
+         arr.add(~[EXPR_int]~);
+         if (arr.size() > ~[EXPR_int]~) {
+            ~[VAR_String]~ = "123";
             break;
          }
 }
 ~template end~
 ~template start~
-for(char i = 'g'; 'b' < ~[char]~; ~[char]~ = (char)(~[char]~ + -1)) {
-         ~[ArrayList]~.add(~[char]~);
-         if (~[ArrayList]~.size() > 23) {
-            ~[String]~ = "123";
+for(char i = 'g'; i < ~[EXPR_char]~; i = (char)(i + -1)) {
+         ArrayList<Character> arr = new ArrayList<>();
+         arr.add(~[EXPR_char]~);
+         if (arr.size() > 23) {
+            ~[VAR_String]~ = "123";
             break;
          }
 }

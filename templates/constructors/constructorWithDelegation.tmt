@@ -29,12 +29,12 @@ public class ConstructorDelegation {
 ~import org.owasp.benchmark.helpers.ConstructorDelegation;~
 ~import java.util.*;~
 ~template start~
-    ConstructorDelegation cd = new ConstructorDelegation(~[String]~);
-    ~[String]~ = cd.getC();
+    ConstructorDelegation cd = new ConstructorDelegation(~[EXPR_String]~);
+    ~[VAR_String]~ = cd.getC();
 ~template end~
 ~template start~
     ConstructorDelegation cd = new ConstructorDelegation(~[VAR_String]~);
-    ~[String]~ = cd.getC();
+    ~[VAR_String]~ = cd.getC();
 ~template end~
 ~main class end~
 

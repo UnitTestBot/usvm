@@ -35,11 +35,11 @@ public class ConstructorChains {
 ~import org.owasp.benchmark.helpers.ConstructorChains;~
 ~import java.util.*;~
 ~template start~
-ConstructorChains cc = new ConstructorChains(~[String]~);
-~[String]~ = cc.getText(1);
+ConstructorChains cc = new ConstructorChains(~[EXPR_String]~);
+~[VAR_String]~ = cc.getText(1);
 ~template end~
 ~template start~
 ConstructorChains cc = new ConstructorChains(~[VAR_String]~);
-~[String]~ = cc.getText(1);
+~[VAR_String]~ = cc.getText(1);
 ~template end~
 ~main class end~

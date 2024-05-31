@@ -1,6 +1,6 @@
 ~main class start~
 ~import java.util.*;~
 ~template start~
-     ~[String]~ = String.valueOf(~[String]~);
+     ~[VAR_String]~ = String.valueOf(~[EXPR_String]~);
 ~template end~
 ~main class end~

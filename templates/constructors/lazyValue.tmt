@@ -8,7 +8,7 @@ public class LazyInitialized {
         if (value == null) {
             synchronized (this) {
                 if (value == null) {
-                    value = "~[String]~";
+                    value = "~[EXPR_String]~";
                 }
             }
         }
@@ -22,7 +22,7 @@ public class LazyInitialized {
 ~import java.util.*;~
 ~template start~
 LazyInitialized li = new LazyInitialized();
-~[String]~ = li.getValue(~[String]~);
+~[VAR_String]~ = li.getValue(~[EXPR_String]~);
 ~template end~
 ~main class end~
 

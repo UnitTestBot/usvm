@@ -25,11 +25,11 @@ public class OptionalHolder {
 ~import org.owasp.benchmark.helpers.OptionalHolder;~
 ~import java.util.*;~
 ~template start~
-OptionalHolder oh = new OptionalHolder(~[String]~);
-~[String]~ = oh.getOptionalValue();
+OptionalHolder oh = new OptionalHolder(~[EXPR_String]~);
+~[VAR_String]~ = oh.getOptionalValue();
 ~template end~
 ~template start~
 OptionalHolder oh = new OptionalHolder(~[VAR_String]~);
-~[String]~ = oh.getOptionalValue();
+~[VAR_String]~ = oh.getOptionalValue();
 ~template end~
 ~main class end~

@@ -23,11 +23,11 @@ public class ArrayHolder {
 ~import org.owasp.benchmark.helpers.ArrayHolder;~
 ~import java.util.*;~
 ~template start~
-ArrayHolder ah = new ArrayHolder(~[String]~);
-~[String]~ = ah.getValues()[~[int]~];
+ArrayHolder ah = new ArrayHolder(~[EXPR_String]~);
+~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
 ~template end~
 ~template start~
 ArrayHolder ah = new ArrayHolder(~[VAR_String]~);
-~[String]~ = ah.getValues()[~[int]~];
+~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
 ~template end~
 ~main class end~

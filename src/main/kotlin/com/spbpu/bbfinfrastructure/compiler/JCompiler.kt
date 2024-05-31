@@ -23,7 +23,7 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
 
     override fun tryToCompile(project: Project): KotlincInvokeStatus {
         val compilationResult = compile(project)
-        println("COMPIlATION RESULT = ${compilationResult.status}")
+//        println("COMPIlATION RESULT = ${compilationResult.status}")
         return KotlincInvokeStatus("", compilationResult.status == 0, compilationResult.status == 0, false)
     }
 
@@ -50,7 +50,7 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
         task.call()
         val errorDiagnostics = diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
         if (errorDiagnostics.isNotEmpty()) {
-            println("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
+//            println("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
         }
         project.saveOrRemoveToTmp(false)
         return if (errorDiagnostics.isEmpty()) {

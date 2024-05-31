@@ -30,12 +30,12 @@ public class OuterClass {
 ~import org.owasp.benchmark.helpers.OuterClass;~
 ~import java.util.*;~
 ~template start~
-OuterClass oc = new OuterClass(~[String]~);
-~[String]~ = oc.getInnerObject().innerValue;
+OuterClass oc = new OuterClass(~[EXPR_String]~);
+~[VAR_String]~ = oc.getInnerObject().innerValue;
 ~template end~
 ~template start~
 OuterClass oc = new OuterClass(~[VAR_String]~);
-~[String]~ = oc.getInnerObject().innerValue;
+~[VAR_String]~ = oc.getInnerObject().innerValue;
 ~template end~
 ~main class end~
 

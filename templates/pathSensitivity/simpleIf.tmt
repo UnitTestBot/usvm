@@ -1,57 +1,57 @@
 ~main class start~
 ~import java.util.*;~
 ~template start~
-if (~[boolean]~) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[boolean]~) {
-    ~[String]~ = "";
+if (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = "";
 }
 ~template end~
 ~template start~
-if (~[boolean]~) {
-    ~[Object]~ = null;
+if (~[EXPR_boolean]~) {
+    ~[EXPR_Object]~ = null;
 }
 ~template end~
 ~template start~
-if (~[boolean]~ && ~[boolean]~) {
-    ~[String]~ = "";
+if (~[EXPR_boolean]~ && ~[EXPR_boolean]~) {
+    ~[VAR_String]~ = "";
 }
 ~template end~
 ~template start~
 boolean conditionMet = false;
-if (~[boolean]~) {
+if (~[EXPR_boolean]~) {
     conditionMet = true;
 }
-if (!conditionMet && ~[boolean]~) {
-    ~[String]~ = ~[String]~;
+if (!conditionMet && ~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~.equals(~[String]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~.equals(~[EXPR_String]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~ != null && ~[String]~.contains(~[String]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~ != null && ~[EXPR_String]~.contains(~[EXPR_String]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~ != null && !~[String]~.isEmpty()) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~ != null && !~[EXPR_String]~.isEmpty()) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~.compareTo(~[String]~) == 0) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~.compareTo(~[EXPR_String]~) == 0) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[Object]~.equals(~[Object]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_Object]~.equals(~[EXPR_Object]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~main class end~

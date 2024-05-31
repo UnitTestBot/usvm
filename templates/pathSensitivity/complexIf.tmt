@@ -1,70 +1,70 @@
 ~main class start~
 ~import java.util.*;~
 ~template start~
-if (~[boolean]~) {
-    ~[String]~ = ~[String]~;
-} else if (~[boolean]~) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+} else if (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 } else {
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[boolean]~) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_boolean]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 } else {
-    ~[String]~ = ~[String]~;
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[boolean]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
+if (~[EXPR_boolean]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-if (~[boolean]~) {
-    if (~[boolean]~) {
-        ~[String]~ = ~[String]~;
-    } else if (~[boolean]~) {
-          ~[String]~ = ~[String]~;
+if (~[EXPR_boolean]~) {
+    if (~[EXPR_boolean]~) {
+        ~[VAR_String]~ = ~[EXPR_String]~;
+    } else if (~[EXPR_boolean]~) {
+          ~[VAR_String]~ = ~[EXPR_String]~;
     } else {
-          ~[String]~ = ~[String]~;
+          ~[VAR_String]~ = ~[EXPR_String]~;
     }
 }
 ~template end~
 ~template start~
-if (~[String]~.equals(~[String]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~.equals(~[EXPR_String]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[String]~.compareTo(~[String]~) == 0) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_String]~.compareTo(~[EXPR_String]~) == 0) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (Integer.compare(~[int]~, ~[int]~) == 0) {
-    ~[String]~ = ~[String]~;
+if (Integer.compare(~[EXPR_int]~, ~[EXPR_int]~) == 0) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[Object]~ != null) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_Object]~ != null) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-~[String]~ = (~[boolean]~) ? ~[String]~ : ~[String]~;
+~[VAR_String]~ = (~[EXPR_boolean]~) ? ~[EXPR_String]~ : ~[EXPR_String]~;
 ~template end~
 ~template start~
-if (~[Collection]~.contains(~[Object]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_Collection]~.contains(~[EXPR_Object]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
-if (~[Object]~.equals(~[Object]~)) {
-    ~[String]~ = ~[String]~;
+if (~[EXPR_Object]~.equals(~[EXPR_Object]~)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~main class end~
