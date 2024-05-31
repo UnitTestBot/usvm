@@ -33,7 +33,7 @@ class PandaTypeSystem(override val typeOperationsTimeout: Duration, val project:
     }
 
     override fun hasCommonSubtype(type: PandaType, types: Collection<PandaType>): Boolean {
-        if (type is PandaPrimitiveType) return false
+        if (type is PandaPrimitiveType) return types.isEmpty()
 
         return false // TODO
     }

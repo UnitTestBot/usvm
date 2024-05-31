@@ -14,6 +14,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.array.UInputArrayReading
+import org.usvm.collection.array.length.UInputArrayLengthReading
 
 sealed class PandaBinaryOperator(
     // TODO undefinedObject?
@@ -69,6 +71,10 @@ sealed class PandaBinaryOperator(
         onNumber = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
     )
 
+    private fun UExpr<out USort>.checkInterpreted(): Boolean {
+        return this is KInterpretedValue || this is UInputArrayLengthReading<*, *> || this is UInputArrayReading<*, *, *>
+    }
+
     internal open operator fun invoke(
         lhsUExpr: UExpr<out USort>,
         rhsUExpr: UExpr<out USort>,
@@ -79,22 +85,22 @@ sealed class PandaBinaryOperator(
         val lhs = ctx.extractPrimitiveValueIfRequired(lhsUExpr, scope)
         val rhs = ctx.extractPrimitiveValueIfRequired(rhsUExpr, scope)
 
-        if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
+        if (lhs.checkInterpreted() && rhs.checkInterpreted()) {
             return commonAdditionalWork(lhs, rhs, scope)
         }
 
         val addressSort = ctx.addressSort
-        if (lhs is KInterpretedValue) {
+        if (lhs.checkInterpreted()) {
             return if (rhs.sort == ctx.addressSort) {
-                makeAdditionalWork(lhs, rhs.asExpr(addressSort), scope)
+                makeAdditionalWorkRhs(lhs, rhs.asExpr(addressSort), scope)
             } else {
                 commonAdditionalWork(lhs, rhs, scope)
             }
         }
 
-        if (rhs is KInterpretedValue) {
+        if (rhs.checkInterpreted()) {
             return if (lhs.sort == ctx.addressSort) {
-                makeAdditionalWork(lhs.asExpr(addressSort), rhs, scope)
+                makeAdditionalWorkLhs(lhs.asExpr(addressSort), rhs, scope)
             } else {
                 commonAdditionalWork(lhs, rhs, scope)
             }
@@ -106,8 +112,8 @@ sealed class PandaBinaryOperator(
         return makeAdditionalWork(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
     }
 
-    private fun makeAdditionalWork(
-        lhs: KInterpretedValue<out USort>,
+    private fun makeAdditionalWorkRhs(
+        lhs: UExpr<out USort>,
         rhs: UHeapRef,
         scope: PandaStepScope,
     ): UHeapRef = constructIteWithFixedLeftOperandType(lhs, rhs, scope)
@@ -144,9 +150,9 @@ sealed class PandaBinaryOperator(
         }
     }
 
-    private fun makeAdditionalWork(
+    private fun makeAdditionalWorkLhs(
         lhs: UHeapRef,
-        rhs: KInterpretedValue<out USort>,
+        rhs: UExpr<out USort>,
         scope: PandaStepScope,
     ): UHeapRef = with(lhs.ctx) {
         with(scope) {
@@ -278,13 +284,17 @@ sealed class PandaBinaryOperator(
     }
 
     private fun boolToNumber(lhs: UExpr<KBoolSort>, rhs: UExpr<KFp64Sort>, scope: PandaStepScope): UConcreteHeapRef {
-        return numberToBool(rhs, lhs, scope)
+        val rhsValue = with(lhs.pctx) { mkIte(mkEq(rhs, mkFp64(1.0)), mkTrue(), mkFalse()).asExpr(boolSort) }
+        val value = with(lhs.pctx) { onBool(lhs, rhsValue) }
+        val newAddr = scope.calcOnState { memory.allocConcrete(PandaBoolType) }
+        scope.doWithState { memory.write(lhs.pctx.constructAuxiliaryFieldLValue(newAddr, ctx.boolSort), value) }
+        return newAddr
     }
 
     private fun boolToBool(lhs: UExpr<KBoolSort>, rhs: UExpr<KBoolSort>, scope: PandaStepScope): UConcreteHeapRef {
         val value = with(lhs.pctx) { onBool(lhs, rhs) }
         val newAddr = scope.calcOnState { memory.allocConcrete(PandaNumberType) }
-        scope.doWithState { memory.write(lhs.pctx.constructAuxiliaryFieldLValue(newAddr, ctx.fp64Sort), value) }
+        scope.doWithState { memory.write(lhs.pctx.constructAuxiliaryFieldLValue(newAddr, ctx.boolSort), value) }
         return newAddr
     }
 

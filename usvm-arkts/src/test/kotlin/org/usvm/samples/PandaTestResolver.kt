@@ -6,6 +6,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaPrimitiveType
 import org.jacodb.panda.dynamic.api.PandaType
+import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
@@ -57,6 +58,10 @@ class PandaTestResolver {
     // TODO extract memory
     private fun resolveExpr(expr: UExpr<out USort>): Any {
         val pctx = expr.pctx
+
+        if (expr.sort == pctx.undefinedSort) {
+            return PandaUndefinedConstant
+        }
 
         if (expr.sort != pctx.addressSort) {
             return resolveInterpreterValue(model.eval(expr) as KInterpretedValue)

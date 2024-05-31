@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import org.jacodb.panda.dynamic.api.PandaBasicBlock
 import org.jacodb.panda.dynamic.api.PandaInst
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaType
@@ -9,6 +10,7 @@ import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.PandaContext
 import org.usvm.machine.PandaTarget
+import org.usvm.machine.nextStmt
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
@@ -28,6 +30,17 @@ class PandaState(
 ) : UState<PandaType, PandaMethod, PandaInst, PandaContext, PandaTarget, PandaState>(
     ctx, callStack, pathConstraints, memory, models, pathNode, forkPoints, targets
 ) {
+
+    var prevBBId = -1
+
+    fun basicBlock(inst: PandaInst): PandaBasicBlock {
+        return lastEnteredMethod.blocks.find { it.contains(inst) }!!
+    }
+
+    fun updateBBId(inst: PandaInst) {
+        basicBlock(inst).takeIf { it != inst.nextStmt?.let { n -> basicBlock(n) } }?.let { prevBBId = it.id }
+    }
+
     override fun clone(newConstraints: UPathConstraints<PandaType>?): PandaState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()
         return PandaState(

@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.panda.dynamic.api.PandaAddExpr
@@ -68,13 +69,13 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.state.PandaMethodResult
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.sizeSort
 
 @Suppress("unused")
 class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
-    private val prevBBId: Int
 ) : PandaExprVisitor<UExpr<out USort>?> {
     fun resolveLValue(value: PandaValue): ULValue<*, *>? =
         when (value) {
@@ -149,7 +150,8 @@ class PandaExprResolver(
 
     override fun visitPandaArrayAccess(expr: PandaArrayAccess): UExpr<out USort>? {
         val ref = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
-        val index = resolvePandaExpr(expr.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val uIndex = resolvePandaExpr(expr.index) ?: return null
+        val index = ctx.extractPrimitiveValueIfRequired(uIndex, scope).asExpr(ctx.fp64Sort)
         return scope.calcOnState {
             memory.readArrayIndex(ref, index, expr.array.type, ctx.typeToSort(expr.type))
         }
@@ -217,8 +219,8 @@ class PandaExprResolver(
 
     override fun visitPandaLengthExpr(expr: PandaLengthExpr): UExpr<out USort>? {
         val arrayAddress = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
-        val lengthLValue = UArrayLengthLValue(arrayAddress, expr.array.type, ctx.fp64Sort) // TODO change size sort???
-         return scope.calcOnState { memory.read(lengthLValue) }
+        val lengthLValue = UArrayLengthLValue(arrayAddress, expr.array.type, ctx.sizeSort)
+        return scope.calcOnState { memory.read(lengthLValue) }
     }
 
     override fun visitPandaLoadedValue(expr: PandaLoadedValue): UExpr<out USort>? {
@@ -285,7 +287,7 @@ class PandaExprResolver(
         ctx.mkFp64(expr.value.toDouble())
 
     override fun visitPandaPhiValue(expr: PandaPhiValue): UExpr<out USort>? {
-        val value = expr.valueFromBB(prevBBId)
+        val value = expr.valueFromBB(scope.calcOnState { prevBBId })
         return resolvePandaExpr(value) // TODO wrap????
     }
 
@@ -293,52 +295,53 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? = with(ctx) {
-        var lhs = resolvePandaExpr(expr.lhv) ?: return null
-        var rhs = resolvePandaExpr(expr.rhv) ?: return null
-
-        lhs = ctx.extractPrimitiveValueIfRequired(lhs, scope)
-        rhs = ctx.extractPrimitiveValueIfRequired(rhs, scope)
-
-        if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
-            if (lhs.sort != rhs.sort) {
-                return ctx.falseExpr
-            }
-
-            return scope.calcOnState {
-                memory.wrapField(ctx.mkEq(lhs.asExpr(lhs.sort), rhs.asExpr(lhs.sort)), PandaBoolType)
-            }
-        }
-
-        if (lhs is KInterpretedValue) {
-            TODO()
-        }
-
-        if (rhs is KInterpretedValue) {
-            return when (rhs.sort) {
-                fp64Sort -> {
-                    val value = if (lhs.sort == ctx.addressSort) {
-                        scope.calcOnState {
-                            val lvalue = constructAuxiliaryFieldLValue(lhs.asExpr(addressSort), fp64Sort)
-                            memory.read(lvalue)
-                        }
-                    } else {
-                        lhs
-                    }
-
-                    scope.calcOnState {
-                        val equalityValue = mkEq(value.asExpr(value.sort), rhs.asExpr(value.sort))
-                        memory.wrapField(equalityValue, PandaBoolType)
-                    }
-                }
-
-                boolSort -> TODO()
-                stringSort -> TODO()
-                else -> TODO()
-            }
-        }
-
-        TODO()
+    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
+//        var lhs = resolvePandaExpr(expr.lhv) ?: return null
+//        var rhs = resolvePandaExpr(expr.rhv) ?: return null
+//
+//        lhs = ctx.extractPrimitiveValueIfRequired(lhs, scope)
+//        rhs = ctx.extractPrimitiveValueIfRequired(rhs, scope)
+//
+//        if (lhs is KInterpretedValue && rhs is KInterpretedValue) {
+//            if (lhs.sort != rhs.sort) {
+//                return ctx.falseExpr
+//            }
+//
+//            return scope.calcOnState {
+//                memory.wrapField(ctx.mkEq(lhs.asExpr(lhs.sort), rhs.asExpr(lhs.sort)), PandaBoolType)
+//            }
+//        }
+//
+//        if (lhs is KInterpretedValue) {
+//            TODO()
+//        }
+//
+//        if (rhs is KInterpretedValue) {
+//            return when (rhs.sort) {
+//                fp64Sort -> {
+//                    val value = if (lhs.sort == ctx.addressSort) {
+//                        scope.calcOnState {
+//                            val lvalue = constructAuxiliaryFieldLValue(lhs.asExpr(addressSort), fp64Sort)
+//                            memory.read(lvalue)
+//                        }
+//                    } else {
+//                        lhs
+//                    }
+//
+//                    scope.calcOnState {
+//                        val equalityValue = mkEq(value.asExpr(value.sort), rhs.asExpr(value.sort))
+//                        memory.wrapField(equalityValue, PandaBoolType)
+//                    }
+//                }
+//
+//                boolSort -> TODO()
+//                stringSort -> TODO()
+//                else -> TODO()
+//            }
+//        }
+//
+//        TODO()
     }
 
     override fun visitPandaStrictNeqExpr(expr: PandaStrictNeqExpr): UExpr<out USort>? {
@@ -367,7 +370,8 @@ class PandaExprResolver(
     }
 
     override fun visitPandaToNumericExpr(expr: PandaToNumericExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        val arg = resolvePandaExpr(expr.arg) ?: return null
+        return ctx.mkFpToFpExpr(ctx.fp64Sort, ctx.fpRoundingModeSortDefaultValue(), arg.cast())
     }
 
     override fun visitPandaTypeofExpr(expr: PandaTypeofExpr): UExpr<out USort>? {

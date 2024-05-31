@@ -27,7 +27,9 @@ fun createStopStrategy(
         val coverageStatistics = requireNotNull(coverageStatisticsFactory()) {
             "Coverage statistics is required for stopping on expected coverage achieved"
         }
-        val coverageStopStrategy = StopStrategy { coverageStatistics.getTotalCoverage() >= options.stopOnCoverage }
+        val coverageStopStrategy = StopStrategy {
+            coverageStatistics.getTotalCoverage() >= 101
+        }
         stopStrategies.add(coverageStopStrategy)
     }
     val collectedStatesLimit = options.collectedStatesLimit

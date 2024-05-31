@@ -111,12 +111,12 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
         }
 
         val type = scope.calcOnState { memory.typeStreamOf(uExpr) }.single()
-        return when (type) {
+        return extractPrimitiveValueIfRequired(when (type) {
             PandaNumberType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, fp64Sort)) }
             PandaBoolType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, boolSort)) }
             PandaStringType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, stringSort)) }
             else -> uExpr
-        }
+        }, scope)
     }
 
     override val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }

@@ -14,7 +14,6 @@ import org.usvm.machine.state.PandaState
 
 class PandaStatementSpecializer(
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
-    private val prevBBId: Int
 ) : PandaInstVisitor<PandaInst> {
     private var stepScope: PandaStepScope? = null
     private var somethingWasSpecialized: Boolean = false
@@ -65,7 +64,7 @@ class PandaStatementSpecializer(
 
         val types = listOf(PandaNumberType, PandaBoolType, PandaStringType, PandaObjectType)
 
-        val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(stepScope.calcOnState { ctx }, stepScope, localIdxMapper)
 
         val conditions: List<Pair<UBoolExpr, PandaState.() -> Unit>> = stepScope.calcOnState {
             val (lhs, rhs) = rhv.operands.let {

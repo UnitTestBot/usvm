@@ -39,27 +39,5 @@ fun PandaPhiValue.valueFromBB(bbId: Int): PandaValue {
     return inputs[idx]
 }
 
-//fun PandaType.findMethod(method: PandaMethod): PandaTypedMethod? = when (this) {
-//    is PandaClassType -> findClassMethod(method.name)
-//    // Array types are objects and have methods of java.lang.Object
-//    is PandaArrayType -> jcClass.toType().findClassMethod(method.name, method.description)
-//    else -> error("Unexpected type: $this")
-//}
-//
-//private fun PandaClassType.findClassMethod(name: String): PandaTypedMethod? {
-//    val method = findMethodOrNull { it.name == name && it.method.description == desc }
-//    if (method != null) return method
-//
-//    /**
-//     * Method implementation was not found in current class but class is instantiatable.
-//     * Therefore, method implementation is provided by the super class.
-//     * */
-//    val superClass = superType
-//    if (superClass != null) {
-//        return superClass.findClassMethod(name, desc)
-//    }
-//
-//    return null
-//}
-
-
+val PandaInst.nextStmt: PandaInst?
+    get() = location.let { it.method.instructions.getOrNull(it.index + 1) }

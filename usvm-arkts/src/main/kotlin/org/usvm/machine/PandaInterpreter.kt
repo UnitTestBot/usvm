@@ -2,23 +2,8 @@ package org.usvm.machine
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.jacodb.panda.dynamic.api.PandaAnyType
-import org.jacodb.panda.dynamic.api.PandaArgument
-import org.jacodb.panda.dynamic.api.PandaAssignInst
-import org.jacodb.panda.dynamic.api.PandaBasicBlock
-import org.jacodb.panda.dynamic.api.PandaCallInst
-import org.jacodb.panda.dynamic.api.PandaEmptyBBPlaceholderInst
-import org.jacodb.panda.dynamic.api.PandaIfInst
-import org.jacodb.panda.dynamic.api.PandaInst
-import org.jacodb.panda.dynamic.api.PandaInstRef
-import org.jacodb.panda.dynamic.api.PandaLocal
-import org.jacodb.panda.dynamic.api.PandaLocalVar
-import org.jacodb.panda.dynamic.api.PandaMethod
-import org.jacodb.panda.dynamic.api.PandaRefType
-import org.jacodb.panda.dynamic.api.PandaReturnInst
-import org.jacodb.panda.dynamic.api.PandaThis
-import org.jacodb.panda.dynamic.api.PandaThrowInst
-import org.jacodb.panda.dynamic.api.PandaType
+import org.jacodb.api.jvm.cfg.JcGotoInst
+import org.jacodb.panda.dynamic.api.*
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UConcreteHeapRef
@@ -44,25 +29,6 @@ class PandaInterpreter(
     private val applicationGraph: PandaApplicationGraph
 ) : UInterpreter<PandaState>() {
     private val forkBlackList: UForkBlackList<PandaState, PandaInst> = UForkBlackList.createDefault()
-
-    private var prevBB = PandaBasicBlock(
-        id = -1,
-        successors = emptySet(),
-        predecessors = emptySet(),
-        _start = PandaInstRef(-1),
-        _end = PandaInstRef(-1)
-    )
-
-    private var prevBBId = -1
-
-    private var currentBBId = -1
-
-//    fun valueFromBB(bbId: Int): PandaValue {
-//        val idx = basicBlockIds.indexOf(bbId).takeIf { it != -1 }
-//            ?: error("No basic block with id $bbId in Phi with input basic blocks [${basicBlockIds.joinToString()}]")
-//
-//        return inputs[idx]
-//    }
 
     override fun step(state: PandaState): StepResult<PandaState> {
         val stmt = state.lastStmt
@@ -93,11 +59,12 @@ class PandaInterpreter(
             is PandaCallInst -> visitCallStmt(scope, stmt)
             is PandaThrowInst -> visitThrowStmt(scope, stmt)
             is PandaEmptyBBPlaceholderInst -> visitPlaceholderStmt(scope, stmt)
+            is PandaGotoInst -> visitGotoStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
 
         if (state.callStack.isNotEmpty()) {
-            stmt.basicBlock(state).takeIf { it != stmt.nextStmt?.basicBlock(state) }?.let { prevBBId = it.id }
+            state.updateBBId(stmt)
         }
 
         return scope.stepResult()
@@ -126,12 +93,8 @@ class PandaInterpreter(
         return state
     }
 
-    private fun PandaInst.basicBlock(state: PandaState): PandaBasicBlock {
-        return state.lastEnteredMethod.blocks.find { it.contains(this) }!!
-    }
-
     private fun visitMethodCall(scope: PandaStepScope, stmt: PandaMethodCallBaseInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
         val method = stmt.method
 
         when (stmt) {
@@ -163,7 +126,7 @@ class PandaInterpreter(
     }
 
     private fun visitIfStmt(scope: PandaStepScope, stmt: PandaIfInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val boolExpr = with(ctx) {
             val value = exprResolver.resolvePandaExpr(stmt.condition) ?: return
@@ -183,7 +146,7 @@ class PandaInterpreter(
     }
 
     private fun visitReturnStmt(scope: PandaStepScope, stmt: PandaReturnInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         // TODO process the type
@@ -226,7 +189,7 @@ class PandaInterpreter(
     }
 
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val expr = exprResolver.resolvePandaExpr(stmt.rhv) ?: return
         val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
@@ -265,7 +228,7 @@ class PandaInterpreter(
 
 
     private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
         val callExpr = stmt.callExpr
         val methodResult = scope.calcOnState { methodResult }
 
@@ -286,12 +249,17 @@ class PandaInterpreter(
     }
 
     private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
-        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper, prevBBId)
+        val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
         val addr = exprResolver.resolvePandaExpr(stmt.throwable) ?: return
 
         scope.doWithState {
             methodResult = PandaMethodResult.PandaException(addr.asExpr(ctx.addressSort), PandaAnyType /*TODO????*/)
         }
+    }
+
+    private fun visitGotoStmt(scope: PandaStepScope, stmt: PandaGotoInst) {
+        val nextStmt = stmt.location.method.instructions[stmt.target.index]
+        scope.doWithState { newStmt(nextStmt) }
     }
 
     // (method, localIdx) -> idx
@@ -323,7 +291,4 @@ class PandaInterpreter(
         methodCall: PandaVirtualMethodCallInst,
         scope: PandaStepScope,
     ): Unit = resolveVirtualInvoke(ctx, methodCall, scope, typeSelector, false) // Set default from JcMachineOptions
-
-    private val PandaInst.nextStmt: PandaInst?
-        get() = location.let { it.method.instructions.getOrNull(it.index + 1) }
 }
