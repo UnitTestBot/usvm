@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
         ArgType.Int,
         shortName = "n",
         description = "Number of files to make a batch"
-    ).default(100)
+    ).default(500)
 
     val sortResults by parser.option(
         ArgType.Boolean,
