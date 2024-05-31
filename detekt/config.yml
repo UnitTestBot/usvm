@@ -58,8 +58,6 @@ complexity:
 
 formatting:
   active: true
-  SpacingAroundCurly:
-    active: false
   TrailingCommaOnDeclarationSite:
     active: true
   MultiLineIfElse:

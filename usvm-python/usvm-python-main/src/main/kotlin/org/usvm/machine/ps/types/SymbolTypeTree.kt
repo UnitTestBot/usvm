@@ -18,10 +18,14 @@ import org.usvm.language.TpRichcmpMethod
 import org.usvm.language.TpSetattro
 import org.usvm.machine.PyState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getConcreteStrIfDefined
+import org.usvm.machine.types.ConcretePythonType
+import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.utpython.types.PythonAnyTypeDescription
 import org.utpython.types.PythonCallableTypeDescription
+import org.utpython.types.PythonCompositeTypeDescription
 import org.utpython.types.PythonTypeHintsStorage
 import org.utpython.types.createBinaryProtocol
 import org.utpython.types.createProtocolWithAttribute
@@ -37,88 +41,99 @@ import org.utpython.types.pythonDescription
 
 class SymbolTypeTree(
     private val state: PyState,
-    private val typeHintsStorage: PythonTypeHintsStorage,
+    private val typeSystem: PythonTypeSystemWithMypyInfo,
     rootSymbol: UninterpretedSymbolicPythonObject,
     private val maxDepth: Int = 5,
 ) {
+    private val typeHintsStorage: PythonTypeHintsStorage
+        get() = typeSystem.typeHintsStorage
+
     private val root = SymbolTreeNode(rootSymbol)
+
     private fun generateSuccessors(node: SymbolTreeNode): List<SymbolTreeNode> =
         state.getMocksForSymbol(node.symbol).mapNotNull { (mockHeader, resultSymbol) ->
-            val protocol =
+            val protocol: (UtType) -> List<UtType> =
                 when (mockHeader.method) {
-                    MpAssSubscriptMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__setitem__", pythonAnyType, returnType) }
+                    MpAssSubscriptMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__setitem__", pythonAnyType, returnType))
                     }
-                    MpSubscriptMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__getitem__", pythonAnyType, returnType) }
+
+                    MpSubscriptMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__getitem__", pythonAnyType, returnType))
                     }
-                    NbAddMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__add__", pythonAnyType, returnType) }
+
+                    NbAddMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__add__", pythonAnyType, returnType))
                     }
-                    NbSubtractMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__sub__", pythonAnyType, returnType) }
+
+                    NbSubtractMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__sub__", pythonAnyType, returnType))
                     }
-                    NbBoolMethod -> {
-                        { _: UtType -> createUnaryProtocol("__bool__", typeHintsStorage.pythonBool) }
+
+                    NbBoolMethod -> { _: UtType ->
+                        listOf(createUnaryProtocol("__bool__", typeHintsStorage.pythonBool))
                     }
-                    NbIntMethod -> {
-                        { _: UtType -> createUnaryProtocol("__int__", typeHintsStorage.pythonInt) }
+
+                    NbIntMethod -> { _: UtType ->
+                        listOf(createUnaryProtocol("__int__", typeHintsStorage.pythonInt))
                     }
-                    NbNegativeMethod -> {
-                        { returnType: UtType -> createUnaryProtocol("__neg__", returnType) }
+
+                    NbNegativeMethod -> { returnType: UtType ->
+                        listOf(createUnaryProtocol("__neg__", returnType))
                     }
-                    NbPositiveMethod -> {
-                        { returnType: UtType -> createUnaryProtocol("__pos__", returnType) }
+
+                    NbPositiveMethod -> { returnType: UtType ->
+                        listOf(createUnaryProtocol("__pos__", returnType))
                     }
-                    NbMatrixMultiplyMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__matmul__", pythonAnyType, returnType) }
+
+                    NbMatrixMultiplyMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__matmul__", pythonAnyType, returnType))
                     }
-                    NbMultiplyMethod -> {
-                        { returnType: UtType -> createBinaryProtocol("__mul__", pythonAnyType, returnType) }
+
+                    NbMultiplyMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__mul__", pythonAnyType, returnType))
                     }
-                    SqLengthMethod -> {
-                        { _: UtType -> createUnaryProtocol("__len__", typeHintsStorage.pythonInt) }
+
+                    SqLengthMethod -> { _: UtType ->
+                        listOf(createUnaryProtocol("__len__", typeHintsStorage.pythonInt))
                     }
-                    TpIterMethod -> {
-                        { returnType: UtType -> createUnaryProtocol("__iter__", returnType) }
+
+                    TpIterMethod -> { returnType: UtType ->
+                        listOf(createUnaryProtocol("__iter__", returnType))
                     }
-                    TpGetattro -> {
+
+                    TpGetattro, TpSetattro -> func@{ returnType: UtType ->
                         val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
-                            ?: return@mapNotNull null
-                        { returnType: UtType -> createProtocolWithAttribute(attribute, returnType) }
+                            ?: return@func emptyList()
+                        listOf(createProtocolWithAttribute(attribute, returnType))
                     }
-                    TpSetattro -> {
-                        val attribute = mockHeader.args[1].getConcreteStrIfDefined(state.preAllocatedObjects)
-                            ?: return@mapNotNull null
-                        { _: UtType -> createProtocolWithAttribute(attribute, pythonAnyType) }
-                    }
-                    is TpRichcmpMethod -> {
-                        { returnType: UtType ->
-                            when (mockHeader.method.op) {
-                                ConcretePythonInterpreter.pyEQ ->
-                                    createBinaryProtocol("__eq__", pythonAnyType, returnType)
 
-                                ConcretePythonInterpreter.pyNE ->
-                                    createBinaryProtocol("__ne__", pythonAnyType, returnType)
+                    is TpRichcmpMethod -> { returnType: UtType ->
+                        val protocolName: String = when (mockHeader.method.op) {
+                            ConcretePythonInterpreter.pyEQ -> "__eq__"
+                            ConcretePythonInterpreter.pyNE -> "__ne__"
+                            ConcretePythonInterpreter.pyLT -> "__lt__"
+                            ConcretePythonInterpreter.pyLE -> "__le__"
+                            ConcretePythonInterpreter.pyGT -> "__gt__"
+                            ConcretePythonInterpreter.pyGE -> "__ge__"
+                            else -> error("Wrong OP in TpRichcmpMethod")
+                        }
 
-                                ConcretePythonInterpreter.pyLT ->
-                                    createBinaryProtocol("__lt__", pythonAnyType, returnType)
+                        val operandTypes = listOf(pythonAnyType) + mockHeader.args.mapNotNull { operand ->
+                            val modelHolder = PyModelHolder(state.pyModel)
+                            val type = operand.getTypeIfDefined(modelHolder, state.memory) as? ConcretePythonType
+                            type?.let { typeSystem.typeHintOfConcreteType(it) }
+                        }
 
-                                ConcretePythonInterpreter.pyLE ->
-                                    createBinaryProtocol("__le__", pythonAnyType, returnType)
-
-                                ConcretePythonInterpreter.pyGT ->
-                                    createBinaryProtocol("__gt__", pythonAnyType, returnType)
-
-                                ConcretePythonInterpreter.pyGE ->
-                                    createBinaryProtocol("__ge__", pythonAnyType, returnType)
-
-                                else -> error("Wrong OP in TpRichcmpMethod")
-                            }
+                        operandTypes.toSet().map {
+                            createBinaryProtocol(protocolName, it, returnType)
+                        } + operandTypes.filter { // "soft" constraints
+                            it.pythonDescription() is PythonCompositeTypeDescription
                         }
                     }
-                    is TpCallMethod -> {
-                        { returnType: UtType ->
+
+                    is TpCallMethod -> { returnType: UtType ->
+                        listOf(
                             createProtocolWithAttribute(
                                 "__call__",
                                 createPythonCallableType(
@@ -132,15 +147,16 @@ class SymbolTypeTree(
                                     )
                                 }
                             )
-                        }
+                        )
                     }
                 }
-            val originalHint = protocol(pythonAnyType)
-            if (originalHint.pythonDescription() !is PythonAnyTypeDescription) {
-                node.upperBounds.add(originalHint)
+            val originalHints = protocol(pythonAnyType)
+            if (originalHints.isEmpty()) {
+                return@mapNotNull null
             }
+            node.upperBounds += originalHints
             val newNode = SymbolTreeNode(resultSymbol)
-            val edge = SymbolTreeEdge(newNode, node) { type -> listOf(protocol(type)) }
+            val edge = SymbolTreeEdge(newNode, node) { type -> protocol(type) }
             addEdge(edge)
             newNode
         }

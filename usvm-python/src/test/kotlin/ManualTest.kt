@@ -1,18 +1,14 @@
 import org.usvm.UMachineOptions
-import org.usvm.language.PrimitivePyProgram
 import org.usvm.language.PyProgram
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.StructuredPyProgram
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
-import org.usvm.machine.types.BasicPythonTypeSystem
-import org.usvm.machine.types.PythonAnyType
 import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.utils.withAdditionalPaths
 import org.usvm.runner.CustomPythonTestRunner
-import org.usvm.runner.SamplesBuild
 import org.usvm.runner.manual.analyzers.OrdinaryAnalyzer
 import org.usvm.runner.manual.program.sampleFunction
 import org.usvm.utils.getModulesFromFiles
@@ -30,35 +26,19 @@ import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 fun main() {
-
+    /**
+     * See:
+     *  - [org.usvm.runner.manual.program.sampleStringFunction]
+     *  - [org.usvm.runner.manual.program.sampleFunction]
+     * */
     val program = sampleFunction
 
+    /**
+     * TODO
+     * */
     val analyzer = OrdinaryAnalyzer
 
     analyzer.run(program)
-}
-
-private fun buildSampleRunConfig(): RunConfig {
-    val (program, typeSystem) = constructStructuredProgram() /*constructPrimitiveProgram(
-        """
-            def list_concat(x):
-                y = x + [1]
-                if len(y[::-1]) == 5:
-                    return 1
-                return 2
-
-
-            def f(x):
-                assert x != "aaaa"
-        """.trimIndent()
-    )*/
-    val function = PyUnpinnedCallable.constructCallableFromName(
-        listOf(PythonAnyType),
-        "g",
-        "tricky.CompositeObjects"
-    )
-    val functions = listOf(function)
-    return RunConfig(program, typeSystem, functions)
 }
 
 private val ignoreFunctions = listOf<String>()
@@ -201,24 +181,3 @@ private data class RunConfig(
     val typeSystem: PythonTypeSystem,
     val functions: List<PyUnpinnedCallable>,
 )
-
-@Suppress("SameParameterValue")
-private fun constructPrimitiveProgram(asString: String): Pair<PyProgram, PythonTypeSystem> {
-    val program = PrimitivePyProgram.fromString(asString)
-    val typeSystem = BasicPythonTypeSystem()
-    return Pair(program, typeSystem)
-}
-
-@Suppress("SameParameterValue")
-private fun constructPrimitiveProgramFromStructured(module: String): Pair<PyProgram, PythonTypeSystem> {
-    val program = SamplesBuild.program.getPrimitiveProgram(module)
-    val typeSystem = BasicPythonTypeSystem()
-    return Pair(program, typeSystem)
-}
-
-@Suppress("SameParameterValue")
-private fun constructStructuredProgram(): Pair<PyProgram, PythonTypeSystem> {
-    val program = SamplesBuild.program
-    val typeSystem = PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
-    return Pair(program, typeSystem)
-}

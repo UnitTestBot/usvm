@@ -110,6 +110,14 @@ class UninterpretedSymbolicPythonObject(
         return interpreted.getConcreteType()
     }
 
+    fun getTypeIfDefined(
+        modelHolder: PyModelHolder,
+        memory: UMemory<PythonType, PyCallable>,
+    ): PythonType? {
+        val interpreted = interpretSymbolicPythonObject(modelHolder, memory, this)
+        return interpreted.getConcreteType()
+    }
+
     private fun resolvesToNullInCurrentModel(ctx: ConcolicRunContext): Boolean {
         val interpreted = interpretSymbolicPythonObject(ctx, this)
         return interpreted.address.address == 0

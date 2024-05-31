@@ -17,7 +17,7 @@ fun makeTypeRating(state: PyState, delayedFork: DelayedFork): TypeRating? {
             return null
     }
     val (resultList, hints) = if (state.typeSystem is PythonTypeSystemWithMypyInfo) {
-        val typeGraph = SymbolTypeTree(state, state.typeSystem.typeHintsStorage, delayedFork.symbol)
+        val typeGraph = SymbolTypeTree(state, state.typeSystem, delayedFork.symbol)
         prioritizeTypes(candidates, typeGraph, state.typeSystem) to typeGraph.boundsForRoot.size
     } else {
         candidates to 0

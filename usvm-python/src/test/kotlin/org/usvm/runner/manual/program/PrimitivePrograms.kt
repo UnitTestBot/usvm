@@ -5,7 +5,7 @@ import org.usvm.machine.types.PythonAnyType
 /**
  * Use this declaration for simple manual checks.
  * */
-val sampleFunction = StringProgramProvider(
+val sampleStringFunction = StringProgramProvider(
     """
         def f(x):
             assert x != "hello"
