@@ -1,0 +1,171 @@
+~main class start~
+~import java.util.*;~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+list787234.stream().forEach(e -> {
+    ~[String]~ = e;
+});
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> mappedList = list787234.stream().map(e -> ~[String]~).collect(Collectors.toList());
+if (mappedList.contains(~[String]~)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> filteredList = list787234.stream().filter(e -> e.length() > 3).collect(Collectors.toList());
+if (filteredList.contains(~[String]~)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add("");
+list787234.add(~[String]~);
+list787234.add("");
+List<String> distinctList = list787234.stream().distinct().collect(Collectors.toList());
+if (distinctList.size() == 3) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> sortedList = list787234.stream().sorted().collect(Collectors.toList());
+if (sortedList.get(0) == ~[String]~) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+list787234.stream().peek(e -> ~[String]~ = e);
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> limitedList = list787234.stream().limit(1).collect(Collectors.toList());
+if (limitedList.size() == 1) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> skippedList = list787234.stream().skip(3).collect(Collectors.toList());
+if (skippedList.size() == 1) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+List<String> flatMappedList = list787234.stream().flatMap(e -> Stream.of(e, e + "!")).collect(Collectors.toList());
+if (flatMappedList.contains(~[String]~)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Optional<String> reduced = list787234.stream().reduce((s1, s2) -> s1 + s2);
+if (reduced.isPresent() && reduced.get().equals(""))) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+boolean anyMatch = list787234.stream().anyMatch(e -> e.isEmpty());
+if (anyMatch) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+boolean allMatch = list787234.stream().allMatch(e -> e.length() > 0);
+if (allMatch) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+boolean allMatch = list787234.stream().allMatch(e -> e.length() > 0);
+if (allMatch) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+boolean noneMatch = list787234.stream().noneMatch(e -> e.length() > 10);
+if (noneMatch) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Optional<String> firstElement = list787234.stream().findFirst();
+if (firstElement.isPresent() && firstElement.get().equals(""))) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Optional<String> anyElement = list787234.stream().findAny();
+if (anyElement.isPresent() && anyElement.get().equals(""))) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+long count = list787234.stream().count();
+if (count > 0)) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Optional<String> maxElement = list787234.stream().max(Comparator.naturalOrder());
+if (maxElement.isPresent() && maxElement.get().equals(""))) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(~[String]~);
+list787234.add("");
+Optional<String> minElement = list787234.stream().min(Comparator.naturalOrder());
+if (minElement.isPresent() && minElement.get().equals(""))) {
+  ~[String]~ = ~[String]~;
+}
+~template end~
+~main class end~
