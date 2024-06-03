@@ -209,8 +209,8 @@ class PandaExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaGeExpr(expr: PandaGeExpr): PandaUExprWrapper? {
-        TODO("Not yet implemented")
+    override fun visitPandaGeExpr(expr: PandaGeExpr): PandaUExprWrapper? = wrap(expr) {
+        resolveBinaryOperator(PandaBinaryOperator.Ge, expr)
     }
 
     override fun visitPandaGtExpr(expr: PandaGtExpr): PandaUExprWrapper? = wrap(expr) {
@@ -231,8 +231,8 @@ class PandaExprResolver(
         }
 
 
-    override fun visitPandaLeExpr(expr: PandaLeExpr): PandaUExprWrapper? {
-        TODO("Not yet implemented")
+    override fun visitPandaLeExpr(expr: PandaLeExpr): PandaUExprWrapper? = wrap(expr) {
+        resolveBinaryOperator(PandaBinaryOperator.Le, expr)
     }
 
     override fun visitPandaLengthExpr(expr: PandaLengthExpr): PandaUExprWrapper? = wrap(expr) {

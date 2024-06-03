@@ -55,10 +55,19 @@ sealed class PandaBinaryOperator(
         onBool = { lhs, rhs -> mkAnd(lhs, rhs.not()) }, // lhs > rhs => lhs /\ !rhs
         onNumber = PandaContext::mkFpGreaterExpr
     )
+    object Ge : PandaBinaryOperator(
+        onBool = { lhs, rhs -> mkNot(mkAnd(lhs.not(), rhs)) }, // lhs >= rhs => !(!lhs /\ rhs)
+        onNumber = PandaContext::mkFpGreaterOrEqualExpr
+    )
 
     object Lt : PandaBinaryOperator(
         onBool = { lhs, rhs -> mkAnd(lhs.not(), rhs) }, // lhs < rhs => !lhs /\ rhs
         onNumber = PandaContext::mkFpLessExpr
+    )
+
+    object Le : PandaBinaryOperator(
+        onBool = { lhs, rhs -> mkNot(mkAnd(lhs, rhs.not())) }, // lhs <= rhs => !(lhs /\ !rhs)
+        onNumber = PandaContext::mkFpLessOrEqualExpr
     )
 
     object Eq : PandaBinaryOperator(
