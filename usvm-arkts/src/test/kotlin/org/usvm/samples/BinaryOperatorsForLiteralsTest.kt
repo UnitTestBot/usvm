@@ -83,7 +83,7 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
                 methodName = "sumNumObj",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "1[object Object]"}
         )
     }
 
@@ -179,7 +179,7 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
                 methodName = "sumBoolObj",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "true[object Object]" }
         )
     }
 
@@ -269,13 +269,13 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
 
     @Test
     fun testSumStringObj() {
-        discoverProperties<Double>(
+        discoverProperties<String>(
             MethodDescriptor(
                 className = "BinaryOperatorsForLiterals",
                 methodName = "sumStringObj",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "true[object Object]" }
         )
     }
 
@@ -293,13 +293,13 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
 
     @Test
     fun testSumObjNum() {
-        discoverProperties<Double>(
+        discoverProperties<String>(
             MethodDescriptor(
                 className = "BinaryOperatorsForLiterals",
                 methodName = "sumObjNum",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "[object Object]1" }
         )
     }
 
@@ -317,13 +317,13 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
 
     @Test
     fun testSumObjBool() {
-        discoverProperties<Double>(
+        discoverProperties<String>(
             MethodDescriptor(
                 className = "BinaryOperatorsForLiterals",
                 methodName = "sumObjBool",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "[object Object]true" }
         )
     }
 
@@ -341,13 +341,13 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
 
     @Test
     fun testSumObjString() {
-        discoverProperties<Double>(
+        discoverProperties<String>(
             MethodDescriptor(
                 className = "BinaryOperatorsForLiterals",
                 methodName = "sumObjString",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "[object Object]true" }
         )
     }
 
@@ -365,13 +365,13 @@ class BinaryOperatorsForLiteralsTest : PandaMethodTestRunner() {
 
     @Test
     fun testSumObjObj() {
-        discoverProperties<Double>(
+        discoverProperties<String>(
             MethodDescriptor(
                 className = "BinaryOperatorsForLiterals",
                 methodName = "sumObjObj",
                 argumentsNumber = 0
             ),
-            { r -> TODO() }
+            { r -> r == "[object Object][object Object]" }
         )
     }
 
