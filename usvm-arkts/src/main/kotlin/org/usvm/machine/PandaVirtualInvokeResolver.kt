@@ -1,18 +1,12 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.jvm.JcRefType
-import org.jacodb.api.jvm.JcType
-import org.jacodb.api.jvm.ext.isEnum
-import org.jacodb.api.jvm.ext.toType
 import org.jacodb.panda.dynamic.api.PandaClassTypeImpl
-import org.jacodb.panda.dynamic.api.PandaRefType
 import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.USymbolicHeapRef
-import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
@@ -68,7 +62,6 @@ private fun resolveVirtualInvokeWithModel(
             concreteRef,
             ctx,
             methodCall,
-            instance,
             condition = ctx.trueExpr
         )
 
@@ -84,7 +77,6 @@ private fun resolveVirtualInvokeWithModel(
         methodCall,
         typeStream,
         typeSelector,
-        instance,
         ctx,
         ctx.trueExpr,
         forkOnRemainingTypes
@@ -98,11 +90,10 @@ private fun PandaVirtualMethodCallInst.prepareVirtualInvokeOnConcreteRef(
     concreteRef: UConcreteHeapRef,
     ctx: PandaContext,
     methodCall: PandaVirtualMethodCallInst,
-    instance: UHeapRef,
     condition: UBoolExpr,
 ): List<Pair<UBoolExpr, (PandaState) -> Unit>> {
     // We have only one type for allocated and static heap refs
-    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single() as PandaRefType
+    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
 
     val state = { state: PandaState ->
         val concreteCall = makeConcreteMethodCall(methodCall, type)
@@ -141,7 +132,7 @@ private fun resolveVirtualInvokeWithoutModel(
     val conditionsWithBlocks = refsWithConditions.flatMapTo(mutableListOf()) { (ref, condition) ->
         when {
             isAllocatedConcreteHeapRef(ref) || isStaticHeapRef(ref) -> {
-                prepareVirtualInvokeOnConcreteRef(scope, ref, ctx, methodCall, instance, condition)
+                prepareVirtualInvokeOnConcreteRef(scope, ref, ctx, methodCall, condition)
             }
             ref is USymbolicHeapRef -> {
                 val state = scope.calcOnState { this }
@@ -157,7 +148,6 @@ private fun resolveVirtualInvokeWithoutModel(
                     methodCall,
                     typeStream,
                     typeSelector,
-                    instance,
                     ctx,
                     condition,
                     forkOnRemainingTypes
@@ -187,7 +177,6 @@ private fun PandaVirtualMethodCallInst.makeConcreteCallsForPossibleTypes(
     methodCall: PandaVirtualMethodCallInst,
     typeStream: UTypeStream<PandaType>,
     typeSelector: PandaTypeSelector,
-    instance: UHeapRef,
     ctx: PandaContext,
     condition: UBoolExpr,
     forkOnRemainingTypes: Boolean,

@@ -1,20 +1,8 @@
 package org.usvm.machine
 
 import io.ksmt.expr.KExpr
-import org.jacodb.api.jvm.JcArrayType
-import org.jacodb.api.jvm.JcClassType
-import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.JcType
-import org.jacodb.api.jvm.JcTypedMethod
-import org.jacodb.api.jvm.ext.findMethodOrNull
-import org.jacodb.api.jvm.ext.toType
-import org.jacodb.panda.dynamic.api.PandaArrayType
-import org.jacodb.panda.dynamic.api.PandaClassType
 import org.jacodb.panda.dynamic.api.PandaInst
-import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaPhiValue
-import org.jacodb.panda.dynamic.api.PandaType
-import org.jacodb.panda.dynamic.api.PandaTypedMethod
 import org.jacodb.panda.dynamic.api.PandaValue
 import org.usvm.UExpr
 import org.usvm.USort

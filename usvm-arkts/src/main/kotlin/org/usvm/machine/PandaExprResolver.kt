@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import io.ksmt.expr.KInterpretedValue
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.api.common.cfg.CommonExpr
@@ -11,7 +10,6 @@ import org.jacodb.panda.dynamic.api.PandaArgument
 import org.jacodb.panda.dynamic.api.PandaArrayAccess
 import org.jacodb.panda.dynamic.api.PandaBinaryExpr
 import org.jacodb.panda.dynamic.api.PandaBoolConstant
-import org.jacodb.panda.dynamic.api.PandaBoolType
 import org.jacodb.panda.dynamic.api.PandaBuiltInError
 import org.jacodb.panda.dynamic.api.PandaCastExpr
 import org.jacodb.panda.dynamic.api.PandaCaughtError
@@ -23,7 +21,6 @@ import org.jacodb.panda.dynamic.api.PandaEqExpr
 import org.jacodb.panda.dynamic.api.PandaExpExpr
 import org.jacodb.panda.dynamic.api.PandaExpr
 import org.jacodb.panda.dynamic.api.PandaExprVisitor
-import org.jacodb.panda.dynamic.api.PandaField
 import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
@@ -52,10 +49,9 @@ import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaSubExpr
 import org.jacodb.panda.dynamic.api.PandaThis
 import org.jacodb.panda.dynamic.api.PandaToNumericExpr
-import org.jacodb.panda.dynamic.api.PandaTypeName
+import org.jacodb.panda.dynamic.api.PandaType
 import org.jacodb.panda.dynamic.api.PandaTypeofExpr
 import org.jacodb.panda.dynamic.api.PandaUndefinedConstant
-import org.jacodb.panda.dynamic.api.PandaUndefinedType
 import org.jacodb.panda.dynamic.api.PandaValue
 import org.jacodb.panda.dynamic.api.PandaValueByInstance
 import org.jacodb.panda.dynamic.api.PandaVirtualCallExpr
@@ -76,8 +72,8 @@ class PandaExprResolver(
     private val ctx: PandaContext,
     private val scope: PandaStepScope,
     private val localIdxMapper: (PandaMethod, PandaLocal) -> Int,
-) : PandaExprVisitor<UExpr<out USort>?> {
-    fun resolveLValue(value: PandaValue): ULValue<*, *>? =
+) : PandaExprVisitor<PandaUExprWrapper?> {
+    fun resolveLValue(value: PandaValue): List<ULValue<*, *>> =
         when (value) {
             is PandaFieldRef -> TODO()
             is PandaArrayAccess -> TODO()
@@ -85,16 +81,26 @@ class PandaExprResolver(
             else -> error("Unexpected value: $value")
         }
 
-    fun resolveLocal(local: PandaLocal): URegisterStackLValue<*> {
+    fun resolveLocal(local: PandaLocal, type: PandaType? = null): List<URegisterStackLValue<*>> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localIdxMapper(method, local)
-        val sort = ctx.addressSort // TODO ?????
-        return URegisterStackLValue(sort, localIdx)
+        if (type != null) {
+            return listOf(URegisterStackLValue(ctx.typeToSort(type), localIdx))
+        }
+        return listOf(URegisterStackLValue(ctx.addressSort, localIdx), URegisterStackLValue(ctx.undefinedSort, localIdx)) + (ctx.typeSystem<PandaType>().topTypeStream() as PandaTopTypeStream).primitiveTypes.map { t ->
+            URegisterStackLValue(ctx.typeToSort(t), localIdx)
+        }
     }
 
     // TODO do we need a type?
-    fun resolvePandaExpr(expr: PandaExpr): UExpr<out USort>? {
-        return expr.accept(this)
+    fun resolvePandaExpr(expr: PandaExpr, sort: USort? = null): PandaUExprWrapper? {
+        return /* if (expr.type != type && type is PandaPrimitiveType) resolvePrimitiveCast() else */ expr.accept(this)
+    }
+
+    private fun wrap(expr: PandaExpr, wrapper: () -> UExpr<out USort>?) : PandaUExprWrapper? {
+        wrapper()?.let {
+            return PandaUExprWrapper(expr, it)
+        } ?: return null
     }
 
     private fun resolveBinaryOperator(
@@ -113,60 +119,66 @@ class PandaExprResolver(
     private inline fun <T> resolveAfterResolved(
         dependency0: PandaExpr,
         dependency1: PandaExpr,
-        block: (UExpr<out USort>, UExpr<out USort>) -> T,
+        block: (PandaUExprWrapper, PandaUExprWrapper) -> T,
     ): T? {
         val result0 = resolvePandaExpr(dependency0) ?: return null
         val result1 = resolvePandaExpr(dependency1) ?: return null
         return block(result0, result1)
     }
 
-    override fun visitPandaExpr(expr: PandaExpr): UExpr<out USort>? {
-        return resolvePandaExpr(expr)
+    override fun visitPandaExpr(expr: PandaExpr): PandaUExprWrapper? = wrap(expr) {
+        resolvePandaExpr(expr)?.uExpr
     }
 
-    override fun visitCommonCallExpr(expr: CommonExpr): UExpr<out USort>? {
+    override fun visitCommonCallExpr(expr: CommonExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitCommonInstanceCallExpr(expr: CommonExpr): UExpr<out USort>? {
+    override fun visitCommonInstanceCallExpr(expr: CommonExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitExternalCommonExpr(expr: CommonExpr): UExpr<out USort>? {
+    override fun visitExternalCommonExpr(expr: CommonExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitExternalCommonValue(value: CommonValue): UExpr<out USort>? {
+    override fun visitExternalCommonValue(value: CommonValue): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaAddExpr(expr: PandaAddExpr): UExpr<out USort>? =
+    override fun visitPandaAddExpr(expr: PandaAddExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Add, expr)
-
-    override fun visitPandaArgument(expr: PandaArgument): UExpr<out USort>? {
-        val ref = resolveLocal(expr)
-        return scope.calcOnState { memory.read(ref) }
     }
 
-    override fun visitPandaArrayAccess(expr: PandaArrayAccess): UExpr<out USort>? {
-        val ref = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
-        val uIndex = resolvePandaExpr(expr.index) ?: return null
+    override fun visitPandaArgument(expr: PandaArgument): PandaUExprWrapper? = wrap(expr) {
+        resolveLocal(expr).forEach { ref ->
+            try {
+                return@wrap scope.calcOnState { memory.read(ref) }
+            } catch (_: Exception) { }
+        }
+
+        null
+    }
+
+    override fun visitPandaArrayAccess(expr: PandaArrayAccess): PandaUExprWrapper? = wrap(expr) {
+        val ref = resolvePandaExpr(expr.array)?.uExpr?.asExpr(ctx.addressSort) ?: return@wrap null
+        val uIndex = resolvePandaExpr(expr.index)?.uExpr ?: return@wrap null
         val index = ctx.extractPrimitiveValueIfRequired(uIndex, scope).asExpr(ctx.fp64Sort)
-        return scope.calcOnState {
-            memory.readArrayIndex(ref, index, expr.array.type, ctx.typeToSort(expr.type))
+        scope.calcOnState {
+            memory.readArrayIndex(ref, index, expr.array.type, ctx.fp64Sort)
         }
     }
 
-    override fun visitPandaCastExpr(expr: PandaCastExpr): UExpr<out USort>? {
+    override fun visitPandaCastExpr(expr: PandaCastExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaCaughtError(expr: PandaCaughtError): UExpr<out USort>? {
+    override fun visitPandaCaughtError(expr: PandaCaughtError): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
     // TODO: saw Cmp objects in JCBinaryOperator, needs checking
-    override fun visitPandaCmpExpr(expr: PandaCmpExpr): UExpr<out USort>? =
+    override fun visitPandaCmpExpr(expr: PandaCmpExpr): PandaUExprWrapper? = wrap(expr) {
         when (expr.cmpOp) {
             PandaCmpOp.GT -> resolveBinaryOperator(PandaBinaryOperator.Gt, expr)
             PandaCmpOp.EQ -> resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
@@ -175,128 +187,149 @@ class PandaExprResolver(
             PandaCmpOp.LE -> TODO()
             PandaCmpOp.GE -> TODO()
         }
+    }
 
-    override fun visitPandaCreateEmptyArrayExpr(expr: PandaCreateEmptyArrayExpr): UExpr<out USort>? {
+    override fun visitPandaCreateEmptyArrayExpr(expr: PandaCreateEmptyArrayExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaDivExpr(expr: PandaDivExpr): UExpr<out USort>? =
+    override fun visitPandaDivExpr(expr: PandaDivExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Div, expr)
+    }
 
-    override fun visitPandaEqExpr(expr: PandaEqExpr): UExpr<out USort>? =
+    override fun visitPandaEqExpr(expr: PandaEqExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
+    }
 
-    override fun visitPandaExpExpr(expr: PandaExpExpr): UExpr<out USort>? {
+    override fun visitPandaExpExpr(expr: PandaExpExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaFieldRef(expr: PandaFieldRef): UExpr<out USort>? {
+    override fun visitPandaFieldRef(expr: PandaFieldRef): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaGeExpr(expr: PandaGeExpr): UExpr<out USort>? {
+    override fun visitPandaGeExpr(expr: PandaGeExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaGtExpr(expr: PandaGtExpr): UExpr<out USort>? =
+    override fun visitPandaGtExpr(expr: PandaGtExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Gt, expr)
+    }
 
-    override fun visitPandaInstanceVirtualCallExpr(expr: PandaInstanceVirtualCallExpr): UExpr<out USort>? =
-        resolveInvoke(
-            method = expr.method,
-            instanceExpr = expr.instance,
-            args = expr.args
-        ) { arguments ->
-            scope.doWithState {
-                addVirtualMethodCallStmt(expr.method, arguments)
+    override fun visitPandaInstanceVirtualCallExpr(expr: PandaInstanceVirtualCallExpr): PandaUExprWrapper? =
+        wrap(expr) {
+            resolveInvoke(
+                method = expr.method,
+                instanceExpr = expr.instance,
+                args = expr.args.drop(1)
+            ) { arguments ->
+                scope.doWithState {
+                    addVirtualMethodCallStmt(expr.method, arguments)
+                }
             }
         }
 
 
-    override fun visitPandaLeExpr(expr: PandaLeExpr): UExpr<out USort>? {
+    override fun visitPandaLeExpr(expr: PandaLeExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaLengthExpr(expr: PandaLengthExpr): UExpr<out USort>? {
-        val arrayAddress = resolvePandaExpr(expr.array)?.asExpr(ctx.addressSort) ?: return null
+    override fun visitPandaLengthExpr(expr: PandaLengthExpr): PandaUExprWrapper? = wrap(expr) {
+        val arrayAddress = resolvePandaExpr(expr.array)?.uExpr?.asExpr(ctx.addressSort) ?: return@wrap null
         val lengthLValue = UArrayLengthLValue(arrayAddress, expr.array.type, ctx.sizeSort)
-        return scope.calcOnState { memory.read(lengthLValue) }
+        scope.calcOnState { memory.read(lengthLValue) }
     }
 
-    override fun visitPandaLoadedValue(expr: PandaLoadedValue): UExpr<out USort>? {
-        val instance = resolvePandaExpr(expr.instance) ?: return null
-        // TODO this is field reading for now only
-        val fieldReading = UFieldLValue(
-            ctx.addressSort,
-            instance.asExpr(ctx.addressSort),
-            PandaField(
-                name = "", // TODO ?????
-                type = PandaTypeName(PandaAnyType.typeName),
-                signature = null // TODO ?????
-            )
-        )
-
-        return scope.calcOnState { memory.read(fieldReading) }
+    override fun visitPandaLoadedValue(expr: PandaLoadedValue): PandaUExprWrapper? = wrap(expr) {
+        val instance = resolvePandaExpr(expr.instance)
+        val uExpr = instance?.uExpr ?: return@wrap null
+        if (uExpr.sort == ctx.stringSort) return@wrap null
+        if (uExpr.sort == ctx.addressSort) return@wrap uExpr
+        val newAddr = scope.calcOnState { memory.allocConcrete(PandaAnyType) }
+        scope.calcOnState { memory.write(ctx.constructAuxiliaryFieldLValue(newAddr, ctx.stringSort), uExpr) }
+        newAddr
+//        // TODO this is field reading for now only
+//        val fieldReading = UFieldLValue(
+//            ctx.addressSort,
+//            instance.uExpr.asExpr(ctx.addressSort),
+//            PandaField(
+//                name = "", // TODO ?????
+//                type = PandaTypeName(PandaAnyType.typeName),
+//                signature = null // TODO ?????
+//            )
+//        )
+//
+//        scope.calcOnState { memory.read(fieldReading) }
     }
 
-    override fun visitPandaLocalVar(expr: PandaLocalVar): UExpr<out USort>? {
-        val ref = resolveLocal(expr)
-        return scope.calcOnState { memory.read(ref) }
+    override fun visitPandaLocalVar(expr: PandaLocalVar): PandaUExprWrapper? = wrap(expr) {
+        resolveLocal(expr).forEach { ref ->
+            try {
+                return@wrap scope.calcOnState { memory.read(ref) }
+            } catch (_: Exception) { }
+        }
+
+         null
     }
 
-    override fun visitPandaLtExpr(expr: PandaLtExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(PandaBinaryOperator.Lt, expr)
+    override fun visitPandaLtExpr(expr: PandaLtExpr): PandaUExprWrapper? = wrap(expr) {
+        resolveBinaryOperator(PandaBinaryOperator.Lt, expr)
     }
 
-    override fun visitPandaMethodConstant(expr: PandaMethodConstant): UExpr<out USort>? {
+    override fun visitPandaMethodConstant(expr: PandaMethodConstant): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaModExpr(expr: PandaModExpr): UExpr<out USort>? {
+    override fun visitPandaModExpr(expr: PandaModExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaMulExpr(expr: PandaMulExpr): UExpr<out USort>? =
+    override fun visitPandaMulExpr(expr: PandaMulExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Mul, expr)
+    }
 
-    override fun visitPandaNegExpr(expr: PandaNegExpr): UExpr<out USort>? {
+    override fun visitPandaNegExpr(expr: PandaNegExpr): PandaUExprWrapper? = wrap(expr) {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaNeqExpr(expr: PandaNeqExpr): UExpr<out USort>? =
+    override fun visitPandaNeqExpr(expr: PandaNeqExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Neq, expr)
+    }
 
 
-    override fun visitPandaNewExpr(expr: PandaNewExpr): UExpr<out USort>? {
+    override fun visitPandaNewExpr(expr: PandaNewExpr): PandaUExprWrapper? = wrap(expr) {
         val address = scope.calcOnState { memory.allocConcrete(expr.type) }
-        return address
+        address
     }
 
-    override fun visitPandaNullConstant(expr: PandaNullConstant): UExpr<out USort>? {
+    override fun visitPandaNullConstant(expr: PandaNullConstant): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaBoolConstant(expr: PandaBoolConstant): UExpr<out USort>? =
+    override fun visitPandaBoolConstant(expr: PandaBoolConstant): PandaUExprWrapper? = wrap(expr) {
         ctx.mkBool(expr.value)
+    }
 
-    override fun visitPandaBuiltInError(expr: PandaBuiltInError): UExpr<out USort>? {
+    override fun visitPandaBuiltInError(expr: PandaBuiltInError): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaNumberConstant(expr: PandaNumberConstant): UExpr<out USort>? =
+    override fun visitPandaNumberConstant(expr: PandaNumberConstant): PandaUExprWrapper? = wrap(expr) {
         ctx.mkFp64(expr.value.toDouble())
-
-    override fun visitPandaPhiValue(expr: PandaPhiValue): UExpr<out USort>? {
-        val value = expr.valueFromBB(scope.calcOnState { prevBBId })
-        return resolvePandaExpr(value) // TODO wrap????
     }
 
-    override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): UExpr<out USort>? {
+    override fun visitPandaPhiValue(expr: PandaPhiValue): PandaUExprWrapper? = wrap(expr) {
+        val value = expr.valueFromBB(scope.calcOnState { prevBBId })
+        resolvePandaExpr(value)?.uExpr // TODO wrap????
+    }
+
+    override fun visitPandaStaticCallExpr(expr: PandaStaticCallExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
+    override fun visitPandaStrictEqExpr(expr: PandaStrictEqExpr): PandaUExprWrapper? = wrap(expr) {
+        resolveBinaryOperator(PandaBinaryOperator.Eq, expr)
 //        var lhs = resolvePandaExpr(expr.lhv) ?: return null
 //        var rhs = resolvePandaExpr(expr.rhv) ?: return null
 //
@@ -344,55 +377,60 @@ class PandaExprResolver(
 //        TODO()
     }
 
-    override fun visitPandaStrictNeqExpr(expr: PandaStrictNeqExpr): UExpr<out USort>? {
+    override fun visitPandaStrictNeqExpr(expr: PandaStrictNeqExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaStringConstant(expr: PandaStringConstant): UExpr<out USort>? {
+    override fun visitPandaStringConstant(expr: PandaStringConstant): PandaUExprWrapper? = wrap(expr) {
         val address = scope.calcOnState { memory.allocConcrete(PandaStringType) }
         val lValue = ctx.constructAuxiliaryFieldLValue(address, ctx.stringSort)
         val value = PandaConcreteString(ctx, expr.value)
         scope.doWithState { memory.write(lValue, value) }
 
-        return value
+        value
     }
 
-    override fun visitPandaSubExpr(expr: PandaSubExpr): UExpr<out USort>? =
+    override fun visitPandaSubExpr(expr: PandaSubExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Sub, expr)
+    }
 
-    override fun visitPandaTODOConstant(expr: TODOConstant): UExpr<out USort>? {
+    override fun visitPandaTODOConstant(expr: TODOConstant): PandaUExprWrapper? = wrap(expr) {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaThis(expr: PandaThis): UExpr<out USort>? {
-        val ref = resolveLocal(expr)
-        return scope.calcOnState { memory.read(ref) }
+    override fun visitPandaThis(expr: PandaThis): PandaUExprWrapper? = wrap(expr) {
+        resolveLocal(expr, PandaAnyType).forEach { ref ->
+            try {
+                return@wrap scope.calcOnState { memory.read(ref) }
+            } catch (_: Exception) { }
+        }
+
+        null
     }
 
-    override fun visitPandaToNumericExpr(expr: PandaToNumericExpr): UExpr<out USort>? {
-        val arg = resolvePandaExpr(expr.arg) ?: return null
-        return ctx.mkFpToFpExpr(ctx.fp64Sort, ctx.fpRoundingModeSortDefaultValue(), arg.cast())
+    override fun visitPandaToNumericExpr(expr: PandaToNumericExpr): PandaUExprWrapper? = wrap(expr) {
+        val arg = resolvePandaExpr(expr.arg) ?: return@wrap null
+        ctx.mkFpToFpExpr(ctx.fp64Sort, ctx.fpRoundingModeSortDefaultValue(), arg.cast())
     }
 
-    override fun visitPandaTypeofExpr(expr: PandaTypeofExpr): UExpr<out USort>? {
+    override fun visitPandaTypeofExpr(expr: PandaTypeofExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 
-    override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): UExpr<out USort>? {
+    override fun visitPandaUndefinedConstant(expr: PandaUndefinedConstant): PandaUExprWrapper? = wrap(expr) {
         // TODO intern
-        return ctx.undefinedObject
+        ctx.undefinedObject
     }
 
-    override fun visitPandaValueByInstance(expr: PandaValueByInstance): UExpr<out USort>? {
-        val lValue = resolveFieldRef(expr.instance, expr.property) ?: return null
-        return scope.calcOnState { memory.read(lValue) }
-
+    override fun visitPandaValueByInstance(expr: PandaValueByInstance): PandaUExprWrapper? = wrap(expr) {
+        val lValue = resolveFieldRef(expr.instance, expr.property) ?: return@wrap null
+        scope.calcOnState { memory.read(lValue) }
     }
 
     private fun resolveFieldRef(instance: PandaValue?, field: String): ULValue<*, *>? {
         with(ctx) {
             val instanceRef = if (instance != null) {
-                resolvePandaExpr(instance)?.asExpr(addressSort) ?: return null
+                resolvePandaExpr(instance)?.uExpr?.asExpr(addressSort) ?: return null
             } else {
                 null
             }
@@ -405,7 +443,7 @@ class PandaExprResolver(
         }
     }
 
-    override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): UExpr<out USort>? =
+    override fun visitPandaVirtualCallExpr(expr: PandaVirtualCallExpr): PandaUExprWrapper? = wrap(expr) {
         resolveInvoke(
             method = expr.method,
             instanceExpr = null,
@@ -415,6 +453,7 @@ class PandaExprResolver(
                 addVirtualMethodCallStmt(expr.method, arguments)
             }
         }
+    }
 
     private fun resolveInvoke(
         method: PandaMethod,
@@ -422,11 +461,7 @@ class PandaExprResolver(
         args: List<PandaValue>,
         onNoCallPresent: PandaStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
-        val instanceRef = if (instanceExpr != null) {
-            resolvePandaExpr(instanceExpr)?.asExpr(ctx.addressSort) ?: return null
-        } else {
-            null
-        }
+        val instanceRef = instanceExpr?.let { resolvePandaExpr(it)?.uExpr }
 
         val arguments = mutableListOf<UExpr<out USort>>()
 
@@ -434,7 +469,7 @@ class PandaExprResolver(
             arguments += instanceRef
         }
 
-        arguments += args.map { resolvePandaExpr(it) ?: return null }
+        arguments += args.map { resolvePandaExpr(it)?.uExpr ?: return null }
 
         return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(arguments) }
     }
@@ -458,7 +493,7 @@ class PandaExprResolver(
         }
     }
 
-    override fun visitTODOExpr(expr: TODOExpr): UExpr<out USort>? {
+    override fun visitTODOExpr(expr: TODOExpr): PandaUExprWrapper? {
         TODO("Not yet implemented")
     }
 

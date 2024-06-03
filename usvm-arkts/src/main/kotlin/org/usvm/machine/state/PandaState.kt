@@ -33,8 +33,8 @@ class PandaState(
 
     var prevBBId = -1
 
-    fun basicBlock(inst: PandaInst): PandaBasicBlock {
-        return lastEnteredMethod.blocks.find { it.contains(inst) }!!
+    fun basicBlock(inst: PandaInst): PandaBasicBlock? {
+        return lastEnteredMethod.blocks.find { it.contains(inst) }
     }
 
     fun updateBBId(inst: PandaInst) {

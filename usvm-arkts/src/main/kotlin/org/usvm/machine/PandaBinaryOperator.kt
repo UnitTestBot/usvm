@@ -76,40 +76,63 @@ sealed class PandaBinaryOperator(
     }
 
     internal open operator fun invoke(
-        lhsUExpr: UExpr<out USort>,
-        rhsUExpr: UExpr<out USort>,
-        scope: PandaStepScope,
+        lhs: PandaUExprWrapper,
+        rhs: PandaUExprWrapper,
+        scope: PandaStepScope
     ): UExpr<out USort> {
-        val ctx = lhsUExpr.pctx
-
-        val lhs = ctx.extractPrimitiveValueIfRequired(lhsUExpr, scope)
-        val rhs = ctx.extractPrimitiveValueIfRequired(rhsUExpr, scope)
-
-        if (lhs.checkInterpreted() && rhs.checkInterpreted()) {
-            return commonAdditionalWork(lhs, rhs, scope)
-        }
-
+        val ctx = lhs.uExpr.pctx
         val addressSort = ctx.addressSort
-        if (lhs.checkInterpreted()) {
-            return if (rhs.sort == ctx.addressSort) {
-                makeAdditionalWorkRhs(lhs, rhs.asExpr(addressSort), scope)
-            } else {
-                commonAdditionalWork(lhs, rhs, scope)
+
+        var lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhs.uExpr, scope)
+        var rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhs.uExpr, scope)
+        if (lhsUExpr.sort == addressSort) {
+            val newSort = ctx.typeToSort(lhs.from.type).takeIf { it != addressSort } ?: ctx.fp64Sort
+            lhsUExpr = scope.calcOnState {
+                memory.read(ctx.constructAuxiliaryFieldLValue(lhsUExpr.asExpr(addressSort), newSort))
             }
         }
 
-        if (rhs.checkInterpreted()) {
-            return if (lhs.sort == ctx.addressSort) {
-                makeAdditionalWorkLhs(lhs.asExpr(addressSort), rhs, scope)
-            } else {
-                commonAdditionalWork(lhs, rhs, scope)
-            }
+        if (lhsUExpr.sort != rhsUExpr.sort) {
+            rhsUExpr = rhs.withSortNew(ctx, lhsUExpr.sort)
         }
 
-        // TODO is this require the right one? mkEq operator mkEq???
-        require(lhs.sort == addressSort && rhs.sort == addressSort)
+        val lhsSort = lhsUExpr.sort
+        val rhsSort = rhsUExpr.sort
 
-        return makeAdditionalWork(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+        return when {
+
+            lhsSort is PandaBoolSort -> lhsUExpr.pctx.onBool(lhsUExpr.cast(), rhsUExpr.cast())
+
+            lhsSort is PandaStringSort -> lhsUExpr.pctx.onString(lhsUExpr.cast(), rhsUExpr.cast())
+
+            lhsSort is PandaNumberSort -> lhsUExpr.pctx.onNumber(lhsUExpr.cast(), rhsUExpr.cast())
+
+            else -> error("Unexpected sorts: $lhsSort, $rhsSort")
+        }
+
+    }
+
+    private fun PandaUExprWrapper.withSortNew(ctx: PandaContext, sort: USort): UExpr<out USort> = with(ctx) {
+        when (sort) {
+            fp64Sort -> when (uExpr.sort) {
+                boolSort -> mkIte(uExpr.asExpr(boolSort), 1.0.toFp(), 0.0.toFp()).asExpr(fp64Sort)
+                fp64Sort -> uExpr
+                addressSort -> {
+                    val newSort = ctx.typeToSort(from.type).takeIf { it != addressSort } ?: ctx.fp64Sort
+                    this@withSortNew.withSortNew(ctx, newSort)
+                }
+                else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
+            }
+
+            boolSort -> when (uExpr.sort) {
+                fp64Sort -> mkIte(mkEq(uExpr.asExpr(fp64Sort), mkFp64(1.0)), mkTrue(), mkFalse()).asExpr(boolSort)
+                boolSort -> uExpr
+                else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
+            }
+
+            addressSort -> this@withSortNew.withSortNew(ctx, this.typeToSort(from.type))
+            else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
+        }
     }
 
     private fun makeAdditionalWorkRhs(

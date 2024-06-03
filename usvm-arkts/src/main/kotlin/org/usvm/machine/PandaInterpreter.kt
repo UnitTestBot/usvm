@@ -2,8 +2,25 @@ package org.usvm.machine
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.jacodb.api.jvm.cfg.JcGotoInst
-import org.jacodb.panda.dynamic.api.*
+import org.jacodb.panda.dynamic.api.PandaAnyType
+import org.jacodb.panda.dynamic.api.PandaArgument
+import org.jacodb.panda.dynamic.api.PandaAssignInst
+import org.jacodb.panda.dynamic.api.PandaCallInst
+import org.jacodb.panda.dynamic.api.PandaEmptyBBPlaceholderInst
+import org.jacodb.panda.dynamic.api.PandaGotoInst
+import org.jacodb.panda.dynamic.api.PandaIfInst
+import org.jacodb.panda.dynamic.api.PandaInst
+import org.jacodb.panda.dynamic.api.PandaInstanceVirtualCallExpr
+import org.jacodb.panda.dynamic.api.PandaLoadedValue
+import org.jacodb.panda.dynamic.api.PandaLocal
+import org.jacodb.panda.dynamic.api.PandaLocalVar
+import org.jacodb.panda.dynamic.api.PandaMethod
+import org.jacodb.panda.dynamic.api.PandaRefType
+import org.jacodb.panda.dynamic.api.PandaReturnInst
+import org.jacodb.panda.dynamic.api.PandaStringConstant
+import org.jacodb.panda.dynamic.api.PandaThis
+import org.jacodb.panda.dynamic.api.PandaThrowInst
+import org.jacodb.panda.dynamic.api.PandaType
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UConcreteHeapRef
@@ -129,7 +146,7 @@ class PandaInterpreter(
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
         val boolExpr = with(ctx) {
-            val value = exprResolver.resolvePandaExpr(stmt.condition) ?: return
+            val value = exprResolver.resolvePandaExpr(stmt.condition)?.uExpr ?: return
             extractPrimitiveValueIfRequired(value.cast(), scope).asExpr(boolSort)
         }
 
@@ -151,7 +168,7 @@ class PandaInterpreter(
         val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
         // TODO process the type
         val valueToReturn = stmt.returnValue
-            ?.let { exprResolver.resolvePandaExpr(it) }
+            ?.let { exprResolver.resolvePandaExpr(it)?.uExpr }
             ?: error("TODO")
 
         scope.doWithState {
@@ -191,29 +208,14 @@ class PandaInterpreter(
     private fun visitAssignInst(scope: PandaStepScope, stmt: PandaAssignInst) {
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
 
-        val expr = exprResolver.resolvePandaExpr(stmt.rhv) ?: return
-        val lValue = exprResolver.resolveLValue(stmt.lhv) ?: return
-
-        if (expr.sort != ctx.addressSort) {
-            val auxiliaryExpr = scope.calcOnState {
-                val type = ctx.nonRefSortToType(expr.sort)
-                memory.allocConcrete(type)
-            }
-            scope.doWithState {
-                val nextStmt = stmt.nextStmt!!
-                val fieldLValue = ctx.constructAuxiliaryFieldLValue(auxiliaryExpr, expr.sort)
-
-                memory.write(fieldLValue, expr)
-                memory.write(lValue, auxiliaryExpr)
-
-                newStmt(nextStmt)
-            }
-            return
-        }
+        val expr = exprResolver.resolvePandaExpr(stmt.rhv)?.uExpr ?: return
+        val lValues = exprResolver.resolveLValue(stmt.lhv).takeIf { it.isNotEmpty() } ?: return
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt!!
-            memory.write(lValue, expr)
+            for (lValue in lValues) {
+                memory.write(lValue, expr)
+            }
             newStmt(nextStmt)
         }
     }
@@ -228,6 +230,18 @@ class PandaInterpreter(
 
 
     private fun visitCallStmt(scope: PandaStepScope, stmt: PandaCallInst) {
+
+        // I am very sorry...
+        (stmt.callExpr as? PandaInstanceVirtualCallExpr)?.let { shit ->
+            if (shit.instance is PandaLoadedValue && ((shit.instance as PandaLoadedValue).instance is PandaStringConstant)) {
+                stmt.nextStmt?.let { nextStmt ->
+                    scope.doWithState {
+                        newStmt(nextStmt)
+                    }
+                }
+                return
+            }
+        }
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
         val callExpr = stmt.callExpr
         val methodResult = scope.calcOnState { methodResult }
@@ -250,7 +264,7 @@ class PandaInterpreter(
 
     private fun visitThrowStmt(scope: PandaStepScope, stmt: PandaThrowInst) {
         val exprResolver = PandaExprResolver(ctx, scope, ::mapLocalToIdxMapper)
-        val addr = exprResolver.resolvePandaExpr(stmt.throwable) ?: return
+        val addr = exprResolver.resolvePandaExpr(stmt.throwable)?.uExpr ?: return
 
         scope.doWithState {
             methodResult = PandaMethodResult.PandaException(addr.asExpr(ctx.addressSort), PandaAnyType /*TODO????*/)

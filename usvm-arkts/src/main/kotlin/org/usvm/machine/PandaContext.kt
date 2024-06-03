@@ -2,7 +2,6 @@ package org.usvm.machine
 
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KSortVisitor
-import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.mkConst
 import org.jacodb.panda.dynamic.api.PandaAnyType
@@ -11,7 +10,6 @@ import org.jacodb.panda.dynamic.api.PandaClass
 import org.jacodb.panda.dynamic.api.PandaField
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaNumberType
-import org.jacodb.panda.dynamic.api.PandaPrimitiveType
 import org.jacodb.panda.dynamic.api.PandaRefType
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaType
@@ -111,12 +109,12 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
         }
 
         val type = scope.calcOnState { memory.typeStreamOf(uExpr) }.single()
-        return extractPrimitiveValueIfRequired(when (type) {
+        return when (type) {
             PandaNumberType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, fp64Sort)) }
             PandaBoolType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, boolSort)) }
             PandaStringType -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, stringSort)) }
-            else -> uExpr
-        }, scope)
+            else -> scope.calcOnState { memory.read(constructAuxiliaryFieldLValue(uExpr, fp64Sort)) }
+        }
     }
 
     override val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }

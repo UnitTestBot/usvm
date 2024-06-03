@@ -55,7 +55,7 @@ class PandaTypeSystem(override val typeOperationsTimeout: Duration, val project:
 
 class PandaTopTypeStream(
     private val pandaTypeSystem: PandaTypeSystem,
-    private val primitiveTypes: PersistentList<PandaPrimitiveType> = persistentListOf( // TODO replace with list
+    val primitiveTypes: PersistentList<PandaPrimitiveType> = persistentListOf( // TODO replace with list
         PandaNumberType,
         PandaBoolType,
         PandaStringType
