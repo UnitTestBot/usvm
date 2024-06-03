@@ -150,7 +150,7 @@ if (!list787234.get(0).equals("")) {
 }
 ~template end~
 ~template start~
-List<Integer> list787234 = new ArrayList<String>();
+List<String> list787234 = new ArrayList<String>();
 list787234.add(~[EXPR_String]~);
 list787234.add("");
 if (list787234.contains(~[EXPR_String]~)) {
