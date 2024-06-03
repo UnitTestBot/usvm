@@ -17,6 +17,7 @@ import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
+import org.jetbrains.kotlin.descriptors.runtime.structure.primitiveByWrapper
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import kotlin.random.Random
 
@@ -144,8 +145,7 @@ open class TemplatesInserter : Transformation() {
                     if (capturedType == "java.lang.Object") {
                         scope.randomOrNull()?.name
                     } else {
-                        scope.filter { it.type == capturedType }
-                            .randomOrNull()?.name
+                       getValueOfTypeFromScope(scope, capturedType)
                     }
                 } else null
             if (holeType == HOLE_TYPE.VAR && randomValueWithCompatibleType == null) {
@@ -234,6 +234,20 @@ open class TemplatesInserter : Transformation() {
         } else {
             hole.substringAfter("_").substringBefore("@")
         }
+
+    private fun getValueOfTypeFromScope(scope: List<JavaScopeCalculator.JavaScopeComponent>, type: String): String? {
+        val jType =
+            try {
+                this::class.java.classLoader.loadClass(type)
+            } catch (e: Throwable) {
+                null
+            }
+        return jType?.let { jTypeNotNull ->
+            scope.filter { it.type == jTypeNotNull.name || it.type == jTypeNotNull.primitiveByWrapper?.name }
+                .randomOrNull()?.name
+        } ?: scope.filter { it.type == type }.randomOrNull()?.name
+    }
+
 
     class Template(
         val auxClasses: List<Pair<String, String>>,

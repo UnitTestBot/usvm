@@ -10,6 +10,8 @@ import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
+import com.spbpu.bbfinfrastructure.test.ErrorCollector
+import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import org.apache.log4j.Logger
 
 //Project adaptation
@@ -27,6 +29,9 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
         checkedConfigurations[allTexts]?.let { return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
+            if (CompilerArgs.testMode) {
+                ErrorCollector.putError("Syntax error! Can't parse template")
+            }
 //            println("Wrong syntax or breaks conditions")
             checkedConfigurations[allTexts] = false
             return false

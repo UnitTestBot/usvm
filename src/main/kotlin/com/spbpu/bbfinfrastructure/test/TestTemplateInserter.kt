@@ -15,6 +15,7 @@ import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
+import org.jetbrains.kotlin.descriptors.runtime.structure.primitiveByWrapper
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
@@ -28,13 +29,11 @@ class TestTemplatesInserter : Transformation() {
     fun testTransform(templateText: String, templateBodyIndex: Int): Boolean {
         val parsedTemplates = parseTemplate(templateText)!!
         for ((ind, randomTemplateBody) in parsedTemplates.templates.withIndex()) {
-            if (templateBodyIndex != -1 && ind != templateBodyIndex) continue
-            tryToAddTemplate(parsedTemplates, randomTemplateBody)
-                .ifFalse {
-                    println("TEMPLATE BODY WITH INDEX $ind INCORRECT!!")
-                    exitProcess(0)
-                    return false
-                }
+            if (ind != templateBodyIndex) continue
+            tryToAddTemplate(parsedTemplates, randomTemplateBody).ifFalse {
+                return false
+            }
+
         }
         return true
     }
@@ -139,11 +138,11 @@ class TestTemplatesInserter : Transformation() {
                     if (capturedType == "java.lang.Object") {
                         scope.randomOrNull()?.name
                     } else {
-                        scope.filter { it.type == capturedType }
-                            .randomOrNull()?.name
+                        getValueOfTypeFromScope(scope, capturedType)
                     }
                 } else null
             if (holeType == HOLE_TYPE.VAR && randomValueWithCompatibleType == null) {
+                ErrorCollector.putError("Can't find variable with type $capturedType in the scope")
                 throw IllegalArgumentException()
             }
             val resMapping =
@@ -192,36 +191,6 @@ class TestTemplatesInserter : Transformation() {
         return true
     }
 
-    protected fun parseTemplate(template: String): TemplatesInserter.Template? {
-        val regexForAuxClasses =
-            Regex("""~class\s+(\S+)\s+start~\s*(.*?)\s*~class\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
-        val foundAuxClasses = regexForAuxClasses.findAll(template)
-        val auxClasses = mutableListOf<Pair<String, String>>()
-        val imports = mutableListOf<String>()
-        for (auxClass in foundAuxClasses) {
-            val className = auxClass.groupValues[1]
-            val classBody = auxClass.groupValues[2].trim()
-            auxClasses.add(className to classBody)
-        }
-        val regexForMainClass = Regex("""~main class start~\s*(.*?)\s*~main class end~""", RegexOption.DOT_MATCHES_ALL)
-        val mainClassTemplateBody = regexForMainClass.find(template)?.groupValues?.lastOrNull() ?: return null
-        val importsRegex = Regex("""~import (.*?)~""", RegexOption.DOT_MATCHES_ALL)
-        val templateRegex = Regex("""~template start~\s*(.*?)\s*~template end~""", RegexOption.DOT_MATCHES_ALL)
-        val auxMethodsRegex =
-            Regex("""~function\s+(\S+)\s+start~\s*(.*?)\s*~function\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
-        importsRegex.findAll(mainClassTemplateBody).forEach { imports.add(it.groupValues.last()) }
-        val templatesBodies =
-            templateRegex.findAll(mainClassTemplateBody)
-                .map {
-                    val body = it.groupValues.last()
-                    val auxMethods = auxMethodsRegex.findAll(body).map { it.groupValues.last() }.toList()
-                    val templateBody = body.substringAfterLast("end~\n")
-                    TemplatesInserter.TemplateBody(auxMethods, templateBody)
-                }
-                .toList()
-        return TemplatesInserter.Template(auxClasses, imports, templatesBodies)
-    }
-
     private fun getTypeFromHole(hole: String, mappedTypes: Map<String, String>) =
         if (hole.contains("TYPE")) {
             mappedTypes[hole.substringAfter("_")]
@@ -229,6 +198,50 @@ class TestTemplatesInserter : Transformation() {
             hole.substringAfter("_").substringBefore("@")
         }
 
+    private fun getValueOfTypeFromScope(scope: List<JavaScopeCalculator.JavaScopeComponent>, type: String): String? {
+        val jType =
+            try {
+                this::class.java.classLoader.loadClass(type)
+            } catch (e: Throwable) {
+                null
+            }
+        return jType?.let { jTypeNotNull ->
+            scope.filter { it.type == jTypeNotNull.name || it.type == jTypeNotNull.primitiveByWrapper?.name }
+                .randomOrNull()?.name
+        } ?: scope.filter { it.type == type }.randomOrNull()?.name
+    }
+
+    companion object {
+        fun parseTemplate(template: String): TemplatesInserter.Template? {
+            val regexForAuxClasses =
+                Regex("""~class\s+(\S+)\s+start~\s*(.*?)\s*~class\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
+            val foundAuxClasses = regexForAuxClasses.findAll(template)
+            val auxClasses = mutableListOf<Pair<String, String>>()
+            val imports = mutableListOf<String>()
+            for (auxClass in foundAuxClasses) {
+                val className = auxClass.groupValues[1]
+                val classBody = auxClass.groupValues[2].trim()
+                auxClasses.add(className to classBody)
+            }
+            val regexForMainClass = Regex("""~main class start~\s*(.*?)\s*~main class end~""", RegexOption.DOT_MATCHES_ALL)
+            val mainClassTemplateBody = regexForMainClass.find(template)?.groupValues?.lastOrNull() ?: return null
+            val importsRegex = Regex("""~import (.*?)~""", RegexOption.DOT_MATCHES_ALL)
+            val templateRegex = Regex("""~template start~\s*(.*?)\s*~template end~""", RegexOption.DOT_MATCHES_ALL)
+            val auxMethodsRegex =
+                Regex("""~function\s+(\S+)\s+start~\s*(.*?)\s*~function\s+\S+\s+end~""", RegexOption.DOT_MATCHES_ALL)
+            importsRegex.findAll(mainClassTemplateBody).forEach { imports.add(it.groupValues.last()) }
+            val templatesBodies =
+                templateRegex.findAll(mainClassTemplateBody)
+                    .map {
+                        val body = it.groupValues.last()
+                        val auxMethods = auxMethodsRegex.findAll(body).map { it.groupValues.last() }.toList()
+                        val templateBody = body.substringAfterLast("end~\n")
+                        TemplatesInserter.TemplateBody(auxMethods, templateBody)
+                    }
+                    .toList()
+            return TemplatesInserter.Template(auxClasses, imports, templatesBodies)
+        }
+    }
 
     private enum class HOLE_TYPE {
         VAR, EXPR, TYPE, CONST

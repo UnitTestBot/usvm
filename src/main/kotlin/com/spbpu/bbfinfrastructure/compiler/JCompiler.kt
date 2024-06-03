@@ -1,11 +1,9 @@
 package com.spbpu.bbfinfrastructure.compiler
 
 import com.spbpu.bbfinfrastructure.project.Project
+import com.spbpu.bbfinfrastructure.test.ErrorCollector
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import org.apache.commons.io.FileUtils
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
-import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import java.io.File
 import javax.tools.Diagnostic
 import javax.tools.DiagnosticCollector
@@ -50,7 +48,9 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
         task.call()
         val errorDiagnostics = diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
         if (errorDiagnostics.isNotEmpty()) {
-//            println("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
+            if (CompilerArgs.testMode) {
+                ErrorCollector.putError("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
+            }
         }
         project.saveOrRemoveToTmp(false)
         return if (errorDiagnostics.isEmpty()) {

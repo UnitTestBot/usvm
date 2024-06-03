@@ -6,6 +6,8 @@ import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.tools.SemGrep
 import com.spbpu.bbfinfrastructure.tools.SpotBugs
+import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -40,26 +42,55 @@ class TemplatesChecker {
             .toList()
             .forEach {
                 println("CHECKING TEMPLATES FROM FILE: ${it.name}")
-                testTemplate(it.readText(), templateBodyIndex)
+                testTemplate(it.readText(), it.name, templateBodyIndex)
             }
     }
 
-    fun testTemplate(templateText: String, templateBodyIndex: Int) {
-        project = Project.createJavaProjectFromFiles(
-            files = listOf(testFile),
-            originalFileName = testFile.name,
-            originalCWEs = listOf()
-        )
-        curFile = project.files.first()
-        val inserter = TestTemplatesInserter()
-        inserter.testTransform(templateText, templateBodyIndex)
+    fun testTemplate(templateText: String, templateName: String, templateBodyIndex: Int) {
+        val parsedTemplates = TestTemplatesInserter.parseTemplate(templateText)!!
+        for (i in 0 until parsedTemplates.templates.size) {
+            if (templateBodyIndex != -1 && i != templateBodyIndex) continue
+            project = Project.createJavaProjectFromFiles(
+                files = listOf(testFile),
+                originalFileName = testFile.name,
+                originalCWEs = listOf()
+            )
+            curFile = project.files.first()
+            val inserter = TestTemplatesInserter()
+            println("CHECKING $templateName with index $i")
+            inserter.testTransform(templateText, i).ifFalse {
+                val mostFreqentError = ErrorCollector.compilationErrors.entries.maxByOrNull { it.value }?.key ?: ""
+                val mostFrequentCompilationError = ErrorCollector.compilationErrors.filterNot { it.key.contains("find variable") }.maxByOrNull { it.value }?.key ?: ""
+                ErrorCollector.errorMap["$templateName $i"] = mostFreqentError to mostFrequentCompilationError
+            }
+            ErrorCollector.compilationErrors.clear()
+        }
     }
 
 }
 
 fun main(args: Array<String>) {
+    CompilerArgs.testMode = true
     TemplatesChecker().testTemplates(
         templateName = args.firstOrNull() ?: "",
         templateBodyIndex = args.lastOrNull()?.toIntOrNull() ?: -1
     )
+    if (ErrorCollector.errorMap.isEmpty()) {
+        println("ALL TEMPLATES ARE CORRECT!")
+    } else {
+    println("FAILED TEMPLATES:\n")
+    println("-------------------")
+    ErrorCollector.errorMap.forEach { (key, value) ->
+        val mostFreqError = value.first
+        val mostFreqCompError = if (mostFreqError.contains("find variable")) value.second else value.first
+        if (mostFreqError == mostFreqCompError) {
+            println("$key\nMost frequent error:\n$mostFreqError")
+        } else {
+            println("$key\nMost frequent error:\n$mostFreqError\n")
+            println("$key\nMost frequent compilation error:\n$mostFreqCompError")
+
+        }
+        println("-------------------")
+    }
+}
 }
