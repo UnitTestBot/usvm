@@ -1,11 +1,13 @@
 ~main class start~
 ~import java.util.*;~
+~import java.util.concurrent.*;~
+
 ~template start~
 Queue<Integer> queue = new ArrayBlockingQueue<>(2);
 queue.add(1);
 queue.add(2);
 if (queue.offer(3)){
-  ~[String]~ = ~[String]~;
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
@@ -14,7 +16,7 @@ a12341.add(1);
 a12341.add(2);
 a12341.add(3);
 if (a12341.isEmpty()) {
-  ~[String]~ = ~[String]~;
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
@@ -22,15 +24,15 @@ Queue<Integer> a12341 = new LinkedList<Integer>();
 a12341.add(1);
 a12341.remove();
 if (!a12341.isEmpty()) {
-  ~[String]~ = ~[String]~;
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
 Queue<Integer> a12341 = new LinkedList<Integer>();
 a12341.add(1);
 a12341.remove();
-if (!a12341.poll()) {
-  ~[String]~ = ~[String]~;
+if (a12341.poll() == null) {
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
@@ -38,7 +40,7 @@ Queue<Integer> a12341 = new LinkedList<Integer>();
 a12341.add(1);
 Integer val23423 = a12341.element();
 if (val23423.equals(1)) {
-  ~[String]~ = ~[String]~;
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~template start~
@@ -46,7 +48,7 @@ Queue<Integer> a12341 = new LinkedList<Integer>();
 a12341.add(1);
 Integer val23423 = a12341.peek();
 if (val23423.equals(1) && !a12341.isEmpty()) {
-  ~[String]~ = ~[String]~;
+  ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
 ~main class end~
