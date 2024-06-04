@@ -1,9 +1,14 @@
 package org.usvm.samples
 
+import TestOptions
 import org.junit.jupiter.api.Test
 
 // TODO rename it
 class FirstExamplesTest : PandaMethodTestRunner() {
+
+    private fun checkTraceEquality(trace1: String, trace2: String): Boolean {
+        return trace1 == trace2
+    }
     @Test
     fun testDataFlowSecurity() {
         discoverProperties<Any, Any>(
@@ -37,6 +42,20 @@ class FirstExamplesTest : PandaMethodTestRunner() {
                 argumentsNumber = 0
             ),
             { result -> result == 4.0 }
+        )
+    }
+
+    @Test
+    fun `test trace verification for method add in basicSamples file`() {
+        TestOptions.VERIFY_TRACE = true
+        val traceToVerify = "traceToVerify"
+        discoverPropertiesWithTraceVerification<Double>(
+            methodIdentifier = MethodDescriptor(
+                className = "BasicSamples",
+                methodName = "add",
+                argumentsNumber = 0
+            ),
+            { result, trace -> checkTraceEquality(trace, traceToVerify) }
         )
     }
 

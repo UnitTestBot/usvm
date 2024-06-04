@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import TestOptions
 import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.utils.asExpr
@@ -46,7 +47,7 @@ class PandaTestResolver {
             exceptionType.first().typeName
         }
 
-        return PandaTest(parameters, resultExpr)
+        return PandaTest(parameters, resultExpr, if (TestOptions.VERIFY_TRACE) state.pathNode else null)
     }
 
     private fun resolveLValue(lValue: ULValue<*, *>, memory: UReadOnlyMemory<PandaType>): Any {

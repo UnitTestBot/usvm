@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import TestOptions
 import org.jacodb.panda.dynamic.api.PandaAnyType
 import org.jacodb.panda.dynamic.api.PandaType
 import org.jacodb.panda.dynamic.parser.IRParser
@@ -11,6 +12,7 @@ import org.usvm.machine.PandaMachine
 import org.usvm.machine.PandaTest
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.reflect.KFunction1
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -30,6 +32,23 @@ open class PandaMethodTestRunner
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = { _ -> true }
+        )
+    }
+
+    protected inline fun <reified R> discoverPropertiesWithTraceVerification(
+        methodIdentifier: MethodDescriptor,
+        vararg analysisResultMatchers: (R?, String) -> Boolean,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.parameters + r.resultValue + listOf("traceToVerify", r.trace).first() },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = { _ -> true }
