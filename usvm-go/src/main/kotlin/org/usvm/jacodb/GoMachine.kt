@@ -1,6 +1,10 @@
 package org.usvm.jacodb
 
 import mu.KLogging
+import org.jacodb.go.api.GoApplicationGraphImpl
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoProject
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine

@@ -1,4 +1,4 @@
-package org.usvm.machine.operator
+package org.usvm.jacodb.operator
 
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort

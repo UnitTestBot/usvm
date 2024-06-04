@@ -1,18 +1,18 @@
 package org.usvm.jacodb.interpreter
 
 import mu.KLogging
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoNullInst
+import org.jacodb.go.api.GoType
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.jacodb.GoContext
-import org.usvm.jacodb.GoExprVisitorImpl
-import org.usvm.jacodb.GoInst
-import org.usvm.jacodb.GoInstVisitorImpl
-import org.usvm.jacodb.GoMethod
-import org.usvm.jacodb.GoNullInst
+import org.usvm.jacodb.GoExprVisitor
+import org.usvm.jacodb.GoInstVisitor
 import org.usvm.jacodb.GoTarget
-import org.usvm.jacodb.GoType
 import org.usvm.jacodb.state.GoFlowStatus
 import org.usvm.jacodb.state.GoState
 import org.usvm.solver.USatResult
@@ -54,8 +54,8 @@ class GoInterpreter(
             }
         }
 
-        val exprVisitor = GoExprVisitorImpl(ctx, scope)
-        val instVisitor = GoInstVisitorImpl(ctx, scope, exprVisitor)
+        val exprVisitor = GoExprVisitor(ctx, scope)
+        val instVisitor = GoInstVisitor(ctx, scope, exprVisitor)
         val nextInst: GoInst = when(state.data.flowStatus) {
             GoFlowStatus.NORMAL -> state.getRecoverInst(method)
             GoFlowStatus.DEFER -> state.getDeferInst(method, inst)

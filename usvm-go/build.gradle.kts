@@ -29,10 +29,11 @@ dependencies {
     implementation(project(":usvm-core"))
 
     implementation(files("libs/nalim.jar"))
-    implementation(files("libs/jacodb-api-core-1.4-SNAPSHOT.jar"))
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+
+    implementation("${Versions.jacodbPackage}:jacodb-go:${Versions.jacodb}")
 }

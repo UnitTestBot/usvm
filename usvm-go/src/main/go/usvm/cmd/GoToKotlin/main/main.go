@@ -1,11 +1,13 @@
 package main
 
 import (
-	"GoToKotlin"
 	"compress/gzip"
 	"flag"
 	"fmt"
+	"log"
 	"os"
+
+	"GoToKotlin"
 
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
@@ -64,7 +66,7 @@ var needToGen = flag.Bool("gen", true, "Is initial generation needed")
 
 func main() {
 	flag.Parse()
-	fileName := "./ssa_prompt/g501/main.go"
+	fileName := "./ssa_prompt/max2/max2.go"
 
 	// Replace interface{} with any for this test.
 	// Parse the source files.
@@ -121,17 +123,27 @@ func main() {
 	k.f23 = &k
 	k.f24 = &k*/
 
-	os.Mkdir("ssaExample", os.ModePerm)
-	file, _ := os.Create("ssaExample/filled.gzip")
-	defer file.Close()
+	folder := "../../../../kotlin/org/usvm/jacodb/gen"
+
+	check(func() error {
+		return os.MkdirAll(folder, os.ModePerm)
+	})
+	file, _ := os.Create(fmt.Sprintf("%s/filled.gzip", folder))
+	defer check(file.Close)
 
 	gzipWriter := gzip.NewWriter(file)
-	defer gzipWriter.Close()
+	defer check(gzipWriter.Close)
 
-	conv := GoToKotlin.CreateConverter("ssaExample", true)
+	conv := GoToKotlin.CreateConverter(folder, true)
 
 	if *needToGen {
 		fmt.Printf("%v", conv.GenerateStructures(program))
 	}
 	fmt.Printf("%v", conv.FillStructures(gzipWriter, program))
+}
+
+func check(f func() error) {
+	if err := f(); err != nil {
+		log.Fatal("generation failed:", err)
+	}
 }
