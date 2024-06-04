@@ -1,5 +1,8 @@
 package org.usvm.jacodb
 
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.UExpr
 import org.usvm.USort
 

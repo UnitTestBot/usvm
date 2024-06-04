@@ -1,5 +1,8 @@
 package org.usvm.jacodb
 
+import org.jacodb.go.api.GoApplicationGraph
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
 import org.usvm.statistics.ApplicationGraph
 
 class GoApplicationGraphAdapter(
@@ -22,7 +25,7 @@ class GoApplicationGraphAdapter(
     }
 
     override fun entryPoints(method: GoMethod): Sequence<GoInst> {
-        return graph.entryPoint(method)
+        return graph.entryPoints(method)
     }
 
     override fun exitPoints(method: GoMethod): Sequence<GoInst> {

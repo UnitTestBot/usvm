@@ -1,4 +1,4 @@
-package org.usvm.machine.operator
+package org.usvm.jacodb.operator
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.cast
@@ -7,53 +7,53 @@ import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.machine.GoContext
-import org.usvm.machine.type.goCtx
+import org.usvm.jacodb.GoContext
+import org.usvm.jacodb.type.goCtx
 
 sealed class GoUnaryOperator(
     val onBool: GoContext.(UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onBv: GoContext.(UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onFp: GoContext.(UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
 ) {
-    object Neg : GoUnaryOperator(
+    data object Neg : GoUnaryOperator(
         onBool = GoContext::mkNot,
         onBv = GoContext::mkBvNegationExpr,
         onFp = GoContext::mkFpNegationExpr,
     )
 
-    object CastToBool : GoUnaryOperator(
+    data object CastToBool : GoUnaryOperator(
         onBool = { it },
         onBv = { operand -> operand neq mkBv(0, operand.sort) }
     )
 
-    object CastToInt8 : GoUnaryOperator(
+    data object CastToInt8 : GoUnaryOperator(
         onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Byte.SIZE_BITS, signed = true) }
     )
 
-    object CastToInt16 : GoUnaryOperator(
+    data object CastToInt16 : GoUnaryOperator(
         onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Short.SIZE_BITS, signed = true) }
     )
 
-    object CastToInt32 : GoUnaryOperator(
+    data object CastToInt32 : GoUnaryOperator(
         onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Int.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Int.SIZE_BITS) }
     )
 
-    object CastToInt64 : GoUnaryOperator(
+    data object CastToInt64 : GoUnaryOperator(
         onBool = { operand -> operand.wideTo32BitsIfNeeded(false) },
         onBv = { operand -> operand.mkNarrow(Long.SIZE_BITS, signed = true) },
         onFp = { operand -> operand.castToBv(Long.SIZE_BITS) }
     )
 
-    object CastToFloat32 : GoUnaryOperator(
+    data object CastToFloat32 : GoUnaryOperator(
         onBv = { operand -> mkBvToFpExpr(fp32Sort, fpRoundingModeSortDefaultValue(), operand, signed = true) },
         onFp = { operand -> mkFpToFpExpr(fp32Sort, fpRoundingModeSortDefaultValue(), operand) }
     )
 
-    object CastToFloat64 : GoUnaryOperator(
+    data object CastToFloat64 : GoUnaryOperator(
         onBv = { operand -> mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), operand, signed = true) },
         onFp = { operand -> mkFpToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), operand) }
     )

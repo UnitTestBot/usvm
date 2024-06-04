@@ -1,4 +1,4 @@
-package org.usvm.machine.operator
+package org.usvm.jacodb.operator
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -8,8 +8,8 @@ import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.machine.GoContext
-import org.usvm.machine.type.goCtx
+import org.usvm.jacodb.GoContext
+import org.usvm.jacodb.type.goCtx
 import org.usvm.uctx
 
 sealed class GoBinaryOperator(
@@ -38,7 +38,7 @@ sealed class GoBinaryOperator(
         onFp = { lhs, rhs -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) }
     )
 
-    class Rem(signed: Boolean) : GoBinaryOperator(
+    class Mod(signed: Boolean) : GoBinaryOperator(
         onBv = if (signed) GoContext::mkBvSignedRemExpr else GoContext::mkBvUnsignedRemExpr,
         onFp = GoContext::mkFpRemExpr,
     )
@@ -73,19 +73,19 @@ sealed class GoBinaryOperator(
         onBv = { lhs, rhs -> mkBvAndExpr(lhs, mkBvNegationExpr(rhs)) }
     )
 
-    data object Eq : GoBinaryOperator(
+    data object Eql : GoBinaryOperator(
         onBool = GoContext::mkEq,
         onBv = GoContext::mkEq,
         onFp = GoContext::mkFpEqualExpr,
         onAddress = GoContext::mkHeapRefEq,
     )
 
-    class Lt(signed: Boolean) : GoBinaryOperator(
+    class Lss(signed: Boolean) : GoBinaryOperator(
         onBv = if (signed) GoContext::mkBvSignedLessExpr else GoContext::mkBvUnsignedLessExpr,
         onFp = GoContext::mkFpLessExpr,
     )
 
-    class Gt(signed: Boolean) : GoBinaryOperator(
+    class Gtr(signed: Boolean) : GoBinaryOperator(
         onBv = if (signed) GoContext::mkBvSignedGreaterExpr else GoContext::mkBvUnsignedGreaterExpr,
         onFp = GoContext::mkFpGreaterExpr,
     )
@@ -97,12 +97,12 @@ sealed class GoBinaryOperator(
         onAddress = { lhs, rhs -> mkHeapRefEq(lhs, rhs).not() },
     )
 
-    class Le(signed: Boolean) : GoBinaryOperator(
+    class Leq(signed: Boolean) : GoBinaryOperator(
         onBv = if (signed) GoContext::mkBvSignedLessOrEqualExpr else GoContext::mkBvUnsignedLessOrEqualExpr,
         onFp = GoContext::mkFpLessOrEqualExpr,
     )
 
-    class Ge(signed: Boolean) : GoBinaryOperator(
+    class Geq(signed: Boolean) : GoBinaryOperator(
         onBv = if (signed) GoContext::mkBvSignedGreaterOrEqualExpr else GoContext::mkBvUnsignedGreaterOrEqualExpr,
         onFp = GoContext::mkFpGreaterOrEqualExpr
     )

@@ -32,9 +32,9 @@ import org.usvm.machine.GoContext
 import org.usvm.machine.GoInst
 import org.usvm.machine.USizeSort
 import org.usvm.machine.interpreter.GoStepScope
-import org.usvm.machine.operator.GoBinaryOperator
-import org.usvm.machine.operator.GoUnaryOperator
-import org.usvm.machine.operator.mkNarrow
+import org.usvm.jacodb.operator.GoBinaryOperator
+import org.usvm.jacodb.operator.GoUnaryOperator
+import org.usvm.jacodb.operator.mkNarrow
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
 import org.usvm.machine.type.GoSort
@@ -140,19 +140,19 @@ class Api(
             BinOp.SUB -> GoBinaryOperator.Sub
             BinOp.MUL -> GoBinaryOperator.Mul
             BinOp.DIV -> GoBinaryOperator.Div(signed)
-            BinOp.REM -> GoBinaryOperator.Rem(signed)
+            BinOp.REM -> GoBinaryOperator.Mod(signed)
             BinOp.AND -> GoBinaryOperator.And
             BinOp.OR -> GoBinaryOperator.Or
             BinOp.XOR -> GoBinaryOperator.Xor
             BinOp.SHL -> GoBinaryOperator.Shl
             BinOp.SHR -> GoBinaryOperator.Shr(signed)
             BinOp.AND_NOT -> GoBinaryOperator.AndNot
-            BinOp.EQ -> GoBinaryOperator.Eq
-            BinOp.LT -> GoBinaryOperator.Lt(signed)
-            BinOp.GT -> GoBinaryOperator.Gt(signed)
+            BinOp.EQ -> GoBinaryOperator.Eql
+            BinOp.LT -> GoBinaryOperator.Lss(signed)
+            BinOp.GT -> GoBinaryOperator.Gtr(signed)
             BinOp.NEQ -> GoBinaryOperator.Neq
-            BinOp.LE -> GoBinaryOperator.Le(signed)
-            BinOp.GE -> GoBinaryOperator.Ge(signed)
+            BinOp.LE -> GoBinaryOperator.Leq(signed)
+            BinOp.GE -> GoBinaryOperator.Geq(signed)
             else -> throw UnknownBinaryOperationException()
         }(x, normalize(y, op, signed))
 

@@ -1,6 +1,9 @@
 package org.usvm.jacodb
 
 import io.ksmt.utils.asExpr
+import org.jacodb.go.api.BasicType
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.UAddressPointer
 import org.usvm.UBvSort
 import org.usvm.UComponents
@@ -9,12 +12,10 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.ULValuePointer
 import org.usvm.USort
-import org.usvm.api.UnknownSortException
-import org.usvm.jacodb.type.GoSort
 import org.usvm.jacodb.type.GoVoidSort
 import org.usvm.jacodb.type.GoVoidValue
 import org.usvm.machine.USizeSort
-import org.usvm.machine.operator.GoUnaryOperator
+import org.usvm.jacodb.operator.GoUnaryOperator
 import org.usvm.memory.ULValue
 
 class GoContext(
@@ -57,20 +58,6 @@ class GoContext(
 
     val voidValue by lazy { GoVoidValue(this) }
 
-    fun mapSort(sort: GoSort): USort = when (sort) {
-        GoSort.VOID -> voidSort
-        GoSort.BOOL -> boolSort
-        GoSort.INT8, GoSort.UINT8 -> bv8Sort
-        GoSort.INT16, GoSort.UINT16 -> bv16Sort
-        GoSort.INT32, GoSort.UINT32 -> bv32Sort
-        GoSort.INT64, GoSort.UINT64 -> bv64Sort
-        GoSort.FLOAT32 -> fp32Sort
-        GoSort.FLOAT64 -> fp64Sort
-        GoSort.ARRAY, GoSort.SLICE, GoSort.MAP, GoSort.STRUCT, GoSort.INTERFACE, GoSort.TUPLE, GoSort.FUNCTION, GoSort.STRING -> addressSort
-        GoSort.POINTER -> pointerSort
-        else -> throw UnknownSortException()
-    }
-
     fun mkPrimitiveCast(expr: UExpr<USort>, to: USort): UExpr<out USort> = when (to) {
         boolSort -> GoUnaryOperator.CastToBool(expr)
         bv8Sort -> GoUnaryOperator.CastToInt8(expr)
@@ -110,5 +97,12 @@ class GoContext(
 
     fun setStringType(type: GoType) {
         stringType = type
+    }
+
+    fun <T : USort> ULValue<*, *>.withSort(sort: T): ULValue<*, T> {
+        check(this@withSort.sort == sort) { "Sort mismatch" }
+
+        @Suppress("UNCHECKED_CAST")
+        return this@withSort as ULValue<*, T>
     }
 }

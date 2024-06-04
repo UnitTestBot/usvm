@@ -1,6 +1,9 @@
 package org.usvm.jacodb.state
 
 import io.ksmt.utils.cast
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UExpr
@@ -9,10 +12,7 @@ import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.jacodb.GoCall
 import org.usvm.jacodb.GoContext
-import org.usvm.jacodb.GoInst
-import org.usvm.jacodb.GoMethod
 import org.usvm.jacodb.GoTarget
-import org.usvm.jacodb.GoType
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
