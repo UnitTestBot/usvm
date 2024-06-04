@@ -9,12 +9,13 @@ import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.refSetContainsElement
-import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.set.length.USetLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.map.ref.refMapMerge
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.collection.set.ref.refSetIntersectionSize
 import org.usvm.collection.set.ref.refSetUnion
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -32,7 +33,7 @@ object ObjectMapCollectionApi {
         mapType: MapType,
     ): UHeapRef = with(ctx) {
         val ref = memory.allocConcrete(mapType)
-        val length = UMapLengthLValue(ref, mapType, sizeSort)
+        val length = USetLengthLValue(ref, mapType, sizeSort)
         memory.write(length, mkSizeExpr(0), trueExpr)
         ref
     }
@@ -45,7 +46,7 @@ object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapSize(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): UExpr<USizeSort> = memory.read(UMapLengthLValue(mapRef, mapType, ctx.sizeSort))
+    ): UExpr<USizeSort> = memory.read(USetLengthLValue(mapRef, mapType, ctx.sizeSort))
 
     fun <MapType, State, USizeSort : USort, Ctx> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
@@ -57,7 +58,7 @@ object ObjectMapCollectionApi {
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState { memory.read(UMapLengthLValue(symbolicMapRef, mapType, ctx.sizeSort)) }
+                val length = calcOnState { memory.read(USetLengthLValue(symbolicMapRef, mapType, ctx.sizeSort)) }
                 val ctx = calcOnState { ctx }
                 with(ctx) {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
@@ -132,7 +133,7 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
 
         val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
-        memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
+        memory.write(USetLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
     }
 
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapRemove(
@@ -149,7 +150,7 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
 
         val updatedSize = mkSizeSubExpr(currentSize, mkSizeExpr(1))
-        memory.write(UMapLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsInMap)
+        memory.write(USetLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsInMap)
     }
 
     fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapMergeInto(
@@ -161,13 +162,13 @@ object ObjectMapCollectionApi {
         val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
         val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
 
+        val mapIntersectionSize = memory.refSetIntersectionSize<_, USizeSort>(dstRef, srcRef, mapType)
+
         val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
         memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
         memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
 
-        // todo: precise map size approximation?
-        // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
-        val sizeUpperBound = mkSizeAddExpr(srcMapSize, dstMapSize)
-        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), sizeUpperBound, guard = trueExpr)
+        val mergedMapSize = mkSizeSubExpr(mkSizeAddExpr(srcMapSize, dstMapSize), mapIntersectionSize)
+        memory.write(USetLengthLValue(dstRef, mapType, sizeSort), mergedMapSize, guard = trueExpr)
     }
 }

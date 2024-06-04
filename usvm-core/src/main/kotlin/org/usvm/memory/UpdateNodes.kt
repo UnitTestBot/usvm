@@ -217,10 +217,10 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
     fun applyTo(
         memory: UWritableMemory<*>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
-        key: DstKey,
+        key: DstKey?,
         composer: UComposer<*, *>,
     ) {
-        val convertedKey = adapter.convert(key, composer)
+        val convertedKey = key?.let { adapter.convert(it, composer) }
         sourceCollection.applyTo(memory, convertedKey, composer)
         adapter.applyTo(
             memory,

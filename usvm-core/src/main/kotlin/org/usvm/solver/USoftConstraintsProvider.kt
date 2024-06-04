@@ -40,12 +40,13 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.set.length.UInputSetLengthReading
 import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.length.USymbolicSetIntersectionSize
 import org.usvm.collection.set.primitive.UAllocatedSetReading
 import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
@@ -169,17 +170,6 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         expr: UInputRefMapWithInputKeysReading<Type, Sort>
     ): UExpr<Sort> = readingWithTwoArgumentsTransform(expr, expr.mapRef, expr.keyRef)
 
-    override fun transform(
-        expr: UInputMapLengthReading<Type, USizeSort>
-    ): UExpr<USizeSort> = computeSideEffect(expr) {
-        with(ctx) {
-            val addressConstraints = provide(expr.address)
-            val mapLength = mkSizeLeExpr(expr, mkSizeExpr(PREFERRED_MAX_ARRAY_SIZE))
-
-            caches[expr] = addressConstraints + mapLength
-        }
-    }
-
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(
         expr: UAllocatedSetReading<Type, ElemSort, Reg>
     ): UBoolExpr = readingWithSingleArgumentTransform(expr, expr.element)
@@ -196,6 +186,11 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
 
     override fun transform(expr: UInputRefSetWithInputElementsReading<Type>): UBoolExpr =
         readingWithTwoArgumentsTransform(expr, expr.setRef, expr.elementRef)
+
+    // Set size constraints inferred from the underlying Set
+    override fun transform(expr: UInputSetLengthReading<Type, USizeSort>): UExpr<USizeSort> = expr
+
+    override fun transform(expr: USymbolicSetIntersectionSize<USizeSort>): UExpr<USizeSort> = expr
 
     private fun <Sort : USort> readingWithSingleArgumentTransform(
         expr: UCollectionReading<*, *, Sort>,

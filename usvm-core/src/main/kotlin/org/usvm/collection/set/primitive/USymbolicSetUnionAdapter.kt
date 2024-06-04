@@ -74,7 +74,7 @@ class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<ElemSort>,
+        srcKey: UExpr<ElemSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $srcCollectionId" }
@@ -128,7 +128,7 @@ class UAllocatedToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<ElemSort>,
+        srcKey: UExpr<ElemSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedSetId<*, ElemSort, *>) { "Unexpected collection: $srcCollectionId" }
@@ -182,7 +182,7 @@ class UInputToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<ElemSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicSetElement<ElemSort>,
+        srcKey: USymbolicSetElement<ElemSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -237,7 +237,7 @@ class UInputToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<ElemSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicSetElement<ElemSort>,
+        srcKey: USymbolicSetElement<ElemSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicSetId<*, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }

@@ -175,12 +175,12 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * Applies this collection to the [memory], with applying composition via [composer] to the updates. May filter out
      * updates, which are irrelevant for the [key] reading.
      */
-    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*, *>) {
+    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key?, composer: UComposer<*, *>) {
         // Apply each update on the copy
         for (update in updates) {
             val guard = composer.compose(update.guard)
 
-            if (guard.isFalse || update.includesSymbolically(key, composer).isFalse) {
+            if (guard.isFalse || key != null && update.includesSymbolically(key, composer).isFalse) {
                 continue
             }
 

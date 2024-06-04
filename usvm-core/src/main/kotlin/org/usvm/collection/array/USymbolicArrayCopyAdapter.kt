@@ -77,7 +77,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
         srcCollectionId: USymbolicCollectionId<SrcKey, *, *>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         guard: UBoolExpr,
-        srcKey: SrcKey,
+        srcKey: SrcKey?,
         composer: UComposer<*, *>
     )
 
@@ -132,7 +132,7 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<USizeSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<USizeSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<USizeSort>,
+        srcKey: UExpr<USizeSort>?,
         composer: UComposer<*, *>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -169,7 +169,7 @@ class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<USizeSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex<USizeSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<USizeSort>,
+        srcKey: UExpr<USizeSort>?,
         composer: UComposer<*, *>
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -206,7 +206,7 @@ class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex<USizeSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<USizeSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicArrayIndex<USizeSort>,
+        srcKey: USymbolicArrayIndex<USizeSort>?,
         composer: UComposer<*, *>
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -244,7 +244,7 @@ class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicArrayIndex<USizeSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicArrayIndex<USizeSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicArrayIndex<USizeSort>,
+        srcKey: USymbolicArrayIndex<USizeSort>?,
         composer: UComposer<*, *>
     ) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }

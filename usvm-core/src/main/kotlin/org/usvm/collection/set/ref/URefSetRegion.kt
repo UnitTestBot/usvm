@@ -6,10 +6,14 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapAddress
+import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.collection.set.USymbolicSetEntries
+import org.usvm.USort
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
+import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -19,7 +23,10 @@ import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.mapWithStaticAsSymbolic
+import org.usvm.mkSizeAddExpr
+import org.usvm.mkSizeExpr
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
 data class URefSetEntryLValue<SetType>(
     val setRef: UHeapRef,
@@ -63,6 +70,7 @@ typealias URefSetEntries<SetType> = USymbolicSetEntries<URefSetEntryLValue<SetTy
 interface URefSetReadOnlyRegion<SetType> :
     UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
     fun setEntries(ref: UHeapRef): URefSetEntries<SetType>
+    fun <SizeSort : USort> setIntersectionSize(firstRef: UHeapRef, secondRef: UHeapRef): UExpr<SizeSort>
 }
 
 interface URefSetRegion<SetType> :
@@ -425,4 +433,118 @@ internal class URefSetMemoryRegion<SetType>(
                 entries
             }
         )
+
+    override fun <SizeSort : USort> setIntersectionSize(firstRef: UHeapRef, secondRef: UHeapRef): UExpr<SizeSort> =
+        with(firstRef.uctx.withSizeSort<SizeSort>()) {
+            firstRef.mapWithStaticAsSymbolic(
+                concreteMapper = { firstConcrete ->
+                    val inputIntersectionSize =
+                        tryComputeConcreteIntersectionSize(firstConcrete, secondRef) { firstSetCollection ->
+                            secondRef.mapWithStaticAsSymbolic(
+                                concreteMapper = { secondConcrete ->
+                                    tryComputeConcreteIntersectionSize(
+                                        secondConcrete,
+                                        firstConcrete
+                                    ) { secondSetCollection ->
+                                        mkAllocatedWithAllocatedSetIntersectionSizeExpr(
+                                            firstConcrete.address, secondConcrete.address,
+                                            firstSetCollection, secondSetCollection
+                                        )
+                                    }
+                                },
+                                symbolicMapper = { secondSymbolic ->
+                                    val secondSetCollection = inputSetWithInputElements()
+                                    mkAllocatedWithInputSetIntersectionSizeExpr(
+                                        firstConcrete.address, secondSymbolic,
+                                        firstSetCollection, secondSetCollection
+                                    )
+                                }
+                            )
+                        }
+
+                    val allocatedIntersectionSize = computeAllocatedSetIntersectionSize(firstConcrete, secondRef)
+                    mkSizeAddExpr(allocatedIntersectionSize, inputIntersectionSize)
+                },
+                symbolicMapper = { firstSymbolic ->
+                    secondRef.mapWithStaticAsSymbolic(
+                        concreteMapper = { secondConcrete ->
+                            val inputIntersectionSize =
+                                tryComputeConcreteIntersectionSize(
+                                    secondConcrete,
+                                    firstSymbolic
+                                ) { secondSetCollection ->
+                                    val firstSetCollection = inputSetWithInputElements()
+                                    mkAllocatedWithInputSetIntersectionSizeExpr(
+                                        secondConcrete.address, firstSymbolic,
+                                        secondSetCollection, firstSetCollection
+                                    )
+                                }
+
+                            val allocatedIntersectionSize =
+                                computeAllocatedSetIntersectionSize(secondConcrete, firstRef)
+                            mkSizeAddExpr(allocatedIntersectionSize, inputIntersectionSize)
+                        },
+                        symbolicMapper = { secondSymbolic ->
+                            val firstInputCollection = inputSetWithInputElements()
+                            val secondInputCollection = inputSetWithInputElements()
+                            val inputIntersectionSize = mkInputWithInputSetIntersectionSizeExpr(
+                                firstSymbolic, secondSymbolic,
+                                firstInputCollection, secondInputCollection
+                            )
+
+                            val allocatedIntersectionSize =
+                                computeAllocatedElementsIntersectionSize(firstRef, secondRef)
+                            mkSizeAddExpr(allocatedIntersectionSize, inputIntersectionSize)
+                        }
+                    )
+                },
+            )
+        }
+
+    private inline fun <SizeSort : USort> UContext<SizeSort>.tryComputeConcreteIntersectionSize(
+        firstRef: UConcreteHeapRef,
+        secondRef: UHeapRef,
+        onInputElements: (UAllocatedRefSetWithInputElements<SetType>) -> UExpr<SizeSort>
+    ): UExpr<SizeSort> {
+        val firstSetElementsId = allocatedSetWithInputElementsId(firstRef.address)
+        val firstSetInputCollection = getAllocatedSetWithInputElements(firstSetElementsId)
+        val firstSetInputElements = USymbolicSetElementsCollector.collect(firstSetInputCollection.updates)
+
+        if (!firstSetInputElements.isInput) {
+            return computeIntersectionSize(firstRef, secondRef, firstSetInputElements.elements)
+        }
+
+        return onInputElements(firstSetInputCollection)
+    }
+
+    private fun <SizeSort : USort> UContext<SizeSort>.computeAllocatedSetIntersectionSize(
+        firstConcrete: UConcreteHeapRef,
+        secondRef: UHeapRef,
+    ): UExpr<SizeSort> = computeIntersectionSize(
+        firstConcrete, secondRef, allocatedSetWithAllocatedElements.keys.mapNotNull { entry ->
+            entry.takeIf { it.setAddress == firstConcrete.address }
+                ?.let { mkConcreteHeapRef(it.elementAddress) }
+        }
+    )
+
+    private fun <SizeSort : USort> UContext<SizeSort>.computeAllocatedElementsIntersectionSize(
+        firstRef: UHeapRef,
+        secondRef: UHeapRef,
+    ): UExpr<SizeSort> = computeIntersectionSize(
+        firstRef, secondRef, inputSetWithAllocatedElements.keys.map { entry ->
+            mkConcreteHeapRef(entry.elementAddress)
+        }
+    )
+
+    private fun <SizeSort : USort> UContext<SizeSort>.computeIntersectionSize(
+        firstRef: UHeapRef,
+        secondRef: UHeapRef,
+        elements: Iterable<UHeapRef>
+    ): UExpr<SizeSort> = elements.fold(mkSizeExpr(0)) { size, element ->
+        val firstContains = read(URefSetEntryLValue(firstRef, element, setType))
+        val secondContains = read(URefSetEntryLValue(secondRef, element, setType))
+        val intersectionContains = mkAnd(firstContains, secondContains)
+
+        mkIte(intersectionContains, mkSizeAddExpr(size, mkSizeExpr(1)), size)
+    }
 }

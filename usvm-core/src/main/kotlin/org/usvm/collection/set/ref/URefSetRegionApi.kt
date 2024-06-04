@@ -1,7 +1,9 @@
 package org.usvm.collection.set.ref
 
 import org.usvm.UBoolExpr
+import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
@@ -32,4 +34,19 @@ fun <SetType> UReadOnlyMemory<*>.refSetEntries(
         ?: return URefSetEntries<SetType>().apply { markAsInput() }
 
     return region.setEntries(setRef)
+}
+
+fun <SetType, SizeSort : USort> UReadOnlyMemory<*>.refSetIntersectionSize(
+    firstRef: UHeapRef,
+    secondRef: UHeapRef,
+    type: SetType,
+): UExpr<SizeSort> {
+    val regionId = URefSetRegionId(type, firstRef.uctx.boolSort)
+    val region = getRegion(regionId)
+
+    check(region is URefSetReadOnlyRegion<SetType>) {
+        "refSetIntersectionSize is not applicable to $region"
+    }
+
+    return region.setIntersectionSize(firstRef, secondRef)
 }

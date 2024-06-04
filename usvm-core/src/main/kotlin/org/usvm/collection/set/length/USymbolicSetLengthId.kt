@@ -1,4 +1,4 @@
-package org.usvm.collection.map.length
+package org.usvm.collection.set.length
 
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
@@ -13,23 +13,23 @@ import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
-interface USymbolicMapLengthId<Key, MapType, Id : USymbolicMapLengthId<Key, MapType, Id, USizeSort>, USizeSort : USort> :
+interface USymbolicSetLengthId<Key, SetType, Id : USymbolicSetLengthId<Key, SetType, Id, USizeSort>, USizeSort : USort> :
     USymbolicCollectionId<Key, USizeSort, Id> {
-    val mapType: MapType
+    val setType: SetType
 }
 
-class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
-    override val mapType: MapType,
+class UInputSetLengthId<SetType, USizeSort : USort> internal constructor(
+    override val setType: SetType,
     override val sort: USizeSort,
-) : USymbolicMapLengthId<UHeapRef, MapType, UInputMapLengthId<MapType, USizeSort>, USizeSort> {
+) : USymbolicSetLengthId<UHeapRef, SetType, UInputSetLengthId<SetType, USizeSort>, USizeSort> {
 
     override fun instantiate(
-        collection: USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort>,
+        collection: USymbolicCollection<UInputSetLengthId<SetType, USizeSort>, UHeapRef, USizeSort>,
         key: UHeapRef,
         composer: UComposer<*, *>?
     ): UExpr<USizeSort> {
         if (composer == null) {
-            return sort.uctx.withSizeSort<USizeSort>().mkInputMapLengthReading(collection, key)
+            return sort.uctx.withSizeSort<USizeSort>().mkInputSetLengthReading(collection, key)
         }
 
         val memory = composer.memory.toWritableMemory()
@@ -41,23 +41,23 @@ class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
         memory.write(mkLValue(key), value, guard)
     }
 
-    private fun mkLValue(key: UHeapRef) = UMapLengthLValue(key, mapType, sort)
+    private fun mkLValue(key: UHeapRef) = USetLengthLValue(key, setType, sort)
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> =
+    override fun emptyRegion(): USymbolicCollection<UInputSetLengthId<SetType, USizeSort>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
-    override fun toString(): String = "length<$mapType>()"
+    override fun toString(): String = "length<$setType>()"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as UInputMapLengthId<*, *>
+        other as UInputSetLengthId<*, *>
 
-        return mapType == other.mapType
+        return setType == other.setType
     }
 
-    override fun hashCode(): Int = mapType.hashCode()
+    override fun hashCode(): Int = setType.hashCode()
 }

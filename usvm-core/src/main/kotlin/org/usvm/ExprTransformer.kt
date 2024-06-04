@@ -6,12 +6,13 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputMapLengthReading
 import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.length.UInputSetLengthReading
+import org.usvm.collection.set.length.USymbolicSetIntersectionSize
 import org.usvm.collection.set.primitive.UAllocatedSetReading
 import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
@@ -44,7 +45,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun <Sort : USort> transform(expr: UInputRefMapWithInputKeysReading<Type, Sort>): UExpr<Sort>
 
-    fun transform(expr: UInputMapLengthReading<Type, USizeSort>): UExpr<USizeSort>
+    fun transform(expr: UInputSetLengthReading<Type, USizeSort>): UExpr<USizeSort>
 
     fun <ElemSort : USort, Reg : Region<Reg>> transform(expr: UAllocatedSetReading<Type, ElemSort, Reg>): UBoolExpr
 
@@ -67,6 +68,8 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
     fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort>
 
     fun transform(expr: UNullRef): UExpr<UAddressSort>
+
+    fun transform(expr: USymbolicSetIntersectionSize<USizeSort>): UExpr<USizeSort>
 }
 
 abstract class UExprTransformer<Type, USizeSort : USort>(

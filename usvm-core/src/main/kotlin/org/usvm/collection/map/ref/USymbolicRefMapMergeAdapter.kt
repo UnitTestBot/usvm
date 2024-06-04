@@ -65,7 +65,7 @@ class UAllocatedToAllocatedSymbolicRefMapMergeAdapter<MapType>(
         srcCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
-        srcKey: UHeapRef,
+        srcKey: UHeapRef?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedRefMapWithInputKeysId<*, *>) { "Unexpected collection: $srcCollectionId" }
@@ -109,7 +109,7 @@ class UAllocatedToInputSymbolicRefMapMergeAdapter<MapType>(
         srcCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<UAddressSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UHeapRef,
+        srcKey: UHeapRef?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedRefMapWithInputKeysId<*, *>) { "Unexpected collection: $srcCollectionId" }
@@ -153,7 +153,7 @@ class UInputToAllocatedSymbolicRefMapMergeAdapter<MapType>(
         srcCollectionId: USymbolicCollectionId<USymbolicMapKey<UAddressSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicMapKey<UAddressSort>,
+        srcKey: USymbolicMapKey<UAddressSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicRefMapId<*, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -199,7 +199,7 @@ class UInputToInputSymbolicRefMapMergeAdapter<MapType>(
         srcCollectionId: USymbolicCollectionId<USymbolicMapKey<UAddressSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<UAddressSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicMapKey<UAddressSort>,
+        srcKey: USymbolicMapKey<UAddressSort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicRefMapId<*, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }

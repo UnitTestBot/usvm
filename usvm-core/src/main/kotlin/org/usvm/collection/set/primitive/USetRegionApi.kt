@@ -40,3 +40,20 @@ fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
 
     return region.setEntries(setRef)
 }
+
+fun <SetType, KeySort : USort, Reg : Region<Reg>, SizeSort : USort> UReadOnlyMemory<*>.setIntersectionSize(
+    firstRef: UHeapRef,
+    secondRef: UHeapRef,
+    type: SetType,
+    keySort: KeySort,
+    keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+): UExpr<SizeSort> {
+    val regionId = USetRegionId(keySort, type, keyInfo)
+    val region = getRegion(regionId)
+
+    check(region is USetReadOnlyRegion<SetType, KeySort, Reg>) {
+        "setIntersectionSize is not applicable to $region"
+    }
+
+    return region.setIntersectionSize(firstRef, secondRef)
+}

@@ -71,7 +71,7 @@ class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType>(
         srcCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
-        srcKey: UHeapRef,
+        srcKey: UHeapRef?,
         composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $srcCollectionId" }
@@ -119,7 +119,7 @@ class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType>(
         srcCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UHeapRef,
+        srcKey: UHeapRef?,
         composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedRefSetWithInputElementsId<*>) { "Unexpected collection: $srcCollectionId" }
@@ -168,7 +168,7 @@ class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
         srcCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UHeapRef, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicSetElement<UAddressSort>,
+        srcKey: USymbolicSetElement<UAddressSort>?,
         composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -222,7 +222,7 @@ class UInputToInputSymbolicRefSetUnionAdapter<SetType>(
         srcCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicSetElement<UAddressSort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicSetElement<UAddressSort>,
+        srcKey: USymbolicSetElement<UAddressSort>?,
         composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicRefSetId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }

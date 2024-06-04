@@ -5,15 +5,19 @@ import io.ksmt.sort.KBoolSort
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
+import org.usvm.mkSizeExpr
 import org.usvm.model.UMemory2DArray
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
 import org.usvm.regions.Region
+import org.usvm.uctx
+import org.usvm.withSizeSort
 
 abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private val regionId: USetRegionId<SetType, ElementSort, Reg>
@@ -39,6 +43,14 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
         }
 
         return result
+    }
+
+    override fun <SizeSort : USort> setIntersectionSize(firstRef: UHeapRef, secondRef: UHeapRef): UExpr<SizeSort> {
+        val firstElements = setEntries(firstRef).entries.map { it.setElement }
+        val secondElements = setEntries(secondRef).entries.map { it.setElement }
+
+        val elementsIntersection = firstElements.intersect(secondElements.toHashSet())
+        return firstRef.uctx.withSizeSort<SizeSort>().mkSizeExpr(elementsIntersection.size)
     }
 }
 

@@ -35,10 +35,6 @@ import org.usvm.collection.field.UFieldRegionDecoder
 import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.collection.field.USymbolicFieldId
-import org.usvm.collection.map.length.UInputMapLengthReading
-import org.usvm.collection.map.length.UMapLengthRegionDecoder
-import org.usvm.collection.map.length.UMapLengthRegionId
-import org.usvm.collection.map.length.USymbolicMapLengthId
 import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.primitive.UMapRegionDecoder
@@ -50,6 +46,11 @@ import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.URefMapRegionDecoder
 import org.usvm.collection.map.ref.URefMapRegionId
 import org.usvm.collection.map.ref.USymbolicRefMapId
+import org.usvm.collection.set.length.UInputSetLengthReading
+import org.usvm.collection.set.length.USetLengthRegionDecoder
+import org.usvm.collection.set.length.USetLengthRegionId
+import org.usvm.collection.set.length.USymbolicSetIntersectionSize
+import org.usvm.collection.set.length.USymbolicSetLengthId
 import org.usvm.collection.set.primitive.UAllocatedSetReading
 import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.primitive.USetRegionDecoder
@@ -189,12 +190,23 @@ open class UExprTranslator<Type, USizeSort : USort>(
         translator.translateReading(expr.collection, mapRef to keyRef)
     }
 
-    override fun transform(expr: UInputMapLengthReading<Type, USizeSort>): KExpr<USizeSort> =
+    override fun transform(expr: UInputSetLengthReading<Type, USizeSort>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
-            val translator = mapLengthRegionDecoder(expr.collection.collectionId)
-                .inputMapLengthRegionTranslator(expr.collection.collectionId)
+            val translator = setLengthRegionDecoder(expr.collection.collectionId)
+                .inputSetLengthRegionTranslator(expr.collection.collectionId)
             translator.translateReading(expr.collection, address)
         }
+
+    private val _declToSetIntersectionSizeExpr = hashMapOf<KDecl<USizeSort>, USymbolicSetIntersectionSize<USizeSort>>()
+    val declToSetIntersectionSizeExpr: Map<KDecl<USizeSort>, USymbolicSetIntersectionSize<USizeSort>>
+        get() = _declToSetIntersectionSizeExpr
+
+    override fun transform(expr: USymbolicSetIntersectionSize<USizeSort>): UExpr<USizeSort> {
+        val const = expr.sort.mkConst("setIntersectionSize#${_declToSetIntersectionSizeExpr.size}")
+        // we need to track declarations to pass them to the size solver in the DPLL(T) procedure
+        _declToSetIntersectionSizeExpr[const.decl] = expr
+        return const
+    }
 
     override fun <ElemSort : USort, Reg : Region<Reg>> transform(
         expr: UAllocatedSetReading<Type, ElemSort, Reg>
@@ -279,12 +291,12 @@ open class UExprTranslator<Type, USizeSort : USort>(
         }
     }
 
-    fun <MapType, MapLengthId : USymbolicMapLengthId<UHeapRef, MapType, MapLengthId, USizeSort>> mapLengthRegionDecoder(
-        mapLengthId: MapLengthId
-    ): UMapLengthRegionDecoder<MapType, USizeSort> {
-        val symbolicMapLengthRegionId = UMapLengthRegionId(mapLengthId.sort, mapLengthId.mapType)
-        return getOrPutRegionDecoder(symbolicMapLengthRegionId) {
-            UMapLengthRegionDecoder(symbolicMapLengthRegionId, this)
+    fun <SetType, SetLengthId : USymbolicSetLengthId<UHeapRef, SetType, SetLengthId, USizeSort>> setLengthRegionDecoder(
+        setLengthId: SetLengthId
+    ): USetLengthRegionDecoder<SetType, USizeSort> {
+        val symbolicSetLengthRegionId = USetLengthRegionId(setLengthId.sort, setLengthId.setType)
+        return getOrPutRegionDecoder(symbolicSetLengthRegionId) {
+            USetLengthRegionDecoder(symbolicSetLengthRegionId, this)
         }
     }
 

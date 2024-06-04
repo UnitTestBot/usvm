@@ -20,8 +20,8 @@ import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.array.length.UInputArrayLengths
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.collection.field.UInputFields
-import org.usvm.collection.map.length.UInputMapLengthCollection
-import org.usvm.collection.map.length.UInputMapLengthReading
+import org.usvm.collection.set.length.UInputSetLengthCollection
+import org.usvm.collection.set.length.UInputSetLengthReading
 import org.usvm.collection.map.primitive.UAllocatedMap
 import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.collection.map.primitive.UInputMap
@@ -32,6 +32,10 @@ import org.usvm.collection.map.ref.UInputRefMap
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeys
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.USymbolicSetElement
+import org.usvm.collection.set.length.UAllocatedWithAllocatedSymbolicSetIntersectionSize
+import org.usvm.collection.set.length.UAllocatedWithInputSymbolicSetIntersectionSize
+import org.usvm.collection.set.length.UInputWithInputSymbolicSetIntersectionSize
 import org.usvm.collection.set.primitive.UAllocatedSet
 import org.usvm.collection.set.primitive.UAllocatedSetReading
 import org.usvm.collection.set.primitive.UInputSet
@@ -44,6 +48,8 @@ import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.splitUHeapRef
 import org.usvm.regions.Region
 import org.usvm.solver.USoftConstraintsProvider
@@ -283,14 +289,14 @@ open class UContext<USizeSort : USort>(
             UInputRefMapWithInputKeysReading(this, region, mapRef, keyRef)
         }.cast()
 
-    private val inputSymbolicMapLengthReadingCache = mkAstInterner<UInputMapLengthReading<*, USizeSort>>()
+    private val inputSymbolicSetLengthReadingCache = mkAstInterner<UInputSetLengthReading<*, USizeSort>>()
 
-    fun <MapType> mkInputMapLengthReading(
-        region: UInputMapLengthCollection<MapType, USizeSort>,
+    fun <SetType> mkInputSetLengthReading(
+        region: UInputSetLengthCollection<SetType, USizeSort>,
         address: UHeapRef
-    ): UInputMapLengthReading<MapType, USizeSort> =
-        inputSymbolicMapLengthReadingCache.createIfContextActive {
-            UInputMapLengthReading(this, region, address)
+    ): UInputSetLengthReading<SetType, USizeSort> =
+        inputSymbolicSetLengthReadingCache.createIfContextActive {
+            UInputSetLengthReading(this, region, address)
         }.cast()
 
 
@@ -381,6 +387,55 @@ open class UContext<USizeSort : USort>(
     ): UIsSupertypeExpr<Type> = isSupertypeExprCache.createIfContextActive {
         UIsSupertypeExpr(this, ref, type.cast())
     }.cast()
+
+    private val allocatedWithAllocatedSetIntersectionSizeExprCache =
+        mkAstInterner<UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort, *, *>>()
+
+    fun <ElementSort : USort, AllocatedCollectionId> mkAllocatedWithAllocatedSetIntersectionSizeExpr(
+        firstAddress: UConcreteHeapAddress,
+        secondAddress: UConcreteHeapAddress,
+        firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
+        secondCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
+    ): UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort, ElementSort, AllocatedCollectionId>
+            where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId> =
+        allocatedWithAllocatedSetIntersectionSizeExprCache.createIfContextActive {
+            UAllocatedWithAllocatedSymbolicSetIntersectionSize(
+                this, firstAddress, secondAddress, firstCollection, secondCollection
+            )
+        }.cast()
+
+    private val inputWithInputSetIntersectionSizeExprCache =
+        mkAstInterner<UInputWithInputSymbolicSetIntersectionSize<USizeSort, *, *>>()
+
+    fun <ElementSort : USort, InputCollectionId> mkInputWithInputSetIntersectionSizeExpr(
+        firstAddress: UHeapRef,
+        secondAddress: UHeapRef,
+        firstCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>,
+        secondCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>,
+    ): UInputWithInputSymbolicSetIntersectionSize<USizeSort, ElementSort, InputCollectionId>
+            where InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> =
+        inputWithInputSetIntersectionSizeExprCache.createIfContextActive {
+            UInputWithInputSymbolicSetIntersectionSize(
+                this, firstAddress, secondAddress, firstCollection, secondCollection
+            )
+        }.cast()
+
+    private val allocatedWithInputSetIntersectionSizeExprCache =
+        mkAstInterner<UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort, *, *, *>>()
+
+    fun <ElementSort : USort, AllocatedCollectionId, InputCollectionId> mkAllocatedWithInputSetIntersectionSizeExpr(
+        firstAddress: UConcreteHeapAddress,
+        secondAddress: UHeapRef,
+        firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
+        secondCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>,
+    ): UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort, ElementSort, AllocatedCollectionId, InputCollectionId>
+            where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId>,
+                  InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> =
+        allocatedWithInputSetIntersectionSizeExprCache.createIfContextActive {
+            UAllocatedWithInputSymbolicSetIntersectionSize(
+                this, firstAddress, secondAddress, firstCollection, secondCollection
+            )
+        }.cast()
 
     fun mkConcreteHeapRefDecl(address: UConcreteHeapAddress): UConcreteHeapRefDecl =
         UConcreteHeapRefDecl(this, address)

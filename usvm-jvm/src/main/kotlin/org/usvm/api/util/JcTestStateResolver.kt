@@ -49,7 +49,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.set.length.USetLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
@@ -415,7 +415,7 @@ abstract class JcTestStateResolver<T>(
         resultMapSize: () -> Int,
         resultMapAddEntry: (T, T) -> Unit
     ) {
-        val lengthRef = UMapLengthLValue(heapRef, mapType, ctx.sizeSort)
+        val lengthRef = USetLengthLValue(heapRef, mapType, ctx.sizeSort)
         val resolvedLength = resolvePrimitiveInt(memory.read(lengthRef))
         val length = clipArrayLength(resolvedLength)
 
