@@ -1,8 +1,8 @@
 package org.usvm.jacodb.state
 
+import org.jacodb.go.api.GoInst
+import org.jacodb.go.api.GoMethod
 import org.usvm.jacodb.GoCall
-import org.usvm.jacodb.GoInst
-import org.usvm.jacodb.GoMethod
 
 enum class GoFlowStatus {
     NORMAL,

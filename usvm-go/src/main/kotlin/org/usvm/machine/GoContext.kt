@@ -11,7 +11,7 @@ import org.usvm.UBvSort
 import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownSortException
-import org.usvm.machine.operator.GoUnaryOperator
+import org.usvm.jacodb.operator.GoUnaryOperator
 import org.usvm.machine.type.GoType
 import org.usvm.machine.type.GoSort
 import org.usvm.machine.type.GoVoidSort

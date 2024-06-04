@@ -2,6 +2,7 @@ package org.usvm.jacodb
 
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
+import org.jacodb.go.api.GoType
 import org.usvm.SolverType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents

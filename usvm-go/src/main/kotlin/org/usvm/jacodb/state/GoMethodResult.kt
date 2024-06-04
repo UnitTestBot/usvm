@@ -1,9 +1,9 @@
 package org.usvm.jacodb.state
 
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.jacodb.GoMethod
-import org.usvm.jacodb.GoType
 
 sealed interface GoMethodResult {
     data object NoCall : GoMethodResult

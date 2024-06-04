@@ -1,7 +1,7 @@
 package org.usvm.jacodb.type
 
-import org.usvm.jacodb.GoType
-import org.usvm.jacodb.InterfaceType
+import org.jacodb.go.api.GoType
+import org.jacodb.go.api.InterfaceType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem

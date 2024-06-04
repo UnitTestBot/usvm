@@ -1,11 +1,11 @@
 package org.usvm.jacodb.interpreter
 
 import io.ksmt.expr.KBitVec32Value
+import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.jacodb.GoContext
-import org.usvm.jacodb.GoMethod
-import org.usvm.jacodb.GoType
 import org.usvm.jacodb.state.GoMethodResult
 import org.usvm.jacodb.state.GoState
 import org.usvm.memory.URegisterStackLValue
