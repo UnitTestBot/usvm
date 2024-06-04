@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.descriptors
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.SliceUninterpretedField
@@ -14,7 +15,7 @@ private fun constructResult(field: SliceUninterpretedField, ctx: ConcolicRunCont
     val (isNone, content) = field
     val address = ctx.ctx.mkIte(
         isNone,
-        ctx.curState!!.preAllocatedObjects.noneObject.address,
+        ctx.extractCurState().preAllocatedObjects.noneObject.address,
         constructInt(ctx, content).address
     )
     return SymbolForCPython(

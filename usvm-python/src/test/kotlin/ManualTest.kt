@@ -30,6 +30,7 @@ fun main() {
      * See:
      *  - [org.usvm.runner.manual.program.sampleStringFunction]
      *  - [org.usvm.runner.manual.program.sampleFunction]
+     *  - [org.usvm.runner.manual.program.LocalProgramProvider]
      * */
     val program = sampleFunction
 

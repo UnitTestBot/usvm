@@ -4,7 +4,7 @@ import org.usvm.annotations.ids.SymbolicMethodId
 
 fun generateSymbolicMethod(id: SymbolicMethodId): String {
     val cpythonFunctionInfo = CPythonFunctionDescription(
-        id.cName!!,
+        id.cName ?: error("SymbolicMethodId's $id cName should have been set with @CPythonAdapterJavaMethod"),
         listOf(
             ArgumentDescription(
                 CType.JObject,

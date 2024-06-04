@@ -4,6 +4,7 @@ import mu.KLogging
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import java.util.concurrent.Callable
 
@@ -22,23 +23,18 @@ fun <T : Any> withTracing(
     if (context.instructionCounter > context.maxInstructions) {
         throw InstructionLimitExceededException()
     }
-    if (context.curState == null) {
-        return null
-    }
+    var curState = context.curState ?: return null
     if (newEventParameters is NextInstruction) {
         context.statistics.updateCoverage(newEventParameters, context.usesVirtualInputs)
-        val state = context.curState!!
-        state.uniqueInstructions = state.uniqueInstructions.add(newEventParameters.pyInstruction)
+        curState.uniqueInstructions = curState.uniqueInstructions.add(newEventParameters.pyInstruction)
     }
     if (context.pathPrefix.isEmpty()) {
         val result = runCatching { resultSupplier.call() }.onFailure { System.err.println(it) }.getOrThrow()
-        if (context.curState == null) {
-            return null
-        }
+        curState = context.curState ?: return null
         val eventRecord = SymbolicHandlerEvent(newEventParameters, result)
-        context.curState!!.concolicQueries = context.curState!!.concolicQueries.add(eventRecord)
+        curState.concolicQueries = curState.concolicQueries.add(eventRecord)
         if (newEventParameters is NextInstruction) {
-            context.curState!!.pathNode += newEventParameters.pyInstruction
+            curState.pathNode += newEventParameters.pyInstruction
         }
         return result
     }
@@ -65,7 +61,7 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
     val obj = cond.obj ?: return
 
     val expectedResult = obj.getToBoolValue(context)?.let {
-        context.curState!!.pyModel.eval(it)
+        context.extractCurState().pyModel.eval(it)
     }?.isTrue ?: return
 
     if (result != expectedResult) {

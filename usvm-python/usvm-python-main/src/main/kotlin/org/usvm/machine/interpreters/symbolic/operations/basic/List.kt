@@ -8,6 +8,7 @@ import org.usvm.api.memcpy
 import org.usvm.api.writeArrayLength
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructListIterator
 import org.usvm.machine.symbolicobjects.memory.extendArrayConstraints
@@ -70,8 +71,8 @@ private fun listConcat(
     with(ctx.ctx) {
         val leftSize = left.readArrayLength(ctx)
         val rightSize = right.readArrayLength(ctx)
-        ctx.curState!!.memory.writeArrayLength(dst.address, mkArithAdd(leftSize, rightSize), ArrayType, intSort)
-        ctx.curState!!.memory.memcpy(
+        ctx.extractCurState().memory.writeArrayLength(dst.address, mkArithAdd(leftSize, rightSize), ArrayType, intSort)
+        ctx.extractCurState().memory.memcpy(
             left.address,
             dst.address,
             ArrayType,
@@ -80,7 +81,7 @@ private fun listConcat(
             mkIntNum(0),
             leftSize
         )
-        ctx.curState!!.memory.memcpy(
+        ctx.extractCurState().memory.memcpy(
             right.address,
             dst.address,
             ArrayType,
@@ -118,8 +119,8 @@ fun handlerListConcatKt(
         return null
     }
     with(ctx.ctx) {
-        val resultAddress = ctx.curState!!.memory.allocateArray(ArrayType, intSort, mkIntNum(0))
-        ctx.curState!!.memory.types.allocate(resultAddress.address, typeSystem.pythonList)
+        val resultAddress = ctx.extractCurState().memory.allocateArray(ArrayType, intSort, mkIntNum(0))
+        ctx.extractCurState().memory.types.allocate(resultAddress.address, typeSystem.pythonList)
         val result = UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
         listConcat(ctx, left, right, result)
         return result
@@ -157,7 +158,7 @@ fun handlerListAppendKt(
     with(ctx.ctx) {
         val currentSize = list.readArrayLength(ctx)
         list.writeArrayElement(ctx, currentSize, elem)
-        ctx.curState!!.memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
+        ctx.extractCurState().memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
         return list
     }
 }
@@ -189,7 +190,7 @@ fun handlerListIteratorNextKt(
     val listSize = UninterpretedSymbolicPythonObject(listAddress, ctx.typeSystem).readArrayLength(ctx)
     val indexCond = index lt listSize
     myFork(ctx, indexCond)
-    if (ctx.curState!!.pyModel.eval(indexCond).isFalse) {
+    if (ctx.extractCurState().pyModel.eval(indexCond).isFalse) {
         return null
     }
 
@@ -212,7 +213,7 @@ private fun listPop(
         }
         val newSize = mkArithSub(listSize, mkIntNum(1))
         val result = list.readArrayElement(ctx, ind ?: newSize)
-        ctx.curState!!.memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
+        ctx.extractCurState().memory.writeArrayLength(list.address, newSize, ArrayType, intSort)
         return result
     }
 }
@@ -262,7 +263,7 @@ fun handlerListInsertKt(
             indValueRaw,
             listSize
         )
-        ctx.curState!!.symbolicListInsert(list.address, ArrayType, addressSort, indValue, value.address)
+        ctx.extractCurState().symbolicListInsert(list.address, ArrayType, addressSort, indValue, value.address)
         list.writeArrayElement(ctx, indValue, value) // to assert element constraints
     }
 }
@@ -272,5 +273,5 @@ fun handlerListClearKt(ctx: ConcolicRunContext, list: UninterpretedSymbolicPytho
     if (list.getTypeIfDefined(ctx) != ctx.typeSystem.pythonList) {
         return
     }
-    ctx.curState!!.memory.writeArrayLength(list.address, ctx.ctx.mkIntNum(0), ArrayType, ctx.ctx.intSort)
+    ctx.extractCurState().memory.writeArrayLength(list.address, ctx.ctx.mkIntNum(0), ArrayType, ctx.ctx.intSort)
 }

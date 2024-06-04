@@ -9,6 +9,7 @@ import org.usvm.isTrue
 import org.usvm.language.NbBoolMethod
 import org.usvm.language.SqLengthMethod
 import org.usvm.language.VirtualPythonObject
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
@@ -30,14 +31,14 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
 
     val oldModel = ctx.modelHolder.model
     val (interpretedObj, _) = internalVirtualCallKt(ctx) { mockSymbol ->
-        val trueObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.trueObject.address)
-        val falseObject = ctx.modelHolder.model.eval(ctx.curState!!.preAllocatedObjects.falseObject.address)
+        val trueObject = ctx.modelHolder.model.eval(ctx.extractCurState().preAllocatedObjects.trueObject.address)
+        val falseObject = ctx.modelHolder.model.eval(ctx.extractCurState().preAllocatedObjects.falseObject.address)
         listOf(
             constructModelWithNewMockEvaluator(
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
+                ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
                 trueObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             ),
@@ -45,7 +46,7 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
+                ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
                 falseObject as UConcreteHeapRef,
                 useOldPossibleRefs = true
             )
@@ -78,12 +79,12 @@ private fun internalVirtualCallKt(
     if (ctx.curState == null || ctx.curOperation == null || owner == null) {
         throw UnregisteredVirtualOperation()
     }
-    val ownerIsAlreadyMocked = ctx.curState!!.mockedObjects.contains(owner)
-    var clonedState = if (!ownerIsAlreadyMocked) ctx.curState!!.clone() else null
+    val ownerIsAlreadyMocked = ctx.extractCurState().mockedObjects.contains(owner)
+    var clonedState = if (!ownerIsAlreadyMocked) ctx.extractCurState().clone() else null
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
-    val (symbolic, isNew, mockSymbol) = ctx.curState!!.mock(ctx.curOperation)
+    val (symbolic, isNew, mockSymbol) = ctx.extractCurState().mock(ctx.curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
         addDelayedFork(ctx, owner, clonedState)
     }
@@ -95,7 +96,7 @@ private fun internalVirtualCallKt(
                     ctx.ctx,
                     ctx.modelHolder.model,
                     mockSymbol,
-                    ctx.curState!!.pathConstraints, // one constraint will be missing (TODO: is it ok?)
+                    ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
                     useOldPossibleRefs = true
                 )
             } else {
@@ -103,13 +104,13 @@ private fun internalVirtualCallKt(
             }
 
         customNewModels.drop(1).forEach { (nextNewModel, constraint) ->
-            val newState = ctx.curState!!.clone()
+            val newState = ctx.extractCurState().clone()
             newState.models = listOf(nextNewModel)
             newState.pathConstraints += constraint
             ctx.forkedStates.add(newState)
         }
 
-        substituteModel(ctx.curState!!, newModel, constraint, ctx)
+        substituteModel(ctx.extractCurState(), newModel, constraint, ctx)
     }
     val concrete = interpretSymbolicPythonObject(ctx, symbolic)
     return concrete to symbolic
@@ -127,7 +128,7 @@ fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObj
     val result = internalVirtualCallKt(ctx).second
     if (!ctx.curOperation!!.method.isMethodWithNonVirtualReturn) {
         val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
-        val ps = ctx.curState!!.pathConstraints
+        val ps = ctx.extractCurState().pathConstraints
         ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
     }
     return result

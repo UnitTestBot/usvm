@@ -5,6 +5,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructFloat
@@ -383,7 +384,7 @@ private fun strToFloat(
     obj: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? {
     require(ctx.curState != null && obj.getTypeIfDefined(ctx) == ctx.typeSystem.pythonStr)
-    val str = ctx.curState!!.preAllocatedObjects.concreteString(obj)?.lowercase() ?: return null
+    val str = ctx.extractCurState().preAllocatedObjects.concreteString(obj)?.lowercase() ?: return null
     if (str == "inf" || str == "infinity") {
         return constructFloat(ctx, mkUninterpretedPlusInfinity(ctx.ctx))
     }
@@ -404,7 +405,9 @@ fun handlerFloatCastKt(
     val type = arg.getTypeIfDefined(ctx) ?: return null
     return when (type) {
         typeSystem.pythonBool, typeSystem.pythonInt -> {
-            val realValue = ctx.ctx.intToFloat(arg.getToIntContent(ctx)!!)
+            val realValue = ctx.ctx.intToFloat(
+                arg.getToIntContent(ctx) ?: error("bool and int should be able to be cast to int")
+            )
             constructFloat(ctx, mkUninterpretedFloatWithValue(ctx.ctx, realValue))
         }
         typeSystem.pythonFloat -> {

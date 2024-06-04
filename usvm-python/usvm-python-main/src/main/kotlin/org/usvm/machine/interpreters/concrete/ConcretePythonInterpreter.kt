@@ -269,8 +269,9 @@ object ConcretePythonInterpreter {
         pythonAdapter.finalizePython()
         initialize()
         SymbolicClonesOfGlobals.restart()
-        if (venvConfig != null) {
-            activateVenv(venvConfig!!)
+        val localVenvConfig = venvConfig
+        if (localVenvConfig != null) {
+            activateVenv(localVenvConfig)
         }
     }
 

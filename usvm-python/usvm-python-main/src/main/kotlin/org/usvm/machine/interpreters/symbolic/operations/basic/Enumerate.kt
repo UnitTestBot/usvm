@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.getEnumerateIndexAndIncrement
@@ -18,7 +19,7 @@ fun handlerCreateEnumerateKt(
     val typeSystem = ctx.typeSystem
     val iterator: UninterpretedSymbolicPythonObject = when (iterable.getTypeIfDefined(ctx)) {
         null -> {
-            addDelayedFork(ctx, iterable, ctx.curState!!.clone())
+            addDelayedFork(ctx, iterable, ctx.extractCurState().clone())
             return null
         }
         typeSystem.pythonList -> {
@@ -31,7 +32,7 @@ fun handlerCreateEnumerateKt(
             return null
         }
     }
-    val address = ctx.curState!!.memory.allocConcrete(ctx.typeSystem.pythonEnumerate)
+    val address = ctx.extractCurState().memory.allocConcrete(ctx.typeSystem.pythonEnumerate)
     val result = UninterpretedSymbolicPythonObject(address, ctx.typeSystem)
     result.initializeEnumerate(ctx, iterator)
     return result

@@ -9,6 +9,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
@@ -117,9 +118,9 @@ fun createIterable(
     val typeSystem = ctx.typeSystem
     val size = elements.size
     with(ctx.ctx) {
-        val iterableAddress = ctx.curState!!.memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
-        ctx.curState!!.memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
-        ctx.curState!!.memory.types.allocate(iterableAddress.address, type)
+        val iterableAddress = ctx.extractCurState().memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
+        ctx.extractCurState().memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
+        ctx.extractCurState().memory.types.allocate(iterableAddress.address, type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
         result.addSupertypeSoft(ctx, type)
         return result
@@ -194,7 +195,7 @@ fun handlerStandardTpGetattroKt(
     if (ctx.curState == null) {
         return null
     }
-    val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return null
+    val concreteStr = ctx.extractCurState().preAllocatedObjects.concreteString(name) ?: return null
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return null
     val concreteDescriptor = ConcretePythonInterpreter.typeLookup(type.asObject, concreteStr)
     var defaultValue: UninterpretedSymbolicPythonObject? = null
@@ -242,7 +243,7 @@ fun handlerStandardTpSetattroKt(
     value: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
-    val concreteStr = ctx.curState!!.preAllocatedObjects.concreteString(name) ?: return
+    val concreteStr = ctx.extractCurState().preAllocatedObjects.concreteString(name) ?: return
     val type = obj.getTypeIfDefined(ctx) as? ConcretePythonType ?: return
     if (!ConcretePythonInterpreter.typeHasStandardDict(type.asObject)) {
         return
@@ -293,18 +294,18 @@ fun resolveSequenceIndex(
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
         myFork(ctx, indexCond)
 
-        if (ctx.curState!!.pyModel.eval(indexCond).isFalse) {
+        if (ctx.extractCurState().pyModel.eval(indexCond).isFalse) {
             return null
         }
 
         val positiveIndex = mkAnd(indexValue lt listSize, mkIntNum(0) le indexValue)
         myFork(ctx, positiveIndex)
 
-        return if (ctx.curState!!.pyModel.eval(positiveIndex).isTrue) {
+        return if (ctx.extractCurState().pyModel.eval(positiveIndex).isTrue) {
             indexValue
         } else {
             val negativeIndex = mkAnd(indexValue lt mkIntNum(0), mkArithUnaryMinus(listSize) le indexValue)
-            require(ctx.curState!!.pyModel.eval(negativeIndex).isTrue)
+            require(ctx.extractCurState().pyModel.eval(negativeIndex).isTrue)
             mkArithAdd(indexValue, listSize)
         }
     }
@@ -317,7 +318,7 @@ fun handlerCreateEmptyObjectKt(
     ctx.curState ?: return null
     val typeSystem = ctx.typeSystem
     val type = typeSystem.concreteTypeOnAddress(typeRef) ?: return null
-    return constructEmptyAllocatedObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, type)
+    return constructEmptyAllocatedObject(ctx.ctx, ctx.extractCurState().memory, ctx.typeSystem, type)
 }
 
 fun addHashableTypeConstrains(
