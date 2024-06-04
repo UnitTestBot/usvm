@@ -10,6 +10,7 @@ import org.jacodb.panda.dynamic.api.PandaClass
 import org.jacodb.panda.dynamic.api.PandaField
 import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaNumberType
+import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaRefType
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaType
@@ -50,6 +51,7 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
         fp64Sort -> PandaNumberType
         stringSort -> PandaStringType
         undefinedSort -> PandaUndefinedType
+        addressSort -> PandaObjectType
         else -> error("TODO")
     }
 

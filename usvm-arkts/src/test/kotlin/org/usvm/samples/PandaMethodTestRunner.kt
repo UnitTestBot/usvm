@@ -8,6 +8,7 @@ import org.jacodb.panda.dynamic.parser.TSParser
 import org.usvm.CoverageZone
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
+import org.usvm.machine.PandaClassCoverage
 import org.usvm.machine.PandaMachine
 import org.usvm.machine.PandaTest
 import org.usvm.test.util.TestRunner
@@ -19,7 +20,7 @@ import kotlin.time.Duration.Companion.milliseconds
 private typealias Coverage = Int
 
 open class PandaMethodTestRunner
-    : TestRunner<PandaTest, MethodDescriptor, PandaType?, Coverage>() {
+    : TestRunner<PandaTest, MethodDescriptor, PandaType?, PandaClassCoverage>() {
 
     protected inline fun <reified R> discoverProperties(
         methodIdentifier: MethodDescriptor,
@@ -173,12 +174,13 @@ open class PandaMethodTestRunner
             }
         }
 
-    override val coverageRunner: (List<PandaTest>) -> Coverage
-        get() = { _ -> 0 } // TODO("Not yet implemented")
+    override val coverageRunner: (List<PandaTest>) -> PandaClassCoverage = { _ ->
+        PandaClassCoverage(visitedStmts = emptySet())
+    }
 
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
-        coverageZone = CoverageZone.TRANSITIVE,
+//        loopIterationLimit = 20,
         exceptionsPropagation = true,
         timeout = 60_000.milliseconds,
         stepsFromLastCovered = 3500L,

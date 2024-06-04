@@ -68,6 +68,10 @@ class PandaInterpreter(
             return scope.stepResult()
         }
 
+        if (state.callStack.isNotEmpty()) {
+            state.updateBBId(stmt)
+        }
+
         when (stmt) {
             is PandaMethodCallBaseInst -> visitMethodCall(scope, stmt)
             is PandaIfInst -> visitIfStmt(scope, stmt)
@@ -78,10 +82,6 @@ class PandaInterpreter(
             is PandaEmptyBBPlaceholderInst -> visitPlaceholderStmt(scope, stmt)
             is PandaGotoInst -> visitGotoStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
-        }
-
-        if (state.callStack.isNotEmpty()) {
-            state.updateBBId(stmt)
         }
 
         return scope.stepResult()

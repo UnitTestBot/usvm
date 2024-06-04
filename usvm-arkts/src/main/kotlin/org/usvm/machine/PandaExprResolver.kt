@@ -24,6 +24,7 @@ import org.jacodb.panda.dynamic.api.PandaExprVisitor
 import org.jacodb.panda.dynamic.api.PandaFieldRef
 import org.jacodb.panda.dynamic.api.PandaGeExpr
 import org.jacodb.panda.dynamic.api.PandaGtExpr
+import org.jacodb.panda.dynamic.api.PandaInfinityConstant
 import org.jacodb.panda.dynamic.api.PandaInstanceVirtualCallExpr
 import org.jacodb.panda.dynamic.api.PandaLeExpr
 import org.jacodb.panda.dynamic.api.PandaLengthExpr
@@ -35,6 +36,7 @@ import org.jacodb.panda.dynamic.api.PandaMethod
 import org.jacodb.panda.dynamic.api.PandaMethodConstant
 import org.jacodb.panda.dynamic.api.PandaModExpr
 import org.jacodb.panda.dynamic.api.PandaMulExpr
+import org.jacodb.panda.dynamic.api.PandaNaNConstant
 import org.jacodb.panda.dynamic.api.PandaNegExpr
 import org.jacodb.panda.dynamic.api.PandaNeqExpr
 import org.jacodb.panda.dynamic.api.PandaNewExpr
@@ -217,6 +219,10 @@ class PandaExprResolver(
         resolveBinaryOperator(PandaBinaryOperator.Gt, expr)
     }
 
+    override fun visitPandaInfinityConstant(expr: PandaInfinityConstant): PandaUExprWrapper? {
+        TODO("Not yet implemented")
+    }
+
     override fun visitPandaInstanceVirtualCallExpr(expr: PandaInstanceVirtualCallExpr): PandaUExprWrapper? =
         wrap(expr) {
             resolveInvoke(
@@ -287,6 +293,10 @@ class PandaExprResolver(
 
     override fun visitPandaMulExpr(expr: PandaMulExpr): PandaUExprWrapper? = wrap(expr) {
         resolveBinaryOperator(PandaBinaryOperator.Mul, expr)
+    }
+
+    override fun visitPandaNaNConstant(expr: PandaNaNConstant): PandaUExprWrapper? {
+        TODO("Not yet implemented")
     }
 
     override fun visitPandaNegExpr(expr: PandaNegExpr): PandaUExprWrapper? = wrap(expr) {
@@ -409,7 +419,7 @@ class PandaExprResolver(
     }
 
     override fun visitPandaToNumericExpr(expr: PandaToNumericExpr): PandaUExprWrapper? = wrap(expr) {
-        val arg = resolvePandaExpr(expr.arg) ?: return@wrap null
+        val arg = resolvePandaExpr(expr.arg)?.uExpr ?: return@wrap null
         ctx.mkFpToFpExpr(ctx.fp64Sort, ctx.fpRoundingModeSortDefaultValue(), arg.cast())
     }
 

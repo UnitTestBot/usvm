@@ -92,8 +92,8 @@ sealed class PandaBinaryOperator(
         val ctx = lhs.uExpr.pctx
         val addressSort = ctx.addressSort
 
-        var lhsUExpr = ctx.extractPrimitiveValueIfRequired(lhs.uExpr, scope)
-        var rhsUExpr = ctx.extractPrimitiveValueIfRequired(rhs.uExpr, scope)
+        var lhsUExpr = lhs.uExpr
+        var rhsUExpr = rhs.uExpr
         if (lhsUExpr.sort == addressSort) {
             val newSort = ctx.typeToSort(lhs.from.type).takeIf { it != addressSort } ?: ctx.fp64Sort
             lhsUExpr = scope.calcOnState {
@@ -102,7 +102,7 @@ sealed class PandaBinaryOperator(
         }
 
         if (lhsUExpr.sort != rhsUExpr.sort) {
-            rhsUExpr = rhs.withSortNew(ctx, lhsUExpr.sort)
+            rhsUExpr = rhs.withSortNew(ctx, lhsUExpr.sort, scope)
         }
 
         val lhsSort = lhsUExpr.sort
@@ -121,14 +121,16 @@ sealed class PandaBinaryOperator(
 
     }
 
-    private fun PandaUExprWrapper.withSortNew(ctx: PandaContext, sort: USort): UExpr<out USort> = with(ctx) {
+    private fun PandaUExprWrapper.withSortNew(ctx: PandaContext, sort: USort, scope: PandaStepScope): UExpr<out USort> = with(ctx) {
         when (sort) {
             fp64Sort -> when (uExpr.sort) {
                 boolSort -> mkIte(uExpr.asExpr(boolSort), 1.0.toFp(), 0.0.toFp()).asExpr(fp64Sort)
                 fp64Sort -> uExpr
                 addressSort -> {
                     val newSort = ctx.typeToSort(from.type).takeIf { it != addressSort } ?: ctx.fp64Sort
-                    this@withSortNew.withSortNew(ctx, newSort)
+                    scope.calcOnState {
+                        memory.read(ctx.constructAuxiliaryFieldLValue(uExpr.asExpr(addressSort), newSort))
+                    }
                 }
                 else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
             }
@@ -139,7 +141,7 @@ sealed class PandaBinaryOperator(
                 else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
             }
 
-            addressSort -> this@withSortNew.withSortNew(ctx, this.typeToSort(from.type))
+            addressSort -> this@withSortNew.withSortNew(ctx, this.typeToSort(from.type), scope)
             else -> error("Unprocessed sort pair: $sort to ${uExpr.sort}")
         }
     }

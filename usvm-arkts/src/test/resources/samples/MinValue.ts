@@ -9,3 +9,17 @@ function findMinValue(arr: number[]): number {
     }
     return minValue;
 }
+
+function findMinValue2(num: number): boolean {
+    let acc = 0;
+
+    for (let i = 1; i < num; i++) {
+        acc += i;
+    }
+
+    if (acc > 10) {
+        return true
+    }
+
+    throw new Error("Too small!");
+}

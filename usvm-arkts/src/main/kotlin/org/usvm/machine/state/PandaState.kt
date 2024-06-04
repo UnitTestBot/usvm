@@ -54,7 +54,9 @@ class PandaState(
             forkPoints,
             methodResult,
             targets.clone(),
-        )
+        ).apply {
+            this@apply.prevBBId = this@PandaState.prevBBId
+        }
     }
 
     override val isExceptional: Boolean

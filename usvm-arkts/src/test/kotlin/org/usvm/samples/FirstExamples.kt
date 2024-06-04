@@ -97,6 +97,18 @@ class FirstExamplesTest : PandaMethodTestRunner() {
     }
 
     @Test
+    fun testMinValue2() {
+        discoverProperties<Any, Any>(
+            methodIdentifier = MethodDescriptor(
+                className = "MinValue",
+                methodName = "findMinValue2",
+                argumentsNumber = 1
+            ),
+            analysisResultMatchers = emptyArray()
+        )
+    }
+
+    @Test
     fun testPhi() {
         discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(
@@ -129,6 +141,17 @@ class FirstExamplesTest : PandaMethodTestRunner() {
                 argumentsNumber = 0
             ),
             analysisResultMatchers = emptyArray()
+        )
+    }
+
+    @Test
+    fun testBasicArray() {
+        discoverProperties<Double, Boolean>(
+            methodIdentifier = MethodDescriptor(
+                className = "BasicSamples",
+                methodName = "basicArray",
+                argumentsNumber = 1
+            )
         )
     }
 }

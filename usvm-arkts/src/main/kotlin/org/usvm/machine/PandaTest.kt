@@ -9,3 +9,8 @@ data class PandaTest(
     val resultValue: Any?,
     val trace: PathNode<PandaInst>? = null
 )
+
+
+data class PandaClassCoverage(
+    val visitedStmts: Set<PandaInst>,
+)

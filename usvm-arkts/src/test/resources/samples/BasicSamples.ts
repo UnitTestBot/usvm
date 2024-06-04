@@ -16,3 +16,12 @@ function basicIf(a) {
         return false
     }
 }
+
+function basicArray(arr: number[]) {
+    let kek = arr[0]
+    if (kek > 5) {
+        return true
+    } else {
+        return false
+    }
+}
