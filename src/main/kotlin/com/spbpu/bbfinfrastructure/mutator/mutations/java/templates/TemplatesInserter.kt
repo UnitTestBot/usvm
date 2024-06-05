@@ -128,7 +128,11 @@ open class TemplatesInserter : Transformation() {
                 mappedTypes[hole] = randomType
                 return@replace randomType
             }
-            val type = getTypeFromHole(hole, mappedTypes)!!
+            val type = getTypeFromHole(hole, mappedTypes) ?: run {
+                RandomTypeGenerator.generateRandomType().also {
+                    mappedTypes[hole.substringAfter("_")] = it
+                }
+            }
             val capturedType = JavaTypeMappings.mappings[type] ?: type
             if (capturedType == "boolean" || capturedType == "java.lang.Boolean") {
                 if (holeType == HOLE_TYPE.EXPR) {

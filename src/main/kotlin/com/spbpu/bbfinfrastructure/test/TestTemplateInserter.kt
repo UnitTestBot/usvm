@@ -121,7 +121,11 @@ class TestTemplatesInserter : Transformation() {
                 mappedTypes[hole] = randomType
                 return@replace randomType
             }
-            val type = getTypeFromHole(hole, mappedTypes)!!
+            val type = getTypeFromHole(hole, mappedTypes) ?: run {
+                RandomTypeGenerator.generateRandomType().also {
+                    mappedTypes[hole.substringAfter("_")] = it
+                }
+            }
             val capturedType = JavaTypeMappings.mappings[type] ?: type
             if (capturedType == "boolean" || capturedType == "java.lang.Boolean") {
                 if (holeType == HOLE_TYPE.EXPR) {
@@ -223,7 +227,8 @@ class TestTemplatesInserter : Transformation() {
                 val classBody = auxClass.groupValues[2].trim()
                 auxClasses.add(className to classBody)
             }
-            val regexForMainClass = Regex("""~main class start~\s*(.*?)\s*~main class end~""", RegexOption.DOT_MATCHES_ALL)
+            val regexForMainClass =
+                Regex("""~main class start~\s*(.*?)\s*~main class end~""", RegexOption.DOT_MATCHES_ALL)
             val mainClassTemplateBody = regexForMainClass.find(template)?.groupValues?.lastOrNull() ?: return null
             val importsRegex = Regex("""~import (.*?)~""", RegexOption.DOT_MATCHES_ALL)
             val templateRegex = Regex("""~template start~\s*(.*?)\s*~template end~""", RegexOption.DOT_MATCHES_ALL)
