@@ -59,9 +59,18 @@ class TemplatesChecker {
             val inserter = TestTemplatesInserter()
             println("CHECKING $templateName with index $i")
             inserter.testTransform(templateText, i).ifFalse {
-                val mostFreqentError = ErrorCollector.compilationErrors.entries.maxByOrNull { it.value }?.key ?: ""
-                val mostFrequentCompilationError = ErrorCollector.compilationErrors.filterNot { it.key.contains("find variable") }.maxByOrNull { it.value }?.key ?: ""
-                ErrorCollector.errorMap["$templateName $i"] = mostFreqentError to mostFrequentCompilationError
+                val mostFrequentError = ErrorCollector.compilationErrors.entries.maxByOrNull { it.value }?.key ?: ""
+                val mostFrequentCompilationError =
+                    ErrorCollector.compilationErrors
+                        .filterNot { it.key.contains("find variable") }
+                        .maxByOrNull { it.value }?.key ?: ""
+                val mostFrequentErrorWithoutParsing =
+                    ErrorCollector.compilationErrors
+                        .filterNot { it.key.contains("find variable") }
+                        .filterNot { it.key.contains("Syntax error") }
+                        .maxByOrNull { it.value }?.key ?: ""
+                ErrorCollector.errorMap["$templateName $i"] =
+                    Triple(mostFrequentError, mostFrequentCompilationError, mostFrequentErrorWithoutParsing)
             }
             ErrorCollector.compilationErrors.clear()
         }
@@ -78,19 +87,22 @@ fun main(args: Array<String>) {
     if (ErrorCollector.errorMap.isEmpty()) {
         println("ALL TEMPLATES ARE CORRECT!")
     } else {
-    println("FAILED TEMPLATES:\n")
-    println("-------------------")
-    ErrorCollector.errorMap.forEach { (key, value) ->
-        val mostFreqError = value.first
-        val mostFreqCompError = if (mostFreqError.contains("find variable")) value.second else value.first
-        if (mostFreqError == mostFreqCompError) {
-            println("$key\nMost frequent error:\n$mostFreqError")
-        } else {
-            println("$key\nMost frequent error:\n$mostFreqError\n")
-            println("$key\nMost frequent compilation error:\n$mostFreqCompError")
-
-        }
+        println("FAILED TEMPLATES:\n")
         println("-------------------")
+        ErrorCollector.errorMap.forEach { (key, value) ->
+            val mostFreqError = value.first
+            val mostFreqCompError = if (mostFreqError.contains("find variable")) value.second else value.first
+            val mostFreqCompErrorWithoutParsing = value.third
+            if (mostFreqError == mostFreqCompError) {
+                println("$key\nMost frequent error:\n$mostFreqError")
+                println("$key\nMost frequent error without parsing and scope:\n$mostFreqCompErrorWithoutParsing")
+            } else {
+                println("$key\nMost frequent error:\n$mostFreqError\n")
+                println("$key\nMost frequent compilation error:\n$mostFreqCompError")
+                println("$key\nMost frequent error without parsing and scope:\n$mostFreqCompErrorWithoutParsing")
+
+            }
+            println("-------------------")
+        }
     }
-}
 }
