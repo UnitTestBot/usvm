@@ -14,7 +14,7 @@ import org.jacodb.panda.dynamic.api.PandaObjectType
 import org.jacodb.panda.dynamic.api.PandaRefType
 import org.jacodb.panda.dynamic.api.PandaStringType
 import org.jacodb.panda.dynamic.api.PandaType
-import org.jacodb.panda.dynamic.api.PandaTypeName
+//import org.jacodb.panda.dynamic.api.PandaTypeName
 import org.jacodb.panda.dynamic.api.PandaUndefinedType
 import org.jacodb.panda.dynamic.api.PandaVoidType
 import org.usvm.UConcreteHeapRef
@@ -55,31 +55,43 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
         else -> error("TODO")
     }
 
-    private val auxiliaryClass by lazy {
-        PandaClass(
-            name = "#Number",
-            superClassName = "GLOBAL",
-            methods = emptyList()
-        )
-    }
+//    private val auxiliaryClass by lazy {
+//        PandaClass(
+//            name = "#Number",
+//            methods = emptyList()
+//        )
+//    }
+
+    private val auxiliaryEnclosingClassName = "#Number"
 
     private val stringField = PandaField(
+        enclosingClassName = auxiliaryEnclosingClassName,
         name = "#stringValue",
-        type = PandaStringType.typeNameInstance,
-        signature = null, // TODO ?????
-        _enclosingClass = auxiliaryClass
+        type = PandaStringType,
     )
+
+//    private val stringField = PandaField(
+//        name = "#stringValue",
+//        type = PandaStringType.typeNameInstance,
+//        signature = null, // TODO ?????
+//        _enclosingClass = auxiliaryClass
+//    )
 
     private val fields = mutableMapOf<USort, PandaField>()
     fun getField(sort: USort) = fields.getOrPut(
         sort
     ) {
         PandaField(
+            enclosingClassName = auxiliaryEnclosingClassName,
             name = "#value$sort",
-            type = nonRefSortToType(sort).typeNameInstance,
-            signature = null, // TODO ?????
-            _enclosingClass = auxiliaryClass
+            type = nonRefSortToType(sort),
         )
+//        PandaField(
+//            name = "#value$sort",
+//            type = nonRefSortToType(sort).typeNameInstance,
+//            signature = null, // TODO ?????
+//            _enclosingClass = auxiliaryClass
+//        )
     }
 
     // TODO string?????????????????????
@@ -99,8 +111,8 @@ class PandaContext(components: PandaComponents) : UContext<PandaNumberSort>(comp
     fun mkConcreteStringDecl(value: String): PandaConcreteStringDecl =
         PandaConcreteStringDecl(this, value)
 
-    val PandaType.typeNameInstance: PandaTypeName
-        get() = PandaTypeName(typeName)
+//    val PandaType.typeNameInstance: PandaTypeName
+//        get() = PandaTypeName(typeName)
 
     fun extractPrimitiveValueIfRequired(
         uExpr: UExpr<out USort>,

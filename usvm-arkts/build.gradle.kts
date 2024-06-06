@@ -9,6 +9,7 @@ dependencies {
     implementation("com.github.UnitTestBot.jacodb:jacodb-core:${Versions.arktsJacoDBVersion}")
     implementation("com.github.UnitTestBot.jacodb:jacodb-panda-dynamic:${Versions.arktsJacoDBVersion}")
     implementation("com.github.UnitTestBot.jacodb:jacodb-panda-static:${Versions.arktsJacoDBVersion}")
+    implementation("com.github.UnitTestBot.jacodb:jacodb-panda-analysis:${Versions.arktsJacoDBVersion}")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
@@ -30,7 +31,10 @@ val `usvm-api` by sourceSets.creating {
         srcDir("src/usvm-api/java")
     }
 }
-val `usvm-apiCompileOnly`: Configuration by configurations.getting
-dependencies {
-    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.arktsJacoDBVersion}")
-}
+
+// no module with name 'jacodb-api' in jacodb ??
+
+//val `usvm-apiCompileOnly`: Configuration by configurations.getting
+//dependencies {
+//    `usvm-apiCompileOnly`("org.jacodb:jacodb-api:${Versions.arktsJacoDBVersion}")
+//}

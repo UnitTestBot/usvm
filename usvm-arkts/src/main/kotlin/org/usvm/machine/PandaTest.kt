@@ -7,7 +7,7 @@ import org.usvm.PathNode
 data class PandaTest(
     val parameters: List<Any>,
     val resultValue: Any?,
-    val trace: PathNode<PandaInst>? = null
+    val trace: List<PandaInst>? = null
 )
 
 

@@ -2,6 +2,8 @@ package org.usvm.samples
 
 import TestOptions
 import org.jacodb.panda.dynamic.api.PandaAnyType
+import org.jacodb.panda.dynamic.api.PandaInst
+import org.jacodb.panda.dynamic.api.PandaProject
 import org.jacodb.panda.dynamic.api.PandaType
 import org.jacodb.panda.dynamic.parser.IRParser
 import org.jacodb.panda.dynamic.parser.TSParser
@@ -41,7 +43,7 @@ open class PandaMethodTestRunner
 
     protected inline fun <reified R> discoverPropertiesWithTraceVerification(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (R?, String) -> Boolean,
+        vararg analysisResultMatchers: (R?, List<PandaInst>) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
     ) {
         internalCheck(
@@ -49,7 +51,7 @@ open class PandaMethodTestRunner
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue + listOf("traceToVerify", r.trace).first() },
+            extractValuesToCheck = { r -> r.parameters + r.resultValue + r.trace },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = { _ -> true }
@@ -147,20 +149,25 @@ open class PandaMethodTestRunner
     override val checkType: (PandaType?, PandaType?) -> Boolean
         get() = { expected, actual -> true } // TODO("Not yet implemented")
 
+    protected fun getProject(className: String) : PandaProject {
+        val jsonWithoutExtension = "/samples/${className}.json"
+        val tsWithoutExtension = "/samples/${className}.ts"
+        // TODO: Make tsFile parsing here optional
+        val sampleTsFilePath = javaClass.getResource(tsWithoutExtension)?.toURI()!!
+        val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
+
+        val tsParser = TSParser(sampleTsFilePath)
+        val tsFunctions = tsParser.collectFunctions()
+        val parser = IRParser(sampleFilePath, tsFunctions)
+        val project = parser.getProject()
+
+        return project
+    }
+
     override val runner: (MethodDescriptor, UMachineOptions) -> List<PandaTest>
         get() = { id, options ->
-            // TODO Automatic parser?????
-            val jsonWithoutExtension = "/samples/${id.className}.json"
-            val tsWithoutExtension = "/samples/${id.className}.ts"
-            // TODO: Make tsFile parsing here optional
-            val sampleTsFilePath = javaClass.getResource(tsWithoutExtension)?.toURI()!!
-            val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path ?: ""
 
-            val tsParser = TSParser(sampleTsFilePath)
-            val tsFunctions = tsParser.collectFunctions()
-            val parser = IRParser(sampleFilePath, tsFunctions)
-            val project = parser.getProject()
-
+            val project = getProject(id.className)
             // TODO class name??????
             val method = project.findMethodOrNull(id.methodName, "GLOBAL") ?: error("TODO")
 

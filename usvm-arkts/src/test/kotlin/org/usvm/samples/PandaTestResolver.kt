@@ -47,7 +47,9 @@ class PandaTestResolver {
             exceptionType.first().typeName
         }
 
-        return PandaTest(parameters, resultExpr, if (TestOptions.VERIFY_TRACE) state.pathNode else null)
+        val trace = state.pathNode.allStatements.toList()
+
+        return PandaTest(parameters, resultExpr, if (TestOptions.VERIFY_TRACE) trace else null)
     }
 
     private fun resolveLValue(lValue: ULValue<*, *>, memory: UReadOnlyMemory<PandaType>): Any {

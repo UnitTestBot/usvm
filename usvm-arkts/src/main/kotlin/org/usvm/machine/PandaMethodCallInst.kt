@@ -14,7 +14,7 @@ abstract class PandaTransparentInstruction : PandaInst() {
 }
 
 abstract class PandaMethodCallBaseInst : PandaTransparentInstruction() {
-    abstract val method: PandaMethod
+    abstract override val method: PandaMethod
 
     override val operands: List<PandaExpr>
         get() = emptyList()
