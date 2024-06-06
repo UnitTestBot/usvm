@@ -151,7 +151,7 @@ class PandaInterpreter(
         }
 
         val instList = stmt.location.method.instructions
-        val (posStmt, negStmt) = instList[stmt.trueBranch.index] to instList[stmt.falseBranch.index]
+        val (posStmt, negStmt) = instList[stmt.falseBranch.index] to instList[stmt.trueBranch.index]
 
         scope.forkWithBlackList(
             boolExpr,
