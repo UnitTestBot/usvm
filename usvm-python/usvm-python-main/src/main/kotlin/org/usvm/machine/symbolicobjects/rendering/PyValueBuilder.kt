@@ -64,8 +64,9 @@ class PyValueBuilder(
         require(!isAllocatedConcreteHeapRef(obj.address)) {
             "Cannot convert allocated objects"
         }
-        if (obj.address in converted) {
-            return converted[obj.address]!!
+        val cached = converted[obj.address]
+        if (cached != null) {
+            return cached
         }
         val typeSystem = state.typeSystem
         val type = obj.getFirstType() ?: error("Type stream for interpreted object is empty")
@@ -324,9 +325,11 @@ class PyValueBuilder(
         type: ConcretePythonType,
         fields: MutableMap<String, PyValue>,
     ) {
-        val str = state.preAllocatedObjects.concreteString(strObj)!!
+        val str = state.preAllocatedObjects.concreteString(strObj)
+            ?: error("Could not find string representation of ${strObj.address}")
         if (ConcretePythonInterpreter.typeLookup(type.asObject, str) == null) {
-            val strRef = state.preAllocatedObjects.refOfString(str)!!
+            val strRef = state.preAllocatedObjects.refOfString(str)
+                ?: error("Could not find ref of $str")
             val namespace = ConcretePythonInterpreter.getNewNamespace()
             ConcretePythonInterpreter.addObjectToNamespace(namespace, strRef, "field")
             ConcretePythonInterpreter.concreteRun(namespace, "import keyword")

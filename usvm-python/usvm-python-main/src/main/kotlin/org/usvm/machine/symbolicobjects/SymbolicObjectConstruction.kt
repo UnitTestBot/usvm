@@ -10,6 +10,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.memory.FloatUninterpretedContent
 import org.usvm.machine.symbolicobjects.memory.SliceUninterpretedField
 import org.usvm.machine.symbolicobjects.memory.setFloatContent
@@ -70,20 +71,20 @@ fun constructEmptyStaticObject(
 fun constructInt(context: ConcolicRunContext, expr: UExpr<KIntSort>): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonInt)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonInt)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     result.setIntContent(context, expr)
-    result.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+    result.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     return result
 }
 
 fun constructFloat(context: ConcolicRunContext, expr: FloatUninterpretedContent): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonFloat)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonFloat)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     result.setFloatContent(context, expr)
-    result.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+    result.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     return result
 }
 
@@ -91,8 +92,8 @@ fun constructFloat(context: ConcolicRunContext, expr: FloatUninterpretedContent)
 fun constructBool(context: ConcolicRunContext, expr: UBoolExpr): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
 
-    val trueObj = context.curState!!.preAllocatedObjects.trueObject
-    val falseObj = context.curState!!.preAllocatedObjects.falseObject
+    val trueObj = context.extractCurState().preAllocatedObjects.trueObject
+    val falseObj = context.extractCurState().preAllocatedObjects.falseObject
     val address = context.ctx.mkIte(expr, trueObj.address, falseObj.address)
     return UninterpretedSymbolicPythonObject(address, context.typeSystem)
 }
@@ -119,10 +120,10 @@ fun constructListIterator(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonListIteratorType)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonListIteratorType)
     val result = UninterpretedSymbolicPythonObject(address, typeSystem)
     result.setListIteratorContent(context, list)
-    result.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+    result.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     return result
 }
 
@@ -132,10 +133,10 @@ fun constructTupleIterator(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonTupleIteratorType)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonTupleIteratorType)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
         it.setTupleIteratorContent(context, tuple)
-        it.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+        it.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     }
 }
 
@@ -147,10 +148,10 @@ fun constructRange(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRange)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonRange)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
         it.setRangeContent(context, start, stop, step)
-        it.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+        it.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     }
 }
 
@@ -160,10 +161,10 @@ fun constructRangeIterator(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(context.curState)
     val typeSystem = context.typeSystem
-    val address = context.curState!!.memory.allocConcrete(typeSystem.pythonRangeIterator)
+    val address = context.extractCurState().memory.allocConcrete(typeSystem.pythonRangeIterator)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
         it.setRangeIteratorContent(context, range)
-        it.setMinimalTimeOfCreation(context.ctx, context.curState!!.memory)
+        it.setMinimalTimeOfCreation(context.ctx, context.extractCurState().memory)
     }
 }
 
@@ -175,11 +176,11 @@ fun constructSlice(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
-    val address = ctx.curState!!.memory.allocConcrete(typeSystem.pythonSlice)
+    val address = ctx.extractCurState().memory.allocConcrete(typeSystem.pythonSlice)
     return UninterpretedSymbolicPythonObject(address, typeSystem).also {
         it.setSliceStart(ctx, start)
         it.setSliceStop(ctx, stop)
         it.setSliceStep(ctx, step)
-        it.setMinimalTimeOfCreation(ctx.ctx, ctx.curState!!.memory)
+        it.setMinimalTimeOfCreation(ctx.ctx, ctx.extractCurState().memory)
     }
 }

@@ -15,6 +15,7 @@ import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.model.getConcreteType
@@ -68,9 +69,10 @@ class UninterpretedSymbolicPythonObject(
 
     fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
         requireNotNull(ctx.curState)
-        val result = evalIs(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
-        if (resolvesToNullInCurrentModel(ctx) && ctx.curState!!.pyModel.eval(result).isTrue) {
-            ctx.curState!!.possibleTypesForNull = ctx.curState!!.possibleTypesForNull.filterBySupertype(type)
+        val result = evalIs(ctx.ctx, ctx.extractCurState().pathConstraints.typeConstraints, type)
+        if (resolvesToNullInCurrentModel(ctx) && ctx.extractCurState().pyModel.eval(result).isTrue) {
+            ctx.extractCurState().possibleTypesForNull =
+                ctx.extractCurState().possibleTypesForNull.filterBySupertype(type)
         }
         return result
     }
@@ -90,7 +92,7 @@ class UninterpretedSymbolicPythonObject(
 
     fun evalIsSoft(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
         requireNotNull(ctx.curState)
-        return evalIsSoft(ctx.ctx, ctx.curState!!.pathConstraints.typeConstraints, type)
+        return evalIsSoft(ctx.ctx, ctx.extractCurState().pathConstraints.typeConstraints, type)
     }
 
     fun evalIsSoft(
@@ -125,7 +127,7 @@ class UninterpretedSymbolicPythonObject(
 
     fun getTimeOfCreation(ctx: ConcolicRunContext): UExpr<KIntSort> { // must not be called on nullref
         requireNotNull(ctx.curState)
-        return ctx.curState!!.memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
+        return ctx.extractCurState().memory.readField(address, TimeOfCreation, ctx.ctx.intSort)
     }
 
     // must not be called on nullref
@@ -203,7 +205,7 @@ fun interpretSymbolicPythonObject(
     obj: UninterpretedSymbolicPythonObject,
 ): InterpretedSymbolicPythonObject {
     requireNotNull(ctx.curState)
-    return interpretSymbolicPythonObject(ctx.modelHolder, ctx.curState!!.memory, obj)
+    return interpretSymbolicPythonObject(ctx.modelHolder, ctx.extractCurState().memory, obj)
 }
 
 fun interpretSymbolicPythonObject(

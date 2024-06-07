@@ -14,8 +14,9 @@ import org.usvm.python.model.PyValue
 class PyValueRenderer(private val useNoneInsteadOfMock: Boolean = false) {
     private val converted = mutableMapOf<PyValue, PyObject>()
     fun convert(model: PyValue): PyObject {
-        if (model in converted) {
-            return converted[model]!!
+        val cached = converted[model]
+        if (cached != null) {
+            return cached
         }
         val result = when (model) {
             is PyPrimitive -> convertPrimitive(model)

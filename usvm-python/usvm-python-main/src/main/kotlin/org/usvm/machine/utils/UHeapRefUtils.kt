@@ -41,7 +41,7 @@ fun getTypeStreamForDelayedFork(
     requireNotNull(ctx.curState)
     val interpreted = interpretSymbolicPythonObject(ctx, obj)
     if (interpreted.address.address != 0) {
-        val current = interpreted.getTypeStream()!!
+        val current = interpreted.getTypeStream() ?: error("getTypeStream() should not be null here")
         val prefix = current.take(PREFIX_SIZE)
         if (prefix is TypesResult.SuccessfulTypesResult && prefix.types.size >= PREFIX_SIZE) {
             return current
