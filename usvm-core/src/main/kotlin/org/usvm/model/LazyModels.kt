@@ -62,9 +62,6 @@ class ULazyIndexedMockModel(
 fun <S : USort> UExpr<S>.mapAddress(
     addressesMapping: AddressesMapping,
 ): UExpr<S> = if (sort == uctx.addressSort) {
-    if (asExpr(uctx.addressSort) !in addressesMapping) {
-        println("1")
-    }
     addressesMapping.getValue(asExpr(uctx.addressSort)).asExpr(sort)
 } else {
     this

@@ -39,7 +39,7 @@ interface UComponents<Type, USizeSort : USort> {
 
     fun mkStatesForkProvider(): StateForker = if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
 
-    fun <Context : UContext<USizeSort>> mkSoftConstraintsProvider(
+    open fun <Context : UContext<USizeSort>> mkSoftConstraintsProvider(
         ctx: Context
     ): USoftConstraintsProvider<Type, USizeSort> = USoftConstraintsProvider(ctx)
 }

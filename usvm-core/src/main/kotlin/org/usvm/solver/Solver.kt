@@ -3,7 +3,6 @@ package org.usvm.solver
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.utils.asExpr
-import mu.KLogging
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -126,7 +125,6 @@ open class USolverBase<Type>(
     private fun internalCheckWithSoftConstraints(
         softConstraints: MutableList<UBoolExpr>,
     ): KSolverStatus {
-        // logger.debug("Checking...")
         var status: KSolverStatus
         if (softConstraints.isNotEmpty()) {
             status = smtSolver.checkWithAssumptions(softConstraints, timeout)
@@ -140,7 +138,6 @@ open class USolverBase<Type>(
         } else {
             status = smtSolver.check(timeout)
         }
-        // logger.debug("Checked!")
         return status
     }
 
@@ -165,7 +162,5 @@ open class USolverBase<Type>(
          */
         val ITERATIONS_THRESHOLD = -1
         val INFINITE_ITERATIONS = -1
-
-        val logger = object : KLogging() {}.logger
     }
 }
