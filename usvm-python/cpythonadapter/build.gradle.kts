@@ -66,6 +66,14 @@ if (cpythonIsActivated()) {
             }
         }
 
+        if (isMacos) {
+            binaries.whenElementFinalized {
+                val linkTask = tasks.getByName("linkDebug") as LinkSharedLibrary
+                val pythonLibPath = File(cpythonBuildPath, "lib/libpython3.11.dylib")
+                linkTask.libs.from(pythonLibPath.path)
+            }
+        }
+
         if (isWindows) {
             binaries.whenElementFinalized {
                 val linkTask = tasks.getByName("linkDebug") as LinkSharedLibrary

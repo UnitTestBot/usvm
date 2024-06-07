@@ -47,20 +47,31 @@ You can always compare commit of submodule from GitHub page and in your local re
 
 Official instruction: https://devguide.python.org/getting-started/setup-building/.
 
-Gradle tasks for building and running were tested on Windows and Ubuntu.
+Gradle tasks for building and running were tested on Windows, Ubuntu and MacOS 14.4.1.
 
 For Windows you need MSBuild (see https://devguide.python.org/getting-started/setup-building/#windows).
 
-1. Only for Unix. Install optional dependencies.
+1. Install optional dependencies.
+  - Only for Linux.
     - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
     - __Short version (Ubuntu)__. Install the following packages with apt:
-      ```
-      build-essential gdb lcov pkg-config \
-      libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev \
-      libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev \
-      lzma lzma-dev tk-dev uuid-dev zlib1g-dev
-      ```
-     The main package from those is `libssl-dev`. It is needed for pip to work.
+     ```
+     build-essential gdb lcov pkg-config \
+     libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev \
+     libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev \
+     lzma lzma-dev tk-dev uuid-dev zlib1g-dev
+     ```
+    The main package from those is `libssl-dev`. It is needed for pip to work.
+  - Only for MacOS:
+    - Install openssl:
+    ```
+    brew install openssl@3.0
+    
+    ```
+    - Set a gradle property pointing to OpenSSL location:
+    ```
+    cpython.ssl.path=/opt/homebrew/opt/openssl    
+    ```
 
 2. Use Gradle tasks to do the rest.
     

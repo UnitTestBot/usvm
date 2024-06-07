@@ -24,6 +24,13 @@ private fun Project.registerCPythonDebugConfiguration(): TaskProvider<Exec>? {
         doFirst {
             println("Pip line: $pipLine")
         }
+
+        val openssl = if (project.hasProperty(PROPERTY_FOR_CPYTHON_SSL_PATH)) {
+            "--with-openssl=${project.property(PROPERTY_FOR_CPYTHON_SSL_PATH)}"
+        } else {
+            ""
+        }
+
         commandLine(
             "$cpythonSourcePath/configure",
             "--enable-shared",
@@ -31,7 +38,8 @@ private fun Project.registerCPythonDebugConfiguration(): TaskProvider<Exec>? {
             pipLine,
             "--prefix=$cpythonBuildPath",
             "--disable-test-modules",
-            "--with-assertions"
+            "--with-assertions",
+            openssl
         )
 
         /*

@@ -33,6 +33,7 @@ fun Project.getCPythonAdapterBuildPath(): File {
 }
 
 val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+val isMacos = Os.isFamily(Os.FAMILY_MAC)
 
 fun Project.getWidowsBuildScriptPath(): File =
     File(getCPythonSourcePath(), "PCBuild/build.bat")

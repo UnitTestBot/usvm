@@ -24,6 +24,7 @@ const val MANUAL_TEST_DEBUG_NO_LOGS_TASK = "manualTestDebugNoLogs"
 
 /** Property names */
 const val PROPERTY_FOR_CPYTHON_ACTIVATION = "cpythonActivated"
+const val PROPERTY_FOR_CPYTHON_SSL_PATH = "cpython.ssl.path"
 
 /** Entry points */
 const val BUILD_SAMPLES_ENTRY_POINT = "org.usvm.runner.BuildSamplesKt"
