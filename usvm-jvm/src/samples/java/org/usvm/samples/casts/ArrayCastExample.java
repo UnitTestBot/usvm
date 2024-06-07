@@ -105,8 +105,6 @@ public class ArrayCastExample {
             return null;
         }
 
-        Engine.assume(iterable instanceof Collection<?> | iterable instanceof NonCollectionIterable<?>);
-
         return (List<ColoredPoint>) iterable;
     }
 
