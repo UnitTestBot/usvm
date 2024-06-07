@@ -6,7 +6,7 @@ import org.usvm.runner.CustomPythonTestRunner
 import org.usvm.runner.manual.program.ProgramProvider
 import kotlin.time.Duration.Companion.seconds
 
-class ConcolicAndConcreteChecker: ProgramAnalyzer {
+class ConcolicAndConcreteChecker : ProgramAnalyzer {
     override fun run(provider: ProgramProvider) {
         val runner = CustomPythonTestRunner(
             provider.program,

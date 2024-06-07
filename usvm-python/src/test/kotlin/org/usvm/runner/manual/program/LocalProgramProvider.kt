@@ -80,7 +80,7 @@ class LocalProgramProvider(
                             typeSystem,
                             program,
                             ignoreFunctions
-                        )?.let { listOf(it) } ?: emptyList()
+                        )?.let { listOf(it) }.orEmpty()
                     }
                 }
             }
@@ -106,7 +106,8 @@ private fun getFunctionInfo(
         return null
     }
     if (description.argumentKinds.any {
-            it == PythonCallableTypeDescription.ArgKind.ARG_STAR || it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
+            it == PythonCallableTypeDescription.ArgKind.ARG_STAR ||
+                    it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
         }) {
         return null
     }
@@ -143,8 +144,9 @@ private fun extractFunctionFromClass(
 ): List<PyUnpinnedCallable> {
     val members = description.getNamedMembers(type)
     return members.mapNotNull { memberDef ->
-        if (memberDef.meta.name.startsWith("__"))
+        if (memberDef.meta.name.startsWith("__")) {
             return@mapNotNull null
+        }
         memberDef.type
         val name = "$defName.${memberDef.meta.name}"
         getFunctionInfo(memberDef.type, name, module, typeSystem, program, ignoreFunctions)

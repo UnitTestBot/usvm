@@ -62,7 +62,8 @@ fun UninterpretedSymbolicPythonObject.readDictRefElement(
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    val resultAddress = ctx.extractCurState().symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
+    val resultAddress = ctx.extractCurState()
+        .symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
 }
 

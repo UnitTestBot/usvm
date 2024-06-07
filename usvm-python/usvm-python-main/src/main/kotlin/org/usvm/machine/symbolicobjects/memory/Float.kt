@@ -127,8 +127,12 @@ fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, e
     addSupertypeSoft(ctx, typeSystem.pythonFloat)
     writeBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.extractCurState().memory, address, ctx.ctx, expr.isNan)
     writeBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.extractCurState().memory, address, ctx.ctx, expr.isInf)
-    ctx.extractCurState().memory.writeField(address, FloatContents.infSign, ctx.ctx.boolSort, expr.infSign, ctx.ctx.trueExpr)
-    ctx.extractCurState().memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr.realValue, ctx.ctx.trueExpr)
+    ctx.extractCurState()
+        .memory
+        .writeField(address, FloatContents.infSign, ctx.ctx.boolSort, expr.infSign, ctx.ctx.trueExpr)
+    ctx.extractCurState()
+        .memory
+        .writeField(address, FloatContents.content, ctx.ctx.realSort, expr.realValue, ctx.ctx.trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent {

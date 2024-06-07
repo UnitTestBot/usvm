@@ -22,7 +22,7 @@ class PyPathConstraints(
     ),
     numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
     var pythonSoftConstraints: PersistentSet<UBoolExpr> = persistentHashSetOf(),
-): UPathConstraints<PythonType>(
+) : UPathConstraints<PythonType>(
     ctx,
     logicalConstraints,
     equalityConstraints,

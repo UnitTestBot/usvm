@@ -118,7 +118,9 @@ fun createIterable(
     val typeSystem = ctx.typeSystem
     val size = elements.size
     with(ctx.ctx) {
-        val iterableAddress = ctx.extractCurState().memory.allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
+        val iterableAddress = ctx.extractCurState()
+            .memory
+            .allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
         ctx.extractCurState().memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
         ctx.extractCurState().memory.types.allocate(iterableAddress.address, type)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)

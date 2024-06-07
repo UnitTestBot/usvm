@@ -42,7 +42,9 @@ class PyComponents(
         return UInt32SizeExprProvider(ctx)
     }
 
-    override fun <Context : UContext<KIntSort>> mkSoftConstraintsProvider(ctx: Context): USoftConstraintsProvider<PythonType, KIntSort> {
+    override fun <Context : UContext<KIntSort>> mkSoftConstraintsProvider(
+        ctx: Context,
+    ): USoftConstraintsProvider<PythonType, KIntSort> {
         return PySoftConstraintsProvider(ctx)
     }
 }
@@ -71,7 +73,7 @@ class PySolver<Type>(
 
 class PySoftConstraintsProvider(
     ctx: UContext<KIntSort>,
-): USoftConstraintsProvider<PythonType, KIntSort>(ctx) {
+) : USoftConstraintsProvider<PythonType, KIntSort>(ctx) {
     override fun transform(
         expr: UInputArrayLengthReading<PythonType, KIntSort>,
     ): UExpr<KIntSort> = computeSideEffect(expr) {

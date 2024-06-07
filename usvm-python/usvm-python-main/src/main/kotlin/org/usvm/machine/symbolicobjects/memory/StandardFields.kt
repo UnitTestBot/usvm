@@ -42,7 +42,8 @@ fun UninterpretedSymbolicPythonObject.setFieldValue(
 ) {
     requireNotNull(ctx.curState)
     name.addSupertypeSoft(ctx, typeSystem.pythonStr)
-    ctx.extractCurState().symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
+    ctx.extractCurState()
+        .symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
 }
 
 fun UninterpretedSymbolicPythonObject.containsField(

@@ -14,7 +14,7 @@ import org.usvm.solver.USolverBase
 
 class PyContext(
     typeSystem: PythonTypeSystem,
-    private val components: PyComponents = PyComponents(typeSystem),
+    components: PyComponents = PyComponents(typeSystem),
 ) : UContext<KIntSort>(components) {
     private var nextAddress: UConcreteHeapAddress = INITIAL_STATIC_ADDRESS / 2
     fun provideRawConcreteHeapRef(): UConcreteHeapRef {
@@ -30,5 +30,4 @@ class PyContext(
     fun intToFloat(intValue: UExpr<KIntSort>): UExpr<KRealSort> {
         return mkIntToReal(intValue)
     }
-
 }

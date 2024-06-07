@@ -158,7 +158,9 @@ fun handlerListAppendKt(
     with(ctx.ctx) {
         val currentSize = list.readArrayLength(ctx)
         list.writeArrayElement(ctx, currentSize, elem)
-        ctx.extractCurState().memory.writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
+        ctx.extractCurState()
+            .memory
+            .writeArrayLength(list.address, mkArithAdd(currentSize, mkIntNum(1)), ArrayType, intSort)
         return list
     }
 }
