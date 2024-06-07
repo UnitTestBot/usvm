@@ -3,7 +3,16 @@ package org.usvm
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
 import io.ksmt.decl.KConstDecl
-import io.ksmt.expr.*
+import io.ksmt.expr.KAndExpr
+import io.ksmt.expr.KApp
+import io.ksmt.expr.KEqExpr
+import io.ksmt.expr.KExpr
+import io.ksmt.expr.KFalse
+import io.ksmt.expr.KInterpretedValue
+import io.ksmt.expr.KIteExpr
+import io.ksmt.expr.KNotExpr
+import io.ksmt.expr.KOrExpr
+import io.ksmt.expr.KTrue
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBoolSort
@@ -35,14 +44,8 @@ typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UEqExpr<Sort> = KEqExpr<Sort>
 typealias UNotExpr = KNotExpr
 typealias UIntepretedValue<Sort> = KInterpretedValue<Sort>
-typealias UConcreteInt = KIntNumExpr
-typealias UConcreteInt32 = KBitVec32Value
-typealias UConcreteInt64 = KBitVec64Value
-typealias UConcreteSize = KInt32NumExpr
 
 typealias UAddressSort = KUninterpretedSort
-
-typealias USizeType = Int
 
 //endregion
 

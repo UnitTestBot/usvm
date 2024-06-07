@@ -147,12 +147,10 @@ class PyMachine(
             pyObserver.iterations
         }.also {
             ConcretePythonInterpreter.restart()
-            ctx.restartSolver()
         }
     }
 
     override fun close() {
-        ctx.closeSolver()
         ctx.close()
     }
 

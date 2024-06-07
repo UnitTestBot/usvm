@@ -31,19 +31,4 @@ class PyContext(
         return mkIntToReal(intValue)
     }
 
-
-    private var solver: USolverBase<PythonType> = components.mkSolver(this)
-
-    @Suppress("UNCHECKED_CAST")
-    override fun <Type> solver(): USolverBase<Type> =
-        solver as USolverBase<Type>
-
-    fun restartSolver() {
-        solver.close()
-        solver = components.mkSolver(this)
-    }
-
-    fun closeSolver() {
-        solver.close()
-    }
 }
