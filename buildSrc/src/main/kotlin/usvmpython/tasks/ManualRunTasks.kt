@@ -27,12 +27,14 @@ fun Project.javaArgumentsForPython(debugLog: Boolean): List<String> {
     val approximationsDir = getApproximationsDir()
     val samplesBuildDir = getSamplesBuildDir()
     val adapterPath = getCPythonAdapterBuildPath()
+    val pythonPath = getPythonBinaryPath()
 
     val result = mutableListOf(
         "-Dsamples.build.path=${samplesBuildDir.canonicalPath}",
         "-Dsamples.sources.path=${samplesSourceDir.canonicalPath}",
         "-Dapproximations.path=${approximationsDir.canonicalPath}",
         "-Djava.library.path=$adapterPath",
+        "-Dpython.binary.path=$pythonPath",
         "-Xss50m",
     )
 
