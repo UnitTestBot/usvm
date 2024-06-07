@@ -1,3 +1,5 @@
+package org.usvm.runner.manual
+
 import org.usvm.runner.manual.analyzers.OrdinaryAnalyzer
 import org.usvm.runner.manual.program.sampleFunction
 

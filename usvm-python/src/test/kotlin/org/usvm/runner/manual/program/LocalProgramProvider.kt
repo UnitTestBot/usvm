@@ -107,8 +107,9 @@ private fun getFunctionInfo(
     }
     if (description.argumentKinds.any {
             it == PythonCallableTypeDescription.ArgKind.ARG_STAR ||
-                    it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
-        }) {
+                it == PythonCallableTypeDescription.ArgKind.ARG_STAR_2
+        }
+    ) {
         return null
     }
     runCatching {

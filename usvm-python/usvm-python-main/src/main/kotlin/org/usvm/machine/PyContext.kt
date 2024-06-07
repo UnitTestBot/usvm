@@ -8,9 +8,7 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.machine.types.PythonType
 import org.usvm.machine.types.PythonTypeSystem
-import org.usvm.solver.USolverBase
 
 class PyContext(
     typeSystem: PythonTypeSystem,

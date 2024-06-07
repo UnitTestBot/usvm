@@ -1,5 +1,6 @@
 package org.usvm.runner.manual.analyzers
 
+import mu.KLogging
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.machine.PyMachine
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
@@ -31,13 +32,12 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
                 processFunction(f, machine, emptyCoverage)
             }
 
-            println("GENERAL STATISTICS")
-            println(machine.statistics.writeReport())
+            logger.info("GENERAL STATISTICS")
+            logger.info(machine.statistics.writeReport())
         }
 
-        println()
-        println("Empty coverage for:")
-        emptyCoverage.forEach { println(it) }
+        logger.info("Empty coverage for:")
+        emptyCoverage.forEach { logger.info(it) }
     }
 
     private fun processFunction(
@@ -61,28 +61,30 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
             )
 
             saver.pyTestObserver.tests.forEach { test ->
-                println("INPUT:")
+                logger.info("INPUT:")
                 test.inputArgs.forEach { println(it) }
-                println("RESULT:")
+                logger.info("RESULT:")
                 when (val result = test.result) {
                     is PyResultSuccess -> println(result.output)
                     is PyResultFailure -> println(result.exception)
                 }
-                println()
+                logger.info("")
             }
 
             if (machine.statistics.functionStatistics.last().coverage == 0.0) {
                 emptyCoverage.add(f.tag)
             }
-            println(
+            logger.info(
                 "Finished analysing ${f.tag} in ${System.currentTimeMillis() - start} milliseconds. " +
                     "Made $iterations iterations."
             )
-            println("FUNCTION STATISTICS")
-            println(machine.statistics.functionStatistics.last().writeReport())
-            println()
+            logger.info("FUNCTION STATISTICS")
+            logger.info(machine.statistics.functionStatistics.last().writeReport())
+            logger.info("")
         } catch (e: IllegalOperationException) {
-            println("Illegal operation while analyzing: ${e.operation}\n")
+            logger.info("Illegal operation while analyzing: ${e.operation}\n")
         }
     }
+
+    private val logger = object : KLogging() {}.logger
 }
