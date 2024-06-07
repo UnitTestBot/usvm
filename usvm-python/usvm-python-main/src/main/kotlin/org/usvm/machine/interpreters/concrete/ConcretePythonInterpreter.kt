@@ -370,20 +370,6 @@ object ConcretePythonInterpreter {
     init {
         initialize()
     }
-
-    fun printIdInfo() { // for debugging
-        println("SymbolicMethodId:")
-        SymbolicMethodId.entries.forEach {
-            println(it)
-            println(it.cRef)
-        }
-        println()
-        println("ApproximationId:")
-        ApproximationId.entries.forEach {
-            println(it)
-            println(it.cRef)
-        }
-    }
 }
 
 class CPythonExecutionException(

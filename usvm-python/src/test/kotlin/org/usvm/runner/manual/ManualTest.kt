@@ -1,5 +1,6 @@
 package org.usvm.runner.manual
 
+import mu.KLogging
 import org.usvm.runner.manual.analyzers.OrdinaryAnalyzer
 import org.usvm.runner.manual.program.sampleFunction
 
@@ -24,3 +25,5 @@ fun main() {
 
     analyzer.run(program)
 }
+
+val manualTestLogger = object : KLogging() {}.logger

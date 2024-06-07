@@ -2,7 +2,6 @@ package org.usvm.machine
 
 import org.usvm.UMachine
 import org.usvm.UPathSelector
-import org.usvm.constraints.UPathConstraints
 import org.usvm.language.PyCallable
 import org.usvm.language.PyPinnedCallable
 import org.usvm.language.PyProgram

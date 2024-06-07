@@ -7,6 +7,7 @@ import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.types.getTypeFromTypeHint
 import org.usvm.machine.utils.withAdditionalPaths
+import org.usvm.runner.manual.manualTestLogger
 import org.usvm.utils.getModulesFromFiles
 import org.usvm.utils.getPythonFilesFromRoot
 import org.utpython.types.PythonCallableTypeDescription
@@ -123,7 +124,7 @@ private fun getFunctionInfo(
             }
         }
     }.getOrNull() ?: return null
-    println("$module.$name: ${type.pythonTypeRepresentation()}")
+    manualTestLogger.info("$module.$name: ${type.pythonTypeRepresentation()}")
     val callableType = type as FunctionType
     return PyUnpinnedCallable.constructCallableFromName(
         callableType.arguments.map {

@@ -12,7 +12,7 @@
         </encoder>
     </appender>
 
-    <logger name="org.usvm.runner.manual.analyzers.OrdinaryAnalyzer" additivity='false'>
+    <logger name="org.usvm.runner.manual.ManualTestKt" additivity='false'>
         <appender-ref ref="STDOUT-raw" />
     </logger>
 

@@ -71,6 +71,15 @@ class PySolver<Type>(
     }
 }
 
+private const val BOUND_0 = 1
+private const val BOUND_1 = 16
+private const val BOUND_2 = 256
+private const val BOUND_3 = 16_000
+private const val BOUND_4 = 100_000
+
+private val arraySizeBounds =
+    listOf(BOUND_0, BOUND_1, BOUND_2, BOUND_3, BOUND_4)
+
 class PySoftConstraintsProvider(
     ctx: UContext<KIntSort>,
 ) : USoftConstraintsProvider<PythonType, KIntSort>(ctx) {
@@ -79,13 +88,11 @@ class PySoftConstraintsProvider(
     ): UExpr<KIntSort> = computeSideEffect(expr) {
         with(ctx) {
             val addressIsNull = provide(expr.address)
-            val arraySize1 = mkSizeLeExpr(expr, mkSizeExpr(1))
-            val arraySize16 = mkSizeLeExpr(expr, mkSizeExpr(16))
-            val arraySize256 = mkSizeLeExpr(expr, mkSizeExpr(256))
-            val arraySize16000 = mkSizeLeExpr(expr, mkSizeExpr(16_000))
-            val arraySize100000 = mkSizeLeExpr(expr, mkSizeExpr(100_000))
+            val arrayConstraints = arraySizeBounds.map {
+                mkSizeLeExpr(expr, mkSizeExpr(it))
+            }
 
-            caches[expr] = addressIsNull + arraySize1 + arraySize16 + arraySize256 + arraySize16000 + arraySize100000
+            caches[expr] = addressIsNull + arrayConstraints.toSet()
         }
     }
 }

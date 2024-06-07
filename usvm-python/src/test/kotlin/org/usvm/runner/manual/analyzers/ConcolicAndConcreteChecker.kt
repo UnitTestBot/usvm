@@ -3,6 +3,7 @@ package org.usvm.runner.manual.analyzers
 import org.usvm.UMachineOptions
 import org.usvm.machine.interpreters.concrete.IllegalOperationException
 import org.usvm.runner.CustomPythonTestRunner
+import org.usvm.runner.manual.manualTestLogger
 import org.usvm.runner.manual.program.ProgramProvider
 import kotlin.time.Duration.Companion.seconds
 
@@ -16,7 +17,7 @@ class ConcolicAndConcreteChecker : ProgramAnalyzer {
         )
         runner.timeoutPerRunMs = 10_000
         provider.functions.forEach { function ->
-            println("Running ${function.tag}...")
+            manualTestLogger.info("Running ${function.tag}...")
             try {
                 val comparator = runner.standardConcolicAndConcreteChecks
                 when (val argsNum = function.numberOfArguments) {
@@ -25,10 +26,10 @@ class ConcolicAndConcreteChecker : ProgramAnalyzer {
                     2 -> runner.check2NoPredicates(function, comparator)
                     3 -> runner.check3NoPredicates(function, comparator)
                     4 -> runner.check4NoPredicates(function, comparator)
-                    else -> println("${function.tag} ignored because it has $argsNum arguments")
+                    else -> manualTestLogger.warn("${function.tag} ignored because it has $argsNum arguments")
                 }
             } catch (e: IllegalOperationException) {
-                println("Illegal operation while analyzing: ${e.operation}\n")
+                manualTestLogger.info("Illegal operation while analyzing: ${e.operation}\n")
             }
         }
     }
