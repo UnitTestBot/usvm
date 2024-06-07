@@ -110,7 +110,7 @@ abstract class PythonTypeSystem : UTypeSystem<PythonType> {
 
     fun addressOfConcreteType(type: ConcretePythonType): PyObject {
         require(type.owner == this)
-        return concreteTypeToAddress[type]!!
+        return concreteTypeToAddress[type] ?: error("All concrete types must have addresses")
     }
 
     fun concreteTypeOnAddress(address: PyObject): ConcretePythonType? {
@@ -240,7 +240,9 @@ class PythonTypeSystemWithMypyInfo(
                 }
 
                 if (typeAlreadyInStorage(ref)) {
-                    utTypeOfConcretePythonType[concreteTypeOnAddress(ref)!!] = utType
+                    val concreteType = concreteTypeOnAddress(ref)
+                        ?: error("ref's concrete type must be known after typeAlreadyInStorage check")
+                    utTypeOfConcretePythonType[concreteType] = utType
                     return@mapNotNull null
                 }
 

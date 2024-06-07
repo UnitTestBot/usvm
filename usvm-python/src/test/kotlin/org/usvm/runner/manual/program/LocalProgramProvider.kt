@@ -23,7 +23,6 @@ import org.utpython.types.pythonTypeRepresentation
 import java.io.File
 import kotlin.io.path.createTempDirectory
 
-
 class LocalProgramProvider(
     projectPath: String,
     private val ignoreFunctions: List<String> = emptyList(),
@@ -58,7 +57,8 @@ class LocalProgramProvider(
                         program.getNamespaceOfModule(module)
                     }
                 }.getOrNull() ?: return@flatMap emptyList() // skip bad modules
-                mypyBuild.definitions[module]!!.flatMap { (defName, def) ->
+                val definition = mypyBuild.definitions[module] ?: error("$module must be in mypyBuild.definitions")
+                definition.flatMap { (defName, def) ->
                     val type = def.getUtBotType()
                     val description = type.pythonDescription()
                     if (defName.startsWith("__")) {

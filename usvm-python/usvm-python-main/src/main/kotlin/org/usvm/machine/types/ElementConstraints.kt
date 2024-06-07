@@ -11,14 +11,14 @@ import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.TimeOfCreation
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
-abstract class ElementConstraint {
-    abstract fun applyUninterpreted(
+interface ElementConstraint {
+    fun applyUninterpreted(
         array: UninterpretedSymbolicPythonObject,
         element: UninterpretedSymbolicPythonObject,
         ctx: ConcolicRunContext,
     ): UBoolExpr
 
-    abstract fun applyInterpreted(
+    fun applyInterpreted(
         array: UConcreteHeapRef,
         element: UConcreteHeapRef,
         model: PyModel,
@@ -26,7 +26,7 @@ abstract class ElementConstraint {
     ): Boolean
 }
 
-object NonRecursiveConstraint : ElementConstraint() {
+object NonRecursiveConstraint : ElementConstraint {
     override fun applyUninterpreted(
         array: UninterpretedSymbolicPythonObject,
         element: UninterpretedSymbolicPythonObject,

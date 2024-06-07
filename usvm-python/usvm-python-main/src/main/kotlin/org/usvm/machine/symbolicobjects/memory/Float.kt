@@ -155,7 +155,12 @@ fun UninterpretedSymbolicPythonObject.getToFloatContent(ctx: ConcolicRunContext)
     return when (getTypeIfDefined(ctx)) {
         typeSystem.pythonFloat -> getFloatContent(ctx)
         typeSystem.pythonInt -> wrapRealValue(ctx.ctx, intToFloat(getIntContent(ctx)))
-        typeSystem.pythonBool -> wrapRealValue(ctx.ctx, intToFloat(getToIntContent(ctx)!!))
+        typeSystem.pythonBool -> wrapRealValue(
+            ctx.ctx,
+            intToFloat(
+                getToIntContent(ctx) ?: error("Cannot convert bool to int")
+            )
+        )
         else -> null
     }
 }

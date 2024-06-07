@@ -85,7 +85,6 @@ data object ServeNewDelayedForkByInstruction : DelayedForkByInstructionAction() 
         random: Random,
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
-
 }
 
 data object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() {
@@ -101,7 +100,6 @@ data object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() 
         random: Random,
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
-
 }
 
 class DelayedForkByInstructionGraph(

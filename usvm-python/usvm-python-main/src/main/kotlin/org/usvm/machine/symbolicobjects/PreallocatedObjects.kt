@@ -4,6 +4,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.types.PythonType
@@ -26,7 +27,7 @@ class PreallocatedObjects(
             return cached
         }
         val result =
-            constructEmptyStaticObject(ctx.ctx, ctx.curState!!.memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
+            constructEmptyStaticObject(ctx.ctx, ctx.extractCurState().memory, ctx.typeSystem, ctx.typeSystem.pythonStr)
         concreteStrToSymbol[string] = result
         symbolToConcreteStr[result] = string
         refOfString[string] = ref
