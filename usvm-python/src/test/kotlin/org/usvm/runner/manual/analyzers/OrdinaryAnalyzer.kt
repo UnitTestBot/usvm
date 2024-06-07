@@ -45,7 +45,7 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
         machine: PyMachine,
         emptyCoverage: MutableList<String>,
     ) {
-        println("Started analysing function ${f.tag}")
+        manualTestLogger.info("Started analysing function ${f.tag}")
 
         try {
             val start = System.currentTimeMillis()
@@ -62,11 +62,11 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
 
             saver.pyTestObserver.tests.forEach { test ->
                 manualTestLogger.info("INPUT:")
-                test.inputArgs.forEach { println(it) }
+                test.inputArgs.forEach { manualTestLogger.info(it) }
                 manualTestLogger.info("RESULT:")
                 when (val result = test.result) {
-                    is PyResultSuccess -> println(result.output)
-                    is PyResultFailure -> println(result.exception)
+                    is PyResultSuccess -> manualTestLogger.info(result.output)
+                    is PyResultFailure -> manualTestLogger.info(result.exception)
                 }
                 manualTestLogger.info("")
             }
@@ -85,5 +85,4 @@ object OrdinaryAnalyzer : ProgramAnalyzer {
             manualTestLogger.info("Illegal operation while analyzing: ${e.operation}\n")
         }
     }
-
 }
