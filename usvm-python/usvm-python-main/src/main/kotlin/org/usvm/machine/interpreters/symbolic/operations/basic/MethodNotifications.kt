@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getFieldValue
 import org.usvm.machine.types.HasMpAssSubscript
@@ -124,7 +125,7 @@ fun tpGetattroKt(
     myAssert(ctx, name.evalIsSoft(ctx, ctx.typeSystem.pythonStr))
     val field = on.getFieldValue(ctx, name)
     val softConstraint = field.evalIsSoft(ctx, MockType)
-    val ps = ctx.curState!!.pathConstraints
+    val ps = ctx.extractCurState().pathConstraints
     ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)
 }
 

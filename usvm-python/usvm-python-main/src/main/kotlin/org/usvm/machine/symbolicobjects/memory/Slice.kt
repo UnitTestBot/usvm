@@ -9,6 +9,7 @@ import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.PropertyOfPythonObject
 import org.usvm.machine.symbolicobjects.SliceContents
@@ -85,8 +86,8 @@ private fun UninterpretedSymbolicPythonObject.setSliceField(
 ) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, ctx.typeSystem.pythonSlice)
-    ctx.curState!!.memory.writeField(address, fieldIsNone, ctx.ctx.boolSort, content.isNone, ctx.ctx.trueExpr)
-    ctx.curState!!.memory.writeField(address, field, ctx.ctx.intSort, content.content, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.writeField(address, fieldIsNone, ctx.ctx.boolSort, content.isNone, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.writeField(address, field, ctx.ctx.intSort, content.content, ctx.ctx.trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getSliceStart(ctx: ConcolicRunContext): SliceUninterpretedField =

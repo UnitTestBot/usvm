@@ -6,6 +6,7 @@ import org.usvm.UHeapRef
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.TupleIteratorContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
@@ -17,8 +18,8 @@ fun UninterpretedSymbolicPythonObject.setTupleIteratorContent(
 ) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
-    ctx.curState!!.memory.writeField(address, TupleIteratorContents.tuple, addressSort, tuple.address, trueExpr)
-    ctx.curState!!.memory.writeField(address, TupleIteratorContents.index, intSort, mkIntNum(0), trueExpr)
+    ctx.extractCurState().memory.writeField(address, TupleIteratorContents.tuple, addressSort, tuple.address, trueExpr)
+    ctx.extractCurState().memory.writeField(address, TupleIteratorContents.index, intSort, mkIntNum(0), trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(
@@ -28,16 +29,16 @@ fun UninterpretedSymbolicPythonObject.getTupleIteratorContent(
 ) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
-    val tupleRef = ctx.curState!!.memory.readField(address, TupleIteratorContents.tuple, addressSort)
-    val index = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
+    val tupleRef = ctx.extractCurState().memory.readField(address, TupleIteratorContents.tuple, addressSort)
+    val index = ctx.extractCurState().memory.readField(address, TupleIteratorContents.index, intSort)
     return tupleRef to index
 }
 
 fun UninterpretedSymbolicPythonObject.increaseTupleIteratorCounter(ctx: ConcolicRunContext) = with(ctx.ctx) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonTupleIteratorType)
-    val oldIndexValue = ctx.curState!!.memory.readField(address, TupleIteratorContents.index, intSort)
-    ctx.curState!!.memory.writeField(
+    val oldIndexValue = ctx.extractCurState().memory.readField(address, TupleIteratorContents.index, intSort)
+    ctx.extractCurState().memory.writeField(
         address,
         TupleIteratorContents.index,
         intSort,

@@ -14,6 +14,7 @@ import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
@@ -30,7 +31,7 @@ fun UninterpretedSymbolicPythonObject.getFieldValue(
 ): UninterpretedSymbolicPythonObject {
     requireNotNull(ctx.curState)
     name.addSupertype(ctx, typeSystem.pythonStr)
-    val addr = ctx.curState!!.symbolicObjectMapGet(address, name.address, ObjectDictType, ctx.ctx.addressSort)
+    val addr = ctx.extractCurState().symbolicObjectMapGet(address, name.address, ObjectDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(addr, typeSystem)
 }
 
@@ -41,7 +42,7 @@ fun UninterpretedSymbolicPythonObject.setFieldValue(
 ) {
     requireNotNull(ctx.curState)
     name.addSupertypeSoft(ctx, typeSystem.pythonStr)
-    ctx.curState!!.symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
+    ctx.extractCurState().symbolicObjectMapPut(address, name.address, value.address, ObjectDictType, ctx.ctx.addressSort)
 }
 
 fun UninterpretedSymbolicPythonObject.containsField(
@@ -50,7 +51,7 @@ fun UninterpretedSymbolicPythonObject.containsField(
 ): UBoolExpr {
     requireNotNull(ctx.curState)
     name.addSupertype(ctx, typeSystem.pythonStr)
-    return ctx.curState!!.symbolicObjectMapContains(address, name.address, ObjectDictType)
+    return ctx.extractCurState().symbolicObjectMapContains(address, name.address, ObjectDictType)
 }
 
 fun InterpretedInputSymbolicPythonObject.containsField(

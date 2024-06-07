@@ -7,6 +7,7 @@ import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.IntContents
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
@@ -18,13 +19,13 @@ import org.usvm.memory.UMemory
 fun UninterpretedSymbolicPythonObject.setIntContent(ctx: ConcolicRunContext, expr: UExpr<KIntSort>) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonInt)
-    ctx.curState!!.memory.writeField(address, IntContents.content, ctx.ctx.intSort, expr, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.writeField(address, IntContents.content, ctx.ctx.intSort, expr, ctx.ctx.trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
     requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonInt)
-    return ctx.curState!!.memory.readField(address, IntContents.content, ctx.ctx.intSort)
+    return ctx.extractCurState().memory.readField(address, IntContents.content, ctx.ctx.intSort)
 }
 
 fun UninterpretedSymbolicPythonObject.getToIntContent(ctx: ConcolicRunContext): UExpr<KIntSort>? = with(ctx.ctx) {
@@ -56,5 +57,5 @@ fun InterpretedSymbolicPythonObject.getIntContent(
 
 fun InterpretedSymbolicPythonObject.getIntContent(ctx: ConcolicRunContext): UExpr<KIntSort> {
     requireNotNull(ctx.curState)
-    return getIntContent(ctx.ctx, ctx.curState!!.memory)
+    return getIntContent(ctx.ctx, ctx.extractCurState().memory)
 }

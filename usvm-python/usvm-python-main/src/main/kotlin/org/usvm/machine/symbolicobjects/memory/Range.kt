@@ -4,6 +4,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
 import org.usvm.api.writeField
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.RangeContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
@@ -15,9 +16,9 @@ fun UninterpretedSymbolicPythonObject.setRangeContent(
 ) = with(ctx.ctx) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonRange)
-    ctx.curState!!.memory.writeField(address, RangeContents.start, intSort, start, trueExpr)
-    ctx.curState!!.memory.writeField(address, RangeContents.stop, intSort, stop, trueExpr)
-    ctx.curState!!.memory.writeField(address, RangeContents.step, intSort, step, trueExpr)
+    ctx.extractCurState().memory.writeField(address, RangeContents.start, intSort, start, trueExpr)
+    ctx.extractCurState().memory.writeField(address, RangeContents.stop, intSort, stop, trueExpr)
+    ctx.extractCurState().memory.writeField(address, RangeContents.step, intSort, step, trueExpr)
     val lengthRValue = mkIte(
         step gt mkIntNum(0),
         mkIte(
@@ -37,5 +38,5 @@ fun UninterpretedSymbolicPythonObject.setRangeContent(
             mkIntNum(0)
         )
     )
-    ctx.curState!!.memory.writeField(address, RangeContents.length, intSort, lengthRValue, trueExpr)
+    ctx.extractCurState().memory.writeField(address, RangeContents.length, intSort, lengthRValue, trueExpr)
 }

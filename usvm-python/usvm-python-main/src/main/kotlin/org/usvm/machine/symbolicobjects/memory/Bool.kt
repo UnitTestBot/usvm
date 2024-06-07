@@ -8,6 +8,7 @@ import org.usvm.api.readField
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.BoolContents
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
@@ -23,7 +24,7 @@ import org.usvm.memory.UMemory
 fun UninterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UExpr<KBoolSort> {
     requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonBool)
-    return ctx.curState!!.memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx.ctx))
+    return ctx.extractCurState().memory.readField(address, BoolContents.content, BoolContents.content.sort(ctx.ctx))
 }
 
 fun UninterpretedSymbolicPythonObject.getToBoolValue(ctx: ConcolicRunContext): UBoolExpr? = with(ctx.ctx) {
@@ -82,5 +83,5 @@ fun InterpretedSymbolicPythonObject.getBoolContent(ctx: PyContext, memory: UMemo
 
 fun InterpretedSymbolicPythonObject.getBoolContent(ctx: ConcolicRunContext): UBoolExpr {
     requireNotNull(ctx.curState)
-    return getBoolContent(ctx.ctx, ctx.curState!!.memory)
+    return getBoolContent(ctx.ctx, ctx.extractCurState().memory)
 }

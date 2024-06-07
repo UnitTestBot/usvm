@@ -2,6 +2,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.addIntToSet
 import org.usvm.machine.symbolicobjects.memory.addRefToSet
@@ -76,7 +77,7 @@ fun handlerSetAddKt(
 
 fun handlerCreateEmptySetKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject? {
     ctx.curState ?: return null
-    val address = ctx.curState!!.memory.allocConcrete(ctx.typeSystem.pythonSet)
+    val address = ctx.extractCurState().memory.allocConcrete(ctx.typeSystem.pythonSet)
     return UninterpretedSymbolicPythonObject(address, ctx.typeSystem)
 }
 

@@ -7,6 +7,7 @@ import org.usvm.WithSolverStateForker.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
+import org.usvm.machine.extractCurState
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getToBoolValue
@@ -16,15 +17,15 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null) {
         return
     }
-    val model = ctx.curState!!.pyModel
+    val model = ctx.extractCurState().pyModel
     val oldCurState = ctx.curState
-    val forkResult = fork(ctx.curState!!, cond)
+    val forkResult = fork(ctx.extractCurState(), cond)
     when (model) {
         forkResult.positiveState?.models?.first() -> ctx.curState = forkResult.positiveState
         forkResult.negativeState?.models?.first() -> ctx.curState = forkResult.negativeState
         else -> error("Should not be reachable")
     }
-    ctx.builder.state = ctx.curState!!
+    ctx.builder.state = ctx.extractCurState()
     val applyToPyModel = { state: PyState ->
         state.models = listOf(state.models.first().toPyModel(ctx.ctx, state.pathConstraints))
     }
@@ -53,10 +54,10 @@ fun myAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     if (ctx.curState == null) {
         return
     }
-    val oldModel = ctx.curState!!.pyModel
-    val forkResult = myAssertOnState(ctx.curState!!, cond)
+    val oldModel = ctx.extractCurState().pyModel
+    val forkResult = myAssertOnState(ctx.extractCurState(), cond)
     if (forkResult == null) {
-        ctx.curState!!.meta.modelDied = true
+        ctx.extractCurState().meta.modelDied = true
     }
     if (forkResult?.pyModel != oldModel) {
         throw BadModelException()
@@ -67,12 +68,12 @@ fun addDelayedFork(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObjec
     if (ctx.curState == null) {
         return
     }
-    ctx.curState!!.delayedForks = ctx.curState!!.delayedForks.add(
+    ctx.extractCurState().delayedForks = ctx.extractCurState().delayedForks.add(
         DelayedFork(
             clonedState,
             on,
             getTypeStreamForDelayedFork(on, ctx),
-            ctx.curState!!.delayedForks
+            ctx.extractCurState().delayedForks
         )
     )
 }
@@ -82,7 +83,7 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
         return
     }
     if (cond.getTypeIfDefined(ctx) == null) {
-        addDelayedFork(ctx, cond, ctx.curState!!.clone())
+        addDelayedFork(ctx, cond, ctx.extractCurState().clone())
     }
     val expr = cond.getToBoolValue(ctx) ?: return
     myFork(ctx, expr)

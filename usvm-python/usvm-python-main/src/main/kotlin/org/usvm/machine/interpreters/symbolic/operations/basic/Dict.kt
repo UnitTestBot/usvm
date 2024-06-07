@@ -3,6 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import org.usvm.UBoolExpr
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.dictContainsInt
 import org.usvm.machine.symbolicobjects.memory.dictContainsRef
@@ -101,7 +102,7 @@ fun handlerCreateDictKt(
     val elems = elemsStream.asSequence().toList()
     require(keys.size == elems.size)
     val typeSystem = ctx.typeSystem
-    val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
+    val ref = ctx.extractCurState().memory.allocConcrete(typeSystem.pythonDict)
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     (keys zip elems).forEach { (key, elem) ->
         addHashableTypeConstrains(ctx, key)
@@ -119,7 +120,7 @@ fun handlerCreateDictConstKeyKt(
     val elems = elemsStream.asSequence().toList()
     val typeSystem = ctx.typeSystem
     keys.addSupertypeSoft(ctx, typeSystem.pythonTuple)
-    val ref = ctx.curState!!.memory.allocConcrete(typeSystem.pythonDict)
+    val ref = ctx.extractCurState().memory.allocConcrete(typeSystem.pythonDict)
     val result = UninterpretedSymbolicPythonObject(ref, ctx.typeSystem)
     elems.forEachIndexed { index, elem ->
         val key = keys.readArrayElement(ctx, ctx.ctx.mkIntNum(index))

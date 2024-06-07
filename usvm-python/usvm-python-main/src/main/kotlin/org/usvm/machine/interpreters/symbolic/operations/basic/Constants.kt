@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
@@ -47,7 +48,7 @@ fun handlerLoadConstStrKt(context: ConcolicRunContext, value: PyObject): Uninter
         return null
     }
     val str = ConcretePythonInterpreter.getPythonObjectStr(value)
-    return context.curState!!.preAllocatedObjects.allocateStr(context, str, value)
+    return context.extractCurState().preAllocatedObjects.allocateStr(context, str, value)
 }
 
 fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {

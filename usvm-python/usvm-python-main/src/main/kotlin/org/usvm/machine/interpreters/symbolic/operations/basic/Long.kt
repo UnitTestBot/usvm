@@ -208,7 +208,10 @@ fun handlerIntCastKt(
     val type = arg.getTypeIfDefined(ctx) ?: return null
     return when (type) {
         typeSystem.pythonInt -> arg
-        typeSystem.pythonBool -> constructInt(ctx, arg.getToIntContent(ctx)!!)
+        typeSystem.pythonBool -> constructInt(
+            ctx,
+            arg.getToIntContent(ctx) ?: error("It should be possible to cast bool to int")
+        )
         typeSystem.pythonFloat -> castFloatToInt(ctx, arg)
         else -> null
     }

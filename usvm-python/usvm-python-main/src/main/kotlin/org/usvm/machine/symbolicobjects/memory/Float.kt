@@ -13,6 +13,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.ContentOfType
 import org.usvm.machine.symbolicobjects.FloatContents
@@ -124,20 +125,20 @@ fun mkUninterpretedFloatWithValue(ctx: PyContext, value: UExpr<KRealSort>): Floa
 fun UninterpretedSymbolicPythonObject.setFloatContent(ctx: ConcolicRunContext, expr: FloatUninterpretedContent) {
     requireNotNull(ctx.curState)
     addSupertypeSoft(ctx, typeSystem.pythonFloat)
-    writeBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.curState!!.memory, address, ctx.ctx, expr.isNan)
-    writeBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.curState!!.memory, address, ctx.ctx, expr.isInf)
-    ctx.curState!!.memory.writeField(address, FloatContents.infSign, ctx.ctx.boolSort, expr.infSign, ctx.ctx.trueExpr)
-    ctx.curState!!.memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr.realValue, ctx.ctx.trueExpr)
+    writeBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.extractCurState().memory, address, ctx.ctx, expr.isNan)
+    writeBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.extractCurState().memory, address, ctx.ctx, expr.isInf)
+    ctx.extractCurState().memory.writeField(address, FloatContents.infSign, ctx.ctx.boolSort, expr.infSign, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.writeField(address, FloatContents.content, ctx.ctx.realSort, expr.realValue, ctx.ctx.trueExpr)
 }
 
 fun UninterpretedSymbolicPythonObject.getFloatContent(ctx: ConcolicRunContext): FloatUninterpretedContent {
     requireNotNull(ctx.curState)
     addSupertype(ctx, typeSystem.pythonFloat)
     return FloatUninterpretedContent(
-        readBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.curState!!.memory, address, ctx.ctx),
-        readBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.curState!!.memory, address, ctx.ctx),
-        ctx.curState!!.memory.readField(address, FloatContents.infSign, ctx.ctx.boolSort),
-        ctx.curState!!.memory.readField(address, FloatContents.content, ctx.ctx.realSort)
+        readBoolFieldWithSoftConstraint(FloatContents.isNan, ctx.extractCurState().memory, address, ctx.ctx),
+        readBoolFieldWithSoftConstraint(FloatContents.isInf, ctx.extractCurState().memory, address, ctx.ctx),
+        ctx.extractCurState().memory.readField(address, FloatContents.infSign, ctx.ctx.boolSort),
+        ctx.extractCurState().memory.readField(address, FloatContents.content, ctx.ctx.realSort)
     )
 }
 

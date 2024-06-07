@@ -21,6 +21,7 @@ import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
 import org.usvm.machine.PyContext
+import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.DictContents
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
@@ -38,14 +39,14 @@ fun UninterpretedSymbolicPythonObject.dictIsEmpty(ctx: ConcolicRunContext): UBoo
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    return ctx.ctx.mkNot(ctx.curState!!.memory.readField(address, DictContents.isNotEmpty, ctx.ctx.boolSort))
+    return ctx.ctx.mkNot(ctx.extractCurState().memory.readField(address, DictContents.isNotEmpty, ctx.ctx.boolSort))
 }
 
 fun UninterpretedSymbolicPythonObject.setDictNotEmpty(ctx: ConcolicRunContext) {
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
-    ctx.curState!!.memory.writeField(
+    ctx.extractCurState().memory.writeField(
         address,
         DictContents.isNotEmpty,
         ctx.ctx.boolSort,
@@ -61,7 +62,7 @@ fun UninterpretedSymbolicPythonObject.readDictRefElement(
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    val resultAddress = ctx.curState!!.symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
+    val resultAddress = ctx.extractCurState().symbolicObjectMapGet(address, key.address, RefDictType, ctx.ctx.addressSort)
     return UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
 }
 
@@ -72,7 +73,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsRef(
     requireNotNull(ctx.curState)
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
-    val contains = ctx.curState!!.symbolicObjectMapContains(address, key.address, RefDictType)
+    val contains = ctx.extractCurState().symbolicObjectMapContains(address, key.address, RefDictType)
     return with(ctx.ctx) {
         dictIsEmpty(ctx).not() and contains
     }
@@ -87,7 +88,7 @@ fun UninterpretedSymbolicPythonObject.writeDictRefElement(
     val typeSystem = ctx.typeSystem
     addSupertypeSoft(ctx, typeSystem.pythonDict)
     setDictNotEmpty(ctx)
-    ctx.curState!!.symbolicObjectMapPut(address, key.address, value.address, RefDictType, ctx.ctx.addressSort)
+    ctx.extractCurState().symbolicObjectMapPut(address, key.address, value.address, RefDictType, ctx.ctx.addressSort)
 }
 
 fun UninterpretedSymbolicPythonObject.readDictIntElement(
@@ -98,7 +99,7 @@ fun UninterpretedSymbolicPythonObject.readDictIntElement(
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val lvalue = UMapEntryLValue(ctx.ctx.intSort, ctx.ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
-    val resultAddress = ctx.curState!!.memory.read(lvalue)
+    val resultAddress = ctx.extractCurState().memory.read(lvalue)
     return UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
 }
 
@@ -110,7 +111,7 @@ fun UninterpretedSymbolicPythonObject.dictContainsInt(
     val typeSystem = ctx.typeSystem
     addSupertype(ctx, typeSystem.pythonDict)
     val lvalue = USetEntryLValue(ctx.ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
-    val contains = ctx.curState!!.memory.read(lvalue)
+    val contains = ctx.extractCurState().memory.read(lvalue)
     return with(ctx.ctx) {
         dictIsEmpty(ctx).not() and contains
     }
@@ -126,9 +127,9 @@ fun UninterpretedSymbolicPythonObject.writeDictIntElement(
     addSupertypeSoft(ctx, typeSystem.pythonDict)
     setDictNotEmpty(ctx)
     val lvalue = UMapEntryLValue(ctx.ctx.intSort, ctx.ctx.addressSort, address, key, IntDictType, USizeExprKeyInfo())
-    ctx.curState!!.memory.write(lvalue, value.address, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.write(lvalue, value.address, ctx.ctx.trueExpr)
     val lvalueSet = USetEntryLValue(ctx.ctx.intSort, address, key, IntDictType, USizeExprKeyInfo())
-    ctx.curState!!.memory.write(lvalueSet, ctx.ctx.trueExpr, ctx.ctx.trueExpr)
+    ctx.extractCurState().memory.write(lvalueSet, ctx.ctx.trueExpr, ctx.ctx.trueExpr)
     // TODO: size?
 }
 

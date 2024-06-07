@@ -13,6 +13,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isStaticHeapRef
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
+import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
@@ -27,7 +28,7 @@ import org.usvm.types.first
 fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): UExpr<KIntSort> {
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
-    val result = ctx.curState!!.memory.readArrayLength(address, ArrayType, ctx.ctx.intSort)
+    val result = ctx.extractCurState().memory.readArrayLength(address, ArrayType, ctx.ctx.intSort)
     myAssert(ctx, ctx.ctx.mkArithGe(result, ctx.ctx.mkIntNum(0)))
     return result
 }
@@ -44,7 +45,7 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
     requireNotNull(ctx.curState)
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
-    val elemAddress = ctx.curState!!.memory.readArrayIndex(address, index, ArrayType, ctx.ctx.addressSort)
+    val elemAddress = ctx.extractCurState().memory.readArrayIndex(address, index, ArrayType, ctx.ctx.addressSort)
     val elem = UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
     if (isAllocatedObject(ctx)) {
         return elem
@@ -90,7 +91,7 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
         }
         myAssert(ctx, cond)
     }
-    ctx.curState!!.memory.writeArrayIndex(
+    ctx.extractCurState().memory.writeArrayIndex(
         address,
         index,
         ArrayType,
