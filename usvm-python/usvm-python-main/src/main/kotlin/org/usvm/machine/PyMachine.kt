@@ -61,7 +61,7 @@ class PyMachine(
         )
 
     private fun getInitialState(target: PyUnpinnedCallable): PyState {
-        val pathConstraints = UPathConstraints<PythonType>(ctx)
+        val pathConstraints = PyPathConstraints(ctx)
         val memory = UMemory<PythonType, PyCallable>(
             ctx,
             pathConstraints.typeConstraints

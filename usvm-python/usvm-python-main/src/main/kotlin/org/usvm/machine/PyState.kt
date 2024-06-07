@@ -35,7 +35,7 @@ class PyState(
     ctx: PyContext,
     private val pythonCallable: PyUnpinnedCallable,
     val inputSymbols: List<UninterpretedSymbolicPythonObject>,
-    pathConstraints: UPathConstraints<PythonType>,
+    override val pathConstraints: PyPathConstraints,
     memory: UMemory<PythonType, PyCallable>,
     uModel: UModelBase<PythonType>,
     val typeSystem: PythonTypeSystem,
@@ -60,6 +60,7 @@ class PyState(
     targets,
 ) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PyState {
+        require(newConstraints is PyPathConstraints?)
         val newPathConstraints = newConstraints ?: pathConstraints.clone()
         val newMemory = memory.clone(newPathConstraints.typeConstraints)
         return PyState(

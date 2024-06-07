@@ -1,7 +1,5 @@
 package org.usvm.constraints
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentHashSetOf
 import org.usvm.UAndExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
@@ -23,13 +21,13 @@ import org.usvm.uctx
 /**
  * Mutable representation of path constraints.
  */
-open class UPathConstraints<Type> private constructor(
-    private val ctx: UContext<*>,
-    private val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
+open class UPathConstraints<Type>(
+    protected val ctx: UContext<*>,
+    protected val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
      */
-    private val equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx),
+    protected val equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx),
     /**
      * Constraints solved by type solver.
      */
@@ -40,8 +38,7 @@ open class UPathConstraints<Type> private constructor(
     /**
      * Specially represented numeric constraints (e.g. >, <, >=, ...).
      */
-    private val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
-    var pythonSoftConstraints: PersistentSet<UBoolExpr> = persistentHashSetOf()
+    protected val numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
 ) : UMergeable<UPathConstraints<Type>, MutableMergeGuard> {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
@@ -163,7 +160,7 @@ open class UPathConstraints<Type> private constructor(
             }
         }
 
-    fun clone(): UPathConstraints<Type> {
+    open fun clone(): UPathConstraints<Type> {
         val clonedLogicalConstraints = logicalConstraints.clone()
         val clonedEqualityConstraints = equalityConstraints.clone()
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
@@ -174,7 +171,6 @@ open class UPathConstraints<Type> private constructor(
             equalityConstraints = clonedEqualityConstraints,
             typeConstraints = clonedTypeConstraints,
             numericConstraints = clonedNumericConstraints,
-            pythonSoftConstraints = pythonSoftConstraints,
         )
     }
 
@@ -211,7 +207,6 @@ open class UPathConstraints<Type> private constructor(
             mergedEqualityConstraints,
             mergedTypeConstraints,
             mergedNumericConstraints,
-            pythonSoftConstraints.addAll(other.pythonSoftConstraints),
         )
     }
 }
