@@ -47,9 +47,10 @@ sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedFo
         graph: DelayedForkByInstructionGraph,
         isAvailable: (DelayedForkGraphInnerVertex<DelayedForkState>) -> Boolean,
     ): List<PyInstruction> =
-        graph.nodesByInstruction.keys.filter { instruction ->
-            val nodes = graph.nodesByInstruction[instruction]!!
+        graph.nodesByInstruction.entries.filter { (_, nodes) ->
             nodes.any { it in graph.aliveNodesAtDistanceOne && isAvailable(it) }
+        }.map {
+            it.key
         }
 
     protected fun chooseDelayedFork(
@@ -61,7 +62,9 @@ sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedFo
         val size = availableInstructions.size
         require(size > 0)
         val idx = random.nextInt(0, size)
-        val nodes = graph.nodesByInstruction[availableInstructions[idx]]!!.filter {
+        val rawNodes = graph.nodesByInstruction[availableInstructions[idx]]
+            ?: error("${availableInstructions[idx]} not in map graph.nodesByInstruction")
+        val nodes = rawNodes.filter {
             it in graph.aliveNodesAtDistanceOne && isAvailable(it)
         }
         require(nodes.isNotEmpty())
@@ -69,7 +72,7 @@ sealed class DelayedForkByInstructionAction : Action<DelayedForkState, DelayedFo
     }
 }
 
-object ServeNewDelayedForkByInstruction : DelayedForkByInstructionAction() {
+data object ServeNewDelayedForkByInstruction : DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isEmpty() && node.delayedForkState.size > 0
     }
@@ -83,10 +86,9 @@ object ServeNewDelayedForkByInstruction : DelayedForkByInstructionAction() {
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
 
-    override fun toString(): String = "ServeNewDelayedForkByInstruction"
 }
 
-object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() {
+data object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() {
     private val predicate = { node: DelayedForkGraphInnerVertex<DelayedForkState> ->
         node.delayedForkState.successfulTypes.isNotEmpty() && node.delayedForkState.size > 0
     }
@@ -100,7 +102,6 @@ object ServeOldDelayedForkByInstruction : DelayedForkByInstructionAction() {
     ): PyPathSelectorAction<DelayedForkState> =
         MakeDelayedFork(chooseDelayedFork(graph, predicate, random))
 
-    override fun toString(): String = "ServeOldDelayedForkByInstruction"
 }
 
 class DelayedForkByInstructionGraph(

@@ -29,7 +29,7 @@ private fun addWithDefault(map: MutableMap<MethodDescription, Int>, descr: Metho
     if (map[descr] == null) {
         map[descr] = 0
     }
-    map[descr] = map[descr]!! + value
+    map[descr] = (map[descr] ?: error("$descr not in map")) + value
 }
 
 class PyMachineStatistics {

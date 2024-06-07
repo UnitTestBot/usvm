@@ -9,6 +9,7 @@ import org.usvm.USymbolicHeapRef
 import org.usvm.api.typeStreamOf
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.extractCurState
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
@@ -47,5 +48,5 @@ fun getTypeStreamForDelayedFork(
         }
     }
     val leaf = getLeafHeapRef(obj.address, ctx.modelHolder.model)
-    return ctx.curState!!.memory.typeStreamOf(leaf)
+    return ctx.extractCurState().memory.typeStreamOf(leaf)
 }

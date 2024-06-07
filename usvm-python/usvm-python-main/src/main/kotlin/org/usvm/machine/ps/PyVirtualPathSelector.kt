@@ -34,7 +34,8 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
     private val graph = graphCreation.createOneVertexGraph(DelayedForkGraphRootVertex())
     override fun isEmpty(): Boolean = nullablePeek() == null
 
-    override fun peek(): PyState = nullablePeek()!!
+    override fun peek(): PyState =
+        nullablePeek() ?: error("peek() must be called after isEmpty() check")
 
     override fun update(state: PyState) {
         logger.debug("Updating state {}", state)
@@ -166,8 +167,9 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
     }
 
     private fun generateStateWithConcreteTypeWithoutDelayedFork(state: PyState): PyState? {
-        require(state.meta.wasExecuted && state.meta.objectsWithoutConcreteTypes != null)
-        val objects = state.meta.objectsWithoutConcreteTypes!!.map {
+        val objectsWithoutConcreteTypes = state.meta.objectsWithoutConcreteTypes
+        require(state.meta.wasExecuted && objectsWithoutConcreteTypes != null)
+        val objects = objectsWithoutConcreteTypes.map {
             val addressRaw = it.interpretedObjRef
             ctx.mkConcreteHeapRef(addressRaw)
         }
