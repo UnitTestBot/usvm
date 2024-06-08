@@ -96,26 +96,29 @@ open class USolverBase<Type>(
                 )
 
                 // fourth, check it satisfies typeConstraints
-                when (val typeResult = typeSolver.check(typeSolverQuery)) {
-                    is USatResult -> return USatResult(
-                        UModelBase(
-                            ctx,
-                            uModel.stack,
-                            typeResult.model,
-                            uModel.mocker,
-                            uModel.regions,
-                            uModel.nullRef
-                        )
+                val typedUModel = when (val typeResult = typeSolver.check(typeSolverQuery)) {
+                    is USatResult -> UModelBase(
+                        ctx,
+                        uModel.stack,
+                        typeResult.model,
+                        uModel.mocker,
+                        uModel.regions,
+                        uModel.nullRef
                     )
 
                     // in case of failure, assert reference disequality expressions
-                    is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
-                        .map(translator::translate)
-                        .let { smtSolver.assert(it) }
+                    is UTypeUnsatResult<Type> -> {
+                        typeResult.conflictLemmas
+                            .map(translator::translate)
+                            .let { smtSolver.assert(it) }
+                        continue
+                    }
 
                     is UUnknownResult -> return UUnknownResult()
                     is UUnsatResult -> return UUnsatResult()
                 }
+
+                return USatResult(typedUModel)
             } while (iter < ITERATIONS_THRESHOLD || ITERATIONS_THRESHOLD == INFINITE_ITERATIONS)
 
             return UUnsatResult()
