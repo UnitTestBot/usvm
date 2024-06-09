@@ -30,8 +30,8 @@ import org.usvm.machine.GoContext
 import org.usvm.machine.GoMethod
 import org.usvm.machine.state.GoMethodResult
 import org.usvm.machine.state.GoState
-import org.usvm.machine.type.GoType
 import org.usvm.machine.type.GoSort
+import org.usvm.machine.type.GoType
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
@@ -82,6 +82,9 @@ class GoTestInterpreter(
         private val memory: UWritableMemory<GoType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: GoType): Any? = with(ctx) {
+            if (expr == voidValue) {
+                return null
+            }
             val sort = bridge.typeToSort(type)
             return when (sort) {
                 GoSort.BOOL -> resolveBool(expr.asExpr(boolSort))
