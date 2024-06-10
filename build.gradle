@@ -103,7 +103,7 @@ task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
     environment('PRIVATE_KEY_PATH', privateKeyPath)
     environment('PRIVATE_KEY_PASS', privateKeyPass)
     argsString programArgs
-    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
 }
 
 task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
@@ -115,7 +115,7 @@ task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
     environment('PRIVATE_KEY_PATH', privateKeyPath)
     environment('PRIVATE_KEY_PASS', privateKeyPass)
     argsString programArgs
-    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
 }
 
 
@@ -124,5 +124,5 @@ task(checkTemplates, dependsOn: 'classes', type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
     argsString programArgs
-    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED"
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
 }
