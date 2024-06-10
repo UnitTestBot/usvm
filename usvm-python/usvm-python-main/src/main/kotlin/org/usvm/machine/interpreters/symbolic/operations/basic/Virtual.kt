@@ -9,6 +9,7 @@ import org.usvm.isTrue
 import org.usvm.language.NbBoolMethod
 import org.usvm.language.SqLengthMethod
 import org.usvm.language.VirtualPythonObject
+import org.usvm.machine.UnregisteredVirtualOperation
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.model.PyModel
@@ -133,5 +134,3 @@ fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObj
     }
     return result
 }
-
-class UnregisteredVirtualOperation : RuntimeException()

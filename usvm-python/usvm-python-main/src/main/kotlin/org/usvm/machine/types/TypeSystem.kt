@@ -1,7 +1,7 @@
 package org.usvm.machine.types
 
 import org.usvm.language.StructuredPyProgram
-import org.usvm.machine.interpreters.concrete.CPythonExecutionException
+import org.usvm.machine.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.concrete.PyObject

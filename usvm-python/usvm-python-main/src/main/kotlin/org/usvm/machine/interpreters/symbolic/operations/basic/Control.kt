@@ -5,6 +5,7 @@ import org.usvm.UExpr
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.WithSolverStateForker.forkMulti
 import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.BadModelException
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.extractCurState
@@ -88,5 +89,3 @@ fun handlerForkKt(ctx: ConcolicRunContext, cond: UninterpretedSymbolicPythonObje
     val expr = cond.getToBoolValue(ctx) ?: return
     myFork(ctx, expr)
 }
-
-class BadModelException : RuntimeException()

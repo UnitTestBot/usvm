@@ -6,15 +6,17 @@ import org.usvm.UInterpreter
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyPinnedCallable
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.BadModelException
+import org.usvm.machine.CPythonExecutionException
+import org.usvm.machine.CancelledExecutionException
+import org.usvm.machine.InstructionLimitExceededException
 import org.usvm.machine.PyContext
+import org.usvm.machine.PyExecutionException
+import org.usvm.machine.PyExecutionExceptionFromJava
 import org.usvm.machine.PyState
-import org.usvm.machine.interpreters.concrete.CPythonExecutionException
+import org.usvm.machine.UnregisteredVirtualOperation
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
-import org.usvm.machine.interpreters.symbolic.operations.basic.BadModelException
-import org.usvm.machine.interpreters.symbolic.operations.basic.UnregisteredVirtualOperation
-import org.usvm.machine.interpreters.symbolic.operations.tracing.CancelledExecutionException
-import org.usvm.machine.interpreters.symbolic.operations.tracing.InstructionLimitExceededException
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.serialization.ReprObjectSerializer
@@ -83,20 +85,23 @@ class USVMPythonInterpreter<PyObjectRepr>(
                 concolicRunContext,
                 printErrorMsg
             )
-        } catch (exception: RuntimeException) {
-            if (exception is CPythonExecutionException) {
-                val realCPythonException = processCPythonExceptionDuringConcolicRun(
-                    concolicRunContext,
-                    exception,
-                    renderer,
-                    inputModel,
-                    inputRepr
-                )
-                if (!realCPythonException) {
-                    return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+        } catch (exception: PyExecutionException) {
+            when (exception) {
+                is CPythonExecutionException -> {
+                    val realCPythonException = processCPythonExceptionDuringConcolicRun(
+                        concolicRunContext,
+                        exception,
+                        renderer,
+                        inputModel,
+                        inputRepr
+                    )
+                    if (!realCPythonException) {
+                        return StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
+                    }
                 }
-            } else {
-                processJavaException(concolicRunContext, exception, renderer)
+                is PyExecutionExceptionFromJava -> {
+                    processJavaException(concolicRunContext, exception, renderer)
+                }
             }
             null
         }
@@ -160,7 +165,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
     private fun processJavaException(
         concolicRunContext: ConcolicRunContext,
-        exception: Throwable,
+        exception: PyExecutionExceptionFromJava,
         renderer: PyValueRenderer,
     ) {
         when (exception) {
@@ -168,7 +173,6 @@ class USVMPythonInterpreter<PyObjectRepr>(
             is BadModelException -> logger.debug("Step result: Bad model")
             is InstructionLimitExceededException -> processInstructionLimitExceeded(concolicRunContext)
             is CancelledExecutionException -> processCancelledException(concolicRunContext)
-            else -> throw exception
         }
     }
 
@@ -183,7 +187,11 @@ class USVMPythonInterpreter<PyObjectRepr>(
         requireNotNull(exception.pythonExceptionValue)
         if (ConcretePythonInterpreter.isJavaException(exception.pythonExceptionValue)) {
             val javaException = ConcretePythonInterpreter.extractException(exception.pythonExceptionValue)
-            processJavaException(concolicRunContext, javaException, renderer)
+            if (javaException is PyExecutionExceptionFromJava) {
+                processJavaException(concolicRunContext, javaException, renderer)
+            } else {
+                throw javaException
+            }
             return false
         }
         logger.debug(

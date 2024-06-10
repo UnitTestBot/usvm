@@ -8,6 +8,7 @@ import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.interpreter.MemberDescriptor
 import org.usvm.language.SymbolForCPython
 import org.usvm.language.VirtualPythonObject
+import org.usvm.machine.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.venv.VenvConfig
 import org.usvm.machine.interpreters.concrete.venv.activateThisScript
 import org.usvm.machine.interpreters.symbolic.SymbolicClonesOfGlobals
@@ -371,11 +372,6 @@ object ConcretePythonInterpreter {
         initialize()
     }
 }
-
-class CPythonExecutionException(
-    val pythonExceptionValue: PyObject? = null,
-    val pythonExceptionType: PyObject? = null,
-) : RuntimeException()
 
 data class PyObject(val address: Long) {
     init {

@@ -4,6 +4,8 @@ import mu.KLogging
 import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.SymbolForCPython
+import org.usvm.machine.CancelledExecutionException
+import org.usvm.machine.InstructionLimitExceededException
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import java.util.concurrent.Callable
@@ -72,6 +74,3 @@ fun handlerForkResultKt(context: ConcolicRunContext, cond: SymbolForCPython, res
         context.pathDiversion()
     }
 }
-
-class InstructionLimitExceededException : RuntimeException()
-class CancelledExecutionException : RuntimeException()

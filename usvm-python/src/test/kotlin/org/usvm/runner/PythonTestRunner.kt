@@ -3,8 +3,8 @@ package org.usvm.runner
 import org.usvm.UMachineOptions
 import org.usvm.language.PyProgram
 import org.usvm.language.PyUnpinnedCallable
+import org.usvm.machine.CPythonExecutionException
 import org.usvm.machine.PyMachine
-import org.usvm.machine.interpreters.concrete.CPythonExecutionException
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.results.DefaultPyMachineResultsReceiver
