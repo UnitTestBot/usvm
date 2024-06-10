@@ -3,7 +3,6 @@ package com.spbpu.bbfinfrastructure.project
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
 
 class ResultSarifBuilder {
     private val json = Json { prettyPrint = true }
@@ -13,7 +12,8 @@ class ResultSarifBuilder {
     @Serializable
     data class ResultSarif(
         val runs: List<ResultRun>,
-        val version: String
+        val version: String? = null,
+        val `$schema`: String? = null
     )
 
     @Serializable
@@ -36,7 +36,8 @@ class ResultSarifBuilder {
     data class ResultResult(
         val locations: List<ResultLocation>,
         val message: ResultMessage,
-        val ruleId: String
+        val ruleId: String,
+        val kind: String? = null
     )
 
     @Serializable
@@ -68,5 +69,3 @@ class ResultSarifBuilder {
         val endLine: Int? = null
     )
 }
-
-
