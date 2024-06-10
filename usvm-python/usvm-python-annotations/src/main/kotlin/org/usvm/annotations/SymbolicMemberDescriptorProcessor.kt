@@ -1,6 +1,5 @@
 package org.usvm.annotations
 
-import org.usvm.annotations.codegeneration.MemberDescriptorInfo
 import org.usvm.annotations.codegeneration.generateDescriptorChecks
 import java.io.File
 import javax.annotation.processing.AbstractProcessor

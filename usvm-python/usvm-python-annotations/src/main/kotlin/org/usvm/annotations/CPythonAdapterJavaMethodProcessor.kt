@@ -1,6 +1,5 @@
 package org.usvm.annotations
 
-import org.usvm.annotations.codegeneration.DefinitionDescriptor
 import org.usvm.annotations.codegeneration.generateCPythonAdapterDefs
 import java.io.File
 import javax.annotation.processing.AbstractProcessor

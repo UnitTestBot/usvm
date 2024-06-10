@@ -1,10 +1,6 @@
 package org.usvm.annotations.codegeneration
 
-data class DefinitionDescriptor(
-    val cName: String,
-    val javaName: String,
-    val javaSignature: String,
-)
+import org.usvm.annotations.DefinitionDescriptor
 
 fun generateCPythonAdapterDefs(defs: List<DefinitionDescriptor>): String {
     val jmethodIDMacro = defs.fold("#define HANDLERS_DEFS ") { acc, def ->

@@ -4,8 +4,6 @@ import kotlin.Unit;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.usvm.annotations.*;
-import org.usvm.annotations.codegeneration.CType;
-import org.usvm.annotations.codegeneration.ObjectConverter;
 import org.usvm.annotations.ids.ApproximationId;
 import org.usvm.annotations.ids.SymbolicMethodId;
 import org.usvm.language.*;

@@ -1,10 +1,7 @@
 package org.usvm.annotations.codegeneration
 
-data class MemberDescriptorInfo(
-    val nativeTypeName: String,
-    val nativeMemberName: String,
-    val javaMemberName: String,
-)
+import org.usvm.annotations.MEMBER_DESCRIPTION_QUALNAME
+import org.usvm.annotations.MemberDescriptorInfo
 
 fun generateDescriptorCheck(info: MemberDescriptorInfo): String =
     """

@@ -1,5 +1,10 @@
 package org.usvm.annotations.codegeneration
 
+import org.usvm.annotations.ArgumentDescription
+import org.usvm.annotations.CPythonFunctionDescription
+import org.usvm.annotations.CType
+import org.usvm.annotations.JavaType
+import org.usvm.annotations.ObjectConverter
 import org.usvm.annotations.ids.SymbolicMethodId
 
 fun generateSymbolicMethod(id: SymbolicMethodId): String {
@@ -55,7 +60,7 @@ fun generateSymbolicMethodInitialization(): String {
 }
 
 fun generateMethodCheck(): String {
-    val items = SymbolicMethodId.values().map {
+    val items = SymbolicMethodId.entries.map {
         """
             if (ptr == ${it.cName})
                 return ${it.cName};

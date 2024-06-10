@@ -1,10 +1,5 @@
 package org.usvm.annotations
 
-import org.usvm.annotations.codegeneration.ArgumentDescription
-import org.usvm.annotations.codegeneration.CPythonFunctionDescription
-import org.usvm.annotations.codegeneration.CType
-import org.usvm.annotations.codegeneration.JavaType
-import org.usvm.annotations.codegeneration.ObjectConverter
 import org.usvm.annotations.codegeneration.generateCPythonFunctionHeader
 import org.usvm.annotations.codegeneration.generateCPythonFunctionsImpls
 import java.io.File
