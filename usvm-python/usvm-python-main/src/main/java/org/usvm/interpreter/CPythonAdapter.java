@@ -980,7 +980,7 @@ public class CPythonAdapter {
         if (symbol.obj == null)
             return;
         context.curOperation = new MockHeader(NbBoolMethod.INSTANCE, Collections.singletonList(symbol.obj), symbol.obj);
-        nbBoolKt(context, symbol.obj);
+        // We probably don't want to put constraints after nb_bool (maybe in the future?)
     }
 
     @CPythonAdapterJavaMethod(cName = "nb_int")

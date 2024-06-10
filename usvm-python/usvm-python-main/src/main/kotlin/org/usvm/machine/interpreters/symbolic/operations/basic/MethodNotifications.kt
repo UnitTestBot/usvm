@@ -24,11 +24,6 @@ import org.usvm.machine.types.HasTpRichcmp
 import org.usvm.machine.types.HasTpSetattro
 import org.usvm.machine.types.MockType
 
-@Suppress("unused_parameter")
-fun nbBoolKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
-    context.curState ?: return
-}
-
 fun nbIntKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     on.addSupertypeSoft(context, HasNbInt)
