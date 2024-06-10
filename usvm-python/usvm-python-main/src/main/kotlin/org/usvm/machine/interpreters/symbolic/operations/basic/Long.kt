@@ -171,16 +171,6 @@ fun handlerREMLongKt(
 ): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right -> ctx.ctx.mkIntMod(left, right) }(x, y, z)
 
-@Suppress("unused_parameter")
-fun handlerPOWLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
-): UninterpretedSymbolicPythonObject? = null // TODO
-
-// createBinaryIntOp { ctx, left, right ->
-//    if (right is KIntNumExpr) ctx.mkArithPower(left, right) else null
-// } (x, y, z)
 fun handlerTrueDivLongKt(
     x: ConcolicRunContext,
     y: UninterpretedSymbolicPythonObject,

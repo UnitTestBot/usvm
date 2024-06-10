@@ -379,14 +379,6 @@ public class CPythonAdapter {
         return methodWrapper(context, new MethodParameters("rem_long", Arrays.asList(left, right)), () -> handlerREMLongKt(context, left.obj, right.obj));
     }
 
-    // TODO: CPythonFunction
-    @CPythonAdapterJavaMethod(cName = "pow_long")
-    public static SymbolForCPython handlerPOWLong(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
-        if (left.obj == null || right.obj == null)
-            return null;
-        return methodWrapper(context, new MethodParameters("pow_long", Arrays.asList(left, right)), () -> handlerPOWLongKt(context, left.obj, right.obj));
-    }
-
     @CPythonAdapterJavaMethod(cName = "neg_long")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
