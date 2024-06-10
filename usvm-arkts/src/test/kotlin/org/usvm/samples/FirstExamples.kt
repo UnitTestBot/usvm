@@ -126,6 +126,18 @@ class FirstExamplesTest : PandaMethodTestRunner() {
     }
 
     @Test
+    fun `debug test for password exposure`() {
+        discoverProperties<Any, Any>(
+            methodIdentifier = MethodDescriptor(
+                className = "passwordExposureFP2",
+                methodName = "processUserData1",
+                argumentsNumber = 0
+            ),
+            analysisResultMatchers = emptyArray()
+        )
+    }
+
+    @Test
     fun testBasicArray() {
         discoverProperties<Double, Boolean>(
             methodIdentifier = MethodDescriptor(

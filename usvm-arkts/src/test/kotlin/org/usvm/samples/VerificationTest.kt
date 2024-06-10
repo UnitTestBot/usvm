@@ -7,25 +7,29 @@ import org.jacodb.panda.taint.CaseTaintConfig
 import org.jacodb.panda.taint.SinkMethodConfig
 import org.jacodb.panda.taint.SourceMethodConfig
 import org.jacodb.panda.taint.TaintAnalyzer
+import org.jacodb.taint.configuration.Argument
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Nested
+
+enum class VerificationMode {
+    CONFIRMATION,
+    REFUTATION
+}
 
 
 class VerificationTest : PandaMethodTestRunner() {
-    private fun verifyTrace(dataFlowTrace: List<PandaInst>, symbolicTrace: List<PandaInst>): Boolean {
+    private fun verifyTrace(dataFlowTrace: List<PandaInst>, symbolicTrace: List<PandaInst>, mode: VerificationMode = VerificationMode.CONFIRMATION): Boolean {
         val reversedSymbolicTrace = symbolicTrace.reversed()
         var index = 0
         for (inst in reversedSymbolicTrace) {
             if (index == dataFlowTrace.size) {
-                return true
+                return (mode == VerificationMode.CONFIRMATION)
             }
             if (dataFlowTrace[index].location.toString() == inst.location.toString()) {
                 index++
             }
         }
-        // temporary adhoc because of console.log
-        if (index == dataFlowTrace.size - 1) {
-            return true
-        }
-        return false
+        return (mode == VerificationMode.REFUTATION)
     }
 
     @Test
@@ -42,34 +46,57 @@ class VerificationTest : PandaMethodTestRunner() {
         )
     }
 
-    @Test
-    fun `test false positive refutation of password exposure`() {
-        TestOptions.VERIFY_TRACE = true
+    @Nested
+    inner class PasswordExposureTest {
 
-        val project = getProject("passwordExposureFP")
-        val fileTaintAnalyzer = TaintAnalyzer(project)
+        private fun verifyDataFlowResult(programName: String, entryPointMethodName: String, mode: VerificationMode = VerificationMode.CONFIRMATION) {
+            TestOptions.VERIFY_TRACE = true
 
-        val sinkResults = fileTaintAnalyzer.analyseOneCase(
-            caseTaintConfig = CaseTaintConfig(
-                sourceMethodConfigs = listOf(SourceMethodConfig("getUserData")),
-                sinkMethodConfigs = listOf(
-                    SinkMethodConfig(
-                        methodName = "log",
-                    )
+            val project = getProject(programName)
+            val fileTaintAnalyzer = TaintAnalyzer(project)
+
+            val sinkResults = fileTaintAnalyzer.analyseOneCase(
+                caseTaintConfig = CaseTaintConfig(
+                    sourceMethodConfigs = listOf(SourceMethodConfig("getUserData")),
+                    sinkMethodConfigs = listOf(
+                        SinkMethodConfig(
+                            methodName = "log",
+                            position = Argument(1)
+                        )
+                    ),
+                    startMethodNamesForAnalysis = listOf(entryPointMethodName)
                 ),
-                startMethodNamesForAnalysis = listOf("usage1")
-            ),
-            withTrace = true
-        )
+                withTrace = true
+            )
 
-        val traceToVerify: List<PandaInst> = sinkResults.first().trace!!
-        discoverPropertiesWithTraceVerification<Any>(
-            methodIdentifier = MethodDescriptor(
-                className = "passwordExposureFP",
-                methodName = "usage1",
-                argumentsNumber = 0
-            ),
-            { _, trace -> verifyTrace(traceToVerify, trace) }
-        )
+            val traceToVerify: List<PandaInst> = sinkResults.first().trace!!
+            discoverPropertiesWithTraceVerification<Any>(
+                methodIdentifier = MethodDescriptor(
+                    className = programName,
+                    methodName = entryPointMethodName,
+                    argumentsNumber = 0
+                ),
+                { _, trace -> verifyTrace(traceToVerify, trace, mode) }
+            )
+        }
+        @Test
+        fun `test false positive refutation of password exposure`() {
+            verifyDataFlowResult("passwordExposureFP","usage1", VerificationMode.REFUTATION)
+        }
+
+        @Test
+        fun `test confirmation of password exposure`() {
+            verifyDataFlowResult("passwordExposureFP","usage2")
+        }
+
+        @Test
+        fun `simplified test false positive refutation of password exposure`() {
+            verifyDataFlowResult("passwordExposureFP2","usage2", VerificationMode.REFUTATION)
+        }
+
+        @Test
+        fun `simplified test confirmation of password exposure`() {
+            verifyDataFlowResult("passwordExposureFP2","usage1")
+        }
     }
 }
