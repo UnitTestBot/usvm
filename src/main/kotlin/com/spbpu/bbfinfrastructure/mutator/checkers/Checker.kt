@@ -26,19 +26,16 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
     fun checkCompilationOfProject(project: Project, curFile: BBFFile? = null): Boolean {
         // log.debug("Compilation checking started")
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
-        checkedConfigurations[allTexts]?.let { return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
             if (CompilerArgs.testMode) {
                 ErrorCollector.putError("Syntax error! Can't parse template")
             }
 //            println("Wrong syntax or breaks conditions")
-            checkedConfigurations[allTexts] = false
             return false
         }
         val statuses = compileAndGetStatuses(project)
         val isOK = statuses.all { it == COMPILE_STATUS.OK }
-        checkedConfigurations[allTexts] = isOK
         return isOK
     }
 
@@ -62,25 +59,20 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
 
     fun checkCompiling(project: Project): Boolean {
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
-        checkedConfigurations[allTexts]?.let { return it }
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, null)) {
             // log.debug("Wrong syntax or breaks conditions")
-            checkedConfigurations[allTexts] = false
             return false
         }
         val statuses = compileAndGetStatuses(project)
         return if (statuses.all { it == COMPILE_STATUS.OK }) {
-            checkedConfigurations[allTexts] = true
             true
         } else {
-            checkedConfigurations[allTexts] = false
             false
         }
     }
 
     val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
 
-    private val checkedConfigurations = hashMapOf<String, Boolean>()
     private val log = Logger.getLogger("mutatorLogger")
 }

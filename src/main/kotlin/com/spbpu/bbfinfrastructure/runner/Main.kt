@@ -14,14 +14,13 @@ var ind = 0
 
 //fun makeCommand(args: Array<String>) = "$COMMAND -PprogramArgs=\"${args.joinToString(" ")}\""
 fun main(args: Array<String>) {
-
     val parser = ArgParser("psi-fuzz")
 
     val pathToOwasp by parser.option(
         ArgType.String,
         shortName = "d",
         description = "Directory for OWASP"
-    ).required()
+    ).default("~/vulnomicon/BenchmarkJava-mutated")
 
     val isLocal by parser.option(
         ArgType.Boolean,
@@ -33,7 +32,31 @@ fun main(args: Array<String>) {
         ArgType.Int,
         shortName = "n",
         description = "Number of files to make a batch"
-    ).default(100)
+    ).default(500)
+
+    val numberOfMutationsPerFile by parser.option(
+        ArgType.Int,
+        shortName = "nm",
+        description = "Number of successful mutations to make final version of mutant"
+    ).default(2)
+
+    val numberOfMutantsPerFile by parser.option(
+        ArgType.Int,
+        shortName = "nf",
+        description = "Number of generated mutants for file"
+    ).default(5)
+
+    val sortResults by parser.option(
+        ArgType.Boolean,
+        shortName = "s",
+        description = "Choose this flag if you want to sort results (may be slow)"
+    ).default(false)
+
+    val markupBenchmark by parser.option(
+        ArgType.Boolean,
+        shortName = "m",
+        description = "Markup benchmark"
+    ).default(false)
 
     parser.parse(args)
 
@@ -45,12 +68,18 @@ fun main(args: Array<String>) {
     }
 
     fun makeCommand(): CommandLine? {
-        val cmdLine = CommandLine.parse("gradle runFuzzer")
+        val javaVersion = System.getenv()["GRADLE_JAVA_HOME"] ?: ""
+        val cmdLine =
+            if (javaVersion.isEmpty()) {
+                CommandLine.parse("gradle runFuzzer")
+            } else {
+                CommandLine.parse("gradle runFuzzer -Dorg.gradle.java.home=$javaVersion")
+            }
         val arg =
             if (isLocal)
-                "-PprogramArgs=\"-d $pathToOwasp -l -n $numOfFilesToCheck\""
+                "-PprogramArgs=\"-d $pathToOwasp -l -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
             else
-                "-PprogramArgs=\"-d $pathToOwasp -n $numOfFilesToCheck\""
+                "-PprogramArgs=\"-d $pathToOwasp -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
 
         cmdLine.addArgument(arg, false)
         cmdLine.addArgument("-PprivateKeyPass=${System.getenv("PRIVATE_KEY_PASS")}")

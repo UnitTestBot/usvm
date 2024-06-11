@@ -1,8 +1,10 @@
 package com.spbpu.bbfinfrastructure.util.results
 
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
-import com.spbpu.bbfinfrastructure.project.ResultSarifBuilder
+import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
+import com.spbpu.bbfinfrastructure.sarif.ResultSarifBuilder
 import com.spbpu.bbfinfrastructure.util.getRandomVariableName
+import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
 import kotlin.random.Random
@@ -30,6 +32,7 @@ object ScoreCardParser {
         val resultSarifBuilder = ResultSarifBuilder()
         val m = mutableMapOf<String, MutableList<Pair<String, Set<Int>>>>()
         val scorecards = File(dir).listFiles().filter { it.path.endsWith(".sarif") }
+        val toolsGroundTruth = Json.decodeFromString<MarkupSarif.Sarif>(File("lib/tools_truth.sarif").readText())
         scorecards.map { scoreCard ->
             val decodedSarif = resultSarifBuilder.deserialize(scoreCard.readText())
             val toolName = scoreCard.name.substringBefore('_')
@@ -56,33 +59,49 @@ object ScoreCardParser {
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
             val originalFileName = "BenchmarkTest" + name.substringAfter("BenchmarkTest").take(5)
-            val originalExpectedResults = File("lib/BenchmarkJavaTemplate/expectedresults-1.2.csv").readText()
-            val originExpectedResults =
-                originalExpectedResults.split("\n").find { it.startsWith(originalFileName) } ?: continue
-            val cweToFind = originExpectedResults.substringAfterLast(',').toIntOrNull()?.let { setOf(it) } ?: continue
             val originalProject =
                 GlobalTestSuite.javaTestSuite.suiteProjects.find { (project, _) -> project.files.any { it.name == "$name.java" } }
                     ?: error("Cant find original project with name $name")
-
-            val cwes = results.map { it.second }
-            val firstBenchRes = cwes.first()
-            if (firstBenchRes.isEmpty()) {
-                println("ZERO DEFECTS")
+            val grResult = toolsGroundTruth.results.find { it.location.contains(originalFileName) } ?: continue
+            val cweToFind = grResult.ruleId.toInt()
+            val kindAsBoolean = grResult.kind == "fail"
+            val correctness = results.associate { it.first to (it.second.contains(cweToFind) && kindAsBoolean) }
+            val grResultCorrectness = grResult.toolsResults.associate { it.toolName to it.isWorkCorrectly.toBoolean() }
+            if (correctness == grResultCorrectness) {
+                println("$name: NO DIFFS")
                 continue
             }
-            if (cwes.all { it.intersect(cweToFind).isNotEmpty() }) {
-                println("ALL TOOLS FOUND BUG IN $name")
-            } else if (cwes.all { it.intersect(cweToFind).isEmpty() }) {
-                println("ALL TOOLS CANT FIND BUG IN $name")
-            } else {
+            if (correctness.values.toSet().size == 1) {
+                println("$name: ALL TOOLS WORKS SIMILAR")
+                continue
+            }
+            var diffPoints = 0
+            correctness.entries.forEach { (toolName, isCorrect) ->
+                val originalCorrectness = grResultCorrectness[toolName] ?: return@forEach
+                if (isCorrect != originalCorrectness) {
+                    diffPoints++
+                }
+            }
+            if (diffPoints != 0) {
+                val groundTruthCWE = grResultCorrectness.entries.map { (toolName, isCorrect) ->
+                    val cwes =
+                        if (kindAsBoolean && isCorrect) {
+                            setOf(cweToFind)
+                        } else {
+                            setOf()
+                        }
+                    toolName to cwes
+                }
                 println("DIFF FOUND!!")
                 val resultHeader = ResultHeader(
                     results,
+                    groundTruthCWE,
                     originalFileName,
-                    cweToFind,
-                    originalProject.second.map { it.mutationDescription })
+                    setOf(cweToFind),
+                    originalProject.second.map { it.mutationDescription }
+                )
                 val dirToSave =
-                    "results/CWE-${cweToFind.joinToString("_")}"
+                    "results/CWE-${setOf(cweToFind).joinToString("_")}"
                         .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader) } ?: "results/duplicates"
                 File(dirToSave).let { resultsDirectory ->
                     resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }

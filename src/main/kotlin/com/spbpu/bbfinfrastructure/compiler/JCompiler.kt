@@ -21,7 +21,6 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
 
     override fun tryToCompile(project: Project): KotlincInvokeStatus {
         val compilationResult = compile(project)
-//        println("COMPIlATION RESULT = ${compilationResult.status}")
         return KotlincInvokeStatus("", compilationResult.status == 0, compilationResult.status == 0, false)
     }
 

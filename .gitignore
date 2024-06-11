@@ -2,7 +2,10 @@
 /.idea
 /.gradle
 /build
-./tmp
-./logs
+/tmp/*
+/logs/*
+/tmpJava/*
+/lib/BenchmarkJavaTemplate/*
 results
 sortedResults
+

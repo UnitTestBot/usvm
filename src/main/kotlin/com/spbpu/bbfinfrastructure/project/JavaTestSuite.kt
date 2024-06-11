@@ -3,9 +3,8 @@ package com.spbpu.bbfinfrastructure.project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
+import com.spbpu.bbfinfrastructure.sarif.SarifBuilder
 import com.spbpu.bbfinfrastructure.server.FuzzServerInteract
-import com.spbpu.bbfinfrastructure.tools.SemGrep
-import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.util.replaceThis
@@ -21,9 +20,6 @@ import kotlin.io.path.absolutePathString
 class JavaTestSuite {
 
     val suiteProjects = mutableListOf<Pair<Project, List<MutationInfo>>>()
-    private val analysisTools = listOf(SpotBugs(), SemGrep())
-    private val dirToFlushBinaries = "lib/BenchmarkJavaTemplate/binaries"
-    private val dirToFlushSources = "lib/BenchmarkJavaTemplate/src/main/java/org/owasp/benchmark/testcode"
 
     fun addProject(project: Project, mutationChain: List<MutationInfo> , shouldCheck: Boolean = true) {
         val projectIndex = suiteProjects.size
@@ -134,80 +130,4 @@ class JavaTestSuite {
             }
         }
     }
-
-//    @OptIn(ExperimentalTime::class)
-//    fun flushOnDiskAndCheck(): List<Pair<Project, CheckingResult>> {
-//        File(dirToFlushSources).deleteRecursively()
-//        File(dirToFlushBinaries).deleteRecursively()
-//        File(dirToFlushSources).mkdirs()
-//        File(dirToFlushBinaries).mkdirs()
-//        val resList = mutableListOf<Pair<Project, CheckingResult>>()
-//        for (project in suiteProjects) {
-//            val compilationResult = JCompiler().compile(project)
-//            if (compilationResult.status != 0) continue
-//            copyDirectory(compilationResult.pathToCompiled, dirToFlushBinaries)
-//            project.saveToDir(dirToFlushSources)
-//        }
-//        val spotBugsResults = measureTimedValue {
-//            SpotBugs().test(dirToFlushBinaries)
-//        }.also { println("SPOT BUGS = ${it.duration}") }.value
-//        val semGrepResults = measureTimedValue {
-//            SemGrep().test(dirToFlushSources)
-//        }.also { println("SemGrep BUGS = ${it.duration}") }.value
-//        for ((index, project) in suiteProjects.withIndex()) {
-//            val semGrepProjectResults =
-//                semGrepResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
-//            val spotBugsProjectResults =
-//                spotBugsResults.entries.find { it.key.substringBefore(".java").endsWith("_$index") }?.value
-//            println("SEM GREP RESULTS FOR ${project.files.first().name} = $semGrepProjectResults")
-//            println("SPOT BUGS RESULTS FOR ${project.files.first().name} = $spotBugsProjectResults")
-//            if (semGrepProjectResults == spotBugsProjectResults) {
-//                resList.add(project to CheckingResult.EQUAL)
-//                println("EQUAL")
-//            } else {
-//                resList.add(project to CheckingResult.DIFF)
-//                println("DIFF")
-//            }
-//        }
-//        suiteProjects.clear()
-//        return resList
-//    }
-
-
-    private fun copyDirectory(source: String, target: String) {
-        val sourcePath = Paths.get(source)
-        val destinationPath = Paths.get(target)
-
-        try {
-            Files.walk(sourcePath).use { paths ->
-                paths.forEach { path ->
-                    try {
-                        val destination = destinationPath.resolve(sourcePath.relativize(path))
-                        if (Files.isDirectory(path)) {
-                            if (Files.notExists(destination)) {
-                                Files.createDirectories(destination)
-                            }
-                        } else {
-                            Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING)
-                        }
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
-
-    enum class CheckingResult {
-        EQUAL, DIFF
-    }
-
-    class SuiteProject(
-        val project: Project,
-        val originalFileName: String,
-        val initialCWE: String
-    )
-
 }

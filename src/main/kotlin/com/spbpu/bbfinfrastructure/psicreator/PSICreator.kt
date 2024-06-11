@@ -1,11 +1,31 @@
 package com.spbpu.bbfinfrastructure.psicreator
 
+import com.intellij.core.CoreApplicationEnvironment
+import com.intellij.core.CoreProjectEnvironment
+import com.intellij.core.JavaCoreApplicationEnvironment
+import com.intellij.core.JavaCoreProjectEnvironment
 import com.intellij.lang.java.JavaLanguage
+import com.intellij.mock.MockProject
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.ExtensionPoint
 import com.intellij.openapi.extensions.Extensions
+import com.intellij.openapi.util.Disposer
+import com.intellij.pom.PomModel
+import com.intellij.pom.PomTransaction
+import com.intellij.pom.core.impl.PomModelImpl
+import com.intellij.pom.tree.TreeAspect
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.augment.PsiAugmentProvider
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
+import com.jetbrains.python.*
+import com.jetbrains.python.documentation.doctest.PyDocstringTokenSetContributor
+import com.jetbrains.python.psi.LanguageLevel
+import com.jetbrains.python.psi.PyAstElementGenerator
+import com.jetbrains.python.psi.PyPsiFacade
+import com.jetbrains.python.psi.impl.PyElementGeneratorImpl
+import com.jetbrains.python.psi.impl.PyPsiFacadeImpl
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.psicreator.util.FooBarCompiler.setupMyCfg
@@ -15,7 +35,7 @@ import com.spbpu.bbfinfrastructure.psicreator.util.opt
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
-import org.jetbrains.kotlin.cli.jvm.compiler.*
+import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.addJavaSourceRoots
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
@@ -31,13 +51,58 @@ typealias IntellijProject = com.intellij.openapi.project.Project
 @Suppress("DEPRECATION")
 object PSICreator {
 
-    private var targetFiles: List<KtFile> = listOf()
-    private lateinit var cfg: CompilerConfiguration
-    private lateinit var env: KotlinCoreEnvironment
+    private lateinit var env: CoreProjectEnvironment
     var curProject: Project? = null
 
     fun getPsiForJava(text: String, proj: IntellijProject = Factory.file.project) =
         PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
+
+    fun getPsiForJava(text: String): PsiFile {
+        if (!::env.isInitialized) {
+            setEnvForJava()
+        }
+        val project = env.project
+        return PsiFileFactory.getInstance(project).createFileFromText(JavaLanguage.INSTANCE, text)
+    }
+
+    private fun setEnvForJava() {
+        val disposable = Disposer.newDisposable()
+        System.setProperty("idea.home.path", "lib/bin")
+        val coreApplicationEnvironment = JavaCoreApplicationEnvironment(disposable, false)
+        env = JavaCoreProjectEnvironment(disposable, coreApplicationEnvironment)
+        env.project.registerService(TreeAspect::class.java, TreeAspect())
+        class MyPomModelImpl(env: JavaCoreProjectEnvironment) : PomModelImpl(env.project) {
+            override fun runTransaction(pt: PomTransaction) = pt.run()
+        }
+        val pomModel = MyPomModelImpl(env as JavaCoreProjectEnvironment)
+        env.project.registerService(PomModel::class.java, pomModel)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(PsiAugmentProvider.EP_NAME.name, PsiAugmentProvider::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(TreeCopyHandler.EP_NAME.name, TreeCopyHandler::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
+    }
+
+    fun getPsiForPython(text: String): PsiFile? {
+        if (!::env.isInitialized) {
+            setEnvForPython()
+        }
+        val project = env.project
+        return PsiFileFactory.getInstance(project).createFileFromText(PythonLanguage.INSTANCE, text)
+    }
+
+    private fun setEnvForPython() {
+        val disposable = Disposable {  }
+        System.setProperty("idea.home.path", "lib/bin")
+        val coreApplicationEnvironment = CoreApplicationEnvironment(disposable, false)
+        env = CoreProjectEnvironment(disposable, coreApplicationEnvironment)
+        env.project.registerService(PyAstElementGenerator::class.java, PyElementGeneratorImpl(env.project))
+        coreApplicationEnvironment.registerParserDefinition(PythonLanguage.INSTANCE, PythonParserDefinition())
+        env.project.extensionArea.registerExtensionPoint(PythonDialectsTokenSetContributor.EP_NAME.name, PythonDialectsTokenSetContributor::class.java.name, ExtensionPoint.Kind.INTERFACE, false)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(PythonDialectsTokenSetContributor.EP_NAME.name, PythonDialectsTokenSetContributor::class.java.name, ExtensionPoint.Kind.INTERFACE, false)
+        env.addProjectExtension(PythonDialectsTokenSetContributor.EP_NAME, PythonTokenSetContributor())
+        env.addProjectExtension(PythonDialectsTokenSetContributor.EP_NAME, PyDocstringTokenSetContributor())
+        coreApplicationEnvironment.registerApplicationService(PyPsiFacade::class.java, PyPsiFacadeImpl(env.project));
+        coreApplicationEnvironment.registerApplicationService(PyElementTypesFacade::class.java, PyElementTypesFacadeImpl());
+        coreApplicationEnvironment.registerApplicationService(PyLanguageFacade::class.java, PyLanguageFacadeImpl());
+    }
 
     fun getPSIForText(text: String, generateCtx: Boolean = true): KtFile {
         //Save to tmp
@@ -46,35 +111,8 @@ object PSICreator {
         return getPSIForFile(path)
     }
 
-    fun getPsiForTextWithName(text: String, fileName: String): KtFile {
-        val path = "tmp/$fileName"
-        File(path).writeText(text)
-        return getPSIForFile(path)
-    }
-
     fun getPSIForFile(path: String): KtFile {
-        val newArgs = arrayOf("-t", path)
-
-        val cmd = opt.parse(newArgs)
-
-        cfg = setupMyCfg(cmd)
-        env = setupMyEnv(cfg)
-
-        if (!Extensions.getRootArea().hasExtensionPoint(TreeCopyHandler.EP_NAME.name)) {
-            Extensions.getRootArea().registerExtensionPoint(
-                TreeCopyHandler.EP_NAME.name,
-                TreeCopyHandler::class.java.canonicalName,
-                ExtensionPoint.Kind.INTERFACE
-            )
-        }
-
-        targetFiles = env.getSourceFiles().map {
-            val f = KtPsiFactory(it).createFile(it.virtualFile.path, it.text)
-            f.originalFile = it
-            f
-        }
-
-        return targetFiles.first()
+        TODO("")
     }
 
     fun analyze(psiFile: PsiFile): BindingContext? = analyze(psiFile, curProject)

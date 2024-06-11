@@ -31,10 +31,10 @@ class ExpressionGenerator {
             "byte" -> Random.nextInt().toByte().toString()
             "int" -> Random.nextInt().toShort().toString()
             "Integer" -> Random.nextInt().toShort().toString()
-            "long" -> Random.nextLong().toString()
-            "Long" -> Random.nextLong().toString()
-            "float" -> Random.nextDouble().toFloat().toString()
-            "Float" -> Random.nextDouble().toFloat().toString()
+            "long" -> Random.nextLong().toString() + "L"
+            "Long" -> Random.nextLong().toString() + "L"
+            "float" -> Random.nextDouble().toFloat().toString() + "F"
+            "Float" -> Random.nextDouble().toFloat().toString() + "F"
             "double" -> Random.nextDouble().toString()
             "Double" -> Random.nextDouble().toString()
             "char" -> "'${('a'..'z').random()}'"

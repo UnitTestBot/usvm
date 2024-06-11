@@ -4,8 +4,6 @@ import com.spbpu.bbfinfrastructure.compiler.JCompiler
 import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.tools.SemGrep
-import com.spbpu.bbfinfrastructure.tools.SpotBugs
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
@@ -28,7 +26,6 @@ class TemplatesChecker {
     fun testTemplates(templateName: String, templateBodyIndex: Int) {
         Transformation.checker = MutationChecker(
             listOf(JCompiler()),
-            listOf(SemGrep(), SpotBugs()),
             project,
             curFile,
             false,
@@ -80,6 +77,7 @@ class TemplatesChecker {
 
 fun main(args: Array<String>) {
     CompilerArgs.testMode = true
+    System.setProperty("idea.home.path", "lib/bin")
     TemplatesChecker().testTemplates(
         templateName = args.firstOrNull() ?: "",
         templateBodyIndex = args.lastOrNull()?.toIntOrNull() ?: -1

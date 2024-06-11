@@ -477,12 +477,7 @@ fun KotlinType.isPrimitiveTypeOrNullablePrimitiveTypeOrString(): Boolean {
 fun KotlinType.isErrorType(): Boolean = this.isError || this.arguments.any { it.type.isErrorType() }
 
 fun KotlinType.getNameWithoutError(): String {
-    val thisName =
-        when (this) {
-            is ErrorType -> this.presentableName
-            is UnresolvedType -> this.presentableName
-            else -> "${this.name}"
-        }
+    val thisName = "${this.name}"
     val argsName =
         if (arguments.isNotEmpty()) "<${this.arguments.joinToString { it.type.getNameWithoutError() }}>"
         else ""

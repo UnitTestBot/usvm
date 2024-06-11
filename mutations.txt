@@ -1,6 +1,7 @@
 1. constructor chains
 2. Условия (path-sensitivity): if, switch, pattern matching, lazy conditionals 
-3. Циклы, рекурсия: for, while, foreach, mutual recursion 
+3. Циклы, рекурсия: for, while, foreach, mutual recursion, do/while!!!
+3.5. non-ordinary functions???
 4. virtual calls, fun interfaces
 5. lambdas
 5.5. anon classes

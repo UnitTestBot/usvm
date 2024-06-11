@@ -7,40 +7,17 @@ import com.spbpu.bbfinfrastructure.compiler.CommonCompiler
 import com.spbpu.bbfinfrastructure.util.getAllParentsWithoutNode
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.tools.AnalysisTool
-import com.spbpu.bbfinfrastructure.tools.CHECKING_RESULT
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import org.apache.log4j.Logger
 
 open class MutationChecker(
     compilers: List<CommonCompiler>,
-    val tools: List<AnalysisTool>,
     val project: Project,
     var curFile: BBFFile,
     withTracesCheck: Boolean = true
 ) :
     Checker(compilers, withTracesCheck) {
 
-//    constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile) : this(listOf(compiler), project, curFile)
-//    constructor(compiler: CommonCompiler, project: Project, curFile: BBFFile, withTracesCheck: Boolean) :
-//            this(listOf(compiler), project, curFile, withTracesCheck)
-//    constructor(compiler: CommonCompiler, project: Project) : this(compiler, project, project.files.first())
-//    constructor(compilers: List<CommonCompiler>, project: Project) : this(compilers, project, project.files.first())
-//    constructor(project: Project): this(CompilerArgs.getCompilersList(), project)
-
     fun checkCompiling() = checkCompilationOfProject(project, curFile)
-
-//    fun compareFindingBugs(): CHECKING_RESULT {
-//        val results = tools.map { it.test(project) }
-//        tools.zip(results).forEach {
-//            println("RES FOR ${it.first::class.java.name} are: ${it.second}")
-//        }
-//        return when {
-//            results.all {it.isEmpty()} -> CHECKING_RESULT.CANNOT_FIND
-//            results.toSet().size != 1 -> CHECKING_RESULT.DIFF
-//            else -> CHECKING_RESULT.BOTH_FOUND
-//        }
-//    }
 
     fun replacePSINodeIfPossible(node: PsiElement, replacement: PsiElement) =
         replaceNodeIfPossible(node.node, replacement.node)

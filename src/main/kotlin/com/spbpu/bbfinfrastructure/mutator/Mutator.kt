@@ -24,6 +24,8 @@ class Mutator(val project: Project) {
             when (bbfFile.getLanguage()) {
                 LANGUAGE.JAVA -> startJavaMutations()
                 LANGUAGE.KOTLIN -> startKotlinMutations()
+                LANGUAGE.KJAVA -> TODO()
+                LANGUAGE.UNKNOWN -> TODO()
             }
 //            log.debug("End")
         }

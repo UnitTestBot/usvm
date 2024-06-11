@@ -5,7 +5,7 @@ import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 object Factory {
-    val file = PSICreator.getPSIForText("")
+    val file = PSICreator.getPsiForJava("")
     val psiFactory = KtPsiFactory(file.project)
     val javaPsiFactory = JavaPsiFacade.getInstance(file.project).elementFactory
 

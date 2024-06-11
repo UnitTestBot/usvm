@@ -154,6 +154,8 @@ object CompilerArgs {
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
     val pathToSerializedCommits = "tmp/serializedPatches/"
 
+    var numberOfMutationsPerFile = 2
+    var numberOfMutantsPerFile = 5
     //Test mode
     var testMode = false
 }

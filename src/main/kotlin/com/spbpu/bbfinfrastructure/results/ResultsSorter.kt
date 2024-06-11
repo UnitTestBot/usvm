@@ -141,8 +141,8 @@ object ResultsSorter {
 
     private fun calcDiff(header: ResultHeader): Double {
         val originalCWE = header.originalFileCWE.first()
-        val trueTools = header.results.filter { it.second.contains(originalCWE) }
-        val falseTools = header.results.filterNot { it.second.contains(originalCWE) }
+        val trueTools = header.analysisResults.filter { it.second.contains(originalCWE) }
+        val falseTools = header.analysisResults.filterNot { it.second.contains(originalCWE) }
         val trueToolsK = trueTools.sumOf { toolsToCoef[it.first]!! }
         val falseToolsK = falseTools.sumOf { toolsToCoef[it.first]!! }
         return abs(trueToolsK - falseToolsK)

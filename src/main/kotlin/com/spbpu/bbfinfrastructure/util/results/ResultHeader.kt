@@ -1,7 +1,8 @@
 package com.spbpu.bbfinfrastructure.util.results
 
 class ResultHeader(
-    val results: MutableList<Pair<String, Set<Int>>>,
+    val analysisResults: MutableList<Pair<String, Set<Int>>>,
+    val originalResults: List<Pair<String, Set<Int>>>,
     val originalFileName: String,
     val originalFileCWE: Set<Int>,
     val mutationDescriptionChain: List<String>
@@ -9,8 +10,8 @@ class ResultHeader(
 
 
     fun convertToString(): String =
-"""//Analysis results:
-//${results.joinToString(separator = "\n//") { "Tool name: ${it.first} Results: ${it.second}" }}
+"""//${originalResults.joinToString(separator = "\n//") { "${it.first} original results: ${it.second}" }}
+//${analysisResults.joinToString(separator = "\n//") { "${it.first} analysis results: ${it.second}" }}
 //Original file name: $originalFileName
 //Original file CWE's: $originalFileCWE  
 //Mutation info: ${mutationDescriptionChain.joinToString(" -> ") { it }} 
@@ -19,6 +20,7 @@ class ResultHeader(
     companion object {
         fun convertFromString(str: String): ResultHeader? = try {
             val lines = str.lines()
+            val originalResults = mutableListOf<Pair<String, Set<Int>>>()
             val results = mutableListOf<Pair<String, Set<Int>>>()
             var originalFileName = ""
             var originalFileCWE = emptySet<Int>()
@@ -26,13 +28,19 @@ class ResultHeader(
 
             for (line in lines) {
                 val parts = line.split(":")
-                if (parts.size >= 2) {
+                if (parts.size == 2) {
                     val key = parts[0].trim()
                     val value = parts.subList(1, parts.size).joinToString(":").trim()
                     if (key.startsWith("//")) {
                         when {
-                            key.startsWith("//Tool name") -> {
-                                val toolName = value.split(" ")[0]
+                            key.contains("original results") -> {
+                                val toolName = key.substringBefore(" ").substringAfter("//")
+                                val toolResults = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
+                                    ?.split(",")?.filterNot { it.isEmpty() }?.map { it.trim().toInt() }?.toSet() ?: emptySet()
+                                originalResults.add(Pair(toolName, toolResults))
+                            }
+                            key.contains("analysis results") -> {
+                                val toolName = key.substringBefore(" ").substringAfter("//")
                                 val toolResults = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
                                     ?.split(",")?.filterNot { it.isEmpty() }?.map { it.trim().toInt() }?.toSet() ?: emptySet()
                                 results.add(Pair(toolName, toolResults))
@@ -54,7 +62,7 @@ class ResultHeader(
                     }
                 }
             }
-            ResultHeader(results, originalFileName, originalFileCWE, mutationChain)
+            ResultHeader(results, originalResults, originalFileName, originalFileCWE, mutationChain)
         } catch (e: Throwable) {
             null
         }
@@ -72,13 +80,13 @@ class ResultHeader(
 
         if (originalFileCWE != other.originalFileCWE) return false
         if (mutationDescriptionChain != other.mutationDescriptionChain) return false
-        val intersectedResults = results.map { it.first to it.second.intersect(originalFileCWE) }.sortedBy { it.first }
-        val intersectedOtherResults = other.results.map { it.first to it.second.intersect(originalFileCWE) }.sortedBy { it.first }
+        val intersectedResults = analysisResults.map { it.first to it.second.intersect(originalFileCWE) }.sortedBy { it.first }
+        val intersectedOtherResults = other.analysisResults.map { it.first to it.second.intersect(originalFileCWE) }.sortedBy { it.first }
         return intersectedResults == intersectedOtherResults
     }
 
     override fun hashCode(): Int {
-        var result = results.hashCode()
+        var result = analysisResults.hashCode()
         result = 31 * result + originalFileName.hashCode()
         result = 31 * result + originalFileCWE.hashCode()
         result = 31 * result + mutationDescriptionChain.hashCode()

@@ -25,10 +25,10 @@ open class TemplatesInserter : Transformation() {
 
     private val testSuite = GlobalTestSuite.javaTestSuite
     private val originalPsiText = file.text
-    private val numOfSuccessfulMutationsToAdd = 2
+    private val numOfSuccessfulMutationsToAdd = CompilerArgs.numberOfMutationsPerFile
     private var curNumOfSuccessfulMutations = 0
     private var addedProjects = 0
-    private val numberOfProjectsToCheck = 3
+    private val numberOfProjectsToCheck = CompilerArgs.numberOfMutantsPerFile
     private val currentMutationChain = mutableListOf<MutationInfo>()
     private val testingFeature = TestingFeature.RANDOM
 
@@ -50,32 +50,78 @@ open class TemplatesInserter : Transformation() {
     protected open fun tryToTransform(): Boolean {
         val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature)
             ?: return false
+        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
+        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
-        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
+        var currentBlockLineNumber = randomPlaceToInsertLineNumber
+        val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
+        val mappedHoles = mutableMapOf<String, String>()
+        val mappedTypes = mutableMapOf<String, String>()
+        val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
+            .map {
+                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber) ?: return false
+                fillTemplateBody(
+                    mappedTypes,
+                    mappedHoles,
+                    scope,
+                    it
+                ) to currentBlockLineNumber.also { currentBlockLineNumber = endOfBlock.getLocationLineNumber() }
+            }
+        val replacementPsiBlock =
+            if (filledBlocks.size == 1) {
+                val newText = filledBlocks.first().first
+                val newPsiBlock =
+                    try {
+                        Factory.javaPsiFactory.createCodeBlockFromText("{\n$newText\n}", null).also {
+                            it.lBrace!!.delete()
+                            it.rBrace!!.delete()
+                        }
+                    } catch (e: Throwable) {
+                        return false
+                    }
+                randomPlaceToInsert.replaceThis(newPsiBlock)
+                newPsiBlock
+            } else {
+                val newBody = filledBlocks.zipWithNext().joinToString("") {
+                    val startLine = it.first.second
+                    val endLine = it.second.second
+                    val bodyFromFile =
+                        file.getNodesBetweenWhitespaces(startLine, endLine)
+                            .filter { it.children.isEmpty() }
+                            .joinToString("") { it.text }
+                    "${it.first.first}$bodyFromFile"
+                } + filledBlocks.last().first + "\n"
+                val newPsiBlock =
+                    try {
+                        Factory.javaPsiFactory.createCodeBlockFromText("{\n$newBody\n}", null).also {
+                            it.lBrace!!.delete()
+                            it.rBrace!!.delete()
+                        }
+                    } catch (e: Throwable) {
+                        return false
+                    }
+                val start = filledBlocks.first().second
+                val end = filledBlocks.last().second
+                val nodesBetween = file.getNodesBetweenWhitespaces(start, end)
+                val nodeToReplace =
+                    nodesBetween
+                        .filter { it.parent !in nodesBetween }
+                        .mapIndexed { index, psiElement -> if (index > 0) psiElement.delete() else psiElement }
+                        .first() as PsiElement
+                nodeToReplace.replaceThis(newPsiBlock)
+                newPsiBlock
+            }
         insertClasses(parsedTemplates)
         insertImports(parsedTemplates)
-        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
-        insertAuxMethods(randomPlaceToInsert, randomTemplate).let { if (!it) return false }
-        val newText = generateNewBody(randomPlaceToInsert, randomTemplate)
-        val newPsiBlock =
-            try {
-                Factory.javaPsiFactory.createCodeBlockFromText("{\n$newText\n}", null).also {
-                    it.lBrace!!.delete()
-                    it.rBrace!!.delete()
-                }
-            } catch (e: Throwable) {
-                return false
-            }
-        randomPlaceToInsert.replaceThis(newPsiBlock)
-        checkNewCode(
+        insertAuxMethods(replacementPsiBlock, randomTemplate).let { if (!it) return false }
+        return checkNewCode(
             MutationInfo(
                 mutationName = "TemplateInsertion",
                 mutationDescription = "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
                 location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
             )
         )
-        return true
     }
 
     protected fun checkNewCode(mutationInfo: MutationInfo?): Boolean {
@@ -98,11 +144,12 @@ open class TemplatesInserter : Transformation() {
         }
     }
 
-    protected open fun generateNewBody(randomPlaceToInsert: PsiElement, randomTemplate: TemplateBody): String {
-        val randomTemplateBody = randomTemplate.templateBody
-        val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
-        val mappedHoles = mutableMapOf<String, String>()
-        val mappedTypes = mutableMapOf<String, String>()
+    private fun fillTemplateBody(
+        mappedTypes: MutableMap<String, String>,
+        mappedHoles: MutableMap<String, String>,
+        scope: List<JavaScopeCalculator.JavaScopeComponent>,
+        randomTemplateBody: String
+    ): String {
         val regex = Regex("""~\[(.*?)\]~""")
         val expressionGenerator = ExpressionGenerator()
         val newText = regex.replace(randomTemplateBody) replace@{ result ->
@@ -149,11 +196,10 @@ open class TemplatesInserter : Transformation() {
                     if (capturedType == "java.lang.Object") {
                         scope.randomOrNull()?.name
                     } else {
-                       getValueOfTypeFromScope(scope, capturedType)
+                        getValueOfTypeFromScope(scope, capturedType)
                     }
                 } else null
             if (holeType == HOLE_TYPE.VAR && randomValueWithCompatibleType == null) {
-                println("CANT FIND VARIABLE OF TYPE $capturedType for assignment")
                 throw IllegalArgumentException()
             }
             val resMapping =
