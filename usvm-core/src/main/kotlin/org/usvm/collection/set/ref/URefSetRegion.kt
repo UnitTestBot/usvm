@@ -11,12 +11,12 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.collection.set.USymbolicSetEntries
-import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
-import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.foldHeapRef2
@@ -27,29 +27,6 @@ import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.uctx
 import org.usvm.withSizeSort
-
-data class URefSetEntryLValue<SetType>(
-    val setRef: UHeapRef,
-    val setElement: UHeapRef,
-    val setType: SetType
-) : ULValue<URefSetEntryLValue<SetType>, UBoolSort> {
-    override val sort: UBoolSort
-        get() = setRef.uctx.boolSort
-
-    override val memoryRegionId: UMemoryRegionId<URefSetEntryLValue<SetType>, UBoolSort>
-        get() = URefSetRegionId(setType, sort)
-
-    override val key: URefSetEntryLValue<SetType>
-        get() = this
-}
-
-data class URefSetRegionId<SetType>(
-    val setType: SetType,
-    override val sort: UBoolSort
-) : UMemoryRegionId<URefSetEntryLValue<SetType>, UBoolSort> {
-    override fun emptyRegion(): UMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> =
-        URefSetMemoryRegion(setType, sort)
-}
 
 internal data class UAllocatedRefSetWithAllocatedElementId(
     val setAddress: UConcreteHeapAddress,
@@ -447,6 +424,7 @@ internal class URefSetMemoryRegion<SetType>(
                                         firstConcrete
                                     ) { secondSetCollection ->
                                         mkAllocatedWithAllocatedSetIntersectionSizeExpr(
+                                            URefSetRegionId(setType, sort),
                                             firstConcrete.address, secondConcrete.address,
                                             firstSetCollection, secondSetCollection
                                         )
@@ -455,6 +433,7 @@ internal class URefSetMemoryRegion<SetType>(
                                 symbolicMapper = { secondSymbolic ->
                                     val secondSetCollection = inputSetWithInputElements()
                                     mkAllocatedWithInputSetIntersectionSizeExpr(
+                                        URefSetRegionId(setType, sort),
                                         firstConcrete.address, secondSymbolic,
                                         firstSetCollection, secondSetCollection
                                     )
@@ -475,6 +454,7 @@ internal class URefSetMemoryRegion<SetType>(
                                 ) { secondSetCollection ->
                                     val firstSetCollection = inputSetWithInputElements()
                                     mkAllocatedWithInputSetIntersectionSizeExpr(
+                                        URefSetRegionId(setType, sort),
                                         secondConcrete.address, firstSymbolic,
                                         secondSetCollection, firstSetCollection
                                     )
@@ -488,6 +468,7 @@ internal class URefSetMemoryRegion<SetType>(
                             val firstInputCollection = inputSetWithInputElements()
                             val secondInputCollection = inputSetWithInputElements()
                             val inputIntersectionSize = mkInputWithInputSetIntersectionSizeExpr(
+                                URefSetRegionId(setType, sort),
                                 firstSymbolic, secondSymbolic,
                                 firstInputCollection, secondInputCollection
                             )

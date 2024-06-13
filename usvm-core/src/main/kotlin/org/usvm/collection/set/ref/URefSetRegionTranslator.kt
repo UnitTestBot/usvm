@@ -7,6 +7,8 @@ import org.usvm.UBoolSort
 import org.usvm.UHeapRef
 import org.usvm.collection.set.UAllocatedSetUpdatesTranslator
 import org.usvm.collection.set.UInputSetUpdatesTranslator
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.memory.UReadOnlyMemoryRegion

@@ -10,7 +10,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
-import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.set.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegion
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion

@@ -12,8 +12,8 @@ import org.usvm.api.refSetContainsElement
 import org.usvm.collection.set.length.USetLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.map.ref.refMapMerge
-import org.usvm.collection.set.ref.URefSetEntryLValue
-import org.usvm.collection.set.ref.URefSetRegionId
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.collection.set.ref.refSetIntersectionSize
 import org.usvm.collection.set.ref.refSetUnion
@@ -33,7 +33,8 @@ object ObjectMapCollectionApi {
         mapType: MapType,
     ): UHeapRef = with(ctx) {
         val ref = memory.allocConcrete(mapType)
-        val length = USetLengthLValue(ref, mapType, sizeSort)
+        val containsSetId = URefSetRegionId(mapType, boolSort)
+        val length = USetLengthLValue(ref, containsSetId, sizeSort)
         memory.write(length, mkSizeExpr(0), trueExpr)
         ref
     }
@@ -46,19 +47,23 @@ object ObjectMapCollectionApi {
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapSize(
         mapRef: UHeapRef,
         mapType: MapType,
-    ): UExpr<USizeSort> = memory.read(USetLengthLValue(mapRef, mapType, ctx.sizeSort))
+    ): UExpr<USizeSort> {
+        val containsSetId = URefSetRegionId(mapType, mapRef.uctx.boolSort)
+        return memory.read(USetLengthLValue(mapRef, containsSetId, ctx.sizeSort))
+    }
 
     fun <MapType, State, USizeSort : USort, Ctx> StepScope<State, MapType, *, *>.ensureObjectMapSizeCorrect(
         mapRef: UHeapRef,
         mapType: MapType,
     ): Unit? where State : UState<MapType, *, *, Ctx, *, State>, Ctx : UContext<USizeSort> {
+        val containsSetId = URefSetRegionId(mapType, mapRef.uctx.boolSort)
         mapRef.mapWithStaticAsConcrete(
             concreteMapper = {
                 // Concrete map size is always correct
                 it
             },
             symbolicMapper = { symbolicMapRef ->
-                val length = calcOnState { memory.read(USetLengthLValue(symbolicMapRef, mapType, ctx.sizeSort)) }
+                val length = calcOnState { memory.read(USetLengthLValue(symbolicMapRef, containsSetId, ctx.sizeSort)) }
                 val ctx = calcOnState { ctx }
                 with(ctx) {
                     val boundConstraint = mkSizeGeExpr(length, mkSizeExpr(0))
@@ -133,7 +138,8 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = trueExpr, guard = trueExpr)
 
         val updatedSize = mkSizeAddExpr(currentSize, mkSizeExpr(1))
-        memory.write(USetLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsNew)
+        val containsSetId = URefSetRegionId(mapType, key.uctx.boolSort)
+        memory.write(USetLengthLValue(mapRef, containsSetId, sizeSort), updatedSize, keyIsNew)
     }
 
     fun <MapType, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapRemove(
@@ -150,7 +156,8 @@ object ObjectMapCollectionApi {
         memory.write(mapContainsLValue, rvalue = falseExpr, guard = trueExpr)
 
         val updatedSize = mkSizeSubExpr(currentSize, mkSizeExpr(1))
-        memory.write(USetLengthLValue(mapRef, mapType, sizeSort), updatedSize, keyIsInMap)
+        val containsSetId = URefSetRegionId(mapType, key.uctx.boolSort)
+        memory.write(USetLengthLValue(mapRef, containsSetId, sizeSort), updatedSize, keyIsInMap)
     }
 
     fun <MapType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<MapType, *, *, Ctx, *, *>.symbolicObjectMapMergeInto(
@@ -169,6 +176,6 @@ object ObjectMapCollectionApi {
         memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
 
         val mergedMapSize = mkSizeSubExpr(mkSizeAddExpr(srcMapSize, dstMapSize), mapIntersectionSize)
-        memory.write(USetLengthLValue(dstRef, mapType, sizeSort), mergedMapSize, guard = trueExpr)
+        memory.write(USetLengthLValue(dstRef, containsSetId, sizeSort), mergedMapSize, guard = trueExpr)
     }
 }

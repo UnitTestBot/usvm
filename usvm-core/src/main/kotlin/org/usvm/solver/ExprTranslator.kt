@@ -190,8 +190,12 @@ open class UExprTranslator<Type, USizeSort : USort>(
         translator.translateReading(expr.collection, mapRef to keyRef)
     }
 
+    private val _setLengthReadings = mutableListOf<UInputSetLengthReading<Type, USizeSort>>()
+    val setLengthReadings: List<UInputSetLengthReading<Type, USizeSort>> get() = _setLengthReadings
+
     override fun transform(expr: UInputSetLengthReading<Type, USizeSort>): KExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.address) { address ->
+            _setLengthReadings.add(expr)
             val translator = setLengthRegionDecoder(expr.collection.collectionId)
                 .inputSetLengthRegionTranslator(expr.collection.collectionId)
             translator.translateReading(expr.collection, address)
@@ -294,7 +298,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     fun <SetType, SetLengthId : USymbolicSetLengthId<UHeapRef, SetType, SetLengthId, USizeSort>> setLengthRegionDecoder(
         setLengthId: SetLengthId
     ): USetLengthRegionDecoder<SetType, USizeSort> {
-        val symbolicSetLengthRegionId = USetLengthRegionId(setLengthId.sort, setLengthId.setType)
+        val symbolicSetLengthRegionId = USetLengthRegionId(setLengthId.sort, setLengthId.setId)
         return getOrPutRegionDecoder(symbolicSetLengthRegionId) {
             USetLengthRegionDecoder(symbolicSetLengthRegionId, this)
         }

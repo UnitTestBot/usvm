@@ -20,6 +20,7 @@ import org.usvm.solver.UExprTranslator
 
 interface UModelDecoder<Model> {
     fun decode(model: KModel, assertions: List<KExpr<KBoolSort>>): Model
+    fun overrideMemoryRegions(model: Model, regions: Map<out UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>): Model
 }
 
 
@@ -98,6 +99,23 @@ open class ULazyModelDecoder<Type>(
         val mocks = decodeMocker(evaluator)
 
         return UModelBase(ctx, stack, types, mocks, regions, nullRef)
+    }
+
+    override fun overrideMemoryRegions(
+        model: UModelBase<Type>,
+        regions: Map<out UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>
+    ): UModelBase<Type> {
+        val currentRegions = model.regions
+        val updatedRegions = currentRegions.toMap(hashMapOf())
+        updatedRegions += regions
+
+        val resultModelRegions = if (currentRegions is UHeapModelWithCompletion) {
+            UHeapModelWithCompletion(updatedRegions, currentRegions.model)
+        } else {
+            updatedRegions
+        }
+
+        return UModelBase(ctx, model.stack, model.types, model.mocker, resultModelRegions, model.nullRef)
     }
 
     private fun decodeStack(model: UModelEvaluator<*>): ULazyRegistersStackModel =

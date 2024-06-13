@@ -16,6 +16,7 @@ import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asTypedTransformer
+import org.usvm.collection.set.UAnySetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
@@ -48,7 +49,10 @@ class UInputSetLengthReading<SetType, USizeSort : USort> internal constructor(
     }
 }
 
-sealed class USymbolicSetIntersectionSize<USizeSort : USort>(ctx: KContext) : UExpr<USizeSort>(ctx) {
+sealed class USymbolicSetIntersectionSize<USizeSort : USort>(
+    ctx: KContext,
+    val setId: UAnySetRegionId<*, *>
+) : UExpr<USizeSort>(ctx) {
     override val sort: USizeSort
         get() = uctx.sizeSort.uncheckedCast()
 
@@ -60,23 +64,25 @@ sealed class USymbolicSetIntersectionSize<USizeSort : USort>(ctx: KContext) : UE
 
 class UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort : USort, ElementSort : USort, AllocatedCollectionId> internal constructor(
     ctx: UContext<USizeSort>,
+    setId: UAnySetRegionId<*, *>,
     val firstAddress: UConcreteHeapAddress,
     val secondAddress: UConcreteHeapAddress,
     val firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
     val secondCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>
-) : USymbolicSetIntersectionSize<USizeSort>(ctx)
+) : USymbolicSetIntersectionSize<USizeSort>(ctx, setId)
         where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId> {
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
+            { setId },
             { firstAddress },
             { secondAddress },
             { firstCollection },
             { secondCollection }
         )
 
-    override fun internHashCode(): Int = hash(firstAddress, secondAddress, firstCollection, secondCollection)
+    override fun internHashCode(): Int = hash(setId, firstAddress, secondAddress, firstCollection, secondCollection)
 
     override fun print(printer: ExpressionPrinter) = with(printer) {
         append("(set-intersection-size ")
@@ -89,24 +95,26 @@ class UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort : USort, Elem
 
 class UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort : USort, ElementSort : USort, AllocatedCollectionId, InputCollectionId> internal constructor(
     ctx: UContext<USizeSort>,
+    setId: UAnySetRegionId<*, *>,
     val firstAddress: UConcreteHeapAddress,
     val secondAddress: UHeapRef,
     val firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
     val secondCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>
-) : USymbolicSetIntersectionSize<USizeSort>(ctx)
+) : USymbolicSetIntersectionSize<USizeSort>(ctx, setId)
         where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId>,
               InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> {
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
+            { setId },
             { firstAddress },
             { secondAddress },
             { firstCollection },
             { secondCollection }
         )
 
-    override fun internHashCode(): Int = hash(firstAddress, secondAddress, firstCollection, secondCollection)
+    override fun internHashCode(): Int = hash(setId, firstAddress, secondAddress, firstCollection, secondCollection)
 
     override fun print(printer: ExpressionPrinter) = with(printer) {
         append("(set-intersection-size ")
@@ -119,23 +127,25 @@ class UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort : USort, ElementS
 
 class UInputWithInputSymbolicSetIntersectionSize<USizeSort : USort, ElementSort : USort, InputCollectionId> internal constructor(
     ctx: UContext<USizeSort>,
+    setId: UAnySetRegionId<*, *>,
     val firstAddress: UHeapRef,
     val secondAddress: UHeapRef,
     val firstCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>,
     val secondCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>
-) : USymbolicSetIntersectionSize<USizeSort>(ctx)
+) : USymbolicSetIntersectionSize<USizeSort>(ctx, setId)
         where InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> {
 
     override fun internEquals(other: Any): Boolean =
         structurallyEqual(
             other,
+            { setId },
             { firstAddress },
             { secondAddress },
             { firstCollection },
             { secondCollection }
         )
 
-    override fun internHashCode(): Int = hash(firstAddress, secondAddress, firstCollection, secondCollection)
+    override fun internHashCode(): Int = hash(setId, firstAddress, secondAddress, firstCollection, secondCollection)
 
     override fun print(printer: ExpressionPrinter) = with(printer) {
         append("(set-intersection-size ")

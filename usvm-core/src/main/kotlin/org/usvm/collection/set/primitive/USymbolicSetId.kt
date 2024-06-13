@@ -8,7 +8,9 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collection.set.USetEntryLValue
 import org.usvm.collection.set.USetRegionBuilder
+import org.usvm.collection.set.USetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementRegion
 import org.usvm.collection.set.USymbolicSetKeyInfo

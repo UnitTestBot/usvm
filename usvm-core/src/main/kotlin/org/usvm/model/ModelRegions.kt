@@ -13,8 +13,8 @@ import org.usvm.memory.UReadOnlyMemoryRegion
  * A specific [UMemoryRegion] for one-dimensional regions generalized by a single expression of a [KeySort].
  */
 class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
-    private val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
-    private val constValue: UExpr<Sort>,
+    val values: PersistentMap<UExpr<KeySort>, UExpr<Sort>>,
+    val constValue: UExpr<Sort>,
 ) : UReadOnlyMemoryRegion<KExpr<KeySort>, Sort> {
 
     /**

@@ -9,6 +9,8 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.USetRegionBuilder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementRegion

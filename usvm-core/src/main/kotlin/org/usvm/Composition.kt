@@ -4,32 +4,20 @@ import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.set.length.UInputSetLengthReading
 import org.usvm.collection.map.primitive.UAllocatedMapReading
 import org.usvm.collection.map.primitive.UInputMapReading
 import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
-import org.usvm.collection.set.USymbolicSetElement
-import org.usvm.collection.set.USymbolicSetElementsCollector
-import org.usvm.collection.set.USymbolicSetEntries
-import org.usvm.collection.set.length.UAllocatedWithAllocatedSymbolicSetIntersectionSize
-import org.usvm.collection.set.length.UAllocatedWithInputSymbolicSetIntersectionSize
-import org.usvm.collection.set.length.UInputWithInputSymbolicSetIntersectionSize
+import org.usvm.collection.set.composeSetIntersectionSize
+import org.usvm.collection.set.length.UInputSetLengthReading
 import org.usvm.collection.set.length.USymbolicSetIntersectionSize
 import org.usvm.collection.set.primitive.UAllocatedSetReading
 import org.usvm.collection.set.primitive.UInputSetReading
-import org.usvm.collection.set.primitive.USetReadOnlyRegion
-import org.usvm.collection.set.primitive.USymbolicSetId
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
-import org.usvm.collection.set.ref.URefSetReadOnlyRegion
-import org.usvm.collection.set.ref.USymbolicRefSetId
-import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.UReadOnlyMemoryRegion
-import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
 
@@ -135,210 +123,8 @@ open class UComposer<Type, USizeSort : USort>(
 
     override fun transform(expr: UNullRef): UExpr<UAddressSort> = memory.nullRef()
 
-    override fun transform(expr: USymbolicSetIntersectionSize<USizeSort>): UExpr<USizeSort> = when (expr) {
-        is UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort, *, *> -> composeSymbolicSetIntersectionSize(expr)
-        is UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort, *, *, *> -> composeSymbolicSetIntersectionSize(expr)
-        is UInputWithInputSymbolicSetIntersectionSize<USizeSort, *, *> -> composeSymbolicSetIntersectionSize(expr)
-    }
-
-    private fun <ElementSort : USort, AllocatedCollectionId> composeSymbolicSetIntersectionSize(
-        expr: UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort, ElementSort, AllocatedCollectionId>
-    ): UExpr<USizeSort> where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId> {
-        val firstElements = USymbolicSetElementsCollector.collect(expr.firstCollection.updates)
-        val secondElements = USymbolicSetElementsCollector.collect(expr.secondCollection.updates)
-
-        val composedFirstRef = compose(expr.uctx.mkConcreteHeapRef(expr.firstAddress))
-        val composedSecondRef = compose(expr.uctx.mkConcreteHeapRef(expr.secondAddress))
-
-        return composeSymbolicSetIntersectionSize(
-            composedFirstRef,
-            composedSecondRef,
-            expr.firstCollection,
-            expr.secondCollection,
-            firstElements.elements,
-            secondElements.elements,
-            firstSetContains = { composedElement ->
-                expr.firstCollection.read(composedElement, this@UComposer)
-            },
-            secondSetContains = { composedElement ->
-                expr.secondCollection.read(composedElement, this@UComposer)
-            },
-        )
-    }
-
-    private fun <ElementSort : USort, AllocatedCollectionId, InputCollectionId> composeSymbolicSetIntersectionSize(
-        expr: UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort, ElementSort, AllocatedCollectionId, InputCollectionId>
-    ): UExpr<USizeSort> where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId>,
-                              InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> {
-        val firstElements = USymbolicSetElementsCollector.collect(expr.firstCollection.updates)
-        val secondElements = USymbolicSetElementsCollector.collect(expr.secondCollection.updates)
-
-        val composedFirstRef = compose(expr.uctx.mkConcreteHeapRef(expr.firstAddress))
-        val composedSecondRef = compose(expr.secondAddress)
-
-        return composeSymbolicSetIntersectionSize(
-            composedFirstRef,
-            composedSecondRef,
-            expr.firstCollection,
-            expr.secondCollection,
-            firstElements.elements,
-            secondElements.elements.map { it.second },
-            firstSetContains = { composedElement ->
-                expr.firstCollection.read(composedElement, this@UComposer)
-            },
-            secondSetContains = { composedElement ->
-                expr.secondCollection.read(composedSecondRef to composedElement, this@UComposer)
-            },
-        )
-    }
-
-    private fun <ElementSort : USort, InputCollectionId> composeSymbolicSetIntersectionSize(
-        expr: UInputWithInputSymbolicSetIntersectionSize<USizeSort, ElementSort, InputCollectionId>
-    ): UExpr<USizeSort> where InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> {
-        val firstElements = USymbolicSetElementsCollector.collect(expr.firstCollection.updates)
-        val secondElements = USymbolicSetElementsCollector.collect(expr.secondCollection.updates)
-
-        val composedFirstRef = compose(expr.firstAddress)
-        val composedSecondRef = compose(expr.secondAddress)
-
-        return composeSymbolicSetIntersectionSize(
-            composedFirstRef,
-            composedSecondRef,
-            expr.firstCollection,
-            expr.secondCollection,
-            firstElements.elements.map { it.second },
-            secondElements.elements.map { it.second },
-            firstSetContains = { composedElement ->
-                expr.firstCollection.read(composedFirstRef to composedElement, this@UComposer)
-            },
-            secondSetContains = { composedElement ->
-                expr.secondCollection.read(composedSecondRef to composedElement, this@UComposer)
-            }
-        )
-    }
-
-    private inline fun <ElementSort : USort> composeSymbolicSetIntersectionSize(
-        composedFirstSetRef: UHeapRef,
-        composedSecondSetRef: UHeapRef,
-        firstCollection: USymbolicCollection<*, *, UBoolSort>,
-        secondCollection: USymbolicCollection<*, *, UBoolSort>,
-        firstSetElements: Iterable<UExpr<ElementSort>>,
-        secondSetElements: Iterable<UExpr<ElementSort>>,
-        firstSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-        secondSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-    ): UExpr<USizeSort> = when (val setCollectionId = firstCollection.collectionId) {
-        is USymbolicSetId<*, *, *, *, *, *> -> composeSymbolicSetIntersectionSize(
-            setCollectionId.setRegionId(),
-            composedFirstSetRef, composedSecondSetRef,
-            firstCollection, secondCollection,
-            firstSetElements, secondSetElements,
-            firstSetContains, secondSetContains,
-            getSetEntries = { region, ref ->
-                (region as USetReadOnlyRegion<*, *, *>).setEntries(ref)
-            },
-            getEntryElement = {
-                @Suppress("UNCHECKED_CAST")
-                it.setElement as UExpr<ElementSort>
-            },
-            computeIntersection = { region, firstRef, secondRef ->
-                (region as USetReadOnlyRegion<*, *, *>).setIntersectionSize(firstRef, secondRef)
-            }
-        )
-
-        is USymbolicRefSetId<*, *, *, *> -> composeSymbolicSetIntersectionSize(
-            setCollectionId.setRegionId(),
-            composedFirstSetRef, composedSecondSetRef,
-            firstCollection, secondCollection,
-            firstSetElements, secondSetElements,
-            firstSetContains, secondSetContains,
-            getSetEntries = { region, ref ->
-                (region as URefSetReadOnlyRegion<*>).setEntries(ref)
-            },
-            getEntryElement = {
-                @Suppress("UNCHECKED_CAST")
-                it.setElement as UExpr<ElementSort>
-            },
-            computeIntersection = { region, firstRef, secondRef ->
-                (region as URefSetReadOnlyRegion<*>).setIntersectionSize(firstRef, secondRef)
-            }
-        )
-
-        else -> error("Unexpected set collection: $setCollectionId")
-    }
-
-    private inline fun <ElementSort : USort, Entry> composeSymbolicSetIntersectionSize(
-        regionId: UMemoryRegionId<*, UBoolSort>,
-        composedFirstSetRef: UHeapRef,
-        composedSecondSetRef: UHeapRef,
-        firstCollection: USymbolicCollection<*, *, UBoolSort>,
-        secondCollection: USymbolicCollection<*, *, UBoolSort>,
-        firstSetElements: Iterable<UExpr<ElementSort>>,
-        secondSetElements: Iterable<UExpr<ElementSort>>,
-        firstSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-        secondSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-        getSetEntries: (UReadOnlyMemoryRegion<*, UBoolSort>, UHeapRef) -> USymbolicSetEntries<Entry>,
-        getEntryElement: (Entry) -> UExpr<ElementSort>,
-        computeIntersection: (UReadOnlyMemoryRegion<*, UBoolSort>, UHeapRef, UHeapRef) -> UExpr<USizeSort>,
-    ): UExpr<USizeSort> = tryComposeSymbolicSetIntersectionSize(
-        regionId, composedFirstSetRef, firstSetElements,
-        firstSetContains, secondSetContains, getSetEntries, getEntryElement
-    ) ?: tryComposeSymbolicSetIntersectionSize(
-        regionId, composedSecondSetRef, secondSetElements,
-        firstSetContains, secondSetContains, getSetEntries, getEntryElement
-    ) ?: applyCollectionsAndComposeIntersectionSize(
-        regionId, composedFirstSetRef, composedSecondSetRef,
-        firstCollection, secondCollection, computeIntersection
-    )
-
-    private inline fun <ElementSort : USort, Entry> tryComposeSymbolicSetIntersectionSize(
-        regionId: UMemoryRegionId<*, UBoolSort>,
-        composedSetRef: UHeapRef,
-        collectionElements: Iterable<UExpr<ElementSort>>,
-        firstSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-        secondSetContains: (UExpr<ElementSort>) -> UBoolExpr,
-        getSetEntries: (UReadOnlyMemoryRegion<*, UBoolSort>, UHeapRef) -> USymbolicSetEntries<Entry>,
-        getEntryElement: (Entry) -> UExpr<ElementSort>,
-    ): UExpr<USizeSort>? = with(composedSetRef.uctx.withSizeSort<USizeSort>()) {
-        val region = memory.getRegion(regionId)
-        val entries = getSetEntries(region, composedSetRef)
-
-        if (entries.isInput) return null
-
-        val composedCollectionElements = mutableListOf<UExpr<ElementSort>>()
-        collectionElements.mapTo(composedCollectionElements) { element ->
-            compose(element)
-        }
-        entries.entries.mapTo(composedCollectionElements) { entry ->
-            getEntryElement(entry)
-        }
-
-        return composedCollectionElements.fold(mkSizeExpr(0)) { size, composedElement ->
-            val firstContains = firstSetContains(composedElement)
-            val secondContains = secondSetContains(composedElement)
-
-            mkIte(
-                mkAnd(firstContains, secondContains),
-                { mkSizeAddExpr(size, mkSizeExpr(1)) },
-                { size }
-            )
-        }
-    }
-
-    private inline fun applyCollectionsAndComposeIntersectionSize(
-        regionId: UMemoryRegionId<*, UBoolSort>,
-        composedFirstRef: UHeapRef,
-        composedSecondRef: UHeapRef,
-        firstCollection: USymbolicCollection<*, *, UBoolSort>,
-        secondCollection: USymbolicCollection<*, *, UBoolSort>,
-        computeIntersection: (UReadOnlyMemoryRegion<*, UBoolSort>, UHeapRef, UHeapRef) -> UExpr<USizeSort>
-    ): UExpr<USizeSort> {
-        val writableMemory = memory.toWritableMemory()
-        firstCollection.applyTo(writableMemory, null, this@UComposer)
-        secondCollection.applyTo(writableMemory, null, this@UComposer)
-
-        val setRegion = writableMemory.getRegion(regionId)
-        return computeIntersection(setRegion, composedFirstRef, composedSecondRef)
-    }
+    override fun transform(expr: USymbolicSetIntersectionSize<USizeSort>): UExpr<USizeSort> =
+        composeSetIntersectionSize(this, expr)
 }
 
 @Suppress("NOTHING_TO_INLINE")

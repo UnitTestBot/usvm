@@ -32,6 +32,7 @@ import org.usvm.collection.map.ref.UInputRefMap
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeys
 import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
 import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
+import org.usvm.collection.set.UAnySetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.length.UAllocatedWithAllocatedSymbolicSetIntersectionSize
 import org.usvm.collection.set.length.UAllocatedWithInputSymbolicSetIntersectionSize
@@ -392,6 +393,7 @@ open class UContext<USizeSort : USort>(
         mkAstInterner<UAllocatedWithAllocatedSymbolicSetIntersectionSize<USizeSort, *, *>>()
 
     fun <ElementSort : USort, AllocatedCollectionId> mkAllocatedWithAllocatedSetIntersectionSizeExpr(
+        setId: UAnySetRegionId<*, *>,
         firstAddress: UConcreteHeapAddress,
         secondAddress: UConcreteHeapAddress,
         firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
@@ -400,7 +402,7 @@ open class UContext<USizeSort : USort>(
             where AllocatedCollectionId : USymbolicCollectionId<UExpr<ElementSort>, UBoolSort, AllocatedCollectionId> =
         allocatedWithAllocatedSetIntersectionSizeExprCache.createIfContextActive {
             UAllocatedWithAllocatedSymbolicSetIntersectionSize(
-                this, firstAddress, secondAddress, firstCollection, secondCollection
+                this, setId, firstAddress, secondAddress, firstCollection, secondCollection
             )
         }.cast()
 
@@ -408,6 +410,7 @@ open class UContext<USizeSort : USort>(
         mkAstInterner<UInputWithInputSymbolicSetIntersectionSize<USizeSort, *, *>>()
 
     fun <ElementSort : USort, InputCollectionId> mkInputWithInputSetIntersectionSizeExpr(
+        setId: UAnySetRegionId<*, *>,
         firstAddress: UHeapRef,
         secondAddress: UHeapRef,
         firstCollection: USymbolicCollection<InputCollectionId, USymbolicSetElement<ElementSort>, UBoolSort>,
@@ -416,7 +419,7 @@ open class UContext<USizeSort : USort>(
             where InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> =
         inputWithInputSetIntersectionSizeExprCache.createIfContextActive {
             UInputWithInputSymbolicSetIntersectionSize(
-                this, firstAddress, secondAddress, firstCollection, secondCollection
+                this, setId, firstAddress, secondAddress, firstCollection, secondCollection
             )
         }.cast()
 
@@ -424,6 +427,7 @@ open class UContext<USizeSort : USort>(
         mkAstInterner<UAllocatedWithInputSymbolicSetIntersectionSize<USizeSort, *, *, *>>()
 
     fun <ElementSort : USort, AllocatedCollectionId, InputCollectionId> mkAllocatedWithInputSetIntersectionSizeExpr(
+        setId: UAnySetRegionId<*, *>,
         firstAddress: UConcreteHeapAddress,
         secondAddress: UHeapRef,
         firstCollection: USymbolicCollection<AllocatedCollectionId, UExpr<ElementSort>, UBoolSort>,
@@ -433,7 +437,7 @@ open class UContext<USizeSort : USort>(
                   InputCollectionId : USymbolicCollectionId<USymbolicSetElement<ElementSort>, UBoolSort, InputCollectionId> =
         allocatedWithInputSetIntersectionSizeExprCache.createIfContextActive {
             UAllocatedWithInputSymbolicSetIntersectionSize(
-                this, firstAddress, secondAddress, firstCollection, secondCollection
+                this, setId, firstAddress, secondAddress, firstCollection, secondCollection
             )
         }.cast()
 

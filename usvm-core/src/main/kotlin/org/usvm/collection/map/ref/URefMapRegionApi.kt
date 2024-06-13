@@ -3,8 +3,8 @@ package org.usvm.collection.map.ref
 import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.ref.URefSetRegion
-import org.usvm.collection.set.ref.URefSetRegionId
 import org.usvm.memory.UWritableMemory
 
 internal fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(

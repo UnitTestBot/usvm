@@ -10,12 +10,12 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.set.USetEntryLValue
+import org.usvm.collection.set.USetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.collection.set.USymbolicSetEntries
-import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
-import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
@@ -27,35 +27,6 @@ import org.usvm.mkSizeExpr
 import org.usvm.regions.Region
 import org.usvm.uctx
 import org.usvm.withSizeSort
-
-data class USetEntryLValue<SetType, ElementSort : USort, Reg : Region<Reg>>(
-    val elementSort: ElementSort,
-    val setRef: UHeapRef,
-    val setElement: UExpr<ElementSort>,
-    val setType: SetType,
-    val elementInfo: USymbolicCollectionKeyInfo<UExpr<ElementSort>, Reg>
-) : ULValue<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
-    override val sort: UBoolSort
-        get() = elementSort.uctx.boolSort
-
-    override val memoryRegionId: UMemoryRegionId<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort>
-        get() = USetRegionId(elementSort, setType, elementInfo)
-
-    override val key: USetEntryLValue<SetType, ElementSort, Reg>
-        get() = this
-}
-
-data class USetRegionId<SetType, ElementSort : USort, Reg : Region<Reg>>(
-    val elementSort: ElementSort,
-    val setType: SetType,
-    val elementInfo: USymbolicCollectionKeyInfo<UExpr<ElementSort>, Reg>
-) : UMemoryRegionId<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
-    override val sort: UBoolSort
-        get() = elementSort.uctx.boolSort
-
-    override fun emptyRegion(): USetRegion<SetType, ElementSort, Reg> =
-        USetMemoryRegion(setType, elementSort, elementInfo)
-}
 
 typealias UAllocatedSet<SetType, ElementSort, Reg> =
         USymbolicCollection<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort>
@@ -248,6 +219,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
                                     firstConcrete
                                 ) { secondSetCollection ->
                                     mkAllocatedWithAllocatedSetIntersectionSizeExpr(
+                                        USetRegionId(elementSort, setType, elementInfo),
                                         firstConcrete.address, secondConcrete.address,
                                         firstSetCollection, secondSetCollection
                                     )
@@ -256,6 +228,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
                             symbolicMapper = { secondSymbolic ->
                                 val secondSetCollection = inputSetElements()
                                 mkAllocatedWithInputSetIntersectionSizeExpr(
+                                    USetRegionId(elementSort, setType, elementInfo),
                                     firstConcrete.address, secondSymbolic,
                                     firstSetCollection, secondSetCollection
                                 )
@@ -269,6 +242,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
                             tryComputeConcreteIntersectionSize(secondConcrete, firstSymbolic) { secondSetCollection ->
                                 val firstSetCollection = inputSetElements()
                                 mkAllocatedWithInputSetIntersectionSizeExpr(
+                                    USetRegionId(elementSort, setType, elementInfo),
                                     secondConcrete.address, firstSymbolic,
                                     secondSetCollection, firstSetCollection
                                 )
@@ -278,6 +252,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
                             val firstSetCollection = inputSetElements()
                             val secondSetCollection = inputSetElements()
                             mkInputWithInputSetIntersectionSizeExpr(
+                                USetRegionId(elementSort, setType, elementInfo),
                                 firstSymbolic, secondSymbolic,
                                 firstSetCollection, secondSetCollection
                             )

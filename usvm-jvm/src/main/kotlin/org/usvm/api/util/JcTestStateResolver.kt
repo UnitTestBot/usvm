@@ -51,6 +51,7 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.set.length.USetLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.isStaticHeapRef
@@ -415,7 +416,8 @@ abstract class JcTestStateResolver<T>(
         resultMapSize: () -> Int,
         resultMapAddEntry: (T, T) -> Unit
     ) {
-        val lengthRef = USetLengthLValue(heapRef, mapType, ctx.sizeSort)
+        val keySetId = URefSetRegionId(mapType, ctx.boolSort)
+        val lengthRef = USetLengthLValue(heapRef, keySetId, ctx.sizeSort)
         val resolvedLength = resolvePrimitiveInt(memory.read(lengthRef))
         val length = clipArrayLength(resolvedLength)
 

@@ -6,14 +6,13 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.collection.set.primitive.USetEntryLValue
-import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.USetEntryLValue
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr

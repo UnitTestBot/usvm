@@ -8,6 +8,8 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.set.URefSetEntryLValue
+import org.usvm.collection.set.URefSetRegionId
 import org.usvm.collection.set.USetCollectionDecoder
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -50,6 +52,8 @@ abstract class URefSetModelRegion<SetType>(
         val elementsIntersection = firstElements.intersect(secondElements.toHashSet())
         return firstRef.uctx.withSizeSort<SizeSort>().mkSizeExpr(elementsIntersection.size)
     }
+
+    fun modelSetRefs(): Set<UHeapRef> = inputSet.values.keys.mapTo(hashSetOf()) { it.first }
 }
 
 class URefSetLazyModelRegion<SetType>(

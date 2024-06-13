@@ -54,7 +54,7 @@ open class USolverBase<Type>(
         }
 
         smtSolver.withAssertionsScope {
-            val assertions = pc.constraints(translator).toList()
+            val assertions = pc.constraints(translator).toMutableList()
             smtSolver.assert(assertions)
 
             val translatedSoftConstraints = softConstraints
@@ -62,6 +62,8 @@ open class USolverBase<Type>(
                 .map(translator::translate)
                 .filterNot(UBoolExpr::isFalse)
                 .toMutableList()
+
+            val setLengthSolver = USetLengthSolver(assertions, translator)
 
             // DPLL(T)-like solve procedure
             var iter = 0
@@ -110,7 +112,10 @@ open class USolverBase<Type>(
                     is UTypeUnsatResult<Type> -> {
                         typeResult.conflictLemmas
                             .map(translator::translate)
-                            .let { smtSolver.assert(it) }
+                            .let {
+                                assertions.addAll(it)
+                                smtSolver.assert(it)
+                            }
                         continue
                     }
 
@@ -118,7 +123,26 @@ open class USolverBase<Type>(
                     is UUnsatResult -> return UUnsatResult()
                 }
 
-                return USatResult(typedUModel)
+                val setLengthSolverQuery = USetLengthSolverQuery(kModel, typedUModel)
+
+                val typedUModelWithLength =
+                    when (val setLengthSolverResult = setLengthSolver.check(setLengthSolverQuery)) {
+                        is USatResult -> decoder.overrideMemoryRegions(typedUModel, setLengthSolverResult.model.model)
+                        is USetLengthSolverUnsatResult -> {
+                            setLengthSolverResult.setLengthLemmas
+                                .map(translator::translate)
+                                .let {
+                                    assertions.addAll(it)
+                                    smtSolver.assert(it)
+                                }
+                            continue
+                        }
+
+                        is UUnknownResult -> return UUnknownResult()
+                        is UUnsatResult -> return UUnsatResult()
+                    }
+
+                return USatResult(typedUModelWithLength)
             } while (iter < ITERATIONS_THRESHOLD || ITERATIONS_THRESHOLD == INFINITE_ITERATIONS)
 
             return UUnsatResult()

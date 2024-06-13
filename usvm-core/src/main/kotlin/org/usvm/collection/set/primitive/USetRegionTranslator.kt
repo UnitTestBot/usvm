@@ -8,6 +8,8 @@ import org.usvm.USort
 import org.usvm.collection.set.UAllocatedSetUpdatesTranslator
 import org.usvm.collection.set.UInputSetUpdatesTranslator
 import org.usvm.collection.set.USetCollectionDecoder
+import org.usvm.collection.set.USetEntryLValue
+import org.usvm.collection.set.USetRegionId
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
