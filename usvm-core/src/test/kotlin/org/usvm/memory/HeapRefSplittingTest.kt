@@ -15,6 +15,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
@@ -22,6 +23,11 @@ import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
 import org.usvm.collection.field.UInputFieldReading
 import org.usvm.sizeSort
+import org.usvm.mkSizeExpr
+import org.usvm.api.memcpy
+import org.usvm.api.allocateArray
+import org.usvm.constraints.UEqualityConstraints
+import org.usvm.constraints.UTypeConstraints
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -41,7 +47,9 @@ class HeapRefSplittingTest {
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        heap = UMemory(ctx, mockk())
+        val eqConstraints = UEqualityConstraints(ctx)
+        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, typeConstraints)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort
@@ -138,6 +146,144 @@ class HeapRefSplittingTest {
 
         assertEquals(3, concreteRefs.size)
         assertSame(nullRef, symbolicRef.expr)
+    }
+
+    @Test
+    fun testIrrelevantRecordsDoNotAppearInReading() = with(ctx) {
+        val ref = allocateConcreteRef()
+        val idx0 = mkRegisterReading(0, sizeSort)
+        val idx1 = mkRegisterReading(1, sizeSort)
+        val idx2 = mkRegisterReading(2, sizeSort)
+        val idx3 = mkRegisterReading(3, sizeSort)
+        val symbolicValue = mkRegisterReading(1, addressSort)
+        val concreteValue1 = allocateConcreteRef()
+        val concreteValue2 = allocateConcreteRef()
+        val concreteValue3 = allocateConcreteRef()
+
+        heap.writeArrayIndex(ref, idx0, arrayDescr.first, arrayDescr.second, symbolicValue, trueExpr)
+        heap.writeArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second, concreteValue1, trueExpr)
+        heap.writeArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second, concreteValue2, trueExpr)
+        heap.writeArrayIndex(ref, idx3, arrayDescr.first, arrayDescr.second, concreteValue3, trueExpr)
+        val reading = heap.readArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second)
+        val (concretes, symbolic) = splitUHeapRef(reading, ignoreNullRefs = false)
+        assertEquals(2, concretes.size)
+        assertEquals(0, symbolic.size)
+        assertSame(concreteValue3, concretes[0].expr)
+        assertSame(concreteValue2, concretes[1].expr)
+    }
+
+    @Test
+    fun testLastWriteUnderInvariantTree() = with(ctx) {
+        val ref = allocateConcreteRef()
+        val idx1 = mkRegisterReading(0, sizeSort)
+        val idx2 = mkRegisterReading(1, sizeSort)
+
+        val concreteValue = allocateConcreteRef()
+        val symbolicValue = mkRegisterReading(3, addressSort)
+
+        heap.writeArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second, concreteValue, trueExpr)
+        heap.writeArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second, symbolicValue, trueExpr)
+
+        val read2 = heap.readArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second)
+        assertSame(symbolicValue, read2)
+
+        val read1 = heap.readArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second)
+        val (concreteRefs, symbolicRefs) = splitUHeapRef(read1, ignoreNullRefs = false)
+        assertEquals(1, concreteRefs.size)
+        assertEquals(1, symbolicRefs.size)
+        assertSame(concreteValue, concreteRefs[0].expr)
+    }
+
+    @Test
+    fun testLastWriteUnderInvariantTreeWithRegionsSplit() = with(ctx) {
+        val ref = allocateConcreteRef()
+        val idx1 = mkRegisterReading(0, sizeSort)
+        val idx2 = mkRegisterReading(1, sizeSort)
+        val idx3 = ctx.mkSizeExpr(1)
+
+        val concreteValue1 = allocateConcreteRef()
+        val concreteValue2 = allocateConcreteRef()
+        val symbolicValue = mkRegisterReading(4, addressSort)
+
+        heap.writeArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second, concreteValue1, trueExpr)
+        heap.writeArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second, symbolicValue, trueExpr)
+        heap.writeArrayIndex(ref, idx3, arrayDescr.first, arrayDescr.second, concreteValue2, trueExpr)
+
+        val read3 = heap.readArrayIndex(ref, idx3, arrayDescr.first, arrayDescr.second)
+        assertSame(concreteValue2, read3)
+
+        val read2 = heap.readArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second)
+        val (concreteRefs, symbolicRefs) = splitUHeapRef(read2, ignoreNullRefs = false)
+        assertEquals(1, concreteRefs.size)
+        assertEquals(1, symbolicRefs.size)
+        assertSame(concreteValue2, concreteRefs[0].expr)
+        assertSame(symbolicValue, symbolicRefs[0].expr)
+    }
+
+    @Test
+    fun testLastWriteUnderRangedWrite() = with(ctx) {
+        val dstRef = allocateConcreteRef()
+        val idx0 = mkRegisterReading(0, sizeSort)
+        val symbolicRef = mkRegisterReading(12, addressSort)
+
+        val (array, srcRef) = initializeArray()
+        val srcFrom = 0
+        val dstTo = array.size - 1
+        val dstFrom = 0
+        heap.memcpy(
+            srcRef = srcRef,
+            dstRef = dstRef,
+            type = arrayDescr.first,
+            elementSort = arrayDescr.second,
+            fromSrcIdx = ctx.mkSizeExpr(srcFrom),
+            fromDstIdx = ctx.mkSizeExpr(dstFrom),
+            toDstIdx = ctx.mkSizeExpr(dstTo - 1),
+            guard = ctx.trueExpr
+        )
+
+        val read1 = heap.readArrayIndex(dstRef, idx0, arrayDescr.first, arrayDescr.second)
+        val (concreteBefore, _) = splitUHeapRef(read1, ignoreNullRefs = false)
+        assertEquals(array.size, concreteBefore.size)
+
+        heap.writeArrayIndex(dstRef, idx0, arrayDescr.first, arrayDescr.second, symbolicRef, trueExpr)
+        val read2 = heap.readArrayIndex(dstRef, idx0, arrayDescr.first, arrayDescr.second)
+        assertSame(symbolicRef, read2)
+
+        val idx1 = mkRegisterReading(1, sizeSort)
+        val read3 = heap.readArrayIndex(dstRef, idx1, arrayDescr.first, arrayDescr.second)
+        val (concreteAfter, _) = splitUHeapRef(read3, ignoreNullRefs = false)
+        assertEquals(array.size, concreteAfter.size)
+    }
+
+    @Test
+    fun testLastWriteAboveRangedWrite() = with(ctx) {
+        val dstRef = allocateConcreteRef()
+        val idx0 = mkRegisterReading(0, sizeSort)
+        val concreteValue = allocateConcreteRef()
+
+        val (array, srcRef) = initializeArray()
+        val srcFrom = 0
+        val dstTo = array.size - 1
+        val dstFrom = 0
+        heap.memcpy(
+            srcRef = srcRef,
+            dstRef = dstRef,
+            type = arrayDescr.first,
+            elementSort = arrayDescr.second,
+            fromSrcIdx = ctx.mkSizeExpr(srcFrom),
+            fromDstIdx = ctx.mkSizeExpr(dstFrom),
+            toDstIdx = ctx.mkSizeExpr(dstTo - 1),
+            guard = ctx.trueExpr
+        )
+
+        heap.writeArrayIndex(dstRef, idx0, arrayDescr.first, arrayDescr.second, concreteValue, trueExpr)
+        val read1 = heap.readArrayIndex(dstRef, idx0, arrayDescr.first, arrayDescr.second)
+        assertSame(concreteValue, read1)
+
+        val idx1 = mkRegisterReading(1, sizeSort)
+        val read2 = heap.readArrayIndex(dstRef, idx1, arrayDescr.first, arrayDescr.second)
+        val (concretes2, _) = splitUHeapRef(read2, ignoreNullRefs = false)
+        assertEquals(array.size + 1, concretes2.size)
     }
 
     @Test
@@ -277,5 +423,23 @@ class HeapRefSplittingTest {
 
         assertSame(ite.condition, (ref1 eq ref3) and !cond)
         assertSame(ite.trueBranch, valueToWrite)
+    }
+
+    private fun initializeArray(): Pair<IntArray, UConcreteHeapRef> {
+        val array = IntArray(10)
+        val ref = heap.allocateArray(arrayDescr.first, ctx.sizeSort, ctx.mkSizeExpr(array.size))
+
+        array.indices.forEach { idx ->
+            heap.writeArrayIndex(
+                ref = ref,
+                index = ctx.mkSizeExpr(idx),
+                type = arrayDescr.first,
+                sort = arrayDescr.second,
+                value = ctx.allocateConcreteRef(),
+                guard = ctx.trueExpr
+            )
+        }
+
+        return array to ref
     }
 }

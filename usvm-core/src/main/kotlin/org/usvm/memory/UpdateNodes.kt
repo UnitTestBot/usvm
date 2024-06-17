@@ -60,6 +60,11 @@ sealed interface UUpdateNode<Key, Sort : USort> {
     fun value(key: Key, composer: UComposer<*, *>?): UExpr<Sort>
 
     /**
+     * @return This with [guard] = previous guard /\ condition.
+     */
+    fun addGuard(condition: UBoolExpr): UUpdateNode<Key, Sort>
+
+    /**
      * Guard is a symbolic condition for this update. That is, this update is done only in states satisfying this guard.
      */
     val guard: UBoolExpr
@@ -120,6 +125,9 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 
         return res
     }
+
+    override fun addGuard(condition: UBoolExpr): UUpdateNode<Key, Sort> =
+        UPinpointUpdateNode(key, keyInfo, value, condition.ctx.mkAnd(guard, condition))
 
     override fun toString(): String = "{$key <- $value}".takeIf { guard.isTrue } ?: "{$key <- $value | $guard}"
 }
@@ -231,6 +239,9 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
             composer
         )
     }
+
+    override fun addGuard(condition: UBoolExpr): UUpdateNode<DstKey, Sort> =
+        URangedUpdateNode(sourceCollection, adapter, condition.ctx.mkAnd(guard, condition))
 
     override fun toString(): String =
         "{${adapter.toString(sourceCollection)}${if (guard.isTrue) "" else " | $guard"}}"
