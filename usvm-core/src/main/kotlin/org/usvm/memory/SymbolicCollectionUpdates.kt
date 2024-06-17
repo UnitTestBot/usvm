@@ -1,5 +1,7 @@
 package org.usvm.memory
 
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
@@ -47,6 +49,24 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
         matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
         guardBuilder: GuardBuilder,
         composer: UComposer<*, *>?,
+    ): USymbolicCollectionUpdates<Key, Sort>
+
+    /**
+     * Writes to this [USymbolicCollectionUpdates] preserving the invariant
+     * that all records satisfying predicate are hierarchically older than those that do not satisfy it.
+     *
+     * If [value] satisfies predicate, calls [write]. Otherwise traverses current collection from newest records to
+     * oldest, modifying their guard so that they are not overwritten by [key], and places current record under
+     * invariant tree.
+     *
+     * @return new [USymbolicCollectionUpdates] with the preserved invariant.
+     */
+    fun splitWrite(
+        key: Key,
+        value: UExpr<Sort>,
+        guard: UBoolExpr = value.ctx.trueExpr,
+        composer: UComposer<*, *>? = null,
+        predicate: (UExpr<Sort>) -> Boolean,
     ): USymbolicCollectionUpdates<Key, Sort>
 
     /**
@@ -211,6 +231,15 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         override fun next(): UUpdateNode<Key, Sort> = iterator.next()
     }
 
+    override fun splitWrite(
+        key: Key,
+        value: UExpr<Sort>,
+        guard: UBoolExpr,
+        composer: UComposer<*, *>?,
+        predicate: (UExpr<Sort>) -> Boolean,
+    ): USymbolicCollectionUpdates<Key, Sort> = write(key, value, guard)
+
+
     override fun lastUpdatedElementOrNull(): UUpdateNode<Key, Sort>? = node?.update
 
     override fun isEmpty(): Boolean = node == null
@@ -288,55 +317,100 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         guardBuilder: GuardBuilder,
         composer: UComposer<*, *>?,
     ): UTreeUpdates<Key, Reg, Sort> {
-        // reconstructed region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
-        var splitRegionTree = emptyRegionTree<Reg, UUpdateNode<Key, Sort>>()
+        var restRecordsAreIrrelevant = false
+        val symbolicSubtreesStack =
+            mutableListOf<Pair<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>>>()
 
-        // add an update to result tree
-        fun applyUpdate(update: UUpdateNode<Key, Sort>) {
-            val region = when (update) {
-                is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
-                is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
-            }
-            splitRegionTree = splitRegionTree
-                .write(region, update) { !it.isIncludedByUpdateConcretely(update) }
-        }
+        fun traverseTreeWhilePredicateSatisfied(tree: RegionTree<Reg, UUpdateNode<Key, Sort>>) {
+            // process nodes of the same level from newest to oldest
+            for ((reg, entry) in tree.entries.toList().reversed()) {
+                val (node, subtree) = entry
+                val splitUpdate = node.split(key, predicate, matchingWrites, guardBuilder, composer)
+                // range nodes are considered to belong to invariant tree since they can contain concretes
+                if (splitUpdate === null || node is URangedUpdateNode<*, *, Key, Sort>) {
+                    traverseTreeWhilePredicateSatisfied(subtree)
+                    if (restRecordsAreIrrelevant) break
+                } else {
+                    // since [splitWrite] preserves invariant that records satisfying predicate are always
+                    // at the top of the tree  we can just add rest branch to splitTreeEntries
+                    symbolicSubtreesStack += reg to entry
+                }
 
-
-        var hasChanged = false
-        // here we split updates from the newest to the oldest
-        val splitUpdates = toMutableList<UUpdateNode<Key, Sort>?>().apply { reverse() }
-        var idx = 0
-
-        for (update in splitUpdates) {
-            // here we collect splitUpdates in the correct order (from the newest to the oldest)
-            val splitUpdate = update?.split(key, predicate, matchingWrites, guardBuilder, composer)
-
-            hasChanged = hasChanged or (update !== splitUpdate)
-            splitUpdates[idx] = splitUpdate
-            idx++
-
-            if (guardBuilder.isFalse) {
-                // If rest updates are non-relevant, filtering them out...
-                hasChanged = hasChanged or (idx < splitUpdates.size)
-                break
+                if (guardBuilder.isFalse) {
+                    restRecordsAreIrrelevant = true
+                    break
+                }
             }
         }
 
-        // if nothing changed, return this
-        if (!hasChanged) {
-            return this
+        traverseTreeWhilePredicateSatisfied(updates)
+
+        val splitTreeEntries =
+            mutableMapOf<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>>()
+
+        // reconstruct region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
+        while (symbolicSubtreesStack.isNotEmpty()) {
+            val (reg, entry) = symbolicSubtreesStack.removeLast()
+            splitTreeEntries[reg] = entry
         }
 
-        // traverse all updates one by one from the oldest relevant one
-        for (i in idx - 1 downTo 0) {
-            val update = splitUpdates[i]
-            if (update != null) {
-                applyUpdate(update)
+        return this.copy(updates = RegionTree(splitTreeEntries.toPersistentMap()))
+    }
+
+    override fun splitWrite(
+        key: Key,
+        value: UExpr<Sort>,
+        guard: UBoolExpr,
+        composer: UComposer<*, *>?,
+        predicate: (UExpr<Sort>) -> Boolean,
+    ): UTreeUpdates<Key, Reg, Sort> {
+        if (predicate(value)) {
+            return write(key, value, guard)
+        }
+        val update = UPinpointUpdateNode(key, keyInfo, value, guard)
+        val region = keyInfo.keyToRegion(key)
+        val (included, disjoint) = updates.split(region) { !it.isIncludedByUpdateConcretely(update) }
+
+        /*
+         * Traverses tree while nodes satisfy predicate, guarding them from rewriting by [key], then
+         * places [UUpdateNode] corresponding to current write operation under invariant tree.
+         *
+         * Adds additional nodes if needed since sum of regions of all nodes corresponding to current write operation
+         * must be equal to  region of [key]: consider series of writes: a[1] = u, a[i] = v, where u satisfies
+         * predicate and v does not. We need to hang a[i] = v with region 1 under a[1] = u and add node a[i] = v with
+         * region Int \ 1.
+         */
+        fun placeUpdateUnderInvariantTree(
+            region: Reg,
+            tree: RegionTree<Reg, UUpdateNode<Key, Sort>>,
+        ): RegionTree<Reg, UUpdateNode<Key, Sort>> {
+            var dict = tree.entries
+            var restRegion = region
+            val ctx = guard.ctx
+
+            for ((reg, entry) in tree.entries) {
+                val (node, subtree) = entry
+                if (predicate(node.value(key, composer)) || node is URangedUpdateNode<*, *, Key, Sort>) {
+                    val excludeCondition = ctx.mkNot(node.includesSymbolically(key, composer))
+                    val guardedNode = node.addGuard(excludeCondition)
+                    val modifiedTree = placeUpdateUnderInvariantTree(reg, subtree)
+                    dict = dict.put(reg, guardedNode to modifiedTree)
+                } else {
+                    dict = dict.put(reg, update to RegionTree(persistentMapOf(reg to entry)))
+                }
+                restRegion = region.subtract(reg)
+            }
+
+            return if (restRegion.isEmpty) {
+                RegionTree(dict)
+            } else {
+                RegionTree(dict.put(restRegion, update to emptyRegionTree()))
             }
         }
 
-
-        return this.copy(updates = splitRegionTree)
+        val modifiedTree = placeUpdateUnderInvariantTree(region, included)
+        val unionTree = RegionTree(disjoint.entries.putAll(modifiedTree.entries))
+        return this.copy(updates = unionTree)
     }
 
     /**

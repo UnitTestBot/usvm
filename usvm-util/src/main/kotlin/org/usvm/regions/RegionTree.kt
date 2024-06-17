@@ -144,6 +144,17 @@ class RegionTree<Reg, Value>(
         splitRecursively(region, filterPredicate).completelyCoveredRegionTree
 
     /**
+     * Returns a subtree completely included into the [region] and disjoint with it.
+     */
+    fun split(
+        region: Reg,
+        filterPredicate: (Value) -> Boolean = { true },
+    ): Pair<CompletelyCoveredRegionTree<Reg, Value>, DisjointRegionTree<Reg, Value>> {
+        val splitResult = splitRecursively(region, filterPredicate)
+        return splitResult.completelyCoveredRegionTree to splitResult.disjointRegionTree
+    }
+
+    /**
      * Places a Pair([region], [value]) into the tree, preserving its invariants.
      *
      * [filterPredicate] is a predicate suitable to filter out particular nodes if their `value` don't satisfy it.

@@ -62,7 +62,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
 
     /**
      * Reads key from this symbolic collection, but 'bubbles up' entries satisfying predicates.
-     * For example, imagine we read for example key z from array A with two updates: v written into x and w into y.
+     * For example, imagine we read key z from array A with two updates: v written into x and w into y.
      * Usual [read] produces the expression
      *      A{x <- v}{y <- w}[z]
      * If v satisfies [predicate] and w does not, then [splittingRead] instead produces the expression
@@ -129,10 +129,10 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
                 initialGuard = guard,
                 ignoreNullRefs = false,
                 blockOnConcrete = { newUpdates, (valueRef, valueGuard) ->
-                    newUpdates.write(key, valueRef.asExpr(sort), valueGuard)
+                    newUpdates.splitWrite(key, valueRef.asExpr(sort), valueGuard) { it is UConcreteHeapRef }
                 },
                 blockOnSymbolic = { newUpdates, (valueRef, valueGuard) ->
-                    newUpdates.write(key, valueRef.asExpr(sort), valueGuard)
+                    newUpdates.splitWrite(key, valueRef.asExpr(sort), valueGuard) { it is UConcreteHeapRef }
                 }
             )
         } else {
