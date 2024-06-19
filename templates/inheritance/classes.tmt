@@ -22,6 +22,16 @@ public class SubClass extends SuperClass {
 }
 ~class org.owasp.benchmark.helpers.inheritance.SubClass end~
 
+~class org.owasp.benchmark.helpers.inheritance.SubSubClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+final public class SubSubClass extends SubClass {
+    public String subSubMethod() {
+        return "";
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.SubSubClass end~
+
 ~class org.owasp.benchmark.helpers.inheritance.SiblingClass start~
 package org.owasp.benchmark.helpers.inheritance;
 
@@ -33,9 +43,7 @@ public class SiblingClass extends SuperClass {
 ~class org.owasp.benchmark.helpers.inheritance.SiblingClass end~
 
 ~main class start~
-~import org.owasp.benchmark.helpers.inheritance.SuperClass;~
-~import org.owasp.benchmark.helpers.inheritance.SubClass;~
-~import org.owasp.benchmark.helpers.inheritance.SiblingClass;~
+~import org.owasp.benchmark.helpers.inheritance.*;~
 ~import java.util.*;~
 ~template start~
 SubClass obj = new SubClass();
@@ -49,7 +57,7 @@ SuperClass obj = new SubClass();
 obj.setSuperField(~[EXPR_String]~);
 if (obj instanceof SubClass) {
     if (((SubClass) obj).subMethod().equals("")) {
-    	~[VAR_String]~ = obj.superMethod();
+        ~[VAR_String]~ = ((SubClass) obj).subMethod();
     }
 }
 ~template end~
@@ -68,7 +76,7 @@ if (obj instanceof SiblingClass && obj instanceof SubClass) {
 }
 ~template end~
 ~template start~
-~function func1 start~
+~function handleSuperClass start~
 public String handleSuperClass(SuperClass superClassObj) {
     if (superClassObj instanceof SiblingClass siblingClassObj) {
         return siblingClassObj.superMethod();
@@ -78,14 +86,14 @@ public String handleSuperClass(SuperClass superClassObj) {
       return "";
     }
 }
-~function func1 end~
+~function handleSuperClass end~
 
 SuperClass obj = new SubClass();
 obj.setSuperField(~[EXPR_String]~);
 ~[VAR_String]~ = handleSuperClass(obj);
 ~template end~
 ~template start~
-~function func1 start~
+~function handleSuperClass start~
 public String handleSuperClass(SuperClass superClassObj) {
     if (superClassObj instanceof SiblingClass siblingClassObj) {
         return siblingClassObj.superMethod();
@@ -95,10 +103,29 @@ public String handleSuperClass(SuperClass superClassObj) {
       return "";
     }
 }
-~function func1 end~
+~function handleSuperClass end~
 
 SuperClass obj = new SuperClass();
 obj.setSuperField(~[EXPR_String]~);
 ~[VAR_String]~ = handleSuperClass(obj);
+~template end~
+~template start~
+~function handleSubSubClass start~
+public String handleSubSubClass(SubSubClass subSubClassObj, String param) {
+    SuperClass superClassObj = subSubClassObj;
+    if (superClassObj instanceof SiblingClass siblingClassObj) {
+        return siblingClassObj.superMethod();
+    } else if (superClassObj instanceof SubClass subClassObj) {
+        return subClassObj.superMethod();
+    } else if (superClassObj instanceof SubSubClass newSubSubClassObj) {
+        return param;
+    } else {
+      return "";
+    }
+}
+~function handleSubSubClass end~
+
+SubSubClass obj = new SubSubClass();
+~[VAR_String]~ = handleSubSubClass(obj, ~[EXPR_String]~);
 ~template end~
 ~main class end~
