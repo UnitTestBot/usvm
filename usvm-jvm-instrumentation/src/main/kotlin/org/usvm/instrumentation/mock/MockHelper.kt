@@ -339,7 +339,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
             maxLocalVarIndex = maxOf(maxLocalVarIndex, value.index)
         }
 
-        override fun visitJcRawExpr(expr: JcRawExpr) {
+        override fun defaultVisitJcRawExpr(expr: JcRawExpr) {
             visitOperands(expr.operands)
         }
 

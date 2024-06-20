@@ -18,6 +18,7 @@ import org.jacodb.api.jvm.cfg.JcEqExpr
 import org.jacodb.api.jvm.cfg.JcExitMonitorInst
 import org.jacodb.api.jvm.cfg.JcGotoInst
 import org.jacodb.api.jvm.cfg.JcIfInst
+import org.jacodb.api.jvm.cfg.JcImmediate
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcInstList
 import org.jacodb.api.jvm.cfg.JcInstRef
@@ -642,7 +643,7 @@ class JcInterpreter(
     private val localVarToIdx = mutableMapOf<JcMethod, MutableMap<String, Int>>() // (method, localName) -> idx
 
     // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
-    private fun mapLocalToIdxMapper(method: JcMethod, local: JcLocal) =
+    private fun mapLocalToIdxMapper(method: JcMethod, local: JcImmediate) =
         when (local) {
             is JcLocalVar -> localVarToIdx
                 .getOrPut(method) { mutableMapOf() }

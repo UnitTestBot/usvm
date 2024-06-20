@@ -1,7 +1,6 @@
 package org.usvm.samples.checkers
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.cfg.JcAssignInst
 import org.jacodb.api.jvm.cfg.JcBinaryExpr
@@ -35,10 +34,6 @@ interface JcAssignInstChecker : JcInstVisitor.Default<Unit> {
     }
 
     override fun defaultVisitJcInst(inst: JcInst) {
-        // ignore
-    }
-
-    override fun defaultVisitCommonInst(inst: CommonInst<*, *>) {
         // ignore
     }
 }
