@@ -4,8 +4,6 @@ import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
-import org.jacodb.api.common.cfg.CommonExpr
-import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcClassType
@@ -39,6 +37,7 @@ import org.jacodb.api.jvm.cfg.JcFieldRef
 import org.jacodb.api.jvm.cfg.JcFloat
 import org.jacodb.api.jvm.cfg.JcGeExpr
 import org.jacodb.api.jvm.cfg.JcGtExpr
+import org.jacodb.api.jvm.cfg.JcImmediate
 import org.jacodb.api.jvm.cfg.JcInstanceOfExpr
 import org.jacodb.api.jvm.cfg.JcInt
 import org.jacodb.api.jvm.cfg.JcLambdaExpr
@@ -62,7 +61,6 @@ import org.jacodb.api.jvm.cfg.JcRemExpr
 import org.jacodb.api.jvm.cfg.JcShlExpr
 import org.jacodb.api.jvm.cfg.JcShort
 import org.jacodb.api.jvm.cfg.JcShrExpr
-import org.jacodb.api.jvm.cfg.JcSimpleValue
 import org.jacodb.api.jvm.cfg.JcSpecialCallExpr
 import org.jacodb.api.jvm.cfg.JcStaticCallExpr
 import org.jacodb.api.jvm.cfg.JcStringConstant
@@ -134,7 +132,7 @@ class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val options: JcMachineOptions,
-    localToIdx: (JcMethod, JcLocal) -> Int,
+    localToIdx: (JcMethod, JcImmediate) -> Int,
     mkTypeRef: (JcType) -> UConcreteHeapRef,
     mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
@@ -187,10 +185,6 @@ class JcExprResolver(
             is JcLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
-
-    override fun defaultVisitCommonExpr(expr: CommonExpr): UExpr<out USort>? {
-        error("Unexpected expression: $expr")
-    }
 
     override fun defaultVisitJcExpr(expr: JcExpr): UExpr<out USort>? {
         error("Unexpected expression: $expr")
@@ -1024,7 +1018,7 @@ class JcExprResolver(
 class JcSimpleValueResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
-    private val localToIdx: (JcMethod, JcLocal) -> Int,
+    private val localToIdx: (JcMethod, JcImmediate) -> Int,
     private val mkTypeRef: (JcType) -> UConcreteHeapRef,
     private val mkStringConstRef: (String) -> UConcreteHeapRef,
 ) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {
@@ -1132,12 +1126,9 @@ class JcSimpleValueResolver(
     }
 
     override fun defaultVisitJcExpr(expr: JcExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
+        error("Simple expr resolver must resolve only inheritors of ${JcImmediate::class}.")
 
-    override fun defaultVisitCommonExpr(expr: CommonExpr): UExpr<out USort> =
-        error("Simple expr resolver must resolve only inheritors of ${JcSimpleValue::class}.")
-
-    fun resolveLocal(local: JcLocal): URegisterStackLValue<*> {
+    fun resolveLocal(local: JcImmediate): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = ctx.typeToSort(local.type)

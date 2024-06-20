@@ -117,6 +117,7 @@ class JcLoopTracker : StateLoopTracker<JcLoopTracker.LoopInfo, JcInst, JcState> 
             override val exits: List<Any> get() = error("Should not be used")
             override fun successors(node: Any): Set<Any> = error("Should not be used")
             override fun catchers(node: Any): Set<Any> = error("Should not be used")
+            override fun iterator(): Iterator<Any> = super.iterator()
         }
 
         companion object {

@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import org.jacodb.analysis.graph.JcApplicationGraphImpl
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
 import org.jacodb.api.jvm.JcTypedMethod
@@ -8,6 +7,7 @@ import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.ext.toType
 import org.jacodb.impl.features.HierarchyExtensionImpl
 import org.jacodb.impl.features.SyncUsagesExtension
+import org.usvm.dataflow.jvm.graph.JcApplicationGraphImpl
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.util.originalInst
 import java.util.concurrent.ConcurrentHashMap
