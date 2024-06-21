@@ -1,0 +1,25 @@
+~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord begin~
+package org.owasp.benchmark.helpers;
+
+public record _Fuzz_SimpleRecord<T> (T t) {}
+
+~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord end~
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_SimpleRecord;~
+~import java.util.*;~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> record = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+~[VAR_TYPE@1]~ = record.t();
+~template end~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> first = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_SimpleRecord<~[TYPE@1]~> second = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+if (first.equals(second)) {
+  ~[VAR_TYPE@2]~ = ~[EXPR_TYPE@2]~;
+}
+~template end~
+
+~main class end~
