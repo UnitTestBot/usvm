@@ -1,50 +1,29 @@
 package com.spbpu.bbfinfrastructure.util
 
 import com.intellij.lang.ASTNode
-import com.intellij.lang.FileASTNode
-import com.intellij.psi.*
-import com.intellij.psi.tree.IElementType
-import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiNamedElement
+import com.intellij.psi.PsiWhiteSpace
 import com.intellij.util.IncorrectOperationException
-import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
-import com.spbpu.bbfinfrastructure.util.kcheck.asCharSequence
-import com.spbpu.bbfinfrastructure.util.kcheck.nextInRange
-import com.spbpu.bbfinfrastructure.util.kcheck.nextString
-import org.jetbrains.kotlin.KtNodeTypes
-import org.jetbrains.kotlin.builtins.KotlinBuiltIns
+import com.spbpu.bbfinfrastructure.psicreator.util.createWhitespace
 import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.diagnostics.PsiDiagnosticUtils
-import org.jetbrains.kotlin.js.descriptorUtils.nameIfStandardType
-import org.jetbrains.kotlin.lexer.KtTokens
-import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
-import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.children
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.resolve.BindingContext
-import org.jetbrains.kotlin.resolve.ImportPath
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.descriptorUtil.parents
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.resolve.source.PsiSourceElement
-import org.jetbrains.kotlin.types.*
-import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
+import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.isNullable
 import org.jetbrains.kotlin.types.typeUtil.isTypeParameter
-import org.jetbrains.kotlin.types.typeUtil.isUnsignedNumberType
-import org.jetbrains.kotlin.types.typeUtil.supertypes
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileOutputStream
-import java.io.FileReader
 import java.lang.reflect.InvocationTargetException
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.*
 import java.util.concurrent.TimeoutException
-import java.util.function.BiPredicate
-import kotlin.reflect.KClass
 
 fun <T> Iterable<T>.getAllWithout(el: T): List<T> {
     val list: ArrayList<T> = arrayListOf<T>()
@@ -170,9 +149,9 @@ fun KtFile.getAvailableValuesToInsertIn(
 fun PsiElement.addAfterThisWithWhitespace(psiElement: PsiElement, whiteSpace: String): PsiElement {
     return try {
         val placeToInsert = this
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
+        placeToInsert.add(Factory.javaPsiFactory.createWhitespace())
         val res = placeToInsert.add(psiElement)
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
+        placeToInsert.add(Factory.javaPsiFactory.createWhitespace())
         res
     } catch (e: IncorrectOperationException) {
         this
