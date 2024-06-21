@@ -1,0 +1,125 @@
+~class org.owasp.benchmark.helpers._Fuzz_Wrapper start~
+package org.owasp.benchmark.helpers;
+
+public class _Fuzz_Wrapper<T> {
+   public _Fuzz_Wrapper(T t) {
+     i = t;
+   }
+   public T i;
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_Wrapper end~
+
+~class org.owasp.benchmark.helpers._Fuzz_WrapperLambda start~
+package org.owasp.benchmark.helpers;
+
+public interface _Fuzz_WrapperLambda<T> {
+   public void Mutate(_Fuzz_Wrapper<T> w);
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_WrapperLambda end~
+
+~class org.owasp.benchmark.helpers._Fuzz_VoidWrapperLambda start~
+package org.owasp.benchmark.helpers;
+
+public interface _Fuzz_VoidWrapperLambda<T> {
+   public void Mutate();
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_VoidWrapperLambda end~
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_Wrapper;~
+~import org.owasp.benchmark.helpers._Fuzz_WrapperLambda;~
+~import org.owasp.benchmark.helpers._Fuzz_VoidWrapperLambda;~
+~import java.util.*;~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> { w.i = ~[EXPR_TYPE@1]~; };
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> { w.i = null; };
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> { wrapper.i = ~[EXPR_TYPE@1]~; };
+lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> { wrapper.i = null; };
+lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
+   _Fuzz_WrapperLambda<~[TYPE@1]~> inner = (k) -> { k.i = ~[EXPR_TYPE@1]~; };
+   inner.Mutate(w);
+};
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
+   _Fuzz_WrapperLambda<~[TYPE@1]~> inner = (k) -> { k.i = null; };
+   inner.Mutate(w);
+};
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> {
+   _Fuzz_VoidWrapperLambda<~[TYPE@1]~> inner = () -> { wrapper.i = ~[EXPR_TYPE@1]~; };
+   inner.Mutate();
+};
+lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> {
+   _Fuzz_VoidWrapperLambda<~[TYPE@1]~> inner = () -> { wrapper.i = null; };
+   inner.Mutate();
+};
+lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
+   _Fuzz_VoidWrapperLambda<~[TYPE@1]~> inner = () -> { w.i = ~[EXPR_TYPE@1]~; };
+   inner.Mutate();
+};
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~template start~
+_Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
+_Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
+   _Fuzz_VoidWrapperLambda<~[TYPE@1]~> inner = () -> { w.i = null; };
+   inner.Mutate();
+};
+lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
+~template end~
+
+~main class end~
