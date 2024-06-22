@@ -10,15 +10,15 @@ class ResultSarifBuilder {
 
     @Serializable
     data class ResultSarif(
-        val runs: List<ResultRun>,
+        val `$schema`: String? = null,
         val version: String? = null,
-        val `$schema`: String? = null
+        val runs: List<ResultRun>
     )
 
     @Serializable
     data class ResultRun(
+        val tool: ResultTool,
         val results: List<ResultResult>,
-        val tool: ResultTool
     )
 
     @Serializable
@@ -33,10 +33,10 @@ class ResultSarifBuilder {
 
     @Serializable
     data class ResultResult(
-        val locations: List<ResultLocation>,
+        val kind: String? = null,
         val message: ResultMessage,
         val ruleId: String,
-        val kind: String? = null
+        val locations: List<ResultLocation>,
     )
 
     @Serializable

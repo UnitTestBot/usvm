@@ -15,7 +15,8 @@ class MarkupBenchmark {
     fun markup(
         pathToGroundTruth: String,
         pathToSrc: String,
-        toolsResultsPaths: List<String>
+        toolsResultsPaths: List<String>,
+        pathToResultSarif: String
     ) {
         val srcFiles = Files.walk(Paths.get(pathToSrc)).map { it.toFile() }.toList().filter { it.isFile }
         val resultSarifBuilder = ResultSarifBuilder()
@@ -76,6 +77,7 @@ class MarkupBenchmark {
                         header.append("\n${toolName}: false")
                     }
                 }
+                if (!header.contains("true")) return@mapNotNull null
                 MarkupSarif.Result(
                     location = benchmarkName,
                     kind = kind!!,
@@ -90,7 +92,7 @@ class MarkupBenchmark {
                 )
             }
         )
-        File("lib/tools_truth.sarif").writeText(Json.encodeToString(markupSarif))
+        File(pathToResultSarif).writeText(Json { prettyPrint = true }.encodeToString(markupSarif))
     }
 
 }

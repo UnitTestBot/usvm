@@ -12,7 +12,7 @@ class SarifBuilder {
 
     private val json = Json { prettyPrint = true }
 
-    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>): String {
+    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>, relPathToBenchSrc: String): String {
         val sarif = Sarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
@@ -23,7 +23,7 @@ class SarifBuilder {
                             name = "flawgarden-BenchmarkJava-mutated-demo"
                         )
                     ),
-                    results = suiteProjects.map { buildResult(it.first) }
+                    results = suiteProjects.map { buildResult(it.first, relPathToBenchSrc) }
                 )
             )
         )
@@ -31,22 +31,17 @@ class SarifBuilder {
         return json.encodeToString(sarif)
     }
 
-    private fun buildResult(project: Project): Result {
+    private fun buildResult(project: Project, pathToBenchSrc: String): Result {
         val localPaths = project.saveToDir(CompilerArgs.tmpPath)
-        val fileName = localPaths.find { it.contains("Benchmark") } ?: error("Can't find Benchmark file")
+        val fileName = localPaths.find { it.contains(project.files.first().name) } ?: error("Can't find Benchmark file")
         val nameWithoutExt = fileName.substringAfterLast('/').substringBefore(".java")
-        val relativePath = "src/main/java/org/owasp/benchmark/testcode/$nameWithoutExt.java"
-        val originalFileName = "BenchmarkTest" + fileName.substringAfter("BenchmarkTest").take(5)
-        val originalExpectedResults = File("lib/BenchmarkJavaTemplate/expectedresults-1.2.csv").readText()
-        val originExpectedResults =
-            originalExpectedResults.split("\n").find { it.startsWith(originalFileName) }!!
-        val cweToFind = originExpectedResults.substringAfterLast(',').toInt()
+        val relativePath = "$pathToBenchSrc/$nameWithoutExt.java"
         return Result(
             kind = "fail",
             message = Message(
                 text = "message"
             ),
-            ruleId = "CWE-$cweToFind",
+            ruleId = "CWE-777",
             locations = listOf(
                 Location(
                     physicalLocation = PhysicalLocation(

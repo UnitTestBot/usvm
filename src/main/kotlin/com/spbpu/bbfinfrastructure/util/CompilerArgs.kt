@@ -150,6 +150,8 @@ object CompilerArgs {
     )
 
     val pathToOwaspJar = "lib/owaspBenchmarkClasspath.jar"
+    val pathToJulietSupportJar = "lib/juliet-support.jar"
+
 
     val pathToStdLibScheme = "tmp/lib/standardLibraryTree.txt"
     val pathToSerializedCommits = "tmp/serializedPatches/"

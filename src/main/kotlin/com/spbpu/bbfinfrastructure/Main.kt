@@ -9,12 +9,11 @@ import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.results.ResultsSorter
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
-import kotlinx.cli.required
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -23,10 +22,10 @@ fun main(args: Array<String>) {
     System.setProperty("idea.home.path", "lib/bin")
     val parser = ArgParser("psi-fuzz")
 
-    val pathToOwasp by parser.option(
+    val pathToBenchmark by parser.option(
         ArgType.String,
         shortName = "d",
-        description = "Directory for OWASP"
+        description = "Directory for benchmark"
     ).default("~/vulnomicon/BenchmarkJava-mutated")
 
     val isLocal by parser.option(
@@ -85,7 +84,8 @@ fun main(args: Array<String>) {
                 "lib/Insider_Default.sarif",
                 "lib/Semgrep_Default.sarif",
                 "lib/SonarQube_Default.sarif"
-            )
+            ),
+            pathToResultSarif = "lib/tools_truth.sarif"
         )
         exitProcess(0)
     }
@@ -99,25 +99,66 @@ fun main(args: Array<String>) {
 
     CompilerArgs.numberOfMutationsPerFile = numberOfMutationsPerFile
     CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
-    val files = File("lib/filteredTestCode/").listFiles()!!.toList().shuffled().take(numOfFilesToCheck)
+    val owaspFiles = File("lib/filteredTestCode/").listFiles().toList()
+    val julietFiles = File("lib/juliet/testcode").listFiles().toList()
+//    val files = (owaspFiles + julietFiles).shuffled().take(numOfFilesToCheck)
+//    val isOwasp = Random.nextBoolean()
+    val isOwasp = true
+    val files =
+        if (isOwasp) {
+            owaspFiles.shuffled().take(numOfFilesToCheck)
+        } else {
+            julietFiles.shuffled().take(numOfFilesToCheck)
+        }
+//    val files = julietFiles.shuffled().take(1)
     for (f in files) {
         val fileName = f.name
-        val initialCWEs = ScoreCardParser.initCweToFind(fileName.substringBefore(".java"))
         val project = Project.createJavaProjectFromFiles(
-            listOf(File("lib/filteredTestCode/$fileName")),
+            listOf(f),
             fileName,
-            initialCWEs?.toList() ?: listOf()
+            listOf()
         )
         println("Mutation of ${f.name} started")
         mutate(project, project.files.first())
     }
-    GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
-        pathToOwasp = pathToOwasp,
-        pathToOwaspSources = "$pathToOwasp/src/main/java/org/owasp/benchmark/testcode",
-        pathToTruthSarif = "$pathToOwasp/truth.sarif",
-        isLocal = isLocal
-    )
-    ScoreCardParser.parseAndSaveDiff("tmp/scorecards", CompilerArgs.tmpPath)
+
+    val pp =
+        if (isOwasp) {
+            "~/vulnomicon/BenchmarkJava-mutated"
+        } else {
+            "~/vulnomicon/JulietJavaForMutation"
+        }
+    if (isOwasp) {
+        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
+            pathToBenchmark = pp,
+            pathToBenchmarkSources = "$pp/src/main/java/org/owasp/benchmark/testcode",
+            pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
+            pathToTruthSarif = "$pp/truth.sarif",
+            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated.sh",
+            isLocal = isLocal
+        )
+        ScoreCardParser.parseAndSaveDiff(
+            scorecardsDir = "tmp/scorecards",
+            pathToSources = CompilerArgs.tmpPath,
+            nameMask = Regex("""BenchmarkTest\d\d\d\d\d"""),
+            pathToToolsGroundTruthSarif = "lib/tools_truth.sarif"
+        )
+    } else {
+        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
+            pathToBenchmark = pp,
+            pathToBenchmarkSources = "$pp/src/main/java/juliet/testcases",
+            pathToBenchmarkHelpers = "$pp/src/main/java/juliet/support",
+            pathToTruthSarif = "$pp/truth.sarif",
+            scriptToStartBenchmark = "./scripts/runJulietBenchmark.sh",
+            isLocal = isLocal
+        )
+        ScoreCardParser.parseAndSaveDiff(
+            scorecardsDir = "tmp/scorecards",
+            pathToSources = CompilerArgs.tmpPath,
+            nameMask = Regex("""CWE.*(good|bad)"""),
+            pathToToolsGroundTruthSarif = "lib/juliet/tools_truth.sarif"
+        )
+    }
     exitProcess(0)
 }
 

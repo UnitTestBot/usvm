@@ -28,11 +28,18 @@ object ScoreCardParser {
         return groundTrue[name]
     }
 
-    fun parseAndSaveDiff(dir: String, pathToSources: String) {
+    fun parseAndSaveDiff(
+        scorecardsDir: String,
+        pathToSources: String,
+        nameMask: Regex,
+        pathToToolsGroundTruthSarif: String
+    ) {
         val resultSarifBuilder = ResultSarifBuilder()
         val m = mutableMapOf<String, MutableList<Pair<String, Set<Int>>>>()
-        val scorecards = File(dir).listFiles().filter { it.path.endsWith(".sarif") }
-        val toolsGroundTruth = Json.decodeFromString<MarkupSarif.Sarif>(File("lib/tools_truth.sarif").readText())
+        val scorecards = File(scorecardsDir).listFiles().filter { it.path.endsWith(".sarif") }
+        val toolsGroundTruth = Json.decodeFromString<MarkupSarif.Sarif>(File(pathToToolsGroundTruthSarif).readText())
+        val mutatedFileNames =
+            GlobalTestSuite.javaTestSuite.suiteProjects.map { it.first.files.first().name }
         scorecards.map { scoreCard ->
             val decodedSarif = resultSarifBuilder.deserialize(scoreCard.readText())
             val toolName = scoreCard.name.substringBefore('_')
@@ -40,7 +47,7 @@ object ScoreCardParser {
                 it.locations.first().physicalLocation.artifactLocation.uri
             }
             groupedResults.forEach { (pathToSrc, results) ->
-                if (!pathToSrc.matches(Regex(""".*BenchmarkTest.*java"""))) {
+                if (!mutatedFileNames.any { pathToSrc.contains(it) }) {
                     return@forEach
                 }
                 val foundCWE = results.mapNotNull { it.ruleId.substringAfter('-').toIntOrNull() }.toSet()
@@ -58,7 +65,7 @@ object ScoreCardParser {
         }
         for ((name, results) in m) {
             println("Results for $name: ${results.joinToString(" ") { "${it.first} ${it.second}" }}")
-            val originalFileName = "BenchmarkTest" + name.substringAfter("BenchmarkTest").take(5)
+            val originalFileName = nameMask.find(name)!!.value + ".java"
             val originalProject =
                 GlobalTestSuite.javaTestSuite.suiteProjects.find { (project, _) -> project.files.any { it.name == "$name.java" } }
                     ?: error("Cant find original project with name $name")

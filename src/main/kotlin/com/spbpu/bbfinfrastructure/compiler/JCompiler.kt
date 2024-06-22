@@ -40,8 +40,7 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
         val sources = manager.getJavaFileObjectsFromFiles(pathToFiles)
         val pathToTmpDir = CompilerArgs.pathToTmpFile.substringBeforeLast('/') + "/tmp"
         File(pathToTmpDir).deleteRecursively()
-        val classPath =
-            (CompilerArgs.pathToOwaspJar)
+        val classPath = "${CompilerArgs.pathToOwaspJar}:${CompilerArgs.pathToJulietSupportJar}"
         val options = mutableListOf("-classpath", classPath, "-d", pathToTmpDir)
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()

@@ -9,8 +9,6 @@ import java.io.File
 import kotlin.system.exitProcess
 
 const val TIMEOUT_SEC = 3600L
-val files = File("lib/filteredTestCode").listFiles().toList().sortedBy { it.name }
-var ind = 0
 
 //fun makeCommand(args: Array<String>) = "$COMMAND -PprogramArgs=\"${args.joinToString(" ")}\""
 fun main(args: Array<String>) {
