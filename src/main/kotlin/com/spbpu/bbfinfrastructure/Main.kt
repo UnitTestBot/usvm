@@ -15,6 +15,7 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import java.io.File
+import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
@@ -101,9 +102,7 @@ fun main(args: Array<String>) {
     CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
     val owaspFiles = File("lib/filteredTestCode/").listFiles().toList()
     val julietFiles = File("lib/juliet/testcode").listFiles().toList()
-//    val files = (owaspFiles + julietFiles).shuffled().take(numOfFilesToCheck)
-//    val isOwasp = Random.nextBoolean()
-    val isOwasp = true
+    val isOwasp = Random.nextBoolean()
     val files =
         if (isOwasp) {
             owaspFiles.shuffled().take(numOfFilesToCheck)
@@ -147,7 +146,7 @@ fun main(args: Array<String>) {
         GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
             pathToBenchmark = pp,
             pathToBenchmarkSources = "$pp/src/main/java/juliet/testcases",
-            pathToBenchmarkHelpers = "$pp/src/main/java/juliet/support",
+            pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
             pathToTruthSarif = "$pp/truth.sarif",
             scriptToStartBenchmark = "./scripts/runJulietBenchmark.sh",
             isLocal = isLocal
