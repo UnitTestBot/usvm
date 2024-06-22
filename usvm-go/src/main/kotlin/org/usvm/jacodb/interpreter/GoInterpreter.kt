@@ -33,7 +33,7 @@ class GoInterpreter(
 
         val entrypoint = method.blocks[0].insts[0]
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(2, 1)
+        state.memory.stack.push(method.operands.size)
         state.newInst(entrypoint)
         return state
     }

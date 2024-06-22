@@ -1,8 +1,9 @@
 package ssa_helpers
 
 import (
-	"GoToKotlin/constants"
 	"fmt"
+
+	"GoToKotlin/constants"
 )
 
 const jacoImport = `import org.jacodb.go.api.*
@@ -214,8 +215,8 @@ var basicBlockExtra = fmt.Sprintf(`
 
         val res = GoBasicBlock(
             Index!!.toInt(),
-            Preds!!.map { it.Index!!.toInt() },
             Succs!!.map { it.Index!!.toInt() },
+            Preds!!.map { it.Index!!.toInt() },
             inst
         )
 		%s

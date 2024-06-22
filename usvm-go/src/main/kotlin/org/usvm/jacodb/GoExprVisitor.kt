@@ -1,5 +1,6 @@
 package org.usvm.jacodb
 
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
@@ -97,7 +98,28 @@ class GoExprVisitor(
     }
 
     override fun visitGoPhiExpr(expr: GoPhiExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val currentBlock = expr.location.index
+        val lastBlock = scope.calcOnState {
+            var node = pathNode
+            while (node.statement.location.index >= currentBlock) {
+                node = node.parent!!
+            }
+            node.statement.location.index
+        }
+        val block = expr.location.method.blocks[currentBlock]
+
+        block.predecessors.forEachIndexed { i, pred ->
+            if (lastBlock == pred) {
+                val rvalue = expr.edges[i].accept(this)
+                val lvalue = expr.toAssignInst().lhv.accept(this)
+                scope.doWithState {
+                    val idx = (lvalue as KBitVec32Value).intValue
+                    memory.write(URegisterStackLValue(rvalue.sort, idx), rvalue.asExpr(rvalue.sort), ctx.trueExpr)
+                }
+                return rvalue
+            }
+        }
+        return ctx.nullRef
     }
 
     override fun visitGoAddExpr(expr: GoAddExpr): UExpr<out USort> = visitGoBinaryExpr(expr)
@@ -169,7 +191,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeClosureExpr(expr: GoMakeClosureExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        ctx.setFreeVariables(expr.func, expr.bindings.map { it.accept(this) }.toTypedArray())
+        return ctx.nullRef
     }
 
     override fun visitGoMakeMapExpr(expr: GoMakeMapExpr): UExpr<out USort> {
@@ -229,7 +252,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoFreeVar(expr: GoFreeVar): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val index = expr.name.substring(1).toInt()
+        return ctx.mkBv(index)
     }
 
     override fun visitGoParameter(expr: GoParameter): UExpr<out USort> {
@@ -239,7 +263,10 @@ class GoExprVisitor(
     }
 
     override fun visitGoConst(expr: GoConst): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return when(expr.typeName) {
+            "int" -> ctx.mkBv(expr.name.toInt())
+            else -> ctx.nullRef
+        }
     }
 
     override fun visitGoGlobal(expr: GoGlobal): UExpr<out USort> {
