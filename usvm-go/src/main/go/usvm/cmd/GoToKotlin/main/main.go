@@ -66,7 +66,7 @@ var needToGen = flag.Bool("gen", true, "Is initial generation needed")
 
 func main() {
 	flag.Parse()
-	fileName := "./ssa_prompt/max2/max2.go"
+	fileName := "./ssa_prompt/features/max2.go"
 
 	// Replace interface{} with any for this test.
 	// Parse the source files.
@@ -125,6 +125,9 @@ func main() {
 
 	folder := "../../../../kotlin/org/usvm/jacodb/gen"
 
+	check(func() error {
+		return os.RemoveAll(folder)
+	})
 	check(func() error {
 		return os.MkdirAll(folder, os.ModePerm)
 	})

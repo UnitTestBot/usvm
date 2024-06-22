@@ -35,7 +35,7 @@ class GoInstVisitor(
     private val exprVisitor: GoExprVisitor<UExpr<out USort>>,
 ) : GoInstVisitor<GoInst> {
     override fun visitGoJumpInst(inst: GoJumpInst): GoInst {
-        TODO("Not yet implemented")
+        return inst.location.method.blocks[inst.target.index].insts[0]
     }
 
     override fun visitGoIfInst(inst: GoIfInst): GoInst = with(ctx) {
@@ -72,7 +72,11 @@ class GoInstVisitor(
     }
 
     override fun visitGoDeferInst(inst: GoDeferInst): GoInst {
-        TODO("Not yet implemented")
+        val method = inst.func.accept(exprVisitor)
+        return GoNullInst(inst.location.method)
+//        scope.doWithState {
+//            data.addDeferredCall(lastEnteredMethod, GoCall())
+//        }
     }
 
     override fun visitGoSendInst(inst: GoSendInst): GoInst {
