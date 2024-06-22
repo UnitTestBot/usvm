@@ -12,17 +12,17 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.ULValuePointer
 import org.usvm.USort
+import org.usvm.jacodb.operator.GoUnaryOperator
 import org.usvm.jacodb.type.GoVoidSort
 import org.usvm.jacodb.type.GoVoidValue
 import org.usvm.machine.USizeSort
-import org.usvm.jacodb.operator.GoUnaryOperator
 import org.usvm.memory.ULValue
 
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
-    private val freeVariables: MutableMap<GoMethod, Array<UExpr<USort>>> = hashMapOf()
+    private val freeVariables: MutableMap<GoMethod, Array<UExpr<out USort>>> = hashMapOf()
 
     fun getReturnType(method: GoMethod): GoType = methodInfo[method]!!.returnType
 
@@ -32,9 +32,9 @@ class GoContext(
         methodInfo[method] = info
     }
 
-    fun getFreeVariables(method: GoMethod): Array<UExpr<USort>>? = freeVariables[method]
+    fun getFreeVariables(method: GoMethod): Array<UExpr<out USort>>? = freeVariables[method]
 
-    fun setFreeVariables(method: GoMethod, variables: Array<UExpr<USort>>) {
+    fun setFreeVariables(method: GoMethod, variables: Array<UExpr<out USort>>) {
         freeVariables[method] = variables
     }
 

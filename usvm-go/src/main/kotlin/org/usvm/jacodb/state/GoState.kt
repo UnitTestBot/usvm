@@ -1,5 +1,6 @@
 package org.usvm.jacodb.state
 
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
@@ -30,7 +31,6 @@ class GoState(
     forkPoints: PathNode<PathNode<GoInst>> = PathNode.root(),
     targets: UTargetsSet<GoTarget, GoInst> = UTargetsSet.empty(),
     var methodResult: GoMethodResult = GoMethodResult.NoCall,
-    var lastBlock: Int = -1,
     var data: GoStateData = GoStateData()
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
@@ -55,7 +55,6 @@ class GoState(
             forkPoints,
             targets.clone(),
             methodResult,
-            lastBlock,
             data.clone()
         )
     }
@@ -95,7 +94,6 @@ class GoState(
             mergedForkPoints,
             mergedTargets,
             methodResult,
-            lastBlock,
             mergedData
         )
     }
@@ -195,7 +193,7 @@ class GoState(
 
         getFreeVariables(call.method)?.forEachIndexed { index, variable ->
             val lvalue = URegisterStackLValue(variable.sort, index + freeVariableOffset(call.method))
-            memory.write(lvalue, variable, trueExpr)
+            memory.write(lvalue, variable.asExpr(lvalue.sort), trueExpr)
         }
 
         newInst(call.entrypoint)
