@@ -30,6 +30,7 @@ class TemplatesChecker {
             curFile,
             false,
         )
+        Transformation.updateCtx()
         Files.walk(Paths.get("templates"))
             .map { it.toFile() }
             .filter { it.path.endsWith("tmt") && it.path.contains(templateName) }

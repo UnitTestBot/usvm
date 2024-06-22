@@ -10,6 +10,4 @@ import com.spbpu.bbfinfrastructure.util.getAllChildren
 
 inline fun <R> function(body: () -> R) = body()
 
-fun PsiElementFactory.createEmptyWhitespace() = createCodeBlockFromText("{}", null).getAllChildren().find { it is PsiWhiteSpace && it.text == "" }
-
-fun PsiElementFactory.createWhitespace() = createCodeBlockFromText("{\n}", null).children[1]
+fun PsiElementFactory.createEmptyWhitespace() = createCodeBlockFromText("", null).getAllChildren().find { it is PsiWhiteSpace && it.text == "" }

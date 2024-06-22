@@ -26,7 +26,7 @@ class Project(
             val javaFiles =
                 files.map {
                     val text = it.readText()
-                    BBFFile(it.name, PSICreator.getPsiForJava(text))
+                    BBFFile(it.name, PSICreator.getPsiForJava(text, Factory.file.project))
                 }
             return Project(Header(originalFileName, originalCWEs), javaFiles, LANGUAGE.JAVA)
         }
