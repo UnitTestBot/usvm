@@ -172,6 +172,5 @@ fun mutate(
         curFile,
         false,
     )
-    Transformation.updateCtx()
     Mutator(project).startMutate()
 }

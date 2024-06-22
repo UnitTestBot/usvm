@@ -8,6 +8,7 @@ import com.intellij.psi.tree.TokenSet
 import com.intellij.util.IncorrectOperationException
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
+import com.spbpu.bbfinfrastructure.psicreator.util.createWhitespace
 import com.spbpu.bbfinfrastructure.util.kcheck.asCharSequence
 import com.spbpu.bbfinfrastructure.util.kcheck.nextInRange
 import com.spbpu.bbfinfrastructure.util.kcheck.nextString
@@ -170,9 +171,9 @@ fun KtFile.getAvailableValuesToInsertIn(
 fun PsiElement.addAfterThisWithWhitespace(psiElement: PsiElement, whiteSpace: String): PsiElement {
     return try {
         val placeToInsert = this
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
+        placeToInsert.add(Factory.javaPsiFactory.createWhitespace())
         val res = placeToInsert.add(psiElement)
-        placeToInsert.add(Factory.psiFactory.createWhiteSpace(whiteSpace))
+        placeToInsert.add(Factory.javaPsiFactory.createWhitespace())
         res
     } catch (e: IncorrectOperationException) {
         this
