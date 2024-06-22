@@ -1,0 +1,70 @@
+~class org.owasp.benchmark.helpers._Fuzz_BaseClass start~
+package org.owasp.benchmark.helpers;
+
+public class _Fuzz_BaseClass<T> {
+   public T VirtualCall(T l, T r) {
+       return null;
+   }
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_BaseClass end~
+
+~class org.owasp.benchmark.helpers._Fuzz_DerivedClass1 start~
+package org.owasp.benchmark.helpers;
+import org.owasp.benchmark.helpers._Fuzz_BaseClass;
+
+public class _Fuzz_DerivedClass1<T> extends _Fuzz_BaseClass<T> {
+   @Override
+   public T VirtualCall(T l, T r) {
+       return l;
+   }
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_DerivedClass1 end~
+
+~class org.owasp.benchmark.helpers._Fuzz_DerivedClass2 start~
+package org.owasp.benchmark.helpers;
+import org.owasp.benchmark.helpers._Fuzz_BaseClass;
+
+public class _Fuzz_DerivedClass2<T> extends _Fuzz_BaseClass<T> {
+   @Override
+   public T VirtualCall(T l, T r) {
+       return r;
+   }
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_DerivedClass2 end~
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_BaseClass;~
+~import org.owasp.benchmark.helpers._Fuzz_DerivedClass1;~
+~import org.owasp.benchmark.helpers._Fuzz_DerivedClass2;~
+~import java.util.*;~
+
+~template start~
+_Fuzz_DerivedClass1<~[TYPE@1]~> dc = new _Fuzz_DerivedClass1<~[TYPE@1]~>();
+~[VAR_TYPE@1]~ = dc.VirtualCall(~[EXPR_TYPE@1]~, ~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_DerivedClass2<~[TYPE@1]~> dc = new _Fuzz_DerivedClass2<~[TYPE@1]~>();
+~[VAR_TYPE@1]~ = dc.VirtualCall(~[EXPR_TYPE@1]~, ~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_BaseClass<~[TYPE@1]~> dc = new _Fuzz_BaseClass<~[TYPE@1]~>();
+~[VAR_TYPE@1]~ = dc.VirtualCall(~[EXPR_TYPE@1]~, ~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_BaseClass<~[TYPE@1]~> dc = null;
+if (~[EXPR_Boolean]~) {
+  dc = new _Fuzz_DerivedClass2<~[TYPE@1]~>();
+} else {
+  dc = new _Fuzz_DerivedClass1<~[TYPE@1]~>();
+}
+~[VAR_TYPE@1]~ = dc.VirtualCall(~[EXPR_TYPE@1]~, ~[EXPR_TYPE@1]~);
+~template end~
+
+~main class end~
+
