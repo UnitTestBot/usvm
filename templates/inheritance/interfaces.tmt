@@ -1,0 +1,135 @@
+~class org.owasp.benchmark.helpers.inheritance.SuperInterface start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public interface SuperInterface {
+    public String superInterfaceMethod(String param);
+}
+~class org.owasp.benchmark.helpers.inheritance.SuperInterface end~
+~class org.owasp.benchmark.helpers.inheritance.SubInterface start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public interface SubInterface extends SuperInterface {
+    public String subInterfaceMethod(String param);
+}
+~class org.owasp.benchmark.helpers.inheritance.SubInterface end~
+~class org.owasp.benchmark.helpers.inheritance.SideInterface start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public interface SideInterface {
+    public String sideInterfaceMethod(String param);
+}
+~class org.owasp.benchmark.helpers.inheritance.SideInterface end~
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSuperClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class ImplementingSuperClass implements SuperInterface {
+    public String superInterfaceMethod(String param) {
+        return param;
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSuperClass end~
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSubClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class ImplementingSubClass implements SubInterface {
+    public String superInterfaceMethod(String param) {
+        return param;
+    }
+    public String subInterfaceMethod(String param) {
+        return param;
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSubClass end~
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSuperSideClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class ImplementingSuperSideClass implements SuperInterface, SideInterface {
+    public String superInterfaceMethod(String param) {
+        return param;
+    }
+    public String sideInterfaceMethod(String param) {
+        return param;
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.ImplementingSuperSideClass end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers.inheritance.*;~
+~import java.util.*;~
+~template start~
+ImplementingSuperClass obj = new ImplementingSuperClass();
+String superString = obj.superInterfaceMethod(~[EXPR_String@1]~);
+if (superString.equals(~[EXPR_String@1]~)) {
+	~[VAR_String]~ = superString;
+}
+~template end~
+~template start~
+ImplementingSuperClass obj = new ImplementingSuperClass();
+if (obj instanceof SuperInterface) {
+    ~[VAR_String]~ = ((SuperInterface) obj).superInterfaceMethod("");
+}
+~template end~
+~template start~
+ImplementingSuperClass obj = new ImplementingSuperClass();
+if (obj instanceof SubInterface) {
+    ~[VAR_String]~ = ((SubInterface) obj).superInterfaceMethod("");
+}
+~template end~
+~template start~
+ImplementingSuperSideClass obj = new ImplementingSuperSideClass();
+if (obj instanceof SuperInterface && obj instanceof SideInterface) {
+    ~[VAR_String@1]~ = ((SuperInterface) obj).superInterfaceMethod("");
+    ~[VAR_String@1]~ = ((SideInterface) obj).sideInterfaceMethod(~[VAR_String@1]~);
+}
+~template end~
+~template start~
+~function handleSuperInterface start~
+public String handleSuperInterface(SuperInterface superInterfaceObj, String param) {
+    if (superInterfaceObj instanceof SubInterface subInterfaceObj) {
+        return subInterfaceObj.superInterfaceMethod("");
+    } else if (superInterfaceObj instanceof SideInterface sideInterfaceObj) {
+        return sideInterfaceObj.sideInterfaceMethod(param);
+    } else {
+      return "";
+    }
+}
+~function handleSuperInterface end~
+
+ImplementingSuperClass obj = new ImplementingSuperClass();
+~[VAR_String]~ = handleSuperInterface(obj, ~[EXPR_String]~);
+~template end~
+~template start~
+~function handleSuperInterface start~
+public String handleSuperInterface(SuperInterface superInterfaceObj, String param) {
+    if (superInterfaceObj instanceof SubInterface subInterfaceObj) {
+        return subInterfaceObj.superInterfaceMethod("");
+    } else if (superInterfaceObj instanceof SideInterface sideInterfaceObj) {
+        return sideInterfaceObj.sideInterfaceMethod(param);
+    } else {
+      return "";
+    }
+}
+~function handleSuperInterface end~
+
+ImplementingSuperSideClass obj = new ImplementingSuperSideClass();
+~[VAR_String]~ = handleSuperInterface(obj, ~[EXPR_String]~);
+~template end~
+~template start~
+~function handleObjectClass start~
+public String handleObjectClass(Object objObj, String param) {
+    if (objObj instanceof SideInterface sideInterfaceObj) {
+        return sideInterfaceObj.sideInterfaceMethod(param);
+    } else if (objObj instanceof SuperInterface SuperInterfaceObj) {
+        return "";
+    } else if (objObj instanceof SubInterface subInterfaceObj) {
+        return subInterfaceObj.subInterfaceMethod(param);
+    } else {
+      return "";
+    }
+}
+~function handleObjectClass end~
+
+~[VAR_String]~ = handleObjectClass(~[EXPR_Object]~, ~[EXPR_String]~);
+~template end~
+~main class end~

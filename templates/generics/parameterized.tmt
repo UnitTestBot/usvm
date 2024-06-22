@@ -1,0 +1,79 @@
+~class org.owasp.benchmark.helpers.generics.GenericClass start~
+package org.owasp.benchmark.helpers.generics;
+
+public class GenericClass<T> {
+    private T value;
+
+    public GenericClass(T value) {
+        this.value = value;
+    }
+
+    public T getValue() {
+        return value;
+    }
+
+    public T getMagicValue(T value) {
+        if (value instanceof String str) {
+            return (T) str;
+        } else {
+            return this.value;
+        }
+    }
+}
+~class org.owasp.benchmark.helpers.generics.GenericClass end~
+~class org.owasp.benchmark.helpers.generics.GenericTwoClass start~
+package org.owasp.benchmark.helpers.generics;
+
+public class GenericTwoClass<T, S> {
+    private Class<T> t;
+    private Class<S> s;
+    private T tValue;
+    private S sValue;
+
+    public GenericTwoClass(Class<T> t, Class<S> s, T tParam, S sParam) {
+        this.t = t;
+        this.s = s;
+        this.tValue = tParam;
+        this.sValue = sParam;
+    }
+
+    public Object getAndSetMagicValue(T tParam, S sParam) {
+        if (s.isAssignableFrom(tParam.getClass())) {
+            this.sValue = (S) tParam;
+        }
+        if (t.isAssignableFrom(sParam.getClass())) {
+            this.tValue = (T) sParam;
+        }
+        if (s.isAssignableFrom(tParam.getClass())) {
+            return this.tValue;
+        }
+        if (t.isAssignableFrom(sParam.getClass())) {
+            return this.sValue;
+        }
+        return "";
+    }
+}
+~class org.owasp.benchmark.helpers.generics.GenericTwoClass end~
+~main class start~
+~import org.owasp.benchmark.helpers.generics.*;~
+~import java.util.*;~
+~template start~
+~[TYPE@1]~ genericObj = ~[EXPR_TYPE@1]~;
+GenericClass<~[TYPE@1]~> obj = new GenericClass<>(genericObj);
+~[VAR_TYPE]~ = obj.getValue();
+~template end~
+~template start~
+~[TYPE@1]~ genericObj = ~[EXPR_TYPE@1]~;
+GenericClass<~[TYPE@1]~> obj = new GenericClass<>(genericObj);
+~[VAR_TYPE@1]~ = obj.getMagicValue(~[EXPR_TYPE@1]~);
+~template end~
+~template start~
+~[TYPE@1]~ genericObj1 = ~[EXPR_TYPE@1]~;
+~[TYPE@2]~ genericObj2 = ~[EXPR_TYPE@2]~;
+GenericTwoClass<~[TYPE@1]~, ~[TYPE@2]~> obj = new GenericTwoClass<>(~[TYPE@1]~.class, ~[TYPE@2]~.class, genericObj1, genericObj2);
+try {
+    ~[VAR_TYPE@1]~ = (~[TYPE@1]~) obj.getAndSetMagicValue(~[EXPR_TYPE@1]~, ~[EXPR_TYPE@2]~);
+} catch (ClassCastException e) {
+}
+~template end~
+~main class end~
