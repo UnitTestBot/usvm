@@ -1,4 +1,4 @@
-~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord begin~
+~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord start~
 package org.owasp.benchmark.helpers;
 
 public record _Fuzz_SimpleRecord<T> (T t) {}
