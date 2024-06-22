@@ -210,6 +210,13 @@ var basicBlockExtra = fmt.Sprintf(`
         for (value in Instrs!!) {
             if (value is ssaToJacoInst) {
                 inst.add(value.createJacoDBInst(method))
+            } else {
+                if (value is ssaToJacoExpr) {
+                    val expr = value.createJacoDBExpr(method)
+                    if (expr is GoAssignableInst) {
+                        inst.add(expr.toAssignInst())
+                    }
+                }
             }
         }
 
