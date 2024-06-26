@@ -38,24 +38,28 @@ public interface _Fuzz_VoidWrapperLambda<T> {
 _Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
 _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> { w.i = ~[EXPR_TYPE@1]~; };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
 _Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
 _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> { w.i = null; };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
 _Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
 _Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> { wrapper.i = ~[EXPR_TYPE@1]~; };
 lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
 _Fuzz_Wrapper<~[TYPE@1]~> wrapper = new _Fuzz_Wrapper<~[TYPE@1]~>(~[VAR_TYPE@1]~);
 _Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> { wrapper.i = null; };
 lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -65,6 +69,7 @@ _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
    inner.Mutate(w);
 };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -74,6 +79,7 @@ _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
    inner.Mutate(w);
 };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -83,6 +89,7 @@ _Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> {
    inner.Mutate();
 };
 lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -92,6 +99,7 @@ _Fuzz_VoidWrapperLambda<~[TYPE@1]~> lambda = () -> {
    inner.Mutate();
 };
 lambda.Mutate();
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -101,6 +109,7 @@ _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
    inner.Mutate();
 };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~template start~
@@ -110,6 +119,7 @@ _Fuzz_WrapperLambda<~[TYPE@1]~> lambda = (w) -> {
    inner.Mutate();
 };
 lambda.Mutate(wrapper);
+~[VAR_TYPE@1]~ = wrapper.i;
 ~template end~
 
 ~main class end~
