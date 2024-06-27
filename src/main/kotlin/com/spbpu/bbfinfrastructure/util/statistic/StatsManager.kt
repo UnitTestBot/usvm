@@ -25,7 +25,7 @@ object StatsManager {
     }
 
     private fun getBadTemplatesList(): List<Pair<TemplatesInserter.Template, String>> =
-        calc("results").templatesWithoutResults.entries.map { it.key to it.value }
+        calc("results").templatesWithoutResults.map { it.first to it.second }
 
     fun printStats(pathToResults: String = "sortedResults") {
         val (templatesWithoutResults, successFullTemplates) = calc(pathToResults)
@@ -44,15 +44,13 @@ object StatsManager {
         )
         println(
             "TEMPLATES WITHOUT RESULTS (${templatesWithoutResults.size}):\n${
-                templatesWithoutResults.values.joinToString(
-                    "\n"
-                )
+                templatesWithoutResults.joinToString("\n") { it.second }
             }"
         )
     }
 
     private fun calc(pathToResults: String): TemplatesResults {
-        val templatesWithoutResults = mutableMapOf<TemplatesInserter.Template, String>()
+        val templatesWithoutResults = mutableListOf<Pair<TemplatesInserter.Template, String>>()
         val successFullTemplates = mutableMapOf<String, Int>()
         val results =
             Files.walk(Paths.get(pathToResults))
@@ -64,7 +62,7 @@ object StatsManager {
             val resultsForFeature =
                 results.filter { it.second.mutationDescriptionChain.any { it.contains("$templateName with index $templateIndex") } }
             if (resultsForFeature.isEmpty()) {
-                templatesWithoutResults[template] = "$templateName $templateIndex"
+                templatesWithoutResults.add(template to "$templateName $templateIndex")
             }
             if (resultsForFeature.isNotEmpty()) {
                 successFullTemplates["$templateName $templateIndex"] = resultsForFeature.size
@@ -98,10 +96,10 @@ object StatsManager {
     }
 
     private class TemplatesResults(
-        val templatesWithoutResults: Map<TemplatesInserter.Template, String>,
+        val templatesWithoutResults: List<Pair<TemplatesInserter.Template, String>>,
         val successFullTemplates: Map<String, Int>
     ) {
-        operator fun component1(): Map<TemplatesInserter.Template, String> {
+        operator fun component1(): List<Pair<TemplatesInserter.Template, String>> {
             return templatesWithoutResults
         }
 
