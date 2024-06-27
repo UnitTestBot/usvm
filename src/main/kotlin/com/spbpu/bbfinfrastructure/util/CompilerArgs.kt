@@ -158,6 +158,8 @@ object CompilerArgs {
 
     var numberOfMutationsPerFile = 2
     var numberOfMutantsPerFile = 5
+    var badTemplatesOnlyMode = false
+
     //Test mode
     var testMode = false
 }

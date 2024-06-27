@@ -17,8 +17,10 @@ import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
+import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import org.jetbrains.kotlin.descriptors.runtime.structure.primitiveByWrapper
 import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import kotlin.random.Random
 
 open class TemplatesInserter : Transformation() {
@@ -47,11 +49,26 @@ open class TemplatesInserter : Transformation() {
         }
     }
 
+    private fun getRandomTemplate(): Triple<Template, TemplateBody, Pair<String, Int>>? {
+        return if (CompilerArgs.badTemplatesOnlyMode) {
+            StatsManager.currentBadTemplatesList.randomOrNull()?.let {
+                val index = it.second.substringAfter(' ').toInt()
+                val body = it.first.templates.get(index)
+                Triple(it.first, body, it.second.substringBefore(' ') to index)
+            }
+        } else {
+            val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature)
+                ?: return null
+            val parsedTemplate = parseTemplate(randomTemplateFile) ?: return null
+            val (randomTemplate, randomTemplateIndex) = parsedTemplate.templates.randomOrNullWithIndex() ?: return null
+            Triple(parsedTemplate, randomTemplate, pathToTemplateFile to randomTemplateIndex)
+        }
+    }
+
+
     protected open fun tryToTransform(): Boolean {
-        val (randomTemplateFile, pathToTemplateFile) = TemplatesDB.getRandomTemplateForFeature(testingFeature)
-            ?: return false
-        val parsedTemplates = parseTemplate(randomTemplateFile) ?: return false
-        val (randomTemplate, randomTemplateIndex) = parsedTemplates.templates.randomOrNullWithIndex() ?: return false
+        val (parsedTemplate, randomTemplate, pathAndIndex) = getRandomTemplate() ?: return false
+        val (pathToTemplateFile, randomTemplateIndex) = pathAndIndex
         val randomPlaceToInsert = file.getRandomPlaceToInsertNewLine() ?: return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
         var currentBlockLineNumber = randomPlaceToInsertLineNumber
@@ -112,8 +129,8 @@ open class TemplatesInserter : Transformation() {
                 nodeToReplace.replaceThis(newPsiBlock)
                 newPsiBlock
             }
-        insertClasses(parsedTemplates)
-        insertImports(parsedTemplates)
+        insertClasses(parsedTemplate)
+        insertImports(parsedTemplate)
         insertAuxMethods(replacementPsiBlock, randomTemplate).let { if (!it) return false }
         return checkNewCode(
             MutationInfo(
@@ -121,7 +138,10 @@ open class TemplatesInserter : Transformation() {
                 mutationDescription = "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
                 location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
             )
-        )
+        ).ifTrue {
+            StatsManager.saveMutationHistory(pathToTemplateFile, randomTemplateIndex)
+            true
+        } ?: false
     }
 
     protected fun checkNewCode(mutationInfo: MutationInfo?): Boolean {

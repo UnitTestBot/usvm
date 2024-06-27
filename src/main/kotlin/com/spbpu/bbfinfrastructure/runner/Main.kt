@@ -56,6 +56,12 @@ fun main(args: Array<String>) {
         description = "Markup benchmark"
     ).default(false)
 
+    val badTemplatesOnlyMode by parser.option(
+        ArgType.Boolean,
+        shortName = "b",
+        description = "Bad templates only mode"
+    ).default(false)
+
     parser.parse(args)
 
     if (!isLocal) {
@@ -74,10 +80,12 @@ fun main(args: Array<String>) {
                 CommandLine.parse("gradle runFuzzer -Dorg.gradle.java.home=$javaVersion")
             }
         val arg =
-            if (isLocal)
-                "-PprogramArgs=\"-d $pathToOwasp -l -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
-            else
-                "-PprogramArgs=\"-d $pathToOwasp -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+            when {
+                isLocal && badTemplatesOnlyMode -> "-PprogramArgs=\"-d $pathToOwasp -l -b -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+                isLocal -> "-PprogramArgs=\"-d $pathToOwasp -l -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+                badTemplatesOnlyMode -> "-PprogramArgs=\"-d $pathToOwasp -b -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+                else -> "-PprogramArgs=\"-d $pathToOwasp -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+            }
 
         cmdLine.addArgument(arg, false)
         cmdLine.addArgument("-PprivateKeyPass=${System.getenv("PRIVATE_KEY_PASS")}")

@@ -5,7 +5,8 @@ class ResultHeader(
     val originalResults: List<Pair<String, Set<Int>>>,
     val originalFileName: String,
     val originalFileCWE: Set<Int>,
-    val mutationDescriptionChain: List<String>
+    val mutationDescriptionChain: List<String>,
+    val kind: String?
 ) {
 
 
@@ -14,6 +15,7 @@ class ResultHeader(
 //${analysisResults.joinToString(separator = "\n//") { "${it.first} analysis results: ${it.second}" }}
 //Original file name: $originalFileName
 //Original file CWE's: $originalFileCWE  
+//Original file kind: ${kind ?: "no info"}
 //Mutation info: ${mutationDescriptionChain.joinToString(" -> ") { it }} 
     """.trimIndent()
 
@@ -24,6 +26,7 @@ class ResultHeader(
             val results = mutableListOf<Pair<String, Set<Int>>>()
             var originalFileName = ""
             var originalFileCWE = emptySet<Int>()
+            var kind: String? = null
             val mutationChain = mutableListOf<String>()
 
             for (line in lines) {
@@ -51,6 +54,7 @@ class ResultHeader(
                                 originalFileCWE = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
                                     ?.split(",")?.map { it.trim().toInt() }?.toSet() ?: emptySet()
                             }
+                            key == "//Original file kind" -> kind = value
 
                             key == "//Mutation info" -> {
                                 val mutationDescriptions = value.split(" -> ")
@@ -62,7 +66,14 @@ class ResultHeader(
                     }
                 }
             }
-            ResultHeader(results, originalResults, originalFileName, originalFileCWE, mutationChain)
+            ResultHeader(
+                analysisResults = results,
+                originalResults = originalResults,
+                originalFileName = originalFileName,
+                originalFileCWE = originalFileCWE,
+                mutationDescriptionChain = mutationChain,
+                kind = kind
+            )
         } catch (e: Throwable) {
             null
         }

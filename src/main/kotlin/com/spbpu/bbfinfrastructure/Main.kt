@@ -9,8 +9,9 @@ import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.results.ResultsSorter
-import com.spbpu.bbfinfrastructure.util.*
+import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
+import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -65,6 +66,12 @@ fun main(args: Array<String>) {
         description = "Markup benchmark"
     ).default(false)
 
+    val badTemplatesOnlyMode by parser.option(
+        ArgType.Boolean,
+        shortName = "b",
+        description = "Bad templates only mode"
+    ).default(false)
+
     if (args.size == 1) {
         parser.parse(args.first().split(" ").toTypedArray())
     } else {
@@ -100,6 +107,8 @@ fun main(args: Array<String>) {
 
     CompilerArgs.numberOfMutationsPerFile = numberOfMutationsPerFile
     CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
+    CompilerArgs.badTemplatesOnlyMode = badTemplatesOnlyMode
+    StatsManager.updateBadTemplatesList()
     val owaspFiles = File("lib/filteredTestCode/").listFiles().toList()
     val julietFiles = File("lib/juliet/testcode").listFiles().toList()
     val isOwasp = Random.nextBoolean()
@@ -110,14 +119,14 @@ fun main(args: Array<String>) {
             julietFiles.shuffled().take(numOfFilesToCheck)
         }
 //    val files = julietFiles.shuffled().take(1)
-    for (f in files) {
+    for ((i, f) in files.withIndex()) {
         val fileName = f.name
         val project = Project.createJavaProjectFromFiles(
             listOf(f),
             fileName,
             listOf()
         )
-        println("Mutation of ${f.name} started")
+        println("Mutation of $i-th from ${files.size} ${f.name} started")
         mutate(project, project.files.first())
     }
 
@@ -133,7 +142,7 @@ fun main(args: Array<String>) {
             pathToBenchmarkSources = "$pp/src/main/java/org/owasp/benchmark/testcode",
             pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
             pathToTruthSarif = "$pp/truth.sarif",
-            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated.sh",
+            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated-private.sh",
             isLocal = isLocal
         )
         ScoreCardParser.parseAndSaveDiff(
@@ -148,7 +157,7 @@ fun main(args: Array<String>) {
             pathToBenchmarkSources = "$pp/src/main/java/juliet/testcases",
             pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
             pathToTruthSarif = "$pp/truth.sarif",
-            scriptToStartBenchmark = "./scripts/runJulietBenchmark.sh",
+            scriptToStartBenchmark = "./scripts/runJulietBenchmark-private.sh",
             isLocal = isLocal
         )
         ScoreCardParser.parseAndSaveDiff(

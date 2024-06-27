@@ -87,7 +87,7 @@ class JavaTestSuite {
         }
         remoteToLocalPaths[fixPath(pathToTruthSarif)] = sarif.absolutePath
         val cmdToRm =
-            remoteToLocalPaths.filterNot { it.key.contains(pathToBenchmarkSources) }.keys.joinToString(" ") { "rm $it;" }
+            remoteToLocalPaths.filterNot { it.key.contains(fixPath(pathToBenchmarkSources)) }.keys.joinToString(" ") { "rm $it;" }
         File("tmp/scorecards/").deleteRecursively()
         File("tmp/scorecards/").mkdirs()
         if (!isLocal) {
@@ -95,9 +95,10 @@ class JavaTestSuite {
             fsi.execCommand(cmdToRm)
             fsi.execCommand("rm -rf $pathToBenchmarkSources; mkdir $pathToBenchmarkSources")
             fsi.downloadFilesToRemote(remoteToLocalPaths)
-            fsi.execCommand("cd ~/vulnomicon; rm -rf $pathToBenchmark-output; $scriptToStartBenchmark")
-            val reportsDir = "$pathToBenchmark-output"
+            fsi.execCommand("cd ~/vulnomicon; rm -rf $pathToBenchmark-output-private; $scriptToStartBenchmark")
+            val reportsDir = "$pathToBenchmark-output-private"
             val reportsPaths = fsi.execCommand("cd ~/vulnomicon; find $reportsDir -name \"*.sarif\"")!!
+            File("tmp/scorecards/").listFiles().forEach { it.delete() }
             val pathToReports =
                 reportsPaths
                     .split("\n")
@@ -109,7 +110,7 @@ class JavaTestSuite {
         } else {
             with(ProcessBuilder()) {
                 try {
-                    command("bash", "-c", cmdToRm).start().waitFor()
+                    command("bash", "-c", cmdToRm.replace("rm ", "rm ~/")).start().waitFor()
                 } catch (e: IOException) {
                 }
                 try {
@@ -118,11 +119,11 @@ class JavaTestSuite {
                 } catch (e: IOException) {
                 }
                 remoteToLocalPaths.entries.map {
-                    val cmd = "cp ${Paths.get(it.value).absolutePathString()} ${it.key}"
+                    val cmd = "cp ${Paths.get(it.value).absolutePathString()} ~/${it.key}"
                     command("bash", "-c", cmd).start().waitFor()
                 }
                 val execCommand =
-                    "cd ~/vulnomicon; rm -rf $pathToBenchmark-output; $scriptToStartBenchmark"
+                    "cd ~/vulnomicon; rm -rf $pathToBenchmark-output-private; $scriptToStartBenchmark"
                 command("bash", "-c", execCommand).start().let { process ->
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
                     var line: String?
@@ -132,7 +133,7 @@ class JavaTestSuite {
                     reader.close()
                     process.waitFor()
                 }
-                val reportsDir = "$pathToBenchmark-output"
+                val reportsDir = "$pathToBenchmark-output-private"
                 val scoreCardsPaths = StringBuilder()
                 command("bash", "-c", "find $reportsDir -name \"*.sarif\"").start().let { process ->
                     val reader = BufferedReader(InputStreamReader(process.inputStream))
@@ -143,9 +144,11 @@ class JavaTestSuite {
                     reader.close()
                     process.waitFor()
                 }
+                File("tmp/scorecards/").listFiles().forEach { it.delete() }
                 val pathToReports = scoreCardsPaths
                     .split("\n")
                     .dropLast(1)
+                    .filterNot { it.contains("truth") }
                     .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
                 val commandToCpScoreCards = pathToReports.entries.joinToString("; ") { "cp ${it.key} ${it.value}" }
                 command("bash", "-c", commandToCpScoreCards).start().waitFor()

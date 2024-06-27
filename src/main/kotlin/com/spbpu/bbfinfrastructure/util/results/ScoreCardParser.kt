@@ -101,11 +101,12 @@ object ScoreCardParser {
                 }
                 println("DIFF FOUND!!")
                 val resultHeader = ResultHeader(
-                    results,
-                    groundTruthCWE,
-                    originalFileName,
-                    setOf(cweToFind),
-                    originalProject.second.map { it.mutationDescription }
+                    analysisResults = results,
+                    originalResults = groundTruthCWE,
+                    originalFileName = originalFileName,
+                    originalFileCWE = setOf(cweToFind),
+                    mutationDescriptionChain = originalProject.second.map { it.mutationDescription },
+                    kind = grResult.kind
                 )
                 val dirToSave =
                     "results/CWE-${setOf(cweToFind).joinToString("_")}"

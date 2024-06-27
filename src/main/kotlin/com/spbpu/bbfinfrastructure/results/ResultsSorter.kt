@@ -13,13 +13,15 @@ object ResultsSorter {
         "SonarQube" to 0.25,
         "Usvm" to 1.0,
         "Semgrep" to 0.25,
-        "Insider" to 0.25
+        "Insider" to 0.25,
+        "ApplicationInspector" to 1.0,
     )
 
     fun sortResults(dirToResultsDirectory: String) {
         val dirs = File(dirToResultsDirectory).listFiles().filter { it.isDirectory && it.name != "duplicates" }
         val headerToFile = mutableMapOf<ResultHeader, File>()
         for (dir in dirs) {
+            println("HANDLE DIR ${dir.name}")
             val sorted = dir.listFiles()
                 .mapNotNull { f ->
                     val fileText = f.readText()
@@ -77,7 +79,7 @@ object ResultsSorter {
         return dp[m][n]
     }
 
-    fun diffMatchPatch(a: String, b: String): Double {
+    private fun diffMatchPatch(a: String, b: String): Double {
         val patch = Diff_match_patch()
         if (a.length + b.length == 0) return Double.MAX_VALUE
         val diffs = patch.diff_main(a, b)
@@ -101,6 +103,7 @@ object ResultsSorter {
         remaining.remove(furthestPoint)
 
         while (remaining.isNotEmpty()) {
+            println("REMAINING SIZE = ${remaining.size}")
             var maxDistance = 0.0
             var maxDistanceIndex = -1
             for ((i, s) in remaining.withIndex()) {

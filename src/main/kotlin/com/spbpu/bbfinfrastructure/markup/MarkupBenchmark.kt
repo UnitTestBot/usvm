@@ -62,7 +62,7 @@ class MarkupBenchmark {
             }
             val header = headers.entries.find { it.key.contains(fileName) }?.key ?: return@forEach
 
-            if (!headers[header]!!.contains("true")) {
+            if (headers[header]!!.split("\n").count { it.contains("true") } < 2) {
                 file.delete()
             }
         }
