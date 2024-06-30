@@ -31,8 +31,3 @@ FactoryExample fe = FactoryExample.createInstance(~[VAR_String]~);
 ~[VAR_String]~ = fe.val;
 ~template end~
 ~main class end~
-
-
-
-
-
