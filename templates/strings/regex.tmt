@@ -1,0 +1,129 @@
+~main class start~
+~import java.util.regex.Pattern;~
+~import java.util.regex.Matcher;~
+~import java.util.*;~
+~template start~
+String str = ~[EXPR_String]~;
+if (str.matches(~[EXPR_String]~)) {
+    ~[VAR_String]~ = str;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+list787234.add(Pattern.compile(~[EXPR_String@1]~).pattern());
+list787234.add("");
+if (list787234.contains(~[EXPR_String@1]~)) {
+  ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+List<String> list787234 = new ArrayList<String>();
+Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("12345");
+list787234.add(String.valueOf(matcher.matches()));
+list787234.add("");
+if (list787234.contains("12345")) {
+  ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+String input = "example";
+String regex = "[a-z]+";
+if (input.matches(regex)) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+} else {
+    ~[VAR_String]~ = "";
+}
+~template end~
+~template start~
+String input = "one,two,three";
+Pattern pattern = Pattern.compile(",");
+String[] parts = pattern.split(input);
+if (parts.length < 4) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("[a-z]+");
+Matcher matcher = pattern.matcher("example text");
+String result = matcher.replaceAll("replaced");
+if (result.length() > 0) {
+    ~[VAR_String]~ = result;
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("[a-z]+");
+Matcher matcher = pattern.matcher("example text");
+String result = matcher.replaceAll("replaced");
+if (result.equals("replaced replaced")) {
+    ~[VAR_String]~ = result;
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("\\d+");
+Matcher matcher = pattern.matcher("123 abc 456 ".concat(~[EXPR_String]~));
+while (matcher.find()) {
+    ~[VAR_String]~ = matcher.group();
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(\\d+)-(\\d+)");
+Matcher matcher = pattern.matcher("123-456");
+if (matcher.find()) {
+    ~[VAR_String]~ = matcher.group(1);
+} else {
+    ~[VAR_String]~ = matcher.group(2);
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("[a-z]+", Pattern.CASE_INSENSITIVE);
+int flags = pattern.flags();
+if (flags == Pattern.CASE_INSENSITIVE) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(\\d+)-(\\d+)");
+Matcher matcher = pattern.matcher("123-456");
+if (matcher.find()) {
+    int start = matcher.start(1);
+    ~[VAR_String]~ = ~[EXPR_String]~.substring(0, start);
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(\\d+)-(\\d+)");
+Matcher matcher = pattern.matcher(~[EXPR_String@1]~);
+if (matcher.find()) {
+    int start = matcher.start(1);
+    ~[VAR_String]~ = ~[EXPR_String@1]~.substring(0, start);
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(\\d+)-(\\d+)");
+Matcher matcher = pattern.matcher("123-456");
+if (matcher.find()) {
+    String group = matcher.group();
+    ~[VAR_String]~ = group;
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(\\d+)-(\\d+)");
+Matcher matcher = pattern.matcher("123-456");
+if (matcher.find()) {
+    int groupCount = matcher.groupCount();
+    if (groupCount == 0) {
+        ~[VAR_String]~ = "";
+    }
+}
+~template end~
+~template start~
+Pattern pattern = Pattern.compile("(?<num1>\\d+)-(?<num2>\\d+)");
+Matcher matcher = pattern.matcher("123-456");
+if (matcher.find()) {
+    Map<String, Integer> namedGroups = matcher.toMatchResult().namedGroups();
+    if (namedGroups.containsKey(~[EXPR_String@1]~)) {
+        ~[VAR_String]~ = ~[EXPR_String@1]~;
+    }
+}
+~template end~
+~main class end~
