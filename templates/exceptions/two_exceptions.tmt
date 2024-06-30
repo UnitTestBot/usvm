@@ -1,0 +1,84 @@
+~class org.owasp.benchmark.helpers._Fuzz_Exception1 start~
+package org.owasp.benchmark.helpers;
+
+public class _Fuzz_Exception1 extends Exception {
+    public _Fuzz_Exception1(String errorMessage) {
+        super(errorMessage);
+    }
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_Exception1 end~
+
+~class org.owasp.benchmark.helpers._Fuzz_Exception2 start~
+package org.owasp.benchmark.helpers;
+
+public class _Fuzz_Exception2 extends Exception {
+    public _Fuzz_Exception2(String errorMessage) {
+        super(errorMessage);
+        errorMessage = "";
+    }
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_Exception2 end~
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_Exception1;~
+~import org.owasp.benchmark.helpers._Fuzz_Exception2;~
+~import java.util.*;~
+
+~template start~
+try {
+  throw new _Fuzz_Exception1(~[EXPR_String]~);
+} catch (_Fuzz_Exception1 e) {
+}
+~template end~
+
+~template start~
+try {
+  throw new _Fuzz_Exception1(~[EXPR_String]~);
+} catch (_Fuzz_Exception1 e) {
+} finally {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+}
+~template end~
+
+~template start~
+try {
+  throw new _Fuzz_Exception1(~[EXPR_String]~);
+} catch (_Fuzz_Exception1 e) {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+} finally {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+}
+~template end~
+
+~template start~
+try {
+  if (~[EXPR_Boolean]~) {
+     throw new _Fuzz_Exception1(~[EXPR_String]~);
+  } else {
+     throw new _Fuzz_Exception2(~[EXPR_String]~);
+  }
+} catch (_Fuzz_Exception1 | _Fuzz_Exception2 e) {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+} finally {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+}
+~template end~
+
+~template start~
+try {
+  if (~[EXPR_Boolean]~) {
+     throw new _Fuzz_Exception1(~[EXPR_String]~);
+  } else {
+     throw new _Fuzz_Exception2(~[EXPR_String]~);
+  }
+} catch (_Fuzz_Exception2 | _Fuzz_Exception1 e) {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+} finally {
+  ~[VAR_TYPE@1]~ = ~[EXPR_TYPE@1]~;
+}
+~template end~
+
+~main class end~
+

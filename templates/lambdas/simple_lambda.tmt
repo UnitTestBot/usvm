@@ -1,0 +1,48 @@
+~class org.owasp.benchmark.helpers._Fuzz_VoidLambdaInterface start~
+package org.owasp.benchmark.helpers;
+
+public interface _Fuzz_VoidLambdaInterface<T> {
+   public void VirtualCall(T t);
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_VoidLambdaInterface end~
+
+~class org.owasp.benchmark.helpers._Fuzz_ReturnLambdaInterface start~
+package org.owasp.benchmark.helpers;
+
+public interface _Fuzz_ReturnLambdaInterface<T> {
+   public T VirtualCall(T t);
+}
+
+~class org.owasp.benchmark.helpers._Fuzz_ReturnLambdaInterface end~
+
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_VoidLambdaInterface;~
+~import org.owasp.benchmark.helpers._Fuzz_ReturnLambdaInterface;~
+~import java.util.*;~
+
+~template start~
+_Fuzz_VoidLambdaInterface<~[TYPE@1]~> lambda = (s) -> {};
+lambda.VirtualCall(~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_ReturnLambdaInterface<~[TYPE@1]~> lambda = (s) -> { return s; };
+~[VAR_TYPE@1]~ = lambda.VirtualCall(~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_ReturnLambdaInterface<~[TYPE@1]~> lambda = (s) -> { return ~[EXPR_TYPE@1]~; };
+~[VAR_TYPE@1]~ = lambda.VirtualCall(~[EXPR_TYPE@1]~);
+~template end~
+
+~template start~
+_Fuzz_ReturnLambdaInterface<~[TYPE@1]~> lambda = (s) -> {
+  if (~[EXPR_Boolean]~) { return ~[EXPR_TYPE@1]~; }
+  else { return s; }
+};
+~[VAR_TYPE@1]~ = lambda.VirtualCall(~[VAR_TYPE@1]~);
+~template end~
+
+~main class end~
