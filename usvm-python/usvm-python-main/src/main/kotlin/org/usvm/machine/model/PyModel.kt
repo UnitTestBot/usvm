@@ -61,7 +61,7 @@ class PyModel(
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
         if (regionId is UArrayRegionId<*, *, *> &&
-            regionId.sort == regionId.sort.uctx.addressSort &&
+            regionId.sort == ctx.addressSort &&
             regionId.arrayType == ArrayType
         ) {
             val region = super.getRegion(
