@@ -68,7 +68,7 @@ For Windows you need MSBuild (see https://devguide.python.org/getting-started/se
     brew install openssl@3.0
     
     ```
-    - Set a gradle property pointing to OpenSSL location:
+    - Set a gradle property pointing to OpenSSL location ([about `GRADLE_USER_HOME` directory](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home)):
     ```
     cpython.ssl.path=/opt/homebrew/opt/openssl    
     ```
@@ -83,6 +83,41 @@ For Windows you need MSBuild (see https://devguide.python.org/getting-started/se
     
       - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
       - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
+
+## Structure of `usvm-python`
+
+`usvm-python` has several internal Gradle modules. Here is a description for them.
+
+### Root module `usvm-python`
+  
+  Puts all internal modules together. Tests are declared here.
+
+### Module `usvm-python:usvm-python-main`
+
+  Main part of `usvm-python` symbolic machine.
+
+### Module `usvm-python:cpythonadapter`
+
+  This module contains CPython as git submodule in folder `cpython`.
+
+  The code in `src` folder is a native part of the symbolic machine.
+  It is supposed to bind Python and USVM in one process.
+  In `usvm-python-main` the binding point is class `CPythonAdapter.java`.
+
+### Module `usvm-python:usvm-python-annotations`
+
+  Declares several annotations for `CPythonAdadpter.java`.
+  They are used to automatically generate some C code.
+  After build, the generated code can be found in folder
+  `cpythonadapter/build/adapter_include`.
+
+### Module `usvm-python:usvm-python-runner`
+
+  JVM library for using `usvm-python` in other applications (such as UTBot).
+
+### Module `usvm-python:usvm-python-commons`
+
+  Code that is used both in `usvm-python-runner` and `usvm-python-main`.
 
 ## Addition of a method in CPythonAdapter
 
