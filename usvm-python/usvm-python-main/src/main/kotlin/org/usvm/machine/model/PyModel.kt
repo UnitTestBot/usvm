@@ -34,7 +34,6 @@ import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.key.USizeRegion
 import org.usvm.model.UModelBase
-import org.usvm.uctx
 
 class PyModel(
     private val ctx: PyContext,
