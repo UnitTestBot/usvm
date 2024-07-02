@@ -17,6 +17,32 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collection.string.UCharAtExpr
+import org.usvm.collection.string.UFloatFromStringExpr
+import org.usvm.collection.string.UIntFromStringExpr
+import org.usvm.collection.string.URegexMatchesExpr
+import org.usvm.collection.string.URegexReplaceAllExpr
+import org.usvm.collection.string.URegexReplaceFirstExpr
+import org.usvm.collection.string.UStringConcatExpr
+import org.usvm.collection.string.UStringEqExpr
+import org.usvm.collection.string.UStringExpr
+import org.usvm.collection.string.UStringFromCollectionExpr
+import org.usvm.collection.string.UStringFromFloatExpr
+import org.usvm.collection.string.UStringFromIntExpr
+import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringIndexOfExpr
+import org.usvm.collection.string.UStringLeExpr
+import org.usvm.collection.string.UStringLengthExpr
+import org.usvm.collection.string.UStringLiteralExpr
+import org.usvm.collection.string.UStringLtExpr
+import org.usvm.collection.string.UStringRepeatExpr
+import org.usvm.collection.string.UStringReplaceAllExpr
+import org.usvm.collection.string.UStringReplaceFirstExpr
+import org.usvm.collection.string.UStringReverseExpr
+import org.usvm.collection.string.UStringSliceExpr
+import org.usvm.collection.string.UStringToLowerExpr
+import org.usvm.collection.string.UStringToUpperExpr
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
 
 interface UTransformer<Type, USizeSort : USort> : KTransformer {
@@ -67,6 +93,58 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
     fun transform(expr: UConcreteHeapRef): UExpr<UAddressSort>
 
     fun transform(expr: UNullRef): UExpr<UAddressSort>
+
+    // String expressions
+
+    fun transform(expr: UStringLiteralExpr): UStringExpr
+
+    fun <CollectionId : USymbolicCollectionId<UExpr<USizeSort>, UCharSort, CollectionId>, USizeSort: USort, UCharSort : USort> transform(
+        expr: UStringFromCollectionExpr<CollectionId, USizeSort, UCharSort>
+    ): UStringExpr
+
+    fun transform(expr: UStringFromLanguageExpr): UStringExpr
+
+    fun transform(expr: UStringConcatExpr): UStringExpr
+
+    fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort>
+
+    fun <UCharSort: USort> transform(expr: UCharAtExpr<USizeSort, UCharSort>): UExpr<UCharSort>
+
+    fun transform(expr: UStringEqExpr): UBoolExpr
+
+    fun transform(expr: UStringLtExpr): UBoolExpr
+
+    fun transform(expr: UStringLeExpr): UBoolExpr
+
+    fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr
+
+    fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr
+
+    fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort>
+
+    fun <UFloatSort: USort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr
+
+    fun <UFloatSort: USort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort>
+
+    fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr
+
+    fun transform(expr: UStringToUpperExpr): UStringExpr
+
+    fun transform(expr: UStringToLowerExpr): UStringExpr
+
+    fun transform(expr: UStringReverseExpr): UStringExpr
+
+    fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort>
+
+    fun transform(expr: URegexMatchesExpr): UBoolExpr
+
+    fun transform(expr: UStringReplaceFirstExpr): UStringExpr
+
+    fun transform(expr: UStringReplaceAllExpr): UStringExpr
+
+    fun transform(expr: URegexReplaceFirstExpr): UStringExpr
+
+    fun transform(expr: URegexReplaceAllExpr): UStringExpr
 }
 
 abstract class UExprTransformer<Type, USizeSort : USort>(
@@ -76,6 +154,10 @@ abstract class UExprTransformer<Type, USizeSort : USort>(
 @Suppress("UNCHECKED_CAST")
 fun <Type, USizeSort : USort> UTransformer<*, *>.asTypedTransformer(): UTransformer<Type, USizeSort> =
     this as UTransformer<Type, USizeSort>
+
+@Suppress("UNCHECKED_CAST")
+fun <USizeSort : USort> UTransformer<*, *>.asSizeTypedTransformer(): UTransformer<*, USizeSort> =
+    this as UTransformer<*, USizeSort>
 
 @Suppress("NOTHING_TO_INLINE")
 inline fun <T : USort> UTransformer<*, *>?.apply(expr: UExpr<T>) = this?.apply(expr) ?: expr

@@ -94,6 +94,7 @@ import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.allocateInternedStringLiteral
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
@@ -136,15 +137,13 @@ class JcExprResolver(
     private val options: JcMachineOptions,
     localToIdx: (JcMethod, JcLocal) -> Int,
     mkTypeRef: (JcType) -> UConcreteHeapRef,
-    mkStringConstRef: (String) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
 ) : JcExprVisitor<UExpr<out USort>?>, JcExprVisitor.Default<UExpr<out USort>?> {
     val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
         ctx,
         scope,
         localToIdx,
-        mkTypeRef,
-        mkStringConstRef
+        mkTypeRef
     )
 
     /**
@@ -1026,9 +1025,9 @@ class JcSimpleValueResolver(
     private val scope: JcStepScope,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType) -> UConcreteHeapRef,
+) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
     private val mkStringConstRef: (String) -> UConcreteHeapRef,
 ) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {
-    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
         scope.calcOnState { memory.read(ref) }
     }
@@ -1161,6 +1160,6 @@ class JcSimpleValueResolver(
 
     fun resolveStringConstant(value: String): UConcreteHeapRef =
         scope.calcOnState {
-            mkStringConstRef(value)
+            memory.allocateInternedStringLiteral<JcType, USizeSort>(ctx, ctx.stringType, value)
         }
 }
