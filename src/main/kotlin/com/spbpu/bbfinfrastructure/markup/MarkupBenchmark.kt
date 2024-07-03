@@ -1,14 +1,12 @@
 package com.spbpu.bbfinfrastructure.markup
 
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
-import com.spbpu.bbfinfrastructure.sarif.ResultSarifBuilder
+import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
+import com.spbpu.bbfinfrastructure.util.CweUtil
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
 import kotlin.text.StringBuilder
-import kotlin.streams.*
 
 class MarkupBenchmark {
 
@@ -18,77 +16,65 @@ class MarkupBenchmark {
         toolsResultsPaths: List<String>,
         pathToResultSarif: String
     ) {
-        val srcFiles = Files.walk(Paths.get(pathToSrc)).map { it.toFile() }.toList().filter { it.isFile }
-        val resultSarifBuilder = ResultSarifBuilder()
-        val groundTruth = resultSarifBuilder
+        val toolsResultsSarifBuilder = ToolsResultsSarifBuilder()
+        val groundTruth = toolsResultsSarifBuilder
             .deserialize(File(pathToGroundTruth).readText())
             .runs.first().results
-            .associate {
-                it.locations.first().physicalLocation.artifactLocation.uri to Pair(
-                    it.ruleId.substringAfter("CWE-"),
-                    it.kind
-                )
-            }
-        val headers = mutableMapOf<String, StringBuilder>()
-        val tools = toolsResultsPaths.map { it.substringBefore('_').substringAfter('/') }
+            .filter { it.kind == "fail" }
+            .associateWith { mutableSetOf<String>() }
+            .toMutableMap()
+        val tools = toolsResultsPaths.map { it.substringAfterLast('/').substringBefore('_') }
         toolsResultsPaths.forEach { toolResultPath ->
             val toolResults = File(toolResultPath).readText()
-            val decodedToolResult = resultSarifBuilder.deserialize(toolResults)
-            val toolName = toolResultPath.substringBefore('_').substringAfter('/')
-            val groupedResults = decodedToolResult.runs.first().results.groupBy(
-                { it.locations.first().physicalLocation.artifactLocation.uri },
-                { it.ruleId.substringAfter("CWE-") }
-            ).mapValues { it.value.toSet() }
-            groupedResults.forEach { (benchmarkName, foundBugs) ->
-                val (groundTruthCWE, groundTruthKind) = groundTruth[benchmarkName] ?: return@forEach
-                if (groundTruthKind == null) return@forEach
-                val toolPass =
-                    if (groundTruthKind == "pass") {
-                        !foundBugs.contains(groundTruthCWE)
-                    } else {
-                        foundBugs.contains(groundTruthCWE)
+            val toolName = toolResultPath.substringAfterLast('/').substringBefore('_')
+            val decodedToolResult = toolsResultsSarifBuilder.deserialize(toolResults)
+            var i = 0
+            for (toolRes in decodedToolResult.runs.first().results) {
+                println("Handle res ${i++} from ${decodedToolResult.runs.first().results.size} for tool $toolName")
+                val resultFromGroundTruth =
+                    groundTruth.keys.find { toolRes.locations.first().isIn(it.locations.first()) }
+                if (resultFromGroundTruth != null) {
+                    val groundTruthKind = resultFromGroundTruth.kind!!
+                    if (groundTruthKind == "fail") {
+                        val groundTruthCwe = resultFromGroundTruth.ruleId.substringAfter("CWE-").toInt()
+                        val toolsFoundCWE = toolRes.ruleId.substringAfter("CWE-").toInt()
+                        val groundTruthCweWithChildren = CweUtil.getCweChildrenOf(groundTruthCwe) + groundTruthCwe
+                        if (groundTruthCweWithChildren.contains(toolsFoundCWE)) {
+                            if (groundTruth[resultFromGroundTruth]?.all { !it.contains(toolName) } == true) {
+                                groundTruth[resultFromGroundTruth]?.add("${toolName}: true")
+                            }
+                        }
                     }
-                if (headers.containsKey(benchmarkName)) {
-                    headers[benchmarkName]!!.append("\n${toolName}: $toolPass")
-                } else {
-                    headers[benchmarkName] = StringBuilder("${toolName}: $toolPass")
                 }
             }
         }
-        srcFiles.forEach { file ->
-            val fileName = file.name
-            if (headers.keys.all { !it.contains(fileName) }) {
-                file.delete()
-            }
-            val header = headers.entries.find { it.key.contains(fileName) }?.key ?: return@forEach
-
-            if (headers[header]!!.split("\n").count { it.contains("true") } < 2) {
-                file.delete()
+        val iterator = groundTruth.iterator()
+        while (iterator.hasNext()) {
+            val gtValue = iterator.next()
+            if (gtValue.value.isEmpty()) {
+                iterator.remove()
             }
         }
-
         val markupSarif = MarkupSarif.Sarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
-            results = headers.entries.mapNotNull { (benchmarkName, header) ->
-                val (cwe, kind) = groundTruth[benchmarkName] ?: return@mapNotNull null
+            results = groundTruth.entries.mapNotNull { (cweInfo, toolResults) ->
+                val (cwe, kind) = cweInfo.let { it.ruleId.substringAfter("CWE-") to it.kind!! }
                 tools.forEach { toolName ->
-                    if (!header.contains(toolName)) {
-                        header.append("\n${toolName}: false")
+                    if (toolResults.all { !it.contains(toolName) }) {
+                        toolResults.add("$toolName: false")
                     }
                 }
-                if (!header.contains("true")) return@mapNotNull null
                 MarkupSarif.Result(
-                    location = benchmarkName,
-                    kind = kind!!,
+                    location = cweInfo.locations.first(),
+                    kind = kind,
                     ruleId = cwe,
-                    toolsResults = header.split("\n").map { toolRes ->
+                    toolsResults = toolResults.map {
                         MarkupSarif.ToolResult(
-                            toolName = toolRes.substringBefore(":"),
-                            isWorkCorrectly = toolRes.substringAfter(": ")
+                            toolName = it.substringBefore(": "),
+                            isWorkCorrectly = it.substringAfter(": ")
                         )
                     }
-
                 )
             }
         )

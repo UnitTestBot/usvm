@@ -2,17 +2,15 @@ package com.spbpu.bbfinfrastructure.sarif
 
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.File
 
 class SarifBuilder {
 
     private val json = Json { prettyPrint = true }
 
-    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>, relPathToBenchSrc: String): String {
+    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>): String {
         val sarif = Sarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
@@ -23,7 +21,7 @@ class SarifBuilder {
                             name = "flawgarden-BenchmarkJava-mutated-demo"
                         )
                     ),
-                    results = suiteProjects.map { buildResult(it.first, relPathToBenchSrc) }
+                    results = suiteProjects.map { buildResult(it.first) }
                 )
             )
         )
@@ -31,11 +29,8 @@ class SarifBuilder {
         return json.encodeToString(sarif)
     }
 
-    private fun buildResult(project: Project, pathToBenchSrc: String): Result {
-        val localPaths = project.saveToDir(CompilerArgs.tmpPath)
-        val fileName = localPaths.find { it.contains(project.files.first().name) } ?: error("Can't find Benchmark file")
-        val nameWithoutExt = fileName.substringAfterLast('/').substringBefore(".java")
-        val relativePath = "$pathToBenchSrc/$nameWithoutExt.java"
+    private fun buildResult(project: Project): Result {
+        val relativePath = project.configuration.sourceFileName
         return Result(
             kind = "fail",
             message = Message(

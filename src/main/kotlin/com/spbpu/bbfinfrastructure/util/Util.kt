@@ -260,6 +260,14 @@ fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int): PsiElement? {
         .randomOrNull()
 }
 
+fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int, toLine: Int): PsiElement? {
+    val lastImportStatementLineNumber = text.split("\n").indexOfLast { it.startsWith("import ") }
+    return getAllPSIChildrenOfType<PsiWhiteSpace>()
+        .filter { it.text.contains("\n") }
+        .filter { it.getLocationLineNumber().let { it > lastImportStatementLineNumber && it > fromLine && it < toLine }}
+        .randomOrNull()
+}
+
 
 fun executeWithTimeout(timeoutInMilliseconds: Long, body: () -> Any?): Any? {
     var result: Any? = null

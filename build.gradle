@@ -179,3 +179,11 @@ task(checkTemplates, dependsOn: 'classes', type: JavaExec) {
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
 }
+
+task(markupBenchmark, dependsOn: 'classes', type: JavaExec) {
+    main = 'com.spbpu.bbfinfrastructure.test.MarkupKt'
+    classpath = sourceSets.main.runtimeClasspath
+    def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
+    argsString programArgs
+    jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
+}

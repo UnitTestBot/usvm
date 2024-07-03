@@ -1,33 +1,46 @@
-~class org.owasp.benchmark.helpers.ArrayHolder start~
-package org.owasp.benchmark.helpers;
+~extensions start~
+#~extensions import all~
+~extensions import extensions/extensions~
 
-public class ArrayHolder {
-    private String[] values;
+#Extensions:
+~[EXPR_String]~ -> "ABCDEF"
+~[EXPR_String]~ -> ~[VAR_String]~ + ~[EXPR_String]~
+~[EXPR_String]~ -> ~[VAR@1_String]~ + ~[VAR@1_String]~
+~[EXPR_String]~ -> ~[MY_EXPR]~ + "123"
 
-    public ArrayHolder(String value) {
-        this(new String[] {value, "A", "B"}); // Динамическая инициализация
-    }
+#Macros:
+~[MY_EXPR]~ -> Arrays.asList("123", ~[EXPR_String]~, ~[EXPR_String]~).get(2)
 
-    public ArrayHolder(String[] initialValues) {
-        this.values = initialValues;
-    }
+~extensions end~
 
-    public String[] getValues() {
-        return values;
-    }
+~main body start~
+
+~helper functions start~
+~function lol start~
+public int lol(int i) {
+    return -1;
 }
-~class org.owasp.benchmark.helpers.ArrayHolder end~
+~function lol end~
+~function lol1 start~
+public int lol1(int i) {
+    return -1;
+}
+~function lol1 end~
+~helper functions end~
 
+~helper import constructors/helpers/ArrayHolder~
 
-~main class start~
-~import org.owasp.benchmark.helpers.ArrayHolder;~
 ~import java.util.*;~
-~template start~
-ArrayHolder ah = new ArrayHolder(~[EXPR_String]~);
-~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
+
+~template class_with_array_initialization_by_expr start~
+~helper function lol~
+ArrayHolder ah = new ArrayHolder(~[MY_EXPR]~);
+~[VAR_String]~ = ah.getValues()[lol(~[EXPR_int]~)];
 ~template end~
-~template start~
+
+~template class_with_array_initialization_by_var start~
 ArrayHolder ah = new ArrayHolder(~[VAR_String]~);
 ~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
 ~template end~
-~main class end~
+
+~main body end~

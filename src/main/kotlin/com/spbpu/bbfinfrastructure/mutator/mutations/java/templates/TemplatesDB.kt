@@ -13,9 +13,9 @@ object TemplatesDB {
         return templates.map { it.readText() }
     }
 
-    fun getRandomTemplateForFeature(feature: TestingFeature): Pair<String, String>? {
+    fun getRandomTemplateForFeature(feature: TestingFeature): File? {
         val templates = getTemplates(feature.dir) ?: return null
-        return templates.randomOrNull()?.let { it.readText() to it.path }
+        return templates.randomOrNull()
     }
 
     fun getRandomTemplateForPath(path: String): Pair<String, String>? {
@@ -27,6 +27,7 @@ object TemplatesDB {
         Files.walk(Paths.get(dir))
             .map { it.toFile() }
             .filter { it.isFile && it.extension == "tmt" }
+            .filter { !it.path.contains("helpers") && !it.path.contains("extensions") }
             .toList()
             .ifEmpty { null }
 

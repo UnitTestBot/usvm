@@ -56,7 +56,7 @@ class ResultHeader(
                             }
                             key == "//Original file kind" -> kind = value
 
-                            key == "//Mutation info" -> {
+                            key == "//Mutation info" || key == "// Mutation info" -> {
                                 val mutationDescriptions = value.split(" -> ")
                                 mutationDescriptions.forEach {
                                     mutationChain.add(it.trim())

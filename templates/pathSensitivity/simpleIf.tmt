@@ -1,26 +1,21 @@
-~main class start~
+~main body start~
 ~import java.util.*;~
-~template start~
+~template basic_if_expression_1 start~
 if (~[EXPR_boolean]~) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template basic_if_expression_with_empty_assigment start~
 if (~[EXPR_boolean]~) {
     ~[VAR_String]~ = "";
 }
 ~template end~
-~template start~
-if (~[EXPR_boolean]~) {
-    ~[EXPR_Object]~ = null;
-}
-~template end~
-~template start~
+~template if_expression_with_two_conditions_string_var_assigment_to_empty start~
 if (~[EXPR_boolean]~ && ~[EXPR_boolean]~) {
     ~[VAR_String]~ = "";
 }
 ~template end~
-~template start~
+~template if_expression_with_var_in_condition start~
 boolean conditionMet = false;
 if (~[EXPR_boolean]~) {
     conditionMet = true;
@@ -29,29 +24,29 @@ if (!conditionMet && ~[EXPR_boolean]~) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template if_expression_with_equals_invocation start~
 if (~[EXPR_String]~.equals(~[EXPR_String]~)) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template if_expression_with_null_comparison_and_contains_invocation start~
 if (~[EXPR_String]~ != null && ~[EXPR_String]~.contains(~[EXPR_String]~)) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template if_expression_with_null_comparison_and_isEmpty_invocation start~
 if (~[EXPR_String]~ != null && !~[EXPR_String]~.isEmpty()) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template if_expression_with_compareTo_invocation start~
 if (~[EXPR_String]~.compareTo(~[EXPR_String]~) == 0) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~template start~
+~template if_expression_with_objects_equals_invocation start~
 if (~[EXPR_Object]~.equals(~[EXPR_Object]~)) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~main class end~
+~main body end~

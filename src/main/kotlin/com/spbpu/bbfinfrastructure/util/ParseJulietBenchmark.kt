@@ -8,7 +8,7 @@ import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl
 import com.spbpu.bbfinfrastructure.compiler.JCompiler
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
-import com.spbpu.bbfinfrastructure.sarif.ResultSarifBuilder
+import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
@@ -121,28 +121,28 @@ CWE613"""
         val results = File("lib/juliet/testcode")
             .listFiles()
             .map { file ->
-                ResultSarifBuilder.ResultResult(
+                ToolsResultsSarifBuilder.ToolExecutionResult(
                     locations = listOf(
-                        ResultSarifBuilder.ResultLocation(
-                            ResultSarifBuilder.ResultPhysicalLocation(
-                                ResultSarifBuilder.ResultArtifactLocation(
+                        ToolsResultsSarifBuilder.ResultLocation(
+                            ToolsResultsSarifBuilder.ResultPhysicalLocation(
+                                ToolsResultsSarifBuilder.ResultArtifactLocation(
                                     "src/main/java/juliet/testcases/${file.name}"
                                 )
                             )
                         )
                     ),
-                    message = ResultSarifBuilder.ResultMessage("msg"),
+                    message = ToolsResultsSarifBuilder.ToolResultMessage("msg"),
                     ruleId = "CWE-${file.name.substringAfter("CWE").substringBefore("_")}",
                     kind = file.nameWithoutExtension.endsWith("bad").ifTrue { "fail" } ?: "pass"
                 )
             }
-        val sarif = ResultSarifBuilder.ResultSarif(
+        val sarif = ToolsResultsSarifBuilder.ToolResultSarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
             runs = listOf(
-                ResultSarifBuilder.ResultRun(
+                ToolsResultsSarifBuilder.ToolRun(
                     results = results,
-                    tool = ResultSarifBuilder.ResultTool(ResultSarifBuilder.ResultDriver("Juliet-BenchmarkJava-v1.3"))
+                    tool = ToolsResultsSarifBuilder.ToolInfo(ToolsResultsSarifBuilder.ToolDriver("Juliet-BenchmarkJava-v1.3"))
                 )
             )
         )

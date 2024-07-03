@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.util.statistic
 
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesInserter
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
 import com.spbpu.bbfinfrastructure.test.TestTemplatesInserter
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
@@ -15,16 +16,16 @@ object StatsManager {
         .toList()
         .map { it.toFile() }
         .filter { it.isFile }
-        .map { it to TestTemplatesInserter.parseTemplate(it.readText())!! }
+        .map { it to TemplatesParser.parse(it.readText())!! }
         .flatMap { (f, t) -> List(t.templates.size) { index -> Triple(f.path, index, t) } }
 
-    var currentBadTemplatesList: List<Pair<TemplatesInserter.Template, String>> = getBadTemplatesList()
+    var currentBadTemplatesList: List<Pair<TemplatesParser.Template, String>> = getBadTemplatesList()
 
     fun updateBadTemplatesList() {
         currentBadTemplatesList = getBadTemplatesList()
     }
 
-    private fun getBadTemplatesList(): List<Pair<TemplatesInserter.Template, String>> =
+    private fun getBadTemplatesList(): List<Pair<TemplatesParser.Template, String>> =
         calc("results").templatesWithoutResults.map { it.first to it.second }
 
     fun printStats(pathToResults: String = "sortedResults") {
@@ -49,18 +50,29 @@ object StatsManager {
         )
     }
 
-    private fun calc(pathToResults: String): TemplatesResults {
-        val templatesWithoutResults = mutableListOf<Pair<TemplatesInserter.Template, String>>()
+    fun printBugsSortedByFeature(pathToResults: String, forFeatures: Collection<String>? = null) {
+        calc(pathToResults, printInfo = true, forFeatures)
+    }
+
+    private fun calc(pathToResults: String, printInfo: Boolean = false, forFeatures: Collection<String>? = null): TemplatesResults {
+        val templatesWithoutResults = mutableListOf<Pair<TemplatesParser.Template, String>>()
         val successFullTemplates = mutableMapOf<String, Int>()
         val results =
             Files.walk(Paths.get(pathToResults))
                 .toList()
                 .map { it.toFile() }
                 .filter { it.isFile }
+                .filter { it.path.endsWith("java") }
                 .map { it to ResultHeader.convertFromString(it.readText())!! }
         features.forEach { (templateName, templateIndex, template) ->
             val resultsForFeature =
                 results.filter { it.second.mutationDescriptionChain.any { it.contains("$templateName with index $templateIndex") } }
+            if (printInfo) {
+                if ((forFeatures != null && forFeatures.contains("$templateName $templateIndex")) || forFeatures == null) {
+                    println("------------")
+                    println("RESULTS FOR FEATURE $templateName $templateIndex:\n${resultsForFeature.joinToString("\n") { it.first.path }}")
+                }
+            }
             if (resultsForFeature.isEmpty()) {
                 templatesWithoutResults.add(template to "$templateName $templateIndex")
             }
@@ -96,10 +108,10 @@ object StatsManager {
     }
 
     private class TemplatesResults(
-        val templatesWithoutResults: List<Pair<TemplatesInserter.Template, String>>,
+        val templatesWithoutResults: List<Pair<TemplatesParser.Template, String>>,
         val successFullTemplates: Map<String, Int>
     ) {
-        operator fun component1(): List<Pair<TemplatesInserter.Template, String>> {
+        operator fun component1(): List<Pair<TemplatesParser.Template, String>> {
             return templatesWithoutResults
         }
 

@@ -6,13 +6,17 @@ By employing mutation fuzzing, this project generates diverse test cases by muta
 
 ## Get started
 1. Clone vulnomicon [repo](https://github.com/flawgarden/vulnomicon)
-2. Set up mutated-benchmark according to instructions
-3. Use `/vulnomicon/BenchmarkJava-mutated` directory as BENCHMARK_TEMPLATE
+2. Set up benchmark according to instructions
+3. Run desired tools with standard configuration
+4. Make copy of benchmark with "-fuzz" suffix, for example if benchmark name is "BenchmarkJava" make copy in directory "BenchmarkJava-fuzz"
+5. Remove unneeded sources to speedup process (be careful, do not remove classes, which can be used by mutants)
+6. Execute markup task and specify path to tools_truth.sarif to "[BenchmarkName]-fuzz" directory
+7. Now you can use our tool
 
 ## Usage
 
 To use this tool for synthetic benchmark generation, use next commands:\
-`./gradlew -Dorg.gradle.java.home=[PATH_TO_JDK_21] [runFuzzer/runInfFuzzer] -PprogramArgs="-d [PATH_TO_BENCHMARK_TEMPLATE] -n [BATCH_SIZE] [-l] [-s] [-nm [NUM]] [-nf [NUM]]"` 
+`./gradlew -Dorg.gradle.java.home=[PATH_TO_JDK_21] [runFuzzer/runInfFuzzer] -PprogramArgs="-d [PATH_TO_BENCHMARK] -n [BATCH_SIZE] [-l] [-s] [-nm [NUM]] [-nf [NUM]]"` 
 * runFuzzer/runInfFuzzer - commands to run fuzzing for one cycle (generate mutants -> execute -> finish) or infinite
 * PATH_TO_BENCHMARK_TEMPLATE - path to template of Benchmark, which will be used to save mutants and run experiments
 * BATCH_SIZE - number of mutants to estimate (recommended: ~500)

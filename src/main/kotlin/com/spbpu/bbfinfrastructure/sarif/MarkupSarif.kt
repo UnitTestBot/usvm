@@ -14,7 +14,7 @@ class MarkupSarif {
 
     @Serializable
     data class Result(
-        val location: String,
+        val location: ToolsResultsSarifBuilder.ResultLocation,
         val kind: String,
         val ruleId: String,
         val toolsResults: List<ToolResult>

@@ -2,8 +2,10 @@ package com.spbpu.bbfinfrastructure
 
 import com.spbpu.bbfinfrastructure.compiler.JCompiler
 import com.spbpu.bbfinfrastructure.markup.MarkupBenchmark
+import com.spbpu.bbfinfrastructure.mutator.MutationManager
 import com.spbpu.bbfinfrastructure.mutator.Mutator
 import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
@@ -15,12 +17,47 @@ import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
+import kotlinx.cli.required
 import java.io.File
 import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
+// Mutation info: Insert template from templates/constructors/constructorWithCollections.tmt with
+// index 0
+// Program:
 fun main(args: Array<String>) {
+    MutationManager().mutate(
+        "/home/zver/IdeaProjects/vulnomicon/BenchmarkJava/",
+        pathToBenchmarkToFuzz = "/home/zver/IdeaProjects/vulnomicon/BenchmarkJava-fuzz",
+        pathScriptToStartFuzzBenchmark = "/home/zver/IdeaProjects/vulnomicon/scripts/benchmarks/BenchmarkJava/run-fuzz.sh",
+        pathToVulnomicon = "/home/zver/IdeaProjects/vulnomicon/",
+        2,
+        true
+    )
+    exitProcess(0)
+//    val pathToTruthSarif = "lib/owasp_test/truth.sarif"
+//    val pathToToolsResultsDirectory = "lib/owasp_test/"
+//
+//    val toolsResults = File(pathToToolsResultsDirectory).listFiles()
+//        .filter { it.path.endsWith(".sarif") }
+//        .filterNot { it.path.contains("truth.sarif") }
+//        .map { it.absolutePath }
+//        .ifEmpty { error("Cannot find sarif files in specified directory $pathToToolsResultsDirectory") }
+//
+//    val pathToResultSarif =
+//        if (pathToTruthSarif.contains("/")) {
+//            pathToTruthSarif.substringBeforeLast("/") + "/tools_truth.sarif"
+//        } else {
+//            "./tools_truth.sarif"
+//        }
+//    MarkupBenchmark().markup(
+//        pathToTruthSarif,
+//        "pathToSources",
+//        toolsResults,
+//        pathToResultSarif
+//    )
+//    exitProcess(0)
     System.setProperty("idea.home.path", "lib/bin")
     val parser = ArgParser("psi-fuzz")
 
@@ -108,7 +145,9 @@ fun main(args: Array<String>) {
     CompilerArgs.numberOfMutationsPerFile = numberOfMutationsPerFile
     CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
     CompilerArgs.badTemplatesOnlyMode = badTemplatesOnlyMode
-    StatsManager.updateBadTemplatesList()
+    if (badTemplatesOnlyMode) {
+        StatsManager.updateBadTemplatesList()
+    }
     val owaspFiles = File("lib/filteredTestCode/").listFiles().toList()
     val julietFiles = File("lib/juliet/testcode").listFiles().toList()
     val isOwasp = Random.nextBoolean()
@@ -136,37 +175,31 @@ fun main(args: Array<String>) {
         } else {
             "~/vulnomicon/JulietJavaForMutation"
         }
-    if (isOwasp) {
-        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
-            pathToBenchmark = pp,
-            pathToBenchmarkSources = "$pp/src/main/java/org/owasp/benchmark/testcode",
-            pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
-            pathToTruthSarif = "$pp/truth.sarif",
-            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated-private.sh",
-            isLocal = isLocal
-        )
-        ScoreCardParser.parseAndSaveDiff(
-            scorecardsDir = "tmp/scorecards",
-            pathToSources = CompilerArgs.tmpPath,
-            nameMask = Regex("""BenchmarkTest\d\d\d\d\d"""),
-            pathToToolsGroundTruthSarif = "lib/tools_truth.sarif"
-        )
-    } else {
-        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
-            pathToBenchmark = pp,
-            pathToBenchmarkSources = "$pp/src/main/java/juliet/testcases",
-            pathToBenchmarkHelpers = "$pp/src/main/java/org/owasp/benchmark/helpers",
-            pathToTruthSarif = "$pp/truth.sarif",
-            scriptToStartBenchmark = "./scripts/runJulietBenchmark-private.sh",
-            isLocal = isLocal
-        )
-        ScoreCardParser.parseAndSaveDiff(
-            scorecardsDir = "tmp/scorecards",
-            pathToSources = CompilerArgs.tmpPath,
-            nameMask = Regex("""CWE.*(good|bad)"""),
-            pathToToolsGroundTruthSarif = "lib/juliet/tools_truth.sarif"
-        )
-    }
+//    if (isOwasp) {
+//        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
+//            pathToBenchmark = pp,
+//            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated-private.sh",
+//            isLocal = isLocal
+//        )
+//        ScoreCardParser.parseAndSaveDiff(
+//            scorecardsDir = "tmp/scorecards",
+//            pathToSources = CompilerArgs.tmpPath,
+//            nameMask = Regex("""BenchmarkTest\d\d\d\d\d"""),
+//            pathToToolsGroundTruthSarif = "lib/tools_truth.sarif"
+//        )
+//    } else {
+//        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
+//            pathToBenchmark = pp,
+//            scriptToStartBenchmark = "./scripts/runJulietBenchmark-private.sh",
+//            isLocal = isLocal
+//        )
+//        ScoreCardParser.parseAndSaveDiff(
+//            scorecardsDir = "tmp/scorecards",
+//            pathToSources = CompilerArgs.tmpPath,
+//            nameMask = Regex("""CWE.*(good|bad)"""),
+//            pathToToolsGroundTruthSarif = "lib/juliet/tools_truth.sarif"
+//        )
+//    }
     exitProcess(0)
 }
 

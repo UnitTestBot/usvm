@@ -4,11 +4,13 @@ import com.intellij.lang.ASTNode
 import com.intellij.lang.FileASTNode
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
+import com.spbpu.bbfinfrastructure.psicreator.util.createWhitespace
 import com.spbpu.bbfinfrastructure.util.kcheck.asCharSequence
 import com.spbpu.bbfinfrastructure.util.kcheck.nextInRange
 import com.spbpu.bbfinfrastructure.util.kcheck.nextString
@@ -428,11 +430,19 @@ fun PsiFile.addAtTheEnd(psiElement: PsiElement): PsiElement {
 }
 
 
-fun PsiFile.addToTheTop(psiElement: PsiElement): PsiElement {
+fun KtFile.addToTheTop(psiElement: PsiElement): PsiElement {
     val firstChild = this.allChildren.first!!
     firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
     val res = firstChild.add(psiElement)
     firstChild.add(Factory.psiFactory.createWhiteSpace("\n"))
+    return res
+}
+
+fun PsiJavaFile.addToTheTop(psiElement: PsiElement): PsiElement {
+    val firstChild = this.allChildren.first!!
+    firstChild.add(Factory.javaPsiFactory.createWhitespace())
+    val res = firstChild.add(psiElement)
+    firstChild.add(Factory.javaPsiFactory.createWhitespace())
     return res
 }
 

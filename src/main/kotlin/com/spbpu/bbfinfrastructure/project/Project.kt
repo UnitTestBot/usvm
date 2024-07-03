@@ -3,37 +3,44 @@ package com.spbpu.bbfinfrastructure.project
 import com.intellij.psi.PsiFile
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
+import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
 import com.spbpu.bbfinfrastructure.util.*
-import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
-import org.jetbrains.kotlin.cli.js.K2JSCompiler
-import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 
 class Project(
-    var configuration: Header,
+    var configuration: Metadata,
     var files: List<BBFFile>,
     val language: LANGUAGE = LANGUAGE.KOTLIN
 ) {
 
-    constructor(configuration: Header, file: BBFFile, language: LANGUAGE) : this(configuration, listOf(file), language)
+    constructor(configuration: Metadata, file: BBFFile, language: LANGUAGE) : this(
+        configuration,
+        listOf(file),
+        language
+    )
 
     companion object {
 
-        fun createJavaProjectFromFiles(files: List<File>, originalFileName: String = "", originalCWEs: List<Int> = listOf()): Project {
+        fun createJavaProjectFromFiles(
+            files: List<File>,
+            originalFileName: String = "",
+            originalCWEs: List<Int> = listOf(),
+            region: ToolsResultsSarifBuilder.ResultRegion? = null,
+            uri: String? = null,
+            originalUri: String? = null
+        ): Project {
             val javaFiles =
                 files.map {
                     val text = it.readText()
                     BBFFile(it.name, PSICreator.getPsiForJava(text))
                 }
-            return Project(Header(originalFileName, originalCWEs), javaFiles, LANGUAGE.JAVA)
+            return Project(Metadata(originalFileName, originalCWEs, originalUri, uri, region), javaFiles, LANGUAGE.JAVA)
         }
 
         fun createJavaProjectFromCode(code: String, name: String): Project {
             val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code, Factory.file.project))
-            return Project(Header.createEmptyHeader(), listOf(bbfFile), LANGUAGE.JAVA)
+            return Project(Metadata.createEmptyHeader(), listOf(bbfFile), LANGUAGE.JAVA)
         }
 
         fun createFromCode(code: String): Project {
@@ -63,7 +70,7 @@ class Project(
     fun saveToDir(dir: String): List<String> {
         File(dir).mkdirs()
         val resPaths = mutableListOf<String>()
-        files.forEach {  file ->
+        files.forEach { file ->
             resPaths.add("$dir/${file.name}")
             File("$dir/${file.name}").writeText(file.psiFile.text)
         }
@@ -109,7 +116,7 @@ class Project(
     }
 
     fun copy(): Project {
-        return Project(configuration, files.map { it.copy() }, language)
+        return Project(configuration.copy(), files.map { it.copy() }, language)
     }
 
 
