@@ -16,11 +16,10 @@ By employing mutation fuzzing, this project generates diverse test cases by muta
 ## Usage
 
 To use this tool for synthetic benchmark generation, use next commands:\
-`./gradlew -Dorg.gradle.java.home=[PATH_TO_JDK_21] [runFuzzer/runInfFuzzer] -PprogramArgs="-d [PATH_TO_BENCHMARK] -n [BATCH_SIZE] [-l] [-s] [-nm [NUM]] [-nf [NUM]]"` 
+
+`./gradlew runFuzzer -Dorg.gradle.java.home=[PATH_TO_JDK_21] -PprogramArgs="-pathToBench [PATH_TO_ORIGINAL_BENCHMARK] -pathToFuzzBench [PATH_TO_CLONED_BENCHMARK_TO_FUZZ] -pathToScript [PATH_TO_SCRIPT_TO_EXECUTE_FUZZ_BENCHMARK] -pathToVuln [PATH_TO_VULNOMICON] -n [BATCH_SIZE] [-s] [-nm [NUM]] [-nf [NUM]]" -PvulnomiconJavaHome=[PATH_TO_JAVA_17]`
 * runFuzzer/runInfFuzzer - commands to run fuzzing for one cycle (generate mutants -> execute -> finish) or infinite
-* PATH_TO_BENCHMARK_TEMPLATE - path to template of Benchmark, which will be used to save mutants and run experiments
-* BATCH_SIZE - number of mutants to estimate (recommended: ~500)
-* -l - flag, indicates, if SAST estimation should be local or server-based (if you running in non-local mode, you must provide private key path and pass in args -PprivateKeyPath and -PprivateKeyPass)
+* -n - number of mutants to estimate (recommended: ~500)
 * -nm - number of successful mutations to make final version of mutant (default 2)
 * -nf - Number of generated mutants for file (default 5). Amount of final test cases will be `BATCH_SIZE * NF`
 * -s - flag to execute tool in **results SORTING mode** (may take a lot of time)

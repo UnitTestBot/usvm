@@ -7,40 +7,103 @@ Code templates inserts in the random place of source test sample and fills with 
 The main feature of the templates is the presence of **typed placeholders**.
 
 ### Structure of Templates
+Typical directory structure of templates looks like:
+```
+templates
+├── constructors
+│   ├── helpers
+│   │   ├── A.tmt
+│   │   └── B.tmt
+│   ├── template1.tmt
+│   └── template2.tmt
+├── extensions
+│   ├── extensions1.tmt
+│   └── extensions2.tmt
+└──pathSensitivity
+    ├── helpers
+    │   ├── A.tmt
+    │   └── C.tmt
+    ├── template1.tmt
+    └── template2.tmt
+
+```
+* Directory template contains directories for each target language feature
+* Extensions - special directory, it contains extensions and macroses
+* Any directory with template may contain helpers directory (with auxiliary classes)
+#### Helpers
+As mentioned before, helpers directory contain auxiliary classes. Helpers can be used via imports in template bodies. Syntax:
+```
+~class [CLASS_NAME] start~
+[CLASS_BODY]
+~class [CLASS_NAME] end~
+```
+**It should not contain any typed placeholder!**
+
+#### Extensions
+Extensions directory contains GLOBAL extensions, which can be used by any template via any of special import directives:
+* ~extensions import all~ - for importing all extensions
+* ~extensions import extensions/[FILE_NAME]~ - for importing extensions extensions from file [FILE_NAME]\
+**Examples of extensions:**
+```
+#Extensions:
+~[EXPR_Boolean]~ -> ~[VAR@1_String]~.isEmpty() && ~[VAR@1_String]~.contains(~[EXPR_String]~)
+~[EXPR_Boolean]~ -> ~[VAR@1_String]~.isEmpty()
+# For probabilistic replacement of the corresponding hole in the template body
+
+
+#Marcos:
+~[MY_EXPR]~ -> ~[VAR_String]~ + ~[EXPR_String]~
+# For mandatory replacement of the corresponding hole in the template body
+```
 
 Each template consists of the following main components:
-
-1) Additional Classes: These are supplementary classes that are included to support the main functionality of the template.
-**It should not contain any typed placeholder!**
+1) Local extensions, extensions imports and macros
 ```   
-~class full_class_name start~
-CLASS_BODY
-~class full_class_name end~ 
+~extensions start~
+~extensions import extensions/extensions~
+
+#Extensions:
+~[EXPR_String]~ -> "ABCDEF"
+~[EXPR_String]~ -> ~[VAR_String]~ + ~[EXPR_String]~
+~[EXPR_String]~ -> ~[VAR@1_String]~ + ~[VAR@1_String]~
+~[EXPR_String]~ -> ~[MY_EXPR]~ + "123"
+
+#Macros:
+~[MY_EXPR]~ -> Arrays.asList("123", ~[EXPR_String]~, ~[EXPR_String]~).get(2)
+
+~extensions end~
 ```
 2) Main template body
 ```
-~main class start~
+~main body start~
 TEMPLATE BODY
-~main class end~
+~main body end~
 ```
 Which contains:
-* List of Imports: Specifies the libraries and packages that need to be imported for the template to work correctly.
+* List of Additional Functions: Contains any helper functions or methods that are required by the main template logic.
+    **It also should not contain any typed placeholder!**
 ```
+~helper functions start~
+~function [FUNC_NAME] start~
+[FUNC_BODY]
+~function [FUNC_NAME] end~
+~helper functions end~
+```
+* List of Imports: Specifies the helpers, libraries and packages that need to be imported for the template to work correctly.
+```
+~helper import [PATH_TO_HELPER]~
 ~import java.util.*;~
 ```
 * Templates bodies (min 1):
 ```
-~template start~
+~template [TEMPLATE_NAME] start~
 TEMPLATE BODY
 ~template end~
 ```
 Each of which consists of:
-* List of Additional Functions: Contains any helper functions or methods that are required by the main template logic.
-**It also should not contain any typed placeholder!**
+* List of auxiliary functions import
 ```
-~function fun_name start~
-FUNCTION BODY
-~function fun_name end~
+~helper function [FUNC_NAME]~
 ```
 * Main Template Code: The primary code constructs that will be used in code generation, for example:
 ```
@@ -59,6 +122,7 @@ For example, if we need to fill **~[EXPR_Boolean]~** placeholder, and we have `S
 * **\~[VAR_Type]\~**: Available from scope variable of type **Type**
 * **\~[CONST_Type]\~**: Generated constant of type **Type** (currently supports *Collection*, *ArrayList*, *primitives* and *String*)
 * **\~[TYPE]\~**: Randomly generated type (currently support boxed primitives and String)
+* **\~[BODY]\~**: Random sequence of lines existing in the source file is inserted in place of the hole
 * **Referenced holes**: All holes can be referenced by suffix @ and number. This is intended to fill cells with the same data.
 For example, consider next template:
 ```
@@ -90,13 +154,13 @@ public class Main {
 ```
 And template with simple if
 ```
-~main class start~
-~template start~
+~main body start~
+~template example_template start~
 if (~[EXPR_boolean]~) {
     ~[VAR_String]~ = ~[EXPR_String]~;
 }
 ~template end~
-~main class end~
+~main body end~
 ```
 Choosing random place to insert template:
 ```
@@ -126,44 +190,5 @@ public class Main {
     }
 }
 ```
-
-Let's consider more difficult example:
-```
-~class org.owasp.benchmark.helpers.ArrayHolder start~
-package org.owasp.benchmark.helpers;
-
-public class ArrayHolder {
-    private String[] values;
-
-    public ArrayHolder(String value) {
-        this(new String[] {value, "A", "B"}); // Динамическая инициализация
-    }
-
-    public ArrayHolder(String[] initialValues) {
-        this.values = initialValues;
-    }
-
-    public String[] getValues() {
-        return values;
-    }
-}
-~class org.owasp.benchmark.helpers.ArrayHolder end~
-
-
-~main class start~
-~import org.owasp.benchmark.helpers.ArrayHolder;~
-~import java.util.*;~
-~template start~
-ArrayHolder ah = new ArrayHolder(~[EXPR_String]~);
-~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
-~template end~
-~template start~
-ArrayHolder ah = new ArrayHolder(~[VAR_String]~);
-~[VAR_String]~ = ah.getValues()[~[EXPR_int]~];
-~template end~
-~main class end~
-```
-* ArrayHolder -- additional class in block *~class ... ~*, which can be used in template
-* **\~main class start\~** -- main block, containing necessary imports and two template bodies with different cases of ArrayHolder usage\
 \
 **More samples can be found at the templates [directory](../templates/)**
