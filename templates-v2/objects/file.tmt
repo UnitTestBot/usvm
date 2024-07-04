@@ -1,0 +1,7 @@
+~main body start~
+~import java.util.*;~
+
+~template start~
+File f = new File(~[EXPR_String]~);
+~template end~
+~main body end~
