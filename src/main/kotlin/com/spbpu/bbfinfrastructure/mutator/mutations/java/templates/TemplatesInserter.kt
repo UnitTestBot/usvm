@@ -12,7 +12,7 @@ import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ExpressionGenerat
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaScopeCalculator
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
-import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
+import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
@@ -26,7 +26,7 @@ import kotlin.random.Random
 
 open class TemplatesInserter : Transformation() {
 
-    private val testSuite = GlobalTestSuite.javaTestSuite
+    private val testSuite = GlobalJavaTestSuite.javaTestSuite
     private val originalPsiText = file.text
     private val numOfSuccessfulMutationsToAdd = CompilerArgs.numberOfMutationsPerFile
     private var curNumOfSuccessfulMutations = 0
@@ -83,6 +83,7 @@ open class TemplatesInserter : Transformation() {
         val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
         val mappedHoles = mutableMapOf<String, String>()
         val mappedTypes = mutableMapOf<String, String>()
+        val usedExtensions = mutableListOf<String>()
         val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
             .map { block ->
                 val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber) ?: return false
@@ -94,7 +95,8 @@ open class TemplatesInserter : Transformation() {
                         scope = scope,
                         randomTemplateBody = block,
                         parsedTemplate = parsedTemplate,
-                        iteration = fillIteration++
+                        iteration = fillIteration++,
+                        usedExtensions = usedExtensions
                     )
                 while (filledTemplate.contains("~[")) {
                     filledTemplate = fillTemplateBody(
@@ -103,7 +105,8 @@ open class TemplatesInserter : Transformation() {
                         scope = scope,
                         randomTemplateBody = filledTemplate,
                         parsedTemplate = parsedTemplate,
-                        iteration = fillIteration++
+                        iteration = fillIteration++,
+                        usedExtensions = usedExtensions
                     )
                 }
                 filledTemplate to currentBlockLineNumber.also { currentBlockLineNumber = endOfBlock.getLocationLineNumber() }
@@ -160,6 +163,7 @@ open class TemplatesInserter : Transformation() {
             MutationInfo(
                 mutationName = "TemplateInsertion",
                 mutationDescription = "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
+                usedExtensions = usedExtensions,
                 location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
             )
         ).ifTrue {
@@ -202,7 +206,8 @@ open class TemplatesInserter : Transformation() {
         scope: List<JavaScopeCalculator.JavaScopeComponent>,
         randomTemplateBody: String,
         parsedTemplate: TemplatesParser.Template,
-        iteration: Int
+        iteration: Int,
+        usedExtensions: MutableList<String>
     ): String {
         val regex = Regex("""~\[(.*?)\]~""")
         val expressionGenerator = ExpressionGenerator()
@@ -221,10 +226,13 @@ open class TemplatesInserter : Transformation() {
                 }
             if (holeType == HOLE_TYPE.MACROS) {
                 val replacement = checkFromExtensionsAndMacros(parsedTemplate, hole)
-                return@replace replacement ?: error("Can't find replacement for hole $hole")
+                return@replace replacement?.also { usedExtensions.add("$hole -> $it") } ?: error("Can't find replacement for hole $hole")
             }
-            if (Random.getTrue(75) && iteration < 3) {
-                checkFromExtensionsAndMacros(parsedTemplate, hole)?.let { return@replace it }
+            if (Random.getTrue(50) && iteration < 3) {
+                checkFromExtensionsAndMacros(parsedTemplate, hole)?.let {
+                    usedExtensions.add("$hole -> $it")
+                    return@replace it
+                }
             }
             if (holeType == HOLE_TYPE.CONST) {
                 val literal = expressionGenerator.genConstant(getTypeFromHole(hole, mappedTypes)!!)!!

@@ -1,77 +1,44 @@
 package com.spbpu.bbfinfrastructure
 
-import com.spbpu.bbfinfrastructure.compiler.JCompiler
-import com.spbpu.bbfinfrastructure.markup.MarkupBenchmark
-import com.spbpu.bbfinfrastructure.mutator.MutationManager
-import com.spbpu.bbfinfrastructure.mutator.Mutator
-import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
-import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
-import com.spbpu.bbfinfrastructure.project.BBFFile
-import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
-import com.spbpu.bbfinfrastructure.project.Project
+import com.spbpu.bbfinfrastructure.mutator.JavaMutationManager
+import com.spbpu.bbfinfrastructure.mutator.PythonMutationManager
 import com.spbpu.bbfinfrastructure.results.ResultsSorter
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import kotlinx.cli.required
-import java.io.File
-import kotlin.random.Random
 import kotlin.system.exitProcess
 
 
-// Mutation info: Insert template from templates/constructors/constructorWithCollections.tmt with
-// index 0
-// Program:
 fun main(args: Array<String>) {
-    MutationManager().mutate(
-        "/home/zver/IdeaProjects/vulnomicon/BenchmarkJava/",
-        pathToBenchmarkToFuzz = "/home/zver/IdeaProjects/vulnomicon/BenchmarkJava-fuzz",
-        pathScriptToStartFuzzBenchmark = "/home/zver/IdeaProjects/vulnomicon/scripts/benchmarks/BenchmarkJava/run-fuzz.sh",
-        pathToVulnomicon = "/home/zver/IdeaProjects/vulnomicon/",
-        2,
-        true
-    )
-    exitProcess(0)
-//    val pathToTruthSarif = "lib/owasp_test/truth.sarif"
-//    val pathToToolsResultsDirectory = "lib/owasp_test/"
-//
-//    val toolsResults = File(pathToToolsResultsDirectory).listFiles()
-//        .filter { it.path.endsWith(".sarif") }
-//        .filterNot { it.path.contains("truth.sarif") }
-//        .map { it.absolutePath }
-//        .ifEmpty { error("Cannot find sarif files in specified directory $pathToToolsResultsDirectory") }
-//
-//    val pathToResultSarif =
-//        if (pathToTruthSarif.contains("/")) {
-//            pathToTruthSarif.substringBeforeLast("/") + "/tools_truth.sarif"
-//        } else {
-//            "./tools_truth.sarif"
-//        }
-//    MarkupBenchmark().markup(
-//        pathToTruthSarif,
-//        "pathToSources",
-//        toolsResults,
-//        pathToResultSarif
-//    )
-//    exitProcess(0)
     System.setProperty("idea.home.path", "lib/bin")
     val parser = ArgParser("psi-fuzz")
 
     val pathToBenchmark by parser.option(
         ArgType.String,
-        shortName = "d",
+        shortName = "pathToBench",
         description = "Directory for benchmark"
-    ).default("~/vulnomicon/BenchmarkJava-mutated")
+    ).required()
 
-    val isLocal by parser.option(
-        ArgType.Boolean,
-        shortName = "l",
-        description = "Indicates if the fuzzing process is local"
-    ).default(false)
+    val pathToBenchmarkFuzz by parser.option(
+        ArgType.String,
+        shortName = "pathToFuzzBench",
+        description = "Directory for benchmark copy for fuzzing"
+    ).required()
+
+    val pathToScript by parser.option(
+        ArgType.String,
+        shortName = "pathToScript",
+        description = "Path to script to execute FuzzBenchmark"
+    ).required()
+
+    val pathToVulnomicon by parser.option(
+        ArgType.String,
+        shortName = "pathToVuln",
+        description = "Path to vulnomicon"
+    ).required()
 
     val numOfFilesToCheck by parser.option(
         ArgType.Int,
@@ -97,17 +64,17 @@ fun main(args: Array<String>) {
         description = "Choose this flag if you want to sort results (may be slow)"
     ).default(false)
 
-    val markupBenchmark by parser.option(
-        ArgType.Boolean,
-        shortName = "m",
-        description = "Markup benchmark"
-    ).default(false)
-
     val badTemplatesOnlyMode by parser.option(
         ArgType.Boolean,
         shortName = "b",
         description = "Bad templates only mode"
     ).default(false)
+
+    val language by parser.option(
+        ArgType.String,
+        shortName = "l",
+        description = "Target programming language"
+    ).default("java")
 
     if (args.size == 1) {
         parser.parse(args.first().split(" ").toTypedArray())
@@ -120,98 +87,26 @@ fun main(args: Array<String>) {
         exitProcess(0)
     }
 
-    if (markupBenchmark) {
-        MarkupBenchmark().markup(
-            pathToGroundTruth = "lib/truth.sarif",
-            pathToSrc = "lib/filteredTestCode",
-            toolsResultsPaths = listOf(
-                "lib/CodeQL_Default.sarif",
-                "lib/Insider_Default.sarif",
-                "lib/Semgrep_Default.sarif",
-                "lib/SonarQube_Default.sarif"
-            ),
-            pathToResultSarif = "lib/tools_truth.sarif"
-        )
-        exitProcess(0)
-    }
-
-    if (!isLocal) {
-        if (System.getenv("PRIVATE_KEY_PATH") == "null" || System.getenv("PRIVATE_KEY_PASS") == "null") {
-            println("Pass PRIVATE_KEY_PATH and PRIVATE_KEY_PASS as environment properties")
-            exitProcess(1)
-        }
-    }
-
     CompilerArgs.numberOfMutationsPerFile = numberOfMutationsPerFile
     CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
     CompilerArgs.badTemplatesOnlyMode = badTemplatesOnlyMode
     if (badTemplatesOnlyMode) {
         StatsManager.updateBadTemplatesList()
     }
-    val owaspFiles = File("lib/filteredTestCode/").listFiles().toList()
-    val julietFiles = File("lib/juliet/testcode").listFiles().toList()
-    val isOwasp = Random.nextBoolean()
-    val files =
-        if (isOwasp) {
-            owaspFiles.shuffled().take(numOfFilesToCheck)
-        } else {
-            julietFiles.shuffled().take(numOfFilesToCheck)
-        }
-//    val files = julietFiles.shuffled().take(1)
-    for ((i, f) in files.withIndex()) {
-        val fileName = f.name
-        val project = Project.createJavaProjectFromFiles(
-            listOf(f),
-            fileName,
-            listOf()
-        )
-        println("Mutation of $i-th from ${files.size} ${f.name} started")
-        mutate(project, project.files.first())
-    }
 
-    val pp =
-        if (isOwasp) {
-            "~/vulnomicon/BenchmarkJava-mutated"
-        } else {
-            "~/vulnomicon/JulietJavaForMutation"
+    val mutationManager =
+        when (language) {
+            "java" -> JavaMutationManager()
+            "python" -> PythonMutationManager()
+            else -> error("Not supported language")
         }
-//    if (isOwasp) {
-//        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
-//            pathToBenchmark = pp,
-//            scriptToStartBenchmark = "./scripts/runBenchmarkJavaMutated-private.sh",
-//            isLocal = isLocal
-//        )
-//        ScoreCardParser.parseAndSaveDiff(
-//            scorecardsDir = "tmp/scorecards",
-//            pathToSources = CompilerArgs.tmpPath,
-//            nameMask = Regex("""BenchmarkTest\d\d\d\d\d"""),
-//            pathToToolsGroundTruthSarif = "lib/tools_truth.sarif"
-//        )
-//    } else {
-//        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
-//            pathToBenchmark = pp,
-//            scriptToStartBenchmark = "./scripts/runJulietBenchmark-private.sh",
-//            isLocal = isLocal
-//        )
-//        ScoreCardParser.parseAndSaveDiff(
-//            scorecardsDir = "tmp/scorecards",
-//            pathToSources = CompilerArgs.tmpPath,
-//            nameMask = Regex("""CWE.*(good|bad)"""),
-//            pathToToolsGroundTruthSarif = "lib/juliet/tools_truth.sarif"
-//        )
-//    }
-    exitProcess(0)
-}
 
-fun mutate(
-    project: Project,
-    curFile: BBFFile,
-) {
-    Transformation.checker = MutationChecker(
-        listOf(JCompiler()),
-        project,
-        curFile,
-        false,
+    mutationManager.run(
+        pathToBenchmark = pathToBenchmark,
+        pathToBenchmarkToFuzz = pathToBenchmarkFuzz,
+        pathScriptToStartFuzzBenchmark = pathToScript,
+        pathToVulnomicon = pathToVulnomicon,
+        numOfFilesToCheck = numOfFilesToCheck,
+        isLocal = true
     )
-    Mutator(project).startMutate()
 }

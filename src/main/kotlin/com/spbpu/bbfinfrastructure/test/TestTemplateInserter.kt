@@ -23,8 +23,6 @@ import kotlin.random.Random
 
 class TestTemplatesInserter : Transformation() {
 
-    private val originalPsiText = file.text
-
     fun testTransform(templatePath: String, templateBodyIndex: Int): Boolean {
         val parsedTemplates = TemplatesParser.parse(templatePath)
         for ((ind, randomTemplateBody) in parsedTemplates.templates.withIndex()) {

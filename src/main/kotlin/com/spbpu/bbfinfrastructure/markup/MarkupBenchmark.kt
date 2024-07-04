@@ -6,13 +6,11 @@ import com.spbpu.bbfinfrastructure.util.CweUtil
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
-import kotlin.text.StringBuilder
 
 class MarkupBenchmark {
 
     fun markup(
         pathToGroundTruth: String,
-        pathToSrc: String,
         toolsResultsPaths: List<String>,
         pathToResultSarif: String
     ) {

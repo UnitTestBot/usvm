@@ -14,12 +14,6 @@ fun main() {
         description = "Directory for benchmark"
     ).required()
 
-    val pathToSources by parser.option(
-        ArgType.String,
-        shortName = "sources",
-        description = "Directory for sources"
-    ).required()
-
     val pathToTruthSarif by parser.option(
         ArgType.String,
         shortName = "sarif",
@@ -47,7 +41,6 @@ fun main() {
 
     MarkupBenchmark().markup(
         pathToTruthSarif,
-        pathToSources,
         toolsResults,
         pathToResultSarif
     )

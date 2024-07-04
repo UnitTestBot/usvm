@@ -1,9 +1,11 @@
-package com.spbpu.bbfinfrastructure.project
+package com.spbpu.bbfinfrastructure.project.suite
 
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiIdentifier
 import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
+import com.spbpu.bbfinfrastructure.project.BBFFile
+import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.sarif.SarifBuilder
 import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
@@ -14,7 +16,7 @@ import java.io.InputStreamReader
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
-class JavaTestSuite {
+class JavaTestSuite: TestSuite {
 
     val suiteProjects = mutableListOf<Pair<Project, List<MutationInfo>>>()
 
@@ -61,7 +63,7 @@ class JavaTestSuite {
             path
         }
 
-    fun flushSuiteAndRun(
+    override fun flushSuiteAndRun(
         pathToFuzzBenchmark: String,
         scriptToStartBenchmark: String,
         pathToVulnomicon: String,
@@ -93,40 +95,12 @@ class JavaTestSuite {
         }
         val pathToTruthSarif = "$pathToFuzzBenchmark/truth.sarif"
         remoteToLocalPaths[fixPath(pathToTruthSarif)] = sarif.absolutePath
-//        val cmdToRm =
-//            remoteToLocalPaths.filterNot { it.key.contains(fixPath(pathToBenchmarkSources)) }.keys.joinToString(" ") { "rm $it;" }
         File("tmp/scorecards/").deleteRecursively()
         File("tmp/scorecards/").mkdirs()
         if (!isLocal) {
-//            val fsi = FuzzServerInteract()
-////            fsi.execCommand(cmdToRm)
-////            fsi.execCommand("rm -rf $pathToBenchmarkSources; mkdir $pathToBenchmarkSources")
-//            fsi.downloadFilesToRemote(remoteToLocalPaths)
-//            fsi.execCommand("cd ~/vulnomicon; rm -rf $pathToBenchmark-output-private; $scriptToStartBenchmark")
-//            val reportsDir = "$pathToBenchmark-output-private"
-//            val reportsPaths = fsi.execCommand("cd ~/vulnomicon; find $reportsDir -name \"*.sarif\"")!!
-//            File("tmp/scorecards/").listFiles().forEach { it.delete() }
-//            val pathToReports =
-//                reportsPaths
-//                    .split("\n")
-//                    .drop(1)
-//                    .dropLast(1)
-//                    .filterNot { it.contains("truth") }
-//                    .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
-//            fsi.downloadFilesFromRemote(pathToReports)
-//            val cmdToRm = remoteToLocalPaths.keys.joinToString(";") {"rm $it"}
-//            fsi.execCommand(cmdToRm)
+            error("Remote mode unsupported, sorry")
         } else {
             with(ProcessBuilder()) {
-//                try {
-//                    command("bash", "-c", cmdToRm.replace("rm ", "rm ~/")).start().waitFor()
-//                } catch (e: IOException) {
-//                }
-//                try {
-//                    command("bash", "-c", "rm -rf $pathToBenchmarkSources; mkdir $pathToBenchmarkSources").start()
-//                        .waitFor()
-//                } catch (e: IOException) {
-//                }
                 remoteToLocalPaths.entries.map {
                     val cmd = "cp ${Paths.get(it.value).absolutePathString()} ${it.key}"
                     command("bash", "-c", cmd).start().waitFor()

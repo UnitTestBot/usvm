@@ -70,7 +70,6 @@ object TemplatesParser {
             } else {
                 error("Can't parce class $classPath")
             }
-            println()
         }
         return auxClasses
     }

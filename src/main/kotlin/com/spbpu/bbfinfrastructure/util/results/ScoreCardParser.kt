@@ -1,6 +1,6 @@
 package com.spbpu.bbfinfrastructure.util.results
 
-import com.spbpu.bbfinfrastructure.project.GlobalTestSuite
+import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
 import com.spbpu.bbfinfrastructure.util.CweUtil
@@ -20,7 +20,10 @@ object ScoreCardParser {
         val toolsResultsSarifBuilder = ToolsResultsSarifBuilder()
         val scorecards = File(scorecardsDir).listFiles().filter { it.path.endsWith(".sarif") }
         val toolsGroundTruth = Json.decodeFromString<MarkupSarif.Sarif>(File(pathToToolsGroundTruthSarif).readText())
-        for (p in GlobalTestSuite.javaTestSuite.suiteProjects) {
+        for ((i, p) in GlobalJavaTestSuite.javaTestSuite.suiteProjects.withIndex()) {
+            println("\n--------------\n")
+            println("HANDLE $i-th project from ${GlobalJavaTestSuite.javaTestSuite.suiteProjects.size}")
+            println("Original cwe: ${p.first.configuration.initialCWEs}")
             //For potential saving
             val originalResults = mutableListOf<Pair<String, Set<Int>>>()
             val analysisResults = mutableListOf<Pair<String, Set<Int>>>()
@@ -33,6 +36,7 @@ object ScoreCardParser {
                 p.first.configuration.initialCWEs.flatMap { listOf(it) + CweUtil.getCweChildrenOf(it) }.toSet()
             val resultsFromGroundTruth =
                 toolsGroundTruth.results.find { it.location.isIn(originalLocation) } ?: continue
+            val toolNames = scorecards.map { it.name.substringBefore('_') }
 
             var diffPoints = 0
             for (scorecard in scorecards) {
@@ -42,6 +46,7 @@ object ScoreCardParser {
                     .filter { it.locations.first().isIn(mutatedLocation) }
                     .flatMap { it.ruleId.split(",").map { it.trim().substringAfter("CWE-").toInt() } }
                     .toSet()
+                println("$toolName results: $resultsForProject")
                 analysisResults.add(toolName to resultsForProject)
                 val isFound = originalCwes.intersect(resultsForProject).isNotEmpty()
                 val isCorrect =
@@ -51,7 +56,11 @@ object ScoreCardParser {
                         else -> false
                     }
                 val resultFromGroundTruthForTool =
-                    resultsFromGroundTruth.toolsResults.find { it.toolName == toolName } ?: continue
+                    resultsFromGroundTruth.toolsResults.find { it.toolName == toolName }
+                if (resultFromGroundTruthForTool == null) {
+                    originalResults.add(toolName to setOf())
+                    continue
+                }
 
                 if (resultFromGroundTruthForTool.isWorkCorrectly == "true") {
                     if (resultsFromGroundTruth.kind == "pass") {
@@ -65,15 +74,29 @@ object ScoreCardParser {
                     diffPoints++
                 }
             }
-            if (diffPoints >= 1) {
+            if (analysisResults.map { originalCwes.intersect(it.second) }.toSet().size == 1) {
+                println("All tools works similar")
+                continue
+            }
+            if (diffPoints >= 1 && analysisResults.size > 1) {
+                toolNames.forEach { toolName ->
+                    if (analysisResults.all { it.first != toolName }) {
+                        analysisResults.add(toolName to setOf())
+                    }
+                    if (originalResults.all { it.first != toolName }) {
+                        originalResults.add(toolName to setOf())
+                    }
+                }
+                println("!!!!DIFF FOUND!!!!")
                 saveResult(
                     originalCwes = originalCwes,
                     resultHeader = ResultHeader(
                         analysisResults = analysisResults,
                         originalResults = originalResults,
                         originalFileName = p.first.configuration.originalUri!!,
-                        originalFileCWE = originalCwes,
+                        originalFileCWE = setOf(originalCwes.first()),
                         mutationDescriptionChain = p.second.map { it.mutationDescription },
+                        usedExtensions = p.second.flatMap { it.usedExtensions },
                         kind = resultsFromGroundTruth.kind
                     ),
                     originalUri = originalUri,
@@ -92,7 +115,7 @@ object ScoreCardParser {
         mutatedUri: String
     ) {
         val dirToSave =
-            "results/CWE-${setOf(originalCwes).joinToString("_")}"
+            "results/CWE-${originalCwes.first()}"
                 .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader) } ?: "results/duplicates"
         File(dirToSave).let { resultsDirectory ->
             resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }
@@ -102,7 +125,7 @@ object ScoreCardParser {
         val text =
             """${resultHeader.convertToString()}
 //Program:
-${File("$pathToSources/$mutatedUri").readText()}
+${File("$pathToSources/${mutatedUri.substringAfterLast('/')}").readText()}
 """.trimIndent()
         File("$dirToSave/${originalName}_${Random.getRandomVariableName(5)}.$extension").writeText(text)
     }

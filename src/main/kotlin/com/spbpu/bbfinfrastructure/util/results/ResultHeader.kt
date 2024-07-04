@@ -6,17 +6,20 @@ class ResultHeader(
     val originalFileName: String,
     val originalFileCWE: Set<Int>,
     val mutationDescriptionChain: List<String>,
+    val usedExtensions: List<String>,
     val kind: String?
 ) {
 
 
     fun convertToString(): String =
 """//${originalResults.joinToString(separator = "\n//") { "${it.first} original results: ${it.second}" }}
+//-------------
 //${analysisResults.joinToString(separator = "\n//") { "${it.first} analysis results: ${it.second}" }}
 //Original file name: $originalFileName
 //Original file CWE's: $originalFileCWE  
 //Original file kind: ${kind ?: "no info"}
 //Mutation info: ${mutationDescriptionChain.joinToString(" -> ") { it }} 
+//Used extensions: ${usedExtensions.joinToString(" | ") {it}}
     """.trimIndent()
 
     companion object {
@@ -28,6 +31,7 @@ class ResultHeader(
             var originalFileCWE = emptySet<Int>()
             var kind: String? = null
             val mutationChain = mutableListOf<String>()
+            val usedExtensions = mutableListOf<String>()
 
             for (line in lines) {
                 val parts = line.split(":")
@@ -62,6 +66,12 @@ class ResultHeader(
                                     mutationChain.add(it.trim())
                                 }
                             }
+                            key == "//Used extensions" || key == "// Used extensions" -> {
+                                val usedExt = value.split(" | ")
+                                usedExt.forEach {
+                                    usedExtensions.add(it.trim())
+                                }
+                            }
                         }
                     }
                 }
@@ -72,6 +82,7 @@ class ResultHeader(
                 originalFileName = originalFileName,
                 originalFileCWE = originalFileCWE,
                 mutationDescriptionChain = mutationChain,
+                usedExtensions = usedExtensions,
                 kind = kind
             )
         } catch (e: Throwable) {

@@ -119,9 +119,6 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-cli-jvm:0.3'
 //    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3'
 
-
-
-
     //Kotlin-libs
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-compiler', version: "${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
@@ -148,10 +145,7 @@ task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
-    def privateKeyPath = project.hasProperty('privateKeyPath') ? project.privateKeyPath : null
-    def privateKeyPass = project.hasProperty('privateKeyPass') ? project.privateKeyPass : null
-    environment('PRIVATE_KEY_PATH', privateKeyPath)
-    environment('PRIVATE_KEY_PASS', privateKeyPass)
+    environment('VULNOMICON_JAVA_HOME_17', vulnomiconJavaHome)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
 }
@@ -160,10 +154,6 @@ task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.runner.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
-    def privateKeyPath = project.hasProperty('privateKeyPath') ? project.privateKeyPath : null
-    def privateKeyPass = project.hasProperty('privateKeyPass') ? project.privateKeyPass : null
-    environment('PRIVATE_KEY_PATH', privateKeyPath)
-    environment('PRIVATE_KEY_PASS', privateKeyPass)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
     try {
