@@ -104,7 +104,7 @@ object ConcretePythonInterpreter {
         pythonAdapter.thrownExceptionType = 0L
         val result = pythonAdapter.concolicRun(
             functionRef.address,
-            concreteArgs.map { it.address }.toLongArray(),
+            LongArray(concreteArgs.size) { concreteArgs[it].address },
             virtualArgs.map { it.address }.toLongArray(),
             Array(symbolicArgs.size) { symbolicArgs[it] },
             ctx,
