@@ -5,19 +5,13 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.required
 import java.io.File
 
-fun main() {
-    val parser = ArgParser("psi-fuzz")
+fun main(args: Array<String>) {
+    val parser = ArgParser("psi-fuzz-markup")
 
-    val pathToBenchmark by parser.option(
+    val pathToBenchmarkFuzz by parser.option(
         ArgType.String,
-        shortName = "path",
-        description = "Directory for benchmark"
-    ).required()
-
-    val pathToTruthSarif by parser.option(
-        ArgType.String,
-        shortName = "sarif",
-        description = "Directory for truth.sarif"
+        shortName = "pathToFuzzBench",
+        description = "Directory for benchmark copy for fuzzing"
     ).required()
 
     val pathToToolsResultsDirectory by parser.option(
@@ -26,11 +20,18 @@ fun main() {
         description = "Path to tools results directory"
     ).required()
 
+    parser.parse(args)
+
     val toolsResults = File(pathToToolsResultsDirectory).listFiles()
         .filter { it.path.endsWith(".sarif") }
         .filterNot { it.path.contains("truth.sarif") }
         .map { it.absolutePath }
         .ifEmpty { error("Cannot find sarif files in specified directory $pathToToolsResultsDirectory") }
+
+    val pathToTruthSarif = "$pathToBenchmarkFuzz/truth.sarif"
+    if (!File(pathToTruthSarif).exists()) {
+        error("Cannot find truth sarif $pathToTruthSarif")
+    }
 
     val pathToResultSarif =
         if (pathToTruthSarif.contains("/")) {

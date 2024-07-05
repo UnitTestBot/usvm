@@ -174,7 +174,7 @@ task(checkTemplates, dependsOn: 'classes', type: JavaExec) {
 }
 
 task(markupBenchmark, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.spbpu.bbfinfrastructure.test.MarkupKt'
+    main = 'com.spbpu.bbfinfrastructure.markup.MarkupKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
     argsString programArgs
