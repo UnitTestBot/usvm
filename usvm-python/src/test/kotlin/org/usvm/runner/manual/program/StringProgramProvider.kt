@@ -9,7 +9,8 @@ import org.usvm.machine.types.PythonTypeSystem
 
 class StringProgramProvider(
     programCode: String,
-    functions: List<Pair<String, List<PythonType>>>,
+    functionName: String,
+    signature: (PythonTypeSystem) -> List<PythonType>,
 ) : ProgramProvider {
     override val program: PyProgram =
         PrimitivePyProgram.fromString(programCode)
@@ -18,11 +19,11 @@ class StringProgramProvider(
         BasicPythonTypeSystem()
 
     override val functions: List<PyUnpinnedCallable> =
-        functions.map { (name, signature) ->
+        listOf(
             PyUnpinnedCallable.constructCallableFromName(
-                signature,
-                name,
+                signature(typeSystem),
+                functionName,
                 null
             )
-        }
+        )
 }

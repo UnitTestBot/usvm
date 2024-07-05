@@ -6,7 +6,9 @@ import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.runner.SamplesBuild
 
 class SampleProgramProvider(
-    declarations: List<Pair<Pair<String, String>, List<PythonType>>>,
+    moduleName: String,
+    functionName: String,
+    signature: (PythonTypeSystemWithMypyInfo) -> List<PythonType>,
 ) : ProgramProvider {
     override val program = SamplesBuild.program
 
@@ -14,8 +16,11 @@ class SampleProgramProvider(
         PythonTypeSystemWithMypyInfo(SamplesBuild.mypyBuild, program)
 
     override val functions: List<PyUnpinnedCallable> =
-        declarations.map { (name, sig) ->
-            val (module, shortName) = name
-            PyUnpinnedCallable.constructCallableFromName(sig, shortName, module)
-        }
+        listOf(
+            PyUnpinnedCallable.constructCallableFromName(
+                signature(typeSystem),
+                functionName,
+                moduleName,
+            )
+        )
 }

@@ -8,10 +8,10 @@ import org.usvm.machine.types.PythonAnyType
 val sampleStringFunction = StringProgramProvider(
     """
         def f(x):
-            assert x != "hello"
+            assert x != [1, 2, 3]
     """.trimIndent(),
-    listOf("f" to listOf(PythonAnyType))
-)
+    "f"
+) { typeSystem -> listOf(typeSystem.pythonList) }
 
 /**
  * Sample of a function that cannot be covered right now.
@@ -24,5 +24,5 @@ val listConcatProgram = StringProgramProvider(
                 return 1
             return 2
     """.trimIndent(),
-    listOf("list_concat" to listOf(PythonAnyType))
-)
+    "list_concat",
+) { listOf(PythonAnyType) }
