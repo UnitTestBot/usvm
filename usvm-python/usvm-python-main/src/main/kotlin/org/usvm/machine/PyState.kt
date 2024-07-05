@@ -88,7 +88,7 @@ class PyState(
     override val isExceptional: Boolean = false // TODO
     val meta = PythonExecutionStateMeta()
     val pyModel: PyModel
-        get() = models.first() as? PyModel ?: error("Model PyState must be PyModel")
+        get() = checkNotNull(models.first() as? PyModel) { "Model PyState must be PyModel" }
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> = concolicQueries
 
     fun mock(what: MockHeader): MockResult {
