@@ -145,6 +145,7 @@ task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
+    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? project.programArgs : ""
     environment('VULNOMICON_JAVA_HOME_17', vulnomiconJavaHome)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
@@ -154,6 +155,8 @@ task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.runner.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
+    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? project.programArgs : ""
+    environment('VULNOMICON_JAVA_HOME_17', vulnomiconJavaHome)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
     try {

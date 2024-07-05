@@ -10,21 +10,32 @@ import kotlin.system.exitProcess
 
 const val TIMEOUT_SEC = 3600L
 
-//fun makeCommand(args: Array<String>) = "$COMMAND -PprogramArgs=\"${args.joinToString(" ")}\""
 fun main(args: Array<String>) {
     val parser = ArgParser("psi-fuzz")
 
-    val pathToOwasp by parser.option(
+    val pathToBenchmark by parser.option(
         ArgType.String,
-        shortName = "d",
-        description = "Directory for OWASP"
-    ).default("~/vulnomicon/BenchmarkJava-mutated")
+        shortName = "pathToBench",
+        description = "Directory for benchmark"
+    ).required()
 
-    val isLocal by parser.option(
-        ArgType.Boolean,
-        shortName = "l",
-        description = "Indicates if the fuzzing process is local"
-    ).default(false)
+    val pathToBenchmarkFuzz by parser.option(
+        ArgType.String,
+        shortName = "pathToFuzzBench",
+        description = "Directory for benchmark copy for fuzzing"
+    ).required()
+
+    val pathToScript by parser.option(
+        ArgType.String,
+        shortName = "pathToScript",
+        description = "Path to script to execute FuzzBenchmark"
+    ).required()
+
+    val pathToVulnomicon by parser.option(
+        ArgType.String,
+        shortName = "pathToVuln",
+        description = "Path to vulnomicon"
+    ).required()
 
     val numOfFilesToCheck by parser.option(
         ArgType.Int,
@@ -50,26 +61,19 @@ fun main(args: Array<String>) {
         description = "Choose this flag if you want to sort results (may be slow)"
     ).default(false)
 
-    val markupBenchmark by parser.option(
-        ArgType.Boolean,
-        shortName = "m",
-        description = "Markup benchmark"
-    ).default(false)
-
     val badTemplatesOnlyMode by parser.option(
         ArgType.Boolean,
         shortName = "b",
         description = "Bad templates only mode"
     ).default(false)
 
-    parser.parse(args)
+    val language by parser.option(
+        ArgType.String,
+        shortName = "l",
+        description = "Target programming language"
+    ).default("java")
 
-    if (!isLocal) {
-        if (System.getenv("PRIVATE_KEY_PATH") == "null" || System.getenv("PRIVATE_KEY_PASS") == "null") {
-            println("Pass PRIVATE_KEY_PATH and PRIVATE_KEY_PASS as environment properties")
-            exitProcess(1)
-        }
-    }
+    parser.parse(args)
 
     fun makeCommand(): CommandLine? {
         val javaVersion = System.getenv()["GRADLE_JAVA_HOME"] ?: ""
@@ -81,15 +85,26 @@ fun main(args: Array<String>) {
             }
         val arg =
             when {
-                isLocal && badTemplatesOnlyMode -> "-PprogramArgs=\"-d $pathToOwasp -l -b -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
-                isLocal -> "-PprogramArgs=\"-d $pathToOwasp -l -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
-                badTemplatesOnlyMode -> "-PprogramArgs=\"-d $pathToOwasp -b -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
-                else -> "-PprogramArgs=\"-d $pathToOwasp -n $numOfFilesToCheck -nm $numberOfMutationsPerFile -nf $numberOfMutantsPerFile\""
+                badTemplatesOnlyMode ->
+                    "-PprogramArgs=\"-pathToBench $pathToBenchmark " +
+                        "-pathToFuzzBench $pathToBenchmarkFuzz " +
+                        "-pathToScript $pathToScript " +
+                        "-pathToVuln $pathToVulnomicon " +
+                        "-b " +
+                        "-n $numOfFilesToCheck " +
+                        "-nm $numberOfMutationsPerFile " +
+                        "-nf $numberOfMutantsPerFile\""
+                else ->
+                    "-PprogramArgs=\"-pathToBench $pathToBenchmark " +
+                            "-pathToFuzzBench $pathToBenchmarkFuzz " +
+                            "-pathToScript $pathToScript " +
+                            "-pathToVuln $pathToVulnomicon " +
+                            "-n $numOfFilesToCheck " +
+                            "-nm $numberOfMutationsPerFile " +
+                            "-nf $numberOfMutantsPerFile\""
             }
 
         cmdLine.addArgument(arg, false)
-        cmdLine.addArgument("-PprivateKeyPass=${System.getenv("PRIVATE_KEY_PASS")}")
-        cmdLine.addArgument("-PprivateKeyPath=${System.getenv("PRIVATE_KEY_PATH")}")
         return cmdLine
     }
 
@@ -126,21 +141,4 @@ fun main(args: Array<String>) {
         timeElapsed += 1000
         Thread.sleep(1000)
     }
-    /*} else {
-        while (true) {
-            if (handler.hasRe sult()) System.exit(0)
-        }
-    } */
-}
-
-private fun saveStats(timeElapsedInMinutes: Long) {
-    val f = File("bugsPerMinute.txt")
-    val curText = StringBuilder(f.readText())
-    val bugs = curText.split("\n").first().split(": ").last().toInt()
-    val newText = """
-        Bugs: $bugs
-        Time: $timeElapsedInMinutes
-        Bugs per minute: ${bugs.toDouble() / timeElapsedInMinutes.toDouble()} 
-    """.trimIndent()
-    f.writeText(newText)
 }
