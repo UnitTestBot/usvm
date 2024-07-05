@@ -9,11 +9,11 @@ import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
 import org.usvm.constraints.UTypeConstraints
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert

@@ -1,7 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.symbolicmethods
 
-import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.language.SymbolForCPython
+import org.usvm.machine.ConcolicRunContext
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListAppendKt
 import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListClearKt
 import org.usvm.machine.interpreters.symbolic.operations.basic.handlerListExtendKt

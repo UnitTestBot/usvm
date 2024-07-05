@@ -1,8 +1,8 @@
 package org.usvm.machine.interpreters.symbolic.operations.tracing
 
 import org.usvm.language.PyInstruction
-import org.usvm.language.SymbolForCPython
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 
 sealed class SymbolicHandlerEventParameters<out T>
 
@@ -51,9 +51,7 @@ data class SymbolicMethodParameters(
 
         if (name != other.name) return false
         if (self != other.self) return false
-        if (!args.contentEquals(other.args)) return false
-
-        return true
+        return args.contentEquals(other.args)
     }
 
     override fun hashCode(): Int {

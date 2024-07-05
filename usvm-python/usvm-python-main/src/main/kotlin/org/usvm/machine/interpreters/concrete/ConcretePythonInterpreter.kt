@@ -4,14 +4,14 @@ import org.usvm.annotations.ids.ApproximationId
 import org.usvm.annotations.ids.NativeId
 import org.usvm.annotations.ids.SymbolicMethodId
 import org.usvm.interpreter.CPythonAdapter
-import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.interpreter.MemberDescriptor
-import org.usvm.language.SymbolForCPython
-import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.CPythonExecutionException
+import org.usvm.machine.ConcolicRunContext
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
+import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.venv.VenvConfig
 import org.usvm.machine.interpreters.concrete.venv.activateThisScript
 import org.usvm.machine.interpreters.symbolic.SymbolicClonesOfGlobals
+import org.usvm.machine.interpreters.symbolic.operations.descriptors.MemberDescriptor
 import org.usvm.machine.utils.withAdditionalPaths
 import java.io.File
 

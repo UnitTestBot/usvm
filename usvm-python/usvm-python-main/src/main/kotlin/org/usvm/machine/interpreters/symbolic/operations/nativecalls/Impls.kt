@@ -1,8 +1,8 @@
 package org.usvm.machine.interpreters.symbolic.operations.nativecalls
 
 import org.usvm.annotations.ids.NativeId
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
 import org.usvm.machine.interpreters.symbolic.operations.basic.myFork
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject

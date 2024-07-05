@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "virtual_objects.h"
 #include "approximations.h"
+#include "classnames.h"
 
 static void
 java_python_object_dealloc(PyObject *op) {
@@ -48,8 +49,8 @@ void construct_concolic_context(JNIEnv *env, jobject context, jobject cpython_ad
     dist->context = context;
     dist->cpython_adapter = cpython_adapter;
     dist->cpython_adapter_cls = (*env)->GetObjectClass(env, cpython_adapter);
-    dist->symbol_cls = (*env)->FindClass(env, "org/usvm/language/SymbolForCPython");
-    dist->virtual_cls = (*env)->FindClass(env, "org/usvm/language/VirtualPythonObject");
+    dist->symbol_cls = (*env)->FindClass(env, symbol_for_cpython_cls);
+    dist->virtual_cls = (*env)->FindClass(env, virtual_object_cls);
     dist->java_exception = PyErr_NewException("ibmviqhlye.JavaException", 0, 0);
     dist->cpython_thrown_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "thrownException", "J");
     dist->cpython_java_exception_field = (*env)->GetFieldID(env, dist->cpython_adapter_cls, "javaExceptionType", "J");
@@ -216,9 +217,9 @@ construct_global_clones_dict(JNIEnv *env, jobjectArray global_clones) {
     assert(!PyErr_Occurred());
     jsize n = (*env)->GetArrayLength(env, global_clones);
     PyObject *result = PyDict_New();
-    jclass cls = (*env)->FindClass(env, "org/usvm/language/NamedSymbolForCPython");
+    jclass cls = (*env)->FindClass(env, named_symbol_for_cpython_cls);
     jfieldID name_field = (*env)->GetFieldID(env, cls, "name", "Ljava/lang/String;");
-    jfieldID symbol_field = (*env)->GetFieldID(env, cls, "symbol", "Lorg/usvm/language/SymbolForCPython;");
+    jfieldID symbol_field = (*env)->GetFieldID(env, cls, "symbol", symbol_for_cpython_cls_sig);
     for (int i = 0; i < n; i++) {
         jobject named_symbol = (*env)->GetObjectArrayElement(env, global_clones, i);
         jstring name = (jstring) (*env)->GetObjectField(env, named_symbol, name_field);

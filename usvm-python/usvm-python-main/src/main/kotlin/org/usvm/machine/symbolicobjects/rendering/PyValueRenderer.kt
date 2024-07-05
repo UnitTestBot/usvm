@@ -1,9 +1,9 @@
 package org.usvm.machine.symbolicobjects.rendering
 
-import org.usvm.language.VirtualPythonObject
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter.emptyNamespace
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.python.model.PyCompositeObject
 import org.usvm.python.model.PyIdentifier
 import org.usvm.python.model.PyMockObject

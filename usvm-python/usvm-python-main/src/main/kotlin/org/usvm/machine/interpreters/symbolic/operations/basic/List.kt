@@ -6,8 +6,8 @@ import org.usvm.api.allocateArray
 import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
 import org.usvm.api.memcpy
 import org.usvm.api.writeArrayLength
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructListIterator

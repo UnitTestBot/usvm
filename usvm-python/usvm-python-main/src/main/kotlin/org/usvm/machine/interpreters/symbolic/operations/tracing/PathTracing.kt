@@ -1,12 +1,12 @@
 package org.usvm.machine.interpreters.symbolic.operations.tracing
 
 import mu.KLogging
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
-import org.usvm.language.SymbolForCPython
 import org.usvm.machine.CancelledExecutionException
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.InstructionLimitExceededException
 import org.usvm.machine.extractCurState
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 import org.usvm.machine.symbolicobjects.memory.getToBoolValue
 import java.util.concurrent.Callable
 

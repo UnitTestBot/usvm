@@ -1,7 +1,7 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.constructRange

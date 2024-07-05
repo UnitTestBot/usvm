@@ -5,8 +5,8 @@ import io.ksmt.sort.KRealSort
 import io.ksmt.sort.KSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructFloat

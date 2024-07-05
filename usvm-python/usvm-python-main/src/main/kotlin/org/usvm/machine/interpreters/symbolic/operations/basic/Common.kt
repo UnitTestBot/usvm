@@ -5,13 +5,13 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeArrayLength
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isTrue
-import org.usvm.language.SymbolForCPython
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 import org.usvm.machine.interpreters.symbolic.operations.nativecalls.addConstraintsFromNativeId
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructBool

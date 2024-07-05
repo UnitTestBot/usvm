@@ -4,14 +4,14 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UMockSymbol
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
 import org.usvm.language.NbBoolMethod
 import org.usvm.language.SqLengthMethod
-import org.usvm.language.VirtualPythonObject
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.UnregisteredVirtualOperation
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.model.substituteModel
@@ -77,7 +77,8 @@ private fun internalVirtualCallKt(
     customNewModelsCreation: (UMockSymbol<UAddressSort>) -> List<Pair<PyModel, UBoolExpr>> = { emptyList() },
 ): Pair<InterpretedSymbolicPythonObject, UninterpretedSymbolicPythonObject> = with(ctx.ctx) {
     val owner = ctx.curOperation?.methodOwner
-    if (ctx.curState == null || ctx.curOperation == null || owner == null) {
+    val curOperation = ctx.curOperation
+    if (ctx.curState == null || curOperation == null || owner == null) {
         throw UnregisteredVirtualOperation()
     }
     val ownerIsAlreadyMocked = ctx.extractCurState().mockedObjects.contains(owner)
@@ -85,11 +86,11 @@ private fun internalVirtualCallKt(
     if (clonedState != null) {
         clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
-    val (symbolic, isNew, mockSymbol) = ctx.extractCurState().mock(ctx.curOperation)
+    val (symbolic, isNew, mockSymbol) = ctx.extractCurState().mock(curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
         addDelayedFork(ctx, owner, clonedState)
     }
-    if (ctx.curOperation.method.isMethodWithNonVirtualReturn && isNew) {
+    if (curOperation.method.isMethodWithNonVirtualReturn && isNew) {
         val customNewModels = customNewModelsCreation(mockSymbol)
         val (newModel, constraint) =
             if (customNewModels.isEmpty()) {

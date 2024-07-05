@@ -4,7 +4,7 @@ import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
 import org.usvm.api.readField
 import org.usvm.api.writeField
-import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.RangeContents
 import org.usvm.machine.symbolicobjects.RangeIteratorContents

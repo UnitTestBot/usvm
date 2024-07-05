@@ -5,7 +5,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.api.readField
 import org.usvm.api.writeField
-import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.TupleIteratorContents
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject

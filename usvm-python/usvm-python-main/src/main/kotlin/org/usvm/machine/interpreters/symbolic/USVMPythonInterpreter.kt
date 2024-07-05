@@ -3,12 +3,11 @@ package org.usvm.machine.interpreters.symbolic
 import mu.KLogging
 import org.usvm.StepResult
 import org.usvm.UInterpreter
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyPinnedCallable
-import org.usvm.language.SymbolForCPython
 import org.usvm.machine.BadModelException
 import org.usvm.machine.CPythonExecutionException
 import org.usvm.machine.CancelledExecutionException
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.InstructionLimitExceededException
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyExecutionException
@@ -17,6 +16,7 @@ import org.usvm.machine.PyState
 import org.usvm.machine.UnregisteredVirtualOperation
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.PyObject
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.results.PyMachineResultsReceiver
 import org.usvm.machine.results.serialization.ReprObjectSerializer

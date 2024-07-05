@@ -1,7 +1,5 @@
 package org.usvm.machine
 
-import org.usvm.interpreter.ConcolicRunContext
-
 fun ConcolicRunContext.extractCurState(): PyState {
     val result = curState
     requireNotNull(result) {

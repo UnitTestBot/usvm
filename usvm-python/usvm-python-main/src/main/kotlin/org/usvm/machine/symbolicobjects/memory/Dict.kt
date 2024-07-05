@@ -15,11 +15,11 @@ import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isFalse
 import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.language.PyCallable
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.DictContents

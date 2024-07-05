@@ -6,7 +6,7 @@ data class MemberDescriptorInfo(
     val javaMemberName: String,
 )
 
-const val MEMBER_DESCRIPTION_QUALNAME = "Lorg/usvm/interpreter/MemberDescriptor;"
+const val MEMBER_DESCRIPTION_QUALNAME = "Lorg/usvm/machine/interpreters/symbolic/operations/descriptors/MemberDescriptor;"
 
 enum class ObjectConverter(val repr: String) {
     StandardConverter("object_converter"),

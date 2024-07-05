@@ -1,8 +1,8 @@
 package org.usvm.machine.symbolicobjects
 
 import org.usvm.constraints.UPathConstraints
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter

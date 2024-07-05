@@ -5,8 +5,8 @@ import io.ksmt.sort.KBoolSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.api.readField
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.language.PyCallable
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.symbolicobjects.BoolContents

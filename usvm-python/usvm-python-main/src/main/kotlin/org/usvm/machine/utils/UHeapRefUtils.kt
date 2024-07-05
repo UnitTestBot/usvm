@@ -7,8 +7,8 @@ import org.usvm.UIteExpr
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.typeStreamOf
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isTrue
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject

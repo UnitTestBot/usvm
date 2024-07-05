@@ -15,7 +15,7 @@ import org.usvm.language.PyCallable
 import org.usvm.language.PyInstruction
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.language.TypeMethod
-import org.usvm.language.VirtualPythonObject
+import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.symbolicobjects.PreallocatedObjects

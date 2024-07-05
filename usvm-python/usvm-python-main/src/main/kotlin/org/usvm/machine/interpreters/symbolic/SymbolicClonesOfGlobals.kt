@@ -2,9 +2,9 @@ package org.usvm.machine.interpreters.symbolic
 
 import org.usvm.annotations.ids.ApproximationId
 import org.usvm.annotations.ids.SymbolicMethodId
-import org.usvm.language.NamedSymbolForCPython
-import org.usvm.language.SymbolForCPython
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.machine.interpreters.concrete.utils.NamedSymbolForCPython
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 
 object SymbolicClonesOfGlobals {
     private val clonesMap: MutableMap<String, SymbolForCPython> = mutableMapOf()

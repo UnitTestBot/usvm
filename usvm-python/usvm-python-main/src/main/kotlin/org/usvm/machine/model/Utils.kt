@@ -4,7 +4,7 @@ import mu.KLogging
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.constraints.UPathConstraints
-import org.usvm.interpreter.ConcolicRunContext
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.types.ArrayLikeConcretePythonType

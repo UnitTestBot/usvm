@@ -9,8 +9,8 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeArrayIndex
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.isStaticHeapRef
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.extractCurState

@@ -4,8 +4,8 @@ import io.ksmt.sort.KBoolSort
 import org.usvm.UExpr
 import org.usvm.WithSolverStateForker.fork
 import org.usvm.WithSolverStateForker.forkMulti
-import org.usvm.interpreter.ConcolicRunContext
 import org.usvm.machine.BadModelException
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.extractCurState
@@ -26,7 +26,8 @@ fun myFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
         forkResult.negativeState?.models?.first() -> ctx.curState = forkResult.negativeState
         else -> error("Should not be reachable")
     }
-    ctx.builder.state = ctx.extractCurState()
+    val builder = ctx.builder
+    if (builder != null) builder.state = ctx.extractCurState()
     val applyToPyModel = { state: PyState ->
         state.models = listOf(state.models.first().toPyModel(ctx.ctx, state.pathConstraints))
     }

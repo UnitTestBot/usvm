@@ -1,9 +1,8 @@
 package org.usvm.machine.interpreters.symbolic.operations.descriptors
 
-import org.usvm.interpreter.ConcolicRunContext
-import org.usvm.interpreter.MemberDescriptor
-import org.usvm.language.SymbolForCPython
+import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
+import org.usvm.machine.interpreters.concrete.utils.SymbolForCPython
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.SliceUninterpretedField
@@ -24,7 +23,7 @@ private fun constructResult(field: SliceUninterpretedField, ctx: ConcolicRunCont
     )
 }
 
-object SliceStartDescriptor : MemberDescriptor() {
+object SliceStartDescriptor : MemberDescriptor {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null) {
             return null
@@ -34,7 +33,7 @@ object SliceStartDescriptor : MemberDescriptor() {
     }
 }
 
-object SliceStopDescriptor : MemberDescriptor() {
+object SliceStopDescriptor : MemberDescriptor {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null) {
             return null
@@ -44,7 +43,7 @@ object SliceStopDescriptor : MemberDescriptor() {
     }
 }
 
-object SliceStepDescriptor : MemberDescriptor() {
+object SliceStepDescriptor : MemberDescriptor {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython? {
         if (ctx.curState == null) {
             return null
