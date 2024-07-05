@@ -129,7 +129,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
         renderer: PyValueRenderer,
     ): List<PyObjectRepr>? {
         logger.debug {
-            concrete.joinToString(prefix = "Generated inputs: {", suffix = "}", separator = ", ") {
+            concrete.joinToString(prefix = "Generated inputs: {", postfix = "}", separator = ", ") {
                 ReprObjectSerializer.serialize(it)
             }
         }
