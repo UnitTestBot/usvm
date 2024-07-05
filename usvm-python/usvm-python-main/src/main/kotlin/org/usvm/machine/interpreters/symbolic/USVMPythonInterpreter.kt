@@ -128,13 +128,10 @@ class USVMPythonInterpreter<PyObjectRepr>(
         concrete: List<PyObject>,
         renderer: PyValueRenderer,
     ): List<PyObjectRepr>? {
-        if (logger.isDebugEnabled) { // getting __repr__ might be slow
-            logger.debug(
-                "Generated inputs: {}",
-                concrete.joinToString(", ") {
-                    ReprObjectSerializer.serialize(it)
-                }
-            )
+        logger.debug {
+            concrete.joinToString(prefix = "Generated inputs: {", suffix = "}", separator = ", ") {
+                ReprObjectSerializer.serialize(it)
+            }
         }
         resultsReceiver.inputPythonObjectObserver.onInputObjects(concrete)
         return if (renderer.getPythonVirtualObjects().isNotEmpty()) {
