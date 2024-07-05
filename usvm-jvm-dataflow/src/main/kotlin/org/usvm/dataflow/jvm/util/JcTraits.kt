@@ -80,6 +80,9 @@ import org.usvm.dataflow.jvm.util.toPathOrNull as _toPathOrNull
  */
 interface JcTraits : Traits<JcMethod, JcInst> {
 
+    // Ensure that all methods are default-implemented in the interface itself:
+    companion object : JcTraits
+
     override val JcMethod.thisInstance: JcThis
         get() = _thisInstance
 
@@ -231,18 +234,15 @@ interface JcTraits : Traits<JcMethod, JcInst> {
             else -> listOf(rhs)
         }
 
-    override fun JcInst.taintPassThrough(): List<Pair<CommonValue, CommonValue>>? {
+    override fun JcInst.taintPassThrough(): List<Pair<JcValue, JcValue>>? {
         if (this !is JcAssignInst) return null
 
         // FIXME: handle taint pass-through on invokedynamic-based String concatenation:
         val callExpr = rhv as? JcDynamicCallExpr ?: return null
         if (callExpr.callee.enclosingClass.name != "java.lang.invoke.StringConcatFactory") return null
 
-        return callExpr.args.map { it to this.lhv }
+        return callExpr.args.map { it to lhv }
     }
-
-    // Ensure that all methods are default-implemented in the interface itself:
-    companion object : JcTraits
 }
 
 val JcMethod.thisInstance: JcThis

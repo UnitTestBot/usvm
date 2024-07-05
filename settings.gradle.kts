@@ -8,6 +8,7 @@ include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
 include("usvm-dataflow")
 include("usvm-jvm-dataflow")
+include("usvm-dataflow-ts")
 
 pluginManagement {
     resolutionStrategy {

@@ -16,8 +16,4 @@ dependencies {
     testImplementation("io.mockk:mockk:${Versions.mockk}")
     testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
-
-    // https://mvnrepository.com/artifact/org.burningwave/core
-    // Use it to export all modules to all
-    testImplementation("org.burningwave:core:12.62.7")
 }
