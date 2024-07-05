@@ -46,15 +46,15 @@ class USVMPythonInterpreter<PyObjectRepr>(
     override fun step(state: PyState): StepResult<PyState> {
         val modelHolder = PyModelHolder(state.pyModel)
         val concolicRunContext = constructConcolicRunContext(state, modelHolder)
+        val renderer = concolicRunContext.renderer
         state.meta.objectsWithoutConcreteTypes = null
         logger.debug("Step on state: {}", state)
         logger.debug("Source of the state: {}", state.meta.generatedFrom)
 
         val symbols = state.inputSymbols
         val interpreted = symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
-        val builder = PyValueBuilder(state, modelHolder)
         val objectModels = try {
-            interpreted.map { builder.convert(it) }
+            interpreted.map { concolicRunContext.builder.convert(it) }
         } catch (_: LengthOverflowException) {
             logger.warn("LengthOverflowException occurred")
             state.meta.modelDied = true
@@ -64,9 +64,6 @@ class USVMPythonInterpreter<PyObjectRepr>(
         val inputModel = PyInputModel(objectModels)
         resultsReceiver.inputModelObserver.onInputModel(inputModel)
 
-        val renderer = PyValueRenderer()
-        concolicRunContext.builder = builder
-        concolicRunContext.renderer = renderer
         val concrete = getConcrete(renderer, objectModels)
         if (concrete == null) {
             state.meta.modelDied = true
@@ -250,6 +247,8 @@ class USVMPythonInterpreter<PyObjectRepr>(
         modelHolder: PyModelHolder,
     ): ConcolicRunContext {
         val start = System.currentTimeMillis()
+        val builder = PyValueBuilder(state, modelHolder)
+        val renderer = PyValueRenderer()
         return ConcolicRunContext(
             state,
             ctx,
@@ -257,7 +256,9 @@ class USVMPythonInterpreter<PyObjectRepr>(
             typeSystem,
             allowPathDiversion,
             statistics,
-            maxInstructions
+            maxInstructions,
+            builder,
+            renderer
         ) {
             isCancelled(start)
         }

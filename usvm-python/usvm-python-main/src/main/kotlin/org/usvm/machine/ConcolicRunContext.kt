@@ -18,14 +18,14 @@ class ConcolicRunContext(
     allowPathDiversion: Boolean,
     statistics: PythonMachineStatisticsOnFunction,
     maxInstructions: Int,
-    isCancelled: Callable<Boolean>
+    val builder: PyValueBuilder,
+    val renderer: PyValueRenderer,
+    isCancelled: Callable<Boolean>,
 ) {
     var curState: PyState?
     val ctx: PyContext
     val forkedStates = mutableListOf<PyState>()
     var pathPrefix: List<SymbolicHandlerEvent<Any>>
-    @JvmField
-    var curOperation: MockHeader? = null
     val modelHolder: PyModelHolder
     val allowPathDiversion: Boolean
     val typeSystem: PythonTypeSystem
@@ -34,8 +34,9 @@ class ConcolicRunContext(
     var instructionCounter = 0
     var usesVirtualInputs = false
     var isCancelled: Callable<Boolean>
-    var builder: PyValueBuilder? = null
-    var renderer: PyValueRenderer? = null
+
+    @JvmField
+    var curOperation: MockHeader? = null
 
     init {
         this.curState = curState
@@ -51,7 +52,10 @@ class ConcolicRunContext(
 
     @Throws(PathDiversionException::class)
     fun pathDiversion() {
-        if (curState != null) curState!!.meta.modelDied = true
+        val state = curState
+        if (state != null) {
+            state.meta.modelDied = true
+        }
         curState = if (allowPathDiversion) {
             null
         } else {

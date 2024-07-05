@@ -5,5 +5,5 @@ class NamedSymbolForCPython(
     @JvmField
     var name: String,
     @JvmField
-    var symbol: SymbolForCPython
+    var symbol: SymbolForCPython,
 )

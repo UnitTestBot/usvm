@@ -22,11 +22,12 @@ import org.usvm.machine.symbolicobjects.memory.getBoolContent
 import org.usvm.machine.symbolicobjects.memory.getIntContent
 
 fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
-    if (ctx.curState == null || ctx.curOperation == null) {
+    val curOperation = ctx.curOperation
+    if (ctx.curState == null || curOperation == null) {
         throw UnregisteredVirtualOperation()
     }
-    val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
-    if (ctx.curOperation?.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef) {
+    val interpretedArg = interpretSymbolicPythonObject(ctx, curOperation.args.first())
+    if (curOperation.method != NbBoolMethod || interpretedArg.address.address != on.interpretedObjRef) {
         throw UnregisteredVirtualOperation() // path diversion
     }
 
@@ -58,12 +59,13 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
 }
 
 fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = with(ctx.ctx) {
-    if (ctx.curState == null || ctx.curOperation == null) {
+    val curOperation = ctx.curOperation
+    if (ctx.curState == null || curOperation == null) {
         throw UnregisteredVirtualOperation()
     }
     val typeSystem = ctx.typeSystem
-    val interpretedArg = interpretSymbolicPythonObject(ctx, ctx.curOperation!!.args.first())
-    require(ctx.curOperation?.method == SqLengthMethod && interpretedArg.address.address == on.interpretedObjRef)
+    val interpretedArg = interpretSymbolicPythonObject(ctx, curOperation.args.first())
+    require(curOperation.method == SqLengthMethod && interpretedArg.address.address == on.interpretedObjRef)
     val (interpretedObj, symbolic) = internalVirtualCallKt(ctx)
     symbolic.addSupertypeSoft(ctx, typeSystem.pythonInt)
     val intValue = interpretedObj.getIntContent(ctx)
@@ -121,8 +123,8 @@ private fun internalVirtualCallKt(
 fun virtualCallKt(ctx: ConcolicRunContext): PyObject {
     ctx.curState ?: throw UnregisteredVirtualOperation()
     val (interpreted, _) = internalVirtualCallKt(ctx)
-    val objectModel = ctx.builder!!.convert(interpreted)
-    return ctx.renderer!!.convert(objectModel)
+    val objectModel = ctx.builder.convert(interpreted)
+    return ctx.renderer.convert(objectModel)
 }
 
 fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {

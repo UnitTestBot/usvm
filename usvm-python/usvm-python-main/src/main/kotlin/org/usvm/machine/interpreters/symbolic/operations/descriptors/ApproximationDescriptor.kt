@@ -8,7 +8,6 @@ import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 class ApproximationDescriptor(private val id: ApproximationId) : MemberDescriptor {
     override fun getMember(ctx: ConcolicRunContext, owner: UninterpretedSymbolicPythonObject?): SymbolForCPython {
-        System.out.flush()
         return ConcretePythonInterpreter.constructApproximation(owner?.let { SymbolForCPython(it, 0) }, id)
     }
 }

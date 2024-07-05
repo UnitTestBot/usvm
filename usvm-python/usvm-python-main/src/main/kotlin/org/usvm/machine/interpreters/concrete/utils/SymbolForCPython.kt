@@ -6,7 +6,7 @@ class SymbolForCPython(
     @JvmField
     val obj: UninterpretedSymbolicPythonObject?,
     @JvmField
-    val symbolicTpCall: Long
+    val symbolicTpCall: Long,
 ) {
 
     override fun equals(other: Any?): Boolean {
@@ -18,4 +18,3 @@ class SymbolForCPython(
         return obj.hashCode()
     }
 }
-
