@@ -42,9 +42,17 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collection.string.UCharAtExpr
+import org.usvm.collection.string.UCharExpr
+import org.usvm.collection.string.UCharToLowerExpr
+import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UStringExpr
 import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringLengthExpr
 import org.usvm.collection.string.UStringLiteralExpr
 import org.usvm.collection.string.UStringSort
+import org.usvm.collection.string.UStringToLowerExpr
+import org.usvm.collection.string.UStringToUpperExpr
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.splitUHeapRef
@@ -418,7 +426,14 @@ open class UContext<USizeSort : USort>(
             else -> mkIte(condition, trueBranch(), falseBranch())
         }
 
+    val charSort = bv16Sort
     val stringSort = UStringSort(this)
+
+    fun mkChar(value: Char): UCharExpr =
+        mkBv(value.code, charSort)
+
+    fun mkCharAddExpr(lhs: UCharExpr, rhs: UCharExpr): UCharExpr =
+        mkBvAddExpr(lhs, rhs)
 
     /**
      * Strings with negative concrete heap addresses -- can be aliased by input strings
@@ -429,12 +444,50 @@ open class UContext<USizeSort : USort>(
     fun mkStringLiteral(string: String): UStringLiteralExpr = stringLiteralsCache.createIfContextActive {
         UStringLiteralExpr(this, string)
     }
+
     fun mkEmptyString() = mkStringLiteral("")
 
     private val stringFromLanguageExprCache = mkAstInterner<UStringFromLanguageExpr>()
-    fun mkStringFromLanguage(ref: UHeapRef): UStringFromLanguageExpr = stringFromLanguageExprCache.createIfContextActive {
-        UStringFromLanguageExpr(this, ref)
-    }
+    fun mkStringFromLanguage(ref: UHeapRef): UStringFromLanguageExpr =
+        stringFromLanguageExprCache.createIfContextActive {
+            UStringFromLanguageExpr(this, ref)
+        }
+
+    private val charAtExprCache = mkAstInterner<UCharAtExpr<USizeSort>>()
+    fun mkCharAtExpr(string: UStringExpr, index: UExpr<USizeSort>): UCharAtExpr<USizeSort> =
+        charAtExprCache.createIfContextActive {
+            UCharAtExpr(string, index)
+        }
+
+    private val stringLengthExprCache = mkAstInterner<UStringLengthExpr<USizeSort>>()
+    fun mkStringLengthExpr(string: UStringExpr): UStringLengthExpr<USizeSort> =
+        stringLengthExprCache.createIfContextActive {
+            UStringLengthExpr(this, string)
+        }
+
+    private val stringToUpperExprCache = mkAstInterner<UStringToUpperExpr>()
+    fun mkStringToUpperExpr(string: UStringExpr): UStringToUpperExpr =
+        stringToUpperExprCache.createIfContextActive {
+            UStringToUpperExpr(string)
+        }
+
+    private val stringToLowerExprCache = mkAstInterner<UStringToLowerExpr>()
+    fun mkStringToLowerExpr(string: UStringExpr): UStringToLowerExpr =
+        stringToLowerExprCache.createIfContextActive {
+            UStringToLowerExpr(string)
+        }
+
+    private val charToUpperExprCache = mkAstInterner<UCharToUpperExpr>()
+    fun mkCharToUpperExpr(char: UCharExpr): UCharToUpperExpr =
+        charToUpperExprCache.createIfContextActive {
+            UCharToUpperExpr(char)
+        }
+
+    private val charToLowerExprCache = mkAstInterner<UCharToLowerExpr>()
+    fun mkCharToLowerExpr(char: UCharExpr): UCharToLowerExpr =
+        charToLowerExprCache.createIfContextActive {
+            UCharToLowerExpr(char)
+        }
 
     // TODO: String interners...
 }
@@ -443,19 +496,43 @@ val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExpr
 
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeExpr(size: Int): UExpr<USizeSort> =
     sizeExprs.mkSizeExpr(size)
+
 fun <USizeSort : USort> UContext<USizeSort>.getIntValue(expr: UExpr<USizeSort>): Int? =
     sizeExprs.getIntValue(expr)
 
-fun <USizeSort : USort> UContext<USizeSort>.mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeSubExpr(
+    lhs: UExpr<USizeSort>,
+    rhs: UExpr<USizeSort>
+): UExpr<USizeSort> =
     sizeExprs.mkSizeSubExpr(lhs, rhs)
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
     sizeExprs.mkSizeLeExpr(lhs, rhs)
-fun <USizeSort : USort> UContext<USizeSort>.mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort> =
+
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeAddExpr(
+    lhs: UExpr<USizeSort>,
+    rhs: UExpr<USizeSort>
+): UExpr<USizeSort> =
     sizeExprs.mkSizeAddExpr(lhs, rhs)
+
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeMulExpr(
+    lhs: UExpr<USizeSort>,
+    rhs: UExpr<USizeSort>
+): UExpr<USizeSort> =
+    sizeExprs.mkSizeMulExpr(lhs, rhs)
+
+fun <USizeSort : USort> UContext<USizeSort>.mkSizeModExpr(
+    lhs: UExpr<USizeSort>,
+    rhs: UExpr<USizeSort>
+): UExpr<USizeSort> =
+    sizeExprs.mkSizeModExpr(lhs, rhs)
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
     sizeExprs.mkSizeGtExpr(lhs, rhs)
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
     sizeExprs.mkSizeGeExpr(lhs, rhs)
+
 fun <USizeSort : USort> UContext<USizeSort>.mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr =
     sizeExprs.mkSizeLtExpr(lhs, rhs)
 
@@ -466,4 +543,8 @@ val KAst.uctx
     get() = ctx as UContext<*>
 
 fun <USizeSort : USort> UContext<*>.withSizeSort(): UContext<USizeSort> = cast()
-inline fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USizeSort>.() -> R): R = block(withSizeSort())
+inline fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USizeSort>.() -> R): R =
+    block(withSizeSort())
+
+val UConcreteChar.character
+    get() = Char(this.shortValue.toInt())

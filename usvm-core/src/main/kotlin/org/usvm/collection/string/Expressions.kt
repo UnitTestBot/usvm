@@ -8,6 +8,7 @@ import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UCharSort
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -16,6 +17,8 @@ import org.usvm.UTransformer
 import org.usvm.asSizeTypedTransformer
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
+import org.usvm.sizeSort
+import org.usvm.uctx
 
 interface USortVisitor<T>: KSortVisitor<T> {
     fun visit(sort: UStringSort): T
@@ -32,6 +35,7 @@ class UStringSort(ctx: UContext<*>): USort(ctx) {
     }
 }
 
+typealias UCharExpr = UExpr<UCharSort>
 typealias UStringExpr = UExpr<UStringSort>
 
 class UStringLiteralExpr internal constructor(
@@ -54,14 +58,15 @@ class UStringLiteralExpr internal constructor(
     }
 }
 
-class UStringFromCollectionExpr<CollectionId : USymbolicCollectionId<UExpr<USizeSort>, UCharSort, CollectionId>, USizeSort: USort, UCharSort : USort> internal constructor(
-    ctx: UContext<*>,
-    override val sort: UStringSort,
-    val collection: USymbolicCollection<CollectionId, UExpr<USizeSort>, UCharSort>
-): UStringExpr(ctx) {
+class UStringFromCollectionExpr<USizeSort: USort> internal constructor(
+    val collection: USymbolicCollection<USymbolicCollectionId<UExpr<USizeSort>, UCharSort, *>, UExpr<USizeSort>, UCharSort>,
+    val length: UExpr<USizeSort>
+): UStringExpr(collection.sort.ctx) {
+    override val sort = uctx.stringSort
+
     override fun accept(transformer: KTransformerBase): KExpr<UStringSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-        return transformer.transform(this)
+        return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
     }
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other) { collection }
@@ -123,10 +128,12 @@ class UStringConcatExpr internal constructor(
 }
 
 class UStringLengthExpr<USizeSort: USort> internal constructor(
-    ctx: UContext<*>,
-    override val sort: USizeSort,
+    ctx: UContext<USizeSort>,
     val string: UStringExpr,
 ) : UExpr<USizeSort>(ctx) {
+
+    override val sort: USizeSort = ctx.sizeSort
+
     override fun accept(transformer: KTransformerBase): KExpr<USizeSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
@@ -143,13 +150,13 @@ class UStringLengthExpr<USizeSort: USort> internal constructor(
     }
 }
 
-class UCharAtExpr<USizeSort: USort, UCharSort: USort> internal constructor(
-    ctx: UContext<*>,
-    override val sort: UCharSort,
+class UCharAtExpr<USizeSort: USort> internal constructor(
     val string: UStringExpr,
     val index: UExpr<USizeSort>
-) : UExpr<UCharSort>(ctx) {
-    override fun accept(transformer: KTransformerBase): KExpr<UCharSort> {
+) : UCharExpr(string.ctx) {
+    override val sort: UCharSort = uctx.charSort
+
+    override fun accept(transformer: KTransformerBase): UCharExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
     }
@@ -170,11 +177,10 @@ class UCharAtExpr<USizeSort: USort, UCharSort: USort> internal constructor(
 
 
 class UStringEqExpr internal constructor(
-    ctx: UContext<*>,
-    override val sort: UBoolSort,
     val left: UStringExpr,
     val right: UStringExpr,
-) : UBoolExpr(ctx) {
+) : UBoolExpr(left.ctx) {
+    override val sort: UBoolSort = ctx.boolSort
 
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
@@ -195,11 +201,11 @@ class UStringEqExpr internal constructor(
 }
 
 class UStringLtExpr internal constructor(
-    ctx: UContext<*>,
-    override val sort: UBoolSort,
     val left: UStringExpr,
     val right: UStringExpr,
-) : UBoolExpr(ctx) {
+) : UBoolExpr(left.ctx) {
+    override val sort: UBoolSort = ctx.boolSort
+
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
@@ -219,11 +225,10 @@ class UStringLtExpr internal constructor(
 }
 
 class UStringLeExpr internal constructor(
-    ctx: UContext<*>,
-    override val sort: UBoolSort,
     val left: UStringExpr,
     val right: UStringExpr,
-) : UBoolExpr(ctx) {
+) : UBoolExpr(left.ctx) {
+    override val sort: UBoolSort = ctx.boolSort
     override fun accept(transformer: KTransformerBase): UBoolExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
@@ -243,28 +248,27 @@ class UStringLeExpr internal constructor(
 }
 
 /**
- * Represents substring of [string], from index [startIndex] (inclusive), with length [length].
+ * Represents substring of [superString], from index [startIndex] (inclusive), with length [length].
  */
 class UStringSliceExpr<USizeSort: USort> internal constructor(
-    ctx: UContext<*>,
-    val string: UStringExpr,
+    val superString: UStringExpr,
     val startIndex: UExpr<USizeSort>,
     val length: UExpr<USizeSort>,
-) : UStringExpr(ctx) {
-    override val sort = string.sort
+) : UStringExpr(superString.ctx) {
+    override val sort = superString.sort
 
     override fun accept(transformer: KTransformerBase): UStringExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, {string}, {startIndex}, {length})
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, {superString}, {startIndex}, {length})
 
-    override fun internHashCode(): Int = hash(string, startIndex, length)
+    override fun internHashCode(): Int = hash(superString, startIndex, length)
 
     override fun print(printer: ExpressionPrinter) {
         printer.append("(substr ")
-        printer.append(string)
+        printer.append(superString)
         printer.append(" ")
         printer.append(startIndex)
         printer.append(" ")
@@ -274,10 +278,12 @@ class UStringSliceExpr<USizeSort: USort> internal constructor(
 }
 
 class UStringFromIntExpr<USizeSort: USort> internal constructor(
-    ctx: UContext<*>,
-    override val sort: UStringSort,
-    val value: UExpr<USizeSort>
-) : UStringExpr(ctx) {
+    val value: UExpr<USizeSort>,
+    // Theoretically, this can be symbolic, but in practice we don't need this
+    val radix: Int
+) : UStringExpr(value.ctx) {
+    override val sort: UStringSort = uctx.stringSort
+
     override fun accept(transformer: KTransformerBase): UStringExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
@@ -288,7 +294,7 @@ class UStringFromIntExpr<USizeSort: USort> internal constructor(
     override fun internHashCode(): Int = hash(value)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("(stringFromInt ")
+        printer.append("(stringFromInt_radix_$radix ")
         printer.append(value)
         printer.append(")")
     }
@@ -297,7 +303,8 @@ class UStringFromIntExpr<USizeSort: USort> internal constructor(
 class UIntFromStringExpr<USizeSort: USort> internal constructor(
     ctx: UContext<*>,
     override val sort: USizeSort,
-    val string: UStringExpr
+    val string: UStringExpr,
+    val radix: Int
 ) : UExpr<USizeSort>(ctx) {
     override fun accept(transformer: KTransformerBase): UExpr<USizeSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
@@ -309,17 +316,17 @@ class UIntFromStringExpr<USizeSort: USort> internal constructor(
     override fun internHashCode(): Int = hash(string)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("(intFromString ")
+        printer.append("(intFromString_radix_$radix ")
         printer.append(string)
         printer.append(")")
     }
 }
 
 class UStringFromFloatExpr<UFloatSort: USort> internal constructor(
-    ctx: UContext<*>,
-    override val sort: UStringSort,
     val value: UExpr<UFloatSort>
-) : UStringExpr(ctx) {
+) : UStringExpr(value.ctx) {
+    override val sort: UStringSort = uctx.stringSort
+
     override fun accept(transformer: KTransformerBase): UStringExpr {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.transform(this)
@@ -358,10 +365,9 @@ class UFloatFromStringExpr<UFloatSort: USort> internal constructor(
 }
 
 class UStringRepeatExpr<USizeSort: USort> internal constructor(
-    ctx: UContext<*>,
     val string: UStringExpr,
     val times: UExpr<USizeSort>
-) : UStringExpr(ctx) {
+) : UStringExpr(string.ctx) {
     override val sort = string.sort
 
     override fun accept(transformer: KTransformerBase): UStringExpr {
@@ -383,9 +389,8 @@ class UStringRepeatExpr<USizeSort: USort> internal constructor(
 }
 
 class UStringToUpperExpr internal constructor(
-    ctx: UContext<*>,
     val string: UStringExpr,
-) : UStringExpr(ctx) {
+) : UStringExpr(string.ctx) {
     override val sort = string.sort
 
     override fun accept(transformer: KTransformerBase): UStringExpr {
@@ -405,9 +410,8 @@ class UStringToUpperExpr internal constructor(
 }
 
 class UStringToLowerExpr internal constructor(
-    ctx: UContext<*>,
     val string: UStringExpr,
-) : UStringExpr(ctx) {
+) : UStringExpr(string.ctx) {
     override val sort = string.sort
 
     override fun accept(transformer: KTransformerBase): UStringExpr {
@@ -422,6 +426,48 @@ class UStringToLowerExpr internal constructor(
     override fun print(printer: ExpressionPrinter) {
         printer.append("(toLower ")
         printer.append(string)
+        printer.append(")")
+    }
+}
+
+class UCharToUpperExpr internal constructor(
+    val char: UCharExpr,
+) : UCharExpr(char.ctx) {
+    override val sort = char.sort
+
+    override fun accept(transformer: KTransformerBase): UCharExpr {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) {char}
+
+    override fun internHashCode(): Int = hash(char)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("(toUpper ")
+        printer.append(char)
+        printer.append(")")
+    }
+}
+
+class UCharToLowerExpr internal constructor(
+    val char: UCharExpr,
+) : UCharExpr(char.ctx) {
+    override val sort = char.sort
+
+    override fun accept(transformer: KTransformerBase): UCharExpr {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.transform(this)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) {char}
+
+    override fun internHashCode(): Int = hash(char)
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("(toLower ")
+        printer.append(char)
         printer.append(")")
     }
 }

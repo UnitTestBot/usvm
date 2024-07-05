@@ -51,6 +51,34 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collection.string.UCharAtExpr
+import org.usvm.collection.string.UCharExpr
+import org.usvm.collection.string.UCharToLowerExpr
+import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UFloatFromStringExpr
+import org.usvm.collection.string.UIntFromStringExpr
+import org.usvm.collection.string.URegexMatchesExpr
+import org.usvm.collection.string.URegexReplaceAllExpr
+import org.usvm.collection.string.URegexReplaceFirstExpr
+import org.usvm.collection.string.UStringConcatExpr
+import org.usvm.collection.string.UStringEqExpr
+import org.usvm.collection.string.UStringExpr
+import org.usvm.collection.string.UStringFromCollectionExpr
+import org.usvm.collection.string.UStringFromFloatExpr
+import org.usvm.collection.string.UStringFromIntExpr
+import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringIndexOfExpr
+import org.usvm.collection.string.UStringLeExpr
+import org.usvm.collection.string.UStringLengthExpr
+import org.usvm.collection.string.UStringLiteralExpr
+import org.usvm.collection.string.UStringLtExpr
+import org.usvm.collection.string.UStringRepeatExpr
+import org.usvm.collection.string.UStringReplaceAllExpr
+import org.usvm.collection.string.UStringReplaceFirstExpr
+import org.usvm.collection.string.UStringReverseExpr
+import org.usvm.collection.string.UStringSliceExpr
+import org.usvm.collection.string.UStringToLowerExpr
+import org.usvm.collection.string.UStringToUpperExpr
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
@@ -254,6 +282,110 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
     ): UExpr<T> {
         operationWithSideEffect()
         return expr
+    }
+
+    override fun transform(expr: UStringLiteralExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringFromLanguageExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringConcatExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringEqExpr): UBoolExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringLtExpr): UBoolExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringLeExpr): UBoolExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun <UFloatSort : USort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun <UFloatSort : USort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringToUpperExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringToLowerExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UCharToUpperExpr): UCharExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UCharToLowerExpr): UCharExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringReverseExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: URegexMatchesExpr): UBoolExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringReplaceAllExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: URegexReplaceAllExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UStringFromCollectionExpr<USizeSort>): UStringExpr {
+        TODO("Not yet implemented")
     }
 
     companion object {

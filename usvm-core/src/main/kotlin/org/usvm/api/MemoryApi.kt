@@ -1,12 +1,14 @@
 package org.usvm.api
 
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
-import org.usvm.memory.UMemory
+import org.usvm.character
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
@@ -14,9 +16,11 @@ import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.URegexExpr
 import org.usvm.collection.string.UStringExpr
 import org.usvm.collection.string.UStringLValue
+import org.usvm.collection.string.mapString
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
@@ -153,31 +157,31 @@ fun <SetType> UReadOnlyMemory<SetType>.refSetContainsElement(
 /**
  * Returns string referenced by heap reference [ref].
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.readString(ref: UHeapRef): UStringExpr =
-    read(UStringLValue<USizeSort>(ref))
+fun UReadOnlyMemory<*>.readString(ref: UHeapRef): UStringExpr =
+    read(UStringLValue(ref))
 
-fun <Type, USizeSort: USort> UWritableMemory<Type>.allocateStringLiteral(type: Type, string: String): UConcreteHeapRef {
+fun <Type> UWritableMemory<Type>.allocateStringLiteral(type: Type, string: String): UConcreteHeapRef {
     val freshRef = this.allocConcrete(type)
     val ctx = freshRef.uctx
-    write(UStringLValue<USizeSort>(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
+    write(UStringLValue(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
     return freshRef
 }
 
 fun <Type, USizeSort: USort> UWritableMemory<Type>.allocateInternedStringLiteral(ctx: UContext<USizeSort>, type: Type, string: String): UConcreteHeapRef =
     ctx.internedStrings.getOrPut(string) {
         val freshRef = this.allocStatic(type)
-        write(UStringLValue<USizeSort>(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
+        write(UStringLValue(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
         return freshRef
     }
 
 fun UReadOnlyMemory<*>.allocateStringFromSequence(refToSeq: UHeapRef): UConcreteHeapRef =
     TODO()
 
-fun <USizeSort: USort, UCharSort: USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UExpr<UCharSort> =
-    TODO()
+fun <USizeSort: USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
+    mapString(ref) { org.usvm.collection.string.charAt(ctx.withSizeSort(), it, index) }
 
 fun <USizeSort: USort> UReadOnlyMemory<*>.stringLength(ref: UHeapRef): UExpr<USizeSort> =
-    TODO()
+    mapString(ref) { org.usvm.collection.string.getLength(ctx.withSizeSort(), it) }
 
 /**
  * Allocates new string, which is the result of concatenation of [left] and [right].
@@ -246,6 +250,26 @@ fun UReadOnlyMemory<*>.toUpper(ref: UHeapRef): UHeapRef =
  */
 fun UReadOnlyMemory<*>.toLower(ref: UHeapRef): UHeapRef =
     TODO()
+
+/**
+ * Returns lower-case version of [char].
+ */
+fun charToLower(char: UCharExpr): UCharExpr =
+    when (char) {
+        is UConcreteChar -> char.uctx.mkChar(char.character.lowercaseChar())
+        is UIteExpr -> char.ctx.mkIte(char.condition, charToLower(char.trueBranch), charToLower(char.falseBranch))
+        else -> char.uctx.mkCharToLowerExpr(char)
+    }
+
+/**
+ * Returns upper-case version of [char].
+ */
+fun charToUpper(char: UCharExpr): UCharExpr =
+    when (char) {
+        is UConcreteChar -> char.uctx.mkChar(char.character.uppercaseChar())
+        is UIteExpr -> char.ctx.mkIte(char.condition, charToUpper(char.trueBranch), charToUpper(char.falseBranch))
+        else -> char.uctx.mkCharToUpperExpr(char)
+    }
 
 /**
  * Allocates new string, which is the reverse of string referenced by [ref].

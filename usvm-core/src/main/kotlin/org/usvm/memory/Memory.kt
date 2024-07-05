@@ -62,6 +62,7 @@ class UAddressCounter {
 }
 
 interface UReadOnlyMemory<Type> {
+    val ctx: UContext<*>
     val stack: UReadOnlyRegistersStack
     val mocker: UMockEvaluator
     val types: UTypeEvaluator<Type>
@@ -91,7 +92,7 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 
 @Suppress("MemberVisibilityCanBePrivate")
 class UMemory<Type, Method>(
-    internal val ctx: UContext<*>,
+    override val ctx: UContext<*>,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
     private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
