@@ -166,7 +166,7 @@ task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
 
 
 task(checkTemplates, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.spbpu.bbfinfrastructure.test.TemplatesCheckerKt'
+    main = 'com.spbpu.bbfinfrastructure.test.JavaTemplatesCheckerKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
     argsString programArgs

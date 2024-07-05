@@ -176,6 +176,9 @@ open class TemplatesInserter : Transformation() {
                 )
             }
             StatsManager.saveMutationHistory(pathToTemplateFile, randomTemplateIndex)
+            if (addedProjects >= numberOfProjectsToCheck) {
+                throw MutationFinishedException()
+            }
             true
         } ?: false
     }
@@ -192,9 +195,6 @@ open class TemplatesInserter : Transformation() {
                 testSuite.addProject(project.copy(), currentMutationChain.toList())
                 currentMutationChain.clear()
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
-            }
-            if (addedProjects >= numberOfProjectsToCheck) {
-                throw MutationFinishedException()
             }
             true
         }

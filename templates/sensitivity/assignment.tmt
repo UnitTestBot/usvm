@@ -3,7 +3,7 @@
 ~import java.util.function.Supplier;~
 
 ~template simple_assignment_positive start~
-~[VAR@1_String]~ = ~[VAR@1_String]~;
+~[VAR_String@1]~ = ~[VAR_String@1]~;
 ~template end~
 ~template simple_assignment_negative start~
 ~[VAR_String]~ = "";
@@ -11,7 +11,7 @@
 ~template assignment_positive start~
 String tmpUnique42 = ~[VAR_String@1]~;
 ~[BODY]~
-~[VAR@1_String]~ = tmpUnique42;
+~[VAR_String@1]~ = tmpUnique42;
 ~template end~
 ~template assignment_negative start~
 String tmpUnique42 = "";
@@ -19,9 +19,9 @@ String tmpUnique42 = "";
 ~[VAR_String]~ = tmpUnique42;
 ~template end~
 ~template lazy_eval_positive start~
-Supplier<String> lazyValue = () -> ~[VAR@1_String]~;
+Supplier<String> lazyValue = () -> ~[VAR_String@1]~;
 ~[BODY]~
-~[VAR@1_String]~ = lazyValue.get();
+~[VAR_String@1]~ = lazyValue.get();
 ~template end~
 ~template lazy_eval_negative start~
 Supplier<String> lazyValue = () -> "";

@@ -1,8 +1,0 @@
-~main body start~
-~import java.util.*;~
-~template for_body start~
-for (int i = ~[EXPR_int]~; i > ~[EXPR_int]~; i++) {
-    ~[BODY]~
-}
-~template end~
-~main body end~

@@ -7,12 +7,12 @@
 ~template if_operator_positive start~
 String tmpUnique42 = ~[VAR_String@1]~;
 ~[BODY]~
-if (~[EXPR_boolean]~) {
+if (~[EXPR_Boolean]~) {
     ~[VAR_String@1]~ = tmpUnique42;
 }
 ~template end~
 ~template if_operator_negative start~
-if (~[EXPR_boolean]~) {
+if (~[EXPR_Boolean]~) {
     ~[VAR_String@1]~ = "";
 }
 ~template end~
@@ -20,19 +20,19 @@ if (~[EXPR_boolean]~) {
 String tmpUnique42 = ~[VAR_String@1]~;
 ~[BODY]~
 boolean conditionMet = false;
-if (~[EXPR_boolean]~) {
+if (~[EXPR_Boolean]~) {
     conditionMet = true;
 }
-if (!conditionMet && ~[EXPR_boolean]~) {
+if (!conditionMet && ~[EXPR_Boolean]~) {
     ~[VAR_String@1]~ = tmpUnique42;
 }
 ~template end~
 ~template if_operator_with_var_in_condition_negative start~
 boolean conditionMet = false;
-if (~[EXPR_boolean]~) {
+if (~[EXPR_Boolean]~) {
     conditionMet = true;
 }
-if (!conditionMet && ~[EXPR_boolean]~) {
+if (!conditionMet && ~[EXPR_Boolean]~) {
     ~[VAR_String]~ = "";
 }
 ~template end~
