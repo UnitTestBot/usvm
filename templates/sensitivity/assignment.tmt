@@ -19,7 +19,7 @@ String tmpUnique42 = "";
 ~[VAR_String]~ = tmpUnique42;
 ~template end~
 ~template lazy_eval_positive start~
-Supplier<String> lazyValue = () -> ~[VAR_String@1]~;
+Supplier<String> lazyValue = () -> ~[EXPR_String]~;
 ~[BODY]~
 ~[VAR_String@1]~ = lazyValue.get();
 ~template end~
