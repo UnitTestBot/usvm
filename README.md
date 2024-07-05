@@ -6,11 +6,11 @@ By employing mutation fuzzing, this project generates diverse test cases by muta
 
 ## Get started
 1. Clone vulnomicon [repo](https://github.com/flawgarden/vulnomicon)
-2. Set up benchmark according to instructions
+2. Set up benchmark according to instructions 
 3. Run desired tools with standard configuration
-4. Make copy of benchmark with "-fuzz" suffix, for example if benchmark name is "BenchmarkJava" make copy in directory "BenchmarkJava-fuzz"
+4. Make copy of benchmark with "-fuzz" suffix, for example if benchmark name is "BenchmarkJava" make copy in directory "BenchmarkJava-fuzz" (do not forget to adapt running script to this copy)
 5. Remove unneeded sources to speedup process (be careful, do not remove classes, which can be used by mutants)
-6. Execute markup task and specify path to tools_truth.sarif to "[BenchmarkName]-fuzz" directory
+6. Execute markup task and specify path to tools_truth.sarif to "[BenchmarkName]-fuzz" directory: `/gradlew markupBenchmark -Dorg.gradle.java.home=[PATH_TO_JAVA_17] -PprogramArgs="-pathToFuzzBench [PATH_TO_FUZZ_COPY] -tools [PATH_TO_TOOL_RESULTS]"`
 7. Now you can use our tool
 
 ## Usage

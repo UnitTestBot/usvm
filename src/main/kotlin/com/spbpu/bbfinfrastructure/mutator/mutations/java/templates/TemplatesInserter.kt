@@ -84,6 +84,7 @@ open class TemplatesInserter : Transformation() {
         val mappedHoles = mutableMapOf<String, String>()
         val mappedTypes = mutableMapOf<String, String>()
         val usedExtensions = mutableListOf<String>()
+        //TODO CAN WE REPLACE ~[BODY]~ by another template????
         val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
             .map { block ->
                 val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber) ?: return false

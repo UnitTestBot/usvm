@@ -20,12 +20,12 @@
 public int lol(int i) {
     return -1;
 }
-~function lol end~
+~function end~
 ~function lol1 start~
 public int lol1(int i) {
     return -1;
 }
-~function lol1 end~
+~function end~
 ~helper functions end~
 
 ~helper import constructors/helpers/ArrayHolder~
