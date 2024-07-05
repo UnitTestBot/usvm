@@ -5,7 +5,7 @@
 #Extensions:
 ~[EXPR_String]~ -> "ABCDEF"
 ~[EXPR_String]~ -> ~[VAR_String]~ + ~[EXPR_String]~
-~[EXPR_String]~ -> ~[VAR@1_String]~ + ~[VAR@1_String]~
+~[EXPR_String]~ -> ~[VAR_String@1]~ + ~[VAR_String@1]~
 ~[EXPR_String]~ -> ~[MY_EXPR]~ + "123"
 
 #Macros:

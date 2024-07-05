@@ -1,5 +1,5 @@
 #Extensions:
-~[EXPR_Boolean]~ -> ~[VAR@1_String]~.isEmpty() && ~[VAR@1_String]~.contains(~[EXPR_String]~)
+~[EXPR_Boolean]~ -> ~[VAR_String@1]~.isEmpty() && ~[VAR_String@1]~.contains(~[EXPR_String]~)
 
 #Marcos:
 ~[MY_EXPR]~ -> ~[VAR_String]~ + ~[EXPR_String]~

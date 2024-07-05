@@ -1,6 +1,6 @@
-~[EXPR_Boolean]~ -> ~[VAR@1_String]~.isEmpty() && ~[VAR@1_String]~.contains(~[EXPR_String]~)
-~[EXPR_Boolean]~ -> ~[EXPR@1_String]~ != null && ~[EXPR@1_String]~.contains(~[EXPR_String]~)
+~[EXPR_Boolean]~ -> ~[VAR_String@1]~.isEmpty() && ~[VAR_String@1]~.contains(~[EXPR_String]~)
+~[EXPR_Boolean]~ -> ~[EXPR_String@1]~ != null && ~[EXPR_String@1]~.contains(~[EXPR_String]~)
 ~[EXPR_Boolean]~ -> ~[EXPR_String]~.equals(~[EXPR_String]~)
 ~[EXPR_Boolean]~ -> ~[EXPR_String]~.compareTo(~[EXPR_String]~) == 0
-~[EXPR_Boolean]~ -> ~[EXPR@1_String]~.compareTo(~[EXPR@1_String]~) == 0
-~[EXPR_Boolean]~ -> ~[EXPR@1_String]~ != null && ~[EXPR@1_String]~.charAt(~[CONST_int]~) == ~[CONST_char]~
+~[EXPR_Boolean]~ -> ~[EXPR_String@1]~.compareTo(~[EXPR_String@1]~) == 0
+~[EXPR_Boolean]~ -> ~[EXPR_String@1]~ != null && ~[EXPR_String@1]~.charAt(~[CONST_int]~) == ~[CONST_char]~
