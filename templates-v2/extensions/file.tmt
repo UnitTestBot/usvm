@@ -1,0 +1,1 @@
+~[EXPR_Boolean]~ -> ~[VAR@1_File]~.exists() && ~[VAR@1_File]~.isFile()

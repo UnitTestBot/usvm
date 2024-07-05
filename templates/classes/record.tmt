@@ -1,0 +1,50 @@
+~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord start~
+package org.owasp.benchmark.helpers;
+
+public record _Fuzz_SimpleRecord<T> (T t) {}
+
+~class org.owasp.benchmark.helpers._Fuzz_SimpleRecord end~
+
+~class org.owasp.benchmark.helpers._Fuzz_NestedRecord start~
+package org.owasp.benchmark.helpers;
+
+public record _Fuzz_NestedRecord<T> (_Fuzz_SimpleRecord<T> a, _Fuzz_SimpleRecord<T> b) {}
+
+~class org.owasp.benchmark.helpers._Fuzz_NestedRecord end~
+
+~main class start~
+~import org.owasp.benchmark.helpers._Fuzz_SimpleRecord;~
+~import org.owasp.benchmark.helpers._Fuzz_NestedRecord;~
+~import java.util.*;~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> record = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+~[VAR_TYPE@1]~ = record.t();
+~template end~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> first = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_SimpleRecord<~[TYPE@1]~> second = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+if (first.equals(second)) {
+  ~[VAR_TYPE@2]~ = ~[EXPR_TYPE@2]~;
+}
+~template end~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> first = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_SimpleRecord<~[TYPE@1]~> second = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_NestedRecord<~[TYPE@1]~> nested = new _Fuzz_NestedRecord<~[TYPE@1]~>(first, second);
+~[VAR_TYPE@1]~ = nested.a().t();
+~[VAR_TYPE@1]~ = nested.b().t();
+~template end~
+
+~template start~
+_Fuzz_SimpleRecord<~[TYPE@1]~> first = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_SimpleRecord<~[TYPE@1]~> second = new _Fuzz_SimpleRecord<~[TYPE@1]~>(~[EXPR_TYPE@1]~);
+_Fuzz_NestedRecord<~[TYPE@1]~> nested = new _Fuzz_NestedRecord<~[TYPE@1]~>(first, second);
+if (nested.a().equals(nested.b())) {
+  ~[VAR_TYPE@2]~ = ~[EXPR_TYPE@2]~;
+}
+~template end~
+
+~main class end~

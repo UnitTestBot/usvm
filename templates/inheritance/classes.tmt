@@ -1,0 +1,131 @@
+~class org.owasp.benchmark.helpers.inheritance.SuperClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class SuperClass {
+    String superField;
+    public void setSuperField(String param) {
+        superField = param;
+    }
+    public String superMethod() {
+        return superField;
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.SuperClass end~
+
+~class org.owasp.benchmark.helpers.inheritance.SubClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class SubClass extends SuperClass {
+    public String subMethod() {
+        return "";
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.SubClass end~
+
+~class org.owasp.benchmark.helpers.inheritance.SubSubClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+final public class SubSubClass extends SubClass {
+    public String subSubMethod() {
+        return "";
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.SubSubClass end~
+
+~class org.owasp.benchmark.helpers.inheritance.SiblingClass start~
+package org.owasp.benchmark.helpers.inheritance;
+
+public class SiblingClass extends SuperClass {
+    public String siblingMethod() {
+        return "";
+    }
+}
+~class org.owasp.benchmark.helpers.inheritance.SiblingClass end~
+
+~main class start~
+~import org.owasp.benchmark.helpers.inheritance.*;~
+~import java.util.*;~
+~template start~
+SubClass obj = new SubClass();
+obj.setSuperField(~[EXPR_String]~);
+if (obj.subMethod().equals("")) {
+	~[VAR_String]~ = obj.superMethod();
+}
+~template end~
+~template start~
+SuperClass obj = new SubClass();
+obj.setSuperField(~[EXPR_String]~);
+if (obj instanceof SubClass) {
+    if (((SubClass) obj).subMethod().equals("")) {
+        ~[VAR_String]~ = ((SubClass) obj).subMethod();
+    }
+}
+~template end~
+~template start~
+SuperClass obj = new SubClass();
+obj.setSuperField(~[EXPR_String]~);
+if (obj instanceof SiblingClass) {
+    ~[VAR_String]~ = ((SiblingClass) obj).siblingMethod();
+}
+~template end~
+~template start~
+Object obj = ~[EXPR_Object]~;
+if (obj instanceof SiblingClass && obj instanceof SubClass) {
+    ~[VAR_String]~ = ((SiblingClass) obj).siblingMethod();
+    ~[VAR_String]~ = ((SubClass) obj).subMethod();
+}
+~template end~
+~template start~
+~function handleSuperClass start~
+public String handleSuperClass(SuperClass superClassObj) {
+    if (superClassObj instanceof SiblingClass siblingClassObj) {
+        return siblingClassObj.superMethod();
+    } else if (superClassObj instanceof SubClass subClassObj) {
+        return subClassObj.superMethod();
+    } else {
+      return "";
+    }
+}
+~function handleSuperClass end~
+
+SuperClass obj = new SubClass();
+obj.setSuperField(~[EXPR_String]~);
+~[VAR_String]~ = handleSuperClass(obj);
+~template end~
+~template start~
+~function handleSuperClass start~
+public String handleSuperClass(SuperClass superClassObj) {
+    if (superClassObj instanceof SiblingClass siblingClassObj) {
+        return siblingClassObj.superMethod();
+    } else if (superClassObj instanceof SubClass subClassObj) {
+        return subClassObj.superMethod();
+    } else {
+      return "";
+    }
+}
+~function handleSuperClass end~
+
+SuperClass obj = new SuperClass();
+obj.setSuperField(~[EXPR_String]~);
+~[VAR_String]~ = handleSuperClass(obj);
+~template end~
+~template start~
+~function handleSubSubClass start~
+public String handleSubSubClass(SubSubClass subSubClassObj, String param) {
+    SuperClass superClassObj = subSubClassObj;
+    if (superClassObj instanceof SiblingClass siblingClassObj) {
+        return siblingClassObj.superMethod();
+    } else if (superClassObj instanceof SubClass subClassObj) {
+        return subClassObj.superMethod();
+    } else if (superClassObj instanceof SubSubClass newSubSubClassObj) {
+        return param;
+    } else {
+      return "";
+    }
+}
+~function handleSubSubClass end~
+
+SubSubClass obj = new SubSubClass();
+~[VAR_String]~ = handleSubSubClass(obj, ~[EXPR_String]~);
+~template end~
+~main class end~

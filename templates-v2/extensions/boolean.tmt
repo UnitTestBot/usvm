@@ -1,0 +1,8 @@
+
+~[EXPR_Boolean]~ -> ~[EXPR_Boolean]~ && ~[EXPR_Boolean]~
+~[EXPR_Boolean]~ -> ~[EXPR@1_Boolean≈]~ && ~[EXPR@1_Boolean]~
+~[EXPR_Boolean]~ -> ~[EXPR@1_Boolean]~ && !~[EXPR@1_Boolean]~
+~[EXPR_Boolean]~ -> ~[EXPR_Boolean]~ || ~[EXPR_Boolean]~
+~[EXPR_Boolean]~ -> ~[EXPR@1_Boolean]~ || ~[EXPR@1_Boolean]~
+~[EXPR_Boolean]~ -> ~[EXPR@1_Boolean]~ || !~[EXPR@1_Boolean]~
+~[EXPR_Boolean]~ -> (~[EXPR_Boolean]~) && (~[EXPR_Boolean]~)

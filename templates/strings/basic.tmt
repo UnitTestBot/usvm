@@ -1,0 +1,84 @@
+~main class start~
+~import java.lang.reflect.Array;~
+~import java.util.*;~
+~template start~
+String str = ~[EXPR_String]~;
+if (str.contains(~[EXPR_String]~)) {
+    ~[VAR_String]~ = str;
+}
+~template end~
+~template start~
+String input = "one two three";
+String replaced = input.replaceAll("\\s+", ",");
+if (replaced.length() > 0) {
+    ~[VAR_String]~ = replaced;
+}
+~template end~
+~template start~
+String input = ~[EXPR_String]~;
+String replaced = input.replaceAll("\\s+", ",");
+if (replaced.contains(" ")) {
+    ~[VAR_String]~ = replaced;
+}
+~template end~
+~template start~
+String input = ~[EXPR_String]~;
+String replaced = input.replaceAll("\\s+", ",");
+if (replaced.length() == input.length()) {
+    ~[VAR_String]~ = replaced;
+}
+~template end~
+~template start~
+String input = "a,b,c,d,e";
+String[] parts = input.split(",", 3);
+if (Array.getLength(parts) < ~[EXPR_Integer]~) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+String input = ~[EXPR_String]~;
+String[] parts = input.split(",", 3);
+if (Array.getLength(parts) < 4) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+if (~[EXPR_String]~.isEmpty()) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+if (~[EXPR_String]~.isEmpty()) {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+String str = ~[EXPR_String]~;
+if (str.startsWith(~[EXPR_String]~)) {
+    ~[VAR_String]~ = str;
+} else {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+String str = ~[EXPR_String]~;
+if (str.endsWith(~[EXPR_String]~)) {
+    ~[VAR_String]~ = str;
+} else {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+String substr = ~[EXPR_String@1]~.substring(~[EXPR_String@1]~.length());
+if (~[EXPR_String@1]~.equals(substr)) {
+    ~[VAR_String]~ = "";
+} else {
+    ~[VAR_String]~ = ~[EXPR_String]~;
+}
+~template end~
+~template start~
+if (~[VAR_String@1]~.startsWith("../")) {
+    ~[VAR_String@1]~ = "";
+}
+~template end~
+~main class end~

@@ -1,0 +1,98 @@
+~class org.owasp.benchmark.helpers.generics.A start~
+package org.owasp.benchmark.helpers.generics;
+
+public class A {}
+~class org.owasp.benchmark.helpers.generics.A end~
+~class org.owasp.benchmark.helpers.generics.B start~
+package org.owasp.benchmark.helpers.generics;
+
+public class B extends A {}
+~class org.owasp.benchmark.helpers.generics.B end~
+~class org.owasp.benchmark.helpers.generics.C start~
+package org.owasp.benchmark.helpers.generics;
+
+public class C extends B {}
+~class org.owasp.benchmark.helpers.generics.C end~
+~class org.owasp.benchmark.helpers.generics.SomeGenericClass start~
+package org.owasp.benchmark.helpers.generics;
+
+public class SomeGenericClass<T> {
+    private T value;
+
+    public SomeGenericClass(T value) {
+        this.value = value;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+}
+~class org.owasp.benchmark.helpers.generics.SomeGenericClass end~
+~main class start~
+~import org.owasp.benchmark.helpers.generics.*;~
+~import java.util.*;~
+~template start~
+~function handleGenericClassBounds start~
+public String handleGenericClassBounds(SomeGenericClass<? extends A> genericClassObj, String param) {
+    Object obj = genericClassObj.getValue();
+    if (obj instanceof B) {
+        return param;
+    } else {
+        return "";
+    }
+}
+~function handleGenericClassBounds end~
+
+C genericObj = new C();
+SomeGenericClass<C> obj = new SomeGenericClass<>(genericObj);
+~[VAR_String]~ = handleGenericClassBounds(obj, ~[EXPR_String]~);
+~template end~
+~template start~
+~function handleGenericClassBounds start~
+public String handleGenericClassBounds(SomeGenericClass<? extends A> genericClassObj, String param) {
+    Object obj = genericClassObj.getValue();
+    if (obj instanceof B) {
+        return param;
+    } else {
+        return "";
+    }
+}
+~function handleGenericClassBounds end~
+
+A genericObj = new A();
+SomeGenericClass<A> obj = new SomeGenericClass<>(genericObj);
+~[VAR_String]~ = handleGenericClassBounds(obj, ~[EXPR_String]~);
+~template end~
+~template start~
+~function handleGenericClassBounds start~
+public String handleGenericClassBounds(SomeGenericClass<? super C> genericClassObj, String param) {
+    Object obj = genericClassObj.getValue();
+    if (obj instanceof B) {
+        return param;
+    } else {
+        return "";
+    }
+}
+~function handleGenericClassBounds end~
+
+C genericObj = new C();
+SomeGenericClass<C> obj = new SomeGenericClass<>(genericObj);
+~[VAR_String]~ = handleGenericClassBounds(obj, ~[EXPR_String]~);
+~template end~
+~template start~
+~function handleGenericClassBounds start~
+public String handleGenericClassBounds(SomeGenericClass<? super C> genericClassObj, String param) {
+    Object obj = genericClassObj.getValue();
+    if (obj instanceof B) {
+        return param;
+    } else {
+        return "";
+    }
+}
+~function handleGenericClassBounds end~
+
+A genericObj = new A();
+SomeGenericClass<A> obj = new SomeGenericClass<>(genericObj);
+~[VAR_String]~ = handleGenericClassBounds(obj, ~[EXPR_String]~);
+~template end~
+~main class end~
