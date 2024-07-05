@@ -80,72 +80,72 @@ private fun <ResSort : KSort> createUnaryIntOp(
 }
 
 fun handlerGTLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left gt right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left gt right } }(context, lhs, rhs)
 
 fun handlerLTLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left lt right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left lt right } }(context, lhs, rhs)
 
 fun handlerEQLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left eq right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left eq right } }(context, lhs, rhs)
 
 fun handlerNELongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left neq right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left neq right } }(context, lhs, rhs)
 
 fun handlerGELongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left ge right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left ge right } }(context, lhs, rhs)
 
 fun handlerLELongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left le right } }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> with(ctx.ctx) { left le right } }(context, lhs, rhs)
 
 fun handlerADDLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithAdd(left, right) }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithAdd(left, right) }(context, lhs, rhs)
 
 fun handlerSUBLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithSub(left, right) }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithSub(left, right) }(context, lhs, rhs)
 
 fun handlerMULLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithMul(left, right) }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkArithMul(left, right) }(context, lhs, rhs)
 
 fun handlerDIVLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right ->
         with(ctx.ctx) {
@@ -156,25 +156,25 @@ fun handlerDIVLongKt(
                 mkArithDiv(left, right)
             }
         }
-    }(x, y, z)
+    }(context, lhs, rhs)
 
-fun handlerNEGLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createUnaryIntOp { ctx, on -> ctx.ctx.mkArithUnaryMinus(on) }(x, y)
+fun handlerNEGLongKt(context: ConcolicRunContext, x: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    createUnaryIntOp { ctx, on -> ctx.ctx.mkArithUnaryMinus(on) }(context, x)
 
-fun handlerPOSLongKt(x: ConcolicRunContext, y: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
-    createUnaryIntOp { _, on -> on }(x, y)
+fun handlerPOSLongKt(context: ConcolicRunContext, x: UninterpretedSymbolicPythonObject): UninterpretedSymbolicPythonObject? =
+    createUnaryIntOp { _, on -> on }(context, x)
 
 fun handlerREMLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
-    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkIntMod(left, right) }(x, y, z)
+    createBinaryIntOp { ctx, left, right -> ctx.ctx.mkIntMod(left, right) }(context, lhs, rhs)
 
 fun handlerTrueDivLongKt(
-    x: ConcolicRunContext,
-    y: UninterpretedSymbolicPythonObject,
-    z: UninterpretedSymbolicPythonObject,
+    context: ConcolicRunContext,
+    lhs: UninterpretedSymbolicPythonObject,
+    rhs: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right ->
         with(ctx.ctx) {
@@ -185,7 +185,7 @@ fun handlerTrueDivLongKt(
                 mkArithDiv(mkIntToReal(left), mkIntToReal(right))
             }
         }
-    }(x, y, z)
+    }(context, lhs, rhs)
 
 fun handlerIntCastKt(
     ctx: ConcolicRunContext,

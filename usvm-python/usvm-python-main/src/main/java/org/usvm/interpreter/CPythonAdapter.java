@@ -29,7 +29,7 @@ import static org.usvm.machine.interpreters.symbolic.operations.basic.EnumerateK
 import static org.usvm.machine.interpreters.symbolic.operations.basic.EnumerateKt.handlerEnumerateNextKt;
 import static org.usvm.machine.interpreters.symbolic.operations.basic.FloatKt.*;
 import static org.usvm.machine.interpreters.symbolic.operations.basic.ListKt.*;
-import static org.usvm.machine.interpreters.symbolic.operations.basic.LongKt.*;
+import static org.usvm.machine.interpreters.symbolic.operations.basic.IntKt.*;
 import static org.usvm.machine.interpreters.symbolic.operations.basic.MethodNotificationsKt.*;
 import static org.usvm.machine.interpreters.symbolic.operations.basic.RangeKt.*;
 import static org.usvm.machine.interpreters.symbolic.operations.basic.SetKt.*;
