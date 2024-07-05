@@ -75,6 +75,7 @@ class PyMachine(
         if (solverRes !is USatResult) {
             error("Failed to construct initial model")
         }
+        
         return PyState(
             ctx,
             target,
