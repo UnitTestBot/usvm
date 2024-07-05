@@ -31,3 +31,5 @@ const val BUILD_SAMPLES_ENTRY_POINT = "org.usvm.runner.BuildSamplesKt"
 const val MANUAL_TEST_FOR_RUNNER_ENTRY = "org.usvm.runner.ManualTestKt"
 const val RUNNER_ENTRY_POINT = "org.usvm.runner.UtBotPythonRunnerEntryPointKt"
 const val MANUAL_TEST_ENTRY = "org.usvm.runner.manual.ManualTestKt"
+
+const val CPYTHON_ADAPTER_CLASS = "org.usvm.interpreter.CPythonAdapter"

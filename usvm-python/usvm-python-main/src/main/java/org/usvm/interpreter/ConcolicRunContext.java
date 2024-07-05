@@ -37,14 +37,14 @@ public class ConcolicRunContext {
     public PyValueRenderer renderer = null;
 
     public ConcolicRunContext(
-            @NotNull PyState curState,
-            PyContext ctx,
-            PyModelHolder modelHolder,
-            PythonTypeSystem typeSystem,
-            boolean allowPathDiversion,
-            PythonMachineStatisticsOnFunction statistics,
-            int maxInstructions,
-            Callable<Boolean> isCancelled
+        @NotNull PyState curState,
+        PyContext ctx,
+        PyModelHolder modelHolder,
+        PythonTypeSystem typeSystem,
+        boolean allowPathDiversion,
+        PythonMachineStatisticsOnFunction statistics,
+        int maxInstructions,
+        Callable<Boolean> isCancelled
     ) {
         this.curState = curState;
         this.ctx = ctx;

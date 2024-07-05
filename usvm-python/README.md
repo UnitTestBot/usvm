@@ -137,6 +137,8 @@ Then implement the corresponding methods in `org_usvm_interpreter_CPythonAdapter
 
 ### Static method that can be called from C code
 
+TODO: this is deprecated.
+
 Implement the method in `CPythonAdapter.java`.
 
 Annotate the method with `CPythonAdapterJavaMethod(cName = <c_name>)`.

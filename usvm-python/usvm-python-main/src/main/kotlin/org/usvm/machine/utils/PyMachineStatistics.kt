@@ -97,7 +97,7 @@ class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) 
 
     private val instructionOffsets: List<Int> by lazy {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPyObject, "f")
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.pyObject, "f")
         ConcretePythonInterpreter.concreteRun(namespace, "import dis")
         val raw = ConcretePythonInterpreter.eval(
             namespace,
@@ -119,7 +119,7 @@ class PythonMachineStatisticsOnFunction(private val function: PyPinnedCallable) 
     private val coveredInstructionsNoVirtual = mutableSetOf<Int>()
     private val functionCode: PyObject by lazy {
         val namespace = ConcretePythonInterpreter.getNewNamespace()
-        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.asPyObject, "f")
+        ConcretePythonInterpreter.addObjectToNamespace(namespace, function.pyObject, "f")
         ConcretePythonInterpreter.eval(namespace, "f.__code__").also {
             ConcretePythonInterpreter.decref(namespace)
         }

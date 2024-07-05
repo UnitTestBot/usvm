@@ -58,7 +58,7 @@ if (cpythonIsActivated()) {
                 compileTask.compilerArgs.addAll(listOf("/TC"))
             }
 
-            compileTask.dependsOn(":$USVM_PYTHON_MAIN_MODULE:compileJava")
+            compileTask.dependsOn(":$USVM_PYTHON_MAIN_MODULE:build")
             if (!compileTask.isOptimized) {
                 compileTask.dependsOn(cpythonBuildDebugTask)
             } else {

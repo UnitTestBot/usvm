@@ -52,7 +52,8 @@ class StructuredPyProgram(val roots: Set<File>) : PyProgram(roots) {
             val pinned = PyPinnedCallable(callable.reference(emptyNamespace)) // for lambdas
             block(pinned)
         } else {
-            val namespace = getNamespaceOfModule(callable.module) ?: error("Couldn't get namespace of function module")
+            val namespace = getNamespaceOfModule(callable.module)
+            requireNotNull(namespace) { "Couldn't get namespace of function module" }
             val pinned = PyPinnedCallable(callable.reference(namespace))
             block(pinned)
         }

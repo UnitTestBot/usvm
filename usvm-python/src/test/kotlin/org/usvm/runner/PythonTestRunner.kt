@@ -64,7 +64,7 @@ sealed class PythonTestRunner(
             val args = argModels.map { renderer.convert(it) }
             try {
                 val concreteResult =
-                    ConcretePythonInterpreter.concreteRunOnFunctionRef(pinnedCallable.asPyObject, args)
+                    ConcretePythonInterpreter.concreteRunOnFunctionRef(pinnedCallable.pyObject, args)
                 check(concreteResult)
             } catch (exception: CPythonExecutionException) {
                 requireNotNull(exception.pythonExceptionType)

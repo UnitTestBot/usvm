@@ -78,7 +78,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
         val result: PyObject? = try {
             ConcretePythonInterpreter.concolicRun(
-                pinnedCallable.asPyObject,
+                pinnedCallable.pyObject,
                 concrete,
                 renderer.getPythonVirtualObjects(),
                 symbols.map { SymbolForCPython(it, 0) },

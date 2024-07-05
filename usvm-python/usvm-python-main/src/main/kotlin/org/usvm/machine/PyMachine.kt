@@ -113,10 +113,10 @@ class PyMachine(
         }
         return program.withPinnedCallable(pythonCallable, typeSystem) { rawPinnedCallable ->
             typeSystem.restart()
-            val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.asPyObject)) {
+            val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.pyObject)) {
                 rawPinnedCallable
             } else {
-                val substituted = unfoldGenerator(rawPinnedCallable.asPyObject)
+                val substituted = unfoldGenerator(rawPinnedCallable.pyObject)
                 PyPinnedCallable(substituted)
             }
             val pyObserver = PythonMachineObserver(saver.newStateObserver)

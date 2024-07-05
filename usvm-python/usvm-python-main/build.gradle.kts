@@ -1,6 +1,7 @@
 import usvmpython.USVM_PYTHON_ANNOTATIONS_MODULE
 import usvmpython.USVM_PYTHON_COMMONS_MODULE
 import usvmpython.getGeneratedHeadersPath
+import usvmpython.tasks.generateJNIForCPythonAdapterTask
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -13,6 +14,12 @@ tasks.compileJava {
     options.compilerArgs.add("-Xlint:-processing")
     options.compilerArgs.add("-AheaderPath=${headerPath.canonicalPath}")
     outputs.dirs(headerPath)
+}
+
+tasks.build {
+    doLast {
+        generateJNIForCPythonAdapterTask()
+    }
 }
 
 dependencies {
