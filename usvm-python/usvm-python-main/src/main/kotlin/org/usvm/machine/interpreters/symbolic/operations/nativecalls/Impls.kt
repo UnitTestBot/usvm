@@ -3,8 +3,8 @@ package org.usvm.machine.interpreters.symbolic.operations.nativecalls
 import org.usvm.annotations.ids.NativeId
 import org.usvm.isFalse
 import org.usvm.machine.ConcolicRunContext
-import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
-import org.usvm.machine.interpreters.symbolic.operations.basic.myFork
+import org.usvm.machine.interpreters.symbolic.operations.basic.pyAssert
+import org.usvm.machine.interpreters.symbolic.operations.basic.pyFork
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 
 /**
@@ -28,10 +28,10 @@ object EvalConstraint : NativeCallConstraint(NativeId.Eval) {
         args.drop(1).forEach {
             val isDictCond = it.evalIs(ctx, ctx.typeSystem.pythonDict)
             if (ctx.modelHolder.model.eval(isDictCond).isFalse) {
-                myFork(ctx, isDictCond)
+                pyFork(ctx, isDictCond)
                 it.addSupertype(ctx, ctx.typeSystem.pythonNoneType)
             } else {
-                myAssert(ctx, isDictCond)
+                pyAssert(ctx, isDictCond)
             }
         }
     }

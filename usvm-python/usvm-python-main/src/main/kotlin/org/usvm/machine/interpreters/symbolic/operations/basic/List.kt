@@ -191,7 +191,7 @@ fun handlerListIteratorNextKt(
     val (listAddress, index) = iterator.getListIteratorContent(ctx)
     val listSize = UninterpretedSymbolicPythonObject(listAddress, ctx.typeSystem).readArrayLength(ctx)
     val indexCond = index lt listSize
-    myFork(ctx, indexCond)
+    pyFork(ctx, indexCond)
     if (ctx.extractCurState().pyModel.eval(indexCond).isFalse) {
         return null
     }
@@ -209,7 +209,7 @@ private fun listPop(
     with(ctx.ctx) {
         val listSize = list.readArrayLength(ctx)
         val sizeCond = listSize gt (ind ?: mkIntNum(0))
-        myFork(ctx, sizeCond)
+        pyFork(ctx, sizeCond)
         if (ctx.modelHolder.model.eval(sizeCond).isFalse) {
             return null
         }

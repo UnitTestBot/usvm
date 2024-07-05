@@ -341,7 +341,7 @@ fun handlerDIVFloatKt(
     }
     val left = leftObj.getToFloatContent(ctx) ?: return null
     val right = rightObj.getToFloatContent(ctx) ?: return null
-    myFork(ctx, eqFloat(ctx, right, mkUninterpretedFloatWithValue(ctx.ctx, 0.0)))
+    pyFork(ctx, eqFloat(ctx, right, mkUninterpretedFloatWithValue(ctx.ctx, 0.0)))
     val floatValue = constructMulExpr(ctx, left, constructReverseExpr(ctx, right))
     return constructFloat(ctx, floatValue)
 }
@@ -371,7 +371,7 @@ fun castFloatToInt(
 ): UninterpretedSymbolicPythonObject? {
     require(float.getTypeIfDefined(ctx) == ctx.typeSystem.pythonFloat)
     val value = float.getFloatContent(ctx)
-    myFork(ctx, ctx.ctx.mkOr(value.isNan, value.isInf))
+    pyFork(ctx, ctx.ctx.mkOr(value.isNan, value.isInf))
     if (ctx.modelHolder.model.eval(value.isNan).isTrue || ctx.modelHolder.model.eval(value.isInf).isTrue) {
         return null
     }

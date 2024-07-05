@@ -37,7 +37,7 @@ fun handlerSetContainsKt(
             set.setContainsRef(ctx, elem)
         }
     }
-    myFork(ctx, result)
+    pyFork(ctx, result)
 }
 
 private fun addItem(

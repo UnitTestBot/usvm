@@ -14,7 +14,7 @@ import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
 import org.usvm.machine.extractCurState
-import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
+import org.usvm.machine.interpreters.symbolic.operations.basic.pyAssert
 import org.usvm.machine.symbolicobjects.InterpretedAllocatedOrStaticSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedInputSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
@@ -29,7 +29,7 @@ fun UninterpretedSymbolicPythonObject.readArrayLength(ctx: ConcolicRunContext): 
     val type = getTypeIfDefined(ctx)
     require(type != null && type is ArrayLikeConcretePythonType)
     val result = ctx.extractCurState().memory.readArrayLength(address, ArrayType, ctx.ctx.intSort)
-    myAssert(ctx, ctx.ctx.mkArithGe(result, ctx.ctx.mkIntNum(0)))
+    pyAssert(ctx, ctx.ctx.mkArithGe(result, ctx.ctx.mkIntNum(0)))
     return result
 }
 
@@ -53,7 +53,7 @@ fun UninterpretedSymbolicPythonObject.readArrayElement(
     val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
         ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, elem, ctx))
     }
-    myAssert(ctx, cond)
+    pyAssert(ctx, cond)
     return UninterpretedSymbolicPythonObject(elemAddress, typeSystem)
 }
 
@@ -89,7 +89,7 @@ fun UninterpretedSymbolicPythonObject.writeArrayElement(
         val cond = type.elementConstraints.fold(ctx.ctx.trueExpr as UBoolExpr) { acc, constraint ->
             ctx.ctx.mkAnd(acc, constraint.applyUninterpreted(this, value, ctx))
         }
-        myAssert(ctx, cond)
+        pyAssert(ctx, cond)
     }
     ctx.extractCurState().memory.writeArrayIndex(
         address,

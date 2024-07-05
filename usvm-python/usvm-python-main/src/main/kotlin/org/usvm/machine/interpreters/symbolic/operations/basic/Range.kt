@@ -19,7 +19,7 @@ fun handlerCreateRangeKt(
     if (ctx.curState == null) {
         return null
     }
-    myFork(ctx, ctx.ctx.mkEq(step.getIntContent(ctx), ctx.ctx.mkIntNum(0)))
+    pyFork(ctx, ctx.ctx.mkEq(step.getIntContent(ctx), ctx.ctx.mkIntNum(0)))
     return constructRange(ctx, start.getIntContent(ctx), stop.getIntContent(ctx), step.getIntContent(ctx))
 }
 
@@ -41,7 +41,7 @@ fun handlerRangeIteratorNextKt(
         return null
     }
     val (index, length) = rangeIterator.getRangeIteratorState(ctx)
-    myFork(ctx, index lt length)
+    pyFork(ctx, index lt length)
     if (ctx.modelHolder.model.eval(index lt length).isTrue) {
         val value = rangeIterator.getRangeIteratorNext(ctx)
         return constructInt(ctx, value)

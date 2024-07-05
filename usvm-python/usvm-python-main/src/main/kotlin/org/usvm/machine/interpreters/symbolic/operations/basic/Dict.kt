@@ -33,7 +33,7 @@ fun handlerDictGetItemKt(
         typeSystem.pythonInt, typeSystem.pythonBool -> {
             val intValue = key.getToIntContent(ctx) ?: return null
             val containsCond = dict.dictContainsInt(ctx, intValue)
-            myFork(ctx, containsCond)
+            pyFork(ctx, containsCond)
             if (ctx.modelHolder.model.eval(containsCond).isTrue) {
                 dict.readDictIntElement(ctx, intValue)
             } else {
@@ -45,7 +45,7 @@ fun handlerDictGetItemKt(
                 forkOnUnknownHashableType(ctx, key)
             }
             val containsCond = dict.dictContainsRef(ctx, key)
-            myFork(ctx, containsCond)
+            pyFork(ctx, containsCond)
             if (ctx.modelHolder.model.eval(containsCond).isTrue) {
                 dict.readDictRefElement(ctx, key)
             } else {
@@ -154,7 +154,7 @@ fun handlerDictContainsKt(
             dict.dictContainsRef(ctx, key)
         }
     }
-    myFork(ctx, result)
+    pyFork(ctx, result)
 }
 
 fun handlerDictIterKt(
@@ -162,7 +162,7 @@ fun handlerDictIterKt(
     dict: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
-    myFork(ctx, dict.dictIsEmpty(ctx))
+    pyFork(ctx, dict.dictIsEmpty(ctx))
 }
 
 fun handlerDictLengthKt(
@@ -170,5 +170,5 @@ fun handlerDictLengthKt(
     dict: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
-    myFork(ctx, dict.dictIsEmpty(ctx))
+    pyFork(ctx, dict.dictIsEmpty(ctx))
 }

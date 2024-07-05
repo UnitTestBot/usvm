@@ -14,9 +14,9 @@ import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.getToIntContent
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedFloatWithValue
 
-private fun <RES_SORT : KSort> extractValue(
+private fun <ResSort : KSort> extractValue(
     ctx: ConcolicRunContext,
-    expr: UExpr<RES_SORT>,
+    expr: UExpr<ResSort>,
 ): UninterpretedSymbolicPythonObject = with(ctx.ctx) {
     @Suppress("unchecked_cast")
     when (expr.sort) {
@@ -27,8 +27,8 @@ private fun <RES_SORT : KSort> extractValue(
     }
 }
 
-private fun <RES_SORT : KSort> createBinaryIntOp(
-    op: (ConcolicRunContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<RES_SORT>?,
+private fun <ResSort : KSort> createBinaryIntOp(
+    op: (ConcolicRunContext, UExpr<KIntSort>, UExpr<KIntSort>) -> UExpr<ResSort>?,
 ): (
     ConcolicRunContext,
     UninterpretedSymbolicPythonObject,
@@ -40,14 +40,14 @@ private fun <RES_SORT : KSort> createBinaryIntOp(
         with(ctx.ctx) {
             val typeSystem = ctx.typeSystem
             if (left.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
-                myFork(ctx, left.evalIs(ctx, typeSystem.pythonInt))
+                pyFork(ctx, left.evalIs(ctx, typeSystem.pythonInt))
             } else {
-                myAssert(ctx, left.evalIs(ctx, typeSystem.pythonInt))
+                pyAssert(ctx, left.evalIs(ctx, typeSystem.pythonInt))
             }
             if (right.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
-                myFork(ctx, right.evalIs(ctx, typeSystem.pythonInt))
+                pyFork(ctx, right.evalIs(ctx, typeSystem.pythonInt))
             } else {
-                myAssert(ctx, right.evalIs(ctx, typeSystem.pythonInt))
+                pyAssert(ctx, right.evalIs(ctx, typeSystem.pythonInt))
             }
             op(
                 ctx,
@@ -58,8 +58,8 @@ private fun <RES_SORT : KSort> createBinaryIntOp(
     }
 }
 
-private fun <RES_SORT : KSort> createUnaryIntOp(
-    op: (ConcolicRunContext, UExpr<KIntSort>) -> UExpr<RES_SORT>?,
+private fun <ResSort : KSort> createUnaryIntOp(
+    op: (ConcolicRunContext, UExpr<KIntSort>) -> UExpr<ResSort>?,
 ): (ConcolicRunContext, UninterpretedSymbolicPythonObject) -> UninterpretedSymbolicPythonObject? = { ctx, on ->
     if (ctx.curState == null) {
         null
@@ -67,9 +67,9 @@ private fun <RES_SORT : KSort> createUnaryIntOp(
         with(ctx.ctx) {
             val typeSystem = ctx.typeSystem
             if (on.getTypeIfDefined(ctx) != typeSystem.pythonInt) {
-                myFork(ctx, on.evalIs(ctx, typeSystem.pythonInt))
+                pyFork(ctx, on.evalIs(ctx, typeSystem.pythonInt))
             } else {
-                myAssert(ctx, on.evalIs(ctx, typeSystem.pythonInt))
+                pyAssert(ctx, on.evalIs(ctx, typeSystem.pythonInt))
             }
             op(
                 ctx,
@@ -149,7 +149,7 @@ fun handlerDIVLongKt(
 ): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right ->
         with(ctx.ctx) {
-            myFork(ctx, right eq mkIntNum(0))
+            pyFork(ctx, right eq mkIntNum(0))
             if (ctx.modelHolder.model.eval(right eq mkIntNum(0)).isTrue) {
                 null
             } else {
@@ -178,7 +178,7 @@ fun handlerTrueDivLongKt(
 ): UninterpretedSymbolicPythonObject? =
     createBinaryIntOp { ctx, left, right ->
         with(ctx.ctx) {
-            myFork(ctx, right eq mkIntNum(0))
+            pyFork(ctx, right eq mkIntNum(0))
             if (ctx.modelHolder.model.eval(right eq mkIntNum(0)).isTrue) {
                 null
             } else {

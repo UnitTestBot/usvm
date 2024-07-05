@@ -42,7 +42,7 @@ fun handlerTupleIteratorNextKt(
     val (tuple, index) = iterator.getTupleIteratorContent(ctx)
     val tupleSize = UninterpretedSymbolicPythonObject(tuple, ctx.typeSystem).readArrayLength(ctx)
     val indexCond = index lt tupleSize
-    myFork(ctx, indexCond)
+    pyFork(ctx, indexCond)
     if (ctx.extractCurState().pyModel.eval(indexCond).isFalse) {
         return null
     }
@@ -57,15 +57,15 @@ fun handlerUnpackKt(ctx: ConcolicRunContext, iterable: UninterpretedSymbolicPyth
     }
     val typeSystem = ctx.typeSystem
     if (iterable.getTypeIfDefined(ctx) != typeSystem.pythonTuple) {
-        myFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
+        pyFork(ctx, iterable.evalIs(ctx, typeSystem.pythonTuple))
         return
     }
     val tupleSize = iterable.readArrayLength(ctx)
     val sizeCond = tupleSize eq mkIntNum(count)
     if (ctx.modelHolder.model.eval(sizeCond).isTrue) {
-        myAssert(ctx, sizeCond)
+        pyAssert(ctx, sizeCond)
     } else {
-        myFork(ctx, sizeCond)
+        pyFork(ctx, sizeCond)
     }
 }
 

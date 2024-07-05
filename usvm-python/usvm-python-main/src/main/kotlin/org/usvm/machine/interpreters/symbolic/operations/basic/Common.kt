@@ -61,15 +61,15 @@ fun handlerIsinstanceKt(
                 ) and obj.evalIs(
                     ctx, ConcreteTypeNegation(typeSystem.pythonBool)
                 )
-            myFork(ctx, cond)
+            pyFork(ctx, cond)
         } else {
-            myFork(ctx, obj.evalIs(ctx, type))
+            pyFork(ctx, obj.evalIs(ctx, type))
         }
         require(interpreted.getConcreteType() == null)
         constructBool(ctx, falseExpr)
     } else {
         if (type == typeSystem.pythonInt) { //  this is a common case
-            myAssert(ctx, obj.evalIs(ctx, typeSystem.pythonBool).not()) // to avoid underapproximation
+            pyAssert(ctx, obj.evalIs(ctx, typeSystem.pythonBool).not()) // to avoid underapproximation
             constructBool(ctx, obj.evalIs(ctx, typeSystem.pythonInt))
         } else {
             constructBool(ctx, obj.evalIs(ctx, type))
@@ -162,31 +162,31 @@ fun handlerIsOpKt(
     val leftType = left.getTypeIfDefined(ctx)
     val rightType = right.getTypeIfDefined(ctx)
     if (leftType != null && rightType == null) {
-        myFork(ctx, right.evalIs(ctx, leftType))
+        pyFork(ctx, right.evalIs(ctx, leftType))
     } else if (rightType != null && leftType == null) {
-        myFork(ctx, left.evalIs(ctx, rightType))
+        pyFork(ctx, left.evalIs(ctx, rightType))
     }
     if (leftType != rightType) {
-        myFork(ctx, mkHeapRefEq(left.address, right.address))
+        pyFork(ctx, mkHeapRefEq(left.address, right.address))
         return
     }
     when (leftType) {
         ctx.typeSystem.pythonBool ->
-            myFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
+            pyFork(ctx, left.getBoolContent(ctx) xor right.getBoolContent(ctx))
 
         ctx.typeSystem.pythonInt ->
-            myFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
+            pyFork(ctx, left.getIntContent(ctx) eq right.getIntContent(ctx))
 
         ctx.typeSystem.pythonNoneType ->
             return
 
         else ->
-            myFork(ctx, mkHeapRefEq(left.address, right.address))
+            pyFork(ctx, mkHeapRefEq(left.address, right.address))
     }
 }
 
 fun handlerNoneCheckKt(ctx: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
-    myFork(ctx, on.evalIs(ctx, ctx.typeSystem.pythonNoneType))
+    pyFork(ctx, on.evalIs(ctx, ctx.typeSystem.pythonNoneType))
 }
 
 fun handlerStandardTpGetattroKt(
@@ -229,11 +229,11 @@ fun handlerStandardTpGetattroKt(
         if (defaultValue != null) {
             return SymbolForCPython(defaultValue, 0)
         }
-        myFork(ctx, ctx.ctx.mkAnd(containsFieldCond, additionalCond))
+        pyFork(ctx, ctx.ctx.mkAnd(containsFieldCond, additionalCond))
         return null
     } else {
-        myAssert(ctx, containsFieldCond)
-        myAssert(ctx, additionalCond)
+        pyAssert(ctx, containsFieldCond)
+        pyAssert(ctx, additionalCond)
     }
     return SymbolForCPython(result, 0)
 }
@@ -294,14 +294,14 @@ fun resolveSequenceIndex(
         val indexValue = index.getIntContent(ctx)
 
         val indexCond = mkAnd(indexValue lt listSize, mkArithUnaryMinus(listSize) le indexValue)
-        myFork(ctx, indexCond)
+        pyFork(ctx, indexCond)
 
         if (ctx.extractCurState().pyModel.eval(indexCond).isFalse) {
             return null
         }
 
         val positiveIndex = mkAnd(indexValue lt listSize, mkIntNum(0) le indexValue)
-        myFork(ctx, positiveIndex)
+        pyFork(ctx, positiveIndex)
 
         return if (ctx.extractCurState().pyModel.eval(positiveIndex).isTrue) {
             indexValue
@@ -332,7 +332,7 @@ fun addHashableTypeConstrains(
     cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonList).not()
     cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonDict).not()
     cond = cond and key.evalIs(ctx, ctx.typeSystem.pythonSet).not()
-    myAssert(ctx, cond)
+    pyAssert(ctx, cond)
 }
 
 fun forkOnUnknownHashableType(
@@ -345,10 +345,10 @@ fun forkOnUnknownHashableType(
     val keyIsFloat = key.evalIs(ctx, ctx.typeSystem.pythonFloat)
     val keyIsNone = key.evalIs(ctx, ctx.typeSystem.pythonNoneType)
     require(ctx.modelHolder.model.eval(keyIsInt or keyIsBool).isFalse)
-    myFork(ctx, keyIsInt)
-    myFork(ctx, keyIsBool)
+    pyFork(ctx, keyIsInt)
+    pyFork(ctx, keyIsBool)
     require(ctx.modelHolder.model.eval(keyIsFloat or keyIsNone).isFalse)
-    myAssert(ctx, (keyIsFloat or keyIsNone).not())
+    pyAssert(ctx, (keyIsFloat or keyIsNone).not())
 }
 
 fun handlerCallOnKt(

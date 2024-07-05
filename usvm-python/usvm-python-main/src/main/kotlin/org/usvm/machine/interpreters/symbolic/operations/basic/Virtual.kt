@@ -69,8 +69,8 @@ fun virtualSqLengthKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Int = w
     val (interpretedObj, symbolic) = internalVirtualCallKt(ctx)
     symbolic.addSupertypeSoft(ctx, typeSystem.pythonInt)
     val intValue = interpretedObj.getIntContent(ctx)
-    myAssert(ctx, intValue ge mkIntNum(0))
-    myAssert(ctx, intValue le mkIntNum(Int.MAX_VALUE))
+    pyAssert(ctx, intValue ge mkIntNum(0))
+    pyAssert(ctx, intValue le mkIntNum(Int.MAX_VALUE))
     return intValue.toString().toInt()
 }
 
@@ -86,7 +86,7 @@ private fun internalVirtualCallKt(
     val ownerIsAlreadyMocked = ctx.extractCurState().mockedObjects.contains(owner)
     var clonedState = if (!ownerIsAlreadyMocked) ctx.extractCurState().clone() else null
     if (clonedState != null) {
-        clonedState = myAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
+        clonedState = pyAssertOnState(clonedState, mkHeapRefEq(owner.address, nullRef).not())
     }
     val (symbolic, isNew, mockSymbol) = ctx.extractCurState().mock(curOperation)
     if (!ownerIsAlreadyMocked && clonedState != null) {
@@ -129,8 +129,9 @@ fun virtualCallKt(ctx: ConcolicRunContext): PyObject {
 
 fun virtualCallSymbolKt(ctx: ConcolicRunContext): UninterpretedSymbolicPythonObject {
     ctx.curState ?: throw UnregisteredVirtualOperation()
+    val curOperation = ctx.curOperation ?: throw UnregisteredVirtualOperation()
     val result = internalVirtualCallKt(ctx).second
-    if (!ctx.curOperation!!.method.isMethodWithNonVirtualReturn) {
+    if (!curOperation.method.isMethodWithNonVirtualReturn) {
         val softConstraint = ctx.ctx.mkHeapRefEq(result.address, ctx.ctx.nullRef)
         val ps = ctx.extractCurState().pathConstraints
         ps.pythonSoftConstraints = ps.pythonSoftConstraints.add(softConstraint)

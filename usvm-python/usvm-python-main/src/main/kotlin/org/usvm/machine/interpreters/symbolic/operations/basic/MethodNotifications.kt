@@ -37,7 +37,7 @@ fun nbAddKt(
     context.ctx
 ) {
     context.curState ?: return
-    myAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
+    pyAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
 }
 
 fun nbSubtractKt(
@@ -45,7 +45,7 @@ fun nbSubtractKt(
     left: UninterpretedSymbolicPythonObject,
 ) = with(context.ctx) {
     context.curState ?: return
-    myAssert(context, left.evalIsSoft(context, HasNbSubtract))
+    pyAssert(context, left.evalIsSoft(context, HasNbSubtract))
 }
 
 fun nbMultiplyKt(
@@ -56,29 +56,29 @@ fun nbMultiplyKt(
     context.ctx
 ) {
     context.curState ?: return
-    myAssert(context, left.evalIsSoft(context, HasNbMultiply) or right.evalIsSoft(context, HasNbMultiply))
+    pyAssert(context, left.evalIsSoft(context, HasNbMultiply) or right.evalIsSoft(context, HasNbMultiply))
 }
 
 fun nbMatrixMultiplyKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, left.evalIsSoft(context, HasNbMatrixMultiply))
+    pyAssert(context, left.evalIsSoft(context, HasNbMatrixMultiply))
 }
 
 fun nbNegativeKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasNbNegative))
+    pyAssert(context, on.evalIsSoft(context, HasNbNegative))
 }
 
 fun nbPositiveKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasNbPositive))
+    pyAssert(context, on.evalIsSoft(context, HasNbPositive))
 }
 
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     val sqLength = on.evalIsSoft(context, HasSqLength)
     val mpLength = on.evalIsSoft(context, HasMpLength)
-    myAssert(context, context.ctx.mkOr(sqLength, mpLength))
+    pyAssert(context, context.ctx.mkOr(sqLength, mpLength))
 }
 
 fun mpSubscriptKt(
@@ -107,7 +107,7 @@ fun mpAssSubscriptKt(
 
 fun tpRichcmpKt(context: ConcolicRunContext, left: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, left.evalIsSoft(context, HasTpRichcmp))
+    pyAssert(context, left.evalIsSoft(context, HasTpRichcmp))
 }
 
 fun tpGetattroKt(
@@ -116,8 +116,8 @@ fun tpGetattroKt(
     name: UninterpretedSymbolicPythonObject,
 ) {
     ctx.curState ?: return
-    myAssert(ctx, on.evalIsSoft(ctx, HasTpGetattro))
-    myAssert(ctx, name.evalIsSoft(ctx, ctx.typeSystem.pythonStr))
+    pyAssert(ctx, on.evalIsSoft(ctx, HasTpGetattro))
+    pyAssert(ctx, name.evalIsSoft(ctx, ctx.typeSystem.pythonStr))
     val field = on.getFieldValue(ctx, name)
     val softConstraint = field.evalIsSoft(ctx, MockType)
     val ps = ctx.extractCurState().pathConstraints
@@ -130,21 +130,21 @@ fun tpSetattroKt(
     name: UninterpretedSymbolicPythonObject,
 ) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasTpSetattro))
-    myAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))
+    pyAssert(context, on.evalIsSoft(context, HasTpSetattro))
+    pyAssert(context, name.evalIsSoft(context, context.typeSystem.pythonStr))
 }
 
 fun tpIterKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasTpIter))
+    pyAssert(context, on.evalIsSoft(context, HasTpIter))
 }
 
 fun tpCallKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasTpCall))
+    pyAssert(context, on.evalIsSoft(context, HasTpCall))
 }
 
 fun tpHashKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
-    myAssert(context, on.evalIsSoft(context, HasTpHash))
+    pyAssert(context, on.evalIsSoft(context, HasTpHash))
 }

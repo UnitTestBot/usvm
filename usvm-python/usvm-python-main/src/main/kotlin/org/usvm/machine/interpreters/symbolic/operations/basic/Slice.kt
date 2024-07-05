@@ -18,8 +18,8 @@ private fun getFieldContent(
         } else {
             ctx.ctx.mkIntNum(0)
         }
-    myFork(ctx, value.evalIs(ctx, typeSystem.pythonInt))
-    myAssert(ctx, ctx.ctx.mkOr(value.evalIs(ctx, typeSystem.pythonInt), value.evalIs(ctx, typeSystem.pythonNoneType)))
+    pyFork(ctx, value.evalIs(ctx, typeSystem.pythonInt))
+    pyAssert(ctx, ctx.ctx.mkOr(value.evalIs(ctx, typeSystem.pythonInt), value.evalIs(ctx, typeSystem.pythonNoneType)))
     return SliceUninterpretedField(isNone, content)
 }
 

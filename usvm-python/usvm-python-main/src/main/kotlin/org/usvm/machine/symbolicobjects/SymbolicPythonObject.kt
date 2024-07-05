@@ -16,7 +16,7 @@ import org.usvm.language.PyCallable
 import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.PyContext
 import org.usvm.machine.extractCurState
-import org.usvm.machine.interpreters.symbolic.operations.basic.myAssert
+import org.usvm.machine.interpreters.symbolic.operations.basic.pyAssert
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.model.getConcreteType
 import org.usvm.machine.model.getFirstType
@@ -56,7 +56,7 @@ class UninterpretedSymbolicPythonObject(
             return
         }
         requireNotNull(ctx.curState)
-        myAssert(ctx, evalIs(ctx, type))
+        pyAssert(ctx, evalIs(ctx, type))
     }
 
     fun addSupertypeSoft(ctx: ConcolicRunContext, type: PythonType) {
@@ -64,7 +64,7 @@ class UninterpretedSymbolicPythonObject(
             return
         }
         requireNotNull(ctx.curState)
-        myAssert(ctx, evalIsSoft(ctx, type))
+        pyAssert(ctx, evalIsSoft(ctx, type))
     }
 
     fun evalIs(ctx: ConcolicRunContext, type: PythonType): UBoolExpr {
