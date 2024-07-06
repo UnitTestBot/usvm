@@ -13,7 +13,7 @@ class EtsTypeInferenceTest {
 
     companion object : EtsTraits {
         private fun loadArkFile(name: String): EtsFile {
-            val path = "etsir/$name.ts.json"
+            val path = "ir/$name.ts.json"
             val stream = object {}::class.java.getResourceAsStream("/$path")
                 ?: error("Resource not found: $path")
             val arkDto = EtsFileDto.loadFromJson(stream)
