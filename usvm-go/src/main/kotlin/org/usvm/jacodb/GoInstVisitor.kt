@@ -1,39 +1,38 @@
 package org.usvm.jacodb
 
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.expr.KConst
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.jacodb.api.common.cfg.CommonAssignInst
-import org.jacodb.api.common.cfg.CommonCallInst
-import org.jacodb.api.common.cfg.CommonGotoInst
-import org.jacodb.api.common.cfg.CommonIfInst
 import org.jacodb.api.common.cfg.CommonInst
-import org.jacodb.api.common.cfg.CommonReturnInst
 import org.jacodb.go.api.GoAssignInst
 import org.jacodb.go.api.GoCallInst
 import org.jacodb.go.api.GoDebugRefInst
 import org.jacodb.go.api.GoDeferInst
-import org.jacodb.go.api.GoExprVisitor
 import org.jacodb.go.api.GoGoInst
 import org.jacodb.go.api.GoIfInst
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoInstVisitor
 import org.jacodb.go.api.GoJumpInst
 import org.jacodb.go.api.GoMapUpdateInst
+import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoNullInst
 import org.jacodb.go.api.GoPanicInst
 import org.jacodb.go.api.GoReturnInst
 import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
-import org.usvm.UExpr
-import org.usvm.USort
+import org.usvm.UAddressPointer
 import org.usvm.jacodb.interpreter.GoStepScope
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.statistics.ApplicationGraph
 
 class GoInstVisitor(
     private val ctx: GoContext,
     private val scope: GoStepScope,
-    private val exprVisitor: GoExprVisitor<UExpr<out USort>>,
-) : GoInstVisitor<GoInst> {
+    private val exprVisitor: GoExprVisitor,
+    private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
+) : GoInstVisitor<GoInst>, CommonInst.Visitor.Default<GoInst> {
     override fun visitGoJumpInst(inst: GoJumpInst): GoInst {
         return inst.location.method.blocks[inst.target.index].insts[0]
     }
@@ -60,11 +59,20 @@ class GoInstVisitor(
     }
 
     override fun visitGoRunDefersInst(inst: GoRunDefersInst): GoInst {
-        TODO("Not yet implemented")
+        return scope.calcOnState {
+            runDefers(lastEnteredMethod, inst)
+            currentStatement
+        }
     }
 
     override fun visitGoPanicInst(inst: GoPanicInst): GoInst {
-        TODO("Not yet implemented")
+        val value = inst.throwable.accept(exprVisitor)
+
+        return scope.calcOnState {
+            panic(value, inst.throwable.type)
+            currentStatement
+        }
+//        return GoNullInst(inst.location.method)
     }
 
     override fun visitGoGoInst(inst: GoGoInst): GoInst {
@@ -72,11 +80,17 @@ class GoInstVisitor(
     }
 
     override fun visitGoDeferInst(inst: GoDeferInst): GoInst {
-        val method = inst.func.accept(exprVisitor)
-        return GoNullInst(inst.location.method)
-//        scope.doWithState {
-//            data.addDeferredCall(lastEnteredMethod, GoCall())
-//        }
+        val name = (inst.func.accept(exprVisitor) as KConst).toString()
+        val method = ctx.getClosure(name)
+
+        val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
+        val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
+        ctx.setMethodInfo(method, parameters)
+
+        scope.doWithState {
+            data.addDeferredCall(lastEnteredMethod, call)
+        }
+        return next(inst)
     }
 
     override fun visitGoSendInst(inst: GoSendInst): GoInst {
@@ -84,7 +98,14 @@ class GoInstVisitor(
     }
 
     override fun visitGoStoreInst(inst: GoStoreInst): GoInst {
-        TODO("Not yet implemented")
+        val pointer = inst.lhv.accept(exprVisitor) as UAddressPointer
+        val rvalue = inst.rhv.accept(exprVisitor)
+        val lvalue = exprVisitor.pointerLValue(pointer, rvalue.sort)
+        scope.doWithState {
+            memory.write(lvalue, rvalue.asExpr(rvalue.sort), ctx.trueExpr)
+        }
+
+        return next(inst)
     }
 
     override fun visitGoMapUpdateInst(inst: GoMapUpdateInst): GoInst {
@@ -92,42 +113,48 @@ class GoInstVisitor(
     }
 
     override fun visitGoDebugRefInst(inst: GoDebugRefInst): GoInst {
-        TODO("Not yet implemented")
+        return unsupportedInst("DebugRef")
     }
 
-    override fun visitCommonAssignInst(inst: CommonAssignInst<*, *>): GoInst {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitCommonCallInst(inst: CommonCallInst<*, *>): GoInst {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitCommonGotoInst(inst: CommonGotoInst<*, *>): GoInst {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitCommonIfInst(inst: CommonIfInst<*, *>): GoInst {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitCommonReturnInst(inst: CommonReturnInst<*, *>): GoInst {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitExternalCommonInst(inst: CommonInst<*, *>): GoInst {
-        TODO("Not yet implemented")
+    override fun defaultVisitCommonInst(inst: CommonInst<*, *>): GoInst {
+        return unsupportedInst("Common")
     }
 
     override fun visitExternalGoInst(inst: GoInst): GoInst {
-        TODO("Not yet implemented")
+        return unsupportedInst("External")
     }
 
     override fun visitGoAssignInst(inst: GoAssignInst): GoInst {
-        TODO("Not yet implemented")
+        val method = scope.calcOnState { lastEnteredMethod }
+
+        val index = (inst.lhv.accept(exprVisitor) as KBitVec32Value).intValue
+        ctx.unsetRegister(method, index)
+
+        val rvalue = inst.rhv.accept(exprVisitor)
+        val sort = rvalue.sort
+
+        if (rvalue is KConst && rvalue.toString() == "GoCall") {
+            ctx.setRegister(method, index)
+            return GoNullInst(inst.location.method)
+        }
+
+        scope.doWithState {
+            memory.write(URegisterStackLValue(sort, index), rvalue.asExpr(sort), ctx.trueExpr)
+        }
+        ctx.setRegister(method, index)
+
+        return next(inst)
     }
 
     override fun visitGoCallInst(inst: GoCallInst): GoInst {
         TODO("Not yet implemented")
+    }
+
+    private fun next(inst: GoInst): GoInst {
+        return applicationGraph.successors(inst).ifEmpty { sequenceOf(GoNullInst(inst.location.method)) }.first()
+    }
+
+    private fun unsupportedInst(name: String): GoInst {
+        throw UnsupportedOperationException("Instruction '$name' not supported")
     }
 }

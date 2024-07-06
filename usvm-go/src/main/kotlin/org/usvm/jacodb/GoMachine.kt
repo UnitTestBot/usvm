@@ -43,7 +43,7 @@ class GoMachine(
     private val applicationGraph = GoApplicationGraphAdapter(goApplicationGraph)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter(ctx)
+    private val interpreter = GoInterpreter(ctx, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
     private val testInterpreter = GoTestInterpreter(ctx)
 
