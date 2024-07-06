@@ -1126,7 +1126,7 @@ var makeClosureExtra = fmt.Sprintf(`
         return GoMakeClosureExpr(
 			GoInstLocationImpl(
                 register!!.anInstruction!!.block!!.Index!!.toInt(),
-                register!!.pos!!.toInt(),
+                register!!.num!!.toInt(),
                 parent
             ),
 			(register!!.typ!! as ssaToJacoType).createJacoDBType(),

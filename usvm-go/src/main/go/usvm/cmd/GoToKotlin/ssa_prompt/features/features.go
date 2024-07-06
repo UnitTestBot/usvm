@@ -9,7 +9,7 @@ func Max2(a, b int) int {
 
 func Max2Improved(a, b int) int {
 	c := -1
-	if b > a {
+	if b > a && b > 5 && a > 3 {
 		c = b
 	}
 	if b < a {
@@ -19,7 +19,7 @@ func Max2Improved(a, b int) int {
 }
 
 func panicking() {
-	panic("oh no")
+	panic(nil)
 }
 
 func panicRecover(a int) (b int) {
@@ -43,6 +43,15 @@ func panicRecover(a int) (b int) {
 
 	panicking()
 	b = a + 1000
+	return b
+}
+
+func panicRecoverSimple(a int) (b int) {
+	defer func() {
+		b = 5
+	}()
+
+	panic(nil)
 	return b
 }
 

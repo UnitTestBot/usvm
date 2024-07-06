@@ -2,8 +2,10 @@ package org.usvm.jacodb
 
 import io.ksmt.utils.asExpr
 import org.jacodb.go.api.BasicType
+import org.jacodb.go.api.GoAssignInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.PointerType
 import org.usvm.UAddressPointer
 import org.usvm.UBvSort
 import org.usvm.UComponents
@@ -23,13 +25,19 @@ class GoContext(
 ) : UContext<USizeSort>(components) {
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
     private val freeVariables: MutableMap<GoMethod, Array<UExpr<out USort>>> = hashMapOf()
-
-    fun getReturnType(method: GoMethod): GoType = methodInfo[method]!!.returnType
+    private val registerStacks: MutableMap<GoMethod, MutableSet<Int>> = hashMapOf()
+    private val closures: MutableMap<String, GoMethod> = hashMapOf()
 
     fun getMethodInfo(method: GoMethod) = methodInfo[method]!!
 
     fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
         methodInfo[method] = info
+    }
+
+    fun setMethodInfo(method: GoMethod, parameters: Array<UExpr<out USort>>) {
+        val localsCount = method.blocks.flatMap { it.insts }.filterIsInstance<GoAssignInst>().size
+        val freeVariablesCount = getFreeVariables(method)?.size ?: 0
+        setMethodInfo(method, GoMethodInfo(localsCount + freeVariablesCount, parameters.size))
     }
 
     fun getFreeVariables(method: GoMethod): Array<UExpr<out USort>>? = freeVariables[method]
@@ -42,7 +50,7 @@ class GoContext(
 
     fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
 
-    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.parametersCount
+    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.argumentsCount
 
     private fun getFreeVariablesCount(method: GoMethod): Int = getFreeVariables(method)?.size ?: 0
 
@@ -97,6 +105,52 @@ class GoContext(
 
     fun setStringType(type: GoType) {
         stringType = type
+    }
+
+    fun typeToSort(type: GoType): USort = when (type) {
+        is BasicType -> basicTypeToSort(type.typeName)
+        is PointerType -> pointerSort
+        else -> addressSort
+    }
+
+    private fun basicTypeToSort(typeName: String): USort = when (typeName) {
+        "bool" -> boolSort
+        "int" -> bv32Sort
+        "int8" -> bv8Sort
+        "int16" -> bv16Sort
+        "int32" -> bv32Sort
+        "int64" -> bv64Sort
+        else -> addressSort
+    }
+
+    fun hasRegister(method: GoMethod, index: Int): Boolean {
+        if (!registerStacks.containsKey(method)) {
+            return false
+        }
+
+        return registerStacks[method]!!.contains(index)
+    }
+
+    fun setRegister(method: GoMethod, index: Int) {
+        if (!registerStacks.containsKey(method)) {
+            registerStacks[method] = hashSetOf()
+        }
+
+        registerStacks[method]!!.add(index)
+    }
+
+    fun unsetRegister(method: GoMethod, index: Int) {
+        if (!registerStacks.containsKey(method)) {
+            return
+        }
+
+        registerStacks[method]!!.remove(index)
+    }
+
+    fun getClosure(name: String): GoMethod = closures[name]!!
+
+    fun setClosure(method: GoMethod) {
+        closures[method.name] = method
     }
 
     fun <T : USort> ULValue<*, *>.withSort(sort: T): ULValue<*, T> {
