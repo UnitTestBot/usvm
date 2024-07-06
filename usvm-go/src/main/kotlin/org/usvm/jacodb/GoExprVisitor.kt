@@ -34,6 +34,7 @@ import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoGtrExpr
 import org.jacodb.go.api.GoIndexAddrExpr
 import org.jacodb.go.api.GoIndexExpr
+import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoInt
 import org.jacodb.go.api.GoLeqExpr
 import org.jacodb.go.api.GoLong
@@ -44,6 +45,7 @@ import org.jacodb.go.api.GoMakeClosureExpr
 import org.jacodb.go.api.GoMakeInterfaceExpr
 import org.jacodb.go.api.GoMakeMapExpr
 import org.jacodb.go.api.GoMakeSliceExpr
+import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoModExpr
 import org.jacodb.go.api.GoMulExpr
 import org.jacodb.go.api.GoMultiConvertExpr
@@ -62,6 +64,7 @@ import org.jacodb.go.api.GoSliceExpr
 import org.jacodb.go.api.GoSliceToArrayPointerExpr
 import org.jacodb.go.api.GoStringConstant
 import org.jacodb.go.api.GoSubExpr
+import org.jacodb.go.api.GoType
 import org.jacodb.go.api.GoTypeAssertExpr
 import org.jacodb.go.api.GoUnArrowExpr
 import org.jacodb.go.api.GoUnMulExpr
@@ -77,27 +80,64 @@ import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownUnaryOperationException
+import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.writeField
 import org.usvm.jacodb.interpreter.GoStepScope
 import org.usvm.jacodb.operator.GoBinaryOperator
 import org.usvm.jacodb.operator.GoUnaryOperator
 import org.usvm.jacodb.operator.mkNarrow
+import org.usvm.jacodb.state.GoMethodResult
 import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.sizeSort
+import org.usvm.statistics.ApplicationGraph
 
 class GoExprVisitor(
     private val ctx: GoContext,
     private val scope: GoStepScope,
+    private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
     override fun visitGoCallExpr(expr: GoCallExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val result = scope.calcOnState { methodResult }
+        if (result is GoMethodResult.Success) {
+            scope.doWithState {
+                methodResult = GoMethodResult.NoCall
+            }
+            return result.value
+        }
+
+        val parameters = expr.args.map { it.accept(this) }.toTypedArray()
+        val method = expr.callee ?: expr.value as GoMethod
+        val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
+        ctx.setMethodInfo(method, parameters)
+
+        scope.doWithState {
+            addCall(call, currentStatement)
+        }
+        return ctx.mkConst("GoCall", ctx.addressSort)
     }
 
     override fun visitGoAllocExpr(expr: GoAllocExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
+        return scope.calcOnState {
+            val ref = memory.allocConcrete(expr.type)
+
+            memory.write(GoPointerLValue(ref, ctx.addressSort), ref, ctx.trueExpr)
+            ctx.mkAddressPointer(ref.address)
+        }
     }
 
     override fun visitGoPhiExpr(expr: GoPhiExpr): UExpr<out USort> {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
         val currentBlock = expr.location.index
         val lastBlock = scope.calcOnState {
             var node = pathNode
@@ -109,15 +149,11 @@ class GoExprVisitor(
         val block = expr.location.method.blocks[currentBlock]
 
         block.predecessors.forEachIndexed { i, pred ->
-            if (lastBlock == pred) {
-                val rvalue = expr.edges[i].accept(this)
-                val lvalue = expr.toAssignInst().lhv.accept(this)
-                scope.doWithState {
-                    val idx = (lvalue as KBitVec32Value).intValue
-                    memory.write(URegisterStackLValue(rvalue.sort, idx), rvalue.asExpr(rvalue.sort), ctx.trueExpr)
-                }
-                return rvalue
+            if (lastBlock != pred) {
+                return@forEachIndexed
             }
+
+            return expr.edges[i].accept(this)
         }
         return ctx.nullRef
     }
@@ -187,12 +223,40 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
+        val index = (expr.toAssignInst().lhv.accept(this) as KBitVec32Value).intValue
+        val rvalue = expr.value.accept(this).let {
+            if (it.sort == ctx.addressSort) {
+                it
+            } else {
+                scope.calcOnState {
+                    val ref = memory.allocConcrete(expr.type)
+                    memory.writeField(ref, index, it.sort, it.asExpr(it.sort), ctx.trueExpr)
+                    ref
+                }
+            }
+        }.asExpr(ctx.addressSort)
+
+        scope.doWithState {
+            scope.assert(memory.types.evalIsSubtype(rvalue, expr.value.type)) ?: throw IllegalStateException()
+        }
+
+        return rvalue
     }
 
     override fun visitGoMakeClosureExpr(expr: GoMakeClosureExpr): UExpr<out USort> {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
         ctx.setFreeVariables(expr.func, expr.bindings.map { it.accept(this) }.toTypedArray())
-        return ctx.nullRef
+        ctx.setClosure(expr.func)
+        return ctx.mkConst(expr.func.name, ctx.addressSort)
     }
 
     override fun visitGoMakeMapExpr(expr: GoMakeMapExpr): UExpr<out USort> {
@@ -252,8 +316,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoFreeVar(expr: GoFreeVar): UExpr<out USort> {
-        val index = expr.name.substring(1).toInt()
-        return ctx.mkBv(index)
+        return ctx.mkBv(index(expr.name))
     }
 
     override fun visitGoParameter(expr: GoParameter): UExpr<out USort> {
@@ -263,8 +326,18 @@ class GoExprVisitor(
     }
 
     override fun visitGoConst(expr: GoConst): UExpr<out USort> {
-        return when(expr.typeName) {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
+        return when (expr.typeName) {
             "int" -> ctx.mkBv(expr.name.toInt())
+            "string" -> scope.calcOnState {
+                val content = expr.name.map { ctx.mkBv(it.code) }.asSequence()
+                memory.allocateArrayInitialized(expr.type, ctx.bv32Sort, ctx.sizeSort, content)
+            }
+
             else -> ctx.nullRef
         }
     }
@@ -339,7 +412,40 @@ class GoExprVisitor(
         TODO("Not yet implemented")
     }
 
+    fun get(name: String, type: GoType): UExpr<out USort> {
+        if (name.length < 2 || name[0] != 't') {
+            return ctx.nullRef
+        }
+
+        val method = scope.calcOnState { lastEnteredMethod }
+        val idx = index(name)
+        if (ctx.hasRegister(method, idx)) {
+            return scope.calcOnState {
+                memory.read(URegisterStackLValue(ctx.typeToSort(type), idx))
+            }
+        }
+
+        return ctx.nullRef
+    }
+
+    fun <Sort : USort> pointerLValue(pointer: UAddressPointer, sort: Sort): ULValue<*, Sort> = with(ctx) {
+        return scope.calcOnState {
+            val lvalue = GoPointerLValue(mkConcreteHeapRef(pointer.address), sort)
+            val ref = memory.read(lvalue)
+            if (ref is ULValuePointer) {
+                ref.lvalue.withSort(sort)
+            } else {
+                lvalue
+            }
+        }
+    }
+
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
         val signed = true // TODO(buraindo): make this calculated
         return when (expr) {
             is GoAddExpr -> GoBinaryOperator.Add
@@ -364,6 +470,11 @@ class GoExprVisitor(
     }
 
     private fun visitGoUnaryExpr(expr: GoUnaryExpr): UExpr<out USort> {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
+
         val x = expr.value.accept(this)
         return when (expr) {
             is GoUnArrowExpr -> TODO()
@@ -392,15 +503,7 @@ class GoExprVisitor(
         }
     }
 
-    private fun <Sort : USort> pointerLValue(pointer: UAddressPointer, sort: Sort): ULValue<*, Sort> = with(ctx) {
-        return scope.calcOnState {
-            val lvalue = GoPointerLValue(mkConcreteHeapRef(pointer.address), sort)
-            val ref = memory.read(lvalue)
-            if (ref is ULValuePointer) {
-                ref.lvalue.withSort(sort)
-            } else {
-                lvalue
-            }
-        }
+    private fun index(name: String): Int {
+        return name.substring(1).toInt() + ctx.localVariableOffset(scope.calcOnState { lastEnteredMethod })
     }
 }

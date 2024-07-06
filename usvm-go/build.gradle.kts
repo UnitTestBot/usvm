@@ -32,8 +32,8 @@ dependencies {
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.kotlinx_collections}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 
-    implementation("${Versions.jacodbPackage}:jacodb-go:${Versions.jacodb}")
+    implementation(Libs.jacodb_go)
 }
