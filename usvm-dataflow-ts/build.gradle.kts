@@ -19,5 +19,6 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs += "-Xcontext-receivers"
+        allWarningsAsErrors = false
     }
 }
