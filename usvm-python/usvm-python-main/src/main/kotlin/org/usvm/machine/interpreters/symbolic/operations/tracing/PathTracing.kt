@@ -13,6 +13,18 @@ import java.util.concurrent.Callable
 private val logger = object : KLogging() {}.logger
 class PathDiversionException : RuntimeException()
 
+/**
+ * This is a very important method.
+ *
+ * When we use concolic approach instead of classic symbolic execution,
+ * we need to repeat the prefix of symbolically executed actions
+ * at each iteration of function `concolicRun`.
+ * We just save answers to each query of the concrete interpreter.
+ * If we detected some unexpected queries, we notify the engine about path diversion.
+ *
+ * The method [withTracing] is used to wrap actual symbolic operations.
+ * It is supposed to be used in [org.usvm.interpreter.CPythonAdapter].
+ * */
 fun <T : Any> withTracing(
     context: ConcolicRunContext,
     newEventParameters: SymbolicHandlerEventParameters<T>,
