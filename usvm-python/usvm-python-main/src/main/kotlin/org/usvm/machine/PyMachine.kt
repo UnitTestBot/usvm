@@ -112,18 +112,23 @@ class PyMachine(
         if (pythonCallable.module != null && typeSystem is PythonTypeSystemWithMypyInfo) {
             typeSystem.resortTypes(pythonCallable.module)
         }
+        typeSystem.restart()
+
         return program.withPinnedCallable(pythonCallable, typeSystem) { rawPinnedCallable ->
-            typeSystem.restart()
+
             val pinnedCallable = if (!unfoldGenerator || !isGenerator(rawPinnedCallable.pyObject)) {
                 rawPinnedCallable
             } else {
                 val substituted = unfoldGenerator(rawPinnedCallable.pyObject)
                 PyPinnedCallable(substituted)
             }
+
             val pyObserver = PythonMachineObserver(saver.newStateObserver)
             val observer = CompositeUMachineObserver(pyObserver)
+
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
+
             val interpreter = getInterpreter(
                 pinnedCallable,
                 saver,
@@ -133,7 +138,9 @@ class PyMachine(
                 (timeoutPerRunMs?.let { (System.currentTimeMillis() - startIterationTime) >= it } ?: false) ||
                     (stopTime != null && System.currentTimeMillis() >= stopTime)
             }
+
             val pathSelector = getPathSelector(pythonCallable, saver.newStateObserver)
+
             run(
                 interpreter,
                 pathSelector,
@@ -144,6 +151,7 @@ class PyMachine(
                         (stopTime != null && System.currentTimeMillis() >= stopTime)
                 }
             )
+
             pyObserver.iterations
         }.also {
             ConcretePythonInterpreter.restart()
