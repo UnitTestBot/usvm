@@ -9,7 +9,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(mapOf("path" to ":usvm-python:$USVM_PYTHON_COMMONS_MODULE")))
+    implementation(project(mapOf("path" to ":$USVM_PYTHON_COMMONS_MODULE")))
     api("io.github.microutils:kotlin-logging:${Versions.klogging}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }
