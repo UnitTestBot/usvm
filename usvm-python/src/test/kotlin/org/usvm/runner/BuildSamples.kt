@@ -6,6 +6,11 @@ import org.utpython.types.mypy.MypyBuildDirectory
 import org.utpython.types.mypy.buildMypyInfo
 import java.io.File
 
+/**
+ * This is supposed to be called only from Gradle task `buildSamples`.
+ * Not designed for human usage.
+ * */
+
 fun main(args: Array<String>) {
     val inputPath = args[0]
     val requiredPath = args[1]

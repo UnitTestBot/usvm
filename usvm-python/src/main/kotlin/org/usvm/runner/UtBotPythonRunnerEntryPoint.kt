@@ -1,9 +1,15 @@
 package org.usvm.runner
 
+import mu.KLogging
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.concrete.venv.VenvConfig
 import org.usvm.python.ps.PyPathSelectorType
 import java.io.File
+
+/**
+ * This is supposed to be called only from `usvm-python-runner`.
+ * Not designed for human usage.
+ * */
 
 private const val MYPY_DIR_ARG = 0
 private const val SOCKET_PORT_ARG = 1
@@ -18,6 +24,7 @@ private const val MIN_PREFIX_LENGTH = 9
 private const val LIB_ARG = 9
 private const val BIN_ARG = 10
 
+private val logger = object : KLogging() {}.logger
 
 fun main(args: Array<String>) {
     var prefixNumberOfArgs = MIN_PREFIX_LENGTH
@@ -40,9 +47,9 @@ fun main(args: Array<String>) {
             binPath = File(args[BIN_ARG])
         )
         ConcretePythonInterpreter.setVenv(venvConfig)
-        System.err.println("VenvConfig: $venvConfig")
+        logger.info { "VenvConfig: $venvConfig" }
     } else {
-        System.err.println("No VenvConfig.")
+        logger.warn("No VenvConfig.")
     }
     val programRoots = args.drop(prefixNumberOfArgs)
     val runner = PyMachineSocketRunner(
