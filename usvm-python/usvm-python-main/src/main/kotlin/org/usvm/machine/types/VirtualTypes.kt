@@ -2,6 +2,10 @@ package org.usvm.machine.types
 
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 
+abstract class VirtualPythonType : PythonType() {
+    abstract fun accepts(type: PythonType): Boolean
+}
+
 object PythonAnyType : VirtualPythonType() {
     override fun accepts(type: PythonType): Boolean = true
 }

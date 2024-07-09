@@ -18,10 +18,6 @@ sealed class InternalSetType : InternalType()
 object RefSetType : InternalSetType()
 object IntSetType : InternalSetType()
 
-abstract class VirtualPythonType : PythonType() {
-    abstract fun accepts(type: PythonType): Boolean
-}
-
 sealed class ConcretePythonType(
     val owner: PythonTypeSystem,
     val typeName: String,

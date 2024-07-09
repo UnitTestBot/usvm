@@ -160,13 +160,13 @@ fun handlerDIVLongKt(
 
 fun handlerNEGLongKt(
     context: ConcolicRunContext,
-    x: UninterpretedSymbolicPythonObject
+    x: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
     createUnaryIntOp { ctx, on -> ctx.ctx.mkArithUnaryMinus(on) }(context, x)
 
 fun handlerPOSLongKt(
     context: ConcolicRunContext,
-    x: UninterpretedSymbolicPythonObject
+    x: UninterpretedSymbolicPythonObject,
 ): UninterpretedSymbolicPythonObject? =
     createUnaryIntOp { _, on -> on }(context, x)
 

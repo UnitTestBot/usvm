@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreters.symbolic.operations.basic
 
+import mu.KLogging
 import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
@@ -9,6 +10,8 @@ import org.usvm.machine.symbolicobjects.constructBool
 import org.usvm.machine.symbolicobjects.constructFloat
 import org.usvm.machine.symbolicobjects.constructInt
 import org.usvm.machine.symbolicobjects.memory.mkUninterpretedFloatWithValue
+
+private val logger = object : KLogging() {}.logger
 
 fun handlerLoadConstKt(context: ConcolicRunContext, value: PyObject): UninterpretedSymbolicPythonObject? {
     if (ConcretePythonInterpreter.pythonExceptionOccurred()) {
@@ -58,9 +61,9 @@ fun handlerLoadConstLongKt(context: ConcolicRunContext, value: PyObject): Uninte
     val str = runCatching {
         ConcretePythonInterpreter.getPythonObjectRepr(value)
     }.onFailure {
-        System.err.println("Failed to get repr of int at ${value.address}")
+        logger.error { "Failed to get repr of int at ${value.address}" }
         val attempt2 = ConcretePythonInterpreter.getPythonObjectRepr(value, printErrorMsg = true)
-        System.err.println("Attempt 2: $attempt2")
+        logger.error { "Attempt 2: $attempt2" }
     }.getOrThrow()
 
     return constructInt(context, context.ctx.mkIntNum(str))
