@@ -14,6 +14,7 @@ import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.machine.mock
 import org.usvm.machine.model.PyModel
+import org.usvm.machine.model.UseOldPathConstraintsInfo
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.model.substituteModel
 import org.usvm.machine.symbolicobjects.InterpretedSymbolicPythonObject
@@ -41,17 +42,15 @@ fun virtualNbBoolKt(ctx: ConcolicRunContext, on: VirtualPythonObject): Boolean {
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
+                UseOldPathConstraintsInfo(oldModel.psInfo),
                 trueObject as UConcreteHeapRef,
-                useOldPossibleRefs = true
             ),
             constructModelWithNewMockEvaluator(
                 ctx.ctx,
                 oldModel,
                 mockSymbol,
-                ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
+                UseOldPathConstraintsInfo(oldModel.psInfo),
                 falseObject as UConcreteHeapRef,
-                useOldPossibleRefs = true
             )
         )
     }
@@ -97,12 +96,12 @@ private fun internalVirtualCallKt(
         val customNewModels = customNewModelsCreation(mockSymbol)
         val (newModel, constraint) =
             if (customNewModels.isEmpty()) {
+                val oldModel = ctx.modelHolder.model
                 constructModelWithNewMockEvaluator(
                     ctx.ctx,
-                    ctx.modelHolder.model,
+                    oldModel,
                     mockSymbol,
-                    ctx.extractCurState().pathConstraints, // one constraint will be missing (TODO: is it ok?)
-                    useOldPossibleRefs = true
+                    UseOldPathConstraintsInfo(oldModel.psInfo),
                 )
             } else {
                 customNewModels.first()

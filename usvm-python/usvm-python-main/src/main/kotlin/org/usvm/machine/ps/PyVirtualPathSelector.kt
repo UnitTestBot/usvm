@@ -7,6 +7,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyContext
 import org.usvm.machine.PyState
+import org.usvm.machine.model.GenerateNewFromPathConstraints
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.strategies.DelayedForkGraph
 import org.usvm.machine.ps.strategies.DelayedForkGraphCreation
@@ -158,7 +159,9 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
             return null
         }
         val result = forkResult.negativeState ?: return null
-        result.models = listOf(result.models.first().toPyModel(ctx, result.pathConstraints))
+        result.models = listOf(
+            result.models.first().toPyModel(ctx, GenerateNewFromPathConstraints(result.pathConstraints))
+        )
         newStateObserver.onNewState(result)
         require(result.delayedForks == delayedFork.delayedForkPrefix)
         result.generatedFrom = "from delayed fork"

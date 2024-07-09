@@ -16,13 +16,12 @@ import org.usvm.types.TypesResult
 
 fun UModelBase<PythonType>.toPyModel(
     ctx: PyContext,
-    ps: UPathConstraints<PythonType>,
-    suggestedPsInfo: PathConstraintsInfo? = null,
+    info: GivenPathConstraintsInfo,
 ): PyModel {
     if (this is PyModel) {
         return this
     }
-    return PyModel(ctx, this, ps, suggestedPsInfo)
+    return PyModel(ctx, this, info)
 }
 
 class PyModelHolder(var model: PyModel)

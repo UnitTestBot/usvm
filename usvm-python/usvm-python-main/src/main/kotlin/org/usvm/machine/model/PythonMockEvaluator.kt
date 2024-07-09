@@ -4,6 +4,7 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UMockEvaluator
 import org.usvm.UMockSymbol
 import org.usvm.USort
@@ -13,18 +14,35 @@ import org.usvm.machine.types.PythonType
 import org.usvm.model.UModelBase
 
 class PythonMockEvaluator(
-    ctx: PyContext,
-    private val baseMockEvaluator: UMockEvaluator,
+    private val ctx: PyContext,
+    private var baseMockEvaluator: UMockEvaluator,
     val mockSymbol: UMockSymbol<UAddressSort>,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null,
 ) : UMockEvaluator {
     val evaluatedMockSymbol = suggestedEvaluatedMockSymbol ?: ctx.provideRawConcreteHeapRef()
+    private val mockTable = mutableMapOf<UMockSymbol<UAddressSort>, UHeapRef>()
+
+    init {
+        val givenEvaluator = baseMockEvaluator
+        if (givenEvaluator is PythonMockEvaluator) {
+            baseMockEvaluator = givenEvaluator.baseMockEvaluator
+            givenEvaluator.mockTable.forEach { (m, res) -> mockTable[m] = res }
+        }
+        mockTable[mockSymbol] = evaluatedMockSymbol
+    }
+
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> {
+        requireNotNull(symbol.sort == ctx.addressSort)
+
         val evaluatedValue = baseMockEvaluator.eval(symbol)
 
-        if (symbol == mockSymbol && evaluatedValue is UConcreteHeapRef && evaluatedValue.address == 0) {
+        val valueFromTable =
             @Suppress("unchecked_cast")
-            return evaluatedMockSymbol as UExpr<Sort>
+            mockTable[symbol as UMockSymbol<UAddressSort>]
+
+        if (valueFromTable != null && evaluatedValue is UConcreteHeapRef && evaluatedValue.address == 0) {
+            @Suppress("unchecked_cast")
+            return valueFromTable as UExpr<Sort>
         }
 
         return evaluatedValue
@@ -35,16 +53,10 @@ fun constructModelWithNewMockEvaluator(
     ctx: PyContext,
     oldModel: PyModel,
     mockSymbol: UMockSymbol<UAddressSort>,
-    ps: UPathConstraints<PythonType>,
+    info: GivenPathConstraintsInfo,
     suggestedEvaluatedMockSymbol: UConcreteHeapRef? = null,
-    useOldPossibleRefs: Boolean = false,
 ): Pair<PyModel, UBoolExpr> {
     val newMockEvaluator = PythonMockEvaluator(ctx, oldModel.mocker, mockSymbol, suggestedEvaluatedMockSymbol)
-    val suggestedPsInfo = if (useOldPossibleRefs) {
-        oldModel.psInfo
-    } else {
-        null
-    }
     val newModel = UModelBase(
         ctx,
         oldModel.stack,
@@ -52,7 +64,7 @@ fun constructModelWithNewMockEvaluator(
         newMockEvaluator,
         oldModel.regions,
         oldModel.nullRef
-    ).toPyModel(ctx, ps, suggestedPsInfo)
+    ).toPyModel(ctx, info)
     val constraint = ctx.mkHeapRefEq(newMockEvaluator.mockSymbol, newMockEvaluator.evaluatedMockSymbol)
     return newModel to constraint
 }

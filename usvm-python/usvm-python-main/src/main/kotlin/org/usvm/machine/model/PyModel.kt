@@ -38,8 +38,7 @@ import org.usvm.model.UModelBase
 class PyModel(
     private val ctx: PyContext,
     private val underlyingModel: UModelBase<PythonType>,
-    ps: UPathConstraints<PythonType>,
-    suggestedPsInfo: PathConstraintsInfo? = null,
+    info: GivenPathConstraintsInfo,
 ) : UModelBase<PythonType>(
     ctx,
     underlyingModel.stack,
@@ -49,7 +48,10 @@ class PyModel(
     underlyingModel.nullRef
 ) {
     val forcedConcreteTypes: MutableMap<UConcreteHeapRef, PythonType> = mutableMapOf()
-    val psInfo = suggestedPsInfo ?: getPathConstraintsInfo(ctx, ps, underlyingModel)
+    val psInfo = when (info) {
+        is GenerateNewFromPathConstraints -> getPathConstraintsInfo(ctx, info.ps, underlyingModel)
+        is UseOldPathConstraintsInfo -> info.oldInfo
+    }
 
     val possibleRefKeys: Set<UConcreteHeapRef>
         get() = psInfo.setRefKeys
@@ -128,3 +130,9 @@ class PyModel(
         return underlyingModel.hashCode()
     }
 }
+
+sealed interface GivenPathConstraintsInfo
+
+class GenerateNewFromPathConstraints(val ps: UPathConstraints<PythonType>) : GivenPathConstraintsInfo
+
+class UseOldPathConstraintsInfo(val oldInfo: PathConstraintsInfo) : GivenPathConstraintsInfo

@@ -8,6 +8,7 @@ import org.usvm.language.PyProgram
 import org.usvm.language.PyUnpinnedCallable
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
+import org.usvm.machine.model.GenerateNewFromPathConstraints
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.ps.createPyPathSelector
 import org.usvm.machine.results.PyMachineResultsReceiver
@@ -82,7 +83,7 @@ class PyMachine(
             symbols,
             pathConstraints,
             memory,
-            solverRes.model.toPyModel(ctx, pathConstraints),
+            solverRes.model.toPyModel(ctx, GenerateNewFromPathConstraints(pathConstraints)),
             typeSystem,
             preAllocatedObjects
         ).also {

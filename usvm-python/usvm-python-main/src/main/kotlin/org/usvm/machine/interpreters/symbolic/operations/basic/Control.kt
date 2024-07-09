@@ -9,6 +9,7 @@ import org.usvm.machine.ConcolicRunContext
 import org.usvm.machine.DelayedFork
 import org.usvm.machine.PyState
 import org.usvm.machine.extractCurState
+import org.usvm.machine.model.GenerateNewFromPathConstraints
 import org.usvm.machine.model.toPyModel
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.memory.getToBoolValue
@@ -28,7 +29,9 @@ fun pyFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     }
     ctx.builder.state = ctx.extractCurState()
     val applyToPyModel = { state: PyState ->
-        state.models = listOf(state.models.first().toPyModel(ctx.ctx, state.pathConstraints))
+        state.models = listOf(
+            state.models.first().toPyModel(ctx.ctx, GenerateNewFromPathConstraints(state.pathConstraints))
+        )
     }
     forkResult.positiveState?.let(applyToPyModel)
     forkResult.negativeState?.let(applyToPyModel)
@@ -45,7 +48,9 @@ fun pyAssertOnState(state: PyState, cond: UExpr<KBoolSort>): PyState? {
     val forkResult = forkMulti(state, listOf(cond)).single()
     if (forkResult != null) {
         require(forkResult == state)
-        forkResult.models = listOf(forkResult.models.first().toPyModel(state.ctx, state.pathConstraints))
+        forkResult.models = listOf(
+            forkResult.models.first().toPyModel(state.ctx, GenerateNewFromPathConstraints(state.pathConstraints))
+        )
     }
 
     return forkResult
