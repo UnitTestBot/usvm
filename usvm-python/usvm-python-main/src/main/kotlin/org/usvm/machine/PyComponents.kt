@@ -22,16 +22,18 @@ import org.usvm.solver.USolverBase
 import org.usvm.solver.USolverResult
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class PyComponents(
     private val typeSystem: PythonTypeSystem,
+    private val solverTimeout: Duration = 500.milliseconds
 ) : UComponents<PythonType, KIntSort> {
     override val useSolverForForks: Boolean = true
     override fun <Context : UContext<KIntSort>> mkSolver(ctx: Context): USolverBase<PythonType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
         val solver = KZ3Solver(ctx)
-        return PySolver(ctx, solver, UTypeSolver(typeSystem), translator, decoder)
+        return PySolver(ctx, solver, UTypeSolver(typeSystem), translator, decoder, solverTimeout)
     }
 
     override fun mkTypeSystem(ctx: UContext<KIntSort>): UTypeSystem<PythonType> {
@@ -55,13 +57,14 @@ class PySolver<Type>(
     typeSolver: UTypeSolver<Type>,
     translator: UExprTranslator<Type, *>,
     decoder: UModelDecoder<UModelBase<Type>>,
+    timeout: Duration,
 ) : USolverBase<Type>(
     ctx,
     smtSolver,
     typeSolver,
     translator,
     decoder,
-    500.milliseconds
+    timeout,
 ) {
     override fun check(query: UPathConstraints<Type>): USolverResult<UModelBase<Type>> {
         require(query is PyPathConstraints)

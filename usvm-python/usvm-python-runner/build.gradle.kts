@@ -1,6 +1,7 @@
 import usvmpython.MANUAL_RUN_GROUP_NAME
 import usvmpython.MANUAL_TEST_FOR_RUNNER
 import usvmpython.MANUAL_TEST_FOR_RUNNER_ENTRY
+import usvmpython.USVM_PYTHON_COMMONS_MODULE
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -8,7 +9,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(mapOf("path" to ":usvm-python:usvm-python-commons")))
+    implementation(project(mapOf("path" to ":usvm-python:$USVM_PYTHON_COMMONS_MODULE")))
     api("io.github.microutils:kotlin-logging:${Versions.klogging}")
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }

@@ -36,6 +36,14 @@ import org.utpython.types.getPythonAttributeByName
 import java.util.stream.Stream
 import kotlin.streams.asSequence
 
+/**
+ * Corresponds to Python's `isinstance` function.
+ * Right now, it is a pretty rough approximation of the behavior.
+ * We do not fully support Python's internal subtyping.
+ *
+ * A common case that is here roughly implemented is `int` and `bool`.
+ * In Python, `bool` is a subclass of `int`.
+ * */
 fun handlerIsinstanceKt(
     ctx: ConcolicRunContext,
     obj: UninterpretedSymbolicPythonObject,
