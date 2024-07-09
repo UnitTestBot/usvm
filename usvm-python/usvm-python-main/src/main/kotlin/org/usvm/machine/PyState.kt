@@ -14,7 +14,6 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.language.PyCallable
 import org.usvm.language.PyInstruction
 import org.usvm.language.PyUnpinnedCallable
-import org.usvm.language.TypeMethod
 import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
 import org.usvm.machine.interpreters.symbolic.operations.tracing.SymbolicHandlerEvent
 import org.usvm.machine.model.PyModel
@@ -46,7 +45,7 @@ class PyState(
     forkPoints: PathNode<PathNode<PyInstruction>> = PathNode.root(),
     var concolicQueries: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
-    private val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
+    val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
     val mockedObjects: MutableSet<UninterpretedSymbolicPythonObject> = mutableSetOf(),
     var uniqueInstructions: PersistentSet<PyInstruction> = persistentSetOf(),
 ) : UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
@@ -88,42 +87,25 @@ class PyState(
 
     override val isExceptional: Boolean = false // TODO
 
-    val meta = PythonExecutionStateMeta()
-
     val pyModel: PyModel
         get() = checkNotNull(models.first() as? PyModel) { "Model PyState must be PyModel" }
 
     fun buildPathAsList(): List<SymbolicHandlerEvent<Any>> = concolicQueries
 
-    fun mock(what: MockHeader): MockResult {
-        val cached = mocks[what]
-        if (cached != null) {
-            return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
-        }
-        val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
-        mocks[what] = result
-        what.methodOwner?.let { mockedObjects.add(it) }
-        return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)
-    }
-
-    fun getMocksForSymbol(
-        symbol: UninterpretedSymbolicPythonObject,
-    ): List<Pair<MockHeader, UninterpretedSymbolicPythonObject>> =
-        mocks.mapNotNull { (mockHeader, mockResult) ->
-            if (mockHeader.methodOwner == symbol) {
-                mockHeader to UninterpretedSymbolicPythonObject(mockResult, typeSystem)
-            } else {
-                null
-            }
-        }
-
     fun isTerminated(): Boolean {
-        return meta.modelDied || meta.wasInterrupted || meta.wasExecuted && meta.objectsWithoutConcreteTypes == null
+        return modelDied || wasInterrupted || wasExecuted && objectsWithoutConcreteTypes == null
     }
 
     fun isInterestingForPathSelector(): Boolean {
         return !isTerminated() || delayedForks.isNotEmpty()
     }
+
+    var extractedFrom: UPathSelector<PyState>? = null
+    var wasExecuted: Boolean = false
+    var wasInterrupted: Boolean = false
+    var modelDied: Boolean = false
+    var objectsWithoutConcreteTypes: Collection<VirtualPythonObject>? = null
+    var generatedFrom: String = "" // for debugging only
 }
 
 class DelayedFork(
@@ -132,24 +114,3 @@ class DelayedFork(
     val possibleTypes: UTypeStream<PythonType>,
     val delayedForkPrefix: PersistentList<DelayedFork>,
 )
-
-data class MockHeader(
-    val method: TypeMethod,
-    val args: List<UninterpretedSymbolicPythonObject>,
-    var methodOwner: UninterpretedSymbolicPythonObject?,
-)
-
-data class MockResult(
-    val mockedObject: UninterpretedSymbolicPythonObject,
-    val isNew: Boolean,
-    val mockSymbol: UMockSymbol<UAddressSort>,
-)
-
-class PythonExecutionStateMeta {
-    var extractedFrom: UPathSelector<PyState>? = null
-    var wasExecuted: Boolean = false
-    var wasInterrupted: Boolean = false
-    var modelDied: Boolean = false
-    var objectsWithoutConcreteTypes: Collection<VirtualPythonObject>? = null
-    var generatedFrom: String = "" // for debugging only
-}

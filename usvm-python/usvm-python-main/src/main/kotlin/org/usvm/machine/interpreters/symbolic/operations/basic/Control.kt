@@ -32,8 +32,8 @@ fun pyFork(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     }
     forkResult.positiveState?.let(applyToPyModel)
     forkResult.negativeState?.let(applyToPyModel)
-    forkResult.positiveState?.also { it.meta.generatedFrom = "From ordinary fork" }
-    forkResult.negativeState?.also { it.meta.generatedFrom = "From ordinary fork" }
+    forkResult.positiveState?.also { it.generatedFrom = "From ordinary fork" }
+    forkResult.negativeState?.also { it.generatedFrom = "From ordinary fork" }
     if (forkResult.negativeState != oldCurState) {
         forkResult.negativeState?.let {
             ctx.forkedStates.add(it)
@@ -58,7 +58,7 @@ fun pyAssert(ctx: ConcolicRunContext, cond: UExpr<KBoolSort>) {
     val oldModel = ctx.extractCurState().pyModel
     val forkResult = pyAssertOnState(ctx.extractCurState(), cond)
     if (forkResult == null) {
-        ctx.extractCurState().meta.modelDied = true
+        ctx.extractCurState().modelDied = true
     }
     if (forkResult?.pyModel != oldModel) {
         throw BadModelException()

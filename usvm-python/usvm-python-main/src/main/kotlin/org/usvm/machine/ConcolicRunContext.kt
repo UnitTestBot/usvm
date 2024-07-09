@@ -54,7 +54,7 @@ class ConcolicRunContext(
     fun pathDiversion() {
         val state = curState
         if (state != null) {
-            state.meta.modelDied = true
+            state.modelDied = true
         }
         curState = if (allowPathDiversion) {
             null

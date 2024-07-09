@@ -12,6 +12,7 @@ import org.usvm.machine.UnregisteredVirtualOperation
 import org.usvm.machine.extractCurState
 import org.usvm.machine.interpreters.concrete.PyObject
 import org.usvm.machine.interpreters.concrete.utils.VirtualPythonObject
+import org.usvm.machine.mock
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.constructModelWithNewMockEvaluator
 import org.usvm.machine.model.substituteModel

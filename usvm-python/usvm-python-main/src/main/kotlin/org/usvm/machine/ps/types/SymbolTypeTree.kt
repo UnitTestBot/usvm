@@ -17,6 +17,7 @@ import org.usvm.language.TpIterMethod
 import org.usvm.language.TpRichcmpMethod
 import org.usvm.language.TpSetattro
 import org.usvm.machine.PyState
+import org.usvm.machine.getMocksForSymbol
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.model.PyModelHolder
 import org.usvm.machine.symbolicobjects.UninterpretedSymbolicPythonObject

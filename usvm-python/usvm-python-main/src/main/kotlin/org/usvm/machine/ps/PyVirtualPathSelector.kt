@@ -56,7 +56,7 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
 
     private fun removeNotExecutedState(state: PyState) {
         peekCache = null
-        state.meta.extractedFrom?.remove(state)
+        state.extractedFrom?.remove(state)
     }
 
     private fun add(state: PyState) {
@@ -65,8 +65,8 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
             processExecutedState(state)
             return
         }
-        if (state.delayedForks.isEmpty() && state.meta.objectsWithoutConcreteTypes != null) {
-            require(state.meta.wasExecuted)
+        if (state.delayedForks.isEmpty() && state.objectsWithoutConcreteTypes != null) {
+            require(state.wasExecuted)
             val newState = generateStateWithConcreteTypeWithoutDelayedFork(state) ?: return
             graph.addExecutedStateWithConcreteTypes(newState)
         } else if (state.delayedForks.isEmpty()) {
@@ -109,7 +109,7 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
                     require(!ps.isEmpty()) {
                         "Cannot peek object from empty path selector"
                     }
-                    peekCache = ps.peek().also { it.meta.extractedFrom = ps }
+                    peekCache = ps.peek().also { it.extractedFrom = ps }
                     break
                 }
                 is MakeDelayedFork -> {
@@ -161,14 +161,14 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
         result.models = listOf(result.models.first().toPyModel(ctx, result.pathConstraints))
         newStateObserver.onNewState(result)
         require(result.delayedForks == delayedFork.delayedForkPrefix)
-        result.meta.generatedFrom = "from delayed fork"
+        result.generatedFrom = "from delayed fork"
         delayedForkState.successfulTypes.add(type)
         return result
     }
 
     private fun generateStateWithConcreteTypeWithoutDelayedFork(state: PyState): PyState? {
-        val objectsWithoutConcreteTypes = state.meta.objectsWithoutConcreteTypes
-        require(state.meta.wasExecuted && objectsWithoutConcreteTypes != null)
+        val objectsWithoutConcreteTypes = state.objectsWithoutConcreteTypes
+        require(state.wasExecuted && objectsWithoutConcreteTypes != null)
         val objects = objectsWithoutConcreteTypes.map {
             val addressRaw = it.interpretedObjRef
             ctx.mkConcreteHeapRef(addressRaw)
@@ -195,8 +195,8 @@ class PyVirtualPathSelector<DFState : DelayedForkState, DFGraph : DelayedForkGra
         (objects zip types).forEach { (objAddress, type) ->
             state.pyModel.forcedConcreteTypes[objAddress] = type
         }
-        state.meta.wasExecuted = false
-        state.meta.extractedFrom = null
+        state.wasExecuted = false
+        state.extractedFrom = null
         return state
     }
 

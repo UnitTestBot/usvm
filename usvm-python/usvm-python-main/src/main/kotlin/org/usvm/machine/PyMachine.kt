@@ -86,7 +86,7 @@ class PyMachine(
             typeSystem,
             preAllocatedObjects
         ).also {
-            it.meta.generatedFrom = "Initial state"
+            it.generatedFrom = "Initial state"
         }
     }
 

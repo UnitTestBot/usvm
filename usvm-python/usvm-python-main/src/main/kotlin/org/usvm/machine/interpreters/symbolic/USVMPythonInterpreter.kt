@@ -47,9 +47,9 @@ class USVMPythonInterpreter<PyObjectRepr>(
         val modelHolder = PyModelHolder(state.pyModel)
         val concolicRunContext = constructConcolicRunContext(state, modelHolder)
         val renderer = concolicRunContext.renderer
-        state.meta.objectsWithoutConcreteTypes = null
+        state.objectsWithoutConcreteTypes = null
         logger.debug("Step on state: {}", state)
-        logger.debug("Source of the state: {}", state.meta.generatedFrom)
+        logger.debug("Source of the state: {}", state.generatedFrom)
 
         val symbols = state.inputSymbols
         val interpreted = symbols.map { interpretSymbolicPythonObject(concolicRunContext, it) }
@@ -57,7 +57,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
             interpreted.map { concolicRunContext.builder.convert(it) }
         } catch (_: LengthOverflowException) {
             logger.warn("LengthOverflowException occurred")
-            state.meta.modelDied = true
+            state.modelDied = true
             return StepResult(emptySequence(), false)
         }
 
@@ -66,7 +66,7 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
         val concrete = getConcrete(renderer, objectModels)
         if (concrete == null) {
-            state.meta.modelDied = true
+            state.modelDied = true
             return StepResult(emptySequence(), false)
         }
 
@@ -109,9 +109,9 @@ class USVMPythonInterpreter<PyObjectRepr>(
 
         val resultState = concolicRunContext.curState
         return if (resultState != null) {
-            resultState.meta.wasExecuted = true
+            resultState.wasExecuted = true
             if (resultState.delayedForks.isEmpty() && inputRepr == null) {
-                resultState.meta.objectsWithoutConcreteTypes = renderer.getUSVMVirtualObjects()
+                resultState.objectsWithoutConcreteTypes = renderer.getUSVMVirtualObjects()
             }
             logger.debug("Finished step on state: {}", concolicRunContext.curState)
             StepResult(concolicRunContext.forkedStates.asSequence(), !state.isTerminated())
@@ -214,21 +214,21 @@ class USVMPythonInterpreter<PyObjectRepr>(
         concolicRunContext.statistics.addUnregisteredVirtualOperation()
         // TODO: make this more accurate
         if (resultState != null && resultState.delayedForks.isEmpty()) {
-            resultState.meta.objectsWithoutConcreteTypes = renderer.getUSVMVirtualObjects()
-            resultState.meta.wasExecuted = true
+            resultState.objectsWithoutConcreteTypes = renderer.getUSVMVirtualObjects()
+            resultState.wasExecuted = true
         } else if (resultState != null) {
-            resultState.meta.modelDied = true
+            resultState.modelDied = true
         }
     }
 
     private fun processInstructionLimitExceeded(concolicRunContext: ConcolicRunContext) {
         logger.debug("Step result: InstructionLimitExceededException")
-        concolicRunContext.curState?.meta?.wasInterrupted = true
+        concolicRunContext.curState?.wasInterrupted = true
     }
 
     private fun processCancelledException(concolicRunContext: ConcolicRunContext) {
         logger.debug("Step result: execution cancelled")
-        concolicRunContext.curState?.meta?.wasInterrupted = true
+        concolicRunContext.curState?.wasInterrupted = true
     }
 
     private fun getConcrete(renderer: PyValueRenderer, objectModels: List<PyValue>): List<PyObject>? {
