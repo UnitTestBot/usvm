@@ -12,42 +12,28 @@ import java.util.concurrent.Callable
 
 class ConcolicRunContext(
     curState: PyState,
-    ctx: PyContext,
-    modelHolder: PyModelHolder,
-    typeSystem: PythonTypeSystem,
-    allowPathDiversion: Boolean,
-    statistics: PythonMachineStatisticsOnFunction,
-    maxInstructions: Int,
+    val ctx: PyContext,
+    val modelHolder: PyModelHolder,
+    val typeSystem: PythonTypeSystem,
+    private val allowPathDiversion: Boolean,
+    val statistics: PythonMachineStatisticsOnFunction,
+    val maxInstructions: Int,
     val builder: PyValueBuilder,
     val renderer: PyValueRenderer,
-    isCancelled: Callable<Boolean>,
+    val isCancelled: Callable<Boolean>,
 ) {
     var curState: PyState?
-    val ctx: PyContext
     val forkedStates = mutableListOf<PyState>()
     var pathPrefix: List<SymbolicHandlerEvent<Any>>
-    val modelHolder: PyModelHolder
-    val allowPathDiversion: Boolean
-    val typeSystem: PythonTypeSystem
-    val statistics: PythonMachineStatisticsOnFunction
-    val maxInstructions: Int
     var instructionCounter = 0
-    var usesVirtualInputs = false
-    var isCancelled: Callable<Boolean>
+    var usesVirtualInputs: Boolean = false
 
     @JvmField
     var curOperation: MockHeader? = null
 
     init {
         this.curState = curState
-        this.ctx = ctx
-        this.modelHolder = modelHolder
-        this.allowPathDiversion = allowPathDiversion
-        this.typeSystem = typeSystem
         pathPrefix = curState.buildPathAsList()
-        this.statistics = statistics
-        this.maxInstructions = maxInstructions
-        this.isCancelled = isCancelled
     }
 
     @Throws(PathDiversionException::class)

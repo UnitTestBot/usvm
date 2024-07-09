@@ -69,6 +69,6 @@ open class USVMPythonRunner(private val config: USVMPythonConfig) : AutoCloseabl
     }
 
     companion object {
-        val logger = object : KLogging() {}.logger
+        private val logger = object : KLogging() {}.logger
     }
 }

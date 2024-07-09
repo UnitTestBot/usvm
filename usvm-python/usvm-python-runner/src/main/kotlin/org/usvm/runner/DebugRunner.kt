@@ -1,5 +1,9 @@
 package org.usvm.runner
 
+import mu.KLogging
+
+private val logger =  object : KLogging() {}.logger
+
 class DebugRunner(config: USVMPythonConfig) : USVMPythonRunner(config) {
     fun runProcessAndPrintInfo(runConfig: USVMPythonRunConfig) {
         val builder = setupEnvironment(runConfig)
@@ -8,8 +12,8 @@ class DebugRunner(config: USVMPythonConfig) : USVMPythonRunner(config) {
         val process = builder.start()
         process.waitFor()
         when (val status = process.exitValue()) {
-            0 -> println("Exit status: 0 (Success)")
-            else -> println("Exit status: $status (Failure)")
+            0 -> logger.info("Exit status: 0 (Success)")
+            else -> logger.info("Exit status: $status (Failure)")
         }
     }
 }

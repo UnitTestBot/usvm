@@ -95,7 +95,7 @@ object ConcretePythonInterpreter {
     fun concolicRun(
         functionRef: PyObject,
         concreteArgs: List<PyObject>,
-        virtualArgs: Collection<PyObject>,
+        virtualArgs: List<PyObject>,
         symbolicArgs: List<SymbolForCPython>,
         ctx: ConcolicRunContext,
         printErrorMsg: Boolean = false,
@@ -105,7 +105,7 @@ object ConcretePythonInterpreter {
         val result = pythonAdapter.concolicRun(
             functionRef.address,
             LongArray(concreteArgs.size) { concreteArgs[it].address },
-            virtualArgs.map { it.address }.toLongArray(),
+            LongArray(virtualArgs.size) { virtualArgs[it].address },
             Array(symbolicArgs.size) { symbolicArgs[it] },
             ctx,
             SymbolicClonesOfGlobals.getNamedSymbols(),
