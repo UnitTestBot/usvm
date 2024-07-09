@@ -8,9 +8,7 @@ import org.usvm.UHeapRef
 import org.usvm.UMockEvaluator
 import org.usvm.UMockSymbol
 import org.usvm.USort
-import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.PyContext
-import org.usvm.machine.types.PythonType
 import org.usvm.model.UModelBase
 
 class PythonMockEvaluator(
