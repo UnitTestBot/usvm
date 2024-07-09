@@ -27,7 +27,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class PyComponents(
     private val typeSystem: PythonTypeSystem,
-    private val solverTimeout: Duration = 500.milliseconds
+    private val solverTimeout: Duration = 500.milliseconds,
 ) : UComponents<PythonType, KIntSort> {
     override val useSolverForForks: Boolean = true
     override fun <Context : UContext<KIntSort>> mkSolver(ctx: Context): USolverBase<PythonType> {

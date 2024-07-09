@@ -6,6 +6,7 @@ import java.nio.channels.Channels
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
+import kotlin.concurrent.thread
 
 interface PythonSymbolicAnalysisRunner : AutoCloseable {
     fun analyze(runConfig: USVMPythonRunConfig, receiver: USVMPythonAnalysisResultReceiver, isCancelled: () -> Boolean)
@@ -25,16 +26,29 @@ class PythonSymbolicAnalysisRunnerImpl(
         val newIsCancelled = {
             isCancelled() || System.currentTimeMillis() - start >= runConfig.timeoutMs
         }
+
         val readingThread = ReadingThread(serverSocketChannel, receiver, newIsCancelled)
-        val waitingThread = WaitingThread(process, readingThread, newIsCancelled)
+
         try {
             readingThread.start()
-            waitingThread.start()
+
+            val waitingThread = thread {
+                while (readingThread.isAlive && process.isAlive && !isCancelled()) {
+                    Thread.sleep(SLEEP_TIME_IN_MILLISECONDS)
+                }
+                while (readingThread.isAlive) {
+                    readingThread.interrupt()
+                    Thread.sleep(SLEEP_TIME_IN_MILLISECONDS)
+                }
+            }
+
             readingThread.join()
             waitingThread.join()
             if (!process.isAlive && process.exitValue() != 0) {
                 logger.warn("usvm-python process ended with non-null value")
             }
+
+
         } finally {
             process.destroyForcibly()
             readingThread.client?.close()
@@ -65,22 +79,6 @@ class PythonSymbolicAnalysisRunnerImpl(
                 logger.info("Interrupted usvm-python channel")
             } catch (_: InterruptedException) {
                 logger.info("Interrupted usvm-python thread")
-            }
-        }
-    }
-
-    class WaitingThread(
-        private val process: Process,
-        private val readingThread: Thread,
-        private val isCancelled: () -> Boolean,
-    ) : Thread() {
-        override fun run() {
-            while (readingThread.isAlive && process.isAlive && !isCancelled()) {
-                sleep(SLEEP_TIME_IN_MILLISECONDS)
-            }
-            while (readingThread.isAlive) {
-                readingThread.interrupt()
-                sleep(SLEEP_TIME_IN_MILLISECONDS)
             }
         }
     }
