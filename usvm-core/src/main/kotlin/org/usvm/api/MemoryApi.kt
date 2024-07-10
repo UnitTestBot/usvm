@@ -20,12 +20,19 @@ import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.URegexExpr
 import org.usvm.collection.string.UStringExpr
 import org.usvm.collection.string.UStringLValue
+import org.usvm.collection.string.allocateStringExpr
+import org.usvm.collection.string.charAt
+import org.usvm.collection.string.concatStrings
+import org.usvm.collection.string.getString
+import org.usvm.collection.string.isStringEmpty
 import org.usvm.collection.string.mapString
+import org.usvm.collection.string.mkStringExprFromCharArray
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.regions.Region
+import org.usvm.sizeSort
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
@@ -102,12 +109,12 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
 }
 
 fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
-    type: ArrayType, sizeSort: USizeSort, count: UExpr<USizeSort>,
-): UConcreteHeapRef = allocateArrayInternal(type, sizeSort, count)
+    arrayType: ArrayType, sizeSort: USizeSort, count: UExpr<USizeSort>,
+): UConcreteHeapRef = allocateArrayInternal(arrayType, sizeSort, count)
 
 fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
-    type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = allocateArrayInitializedInternal(type, sort, sizeSort, contents)
+    arrayType: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence<UExpr<Sort>>
+): UConcreteHeapRef = allocateArrayInitializedInternal(arrayType, sort, sizeSort, contents)
 
 fun <SetType, ElemSort : USort, Reg : Region<Reg>> UWritableMemory<SetType>.setAddElement(
     ref: UHeapRef,
@@ -160,33 +167,50 @@ fun <SetType> UReadOnlyMemory<SetType>.refSetContainsElement(
 fun UReadOnlyMemory<*>.readString(ref: UHeapRef): UStringExpr =
     read(UStringLValue(ref))
 
-fun <Type> UWritableMemory<Type>.allocateStringLiteral(type: Type, string: String): UConcreteHeapRef {
-    val freshRef = this.allocConcrete(type)
-    val ctx = freshRef.uctx
-    write(UStringLValue(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
-    return freshRef
-}
+fun <Type> UWritableMemory<Type>.allocateStringLiteral(stringType: Type, string: String): UConcreteHeapRef =
+    this.allocateStringExpr(stringType, ctx.mkStringLiteral(string))
 
-fun <Type, USizeSort: USort> UWritableMemory<Type>.allocateInternedStringLiteral(ctx: UContext<USizeSort>, type: Type, string: String): UConcreteHeapRef =
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateInternedStringLiteral(
+    ctx: UContext<USizeSort>,
+    type: Type,
+    string: String
+): UConcreteHeapRef =
     ctx.internedStrings.getOrPut(string) {
         val freshRef = this.allocStatic(type)
         write(UStringLValue(freshRef), ctx.mkStringLiteral(string), ctx.trueExpr)
         return freshRef
     }
 
-fun UReadOnlyMemory<*>.allocateStringFromSequence(refToSeq: UHeapRef): UConcreteHeapRef =
-    TODO()
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromArray(
+    stringType: Type,
+    charArrayType: Type,
+    refToCharArray: UHeapRef,
+): UConcreteHeapRef {
+    val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
+    return this.allocateStringExpr(stringType, string)
+}
 
-fun <USizeSort: USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
-    mapString(ref) { org.usvm.collection.string.charAt(ctx.withSizeSort(), it, index) }
+fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
+    mapString(ref) { this.charAt(ctx.withSizeSort(), it, index) }
 
-fun <USizeSort: USort> UReadOnlyMemory<*>.stringLength(ref: UHeapRef): UExpr<USizeSort> =
+fun <USizeSort : USort> UReadOnlyMemory<*>.stringLength(ref: UHeapRef): UExpr<USizeSort> =
     mapString(ref) { org.usvm.collection.string.getLength(ctx.withSizeSort(), it) }
 
 /**
  * Allocates new string, which is the result of concatenation of [left] and [right].
  */
-fun UReadOnlyMemory<*>.concat(left: UHeapRef, right: UHeapRef): UHeapRef =
+fun <Type, USizeSort: USort> UWritableMemory<Type>.concat(stringType: Type, left: UHeapRef, right: UHeapRef): UHeapRef {
+    val leftString = getString(left)
+    if (isStringEmpty(ctx, leftString))
+        return right
+    val rightString = getString(right)
+    if (isStringEmpty(ctx, rightString))
+        return left
+    val concatenation = concatStrings<Type, USizeSort>(leftString, rightString)
+    return this.allocateStringExpr(stringType, concatenation)
+}
+
+fun <USizeSort: USort> UReadOnlyMemory<*>.stringHashCode(ref: UHeapRef): UExpr<USizeSort> =
     TODO()
 
 fun UReadOnlyMemory<*>.stringEq(string1: UHeapRef, string2: UHeapRef): UBoolExpr =
@@ -201,19 +225,23 @@ fun UReadOnlyMemory<*>.stringLe(left: UHeapRef, right: UHeapRef): UBoolExpr =
 /**
  * Allocates new string, which is the substring of [string], starting at index [startIndex] and having length [length].
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.substring(string: UHeapRef, startIndex: UExpr<USizeSort>, length: UExpr<USizeSort>): UConcreteHeapRef =
+fun <USizeSort : USort> UReadOnlyMemory<*>.substring(
+    string: UHeapRef,
+    startIndex: UExpr<USizeSort>,
+    length: UExpr<USizeSort>
+): UConcreteHeapRef =
     TODO()
 
 /**
  * Allocates new string, which is the string representation of integer [value].
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.stringFromInt(value: UExpr<USizeSort>): UConcreteHeapRef =
+fun <USizeSort : USort> UReadOnlyMemory<*>.stringFromInt(value: UExpr<USizeSort>): UConcreteHeapRef =
     TODO()
 
 /**
  * Allocates new string, which is the string representation of float [value].
  */
-fun <UFloatSort: USort> UReadOnlyMemory<*>.stringFromFloat(value: UExpr<UFloatSort>): UConcreteHeapRef =
+fun <UFloatSort : USort> UReadOnlyMemory<*>.stringFromFloat(value: UExpr<UFloatSort>): UConcreteHeapRef =
     TODO()
 
 /**
@@ -221,7 +249,7 @@ fun <UFloatSort: USort> UReadOnlyMemory<*>.stringFromFloat(value: UExpr<UFloatSo
  * represents some integer value. In those models, where success is true, value represents the integer
  * number encoded into the string. String is non-deterministic, the engine might return a list of such variants.
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<USizeSort>?>> =
+fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<USizeSort>?>> =
     TODO()
 
 /**
@@ -229,14 +257,14 @@ fun <USizeSort: USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef): 
  * represents some floating-point value. In those models, where success is true, value represents the floating-point
  * number encoded into the string. String is non-deterministic, the engine might return a list of such variants.
  */
-fun <UFloatSort: USort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<UFloatSort>?>> =
+fun <UFloatSort : USort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<UFloatSort>?>> =
     TODO()
 
 /**
  * Returns heap reference to new string obtained from string in heap location [ref]
  * by repeating it [times] amount of times. If [times] = 1, returns [ref].
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.repeat(ref: UHeapRef, times: UExpr<USizeSort>): UHeapRef =
+fun <USizeSort : USort> UReadOnlyMemory<*>.repeat(ref: UHeapRef, times: UExpr<USizeSort>): UHeapRef =
     TODO()
 
 /**
@@ -280,7 +308,7 @@ fun UReadOnlyMemory<*>.reverse(ref: UHeapRef): UHeapRef =
 /**
  * Returns index of the first occurrence of string referenced by [patternRef] into the string referenced by [stringRef].
  */
-fun <USizeSort: USort> UReadOnlyMemory<*>.indexOf(stringRef: UHeapRef, patternRef: UHeapRef): UExpr<USizeSort> =
+fun <USizeSort : USort> UReadOnlyMemory<*>.indexOf(stringRef: UHeapRef, patternRef: UHeapRef): UExpr<USizeSort> =
     TODO()
 
 /**

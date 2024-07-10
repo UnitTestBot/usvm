@@ -24,8 +24,7 @@ import org.usvm.regions.Region
 
 sealed class USymbolicSetUnionAdapter<
     SetType, SrcKey, DstKey,
-    out SetId : USymbolicSetId<SetType, *, SrcKey, *, *, SetId>,
-    >(
+    out SetId : USymbolicSetId<SetType, *, SrcKey, *, *, SetId>>(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
 ) : USymbolicCollectionAdapter<SrcKey, DstKey>,
     USymbolicSetUnionElements<DstKey> {

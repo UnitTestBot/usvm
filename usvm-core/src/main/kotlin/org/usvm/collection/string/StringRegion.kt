@@ -95,7 +95,7 @@ internal class UStringMemoryRegion(
     inline fun <Sort: USort> mapString(ref: UHeapRef, mapper: (UStringExpr) -> UExpr<Sort>): UExpr<Sort> =
         ref.map({mapper(getAllocatedString(it))}, {mapper(getInternedString(it))}, {mapper(getInputString(it))})
 
-    private fun getString(ref: UHeapRef): UStringExpr =
+    internal fun getString(ref: UHeapRef): UStringExpr =
         ref.map(::getAllocatedString, ::getInternedString, ::getInputString)
 
     override fun read(key: UStringLValue): UExpr<UStringSort> =

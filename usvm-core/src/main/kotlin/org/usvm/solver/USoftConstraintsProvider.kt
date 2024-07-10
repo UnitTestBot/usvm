@@ -61,12 +61,12 @@ import org.usvm.collection.string.URegexMatchesExpr
 import org.usvm.collection.string.URegexReplaceAllExpr
 import org.usvm.collection.string.URegexReplaceFirstExpr
 import org.usvm.collection.string.UStringConcatExpr
-import org.usvm.collection.string.UStringEqExpr
 import org.usvm.collection.string.UStringExpr
-import org.usvm.collection.string.UStringFromCollectionExpr
+import org.usvm.collection.string.UStringFromArrayExpr
 import org.usvm.collection.string.UStringFromFloatExpr
 import org.usvm.collection.string.UStringFromIntExpr
 import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringHashCodeExpr
 import org.usvm.collection.string.UStringIndexOfExpr
 import org.usvm.collection.string.UStringLeExpr
 import org.usvm.collection.string.UStringLengthExpr
@@ -296,7 +296,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         TODO("Not yet implemented")
     }
 
-    override fun transform(expr: UStringEqExpr): UBoolExpr {
+    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> {
         TODO("Not yet implemented")
     }
 
@@ -384,7 +384,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         TODO("Not yet implemented")
     }
 
-    override fun transform(expr: UStringFromCollectionExpr<USizeSort>): UStringExpr {
+    override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr {
         TODO("Not yet implemented")
     }
 

@@ -207,15 +207,13 @@ class UInputToInputSymbolicRefMapMergeAdapter<MapType>(
 
         setOfKeys.applyTo(memory, srcKey, composer)
 
-        with(guard.uctx) {
-            memory.refMapMerge(
-                composer.compose(srcMapRef),
-                composer.compose(dstMapRef),
-                dstCollectionId.mapType,
-                dstCollectionId.sort,
-                setOfKeys.collectionId.setRegionId().uncheckedCast(),
-                guard
-            )
-        }
+        memory.refMapMerge(
+            composer.compose(srcMapRef),
+            composer.compose(dstMapRef),
+            dstCollectionId.mapType,
+            dstCollectionId.sort,
+            setOfKeys.collectionId.setRegionId().uncheckedCast(),
+            guard
+        )
     }
 }

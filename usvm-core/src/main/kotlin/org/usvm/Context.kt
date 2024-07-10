@@ -46,10 +46,29 @@ import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UFloatFromStringExpr
+import org.usvm.collection.string.UIntFromStringExpr
+import org.usvm.collection.string.URegexExpr
+import org.usvm.collection.string.URegexMatchesExpr
+import org.usvm.collection.string.URegexReplaceAllExpr
+import org.usvm.collection.string.URegexReplaceFirstExpr
+import org.usvm.collection.string.UStringConcatExpr
 import org.usvm.collection.string.UStringExpr
+import org.usvm.collection.string.UStringFromArrayExpr
+import org.usvm.collection.string.UStringFromFloatExpr
+import org.usvm.collection.string.UStringFromIntExpr
 import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringHashCodeExpr
+import org.usvm.collection.string.UStringIndexOfExpr
+import org.usvm.collection.string.UStringLeExpr
 import org.usvm.collection.string.UStringLengthExpr
 import org.usvm.collection.string.UStringLiteralExpr
+import org.usvm.collection.string.UStringLtExpr
+import org.usvm.collection.string.UStringRepeatExpr
+import org.usvm.collection.string.UStringReplaceAllExpr
+import org.usvm.collection.string.UStringReplaceFirstExpr
+import org.usvm.collection.string.UStringReverseExpr
+import org.usvm.collection.string.UStringSliceExpr
 import org.usvm.collection.string.UStringSort
 import org.usvm.collection.string.UStringToLowerExpr
 import org.usvm.collection.string.UStringToUpperExpr
@@ -453,16 +472,86 @@ open class UContext<USizeSort : USort>(
             UStringFromLanguageExpr(this, ref)
         }
 
+    private val stringFromArrayExprCache = mkAstInterner<UStringFromArrayExpr<*, USizeSort>>()
+    fun <ArrayType> mkStringFromArray(
+        charArrayRef: UConcreteHeapRef,
+        arrayType: ArrayType,
+        length: UExpr<USizeSort>
+    ): UStringFromArrayExpr<ArrayType, USizeSort> =
+        stringFromArrayExprCache.createIfContextActive {
+            UStringFromArrayExpr(charArrayRef, arrayType, length)
+        }.cast()
+
+    private val stringConcatExprCache = mkAstInterner<UStringConcatExpr>()
+    fun mkStringConcatExpr(left: UStringExpr, right: UStringExpr): UStringConcatExpr =
+        stringConcatExprCache.createIfContextActive {
+            UStringConcatExpr(left, right)
+        }
+    
+    private val stringLengthExprCache = mkAstInterner<UStringLengthExpr<USizeSort>>()
+    fun mkStringLengthExpr(string: UStringExpr): UStringLengthExpr<USizeSort> =
+        stringLengthExprCache.createIfContextActive {
+            UStringLengthExpr(this, string)
+        }
+
     private val charAtExprCache = mkAstInterner<UCharAtExpr<USizeSort>>()
     fun mkCharAtExpr(string: UStringExpr, index: UExpr<USizeSort>): UCharAtExpr<USizeSort> =
         charAtExprCache.createIfContextActive {
             UCharAtExpr(string, index)
         }
 
-    private val stringLengthExprCache = mkAstInterner<UStringLengthExpr<USizeSort>>()
-    fun mkStringLengthExpr(string: UStringExpr): UStringLengthExpr<USizeSort> =
-        stringLengthExprCache.createIfContextActive {
-            UStringLengthExpr(this, string)
+    private val stringHashCodeExprCache = mkAstInterner<UStringHashCodeExpr<USizeSort>>()
+    fun mkStringHashCodeExpr(string: UStringExpr): UStringHashCodeExpr<USizeSort> =
+        stringHashCodeExprCache.createIfContextActive {
+            UStringHashCodeExpr(sizeSort, string)
+        }
+
+    private val stringLtExprCache = mkAstInterner<UStringLtExpr>()
+    fun mkStringLtExpr(left: UStringExpr, right: UStringExpr): UStringLtExpr =
+        stringLtExprCache.createIfContextActive {
+            UStringLtExpr(left, right)
+        }
+
+    private val stringLeExprCache = mkAstInterner<UStringLeExpr>()
+    fun mkStringLeExpr(left: UStringExpr, right: UStringExpr): UStringLeExpr =
+        stringLeExprCache.createIfContextActive {
+            UStringLeExpr(left, right)
+        }
+
+    private val stringSliceExprCache = mkAstInterner<UStringSliceExpr<USizeSort>>()
+    fun mkStringSliceExpr(string: UStringExpr, startIndex: UExpr<USizeSort>, length: UExpr<USizeSort>): UStringSliceExpr<USizeSort> =
+        stringSliceExprCache.createIfContextActive {
+            UStringSliceExpr(string, startIndex, length)
+        }
+
+    private val stringFromIntExprCache = mkAstInterner<UStringFromIntExpr<USizeSort>>()
+    fun mkStringFromIntExpr(value: UExpr<USizeSort>, radix: Int): UStringFromIntExpr<USizeSort> =
+        stringFromIntExprCache.createIfContextActive {
+            UStringFromIntExpr(value, radix)
+        }.cast()
+
+    private val intFromStringExprCache = mkAstInterner<UIntFromStringExpr<USizeSort>>()
+    fun mkIntFromStringExpr(string: UStringExpr, radix: Int): UIntFromStringExpr<USizeSort> =
+        intFromStringExprCache.createIfContextActive {
+            UIntFromStringExpr(sizeSort, string, radix)
+        }
+
+    private val stringFromFloatExprCache = mkAstInterner<UStringFromFloatExpr<*>>()
+    fun <UFloatSort: USort> mkStringFromFloatExpr(value: UExpr<UFloatSort>): UStringFromFloatExpr<UFloatSort> =
+        stringFromFloatExprCache.createIfContextActive {
+            UStringFromFloatExpr(value)
+        }.cast()
+
+    private val floatFromStringExprCache = mkAstInterner<UFloatFromStringExpr<*>>()
+    fun <UFloatSort: USort> mkFloatFromStringExpr(string: UStringExpr, floatSort: UFloatSort): UFloatFromStringExpr<UFloatSort> =
+        floatFromStringExprCache.createIfContextActive {
+            UFloatFromStringExpr(floatSort, string)
+        }.cast()
+
+    private val stringRepeatExprCache = mkAstInterner<UStringRepeatExpr<USizeSort>>()
+    fun mkStringRepeatExpr(string: UStringExpr, times: UExpr<USizeSort>): UStringRepeatExpr<USizeSort> =
+        stringRepeatExprCache.createIfContextActive {
+            UStringRepeatExpr(string, times)
         }
 
     private val stringToUpperExprCache = mkAstInterner<UStringToUpperExpr>()
@@ -489,7 +578,47 @@ open class UContext<USizeSort : USort>(
             UCharToLowerExpr(char)
         }
 
-    // TODO: String interners...
+    private val stringReverseExprCache = mkAstInterner<UStringReverseExpr>()
+    fun mkStringReverseExpr(string: UStringExpr): UStringReverseExpr =
+        stringReverseExprCache.createIfContextActive {
+            UStringReverseExpr(string)
+        }
+
+    private val stringIndexOfExprCache = mkAstInterner<UStringIndexOfExpr<USizeSort>>()
+    fun mkStringIndexOfExpr(string: UStringExpr, pattern: UStringExpr): UStringIndexOfExpr<USizeSort> =
+        stringIndexOfExprCache.createIfContextActive {
+            UStringIndexOfExpr(sizeSort, string, pattern)
+        }
+
+    private val regexMatchesExprCache = mkAstInterner<URegexMatchesExpr>()
+    fun mkRegexMatchesExpr(string: UStringExpr, pattern: URegexExpr): URegexMatchesExpr =
+        regexMatchesExprCache.createIfContextActive {
+            URegexMatchesExpr(boolSort, string, pattern)
+        }
+
+    private val stringReplaceFirstExprCache = mkAstInterner<UStringReplaceFirstExpr>()
+    fun mkStringReplaceFirstExpr(where: UStringExpr, what: UStringExpr, with: UStringExpr): UStringReplaceFirstExpr =
+        stringReplaceFirstExprCache.createIfContextActive {
+            UStringReplaceFirstExpr(where, what, with)
+        }
+
+    private val stringReplaceAllExprCache = mkAstInterner<UStringReplaceAllExpr>()
+    fun mkStringReplaceAllExpr(where: UStringExpr, what: UStringExpr, with: UStringExpr): UStringReplaceAllExpr =
+        stringReplaceAllExprCache.createIfContextActive {
+            UStringReplaceAllExpr(where, what, with)
+        }
+
+    private val regexReplaceFirstExprCache = mkAstInterner<URegexReplaceFirstExpr>()
+    fun mkRegexReplaceFirstExpr(where: UStringExpr, what: URegexExpr, with: UStringExpr): URegexReplaceFirstExpr =
+        regexReplaceFirstExprCache.createIfContextActive {
+            URegexReplaceFirstExpr(where, what, with)
+        }
+
+    private val regexReplaceAllExprCache = mkAstInterner<URegexReplaceAllExpr>()
+    fun mkRegexReplaceAllExpr(where: UStringExpr, what: URegexExpr, with: UStringExpr): URegexReplaceAllExpr =
+        regexReplaceAllExprCache.createIfContextActive {
+            URegexReplaceAllExpr(where, what, with)
+        }
 }
 
 val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
