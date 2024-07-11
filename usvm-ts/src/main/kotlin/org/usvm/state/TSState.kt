@@ -16,7 +16,7 @@ import org.usvm.targets.UTargetsSet
 class TSState(
     ctx: TSContext,
     override val entrypoint: EtsMethod,
-    callStack: UCallStack<EtsMethod, EtsStmt>,
+    callStack: UCallStack<EtsMethod, EtsStmt> = UCallStack(),
     pathConstraints: UPathConstraints<EtsType> = UPathConstraints(ctx),
     memory: UMemory<EtsType, EtsMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<EtsType>> = listOf(),

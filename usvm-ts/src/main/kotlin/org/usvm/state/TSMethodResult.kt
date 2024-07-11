@@ -1,7 +1,7 @@
 package org.usvm.state
 
-import org.jacodb.panda.dynamic.api.PandaMethod
-import org.jacodb.panda.dynamic.api.PandaType
+import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.panda.dynamic.ets.model.EtsMethod
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -19,7 +19,7 @@ interface TSMethodResult {
      * A [method] successfully returned a [value].
      */
     class Success(
-        val method: PandaMethod,
+        val method: EtsMethod,
         val value: UExpr<out USort>,
     ) : TSMethodResult
 
@@ -28,7 +28,7 @@ interface TSMethodResult {
      */
     open class TSException(
         val address: UHeapRef,
-        val type: PandaType,
+        val type: EtsType,
     ) : TSMethodResult {
         override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
     }

@@ -1,6 +1,13 @@
-package org.usvm.samples
+package org.usvm.util
 
 import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.panda.dynamic.ets.dto.EtsFileDto
+import org.jacodb.panda.dynamic.ets.dto.convertToEtsFile
+import org.jacodb.panda.dynamic.ets.model.EtsClassSignature
+import org.jacodb.panda.dynamic.ets.model.EtsFile
+import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.panda.dynamic.ets.model.EtsMethodSignature
+import org.usvm.TSMachine
 import org.usvm.TSMethodCoverage
 import org.usvm.TSTest
 import org.usvm.UMachineOptions
@@ -8,6 +15,8 @@ import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
 open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
+
+    protected val globalClassName = "_DEFAULT_ARK_CLASS"
 
     protected inline fun <reified R> discoverProperties(
         methodIdentifier: MethodDescriptor,
@@ -116,8 +125,37 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     override val checkType: (EtsType?, EtsType?) -> Boolean
         get() = TODO()
 
+    private fun getProject(className: String): EtsFile {
+        val jsonWithoutExtension = "/ir/${className}.json"
+        val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path
+            ?: error("Resource not found: $jsonWithoutExtension")
+
+        val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
+        return convertToEtsFile(etsFileDto)
+    }
+
+    private fun EtsFile.getMethodByDescriptor(desc: MethodDescriptor): EtsMethod {
+        val cls = classes.find { it.name == desc.className }
+            ?: error("No class ${desc.className} in project $name")
+
+        return cls.methods.find { it.name == desc.methodName && it.parameters.size == desc.argumentsNumber }
+            ?: error("No method matching $desc found in $name")
+
+    }
+
     override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>
-        get() = TODO()
+        get() = { id, options ->
+            val project = getProject(id.className)
+            val method = project.getMethodByDescriptor(id)
+
+            TSMachine(project, options).use { machine ->
+                val states = machine.analyze(listOf(method))
+                states.map { state ->
+                    val resolver = TSTestResolver()
+                    resolver.resolve(method, state).also { println(it) }
+                }
+            }
+        }
 
     override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = TODO()
 

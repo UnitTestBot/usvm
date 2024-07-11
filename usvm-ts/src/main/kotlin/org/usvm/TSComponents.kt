@@ -8,6 +8,7 @@ class TSComponents(
     private val typeSystem: TSTypeSystem,
     private val options: UMachineOptions
 ) : UComponents<EtsType, TSSizeSort> {
+    private val closeableResources = mutableListOf<AutoCloseable>()
     override val useSolverForForks: Boolean
         get() = TODO("Not yet implemented")
 
@@ -21,5 +22,9 @@ class TSComponents(
 
     override fun <Context : UContext<TSSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {
         TODO("Not yet implemented")
+    }
+
+    fun close() {
+        closeableResources.forEach(AutoCloseable::close)
     }
 }
