@@ -26,6 +26,7 @@ import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.set.primitive.setEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
@@ -46,6 +47,7 @@ private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var solver: USolverBase<Type>
 
     private lateinit var pc: UPathConstraints<Type>
@@ -59,6 +61,7 @@ class ModelDecodingTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
 
@@ -67,7 +70,7 @@ class ModelDecodingTest {
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
-        pc = UPathConstraints(ctx)
+        pc = UPathConstraints(ctx, ownership)
 
         stack = URegistersStack()
         stack.push(10)

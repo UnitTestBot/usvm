@@ -17,6 +17,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readField
 import org.usvm.api.writeField
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
@@ -29,6 +30,7 @@ import kotlin.test.assertFails
 
 class MemoryMergingTest {
     private lateinit var ctx: UContext<UBv32Sort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var translator: UExprTranslator<SingleType, *>
     private lateinit var smtSolver: KZ3Solver
 
@@ -38,6 +40,7 @@ class MemoryMergingTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)
     }
@@ -45,7 +48,7 @@ class MemoryMergingTest {
     @Test
     fun `Empty memory`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
+        val pathConstraints = UPathConstraints<SingleType>(this, ownership)
         val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
         val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints)
 
@@ -62,7 +65,7 @@ class MemoryMergingTest {
     @Test
     fun `Distinct stack`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
+        val pathConstraints = UPathConstraints<SingleType>(this, ownership)
 
         val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
         memoryLeft.stack.push(3)
@@ -87,7 +90,7 @@ class MemoryMergingTest {
     fun `Distinct regions`(): Unit = with(ctx) {
         assertFails { // TODO: improve memory regions constraints merging
             val byCondition = mkConst("cond", boolSort)
-            val pathConstraints = UPathConstraints<SingleType>(this)
+            val pathConstraints = UPathConstraints<SingleType>(this, ownership)
 
             val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
 

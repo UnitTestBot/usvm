@@ -3,6 +3,7 @@ package org.usvm.merging
 import mu.KotlinLogging
 import org.usvm.UPathSelector
 import org.usvm.UState
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 
 val logger = KotlinLogging.logger { }
 
@@ -36,7 +37,7 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
         val resultState = when (val selectorState = selectorState) {
             is SelectorState.Advancing -> {
                 val closeState = closeStatesSearcher.findCloseStates(state).firstOrNull() ?: return state
-                val mergedState = state.mergeWith(closeState, Unit)
+                val mergedState = state.mergeWith(closeState, Unit, MutabilityOwnership())
                 if (mergedState == null) {
                     selectorState.steps++
                     if (selectorState.steps == advanceLimit) {

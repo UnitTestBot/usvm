@@ -5,7 +5,7 @@
 
 package org.usvm.collections.immutable.implementations.immutableSet
 
-internal open class PersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<E> {
+internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<E> {
     protected val path = mutableListOf(TrieNodeIterator<E>())
     protected var pathLastIndex = 0
     private var hasNext = true

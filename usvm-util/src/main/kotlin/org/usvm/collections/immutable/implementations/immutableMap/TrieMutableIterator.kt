@@ -5,9 +5,11 @@
 
 package org.usvm.collections.immutable.implementations.immutableMap
 
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+
 
 internal class TrieNodeMutableEntriesIterator<K, V>(
-        private val parentIterator: PersistentHashMapBuilderEntriesIterator<K, V>
+    private val parentIterator: TrieMutableIterator<K, V>
 ) : TrieNodeBaseIterator<K, V, MutableMap.MutableEntry<K, V>>() {
 
     override fun next(): MutableMap.MutableEntry<K, V> {
@@ -19,9 +21,9 @@ internal class TrieNodeMutableEntriesIterator<K, V>(
 }
 
 private class MutableMapEntry<K, V>(
-        private val parentIterator: PersistentHashMapBuilderEntriesIterator<K, V>,
-        key: K,
-        override var value: V
+    private val parentIterator: TrieMutableIterator<K, V>,
+    key: K,
+    override var value: V
 ) : MapEntry<K, V>(key, value), MutableMap.MutableEntry<K, V> {
 
     override fun setValue(newValue: V): V {
@@ -33,17 +35,16 @@ private class MutableMapEntry<K, V>(
 }
 
 
-internal open class PersistentHashMapBuilderBaseIterator<K, V, T>(
-    private val builder: UPersistentHashMapBuilder<K, V>,
-    path: Array<TrieNodeBaseIterator<K, V, T>>
-) : MutableIterator<T>, PersistentHashMapBaseIterator<K, V, T>(builder.node, path) {
+internal open class UPersistentHashSetMutableIterator<K, V, T>(
+    private val node: TrieNode<K, V>,
+    path: Array<TrieNodeBaseIterator<K, V, T>>,
+    val ownership: MutabilityOwnership
+) : MutableIterator<T>, UPersistentHashMapBaseIterator<K, V, T>(node, path) {
 
     private var lastIteratedKey: K? = null
     private var nextWasInvoked = false
-    private var expectedModCount = builder.modCount
 
     override fun next(): T {
-        checkForComodification()
         lastIteratedKey = currentKey()
         nextWasInvoked = true
         return super.next()
@@ -54,30 +55,28 @@ internal open class PersistentHashMapBuilderBaseIterator<K, V, T>(
         if (hasNext()) {
             val currentKey = currentKey()
 
-            builder.remove(lastIteratedKey)
-            resetPath(currentKey.hashCode(), builder.node, currentKey, 0)
+            node.remove(lastIteratedKey!!, ownership)
+            resetPath(currentKey.hashCode(), node, currentKey, 0)
         } else {
-            builder.remove(lastIteratedKey)
+            node.remove(lastIteratedKey!!, ownership)
         }
 
         lastIteratedKey = null
         nextWasInvoked = false
-        expectedModCount = builder.modCount
     }
 
     fun setValue(key: K, newValue: V) {
-        if (!builder.containsKey(key)) return
+        if (!node.containsKey(key)) return
 
         if (hasNext()) {
             val currentKey = currentKey()
 
-            builder[key] = newValue
-            resetPath(currentKey.hashCode(), builder.node, currentKey, 0)
+            node.put(key, newValue, ownership)
+            resetPath(currentKey.hashCode(), node, currentKey, 0)
         } else {
-            builder[key] = newValue
+            node.put(key, newValue, ownership)
         }
 
-        expectedModCount = builder.modCount
     }
 
     private fun resetPath(keyHash: Int, node: TrieNode<*, *>, key: K, pathIndex: Int) {
@@ -116,19 +115,16 @@ internal open class PersistentHashMapBuilderBaseIterator<K, V, T>(
         if (!nextWasInvoked)
             throw IllegalStateException()
     }
-
-    private fun checkForComodification() {
-        if (builder.modCount != expectedModCount)
-            throw ConcurrentModificationException()
-    }
 }
 
-internal class PersistentHashMapBuilderEntriesIterator<K, V>(
-        builder: UPersistentHashMapBuilder<K, V>
+internal class TrieMutableIterator<K, V>(
+    node: TrieNode<K, V>,
+    ownership: MutabilityOwnership
 ) : MutableIterator<MutableMap.MutableEntry<K, V>> {
-    private val base = PersistentHashMapBuilderBaseIterator<K, V, MutableMap.MutableEntry<K, V>>(
-            builder,
-            Array(TRIE_MAX_HEIGHT + 1) { TrieNodeMutableEntriesIterator(this) }
+    private val base = UPersistentHashSetMutableIterator<K, V, MutableMap.MutableEntry<K, V>>(
+        node,
+        Array(TRIE_MAX_HEIGHT + 1) { TrieNodeMutableEntriesIterator(this) },
+        ownership
     )
 
     override fun hasNext(): Boolean = base.hasNext()
@@ -137,9 +133,3 @@ internal class PersistentHashMapBuilderEntriesIterator<K, V>(
 
     fun setValue(key: K, newValue: V): Unit = base.setValue(key, newValue)
 }
-
-internal class PersistentHashMapBuilderKeysIterator<K, V>(builder: UPersistentHashMapBuilder<K, V>)
-    : PersistentHashMapBuilderBaseIterator<K, V, K>(builder, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeKeysIterator<K, V>() })
-
-internal class PersistentHashMapBuilderValuesIterator<K, V>(builder: UPersistentHashMapBuilder<K, V>)
-    : PersistentHashMapBuilderBaseIterator<K, V, V>(builder, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeValuesIterator<K, V>() })

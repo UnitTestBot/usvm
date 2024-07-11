@@ -15,6 +15,7 @@ import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.collection.array.length.UInputArrayLengthId
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
@@ -27,6 +28,7 @@ private typealias Type = SingleTypeSystem.SingleType
 
 open class SoftConstraintsTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var softConstraintsProvider: USoftConstraintsProvider<Type, *>
     private lateinit var translator: UExprTranslator<Type, *>
     private lateinit var decoder: ULazyModelDecoder<Type>
@@ -38,6 +40,7 @@ open class SoftConstraintsTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkComposer(any()) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
 
@@ -58,7 +61,7 @@ open class SoftConstraintsTest {
         val sndRegister = mkRegisterReading(idx = 1, bv32Sort)
         val expr = mkBvSignedLessOrEqualExpr(fstRegister, sndRegister)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type>(ctx, ownership)
         pc += expr
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
@@ -86,7 +89,7 @@ open class SoftConstraintsTest {
 
         every { softConstraintsProvider.provide(any()) } answers { callOriginal() }
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type>(ctx, ownership)
         pc += fstExpr
         pc += sndExpr
         pc += sameAsFirstExpr
@@ -135,7 +138,7 @@ open class SoftConstraintsTest {
 
         val reading = region.read(secondInputRef)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type>(ctx, ownership)
         pc += reading eq size.toBv()
         pc += inputRef eq secondInputRef
         pc += (inputRef eq nullRef).not()
@@ -157,7 +160,7 @@ open class SoftConstraintsTest {
             .emptyRegion()
             .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type>(ctx, ownership)
         pc += (inputRef eq nullRef).not()
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
@@ -175,7 +178,7 @@ open class SoftConstraintsTest {
         val bvValue = 0.toBv()
         val expression = mkBvSignedLessOrEqualExpr(bvValue, inputRef).not()
 
-        val pc = UPathConstraints<Type>(ctx)
+        val pc = UPathConstraints<Type>(ctx, ownership)
         pc += expression
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)

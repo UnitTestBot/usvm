@@ -7,6 +7,7 @@ import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UState
 import org.usvm.api.targets.JcTarget
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.JcContext
 import org.usvm.memory.UMemory
@@ -16,9 +17,10 @@ import org.usvm.targets.UTargetsSet
 
 class JcState(
     ctx: JcContext,
+    ownership: MutabilityOwnership,
     override val entrypoint: JcMethod,
     callStack: UCallStack<JcMethod, JcInst> = UCallStack(),
-    pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx),
+    pathConstraints: UPathConstraints<JcType> = UPathConstraints(ctx, ownership),
     memory: UMemory<JcType, JcMethod> = UMemory(ctx, pathConstraints.typeConstraints),
     models: List<UModelBase<JcType>> = listOf(),
     pathNode: PathNode<JcInst> = PathNode.root(),
@@ -27,6 +29,7 @@ class JcState(
     targets: UTargetsSet<JcTarget, JcInst> = UTargetsSet.empty(),
 ) : UState<JcType, JcMethod, JcInst, JcContext, JcTarget, JcState>(
     ctx,
+    ownership,
     callStack,
     pathConstraints,
     memory,
@@ -35,10 +38,11 @@ class JcState(
     forkPoints,
     targets
 ) {
-    override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
-        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+    override fun clone(ownership: MutabilityOwnership, newConstraints: UPathConstraints<JcType>?): JcState {
+        val clonedConstraints = newConstraints ?: pathConstraints.clone(ownership)
         return JcState(
             ctx,
+            ownership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
@@ -56,7 +60,7 @@ class JcState(
      *
      * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
      */
-    override fun mergeWith(other: JcState, by: Unit): JcState? {
+    override fun mergeWith(other: JcState, by: Unit, ownership: MutabilityOwnership): JcState? {
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
         // TODO: copy-paste
 
@@ -65,9 +69,11 @@ class JcState(
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
+        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard, ownership)
             ?: return null
-        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+        val mergedMemory = 
+            memory.clone(mergedPathConstraints.typeConstraints)
+                  .mergeWith(other.memory, mergeGuard)
             ?: return null
         val mergedModels = models + other.models
         val methodResult = if (other.methodResult == JcMethodResult.NoCall && methodResult == JcMethodResult.NoCall) {
@@ -80,6 +86,7 @@ class JcState(
 
         return JcState(
             ctx,
+            ownership,
             entrypoint,
             mergedCallStack,
             mergedPathConstraints,

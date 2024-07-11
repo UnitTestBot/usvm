@@ -9,6 +9,7 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.CloseStatesSearcherImpl
 import org.usvm.merging.MergingPathSelector
 import org.usvm.statistics.ApplicationGraph
@@ -135,7 +136,7 @@ private fun <Method, Statement, Target, State> createPathSelector(
 
             wrappedSelectors.first().add(initialStates.toList())
             wrappedSelectors.drop(1).forEach {
-                it.add(initialStates.map { it.clone() }.toList())
+                it.add(initialStates.map { it.clone(MutabilityOwnership()) }.toList())
             }
 
             ParallelPathSelector(wrappedSelectors)

@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
@@ -51,7 +52,8 @@ object WithSolverStateForker : StateForker {
 
             trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
                 val posState = state
-                val negState = state.clone()
+                posState.changeOwnership(MutabilityOwnership())
+                val negState = state.clone(MutabilityOwnership())
 
                 posState.models = trueModels
                 negState.models = falseModels
@@ -99,9 +101,11 @@ object WithSolverStateForker : StateForker {
             val (trueModels, _, _) = splitModelsByCondition(curState.models, condition)
 
             val nextRoot = if (trueModels.isNotEmpty()) {
-                val root = curState.clone()
+                val newOwnership = MutabilityOwnership()
+                val root = curState.clone(newOwnership)
                 curState.models = trueModels
                 curState.pathConstraints += condition
+                curState.changeOwnership(MutabilityOwnership())
 
                 root
             } else {
@@ -144,7 +148,8 @@ object WithSolverStateForker : StateForker {
         newConstraintToForkedState: UBoolExpr,
         stateToCheck: StateToCheck,
     ): T? {
-        val constraintsToCheck = state.pathConstraints.clone()
+        val newOwnership = MutabilityOwnership()
+        val constraintsToCheck = state.pathConstraints.clone(newOwnership)
 
         constraintsToCheck += if (stateToCheck) {
             newConstraintToForkedState
@@ -162,12 +167,14 @@ object WithSolverStateForker : StateForker {
                 // heavy plusAssign operator in path constraints.
                 // Therefore, it is better to reuse already constructed [constraintToCheck].
                 if (stateToCheck) {
-                    val forkedState = state.clone(constraintsToCheck)
+                    state.changeOwnership(MutabilityOwnership())
+                    val forkedState = state.clone(newOwnership, constraintsToCheck)
                     state.pathConstraints += newConstraintToOriginalState
                     forkedState.models = listOf(satResult.model)
                     forkedState
                 } else {
-                    val forkedState = state.clone()
+                    val forkedState = state.clone(newOwnership)
+                    state.changeOwnership(MutabilityOwnership())
                     state.pathConstraints += newConstraintToOriginalState
                     state.models = listOf(satResult.model)
                     // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
@@ -192,17 +199,18 @@ object NoSolverStateForker : StateForker {
     ): ForkResult<T> {
         val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
         val notCondition = state.ctx.mkNot(condition)
-
-        val clonedPathConstraints = state.pathConstraints.clone()
+        val newOwnership = MutabilityOwnership()
+        val clonedPathConstraints = state.pathConstraints.clone(newOwnership)
         clonedPathConstraints += condition
 
         val (posState, negState) = if (clonedPathConstraints.isFalse) {
             state.pathConstraints += notCondition
             state.models = falseModels
+            state.changeOwnership(MutabilityOwnership())
 
             null to state.takeIf { !it.pathConstraints.isFalse }
         } else {
-            val falseState = state.clone()
+            val falseState = state.clone(newOwnership)
 
             // TODO how to reuse "clonedPathConstraints" here?
             state.pathConstraints += condition
@@ -225,8 +233,8 @@ object NoSolverStateForker : StateForker {
         val result = mutableListOf<T?>()
         for (condition in conditions) {
             val (trueModels, _) = splitModelsByCondition(curState.models, condition)
-
-            val clonedConstraints = curState.pathConstraints.clone()
+            val newOwnership = MutabilityOwnership()
+            val clonedConstraints = curState.pathConstraints.clone(newOwnership)
             clonedConstraints += condition
 
             if (clonedConstraints.isFalse) {
@@ -234,7 +242,7 @@ object NoSolverStateForker : StateForker {
                 continue
             }
 
-            val nextRoot = curState.clone()
+            val nextRoot = curState.clone(newOwnership)
 
             curState.models = trueModels
             // TODO how to reuse "clonedConstraints"?

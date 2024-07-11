@@ -6,6 +6,7 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -148,8 +149,8 @@ open class USolverBase<Type>(
         pop()
     }
 
-    fun emptyModel(): UModelBase<Type> =
-        (check(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
+    fun emptyModel(ownership: MutabilityOwnership): UModelBase<Type> =
+        (check(UPathConstraints(ctx, ownership)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

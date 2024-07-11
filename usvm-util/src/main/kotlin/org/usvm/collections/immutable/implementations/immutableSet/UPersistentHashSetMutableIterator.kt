@@ -5,14 +5,14 @@
 
 package org.usvm.collections.immutable.implementations.immutableSet
 
-internal class PersistentHashSetMutableIterator<E>(private val builder: PersistentHashSetBuilder<E>)
-    : PersistentHashSetIterator<E>(builder.node), MutableIterator<E> {
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+
+internal class UPersistentHashSetMutableIterator<E>(private val node: TrieNode<E>, val owner: MutabilityOwnership)
+    : UPersistentHashSetIterator<E>(node), MutableIterator<E> {
     private var lastIteratedElement: E? = null
     private var nextWasInvoked = false
-    private var expectedModCount = builder.modCount
 
     override fun next(): E {
-        checkForComodification()
         val next = super.next()
         lastIteratedElement = next
         nextWasInvoked = true
@@ -24,15 +24,14 @@ internal class PersistentHashSetMutableIterator<E>(private val builder: Persiste
         if (hasNext()) {
             val currentElement = currentElement()
 
-            builder.remove(lastIteratedElement)
-            resetPath(currentElement.hashCode(), builder.node, currentElement, 0)
+            node.remove(lastIteratedElement!!, owner)
+            resetPath(currentElement.hashCode(), node, currentElement, 0)
         } else {
-            builder.remove(lastIteratedElement)
+            node.remove(lastIteratedElement!!, owner)
         }
 
         lastIteratedElement = null
         nextWasInvoked = false
-        expectedModCount = builder.modCount
     }
 
     private fun resetPath(hashCode: Int, node: TrieNode<*>, element: E, pathIndex: Int) {
@@ -65,10 +64,5 @@ internal class PersistentHashSetMutableIterator<E>(private val builder: Persiste
     private fun checkNextWasInvoked() {
         if (!nextWasInvoked)
             throw IllegalStateException()
-    }
-
-    private fun checkForComodification() {
-        if (builder.modCount != expectedModCount)
-            throw ConcurrentModificationException()
     }
 }

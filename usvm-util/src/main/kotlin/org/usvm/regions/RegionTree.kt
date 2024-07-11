@@ -1,8 +1,8 @@
 package org.usvm.regions
 
 import kotlinx.collections.immutable.PersistentMap
-import org.usvm.collections.immutable.persistentMapOf
-import org.usvm.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 
 /**
  * Region tree is a data structure storing collection of values by abstract regions. You can think, that

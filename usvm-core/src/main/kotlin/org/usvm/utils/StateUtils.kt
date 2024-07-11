@@ -3,6 +3,7 @@ package org.usvm.utils
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UState
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.model.UModelBase
@@ -26,7 +27,7 @@ internal fun <Type> UState<Type, *, *, *, *, *>.isSat(): Boolean {
 
 @Suppress("MoveVariableDeclarationIntoWhen")
 internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(condition: UBoolExpr): State? {
-    val conditionalState = clone()
+    val conditionalState = clone(MutabilityOwnership())
     conditionalState.pathConstraints += condition
 
     // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just

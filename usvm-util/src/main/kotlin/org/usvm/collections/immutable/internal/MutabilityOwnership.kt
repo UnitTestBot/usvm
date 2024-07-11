@@ -10,4 +10,4 @@ package org.usvm.collections.immutable.internal
  *
  * Used to mark persistent data structures, that are owned by a collection builder and can be mutated by it.
  */
-internal class MutabilityOwnership
+class MutabilityOwnership

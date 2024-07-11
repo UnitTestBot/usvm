@@ -27,6 +27,7 @@ import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UFieldsEagerModelRegion
 import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.field.UInputFieldId
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr

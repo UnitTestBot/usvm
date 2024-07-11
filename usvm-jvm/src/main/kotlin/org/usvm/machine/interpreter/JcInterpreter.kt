@@ -48,6 +48,7 @@ import org.usvm.api.mapTypeStream
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
@@ -101,7 +102,8 @@ class JcInterpreter(
     }
 
     fun getInitialState(method: JcMethod, targets: List<JcTarget> = emptyList()): JcState {
-        val state = JcState(ctx, method, targets = UTargetsSet.from(targets))
+        val initOwnership = MutabilityOwnership()
+        val state = JcState(ctx, initOwnership, method, targets = UTargetsSet.from(targets))
         val typedMethod = with(applicationGraph) { method.typed }
 
         val entrypointArguments = mutableListOf<Pair<JcRefType, UHeapRef>>()

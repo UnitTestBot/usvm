@@ -6,6 +6,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeExpr
 import org.usvm.uctx
@@ -36,7 +37,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     type: ArrayType,
     elementSort: Sort,
     sizeSort: USizeSort,
-    contents: Sequence<UExpr<Sort>>
+    contents: Sequence<UExpr<Sort>>,
 ): UConcreteHeapRef = elementSort.uctx.withSizeSort {
     val arrayValues = hashMapOf<UExpr<USizeSort>, UExpr<Sort>>()
     contents.forEachIndexed { idx, value -> arrayValues[mkSizeExpr(idx)] = value }
@@ -89,7 +90,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
         fromSrcIdx = mkSizeExpr(0),
         fromDstIdx = mkSizeExpr(0),
         toDstIdx = contentLength,
-        guard = trueExpr
+        guard = trueExpr,
     )
 
     write(UArrayLengthLValue(ref, type, sizeSort), contentLength, guard = trueExpr)
