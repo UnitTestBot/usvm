@@ -26,24 +26,10 @@ jobs:
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
           settings-path: ${{ github.workspace }} # location for the settings.xml file
 
-      - name: Get short commit hash
-        id: commithash
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Build with Gradle
+      - name: Publish to GitHub Packages
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :usvm-python:usvm-python-runner:build :usvm-python:usvm-python-common:build -Pversion=${{ steps.commithash.outputs.sha_short }}
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # The USERNAME and TOKEN need to correspond to the credentials environment variables used in
-      # the publishing section of your build.gradle
-      - name: Publish usvm-python-runner to GitHub Packages
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: :usvm-python:usvm-python-runner:publishAllPublicationsToGitHubPackagesRepository :usvm-python:usvm-python-common:publishAllPublicationsToGitHubPackagesRepository -Pversion=${{ steps.commithash.outputs.sha_short }}
+          arguments: publishAllPublicationsToGitHubPackagesRepository -Pversion=${{ inputs.version }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
