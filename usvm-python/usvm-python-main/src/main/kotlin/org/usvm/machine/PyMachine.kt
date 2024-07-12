@@ -50,7 +50,6 @@ class PyMachine(
     ): USVMPythonInterpreter<PyObjectRepr> =
         USVMPythonInterpreter(
             ctx,
-            typeSystem,
             pinnedTarget,
             printErrorMsg,
             PythonMachineStatisticsOnFunction(pinnedTarget).also { statistics.functionStatistics.add(it) },

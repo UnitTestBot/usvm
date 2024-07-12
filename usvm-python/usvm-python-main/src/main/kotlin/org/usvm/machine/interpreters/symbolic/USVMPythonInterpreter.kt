@@ -24,7 +24,6 @@ import org.usvm.machine.symbolicobjects.interpretSymbolicPythonObject
 import org.usvm.machine.symbolicobjects.rendering.LengthOverflowException
 import org.usvm.machine.symbolicobjects.rendering.PyValueBuilder
 import org.usvm.machine.symbolicobjects.rendering.PyValueRenderer
-import org.usvm.machine.types.PythonTypeSystem
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.python.model.PyInputModel
 import org.usvm.python.model.PyResultFailure
@@ -34,7 +33,6 @@ import org.usvm.python.model.PyValue
 
 class USVMPythonInterpreter<PyObjectRepr>(
     private val ctx: PyContext,
-    private val typeSystem: PythonTypeSystem,
     private val pinnedCallable: PyPinnedCallable,
     private val printErrorMsg: Boolean,
     private val statistics: PythonMachineStatisticsOnFunction,
