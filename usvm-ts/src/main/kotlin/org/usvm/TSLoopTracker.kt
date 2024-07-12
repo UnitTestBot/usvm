@@ -110,6 +110,9 @@ class TSLoopTracker : StateLoopTracker<TSLoopTracker.LoopInfo, EtsStmt, TSState>
             override val exits: List<Any> get() = error("Should not be used")
             override fun successors(node: Any): Set<Any> = error("Should not be used")
             override fun catchers(node: Any): Set<Any> = error("Should not be used")
+            override fun iterator(): Iterator<Any> {
+                return instructionsWithIterationExit.iterator()
+            }
         }
 
         companion object {

@@ -6,11 +6,7 @@ import org.jacodb.panda.dynamic.ets.model.EtsMethod
 import org.usvm.ps.createPathSelector
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
-import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.CoverageStatistics
-import org.usvm.statistics.StepsStatistics
-import org.usvm.statistics.TimeStatistics
-import org.usvm.statistics.UMachineObserver
+import org.usvm.statistics.*
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
@@ -49,10 +45,6 @@ class TSMachine(
                     project.getMethodBySignature(method.signature)
                 }.toSet() + methods
             }
-
-        val kek = methods.mapNotNull { method ->
-            project.getMethodBySignature(method.signature)
-        }.toSet()
 
         val coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TSState> = CoverageStatistics(
             methodsToTrackCoverage,

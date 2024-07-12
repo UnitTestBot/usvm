@@ -1,7 +1,11 @@
 package org.usvm
 
+import io.ksmt.solver.yices.KYicesSolver
+import io.ksmt.solver.z3.KZ3Solver
+import io.ksmt.symfpu.solver.KSymFpuSolver
 import org.jacodb.panda.dynamic.ets.base.EtsType
 import org.usvm.solver.USolverBase
+import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
 
 class TSComponents(
@@ -17,11 +21,20 @@ class TSComponents(
     }
 
     override fun mkTypeSystem(ctx: UContext<TSSizeSort>): UTypeSystem<EtsType> {
-        TODO("Not yet implemented")
+        return typeSystem
     }
 
     override fun <Context : UContext<TSSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {
-        TODO("Not yet implemented")
+        val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
+        val smtSolver = when (options.solverType) {
+            SolverType.YICES -> KSymFpuSolver(KYicesSolver(ctx), ctx)
+            SolverType.Z3 -> KZ3Solver(ctx)
+        }
+        closeableResources += smtSolver
+
+        val typeSolver = UTypeSolver(typeSystem)
+
+        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
 
     fun close() {

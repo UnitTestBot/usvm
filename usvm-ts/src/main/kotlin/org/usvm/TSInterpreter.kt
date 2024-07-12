@@ -41,6 +41,9 @@ class TSInterpreter(
         }
 
         // TODO: interpreter
+        stmt.nextStmt?.let { nextStmt ->
+            scope.doWithState { newStmt(nextStmt) }
+        }
 
         return scope.stepResult()
     }
@@ -49,7 +52,7 @@ class TSInterpreter(
         val state = TSState(ctx, method, targets = UTargetsSet.from(targets))
 
         with(ctx) {
-            val params = method.parameters.mapIndexed { idx, param ->
+            val params = method.parameters.mapIndexed { idx, _ ->
                 URegisterStackLValue(addressSort, idx)
             }
             val refs = params.map { state.memory.read(it) }
@@ -67,4 +70,7 @@ class TSInterpreter(
 
         return state
     }
+
+    // TODO: expand with interpreter implementation
+    private val EtsStmt.nextStmt get() = applicationGraph.successors(this).firstOrNull()
 }

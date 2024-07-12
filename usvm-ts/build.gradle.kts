@@ -8,6 +8,9 @@ dependencies {
     implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
     implementation("${Versions.jacodbPackage}:jacodb-panda-dynamic:${Versions.jacodb}")
 
+    // For some reason USVM TS won't run without this explicit kotlinx dependency
+    api("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
+
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-symfpu:${Versions.ksmt}")

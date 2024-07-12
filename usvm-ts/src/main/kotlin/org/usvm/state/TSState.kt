@@ -3,11 +3,7 @@ package org.usvm.state
 import org.jacodb.panda.dynamic.ets.base.EtsStmt
 import org.jacodb.panda.dynamic.ets.base.EtsType
 import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.usvm.PathNode
-import org.usvm.TSContext
-import org.usvm.TSTarget
-import org.usvm.UCallStack
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -28,9 +24,22 @@ class TSState(
     ctx, callStack, pathConstraints, memory, models, pathNode, forkPoints, targets
 ) {
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
-        TODO("Not yet implemented")
+        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+
+        return TSState(
+            ctx,
+            entrypoint,
+            callStack.clone(),
+            clonedConstraints,
+            memory.clone(clonedConstraints.typeConstraints),
+            models,
+            pathNode,
+            forkPoints,
+            methodResult,
+            targets.clone(),
+        )
     }
 
     override val isExceptional: Boolean
-        get() = TODO("Not yet implemented")
+        get() = methodResult is TSMethodResult.TSException
 }

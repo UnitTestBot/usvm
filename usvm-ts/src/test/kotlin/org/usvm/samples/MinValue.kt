@@ -10,6 +10,7 @@ class MinValue : TSMethodTestRunner() {
     fun testMinValue() {
         discoverProperties<Any, Any>(
             methodIdentifier = MethodDescriptor(
+                fileName = "MinValue",
                 className = globalClassName,
                 methodName = "findMinValue",
                 argumentsNumber = 1

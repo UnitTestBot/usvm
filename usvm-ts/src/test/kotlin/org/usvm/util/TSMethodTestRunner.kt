@@ -1,18 +1,16 @@
 package org.usvm.util
 
+import org.jacodb.panda.dynamic.ets.base.EtsAnyType
 import org.jacodb.panda.dynamic.ets.base.EtsType
 import org.jacodb.panda.dynamic.ets.dto.EtsFileDto
 import org.jacodb.panda.dynamic.ets.dto.convertToEtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsClassSignature
 import org.jacodb.panda.dynamic.ets.model.EtsFile
 import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.jacodb.panda.dynamic.ets.model.EtsMethodSignature
-import org.usvm.TSMachine
-import org.usvm.TSMethodCoverage
-import org.usvm.TSTest
-import org.usvm.UMachineOptions
+import org.usvm.*
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
 
@@ -119,15 +117,15 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     override val typeTransformer: (Any?) -> EtsType
-        get() = TODO()
+        get() = {_ -> EtsAnyType} // TODO("Not yet implemented")
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
     override val checkType: (EtsType?, EtsType?) -> Boolean
-        get() = TODO()
+        get() = { expected, actual -> true } // TODO("Not yet implemented")
 
-    private fun getProject(className: String): EtsFile {
-        val jsonWithoutExtension = "/ir/${className}.json"
-        val sampleFilePath = javaClass.getResource(jsonWithoutExtension)?.path
+    private fun getProject(fileName: String): EtsFile {
+        val jsonWithoutExtension = "/ir/${fileName}.json"
+        val sampleFilePath = javaClass.getResourceAsStream(jsonWithoutExtension)
             ?: error("Resource not found: $jsonWithoutExtension")
 
         val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
@@ -145,7 +143,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>
         get() = { id, options ->
-            val project = getProject(id.className)
+            val project = getProject(id.fileName)
             val method = project.getMethodByDescriptor(id)
 
             TSMachine(project, options).use { machine ->
@@ -157,12 +155,23 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             }
         }
 
-    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = TODO()
+    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = { _ ->
+        TSMethodCoverage() // TODO("Not yet implemented")
+    }
 
-    override var options: UMachineOptions = TODO()
+    override var options: UMachineOptions = UMachineOptions(
+        pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
+//        loopIterationLimit = 20,
+        exceptionsPropagation = true,
+        timeout = 60_000.milliseconds,
+        stepsFromLastCovered = 3500L,
+        solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
+        typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
+    )
 }
 
 data class MethodDescriptor(
+    val fileName: String,
     val className: String,
     val methodName: String,
     val argumentsNumber: Int,
