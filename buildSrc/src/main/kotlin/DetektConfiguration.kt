@@ -79,6 +79,6 @@ fun Project.configureDetekt() {
     }
 
     tasks.named("check").configure {
-        setDependsOn(dependsOn.filter { it is TaskProvider<*> && it.name != "detekt" })
+        setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name == "detekt" })
     }
 }
