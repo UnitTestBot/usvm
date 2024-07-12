@@ -61,62 +61,84 @@ class PyModel(
 
     @Suppress("UNCHECKED_CAST")
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort> {
-        if (regionId is UArrayRegionId<*, *, *> &&
-            regionId.sort == ctx.addressSort &&
-            regionId.arrayType == ArrayType
-        ) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>
-            return WrappedArrayIndexRegion(region, this, ctx, nullRef) as UReadOnlyMemoryRegion<Key, Sort>
+        val region = super.getRegion(regionId)
+
+        return when {
+            regionId is UArrayRegionId<*, *, *> &&
+                regionId.sort == ctx.addressSort &&
+                regionId.arrayType == ArrayType
+            -> {
+                WrappedArrayIndexRegion(
+                    region as UReadOnlyMemoryRegion<UArrayIndexLValue<Any, Sort, KIntSort>, UAddressSort>,
+                    this,
+                    ctx,
+                    nullRef
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is UArrayLengthsRegionId<*, *> &&
+                regionId.sort == ctx.intSort &&
+                regionId.arrayType == ArrayType
+            -> {
+                WrappedArrayLengthRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType -> {
+                WrappedRefSetRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>,
+                    psInfo.setRefKeys
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is URefSetRegionId<*> && regionId.setType == RefDictType -> {
+                WrappedRefSetRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>,
+                    psInfo.setRefKeys
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType -> {
+                WrappedSetRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<USetEntryLValue<IntDictType, KIntSort, USizeRegion>, UBoolSort>,
+                    psInfo.setIntKeys
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is URefSetRegionId<*> && regionId.setType == RefSetType -> {
+                WrappedRefSetRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<URefSetEntryLValue<RefSetType>, UBoolSort>,
+                    psInfo.setRefKeys
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is USetRegionId<*, *, *> && regionId.setType == IntSetType -> {
+                WrappedSetRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<USetEntryLValue<IntSetType, KIntSort, USizeRegion>, UBoolSort>,
+                    psInfo.setIntKeys
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            regionId is URefMapRegionId<*, *> && regionId.mapType == ObjectDictType -> {
+                WrappedRefMapRegion(
+                    ctx,
+                    region as UReadOnlyMemoryRegion<URefMapEntryLValue<ObjectDictType, UAddressSort>, UAddressSort>,
+                    psInfo.setRefKeys,
+                    underlyingModel
+                ) as UReadOnlyMemoryRegion<Key, Sort>
+            }
+
+            else -> {
+                region
+            }
         }
-        if (regionId is UArrayLengthsRegionId<*, *> && regionId.sort == ctx.intSort &&
-            regionId.arrayType == ArrayType
-        ) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, KIntSort>, KIntSort>
-            return WrappedArrayLengthRegion(ctx, region) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is URefSetRegionId<*> && regionId.setType == ObjectDictType) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<URefSetEntryLValue<ObjectDictType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys)
-                as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is URefSetRegionId<*> && regionId.setType == RefDictType) {
-            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefDictType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is USetRegionId<*, *, *> && regionId.setType == IntDictType) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<USetEntryLValue<IntDictType, KIntSort, USizeRegion>, UBoolSort>
-            return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is URefSetRegionId<*> && regionId.setType == RefSetType) {
-            val region = super.getRegion(regionId) as UReadOnlyMemoryRegion<URefSetEntryLValue<RefSetType>, UBoolSort>
-            return WrappedRefSetRegion(ctx, region, psInfo.setRefKeys) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is USetRegionId<*, *, *> && regionId.setType == IntSetType) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<USetEntryLValue<IntSetType, KIntSort, USizeRegion>, UBoolSort>
-            return WrappedSetRegion(ctx, region, psInfo.setIntKeys) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        if (regionId is URefMapRegionId<*, *> && regionId.mapType == ObjectDictType) {
-            val region = super.getRegion(
-                regionId
-            ) as UReadOnlyMemoryRegion<URefMapEntryLValue<ObjectDictType, UAddressSort>, UAddressSort>
-            return WrappedRefMapRegion(
-                ctx,
-                region,
-                psInfo.setRefKeys,
-                underlyingModel
-            ) as UReadOnlyMemoryRegion<Key, Sort>
-        }
-        return super.getRegion(regionId)
     }
 
     override fun equals(other: Any?): Boolean {

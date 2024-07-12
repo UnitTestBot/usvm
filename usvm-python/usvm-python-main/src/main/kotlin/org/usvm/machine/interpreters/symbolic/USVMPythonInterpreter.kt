@@ -253,7 +253,6 @@ class USVMPythonInterpreter<PyObjectRepr>(
             state,
             ctx,
             modelHolder,
-            typeSystem,
             allowPathDiversion,
             statistics,
             maxInstructions,
