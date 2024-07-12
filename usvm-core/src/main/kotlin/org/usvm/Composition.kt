@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.api.readString
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
@@ -43,14 +44,16 @@ import org.usvm.collection.string.UStringReverseExpr
 import org.usvm.collection.string.UStringSliceExpr
 import org.usvm.collection.string.UStringToLowerExpr
 import org.usvm.collection.string.UStringToUpperExpr
+import org.usvm.collection.string.concatStrings
+import org.usvm.collection.string.getHashCode
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Type, USizeSort : USort>(
-    ctx: UContext<USizeSort>,
-    val memory: UReadOnlyMemory<Type>
+    override val ctx: UContext<USizeSort>,
+    internal val memory: UReadOnlyMemory<Type>
 ) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 
@@ -151,24 +154,24 @@ open class UComposer<Type, USizeSort : USort>(
 
     override fun transform(expr: UStringLiteralExpr): UStringExpr = expr
 
-    override fun transform(expr: UStringFromLanguageExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringFromLanguageExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.ref) { ref ->
+            memory.readString(ref)
+        }
 
     override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr =
         TODO()
 
-    override fun transform(expr: UStringConcatExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
 
-    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-//
-//    override fun transform(expr: UStringEqExpr): UBoolExpr {
-//        TODO("Not yet implemented")
-//    }
+    override fun transform(expr: UStringConcatExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.left, expr.right) { left, right ->
+            memory.concatStrings<Type, USizeSort>(left, right)
+        }
+
+    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> =
+        transformExprAfterTransformed(expr, expr.string) { string ->
+            getHashCode(ctx, string)
+        }
 
     override fun transform(expr: UStringLtExpr): UBoolExpr {
         TODO("Not yet implemented")

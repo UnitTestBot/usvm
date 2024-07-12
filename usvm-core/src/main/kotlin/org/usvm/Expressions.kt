@@ -1,11 +1,15 @@
 package org.usvm
 
+import io.ksmt.KContext
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
+import io.ksmt.decl.KBitVecValueDecl
 import io.ksmt.decl.KConstDecl
+import io.ksmt.decl.KDeclVisitor
 import io.ksmt.expr.KAndExpr
 import io.ksmt.expr.KApp
 import io.ksmt.expr.KBitVec16Value
+import io.ksmt.expr.KBitVecNumberValue
 import io.ksmt.expr.KEqExpr
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFalse
@@ -315,6 +319,41 @@ class UIsSupertypeExpr<Type> internal constructor(
     override fun internEquals(other: Any): Boolean = structurallyEqual(other, { ref }, { subtype })
 
     override fun internHashCode(): Int = hash(ref, subtype)
+}
+
+//endregion
+
+//region Hash Code Expressions
+
+interface UHashCodeExpression<Object> {
+    fun mkEq(ctx: UContext<*>, other: UHashCodeExpression<Object>): UBoolExpr
+
+    fun printHashedObject(expressionPrinter: ExpressionPrinter)
+}
+
+abstract class UConcreteBv32HashCodeExpr<Object> internal constructor(
+    ctx: UContext<UBv32Sort>,
+    override val numberValue: Int
+): KBitVecNumberValue<UBv32Sort, Int>(ctx), UHashCodeExpression<Object> {
+    override val sort = ctx.bv32Sort
+}
+
+abstract class UConcreteIntHashCodeExpr<Object> internal constructor(
+    ctx: UContext<KIntSort>,
+    override val numberValue: Int
+): KBitVecNumberValue<UBv32Sort, Int>(ctx), UHashCodeExpression<Object> {
+    override val sort = ctx.bv32Sort
+}
+
+abstract class UHashCodeExpr<USizeSort: USort, Object> internal constructor(
+    ctx: UContext<USizeSort>,
+    override val sort: USizeSort
+): UExpr<USizeSort>(ctx), UHashCodeExpression<Object> {
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("(hash ")
+        printHashedObject(printer)
+        printer.append(")")
+    }
 }
 
 //endregion

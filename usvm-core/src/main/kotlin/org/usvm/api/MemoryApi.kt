@@ -196,6 +196,9 @@ fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<US
 fun <USizeSort : USort> UReadOnlyMemory<*>.stringLength(ref: UHeapRef): UExpr<USizeSort> =
     mapString(ref) { org.usvm.collection.string.getLength(ctx.withSizeSort(), it) }
 
+fun <USizeSort: USort> UReadOnlyMemory<*>.getHashCode(ref: UHeapRef): UExpr<USizeSort> =
+    mapString(ref) { org.usvm.collection.string.getHashCode(ctx.withSizeSort(), it) }
+
 /**
  * Allocates new string, which is the result of concatenation of [left] and [right].
  */
