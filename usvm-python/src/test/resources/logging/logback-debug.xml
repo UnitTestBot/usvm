@@ -1,0 +1,22 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--        Refer to this to choose your pattern: https://logback.qos.ch/manual/layouts.html -->
+            <pattern>%d{HH:mm:ss.SSS} |%.-1level| %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDOUT-raw" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.usvm.runner.manual.ManualTestKt" additivity='false'>
+        <appender-ref ref="STDOUT-raw" />
+    </logger>
+
+    <root level="debug">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

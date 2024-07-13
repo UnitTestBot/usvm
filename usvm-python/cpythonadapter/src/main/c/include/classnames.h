@@ -1,0 +1,5 @@
+#define symbol_for_cpython_cls "org/usvm/machine/interpreters/concrete/utils/SymbolForCPython"
+#define symbol_for_cpython_cls_sig "Lorg/usvm/machine/interpreters/concrete/utils/SymbolForCPython;"
+#define virtual_object_cls "org/usvm/machine/interpreters/concrete/utils/VirtualPythonObject"
+#define named_symbol_for_cpython_cls "org/usvm/machine/interpreters/concrete/utils/NamedSymbolForCPython"
+#define member_descriptor_sig "Lorg/usvm/machine/interpreters/symbolic/operations/descriptors/MemberDescriptor;"
