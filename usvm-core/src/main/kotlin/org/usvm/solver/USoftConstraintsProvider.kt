@@ -65,7 +65,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
 ) : UTransformer<Type, USizeSort> {
     // We have a list here since sometimes we want to add several soft constraints
     // to make it possible to drop only a part of them, not the whole soft constraint
-    private val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
+    protected val caches = hashMapOf<UExpr<*>, Set<UBoolExpr>>()
     private val sortPreferredValuesProvider = SortPreferredValuesProvider()
 
     fun makeSoftConstraints(pathConstraints: UPathConstraints<Type>): Set<UBoolExpr> {
@@ -248,7 +248,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
 
     // endregion
 
-    private inline fun <T : USort> computeSideEffect(
+    protected inline fun <T : USort> computeSideEffect(
         expr: UExpr<T>,
         operationWithSideEffect: () -> Unit,
     ): UExpr<T> {

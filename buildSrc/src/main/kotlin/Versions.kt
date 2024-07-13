@@ -22,4 +22,7 @@ object Versions {
     const val ini4j = "0.5.4"
 
     const val sarif4k = "0.5.0"
+
+    const val pythonTypesAPIHash = "139b81d"
+    const val utbotMypyRunner = "0.2.17"
 }
