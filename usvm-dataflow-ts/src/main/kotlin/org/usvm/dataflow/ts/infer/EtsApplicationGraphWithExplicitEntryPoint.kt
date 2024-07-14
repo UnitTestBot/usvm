@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
+import mu.KotlinLogging
 import org.jacodb.api.common.CommonProject
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.panda.dynamic.ets.base.EtsInstLocation
@@ -8,6 +9,8 @@ import org.jacodb.panda.dynamic.ets.base.EtsStmt
 import org.jacodb.panda.dynamic.ets.graph.EtsApplicationGraph
 import org.jacodb.panda.dynamic.ets.model.EtsMethod
 import org.jacodb.panda.dynamic.ets.utils.callExpr
+
+private val logger = KotlinLogging.logger {}
 
 class EtsApplicationGraphWithExplicitEntryPoint(
     private val graph: EtsApplicationGraph,
@@ -31,7 +34,7 @@ class EtsApplicationGraphWithExplicitEntryPoint(
 
         val callExpr = node.callExpr
         if (callees.isEmpty() && callExpr != null) {
-            System.err.println("No methods found for: $node")
+            logger.info { "No methods found for: $node" }
         }
 
         return callees.asSequence()

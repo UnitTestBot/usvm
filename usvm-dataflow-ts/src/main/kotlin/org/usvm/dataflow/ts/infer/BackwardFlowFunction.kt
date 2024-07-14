@@ -2,6 +2,7 @@ package org.usvm.dataflow.ts.infer
 
 import analysis.type.EtsTypeFact
 import analysis.type.withGuard
+import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.jacodb.panda.dynamic.ets.base.BinaryOp
@@ -23,11 +24,10 @@ import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.Maybe
-import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
-import org.usvm.dataflow.ts.infer.toBase
-import org.usvm.dataflow.ts.infer.toPath
+
+private val logger = KotlinLogging.logger {}
 
 class BackwardFlowFunction(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
@@ -190,7 +190,7 @@ class BackwardFlowFunction(
                 is EtsRef -> r.toPath()
                 is EtsLValue -> r.toPath()
                 else -> {
-                    System.err.println("TODO backward assign zero: $current")
+                    logger.info { "TODO backward assign zero: $current" }
                     null
                 }
             }
@@ -229,7 +229,7 @@ class BackwardFlowFunction(
             is EtsRef -> r.toPath()
             is EtsLValue -> r.toPath()
             else -> {
-                System.err.println("TODO backward assign: $current")
+                logger.info { "TODO backward assign: $current" }
                 return listOf(fact)
             }
         }

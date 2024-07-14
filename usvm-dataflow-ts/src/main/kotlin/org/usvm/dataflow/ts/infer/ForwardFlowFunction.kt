@@ -1,6 +1,7 @@
 package org.usvm.dataflow.ts.infer
 
 import analysis.type.EtsTypeFact
+import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.panda.dynamic.ets.base.EtsAssignStmt
 import org.jacodb.panda.dynamic.ets.base.EtsInstanceCallExpr
@@ -18,6 +19,8 @@ import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
+
+private val logger = KotlinLogging.logger {}
 
 class ForwardFlowFunction(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
@@ -101,7 +104,7 @@ class ForwardFlowFunction(
             }
 
             else -> {
-                System.err.println("TODO: forward assign $current")
+                logger.info { "TODO: forward assign $current" }
             }
         }
 
@@ -117,7 +120,7 @@ class ForwardFlowFunction(
             is EtsRef -> r.toPath()
             is EtsLValue -> r.toPath()
             else -> {
-                System.err.println("TODO forward assign: $current")
+                logger.info { "TODO forward assign: $current" }
                 null
             }
         }
