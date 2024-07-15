@@ -44,7 +44,7 @@ private val logger = mu.KotlinLogging.logger {}
 
 class EtsIfdsTest {
 
-    companion object : EtsTraits {
+    companion object {
         private fun loadEtsFile(name: String): EtsFile {
             val path = "ir/$name.json"
             val stream = object {}::class.java.getResourceAsStream("/$path")
@@ -101,11 +101,13 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = TaintManager(
-            graph = graph,
-            unitResolver = unitResolver,
-            getConfigForMethod = getConfigForMethod,
-        )
+        val manager = with(EtsTraits) {
+            TaintManager(
+                graph = graph,
+                unitResolver = unitResolver,
+                getConfigForMethod = getConfigForMethod,
+            )
+        }
 
         val methods = etsFile.classes.flatMap { it.methods }.filter { it.name == "bad" }
         logger.info { "Methods: ${methods.size}" }

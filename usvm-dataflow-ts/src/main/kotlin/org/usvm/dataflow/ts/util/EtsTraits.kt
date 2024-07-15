@@ -17,8 +17,6 @@
 package org.usvm.dataflow.ts.util
 
 import org.jacodb.api.common.CommonMethodParameter
-import org.jacodb.api.common.CommonProject
-import org.jacodb.api.common.cfg.CommonArgument
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallExpr
 import org.jacodb.api.common.cfg.CommonExpr
@@ -26,16 +24,21 @@ import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
+import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCallExpr
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsConstant
 import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsImmediate
 import org.jacodb.ets.base.EtsInstanceFieldRef
+import org.jacodb.ets.base.EtsNewArrayExpr
+import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsValue
@@ -43,143 +46,176 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.utils.callExpr
+import org.jacodb.ets.utils.getOperands
+import org.jacodb.ets.utils.getValues
+import org.jacodb.taint.configuration.ConstantBooleanValue
+import org.jacodb.taint.configuration.ConstantIntValue
+import org.jacodb.taint.configuration.ConstantStringValue
 import org.jacodb.taint.configuration.ConstantValue
 import org.jacodb.taint.configuration.TypeMatches
 import org.usvm.dataflow.ifds.AccessPath
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
-import org.usvm.dataflow.ts.util.toPathOrNull
 import org.usvm.dataflow.util.Traits
-import org.jacodb.ets.utils.getOperands as _getOperands
-import org.jacodb.ets.utils.getValues as _getValues
-import org.usvm.dataflow.ts.util.toPath as _toPath
-import org.usvm.dataflow.ts.util.toPathOrNull as _toPathOrNull
+
+const val CONSTRUCTOR = "constructor"
 
 /**
  * ETS-specific extensions for analysis.
- *
- * ### Usage:
- * ```
- * class MyClass {
- *     companion object : EtsTraits
- * }
- * ```
  */
-interface EtsTraits : Traits<EtsMethod, EtsStmt> {
+object EtsTraits : Traits<EtsMethod, EtsStmt> {
 
-    // Ensure that all methods are default-implemented in the interface itself:
-    companion object : EtsTraits
-
-    override val CommonCallExpr.callee: EtsMethod
-        get() {
-            check(this is EtsCallExpr)
-            // return cp.getMethodBySignature(method) ?: error("Method not found: $method")
-            return EtsMethodImpl(method)
-        }
-
-    override val EtsMethod.thisInstance: EtsThis
-        get() = EtsThis(EtsClassType(enclosingClass))
-
-    override val EtsMethod.isConstructor: Boolean
-        get() = false
-
-    override fun CommonExpr.toPathOrNull(): AccessPath? {
-        check(this is EtsEntity)
-        return this._toPathOrNull()
+    override fun convertToPathOrNull(expr: CommonExpr): AccessPath? {
+        check(expr is EtsEntity)
+        return expr.toPathOrNull()
     }
 
-    override fun CommonValue.toPathOrNull(): AccessPath? {
-        check(this is EtsValue)
-        return this._toPathOrNull()
+    override fun convertToPathOrNull(value: CommonValue): AccessPath? {
+        check(value is EtsEntity)
+        return value.toPathOrNull()
     }
 
-    override fun CommonValue.toPath(): AccessPath {
-        check(this is EtsValue)
-        return this._toPath()
+    override fun convertToPath(value: CommonValue): AccessPath {
+        check(value is EtsEntity)
+        return value.toPath()
     }
 
-    override fun CommonProject.getArgument(param: CommonMethodParameter): EtsParameterRef {
+    override fun getThisInstance(method: EtsMethod): EtsThis {
+        return EtsThis(EtsClassType(method.enclosingClass))
+    }
+
+    override fun getArgument(param: CommonMethodParameter): EtsParameterRef {
         check(param is EtsMethodParameter)
         return EtsParameterRef(index = param.index, type = param.type)
     }
 
-    override fun CommonProject.getArgumentsOf(method: EtsMethod): List<CommonArgument> {
+    override fun getArgumentsOf(method: EtsMethod): List<EtsParameterRef> {
         return method.parameters.map { getArgument(it) }
     }
 
-    override fun CommonValue.isConstant(): Boolean {
-        check(this is EtsEntity)
-        return this is EtsConstant
+    override fun getCallee(callExpr: CommonCallExpr): EtsMethod {
+        check(callExpr is EtsCallExpr)
+        return EtsMethodImpl(callExpr.method)
     }
 
-    override fun CommonValue.eqConstant(constant: ConstantValue): Boolean {
-        TODO("Not yet implemented")
+    override fun getCallExpr(statement: EtsStmt): EtsCallExpr? {
+        return statement.callExpr
     }
 
-    override fun CommonValue.ltConstant(constant: ConstantValue): Boolean {
-        TODO("Not yet implemented")
+    override fun getValues(expr: CommonExpr): Set<CommonValue> {
+        check(expr is EtsEntity)
+        return expr.getValues().toSet()
     }
 
-    override fun CommonValue.gtConstant(constant: ConstantValue): Boolean {
-        TODO("Not yet implemented")
+    override fun getOperands(statement: EtsStmt): List<CommonExpr> {
+        return statement.getOperands().toList()
     }
 
-    override fun CommonValue.matches(pattern: String): Boolean {
-        TODO("Not yet implemented")
+    override fun getArrayAllocation(statement: EtsStmt): EtsEntity? {
+        if (statement !is EtsAssignStmt) return null
+        return statement.rhv as? EtsNewArrayExpr
     }
 
-    override fun EtsStmt.getCallExpr(): EtsCallExpr? {
-        return callExpr
+    override fun getArrayAccessIndex(statement: EtsStmt): EtsValue? {
+        if (statement !is EtsAssignStmt) return null
+
+        val lhv = statement.lhv
+        if (lhv is EtsArrayAccess) return lhv.index
+
+        val rhv = statement.rhv
+        if (rhv is EtsArrayAccess) return rhv.index
+
+        return null
     }
 
-    override fun CommonExpr.getValues(): Set<EtsValue> {
-        check(this is EtsEntity)
-        return _getValues().toSet()
+    override fun getBranchExprCondition(statement: EtsStmt): EtsEntity? {
+        if (statement !is EtsIfStmt) return null
+        return statement.condition
     }
 
-    override fun EtsStmt.getOperands(): List<EtsEntity> {
-        return _getOperands().toList()
+    override fun isConstant(value: CommonValue): Boolean {
+        check(value is EtsValue)
+        return value is EtsConstant
     }
 
-    override fun EtsStmt.getBranchExprCondition(): EtsEntity {
-        TODO("Not yet implemented")
-    }
+    override fun eqConstant(value: CommonValue, constant: ConstantValue): Boolean {
+        check(value is EtsValue)
+        return when (constant) {
+            is ConstantBooleanValue -> {
+                value is EtsBooleanConstant && value.value == constant.value
+            }
 
-    override fun EtsStmt.getArrayAllocation(): EtsEntity {
-        TODO("Not yet implemented")
-    }
+            is ConstantIntValue -> {
+                value is EtsNumberConstant && value.value == constant.value.toDouble()
+            }
 
-    override fun EtsStmt.getArrayAccessIndex(): EtsValue {
-        TODO("Not yet implemented")
-    }
-
-    override fun EtsStmt.isLoopHead(): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    override fun EtsStmt.lineNumber(): Int? {
-        TODO("Not yet implemented")
-    }
-
-    override fun EtsStmt.locationFQN(): String? {
-        TODO("Not yet implemented")
-    }
-
-    override fun CommonValue.typeMatches(condition: TypeMatches): Boolean {
-        check(this is EtsValue)
-        TODO("Not yet implemented")
-    }
-
-    override fun CommonAssignInst.taintFlowRhsValues(): List<EtsEntity> {
-        check(this is EtsAssignStmt)
-        return when (val rhv = rhv) {
-            is EtsBinaryExpr -> listOf(rhv.left, rhv.right)
-            is EtsUnaryExpr -> listOf(rhv.arg)
-            else -> listOf(rhv) // FIXME: ???
+            is ConstantStringValue -> {
+                value is EtsStringConstant && value.value == constant.value
+            }
         }
     }
 
-    override fun EtsStmt.taintPassThrough(): List<Pair<EtsValue, EtsValue>>? {
+    override fun ltConstant(value: CommonValue, constant: ConstantValue): Boolean {
+        check(value is EtsValue)
+        return when (constant) {
+            is ConstantIntValue -> {
+                value is EtsNumberConstant && value.value < constant.value.toDouble()
+            }
+
+            else -> error("Unexpected constant: $constant")
+        }
+    }
+
+    override fun gtConstant(value: CommonValue, constant: ConstantValue): Boolean {
+        check(value is EtsValue)
+        return when (constant) {
+            is ConstantIntValue -> {
+                value is EtsNumberConstant && value.value > constant.value.toDouble()
+            }
+
+            else -> error("Unexpected constant: $constant")
+        }
+    }
+
+    override fun matches(value: CommonValue, pattern: String): Boolean {
+        check(value is EtsValue)
+        val s = value.toString()
+        val re = pattern.toRegex()
+        return re.matches(s)
+    }
+
+    override fun typeMatches(value: CommonValue, condition: TypeMatches): Boolean {
+        check(value is EtsValue)
+        TODO("Not yet implemented")
+    }
+
+    override fun isConstructor(method: EtsMethod): Boolean {
+        return method.name == CONSTRUCTOR
+    }
+
+    override fun isLoopHead(statement: EtsStmt): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun lineNumber(statement: EtsStmt): Int {
+        TODO("Not yet implemented")
+    }
+
+    override fun locationFQN(statement: EtsStmt): String {
+        TODO("Not yet implemented")
+    }
+
+    override fun taintFlowRhsValues(statement: CommonAssignInst): List<EtsEntity> {
+        check(statement is EtsAssignStmt)
+        return when (val rhv = statement.rhv) {
+            is EtsBinaryExpr -> listOf(rhv.left, rhv.right)
+            is EtsUnaryExpr -> listOf(rhv.arg)
+            is EtsCastExpr -> listOf(rhv.arg)
+            else -> listOf(rhv)
+        }
+    }
+
+    override fun taintPassThrough(statement: EtsStmt): List<Pair<EtsValue, EtsValue>>? {
         return null
     }
 }

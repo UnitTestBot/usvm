@@ -1,7 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.api.common.CommonProject
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsInstLocation
 import org.jacodb.ets.base.EtsNopStmt
@@ -15,8 +14,6 @@ private val logger = KotlinLogging.logger {}
 class EtsApplicationGraphWithExplicitEntryPoint(
     private val graph: EtsApplicationGraph,
 ): ApplicationGraph<EtsMethod, EtsStmt> {
-    override val project: CommonProject
-        get() = graph.project
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
 

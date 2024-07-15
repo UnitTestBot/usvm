@@ -11,7 +11,7 @@ import org.usvm.dataflow.ts.util.EtsTraits
 
 class EtsTypeInferenceTest {
 
-    companion object : EtsTraits {
+    companion object {
         private fun loadArkFile(name: String): EtsFile {
             val path = "ir/$name.ts.json"
             val stream = object {}::class.java.getResourceAsStream("/$path")
@@ -34,7 +34,9 @@ class EtsTypeInferenceTest {
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
 
-        val manager = TypeInferenceManager(graphWithExplicitEntryPoint)
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
         manager.analyze(entrypoints)
     }
 }

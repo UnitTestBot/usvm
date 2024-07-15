@@ -19,7 +19,6 @@
 package org.usvm.dataflow.graph
 
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.CommonProject
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonInst
 
@@ -28,9 +27,6 @@ private class BackwardApplicationGraphImpl<Method, Statement>(
 ) : ApplicationGraph<Method, Statement>
     where Method : CommonMethod,
           Statement : CommonInst {
-
-    override val project: CommonProject
-        get() = forward.project
 
     override fun predecessors(node: Statement) = forward.successors(node)
     override fun successors(node: Statement) = forward.predecessors(node)

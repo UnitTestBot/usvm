@@ -16,44 +16,43 @@
 
 package org.usvm.dataflow.jvm.npe
 
-import org.usvm.dataflow.ifds.AccessPath
-import org.usvm.dataflow.ifds.minus
-import org.usvm.dataflow.util.Traits
-import org.usvm.dataflow.util.startsWith
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.cfg.CommonExpr
-import org.jacodb.api.common.cfg.CommonInst
+import org.jacodb.api.jvm.cfg.JcExpr
+import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcInstanceCallExpr
 import org.jacodb.api.jvm.cfg.JcLengthExpr
+import org.jacodb.api.jvm.cfg.values
+import org.usvm.dataflow.ifds.AccessPath
+import org.usvm.dataflow.ifds.minus
+import org.usvm.dataflow.jvm.util.JcTraits
+import org.usvm.dataflow.util.startsWith
 
-context(Traits<CommonMethod, CommonInst>)
-internal fun AccessPath?.isDereferencedAt(expr: CommonExpr): Boolean {
+context(JcTraits)
+internal fun AccessPath?.isDereferencedAt(expr: JcExpr): Boolean {
     if (this == null) {
         return false
     }
 
     if (expr is JcInstanceCallExpr) {
-        val instancePath = expr.instance.toPathOrNull()
+        val instancePath = convertToPathOrNull(expr.instance)
         if (instancePath.startsWith(this)) {
             return true
         }
     }
 
     if (expr is JcLengthExpr) {
-        val arrayPath = expr.array.toPathOrNull()
+        val arrayPath = convertToPathOrNull(expr.array)
         if (arrayPath.startsWith(this)) {
             return true
         }
     }
 
-    return expr
-        .getValues()
-        .mapNotNull { it.toPathOrNull() }
+    return expr.values
+        .mapNotNull { convertToPathOrNull(it) }
         .any { (it - this)?.isNotEmpty() == true }
 }
 
-context(Traits<CommonMethod, CommonInst>)
-internal fun AccessPath?.isDereferencedAt(inst: CommonInst): Boolean {
+context(JcTraits)
+internal fun AccessPath?.isDereferencedAt(inst: JcInst): Boolean {
     if (this == null) return false
-    return inst.getOperands().any { isDereferencedAt(it) }
+    return inst.operands.any { isDereferencedAt(it) }
 }
