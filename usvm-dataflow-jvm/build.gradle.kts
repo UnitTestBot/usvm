@@ -36,9 +36,7 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + listOf(
-            "-Xcontext-receivers",
-        )
+        freeCompilerArgs += "-Xcontext-receivers"
     }
 }
 
