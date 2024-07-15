@@ -80,6 +80,9 @@ class UStringFromArrayExpr<ArrayType, USizeSort: USort> internal constructor(
         printer.append(content.toString())
         printer.append(")")
     }
+
+    val contentAddress = content.collectionId.address
+    val contentRef = uctx.mkConcreteHeapRef(contentAddress)
 }
 
 class UStringFromLanguageExpr internal constructor(

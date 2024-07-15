@@ -175,12 +175,12 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * Applies this collection to the [memory], with applying composition via [composer] to the updates. May filter out
      * updates, which are irrelevant for the [key] reading.
      */
-    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key, composer: UComposer<*, *>) {
+    fun <Type> applyTo(memory: UWritableMemory<Type>, key: Key?, composer: UComposer<*, *>) {
         // Apply each update on the copy
         for (update in updates) {
             val guard = composer.compose(update.guard)
 
-            if (guard.isFalse || update.includesSymbolically(key, composer).isFalse) {
+            if (guard.isFalse || (key != null && update.includesSymbolically(key, composer).isFalse)) {
                 continue
             }
 
@@ -200,9 +200,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     }
 
     /**
-     * @return Symbolic collection which obtained from this one by overwriting the range of addresses [[fromKey] : [toKey]]
-     * with values from collection [fromCollection] read from range
-     * of addresses [[keyConverter].convert([fromKey]) : [keyConverter].convert([toKey])]
+     * @return Symbolic collection which obtained from this one by overwriting the range of addresses
+     * with values from collection [fromCollection].
      */
     fun <OtherCollectionId : USymbolicCollectionId<SrcKey, Sort, OtherCollectionId>, SrcKey> copyRange(
         fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, Sort>,
@@ -236,8 +235,8 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
     }
 
     /**
-     * @return [expr] guarded by this guard builder. Implementation uses [UContext.mkAnd] without flattening, because we accumulate
-     * [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
+     * @return [expr] guarded by this guard builder. Implementation uses [org.usvm.UContext.mkAnd] without flattening,
+     * because we accumulate [nonMatchingUpdatesGuard] and otherwise it would take quadratic time.
      */
     fun guarded(expr: UBoolExpr): UBoolExpr = expr.ctx.mkAnd(nonMatchingUpdatesGuard, expr, flat = false)
 

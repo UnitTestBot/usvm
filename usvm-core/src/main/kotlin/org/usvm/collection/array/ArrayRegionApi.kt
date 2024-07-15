@@ -1,7 +1,6 @@
 package org.usvm.collection.array
 
 import org.usvm.UBoolExpr
-import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -70,16 +69,6 @@ internal fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateA
     write(lengthRegionRef, length, guard = length.uctx.trueExpr)
 
     return address
-}
-
-internal fun <ArrayType, USizeSort : USort, ElementSort: USort> UWritableMemory<ArrayType>.getAllocatedArray(
-    type: ArrayType,
-    sort: ElementSort,
-    ref: UHeapRef
-): UAllocatedArray<ArrayType, ElementSort, USizeSort> {
-    when (ref) {
-        is UConcreteHeapRef ->
-    }
 }
 
 internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.memset(
