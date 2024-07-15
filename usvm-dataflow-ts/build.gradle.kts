@@ -8,7 +8,7 @@ dependencies {
     api(project(":usvm-dataflow"))
 
     api("${Versions.jacodbPackage}:jacodb-api-common:${Versions.jacodb}")
-    api("${Versions.jacodbPackage}:jacodb-panda-dynamic:${Versions.jacodb}")
+    api("${Versions.jacodbPackage}:jacodb-ets:${Versions.jacodb}")
     implementation("${Versions.jacodbPackage}:jacodb-taint-configuration:${Versions.jacodb}")
 
     testImplementation("io.mockk:mockk:${Versions.mockk}")

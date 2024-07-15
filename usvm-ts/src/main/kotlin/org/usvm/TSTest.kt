@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsStmt
 
 class TSTest(
     val parameters: List<Any>,

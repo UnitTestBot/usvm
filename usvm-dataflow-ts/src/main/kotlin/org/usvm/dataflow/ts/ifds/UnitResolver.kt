@@ -16,8 +16,8 @@
 
 package org.usvm.dataflow.ts.ifds
 
-import org.jacodb.panda.dynamic.ets.model.EtsClass
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
@@ -28,7 +28,7 @@ data class MethodUnit(val method: EtsMethod) : UnitType {
     }
 }
 
-data class ClassUnit(val clazz: EtsClass) : UnitType {
+data class ClassUnit(val clazz: EtsClassSignature) : UnitType {
     override fun toString(): String {
         return "ClassUnit(${clazz.name})"
     }

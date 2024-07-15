@@ -1,7 +1,7 @@
 package org.usvm.dataflow.ts.infer
 
 import analysis.type.EtsTypeFact
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethod
 
 data class EtsMethodTypeFacts(
     val method: EtsMethod,

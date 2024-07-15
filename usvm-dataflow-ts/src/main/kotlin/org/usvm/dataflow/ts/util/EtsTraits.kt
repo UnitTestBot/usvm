@@ -23,26 +23,26 @@ import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallExpr
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
-import org.jacodb.panda.dynamic.ets.base.EtsAnyType
-import org.jacodb.panda.dynamic.ets.base.EtsArrayAccess
-import org.jacodb.panda.dynamic.ets.base.EtsAssignStmt
-import org.jacodb.panda.dynamic.ets.base.EtsBinaryExpr
-import org.jacodb.panda.dynamic.ets.base.EtsCallExpr
-import org.jacodb.panda.dynamic.ets.base.EtsCastExpr
-import org.jacodb.panda.dynamic.ets.base.EtsConstant
-import org.jacodb.panda.dynamic.ets.base.EtsEntity
-import org.jacodb.panda.dynamic.ets.base.EtsImmediate
-import org.jacodb.panda.dynamic.ets.base.EtsInstanceFieldRef
-import org.jacodb.panda.dynamic.ets.base.EtsParameterRef
-import org.jacodb.panda.dynamic.ets.base.EtsStaticFieldRef
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.base.EtsThis
-import org.jacodb.panda.dynamic.ets.base.EtsUnaryExpr
-import org.jacodb.panda.dynamic.ets.base.EtsValue
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.jacodb.panda.dynamic.ets.model.EtsMethodImpl
-import org.jacodb.panda.dynamic.ets.model.EtsMethodParameter
-import org.jacodb.panda.dynamic.ets.utils.callExpr
+import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsBinaryExpr
+import org.jacodb.ets.base.EtsCallExpr
+import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsConstant
+import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsImmediate
+import org.jacodb.ets.base.EtsInstanceFieldRef
+import org.jacodb.ets.base.EtsParameterRef
+import org.jacodb.ets.base.EtsStaticFieldRef
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsThis
+import org.jacodb.ets.base.EtsUnaryExpr
+import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodImpl
+import org.jacodb.ets.model.EtsMethodParameter
+import org.jacodb.ets.utils.callExpr
 import org.jacodb.taint.configuration.ConstantValue
 import org.jacodb.taint.configuration.TypeMatches
 import org.usvm.dataflow.ifds.AccessPath
@@ -50,8 +50,8 @@ import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ts.util.toPathOrNull
 import org.usvm.dataflow.util.Traits
-import org.jacodb.panda.dynamic.ets.utils.getOperands as _getOperands
-import org.jacodb.panda.dynamic.ets.utils.getValues as _getValues
+import org.jacodb.ets.utils.getOperands as _getOperands
+import org.jacodb.ets.utils.getValues as _getValues
 import org.usvm.dataflow.ts.util.toPath as _toPath
 import org.usvm.dataflow.ts.util.toPathOrNull as _toPathOrNull
 
@@ -78,7 +78,7 @@ interface EtsTraits : Traits<EtsMethod, EtsStmt> {
         }
 
     override val EtsMethod.thisInstance: EtsThis
-        get() = EtsThis(EtsAnyType)
+        get() = EtsThis(EtsClassType(enclosingClass))
 
     override val EtsMethod.isConstructor: Boolean
         get() = false

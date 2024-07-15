@@ -6,7 +6,7 @@ object Versions {
     const val coroutines = "1.6.4"
 
     const val jacodbPackage = "com.github.UnitTestBot.jacodb"
-    const val jacodb = "a9c5dea288" // jacodb ts branch
+    const val jacodb = "e1e9c98f2d"
 
     const val mockk = "1.13.4"
     const val junitParams = "5.9.3"

@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.ets.base.EtsType
 import org.usvm.solver.USolverBase
 import org.usvm.types.UTypeSystem
 

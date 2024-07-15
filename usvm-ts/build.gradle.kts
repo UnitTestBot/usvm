@@ -6,7 +6,7 @@ dependencies {
     implementation(project(":usvm-core"))
 
     implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-panda-dynamic:${Versions.jacodb}")
+    implementation("${Versions.jacodbPackage}:jacodb-ets:${Versions.jacodb}")
 
     implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
     implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")

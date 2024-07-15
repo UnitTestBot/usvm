@@ -3,12 +3,12 @@ package org.usvm.dataflow.ts.infer
 import mu.KotlinLogging
 import org.jacodb.api.common.CommonProject
 import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.panda.dynamic.ets.base.EtsInstLocation
-import org.jacodb.panda.dynamic.ets.base.EtsNopStmt
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.graph.EtsApplicationGraph
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.jacodb.panda.dynamic.ets.utils.callExpr
+import org.jacodb.ets.base.EtsInstLocation
+import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.callExpr
 
 private val logger = KotlinLogging.logger {}
 

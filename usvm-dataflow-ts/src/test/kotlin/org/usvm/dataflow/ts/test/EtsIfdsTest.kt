@@ -16,11 +16,11 @@
 
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.panda.dynamic.ets.dto.EtsFileDto
-import org.jacodb.panda.dynamic.ets.dto.convertToEtsFile
-import org.jacodb.panda.dynamic.ets.graph.EtsApplicationGraph
-import org.jacodb.panda.dynamic.ets.model.EtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.taint.configuration.Argument
 import org.jacodb.taint.configuration.AssignMark
 import org.jacodb.taint.configuration.ConstantTrue

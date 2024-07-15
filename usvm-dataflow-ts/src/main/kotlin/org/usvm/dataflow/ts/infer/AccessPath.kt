@@ -1,14 +1,14 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.panda.dynamic.ets.base.EtsArrayAccess
-import org.jacodb.panda.dynamic.ets.base.EtsCastExpr
-import org.jacodb.panda.dynamic.ets.base.EtsConstant
-import org.jacodb.panda.dynamic.ets.base.EtsEntity
-import org.jacodb.panda.dynamic.ets.base.EtsInstanceFieldRef
-import org.jacodb.panda.dynamic.ets.base.EtsLocal
-import org.jacodb.panda.dynamic.ets.base.EtsParameterRef
-import org.jacodb.panda.dynamic.ets.base.EtsStaticFieldRef
-import org.jacodb.panda.dynamic.ets.base.EtsThis
+import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsConstant
+import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsInstanceFieldRef
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsParameterRef
+import org.jacodb.ets.base.EtsStaticFieldRef
+import org.jacodb.ets.base.EtsThis
 import org.usvm.dataflow.ifds.Accessor
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor

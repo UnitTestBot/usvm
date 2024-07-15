@@ -1,6 +1,6 @@
 package analysis.type
 
-import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.ets.base.EtsType
 
 sealed interface EtsTypeFact {
     sealed interface BasicType : EtsTypeFact

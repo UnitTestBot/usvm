@@ -1,6 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethod
 
 sealed interface AnalyzerEvent
 

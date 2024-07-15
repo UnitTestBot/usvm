@@ -1,6 +1,6 @@
 package org.usvm.samples
 
-import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.ets.base.EtsType
 import org.usvm.TSMethodCoverage
 import org.usvm.TSTest
 import org.usvm.UMachineOptions

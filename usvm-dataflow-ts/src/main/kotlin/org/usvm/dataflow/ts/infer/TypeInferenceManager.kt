@@ -9,6 +9,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.jacodb.api.common.analysis.ApplicationGraph
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.findDominators
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.reversed
 import org.usvm.dataflow.ifds.Accessor
 import org.usvm.dataflow.ifds.ControlEvent
@@ -18,11 +23,6 @@ import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UniRunner
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.graph.findDominators
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.util.concurrent.ConcurrentHashMap
 
