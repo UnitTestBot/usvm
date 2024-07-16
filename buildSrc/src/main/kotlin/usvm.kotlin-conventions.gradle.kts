@@ -17,13 +17,13 @@ repositories {
 dependencies {
     // Align versions of all Kotlin components
     implementation(platform(kotlin("bom")))
-
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}")
+
+    implementation(Libs.kotlin_logging)
+    implementation(Libs.kotlinx_coroutines_core)
 
     testImplementation(kotlin("test"))
-
 }
 
 tasks {
@@ -31,12 +31,15 @@ tasks {
         sourceCompatibility = JavaVersion.VERSION_1_8.toString()
         targetCompatibility = JavaVersion.VERSION_1_8.toString()
         options.encoding = "UTF-8"
-        options.compilerArgs = options.compilerArgs + "-Xlint:all" + "-Werror" + "-Xlint:-options"
+        options.compilerArgs.add("-Xlint:all")
+        options.compilerArgs.add("-Xlint:-options")
+        options.compilerArgs.add("-Werror")
     }
     withType<KotlinCompile> {
         kotlinOptions {
             jvmTarget = JavaVersion.VERSION_1_8.toString()
-            freeCompilerArgs = freeCompilerArgs + "-Xallow-result-return-type" + "-Xsam-conversions=class"
+            freeCompilerArgs += "-Xallow-result-return-type"
+            freeCompilerArgs += "-Xsam-conversions=class"
             allWarningsAsErrors = true
         }
     }

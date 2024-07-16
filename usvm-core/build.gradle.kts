@@ -4,16 +4,13 @@ plugins {
 
 dependencies {
     api(project(":usvm-util"))
+    api(Libs.ksmt_core)
+    api(Libs.ksmt_z3)
+    api(Libs.kotlinx_collections)
 
-    api("io.ksmt:ksmt-core:${Versions.ksmt}")
-    api("io.ksmt:ksmt-z3:${Versions.ksmt}")
-    api("io.github.microutils:kotlin-logging:${Versions.klogging}")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
-    testImplementation("io.mockk:mockk:${Versions.mockk}")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
-
-    testImplementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
+    testImplementation(Libs.mockk)
+    testImplementation(Libs.junit_jupiter_params)
+    testImplementation(Libs.ksmt_yices)
 }
 
 publishing {
