@@ -10,7 +10,5 @@ dependencies {
     // implementation(Libs.ksmt_cvc5)
     // implementation(Libs.ksmt_bitwuzla)
 
-    implementation(Libs.kotlinx_collections)
-
     testImplementation(Libs.logback)
 }

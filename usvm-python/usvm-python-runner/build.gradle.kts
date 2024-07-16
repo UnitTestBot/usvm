@@ -10,7 +10,6 @@ plugins {
 
 dependencies {
     implementation(project(mapOf("path" to ":$USVM_PYTHON_COMMONS_MODULE")))
-    implementation(Libs.kotlin_logging)
 
     testImplementation(Libs.logback)
 }
