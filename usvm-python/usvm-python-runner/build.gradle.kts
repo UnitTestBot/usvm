@@ -10,8 +10,9 @@ plugins {
 
 dependencies {
     implementation(project(mapOf("path" to ":$USVM_PYTHON_COMMONS_MODULE")))
-    api(Libs.kotlin_logging)
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    implementation(Libs.kotlin_logging)
+
+    testImplementation(Libs.logback)
 }
 
 tasks.register<JavaExec>(MANUAL_TEST_FOR_RUNNER) {

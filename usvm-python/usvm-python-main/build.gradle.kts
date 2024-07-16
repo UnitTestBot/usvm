@@ -29,7 +29,7 @@ dependencies {
     annotationProcessor(project(":$USVM_PYTHON_ANNOTATIONS_MODULE"))
 
     implementation(Libs.kotlinx_collections)
-    implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
+    implementation(Libs.python_types_api)
 
     testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
 }

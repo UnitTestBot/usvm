@@ -30,7 +30,7 @@ object Versions {
         const val jetbrainsAnnotations = "16.0.2"
     }
 
-    const val pythonTypesAPIHash = "139b81d"
+    const val pythonTypesAPI = "139b81d"
     const val utbotMypyRunner = "0.2.17"
 }
 
@@ -216,6 +216,13 @@ object Libs {
         group = "org.ini4j",
         name = "ini4j",
         version = Versions.ini4j
+    )
+
+    // https://github.com/UnitTestBot/PythonTypesAPI
+    val python_types_api = dep(
+        group = "com.github.UnitTestBot",
+        name = "PythonTypesAPI",
+        version = Versions.pythonTypesAPI
     )
 }
 
