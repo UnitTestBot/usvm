@@ -24,7 +24,6 @@ class TSApplicationGraph(project: EtsFile) : ApplicationGraph<EtsMethod, EtsStmt
     override fun entryPoints(method: EtsMethod): Sequence<EtsStmt> =
         applicationGraph.entryPoints(method)
 
-
     override fun exitPoints(method: EtsMethod): Sequence<EtsStmt> =
         applicationGraph.exitPoints(method)
 

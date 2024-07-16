@@ -1,6 +1,6 @@
 package org.usvm
 
-typealias TSSizeSort = UBv32Sort
+typealias TSSizeSort = UFpSort
 
 class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
 

@@ -12,7 +12,6 @@ import org.usvm.state.TSState
 import org.usvm.state.lastStmt
 import org.usvm.targets.UTargetsSet
 
-@Suppress("UNUSED_PARAMETER", "UNUSED_VARIABLE")
 class TSInterpreter(
     private val ctx: TSContext,
     private val applicationGraph: TSApplicationGraph
@@ -28,6 +27,7 @@ class TSInterpreter(
             // TODO catch processing
             scope.doWithState {
                 val returnSite = callStack.pop()
+
                 if (callStack.isNotEmpty()) {
                     memory.stack.pop()
                 }
@@ -52,11 +52,12 @@ class TSInterpreter(
         val state = TSState(ctx, method, targets = UTargetsSet.from(targets))
 
         with(ctx) {
-            val params = method.parameters.mapIndexed { idx, _ ->
+            val params = List(method.parameters.size) { idx ->
                 URegisterStackLValue(addressSort, idx)
             }
             val refs = params.map { state.memory.read(it) }
 
+            // TODO check correctness of constraints and process this instance
             state.pathConstraints += mkAnd(refs.map { mkEq(it.asExpr(addressSort), nullRef).not() })
         }
 

@@ -1,12 +1,15 @@
 package org.usvm.util
 
-import org.jacodb.panda.dynamic.ets.base.EtsAnyType
 import org.jacodb.panda.dynamic.ets.base.EtsType
 import org.jacodb.panda.dynamic.ets.dto.EtsFileDto
 import org.jacodb.panda.dynamic.ets.dto.convertToEtsFile
 import org.jacodb.panda.dynamic.ets.model.EtsFile
 import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.usvm.*
+import org.usvm.PathSelectionStrategy
+import org.usvm.TSMachine
+import org.usvm.TSMethodCoverage
+import org.usvm.TSTest
+import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.time.Duration
@@ -117,11 +120,10 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     override val typeTransformer: (Any?) -> EtsType
-        get() = {_ -> EtsAnyType} // TODO("Not yet implemented")
+        get() = TODO("Not yet implemented")
 
-    @Suppress("UNUSED_ANONYMOUS_PARAMETER")
     override val checkType: (EtsType?, EtsType?) -> Boolean
-        get() = { expected, actual -> true } // TODO("Not yet implemented")
+        get() = TODO("Not yet implemented")
 
     private fun getProject(fileName: String): EtsFile {
         val jsonWithoutExtension = "/ir/${fileName}.json"
@@ -129,6 +131,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             ?: error("Resource not found: $jsonWithoutExtension")
 
         val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
+
         return convertToEtsFile(etsFileDto)
     }
 
@@ -155,13 +158,10 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             }
         }
 
-    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = { _ ->
-        TSMethodCoverage() // TODO("Not yet implemented")
-    }
+    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = TODO()
 
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
-//        loopIterationLimit = 20,
         exceptionsPropagation = true,
         timeout = 60_000.milliseconds,
         stepsFromLastCovered = 3500L,

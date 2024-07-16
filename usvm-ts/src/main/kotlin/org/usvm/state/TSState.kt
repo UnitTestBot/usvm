@@ -3,7 +3,11 @@ package org.usvm.state
 import org.jacodb.panda.dynamic.ets.base.EtsStmt
 import org.jacodb.panda.dynamic.ets.base.EtsType
 import org.jacodb.panda.dynamic.ets.model.EtsMethod
-import org.usvm.*
+import org.usvm.PathNode
+import org.usvm.TSContext
+import org.usvm.TSTarget
+import org.usvm.UCallStack
+import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase

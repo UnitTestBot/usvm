@@ -6,11 +6,14 @@ import org.jacodb.panda.dynamic.ets.model.EtsMethod
 import org.usvm.ps.createPathSelector
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
-import org.usvm.statistics.*
+import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StepsStatistics
+import org.usvm.statistics.TimeStatistics
+import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
-import org.usvm.statistics.distances.CfgStatistics
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
@@ -18,14 +21,13 @@ import kotlin.time.Duration.Companion.seconds
 
 class TSMachine(
     private val project: EtsFile,
-    private val options: UMachineOptions
+    private val options: UMachineOptions,
 ) : UMachine<TSState>() {
-
     private val typeSystem = TSTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TSComponents(typeSystem, options)
-    private val ctx: TSContext = TSContext(components)
-    private val applicationGraph: TSApplicationGraph = TSApplicationGraph(project)
-    private val interpreter: TSInterpreter = TSInterpreter(ctx, applicationGraph)
+    private val ctx = TSContext(components)
+    private val applicationGraph = TSApplicationGraph(project)
+    private val interpreter = TSInterpreter(ctx, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
     fun analyze(
@@ -37,16 +39,11 @@ class TSMachine(
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
-                CoverageZone.METHOD,
-                CoverageZone.TRANSITIVE,
-                -> methods.toSet()
-                // TODO: more adequate method filtering. !it.isConstructor is used to exclude default constructor which is often not covered
-                CoverageZone.CLASS -> methods.mapNotNull { method ->
-                    project.getMethodBySignature(method.signature)
-                }.toSet() + methods
+                CoverageZone.METHOD, CoverageZone.TRANSITIVE -> methods.toHashSet()
+                CoverageZone.CLASS -> TODO("Unsupported yet")
             }
 
-        val coverageStatistics: CoverageStatistics<EtsMethod, EtsStmt, TSState> = CoverageStatistics(
+        val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TSState>(
             methodsToTrackCoverage,
             applicationGraph
         )
@@ -57,9 +54,7 @@ class TSMachine(
                 else -> TODO("Unsupported yet")
             }
 
-        val loopTracker = TSLoopTracker()
         val timeStatistics = TimeStatistics<EtsMethod, TSState>()
-        val transparentCfgStatistics = transparentCfgStatistics()
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -67,9 +62,8 @@ class TSMachine(
             applicationGraph,
             timeStatistics,
             { coverageStatistics },
-            { transparentCfgStatistics },
+            { cfgStatistics },
             { callGraphStatistics },
-            { loopTracker }
         )
 
         val statesCollector =
@@ -112,15 +106,5 @@ class TSMachine(
 
     override fun close() {
         components.close()
-    }
-
-    private fun transparentCfgStatistics() = object : CfgStatistics<EtsMethod, EtsStmt> {
-        override fun getShortestDistance(method: EtsMethod, stmtFrom: EtsStmt, stmtTo: EtsStmt): UInt {
-            return cfgStatistics.getShortestDistance(method, stmtFrom, stmtTo)
-        }
-
-        override fun getShortestDistanceToExit(method: EtsMethod, stmtFrom: EtsStmt): UInt {
-            return cfgStatistics.getShortestDistanceToExit(method, stmtFrom)
-        }
     }
 }

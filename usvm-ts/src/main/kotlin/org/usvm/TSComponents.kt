@@ -13,6 +13,7 @@ class TSComponents(
     private val options: UMachineOptions
 ) : UComponents<EtsType, TSSizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
+
     override val useSolverForForks: Boolean
         get() = TODO("Not yet implemented")
 
@@ -20,16 +21,18 @@ class TSComponents(
         TODO("Not yet implemented")
     }
 
-    override fun mkTypeSystem(ctx: UContext<TSSizeSort>): UTypeSystem<EtsType> {
-        return typeSystem
-    }
+    override fun mkTypeSystem(
+        ctx: UContext<TSSizeSort>
+    ): UTypeSystem<EtsType> = typeSystem
 
     override fun <Context : UContext<TSSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
+
         val smtSolver = when (options.solverType) {
             SolverType.YICES -> KSymFpuSolver(KYicesSolver(ctx), ctx)
             SolverType.Z3 -> KZ3Solver(ctx)
         }
+
         closeableResources += smtSolver
 
         val typeSolver = UTypeSolver(typeSystem)
