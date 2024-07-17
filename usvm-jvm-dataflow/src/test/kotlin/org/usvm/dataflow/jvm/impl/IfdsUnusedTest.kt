@@ -19,6 +19,7 @@ package org.usvm.dataflow.jvm.impl
 import org.jacodb.api.jvm.ext.findClass
 import org.jacodb.api.jvm.ext.methods
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -53,6 +54,7 @@ class IfdsUnusedTest : BaseAnalysisTest() {
         )
     )
 
+    @Disabled("See https://github.com/UnitTestBot/jacodb/issues/220")
     @ParameterizedTest
     @MethodSource("provideClassesForJuliet563")
     fun `test on Juliet's CWE 563`(className: String) {
