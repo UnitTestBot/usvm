@@ -10,8 +10,8 @@ plugins {
 
 dependencies {
     implementation(project(mapOf("path" to ":$USVM_PYTHON_COMMONS_MODULE")))
-    api("io.github.microutils:kotlin-logging:${Versions.klogging}")
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+
+    testImplementation(Libs.logback)
 }
 
 tasks.register<JavaExec>(MANUAL_TEST_FOR_RUNNER) {

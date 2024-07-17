@@ -13,32 +13,28 @@ val samples by sourceSets.creating {
 dependencies {
     api(project(":usvm-dataflow"))
 
-    implementation("${Versions.jacodbPackage}:jacodb-api-common:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-api-jvm:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-taint-configuration:${Versions.jacodb}")
+    implementation(Libs.jacodb_api_common)
+    implementation(Libs.jacodb_api_jvm)
+    implementation(Libs.jacodb_core)
+    implementation(Libs.jacodb_taint_configuration)
 
-    implementation("io.github.detekt.sarif4k", "sarif4k", Versions.sarif4k)
+    implementation(Libs.sarif4k)
 
-    api("io.github.microutils:kotlin-logging:${Versions.klogging}")
-
-    testImplementation("io.mockk:mockk:${Versions.mockk}")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
+    testImplementation(Libs.mockk)
+    testImplementation(Libs.junit_jupiter_params)
 
     testImplementation(samples.output)
     testImplementation(files("src/test/resources/pointerbench.jar"))
     testImplementation("joda-time:joda-time:2.12.5")
-    testImplementation("com.github.UnitTestBot.juliet-java-test-suite:support:1.3.2")
+    testImplementation(Libs.juliet_support)
     for (cweNum in listOf(89, 476, 563, 690)) {
-        testImplementation("com.github.UnitTestBot.juliet-java-test-suite:cwe${cweNum}:1.3.2")
+        testImplementation(Libs.juliet_cwe(cweNum))
     }
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + listOf(
-            "-Xcontext-receivers",
-        )
+        freeCompilerArgs += "-Xcontext-receivers"
     }
 }
 
