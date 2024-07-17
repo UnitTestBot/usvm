@@ -12,8 +12,8 @@ dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":$USVM_PYTHON_MAIN_MODULE"))
     implementation(project(":$USVM_PYTHON_COMMONS_MODULE"))
-    implementation("com.github.UnitTestBot:PythonTypesAPI:${Versions.pythonTypesAPIHash}")
-    implementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    implementation(Libs.python_types_api)
+    implementation(Libs.logback)
 }
 
 tasks.test {

@@ -1,14 +1,12 @@
 import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
-import org.gradle.api.tasks.testing.Test
-import org.gradle.kotlin.dsl.sourceSets
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("usvm.kotlin-conventions")
-    id("com.jetbrains.rdgen") version Versions.rd
-    application
     java
+    application
+    id(Plugins.RdGen)
 }
 
 val rdgenModelsCompileClasspath by configurations.creating {
@@ -41,21 +39,19 @@ kotlin {
 }
 
 dependencies {
-    implementation("${Versions.jacodbPackage}:jacodb-api-jvm:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
+    implementation(Libs.jacodb_api_jvm)
+    implementation(Libs.jacodb_core)
 
-    implementation("com.jetbrains.rd:rd-framework:${Versions.rd}")
-    implementation("org.ini4j:ini4j:${Versions.ini4j}")
-    implementation("com.jetbrains.rd:rd-core:${Versions.rd}")
+    implementation(Libs.rd_framework)
+    implementation(Libs.ini4j)
+    implementation(Libs.rd_core)
     implementation("commons-cli:commons-cli:1.5.0")
-    implementation("com.jetbrains.rd:rd-gen:${Versions.rd}")
+    implementation(Libs.rd_gen)
 }
 
-tasks {
-    withType<KotlinCompile> {
-        kotlinOptions {
-            allWarningsAsErrors = false
-        }
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        allWarningsAsErrors = false
     }
 }
 
