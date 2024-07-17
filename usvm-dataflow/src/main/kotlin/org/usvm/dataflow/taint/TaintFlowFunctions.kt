@@ -451,7 +451,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
+context(Traits<Method, Statement>)
 class BackwardTaintFlowFunctions<Method, Statement>(
     private val graph: ApplicationGraph<Method, Statement>,
 ) : FlowFunctions<TaintDomainFact, Method, Statement>
