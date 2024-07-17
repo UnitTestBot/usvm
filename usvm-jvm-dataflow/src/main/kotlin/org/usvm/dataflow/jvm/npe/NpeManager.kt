@@ -16,9 +16,8 @@
 
 package org.usvm.dataflow.jvm.npe
 
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.taint.configuration.TaintConfigurationFeature
 import org.jacodb.taint.configuration.TaintConfigurationItem
@@ -36,16 +35,17 @@ private val logger = mu.KotlinLogging.logger {}
 
 context(JcTraits)
 class NpeManager(
-    graph: ApplicationGraph<JcMethod, JcInst>,
+    graph: JcApplicationGraph,
     unitResolver: UnitResolver<JcMethod>,
     private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?,
 ) : TaintManager<JcMethod, JcInst>(graph, unitResolver, useBidiRunner = false, getConfigForMethod) {
+
     override fun newRunner(
         unit: UnitType,
     ): TaintRunner<JcMethod, JcInst> {
         check(unit !in runnerForUnit) { "Runner for $unit already exists" }
 
-        val analyzer = NpeAnalyzer(graph, getConfigForMethod)
+        val analyzer = NpeAnalyzer(graph as JcApplicationGraph, getConfigForMethod)
         val runner = UniRunner(
             graph = graph,
             analyzer = analyzer,
@@ -69,12 +69,12 @@ class NpeManager(
 }
 
 fun jcNpeManager(
-    graph: ApplicationGraph<JcMethod, JcInst>,
+    graph: JcApplicationGraph,
     unitResolver: JcUnitResolver,
-    getConfigForMethod: ((JcMethod) -> List<TaintConfigurationItem>?)? = null
-): NpeManager = with(JcTraits) {
+    getConfigForMethod: ((JcMethod) -> List<TaintConfigurationItem>?)? = null,
+): NpeManager = with(JcTraits(graph.cp)) {
     val config: (JcMethod) -> List<TaintConfigurationItem>? = getConfigForMethod ?: run {
-        val taintConfigurationFeature = (graph.project as JcClasspath).features
+        val taintConfigurationFeature = cp.features
             ?.singleOrNull { it is TaintConfigurationFeature }
             ?.let { it as TaintConfigurationFeature }
 

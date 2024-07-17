@@ -8,16 +8,14 @@ dependencies {
     implementation("${Versions.jacodbPackage}:jacodb-api-common:${Versions.jacodb}")
     implementation("${Versions.jacodbPackage}:jacodb-taint-configuration:${Versions.jacodb}")
 
-    implementation("io.github.detekt.sarif4k", "sarif4k", Versions.sarif4k)
+    api("io.github.detekt.sarif4k", "sarif4k", Versions.sarif4k)
 
     api("io.github.microutils:kotlin-logging:${Versions.klogging}")
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs = freeCompilerArgs + listOf(
-            "-Xcontext-receivers",
-        )
+        freeCompilerArgs += "-Xcontext-receivers"
     }
 }
 

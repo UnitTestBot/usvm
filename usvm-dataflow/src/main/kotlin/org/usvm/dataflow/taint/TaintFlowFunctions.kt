@@ -36,6 +36,13 @@ import org.jacodb.taint.configuration.TaintConfigurationItem
 import org.jacodb.taint.configuration.TaintEntryPointSource
 import org.jacodb.taint.configuration.TaintMethodSource
 import org.jacodb.taint.configuration.TaintPassThrough
+import org.usvm.dataflow.config.BasicConditionEvaluator
+import org.usvm.dataflow.config.CallPositionToAccessPathResolver
+import org.usvm.dataflow.config.CallPositionToValueResolver
+import org.usvm.dataflow.config.EntryPointPositionToAccessPathResolver
+import org.usvm.dataflow.config.EntryPointPositionToValueResolver
+import org.usvm.dataflow.config.FactAwareConditionEvaluator
+import org.usvm.dataflow.config.TaintActionEvaluator
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
@@ -56,9 +63,6 @@ class ForwardTaintFlowFunctions<Method, Statement>(
     where Method : CommonMethod,
           Statement : CommonInst {
 
-    private val cp: CommonProject
-        get() = graph.project
-
     override fun obtainPossibleStartFacts(
         method: Method,
     ): Collection<TaintDomainFact> = buildSet {
@@ -68,11 +72,11 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         // Extract initial facts from the config:
         val config = getConfigForMethod(method)
         if (config != null) {
-            val conditionEvaluator = org.usvm.dataflow.config.BasicConditionEvaluator(
-                org.usvm.dataflow.config.EntryPointPositionToValueResolver(method, cp)
+            val conditionEvaluator = BasicConditionEvaluator(
+                 EntryPointPositionToValueResolver(method)
             )
-            val actionEvaluator = org.usvm.dataflow.config.TaintActionEvaluator(
-                org.usvm.dataflow.config.EntryPointPositionToAccessPathResolver(method, cp)
+            val actionEvaluator = TaintActionEvaluator(
+                 EntryPointPositionToAccessPathResolver(method)
             )
 
             // Handle EntryPointSource config items:
@@ -95,8 +99,8 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         from: CommonExpr,
         to: CommonValue,
     ): Collection<Tainted> {
-        val toPath = to.toPath()
-        val fromPath = from.toPathOrNull()
+        val toPath = convertToPath(to)
+        val fromPath = convertToPathOrNull(from)
 
         if (fromPath != null) {
             // Adhoc taint array:
@@ -143,8 +147,8 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         check(fact is Tainted)
 
         if (current is CommonAssignInst) {
-            current.taintFlowRhsValues().flatMap { rhvValue ->
-                transmitTaintAssign(fact, from = rhvValue, to = current.lhv)
+            taintFlowRhsValues(current).flatMap { rhv ->
+                transmitTaintAssign(fact, from = rhv, to = current.lhv)
             }
         } else {
             transmitTaintNormal(fact)
@@ -156,8 +160,8 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         from: CommonValue,
         to: CommonValue,
     ): Collection<Tainted> = buildSet {
-        val fromPath = from.toPath()
-        val toPath = to.toPath()
+        val fromPath = convertToPath(from)
+        val toPath = convertToPath(to)
 
         val tail = (fact.variable - fromPath) ?: return@buildSet
         val newPath = toPath + tail
@@ -199,10 +203,10 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         callStatement: Statement,
         returnSite: Statement, // FIXME: unused?
     ) = FlowFunction<TaintDomainFact> { fact ->
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
 
-        val callee = callExpr.callee
+        val callee = getCallee(callExpr)
         val config = getConfigForMethod(callee)
 
         if (fact == TaintZeroFact) {
@@ -210,11 +214,11 @@ class ForwardTaintFlowFunctions<Method, Statement>(
                 add(TaintZeroFact)
 
                 if (config != null) {
-                    val conditionEvaluator = org.usvm.dataflow.config.BasicConditionEvaluator(
-                        org.usvm.dataflow.config.CallPositionToValueResolver(callStatement)
+                    val conditionEvaluator = BasicConditionEvaluator(
+                        CallPositionToValueResolver(callStatement)
                     )
-                    val actionEvaluator = org.usvm.dataflow.config.TaintActionEvaluator(
-                        org.usvm.dataflow.config.CallPositionToAccessPathResolver(callStatement)
+                    val actionEvaluator = TaintActionEvaluator(
+                        CallPositionToAccessPathResolver(callStatement)
                     )
 
                     // Handle MethodSource config items:
@@ -234,13 +238,13 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val statementPassThrough = callStatement.taintPassThrough()
+        val statementPassThrough = taintPassThrough(callStatement)
         if (statementPassThrough != null) {
             for ((from, to) in statementPassThrough) {
-                if (from.toPath() == fact.variable) {
+                if (convertToPath(from) == fact.variable) {
                     return@FlowFunction setOf(
                         fact,
-                        fact.copy(variable = to.toPath())
+                        fact.copy(variable = convertToPath(to))
                     )
                 }
             }
@@ -250,11 +254,11 @@ class ForwardTaintFlowFunctions<Method, Statement>(
 
         if (config != null) {
             val facts = mutableSetOf<Tainted>()
-            val conditionEvaluator = org.usvm.dataflow.config.FactAwareConditionEvaluator(
-                fact, org.usvm.dataflow.config.CallPositionToValueResolver(callStatement)
+            val conditionEvaluator = FactAwareConditionEvaluator(
+                fact, CallPositionToValueResolver(callStatement)
             )
-            val actionEvaluator = org.usvm.dataflow.config.TaintActionEvaluator(
-                org.usvm.dataflow.config.CallPositionToAccessPathResolver(callStatement)
+            val actionEvaluator = TaintActionEvaluator(
+                 CallPositionToAccessPathResolver(callStatement)
             )
             var defaultBehavior = true
 
@@ -305,7 +309,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         }
 
         // FIXME: adhoc for constructors:
-        if (callee.isConstructor) {
+        if (isConstructor(callee)) {
             return@FlowFunction listOf(fact)
         }
 
@@ -326,14 +330,14 @@ class ForwardTaintFlowFunctions<Method, Statement>(
 
             for (actual in callExpr.args) {
                 // Possibly tainted actual parameter:
-                if (fact.variable.startsWith(actual.toPathOrNull())) {
+                if (fact.variable.startsWith(convertToPathOrNull(actual))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
 
             if (callExpr is CommonInstanceCallExpr) {
                 // Possibly tainted instance:
-                if (fact.variable.startsWith(callExpr.instance.toPathOrNull())) {
+                if (fact.variable.startsWith(convertToPathOrNull(callExpr.instance))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
@@ -342,7 +346,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
 
         if (callStatement is CommonAssignInst) {
             // Possibly tainted lhv:
-            if (fact.variable.startsWith(callStatement.lhv.toPathOrNull())) {
+            if (fact.variable.startsWith(convertToPathOrNull(callStatement.lhv))) {
                 return@FlowFunction emptyList() // Overridden by rhv
             }
         }
@@ -362,13 +366,13 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
 
         buildSet {
             // Transmit facts on arguments (from 'actual' to 'formal'):
             val actualParams = callExpr.args
-            val formalParams = cp.getArgumentsOf(callee)
+            val formalParams = getArgumentsOf(callee)
             for ((formal, actual) in formalParams.zip(actualParams)) {
                 addAll(transmitTaintArgumentActualToFormal(fact, from = actual, to = formal))
             }
@@ -379,7 +383,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
                     transmitTaintInstanceToThis(
                         fact = fact,
                         from = callExpr.instance,
-                        to = callee.thisInstance
+                        to = getThisInstance(callee),
                     )
                 )
             }
@@ -401,7 +405,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
         val callee = graph.methodOf(exitStatement)
 
@@ -409,13 +413,13 @@ class ForwardTaintFlowFunctions<Method, Statement>(
             // Transmit facts on arguments (from 'formal' back to 'actual'), if they are passed by-ref:
             if (fact.variable.isOnHeap) {
                 val actualParams = callExpr.args
-                val formalParams = cp.getArgumentsOf(callee)
+                val formalParams = getArgumentsOf(callee)
                 for ((formal, actual) in formalParams.zip(actualParams)) {
                     addAll(
                         transmitTaintArgumentFormalToActual(
                             fact = fact,
                             from = formal,
-                            to = actual
+                            to = actual,
                         )
                     )
                 }
@@ -426,8 +430,8 @@ class ForwardTaintFlowFunctions<Method, Statement>(
                 addAll(
                     transmitTaintThisToInstance(
                         fact = fact,
-                        from = callee.thisInstance,
-                        to = callExpr.instance
+                        from = getThisInstance(callee),
+                        to = callExpr.instance,
                     )
                 )
             }
@@ -448,15 +452,12 @@ class ForwardTaintFlowFunctions<Method, Statement>(
     }
 }
 
-context(Traits<Method, Statement>)
+context(Traits<CommonMethod, CommonInst>)
 class BackwardTaintFlowFunctions<Method, Statement>(
     private val graph: ApplicationGraph<Method, Statement>,
 ) : FlowFunctions<TaintDomainFact, Method, Statement>
     where Method : CommonMethod,
           Statement : CommonInst {
-
-    private val cp: CommonProject
-        get() = graph.project
 
     override fun obtainPossibleStartFacts(
         method: Method,
@@ -469,8 +470,8 @@ class BackwardTaintFlowFunctions<Method, Statement>(
         from: CommonValue,
         to: CommonExpr,
     ): Collection<TaintDomainFact> {
-        val fromPath = from.toPath()
-        val toPath = to.toPathOrNull()
+        val fromPath = convertToPath(from)
+        val toPath = convertToPathOrNull(to)
 
         if (toPath != null) {
             val tail = fact.variable - fromPath
@@ -519,8 +520,8 @@ class BackwardTaintFlowFunctions<Method, Statement>(
         from: CommonValue,
         to: CommonValue,
     ): Collection<Tainted> = buildSet {
-        val fromPath = from.toPath()
-        val toPath = to.toPath()
+        val fromPath = convertToPath(from)
+        val toPath = convertToPath(to)
 
         val tail = (fact.variable - fromPath) ?: return@buildSet
         val newPath = toPath + tail
@@ -569,9 +570,9 @@ class BackwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
-        val callee = callExpr.callee
+        val callee = getCallee( callExpr)
 
         if (callee in graph.callees(callStatement)) {
 
@@ -581,14 +582,14 @@ class BackwardTaintFlowFunctions<Method, Statement>(
 
             for (actual in callExpr.args) {
                 // Possibly tainted actual parameter:
-                if (fact.variable.startsWith(actual.toPathOrNull())) {
+                if (fact.variable.startsWith(convertToPathOrNull( actual))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
 
             if (callExpr is CommonInstanceCallExpr) {
                 // Possibly tainted instance:
-                if (fact.variable.startsWith(callExpr.instance.toPathOrNull())) {
+                if (fact.variable.startsWith(convertToPathOrNull( callExpr.instance))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
@@ -597,7 +598,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
 
         if (callStatement is CommonAssignInst) {
             // Possibly tainted rhv:
-            if (fact.variable.startsWith(callStatement.rhv.toPathOrNull())) {
+            if (fact.variable.startsWith(convertToPathOrNull( callStatement.rhv))) {
                 return@FlowFunction emptyList() // Overridden by lhv
             }
         }
@@ -617,13 +618,13 @@ class BackwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
 
         buildSet {
             // Transmit facts on arguments (from 'actual' to 'formal'):
             val actualParams = callExpr.args
-            val formalParams = cp.getArgumentsOf(callee)
+            val formalParams = getArgumentsOf(callee)
             for ((formal, actual) in formalParams.zip(actualParams)) {
                 addAll(transmitTaintArgumentActualToFormal(fact, from = actual, to = formal))
             }
@@ -634,7 +635,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
                     transmitTaintInstanceToThis(
                         fact = fact,
                         from = callExpr.instance,
-                        to = callee.thisInstance
+                        to = getThisInstance(callee),
                     )
                 )
             }
@@ -652,7 +653,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
                         transmitTaintReturn(
                             fact = fact,
                             from = callStatement.lhv,
-                            to = returnValue
+                            to = returnValue,
                         )
                     )
                 }
@@ -670,7 +671,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
         val callee = graph.methodOf(exitStatement)
 
@@ -678,13 +679,13 @@ class BackwardTaintFlowFunctions<Method, Statement>(
             // Transmit facts on arguments (from 'formal' back to 'actual'), if they are passed by-ref:
             if (fact.variable.isOnHeap) {
                 val actualParams = callExpr.args
-                val formalParams = cp.getArgumentsOf(callee)
+                val formalParams = getArgumentsOf(callee)
                 for ((formal, actual) in formalParams.zip(actualParams)) {
                     addAll(
                         transmitTaintArgumentFormalToActual(
                             fact = fact,
                             from = formal,
-                            to = actual
+                            to = actual,
                         )
                     )
                 }
@@ -695,8 +696,8 @@ class BackwardTaintFlowFunctions<Method, Statement>(
                 addAll(
                     transmitTaintThisToInstance(
                         fact = fact,
-                        from = callee.thisInstance,
-                        to = callExpr.instance
+                        from = getThisInstance(callee),
+                        to = callExpr.instance,
                     )
                 )
             }

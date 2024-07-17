@@ -19,7 +19,7 @@ class JcTestDecoders(private val cp: JcClasspath) {
 
         return runBlocking {
             cp.hierarchyExt()
-                .findSubClasses(objectDecoder, allHierarchy = true, includeOwn = false)
+                .findSubClasses(objectDecoder, entireHierarchy = true, includeOwn = false)
                 .mapNotNull { loadDecoder(it) }
                 .toMap()
         }

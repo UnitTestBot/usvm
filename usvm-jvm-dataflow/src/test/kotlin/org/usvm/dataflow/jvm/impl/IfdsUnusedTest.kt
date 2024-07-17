@@ -33,7 +33,6 @@ import kotlin.time.Duration.Companion.seconds
 
 @TestInstance(PER_CLASS)
 class IfdsUnusedTest : BaseAnalysisTest() {
-    companion object : JcTraits
 
     fun provideClassesForJuliet563(): Stream<Arguments> = provideClassesForJuliet(
         563, listOf(
@@ -59,7 +58,9 @@ class IfdsUnusedTest : BaseAnalysisTest() {
     fun `test on Juliet's CWE 563`(className: String) {
         testSingleJulietClass(className) { method ->
             val unitResolver = SingletonUnitResolver
-            val manager = UnusedVariableManager(graph, unitResolver)
+            val manager = with(JcTraits(cp)) {
+                UnusedVariableManager(graph, unitResolver)
+            }
             manager.analyze(listOf(method), timeout = 30.seconds)
         }
     }
@@ -71,7 +72,9 @@ class IfdsUnusedTest : BaseAnalysisTest() {
         val clazz = cp.findClass(className)
         val badMethod = clazz.methods.single { it.name == "bad" }
         val unitResolver = SingletonUnitResolver
-        val manager = UnusedVariableManager(graph, unitResolver)
+        val manager = with(JcTraits(cp)) {
+            UnusedVariableManager(graph, unitResolver)
+        }
         val sinks = manager.analyze(listOf(badMethod), timeout = 30.seconds)
         Assertions.assertTrue(sinks.isNotEmpty())
     }
