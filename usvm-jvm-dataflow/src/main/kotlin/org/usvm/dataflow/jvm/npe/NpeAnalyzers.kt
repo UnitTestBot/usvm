@@ -16,12 +16,14 @@
 
 package org.usvm.dataflow.jvm.npe
 
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.taint.configuration.TaintConfigurationItem
 import org.jacodb.taint.configuration.TaintMark
 import org.jacodb.taint.configuration.TaintMethodSink
+import org.usvm.dataflow.config.CallPositionToValueResolver
+import org.usvm.dataflow.config.FactAwareConditionEvaluator
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Reason
 import org.usvm.dataflow.jvm.util.JcTraits
@@ -39,8 +41,8 @@ private val logger = mu.KotlinLogging.logger {}
 
 context(JcTraits)
 class NpeAnalyzer(
-    private val graph: ApplicationGraph<JcMethod, JcInst>,
-    private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?
+    private val graph: JcApplicationGraph,
+    private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?,
 ) : Analyzer<TaintDomainFact, TaintEvent<JcInst>, JcMethod, JcInst> {
 
     override val flowFunctions: ForwardNpeFlowFunctions by lazy {
@@ -73,10 +75,10 @@ class NpeAnalyzer(
         }
 
         run {
-            val callExpr = edge.to.statement.getCallExpr() ?: return@run
-            val callee = callExpr.callee
+            val callExpr = getCallExpr(edge.to.statement) ?: return@run
+            val callee = getCallee(callExpr)
 
-            val config =  getConfigForMethod(callee) ?: return@run
+            val config = getConfigForMethod(callee) ?: return@run
 
             // TODO: not always we want to skip sinks on Zero facts.
             //  Some rules might have ConstantTrue or just true (when evaluated with Zero fact) condition.
@@ -85,9 +87,9 @@ class NpeAnalyzer(
             }
 
             // Determine whether 'edge.to' is a sink via config:
-            val conditionEvaluator = org.usvm.dataflow.config.FactAwareConditionEvaluator(
+            val conditionEvaluator = FactAwareConditionEvaluator(
                 edgeToFact,
-                org.usvm.dataflow.config.CallPositionToValueResolver(edge.to.statement),
+                CallPositionToValueResolver(edge.to.statement),
             )
             for (item in config.filterIsInstance<TaintMethodSink>()) {
                 if (item.condition.accept(conditionEvaluator)) {

@@ -16,20 +16,18 @@
 
 package org.usvm.dataflow.jvm.npe
 
-import org.jacodb.api.common.CommonProject
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonExpr
-import org.jacodb.api.common.cfg.CommonThis
 import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcArgument
 import org.jacodb.api.jvm.cfg.JcAssignInst
 import org.jacodb.api.jvm.cfg.JcCallExpr
-import org.jacodb.api.jvm.cfg.JcDynamicCallExpr
 import org.jacodb.api.jvm.cfg.JcEqExpr
+import org.jacodb.api.jvm.cfg.JcExpr
 import org.jacodb.api.jvm.cfg.JcIfInst
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcInstanceCallExpr
@@ -37,6 +35,8 @@ import org.jacodb.api.jvm.cfg.JcNeqExpr
 import org.jacodb.api.jvm.cfg.JcNewArrayExpr
 import org.jacodb.api.jvm.cfg.JcNullConstant
 import org.jacodb.api.jvm.cfg.JcReturnInst
+import org.jacodb.api.jvm.cfg.JcThis
+import org.jacodb.api.jvm.cfg.JcValue
 import org.jacodb.api.jvm.ext.findType
 import org.jacodb.api.jvm.ext.isNullable
 import org.jacodb.taint.configuration.AssignMark
@@ -55,6 +55,7 @@ import org.usvm.dataflow.config.CallPositionToAccessPathResolver
 import org.usvm.dataflow.config.CallPositionToValueResolver
 import org.usvm.dataflow.config.EntryPointPositionToAccessPathResolver
 import org.usvm.dataflow.config.EntryPointPositionToValueResolver
+import org.usvm.dataflow.config.FactAwareConditionEvaluator
 import org.usvm.dataflow.config.TaintActionEvaluator
 import org.usvm.dataflow.ifds.AccessPath
 import org.usvm.dataflow.ifds.ElementAccessor
@@ -74,12 +75,12 @@ private val logger = mu.KotlinLogging.logger {}
 
 context(JcTraits)
 class ForwardNpeFlowFunctions(
-    private val graph: ApplicationGraph<JcMethod, JcInst>,
-    private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?
+    private val graph: JcApplicationGraph,
+    private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?,
 ) : FlowFunctions<TaintDomainFact, JcMethod, JcInst> {
 
-    private val cp: CommonProject
-        get() = graph.project
+    private val cp: JcClasspath
+        get() = graph.cp
 
     override fun obtainPossibleStartFacts(
         method: JcMethod,
@@ -88,9 +89,9 @@ class ForwardNpeFlowFunctions(
 
         // Possibly null arguments:
         for (p in method.parameters.filter { it.isNullable != false }) {
-            val t = (cp as JcClasspath).findType(p.type.typeName)
+            val t = cp.findType(p.type.typeName)
             val arg = JcArgument.of(p.index, p.name, t)
-            val path = arg.toPath()
+            val path = convertToPath(arg)
             add(Tainted(path, TaintMark.NULLNESS))
         }
     }
@@ -106,10 +107,10 @@ class ForwardNpeFlowFunctions(
 
         if (config != null) {
             val conditionEvaluator = BasicConditionEvaluator(
-                EntryPointPositionToValueResolver(method, cp)
+                EntryPointPositionToValueResolver(method)
             )
             val actionEvaluator = TaintActionEvaluator(
-                EntryPointPositionToAccessPathResolver(method, cp)
+                EntryPointPositionToAccessPathResolver(method)
             )
 
             // Handle EntryPointSource config items:
@@ -132,8 +133,11 @@ class ForwardNpeFlowFunctions(
         from: CommonExpr,
         to: CommonValue,
     ): Collection<Tainted> {
-        val toPath = to.toPath()
-        val fromPath = from.toPathOrNull()
+        from as JcExpr
+        to as JcValue
+
+        val toPath = convertToPath(to)
+        val fromPath = convertToPathOrNull(from)
 
         if (fact.mark == TaintMark.NULLNESS) {
             // TODO: consider
@@ -194,7 +198,7 @@ class ForwardNpeFlowFunctions(
         inst: JcInst,
     ): Collection<TaintDomainFact> = buildList {
         if (inst is CommonAssignInst) {
-            val toPath = inst.lhv.toPath()
+            val toPath = convertToPath(inst.lhv as JcValue)
             val from = inst.rhv
             if (from is JcNullConstant || (from is JcCallExpr && from.method.method.isNullable == true)) {
                 add(Tainted(toPath, TaintMark.NULLNESS))
@@ -210,9 +214,9 @@ class ForwardNpeFlowFunctions(
         get() {
             val expr = condition
             return if (expr.rhv is JcNullConstant) {
-                expr.lhv.toPathOrNull()
+                convertToPathOrNull(expr.lhv)
             } else if (expr.lhv is JcNullConstant) {
-                expr.rhv.toPathOrNull()
+                convertToPathOrNull(expr.rhv)
             } else {
                 null
             }
@@ -271,8 +275,8 @@ class ForwardNpeFlowFunctions(
     private fun transmitTaint(
         fact: Tainted,
         at: JcInst,
-        from: CommonValue,
-        to: CommonValue,
+        from: JcValue,
+        to: JcValue,
     ): Collection<Tainted> = buildSet {
         if (fact.mark == TaintMark.NULLNESS) {
             if (fact.variable.isDereferencedAt(at)) {
@@ -280,8 +284,8 @@ class ForwardNpeFlowFunctions(
             }
         }
 
-        val fromPath = from.toPath()
-        val toPath = to.toPath()
+        val fromPath = convertToPath(from)
+        val toPath = convertToPath(to)
 
         val tail = (fact.variable - fromPath) ?: return@buildSet
         val newPath = toPath + tail
@@ -292,36 +296,36 @@ class ForwardNpeFlowFunctions(
     private fun transmitTaintArgumentActualToFormal(
         fact: Tainted,
         at: JcInst,
-        from: CommonValue, // actual
-        to: CommonValue, // formal
+        from: JcValue, // actual
+        to: JcValue, // formal
     ): Collection<Tainted> = transmitTaint(fact, at, from, to)
 
     private fun transmitTaintArgumentFormalToActual(
         fact: Tainted,
         at: JcInst,
-        from: CommonValue, // formal
-        to: CommonValue, // actual
+        from: JcValue, // formal
+        to: JcValue, // actual
     ): Collection<Tainted> = transmitTaint(fact, at, from, to)
 
     private fun transmitTaintInstanceToThis(
         fact: Tainted,
         at: JcInst,
-        from: CommonValue, // instance
-        to: CommonThis, // this
+        from: JcValue, // instance
+        to: JcThis, // this
     ): Collection<Tainted> = transmitTaint(fact, at, from, to)
 
     private fun transmitTaintThisToInstance(
         fact: Tainted,
         at: JcInst,
-        from: CommonThis, // this
-        to: CommonValue, // instance
+        from: JcThis, // this
+        to: JcValue, // instance
     ): Collection<Tainted> = transmitTaint(fact, at, from, to)
 
     private fun transmitTaintReturn(
         fact: Tainted,
         at: JcInst,
-        from: CommonValue,
-        to: CommonValue,
+        from: JcValue,
+        to: JcValue,
     ): Collection<Tainted> = transmitTaint(fact, at, from, to)
 
     override fun obtainCallToReturnSiteFlowFunction(
@@ -334,10 +338,10 @@ class ForwardNpeFlowFunctions(
             }
         }
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
 
-        val callee = callExpr.callee
+        val callee = getCallee(callExpr)
         val config = getConfigForMethod(callee)
 
         if (fact == TaintZeroFact) {
@@ -345,7 +349,7 @@ class ForwardNpeFlowFunctions(
                 add(TaintZeroFact)
 
                 if (callStatement is JcAssignInst) {
-                    val toPath = callStatement.lhv.toPath()
+                    val toPath = convertToPath(callStatement.lhv)
                     val from = callStatement.rhv
                     if (from is JcNullConstant || (from is JcCallExpr && from.method.method.isNullable == true)) {
                         add(Tainted(toPath, TaintMark.NULLNESS))
@@ -384,13 +388,13 @@ class ForwardNpeFlowFunctions(
         }
         check(fact is Tainted)
 
-        val statementPassThrough = callStatement.taintPassThrough()
+        val statementPassThrough = taintPassThrough(callStatement)
         if (statementPassThrough != null) {
             for ((from, to) in statementPassThrough) {
-                if (from.toPath() == fact.variable) {
+                if (convertToPath(from) == fact.variable) {
                     return@FlowFunction setOf(
                         fact,
-                        fact.copy(variable = to.toPath())
+                        fact.copy(variable = convertToPath(to))
                     )
                 }
             }
@@ -404,8 +408,9 @@ class ForwardNpeFlowFunctions(
                 // Skip rules for StringBuilder::append in NPE analysis.
             } else {
                 val facts = mutableSetOf<Tainted>()
-                val conditionEvaluator = org.usvm.dataflow.config.FactAwareConditionEvaluator(
-                    fact, org.usvm.dataflow.config.CallPositionToValueResolver(callStatement)
+                val conditionEvaluator = FactAwareConditionEvaluator(
+                    fact,
+                    CallPositionToValueResolver(callStatement)
                 )
                 val actionEvaluator = TaintActionEvaluator(
                     CallPositionToAccessPathResolver(callStatement)
@@ -481,14 +486,16 @@ class ForwardNpeFlowFunctions(
 
             for (actual in callExpr.args) {
                 // Possibly tainted actual parameter:
-                if (fact.variable.startsWith(actual.toPathOrNull())) {
+                val p = convertToPathOrNull(actual)
+                if (fact.variable.startsWith(p)) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
 
             if (callExpr is JcInstanceCallExpr) {
                 // Possibly tainted instance:
-                if (fact.variable.startsWith(callExpr.instance.toPathOrNull())) {
+                val p = convertToPathOrNull(callExpr.instance)
+                if (fact.variable.startsWith(p)) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
@@ -497,7 +504,8 @@ class ForwardNpeFlowFunctions(
 
         if (callStatement is JcAssignInst) {
             // Possibly tainted lhv:
-            if (fact.variable.startsWith(callStatement.lhv.toPathOrNull())) {
+            val p = convertToPathOrNull(callStatement.lhv)
+            if (fact.variable.startsWith(p)) {
                 return@FlowFunction emptyList() // Overridden by rhv
             }
         }
@@ -517,13 +525,13 @@ class ForwardNpeFlowFunctions(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
 
         buildSet {
             // Transmit facts on arguments (from 'actual' to 'formal'):
             val actualParams = callExpr.args
-            val formalParams = cp.getArgumentsOf(callee)
+            val formalParams = getArgumentsOf(callee)
             for ((formal, actual) in formalParams.zip(actualParams)) {
                 addAll(
                     transmitTaintArgumentActualToFormal(
@@ -542,7 +550,7 @@ class ForwardNpeFlowFunctions(
                         fact = fact,
                         at = callStatement,
                         from = callExpr.instance,
-                        to = callee.thisInstance
+                        to = getThisInstance(callee)
                     )
                 )
             }
@@ -568,7 +576,7 @@ class ForwardNpeFlowFunctions(
                     // Note: returnValue can be null here in some weird cases, e.g. in lambda.
                     exitStatement.returnValue?.let { returnValue ->
                         if (returnValue is JcNullConstant) {
-                            val toPath = callStatement.lhv.toPath()
+                            val toPath = convertToPath(callStatement.lhv)
                             add(Tainted(toPath, TaintMark.NULLNESS))
                         }
                     }
@@ -577,7 +585,7 @@ class ForwardNpeFlowFunctions(
         }
         check(fact is Tainted)
 
-        val callExpr = callStatement.getCallExpr()
+        val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
         val callee = graph.methodOf(exitStatement)
 
@@ -585,7 +593,7 @@ class ForwardNpeFlowFunctions(
             // Transmit facts on arguments (from 'formal' back to 'actual'), if they are passed by-ref:
             if (fact.variable.isOnHeap) {
                 val actualParams = callExpr.args
-                val formalParams = cp.getArgumentsOf(callee)
+                val formalParams = getArgumentsOf(callee)
                 for ((formal, actual) in formalParams.zip(actualParams)) {
                     addAll(
                         transmitTaintArgumentFormalToActual(
@@ -604,8 +612,8 @@ class ForwardNpeFlowFunctions(
                     transmitTaintThisToInstance(
                         fact = fact,
                         at = callStatement,
-                        from = callee.thisInstance,
-                        to = callExpr.instance
+                        from = getThisInstance(callee),
+                        to = callExpr.instance,
                     )
                 )
             }
@@ -624,7 +632,7 @@ class ForwardNpeFlowFunctions(
                             fact = fact,
                             at = callStatement,
                             from = returnValue,
-                            to = callStatement.lhv
+                            to = callStatement.lhv,
                         )
                     )
                 }

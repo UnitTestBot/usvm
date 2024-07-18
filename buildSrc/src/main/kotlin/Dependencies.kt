@@ -5,7 +5,7 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val detekt = "1.18.1"
     const val ini4j = "0.5.4"
-    const val jacodb = "5102242db4"
+    const val jacodb = "e47c227815"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "1.9.20"
@@ -115,28 +115,29 @@ object Libs {
     )
 
     // https://github.com/UnitTestBot/jacodb
+    private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
     val jacodb_core = dep(
-        group = "com.github.UnitTestBot.jacodb",
+        group = jacodbPackage,
         name = "jacodb-core",
         version = Versions.jacodb
     )
     val jacodb_api_jvm = dep(
-        group = "com.github.UnitTestBot.jacodb",
+        group = jacodbPackage,
         name = "jacodb-api-jvm",
         version = Versions.jacodb
     )
     val jacodb_api_common = dep(
-        group = "com.github.UnitTestBot.jacodb",
+        group = jacodbPackage,
         name = "jacodb-api-common",
         version = Versions.jacodb
     )
     val jacodb_approximations = dep(
-        group = "com.github.UnitTestBot.jacodb",
+        group = jacodbPackage,
         name = "jacodb-approximations",
         version = Versions.jacodb
     )
     val jacodb_taint_configuration = dep(
-        group = "com.github.UnitTestBot.jacodb",
+        group = jacodbPackage,
         name = "jacodb-taint-configuration",
         version = Versions.jacodb
     )
