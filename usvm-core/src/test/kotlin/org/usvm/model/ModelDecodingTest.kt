@@ -74,8 +74,8 @@ class ModelDecodingTest {
 
         stack = URegistersStack()
         stack.push(10)
-        mocker = UIndexedMocker()
-        heap = UMemory(ctx, pc.typeConstraints, stack, mocker)
+        mocker = UIndexedMocker(ownership = ownership)
+        heap = UMemory(ctx, ownership, pc.typeConstraints, stack, mocker)
     }
 
     @Test

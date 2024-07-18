@@ -226,7 +226,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         memory: UWritableMemory<*>,
         dstCollectionId: USymbolicCollectionId<DstKey, *, *>,
         key: DstKey,
-        composer: UComposer<*, *>,
+        composer: UComposer<*, *>
     ) {
         val convertedKey = adapter.convert(key, composer)
         sourceCollection.applyTo(memory, convertedKey, composer)
@@ -236,7 +236,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
             dstCollectionId,
             composer.compose(guard),
             convertedKey,
-            composer
+            composer,
         )
     }
 

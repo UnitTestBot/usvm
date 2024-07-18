@@ -1,7 +1,5 @@
 package org.usvm.memory
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.UBoolExpr
@@ -14,10 +12,13 @@ import org.usvm.UIndexedMocker
 import org.usvm.UMockEvaluator
 import org.usvm.UMocker
 import org.usvm.USort
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.merging.MergeGuard
-import org.usvm.merging.UMergeable
+import org.usvm.merging.UOwnedMergeable
 
 interface UMemoryRegionId<Key, Sort : USort> {
     val sort: Sort
@@ -26,11 +27,11 @@ interface UMemoryRegionId<Key, Sort : USort> {
 }
 
 interface UReadOnlyMemoryRegion<Key, Sort : USort> {
-    fun read(key: Key): UExpr<Sort>
+    fun read(key: Key, ownership: MutabilityOwnership): UExpr<Sort>
 }
 
 interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
-    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr): UMemoryRegion<Key, Sort>
+    fun write(key: Key, value: UExpr<Sort>, guard: UBoolExpr, ownership: MutabilityOwnership): UMemoryRegion<Key, Sort>
 }
 
 interface ULValue<Key, Sort : USort> {
@@ -62,13 +63,14 @@ class UAddressCounter {
 }
 
 interface UReadOnlyMemory<Type> {
+    val ownership : MutabilityOwnership
     val stack: UReadOnlyRegistersStack
     val mocker: UMockEvaluator
     val types: UTypeEvaluator<Type>
 
     private fun <Key, Sort : USort> read(regionId: UMemoryRegionId<Key, Sort>, key: Key): UExpr<Sort> {
         val region = getRegion(regionId)
-        return region.read(key)
+        return region.read(key, ownership)
     }
 
     fun <Key, Sort : USort> read(lvalue: ULValue<Key, Sort>) = read(lvalue.memoryRegionId, lvalue.key)
@@ -92,13 +94,17 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 @Suppress("MemberVisibilityCanBePrivate")
 class UMemory<Type, Method>(
     internal val ctx: UContext<*>,
+    override var ownership: MutabilityOwnership,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
-    private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
-    persistentRegions: PersistentMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
-) : UWritableMemory<Type>, UMergeable<UMemory<Type, Method>, MergeGuard> {
-    private val regions = persistentRegions.builder()
+    private val mocks: UIndexedMocker<Method> = UIndexedMocker(ownership = ownership),
+    private var regions: UPersistentHashMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
+) : UWritableMemory<Type>, UOwnedMergeable<UMemory<Type, Method>, MergeGuard> {
 
+    fun changeOwnership(newOwnership: MutabilityOwnership) {
+        ownership = newOwnership
+        mocks.ownership = newOwnership
+    }
     override val mocker: UMocker<Method>
         get() = mocks
 
@@ -106,9 +112,9 @@ class UMemory<Type, Method>(
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
         if (regionId is URegisterStackId) return stack as UMemoryRegion<Key, Sort>
 
-        return regions.getOrPut(regionId) {
-            regionId.emptyRegion()
-        } as UMemoryRegion<Key, Sort>
+        val (updatedRegions, region) = regions.getOrPut(regionId, regionId.emptyRegion(), ownership)
+        regions = updatedRegions
+        return region as UMemoryRegion<Key, Sort>
     }
 
     override fun <Key, Sort : USort> setRegion(
@@ -119,7 +125,7 @@ class UMemory<Type, Method>(
             check(newRegion === stack) { "Stack is mutable" }
             return
         }
-        regions[regionId] = newRegion
+        regions = regions.put(regionId, newRegion, ownership)
     }
 
     override fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr) =
@@ -132,7 +138,7 @@ class UMemory<Type, Method>(
         guard: UBoolExpr
     ) {
         val region = getRegion(regionId)
-        val newRegion = region.write(key, value, guard)
+        val newRegion = region.write(key, value, guard, ownership)
         setRegion(regionId, newRegion)
     }
 
@@ -152,13 +158,13 @@ class UMemory<Type, Method>(
 
     override fun nullRef(): UHeapRef = ctx.nullRef
 
-    fun clone(typeConstraints: UTypeConstraints<Type>): UMemory<Type, Method> =
-        UMemory(ctx, typeConstraints, stack.clone(), mocks.clone(), regions.build())
+    fun clone(typeConstraints: UTypeConstraints<Type>, ownership: MutabilityOwnership): UMemory<Type, Method> =
+        UMemory(ctx, ownership, typeConstraints, stack.clone(), mocks.clone(ownership), regions)
 
     override fun toWritableMemory() =
     // To be perfectly rigorous, we should clone stack and types here.
         // But in fact they should not be used, so to optimize things up, we don't touch them.
-        UMemory(ctx, types, stack, mocks, regions.build())
+        UMemory(ctx, ownership, types, stack, mocks, regions)
 
 
     /**
@@ -172,9 +178,9 @@ class UMemory<Type, Method>(
      *
      * @return the merged memory.
      */
-    override fun mergeWith(other: UMemory<Type, Method>, by: MergeGuard): UMemory<Type, Method>? {
-        val ids = regions.keys
-        val otherIds = other.regions.keys
+    override fun mergeWith(other: UMemory<Type, Method>, by: MergeGuard, ownership: MutabilityOwnership): UMemory<Type, Method>? {
+        val ids = regions.keys()
+        val otherIds = other.regions.keys()
         if (ids != otherIds) {
             return null
         }
@@ -189,10 +195,10 @@ class UMemory<Type, Method>(
             }
         }
 
-        val mergedRegions = regions.build()
+        val mergedRegions = regions
         val mergedStack = stack.mergeWith(other.stack, by) ?: return null
-        val mergedMocks = mocks.mergeWith(other.mocks, by) ?: return null
+        val mergedMocks = mocks.mergeWith(other.mocks, by, ownership) ?: return null
 
-        return UMemory(ctx, types, mergedStack, mergedMocks, mergedRegions)
+        return UMemory(ctx, ownership, types, mergedStack, mergedMocks, mergedRegions)
     }
 }

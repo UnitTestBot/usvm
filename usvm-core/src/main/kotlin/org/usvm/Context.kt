@@ -42,6 +42,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.splitUHeapRef
@@ -66,6 +67,7 @@ open class UContext<USizeSort : USort>(
         components.mkComposer(this) as (UReadOnlyMemory<*>) -> UComposer<*, USizeSort>
     }
 
+    val defaultOwnership = MutabilityOwnership()
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
     val statesForkProvider by lazy { components.mkStatesForkProvider() }
 

@@ -37,7 +37,7 @@ import kotlin.test.assertSame
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
-    private val ownership = MutabilityOwnership()
+    private  lateinit var  ownership : MutabilityOwnership
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
@@ -48,10 +48,11 @@ class HeapRefSplittingTest {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx, ownership)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
-        heap = UMemory(ctx, typeConstraints)
+        heap = UMemory(ctx, ownership,  typeConstraints)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort

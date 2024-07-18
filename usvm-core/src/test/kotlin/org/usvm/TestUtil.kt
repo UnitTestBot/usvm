@@ -48,7 +48,7 @@ internal class TestState(
     override val entrypoint: TestMethod = ""
 ) : UState<Any, TestMethod, TestInstruction, UContext<*>, TestTarget, TestState>(ctx, ownership, callStack, pathConstraints, memory, models, pathLocation, PathNode.root(), targetTrees) {
 
-    override fun clone(ownership: MutabilityOwnership, newConstraints: UPathConstraints<Any>?): TestState = this
+    override fun clone(newConstraints: UPathConstraints<Any>?): TestState = this
 
     override val isExceptional = false
 }

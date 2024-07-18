@@ -27,6 +27,7 @@ import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.field.UInputFieldId
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.UMemory
@@ -54,6 +55,7 @@ internal class CompositionTest {
     private lateinit var memory: UReadOnlyMemory<Type>
 
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var concreteNull: UConcreteHeapRef
     private lateinit var composer: UComposer<Type, USizeSort>
 
@@ -63,6 +65,7 @@ internal class CompositionTest {
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
 
@@ -255,7 +258,7 @@ internal class CompositionTest {
         val fstValueFromHeap = 42.toBv()
         val sndValueFromHeap = 43.toBv()
 
-        val heapToComposeWith = UMemory<KClass<Array<*>>, Any>(ctx, mockk())
+        val heapToComposeWith = UMemory<KClass<Array<*>>, Any>(ctx, MutabilityOwnership(), mockk())
 
         heapToComposeWith.writeArrayLength(fstConcreteAddress, fstValueFromHeap, arrayType, sizeSort)
         heapToComposeWith.writeArrayLength(sndConcreteAddress, sndValueFromHeap, arrayType, sizeSort)
@@ -310,7 +313,7 @@ internal class CompositionTest {
 
         val answer = 43.toBv()
 
-        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, mockk())) // TODO replace with jacoDB type
+        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, MutabilityOwnership(), mockk())) // TODO replace with jacoDB type
 
         every { fstAddress.accept(composer) } returns sndAddress
         every { fstIndex.accept(composer) } returns sndIndex
@@ -340,13 +343,13 @@ internal class CompositionTest {
         // create a reading from the region
         val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
 
-        val sndMemory = UMemory<KClass<*>, Any>(ctx, mockk(), mockk())
+        val sndMemory = UMemory<KClass<*>, Any>(ctx, MutabilityOwnership(), mockk(), mockk())
         // create a heap with a record: (sndAddress, sndIndex) = 2
         sndMemory.writeArrayIndex(sndAddress, sndIndex, arrayType, mkBv32Sort(), 2.toBv(), mkTrue())
 
         val sndComposer = UComposer(ctx, sndMemory)
 
-        val fstMemory = UMemory<KClass<*>, Any>(ctx, mockk(), mockk())
+        val fstMemory = UMemory<KClass<*>, Any>(ctx, ownership, mockk(), mockk())
         // create a heap with a record: (fstAddress, fstIndex) = 1
         fstMemory.writeArrayIndex(fstAddress, fstIndex, arrayType, mkBv32Sort(), 1.toBv(), mkTrue())
 
@@ -416,7 +419,7 @@ internal class CompositionTest {
         val fstValue = 42.toBv()
         val sndValue = 43.toBv()
 
-        val heapToComposeWith = UMemory<KClass<Array<*>>, Any>(ctx, mockk())
+        val heapToComposeWith = UMemory<KClass<Array<*>>, Any>(ctx, MutabilityOwnership(), mockk())
 
         heapToComposeWith.writeArrayIndex(
             fstAddressForCompose, concreteIndex, arrayType, regionArray.sort, fstValue, guard = trueExpr
@@ -448,8 +451,8 @@ internal class CompositionTest {
 
         val regionArray = UAllocatedArrayId<_, _, USizeSort>(arrayType, addressSort, 0)
             .emptyRegion()
-            .write(mkBv(0), symbolicAddress, trueExpr)
-            .write(mkBv(1), mkConcreteHeapRef(1), trueExpr)
+            .write(mkBv(0), symbolicAddress, trueExpr, ownership)
+            .write(mkBv(1), mkConcreteHeapRef(1), trueExpr, ownership)
 
         val reading = mkAllocatedArrayReading(regionArray, symbolicIndex)
 
@@ -487,7 +490,7 @@ internal class CompositionTest {
         val region = USymbolicCollection(
             UInputFieldId(field, bv32Sort),
             updates,
-        ).write(aAddress, 43.toBv(), guard = trueExpr)
+        ).write(aAddress, 43.toBv(), guard = trueExpr, ownership)
 
         every { aAddress.accept(any()) } returns aAddress
         every { bAddress.accept(any()) } returns aAddress
@@ -505,7 +508,7 @@ internal class CompositionTest {
 
         val answer = 43.toBv()
 
-        val composeMemory = UMemory<Type, Any>(ctx, mockk())
+        val composeMemory = UMemory<Type, Any>(ctx, MutabilityOwnership(),  mockk())
         composeMemory.writeField(aAddress, field, bv32Sort, 42.toBv(), guard = trueExpr)
 
         val composer = UComposer(ctx, composeMemory)
@@ -556,7 +559,7 @@ internal class CompositionTest {
         val symbolicRef2 = mkRegisterReading(2, addressSort) as UHeapRef
         val composedSymbolicHeapRef = mkConcreteHeapRef(1)
 
-        val composeMemory = UMemory<Type, Any>(ctx, mockk())
+        val composeMemory = UMemory<Type, Any>(ctx, MutabilityOwnership(), mockk())
 
         composeMemory.writeArrayIndex(composedSymbolicHeapRef, mkBv(3), arrayType, bv32Sort, mkBv(1337), trueExpr)
 
@@ -570,7 +573,7 @@ internal class CompositionTest {
 
         val fromRegion0 = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort)
             .emptyRegion()
-            .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
+            .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr, ownership)
 
         val adapter1 = USymbolicArrayInputToInputCopyAdapter(
             symbolicRef0 to mkSizeExpr(0),
@@ -594,7 +597,7 @@ internal class CompositionTest {
 
         val idx0 = mkRegisterReading(3, bv32Sort)
 
-        val reading0 = fromRegion2.read(symbolicRef2 to idx0)
+        val reading0 = fromRegion2.read(symbolicRef2 to idx0, ownership)
 
         val composedExpr0 = composer.compose(reading0)
         val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort, USizeSort>>(composedExpr0)
@@ -627,7 +630,7 @@ internal class CompositionTest {
         val composer = UComposer(this, composedMemory)
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyRegion()
-        val reading = region.read(mkRegisterReading(0, sizeSort))
+        val reading = region.read(mkRegisterReading(0, sizeSort), ownership)
 
         val expr = composer.compose(reading)
         assertSame(concreteNull, expr)
@@ -645,10 +648,10 @@ internal class CompositionTest {
 
         val region = UInputFieldId(field, bv32Sort)
             .emptyRegion()
-            .write(ref0, mkBv(0), trueExpr)
-            .write(ref1, mkBv(1), trueExpr)
+            .write(ref0, mkBv(0), trueExpr, ownership)
+            .write(ref1, mkBv(1), trueExpr, ownership)
 
-        val reading = region.read(ref2)
+        val reading = region.read(ref2, ownership)
 
         val composer = spyk(UComposer(this, composedMemory))
 

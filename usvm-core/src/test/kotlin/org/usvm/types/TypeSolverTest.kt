@@ -79,8 +79,7 @@ class TypeSolverTest {
     }
 
     private val pc = UPathConstraints<TestType>(ctx, ownership)
-    private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
-
+    private val memory = UMemory<TestType, Method>(ctx, ownership, pc.typeConstraints)
     @Test
     fun `Test concrete ref -- open type inheritance`() {
         val ref = memory.allocConcrete(base1)
@@ -346,18 +345,18 @@ class TypeSolverTest {
         val idx2 = 0.toBv()
 
         val field = mockk<Field>()
-        val heap = UMemory<TestType, Any>(ctx, mockk())
+        val heap = UMemory<TestType, Any>(ctx, ownership, mockk())
 
         heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
         val inputRegion = UInputArrayId<_, _, USizeSort>(mockk<TestType>(), addressSort)
             .emptyRegion()
-            .write(arr1 to idx1, val1, trueExpr)
-            .write(arr2 to idx2, val2, trueExpr)
+            .write(arr1 to idx1, val1, trueExpr, ownership)
+            .write(arr2 to idx2, val2, trueExpr, ownership)
 
-        val firstReading = inputRegion.read(arr1 to idx1)
-        val secondReading = inputRegion.read(arr2 to idx2)
+        val firstReading = inputRegion.read(arr1 to idx1, ownership)
+        val secondReading = inputRegion.read(arr2 to idx2, ownership)
 
         pc += mkIsSubtypeExpr(arr1, base1)
         pc += mkIsSubtypeExpr(arr2, base1)

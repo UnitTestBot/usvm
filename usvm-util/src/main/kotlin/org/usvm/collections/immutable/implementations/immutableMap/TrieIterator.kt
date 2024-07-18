@@ -173,3 +173,6 @@ internal abstract class UPersistentHashMapBaseIterator<K, V, T>(
 
 internal class UPersistentHashMapEntriesIterator<K, V>(node: TrieNode<K, V>)
     : UPersistentHashMapBaseIterator<K, V, Map.Entry<K, V>>(node, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeEntriesIterator<K, V>() })
+
+internal class UPersistentHashMapKeysIterator<K, V>(node: TrieNode<K, V>)
+    : UPersistentHashMapBaseIterator<K, V, K>(node, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeKeysIterator<K, V>() })

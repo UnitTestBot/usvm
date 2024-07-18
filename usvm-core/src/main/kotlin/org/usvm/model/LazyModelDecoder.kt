@@ -14,6 +14,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UMockEvaluator
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.solver.UExprTranslator
@@ -141,6 +142,6 @@ open class ULazyModelDecoder<Type>(
         private val regionId: UMemoryRegionId<Key, Sort>,
         private val value: UExpr<Sort>
     ) : UReadOnlyMemoryRegion<Key, Sort> {
-        override fun read(key: Key): UExpr<Sort> = value
+        override fun read(key: Key, ownership: MutabilityOwnership): UExpr<Sort> = value
     }
 }

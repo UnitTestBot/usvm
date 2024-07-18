@@ -10,6 +10,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UMockEvaluator
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -37,6 +38,7 @@ open class UModelBase<Type>(
     override val mocker: UMockEvaluator,
     val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
     val nullRef: UConcreteHeapRef,
+    override val ownership: MutabilityOwnership = ctx.defaultOwnership,
 ) : UModel, UWritableMemory<Type> {
     @Suppress("LeakingThis")
     protected open val composer = ctx.composer(this)

@@ -65,7 +65,7 @@ abstract class SymbolicCollectionTestBase {
 
 
         pathConstraints = UPathConstraints(ctx, ownership)
-        memory = UMemory(ctx, pathConstraints.typeConstraints)
+        memory = UMemory(ctx, ownership, pathConstraints.typeConstraints)
         scope = StepScope(StateStub(ctx, ownership, pathConstraints, memory), UForkBlackList.createDefault())
     }
 
@@ -80,9 +80,11 @@ abstract class SymbolicCollectionTestBase {
         ctx, ownership, UCallStack(),
         pathConstraints, memory, emptyList(), PathNode.root(), PathNode.root(), UTargetsSet.empty()
     ) {
-        override fun clone(ownership: MutabilityOwnership, newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
-            val clonedConstraints = newConstraints ?: pathConstraints.clone(ownership)
-            return StateStub(ctx, ownership, clonedConstraints, memory.clone(clonedConstraints.typeConstraints))
+        override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
+            this.changeOwnership(MutabilityOwnership())
+            val cloneOwnership = MutabilityOwnership()
+            val clonedConstraints = newConstraints ?: pathConstraints.clone(cloneOwnership)
+            return StateStub(ctx, cloneOwnership, clonedConstraints, memory.clone(clonedConstraints.typeConstraints, cloneOwnership))
         }
 
         override val isExceptional: Boolean

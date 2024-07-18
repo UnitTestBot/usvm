@@ -37,7 +37,7 @@ class MergingPathSelector<State : UState<*, *, *, *, *, State>>(
         val resultState = when (val selectorState = selectorState) {
             is SelectorState.Advancing -> {
                 val closeState = closeStatesSearcher.findCloseStates(state).firstOrNull() ?: return state
-                val mergedState = state.mergeWith(closeState, Unit, MutabilityOwnership())
+                val mergedState = state.mergeWith(closeState, Unit)
                 if (mergedState == null) {
                     selectorState.steps++
                     if (selectorState.steps == advanceLimit) {

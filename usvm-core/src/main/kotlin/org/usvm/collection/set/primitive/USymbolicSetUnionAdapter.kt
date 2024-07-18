@@ -251,7 +251,7 @@ class UInputToInputSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
                 dstCollectionId.setType,
                 dstCollectionId.elementSort,
                 dstCollectionId.keyInfo() as USymbolicCollectionKeyInfo<UExpr<USort>, Nothing>,
-                guard
+                guard 
             )
         }
     }

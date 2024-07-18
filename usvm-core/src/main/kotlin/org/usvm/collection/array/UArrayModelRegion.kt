@@ -2,6 +2,7 @@ package org.usvm.collection.array
 
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -12,9 +13,9 @@ abstract class UArrayModelRegion<ArrayType, Sort : USort, USizeSort : USort>(
 ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
     abstract val inputArray: UReadOnlyMemoryRegion<USymbolicArrayIndex<USizeSort>, Sort>
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>): UExpr<Sort> {
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>, ownership: MutabilityOwnership): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputArray.read(ref to key.index)
+        return inputArray.read(ref to key.index, ownership)
     }
 }
 

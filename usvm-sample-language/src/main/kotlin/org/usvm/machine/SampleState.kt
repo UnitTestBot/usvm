@@ -25,7 +25,7 @@ class SampleState(
     override val entrypoint: Method<*>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
     pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx, ownership),
-    memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
+    memory: UMemory<SampleType, Method<*>> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
     pathNode: PathNode<Stmt> = PathNode.root(),
     forkPoints: PathNode<PathNode<Stmt>> = PathNode.root(),
@@ -43,15 +43,17 @@ class SampleState(
     forkPoints,
     targets
 ) {
-    override fun clone(ownership: MutabilityOwnership, newConstraints: UPathConstraints<SampleType>?): SampleState {
-        val clonedConstraints = newConstraints ?: pathConstraints.clone(ownership)
+    override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
+        this.changeOwnership(MutabilityOwnership())
+        val cloneOwnership = MutabilityOwnership()
+        val clonedConstraints = newConstraints ?: pathConstraints.clone(cloneOwnership)
         return SampleState(
             ctx,
-            ownership,
+            cloneOwnership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints),
+            memory.clone(clonedConstraints.typeConstraints, cloneOwnership),
             models,
             pathNode,
             forkPoints,
@@ -76,7 +78,7 @@ class SampleState(
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
         val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard, ownership)
             ?: return null
-        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints, ownership).mergeWith(other.memory, mergeGuard, ownership)
             ?: return null
         val mergedModels = models + other.models
         val mergedReturnRegister = if (returnRegister == null && other.returnRegister == null) {

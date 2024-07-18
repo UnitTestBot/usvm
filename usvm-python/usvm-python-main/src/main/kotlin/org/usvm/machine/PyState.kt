@@ -10,6 +10,7 @@ import org.usvm.UCallStack
 import org.usvm.UMockSymbol
 import org.usvm.UPathSelector
 import org.usvm.UState
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.PyCallable
 import org.usvm.language.PyInstruction
@@ -32,6 +33,7 @@ private val targets = UTargetsSet.empty<PyTarget, PyInstruction>()
 
 class PyState(
     ctx: PyContext,
+    ownership: MutabilityOwnership,
     private val pythonCallable: PyUnpinnedCallable,
     val inputSymbols: List<UninterpretedSymbolicPythonObject>,
     override val pathConstraints: PyPathConstraints,
@@ -50,6 +52,7 @@ class PyState(
     var uniqueInstructions: PersistentSet<PyInstruction> = persistentSetOf(),
 ) : UState<PythonType, PyCallable, PyInstruction, PyContext, PyTarget, PyState>(
     ctx,
+    ownership,
     callStack,
     pathConstraints,
     memory,
@@ -60,10 +63,13 @@ class PyState(
 ) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PyState {
         require(newConstraints is PyPathConstraints?)
-        val newPathConstraints = newConstraints ?: pathConstraints.clone()
-        val newMemory = memory.clone(newPathConstraints.typeConstraints)
+        this.changeOwnership(ownership)
+        val cloneOwnership = MutabilityOwnership()
+        val newPathConstraints = newConstraints ?: pathConstraints.clone(cloneOwnership)
+        val newMemory = memory.clone(newPathConstraints.typeConstraints, cloneOwnership)
         return PyState(
             ctx,
+            cloneOwnership,
             pythonCallable,
             inputSymbols,
             newPathConstraints,

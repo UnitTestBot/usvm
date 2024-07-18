@@ -431,7 +431,7 @@ class JcExprResolver(
 
     private fun UWritableMemory<JcType>.writeCallSite(callSite: JcLambdaCallSite) {
         val callSiteRegion = getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
-        val updatedRegion = callSiteRegion.writeCallSite(callSite)
+        val updatedRegion = callSiteRegion.writeCallSite(callSite, ownership)
         setRegion(ctx.lambdaCallSiteRegionId, updatedRegion)
     }
 
@@ -644,7 +644,7 @@ class JcExprResolver(
 
         val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor, sizeSort)
         val enumValuesFieldLengthBeforeClinit =
-            enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue)
+            enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue, ownership)
         val enumValuesFieldLengthAfterClinit = memory.read(enumValuesFieldLengthLValue)
 
         // Ensure that $VALUES in a model has the same length as the $VALUES in the memory
@@ -659,13 +659,13 @@ class JcExprResolver(
                 UArrayIndexLValue(addressSort, enumValuesRef, mkSizeExpr(ordinal), cp.objectType)
             val enumConstantRefAfterClinit = memory.read(enumConstantLValue)
             val enumConstantRefBeforeClinit =
-                enumConstantLValue.memoryRegionId.emptyRegion().read(enumConstantLValue)
+                enumConstantLValue.memoryRegionId.emptyRegion().read(enumConstantLValue, ownership)
 
             val ordinalFieldLValue =
                 UFieldLValue(sizeSort, enumConstantRefAfterClinit, enumOrdinalField)
             val ordinalFieldValueAfterClinit = memory.read(ordinalFieldLValue)
             val ordinalEmptyRegion = ordinalFieldLValue.memoryRegionId.emptyRegion()
-            val ordinalFieldValueBeforeClinit = ordinalEmptyRegion.read(ordinalFieldLValue)
+            val ordinalFieldValueBeforeClinit = ordinalEmptyRegion.read(ordinalFieldLValue, ownership)
 
             // Ensure that the ordinal of each enum constant equals to the real ordinal value
             scope.assert(mkEq(ordinalFieldValueAfterClinit, ordinalFieldValueBeforeClinit))
@@ -1015,7 +1015,7 @@ class JcExprResolver(
                     if (sort === voidSort) return@forEach
 
                     val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
-                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass)
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass, scope.ownership)
                 }
             }
         }

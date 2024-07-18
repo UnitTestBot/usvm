@@ -42,7 +42,7 @@ class SetEntriesTest {
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx, ownership)
         val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
-        heap = UMemory(ctx, typeConstraints)
+        heap = UMemory(ctx, ownership, typeConstraints)
         setType = mockk<Type>()
     }
 

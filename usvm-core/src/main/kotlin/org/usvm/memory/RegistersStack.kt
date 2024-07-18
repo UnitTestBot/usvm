@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isTrue
 import org.usvm.merging.MergeGuard
 import org.usvm.merging.UMergeable
@@ -30,7 +31,8 @@ class URegisterStackLValue<Sort : USort>(
 interface UReadOnlyRegistersStack : UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
     fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
 
-    override fun read(key: URegisterStackLValue<*>): UExpr<USort> = readRegister(key.idx, key.sort)
+    override fun read(key: URegisterStackLValue<*>, ownership: MutabilityOwnership): UExpr<USort> =
+        readRegister(key.idx, key.sort)
 }
 
 class URegistersStack(
@@ -54,6 +56,7 @@ class URegistersStack(
         key: URegisterStackLValue<*>,
         value: UExpr<USort>,
         guard: UBoolExpr,
+        ownership: MutabilityOwnership
     ): UMemoryRegion<URegisterStackLValue<*>, USort> {
         check(guard.isTrue) { "Guarded writes are not supported for register" }
         writeRegister(key.idx, value)

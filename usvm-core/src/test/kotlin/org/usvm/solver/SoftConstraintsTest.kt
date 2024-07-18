@@ -132,11 +132,11 @@ open class SoftConstraintsTest {
         val secondInputRef = mkRegisterReading(1, addressSort)
         val region = UInputArrayLengthId(arrayType, sizeSort)
             .emptyRegion()
-            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
+            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr, ownership)
 
         val size = 25
 
-        val reading = region.read(secondInputRef)
+        val reading = region.read(secondInputRef, ownership)
 
         val pc = UPathConstraints<Type>(ctx, ownership)
         pc += reading eq size.toBv()
@@ -158,7 +158,7 @@ open class SoftConstraintsTest {
         val inputRef = mkRegisterReading(0, addressSort)
         val region = UInputArrayLengthId(arrayType, sizeSort)
             .emptyRegion()
-            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr)
+            .write(inputRef, mkRegisterReading(3, sizeSort), guard = trueExpr, ownership)
 
         val pc = UPathConstraints<Type>(ctx, ownership)
         pc += (inputRef eq nullRef).not()

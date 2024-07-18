@@ -27,7 +27,7 @@ internal fun <Type> UState<Type, *, *, *, *, *>.isSat(): Boolean {
 
 @Suppress("MoveVariableDeclarationIntoWhen")
 internal fun <Type, State : UState<Type, *, *, *, *, State>> State.checkSat(condition: UBoolExpr): State? {
-    val conditionalState = clone(MutabilityOwnership())
+    val conditionalState = clone()
     conditionalState.pathConstraints += condition
 
     // If this state did not fork at all or was sat at the last fork point, it must be still sat, so we can just

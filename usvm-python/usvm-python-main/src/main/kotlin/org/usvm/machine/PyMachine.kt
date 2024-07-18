@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import org.usvm.UMachine
 import org.usvm.UPathSelector
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.language.PyCallable
 import org.usvm.language.PyPinnedCallable
 import org.usvm.language.PyProgram
@@ -60,10 +61,12 @@ class PyMachine(
         )
 
     private fun getInitialState(target: PyUnpinnedCallable): PyState {
-        val pathConstraints = PyPathConstraints(ctx)
+        val initOwnership = MutabilityOwnership()
+        val pathConstraints = PyPathConstraints(ctx,initOwnership )
         val memory = UMemory<PythonType, PyCallable>(
             ctx,
-            pathConstraints.typeConstraints
+            initOwnership,
+            pathConstraints.typeConstraints,
         ).apply {
             stack.push(target.numberOfArguments)
         }
@@ -78,6 +81,7 @@ class PyMachine(
 
         return PyState(
             ctx,
+            initOwnership,
             target,
             symbols,
             pathConstraints,

@@ -4,6 +4,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
@@ -24,7 +25,7 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, guard)
+    val newRegion = region.union(srcRef, dstRef, guard, ownership)
     setRegion(regionId, newRegion)
 }
 
@@ -38,5 +39,5 @@ fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
     val region = getRegion(regionId) as? USetReadOnlyRegion<SetType, KeySort, Reg>
         ?: return UPrimitiveSetEntries<SetType, KeySort, Reg>().apply { markAsInput() }
 
-    return region.setEntries(setRef)
+    return region.setEntries(setRef, ownership)
 }

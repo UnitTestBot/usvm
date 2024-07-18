@@ -6,7 +6,6 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
@@ -89,7 +88,7 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     type: ArrayType,
     sort: Sort,
     sizeSort: USizeSort,
-    contents: Sequence<UExpr<Sort>>
+    contents: Sequence<UExpr<Sort>>,
 ) {
     memsetInternal(ref, type, sort, sizeSort, contents)
 }

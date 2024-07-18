@@ -42,7 +42,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
     override fun instantiate(
         collection: USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort>,
         key: UExpr<USizeSort>,
-        composer: UComposer<*, *>?
+        composer: UComposer<*, *>?,
     ): UExpr<Sort> {
         if (collection.updates.isEmpty()) {
             return composer.compose(defaultValue)
@@ -123,7 +123,7 @@ class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constru
     override fun instantiate(
         collection: USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>,
         key: USymbolicArrayIndex<USizeSort>,
-        composer: UComposer<*, *>?
+        composer: UComposer<*, *>?,
     ): UExpr<Sort> {
         if (composer == null) {
             return sort.uctx.withSizeSort<USizeSort>().mkInputArrayReading(collection, key.first, key.second)

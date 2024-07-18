@@ -49,8 +49,8 @@ open class UPathConstraints<Type>(
 
     fun changeOwnership(newOwnership: MutabilityOwnership) {
        ownership = newOwnership
-       numericConstraints.changeOwnership(newOwnership)
-       equalityConstraints.changeOwnership(newOwnership)
+       numericConstraints.ownership = newOwnership
+       equalityConstraints.ownership = newOwnership
     }
 
     /**

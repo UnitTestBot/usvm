@@ -64,15 +64,11 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext<*>,
     val sort: Sort,
-    private var ownership: MutabilityOwnership,
+    internal var ownership: MutabilityOwnership,
     private var numericConstraints: UPersistentHashMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     private var constraintWatchList: UPersistentMultiMap<ConstraintTerms<Sort>, ConstraintTerms<Sort>>,
 ) : UOwnedMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
     constructor(ctx: UContext<*>, sort: Sort, ownership: MutabilityOwnership) : this(ctx, sort, ownership, persistentHashMapOf(), persistentHashMapOf())
-
-    fun changeOwnership(newOwnership: MutabilityOwnership) {
-        ownership = newOwnership
-    }
 
     private val constraintPropagationQueue = arrayListOf<ConstraintUpdateEvent<Sort>>()
 
@@ -1965,8 +1961,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun size(): Int =
             inferredTermLowerBounds.size +
-                    termUpperBounds.size +
-                    termDisequalities.size
+                termUpperBounds.size +
+                termDisequalities.size
 
         fun lowerBound(bias: KBitVecValue<Sort>): ValueConstraint<Sort>? =
             concreteLowerBounds[bias]
@@ -2174,11 +2170,15 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     class TermConstraintSet<Sort : UBvSort>(
         val termConstraints: UPersistentMultiMap<TermsConstraint<Sort>, KBitVecValue<Sort>>,
         val termDependency: UPersistentMultiMap<ConstraintTerms<Sort>, TermsConstraint<Sort>>,
-        val size : Int
+        val size: Int
     ) {
         constructor() : this(persistentHashMapOf(), persistentHashMapOf(), 0)
 
-        fun addTermConstraint(bias: KBitVecValue<Sort>, constraint: TermsConstraint<Sort>, ownership: MutabilityOwnership): TermConstraintSet<Sort> {
+        fun addTermConstraint(
+            bias: KBitVecValue<Sort>,
+            constraint: TermsConstraint<Sort>,
+            ownership: MutabilityOwnership
+        ): TermConstraintSet<Sort> {
             var newSize = size
             val constraints = termConstraints[constraint].also { if (it  == null) newSize++ } ?: persistentHashSetOf()
             val updatedConstraints =  constraints.add(bias, ownership)

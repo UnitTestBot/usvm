@@ -716,15 +716,24 @@ class TrieNode<K, V>(
             nodePositions -= mask
         }
     }
+    
+    fun keys() = UPersistentHashMapKeysIterator(this).asSequence().toSet()
 
     fun isEmpty() = singleOrNull() == null
     fun isNotEmpty() = singleOrNull() != null
-    
+
     fun containsKey(key: K) : Boolean = containsKey(key.hashCode(), key, 0)
 
     operator fun contains(key : K) = containsKey(key)
 
     operator fun get(key : K) = get(key.hashCode(), key, 0)
+
+    fun getOrDefault(key : K, defaultValue : V) = get(key) ?: defaultValue
+    fun getOrPut(key : K, value : V, owner: MutabilityOwnership) : Pair<TrieNode<K,V>, V> { 
+        val current = get(key) ?: return put(key, value, owner) to value
+        return this to current
+    }
+
     fun put(key : K, value : V, owner: MutabilityOwnership) : TrieNode<K,V> =
         mutablePut(key.hashCode(), key, value, 0, owner)
 

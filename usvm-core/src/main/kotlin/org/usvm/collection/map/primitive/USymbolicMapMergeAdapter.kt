@@ -63,7 +63,7 @@ class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<KeySort>,
-        composer: UComposer<*, *>,
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -114,7 +114,7 @@ class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: UExpr<KeySort>,
-        composer: UComposer<*, *>,
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -166,7 +166,7 @@ class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicMapKey<KeySort>,
-        composer: UComposer<*, *>,
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $dstCollectionId" }
@@ -219,7 +219,7 @@ class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
         srcKey: USymbolicMapKey<KeySort>,
-        composer: UComposer<*, *>,
+        composer: UComposer<*, *>
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
         check(dstCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $dstCollectionId" }

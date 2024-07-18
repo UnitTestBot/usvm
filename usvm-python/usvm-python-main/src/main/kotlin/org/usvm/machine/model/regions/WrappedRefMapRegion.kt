@@ -4,6 +4,7 @@ import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.PyContext
 import org.usvm.machine.types.PythonType
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -15,10 +16,10 @@ class WrappedRefMapRegion<MapType>(
     private val keys: Set<UConcreteHeapRef>,
     private val underlyingModel: UModelBase<PythonType>,
 ) : UReadOnlyMemoryRegion<URefMapEntryLValue<MapType, UAddressSort>, UAddressSort> {
-    override fun read(key: URefMapEntryLValue<MapType, UAddressSort>): UExpr<UAddressSort> {
+    override fun read(key: URefMapEntryLValue<MapType, UAddressSort>, ownership: MutabilityOwnership): UExpr<UAddressSort> {
         if (key.mapKey !in keys) {
             return underlyingModel.eval(ctx.nullRef)
         }
-        return region.read(key)
+        return region.read(key, ownership)
     }
 }

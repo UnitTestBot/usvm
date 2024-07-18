@@ -52,8 +52,7 @@ object WithSolverStateForker : StateForker {
 
             trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
                 val posState = state
-                posState.changeOwnership(MutabilityOwnership())
-                val negState = state.clone(MutabilityOwnership())
+                val negState = state.clone()
 
                 posState.models = trueModels
                 negState.models = falseModels
@@ -101,11 +100,9 @@ object WithSolverStateForker : StateForker {
             val (trueModels, _, _) = splitModelsByCondition(curState.models, condition)
 
             val nextRoot = if (trueModels.isNotEmpty()) {
-                val newOwnership = MutabilityOwnership()
-                val root = curState.clone(newOwnership)
+                val root = curState.clone()
                 curState.models = trueModels
                 curState.pathConstraints += condition
-                curState.changeOwnership(MutabilityOwnership())
 
                 root
             } else {
@@ -167,14 +164,12 @@ object WithSolverStateForker : StateForker {
                 // heavy plusAssign operator in path constraints.
                 // Therefore, it is better to reuse already constructed [constraintToCheck].
                 if (stateToCheck) {
-                    state.changeOwnership(MutabilityOwnership())
-                    val forkedState = state.clone(newOwnership, constraintsToCheck)
+                    val forkedState = state.clone(constraintsToCheck)
                     state.pathConstraints += newConstraintToOriginalState
                     forkedState.models = listOf(satResult.model)
                     forkedState
                 } else {
-                    val forkedState = state.clone(newOwnership)
-                    state.changeOwnership(MutabilityOwnership())
+                    val forkedState = state.clone()
                     state.pathConstraints += newConstraintToOriginalState
                     state.models = listOf(satResult.model)
                     // TODO: implement path condition setter (don't forget to reset UMemoryBase:types!)
@@ -204,13 +199,13 @@ object NoSolverStateForker : StateForker {
         clonedPathConstraints += condition
 
         val (posState, negState) = if (clonedPathConstraints.isFalse) {
+            // changing ownership is unnecessary
             state.pathConstraints += notCondition
             state.models = falseModels
-            state.changeOwnership(MutabilityOwnership())
 
             null to state.takeIf { !it.pathConstraints.isFalse }
         } else {
-            val falseState = state.clone(newOwnership)
+            val falseState = state.clone()
 
             // TODO how to reuse "clonedPathConstraints" here?
             state.pathConstraints += condition
@@ -242,7 +237,7 @@ object NoSolverStateForker : StateForker {
                 continue
             }
 
-            val nextRoot = curState.clone(newOwnership)
+            val nextRoot = curState.clone()
 
             curState.models = trueModels
             // TODO how to reuse "clonedConstraints"?

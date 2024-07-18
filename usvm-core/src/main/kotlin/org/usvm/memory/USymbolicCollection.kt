@@ -7,6 +7,8 @@ import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.uctx
@@ -116,7 +118,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
     override fun write(
         key: Key,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): USymbolicCollection<CollectionId, Key, Sort> {
         assert(value.sort == sort)
 
@@ -213,7 +216,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         return this.copy(updates = updatesCopy)
     }
 
-    override fun read(key: Key): UExpr<Sort> = read(key, composer = null)
+    override fun read(key: Key, ownership: MutabilityOwnership): UExpr<Sort> = read(key, composer = null)
 
     override fun toString(): String =
         buildString {
@@ -245,16 +248,17 @@ class GuardBuilder(nonMatchingUpdates: UBoolExpr) {
         get() = nonMatchingUpdatesGuard.isFalse
 }
 
-inline fun <K, VSort : USort> PersistentMap<K, UExpr<VSort>>.guardedWrite(
+inline fun <K, VSort : USort> UPersistentHashMap<K, UExpr<VSort>>.guardedWrite(
     key: K,
     value: UExpr<VSort>,
     guard: UBoolExpr,
+    ownership: MutabilityOwnership,
     defaultValue: () -> UExpr<VSort>
-): PersistentMap<K, UExpr<VSort>> {
+): UPersistentHashMap<K, UExpr<VSort>> {
     val guardedValue = guard.uctx.mkIte(
         guard,
         { value },
         { get(key) ?: defaultValue() }
     )
-    return put(key, guardedValue)
+    return put(key, guardedValue, ownership)
 }

@@ -136,7 +136,7 @@ private fun <Method, Statement, Target, State> createPathSelector(
 
             wrappedSelectors.first().add(initialStates.toList())
             wrappedSelectors.drop(1).forEach {
-                it.add(initialStates.map { it.clone(MutabilityOwnership()) }.toList())
+                it.add(initialStates.map { it.clone() }.toList())
             }
 
             ParallelPathSelector(wrappedSelectors)

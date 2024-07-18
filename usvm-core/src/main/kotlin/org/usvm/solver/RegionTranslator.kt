@@ -57,7 +57,7 @@ abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
 
     override fun visitUpdate(
         previous: KExpr<KArraySort<KeySort, Sort>>,
-        update: UUpdateNode<UExpr<KeySort>, Sort>,
+        update: UUpdateNode<UExpr<KeySort>, Sort>
     ): KExpr<KArraySort<KeySort, Sort>> = with(previous.uctx) {
         when (update) {
             is UPinpointUpdateNode -> {

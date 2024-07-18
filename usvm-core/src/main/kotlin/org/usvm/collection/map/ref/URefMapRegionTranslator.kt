@@ -153,7 +153,7 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
             previous,
             update,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
-            update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *>
+            update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *>,
         )
     }
 

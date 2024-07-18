@@ -2,6 +2,7 @@ package org.usvm.collection.set.ref
 
 import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
@@ -19,7 +20,7 @@ internal fun <SetType> UWritableMemory<*>.refSetUnion(
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, guard)
+    val newRegion = region.union(srcRef, dstRef, guard, ownership)
     setRegion(regionId, newRegion)
 }
 
@@ -31,5 +32,5 @@ fun <SetType> UReadOnlyMemory<*>.refSetEntries(
     val region = getRegion(regionId) as? URefSetReadOnlyRegion<SetType>
         ?: return URefSetEntries<SetType>().apply { markAsInput() }
 
-    return region.setEntries(setRef)
+    return region.setEntries(setRef, ownership)
 }

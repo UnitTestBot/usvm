@@ -5,6 +5,7 @@ import kotlinx.collections.immutable.persistentHashSetOf
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UContext
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.ULogicalConstraints
 import org.usvm.constraints.UNumericConstraints
@@ -14,26 +15,28 @@ import org.usvm.machine.types.PythonType
 
 class PyPathConstraints(
     ctx: UContext<*>,
+    ownership: MutabilityOwnership,
     logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
-    equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx),
+    equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx, ownership),
     typeConstraints: UTypeConstraints<PythonType> = UTypeConstraints(
         ctx.typeSystem(),
         equalityConstraints
     ),
-    numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort),
+    numericConstraints: UNumericConstraints<UBv32Sort> = UNumericConstraints(ctx, sort = ctx.bv32Sort, ownership = ownership),
     var pythonSoftConstraints: PersistentSet<UBoolExpr> = persistentHashSetOf(),
 ) : UPathConstraints<PythonType>(
     ctx,
+    ownership,
     logicalConstraints,
     equalityConstraints,
     typeConstraints,
     numericConstraints
 ) {
-    override fun clone(): PyPathConstraints {
+    override fun clone(ownership: MutabilityOwnership): PyPathConstraints {
         val clonedLogicalConstraints = logicalConstraints.clone()
-        val clonedEqualityConstraints = equalityConstraints.clone()
+        val clonedEqualityConstraints = equalityConstraints.clone(ownership)
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        val clonedNumericConstraints = numericConstraints.clone()
+        val clonedNumericConstraints = numericConstraints.clone(ownership)
         return PyPathConstraints(
             ctx = ctx,
             logicalConstraints = clonedLogicalConstraints,
@@ -41,6 +44,7 @@ class PyPathConstraints(
             typeConstraints = clonedTypeConstraints,
             numericConstraints = clonedNumericConstraints,
             pythonSoftConstraints = pythonSoftConstraints,
+            ownership = ownership
         )
     }
 }

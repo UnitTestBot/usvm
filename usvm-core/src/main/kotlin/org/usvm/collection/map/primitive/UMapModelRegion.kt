@@ -3,6 +3,7 @@ package org.usvm.collection.map.primitive
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -14,9 +15,9 @@ abstract class UMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg 
 ) : UReadOnlyMemoryRegion<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort> {
     abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>
 
-    override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> {
+    override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ownership: MutabilityOwnership): UExpr<ValueSort> {
         val mapRef = modelEnsureConcreteInputRef(key.mapRef)
-        return inputMap.read(mapRef to key.mapKey)
+        return inputMap.read(mapRef to key.mapKey, ownership)
     }
 }
 

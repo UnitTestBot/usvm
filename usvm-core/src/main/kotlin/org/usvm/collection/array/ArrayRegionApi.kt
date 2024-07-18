@@ -6,7 +6,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeExpr
 import org.usvm.uctx
@@ -29,7 +28,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.mem
         "memcpy is not applicable to $region"
     }
 
-    val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard)
+    val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard, ownership)
     setRegion(regionId, newRegion)
 }
 
@@ -52,7 +51,14 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
         "allocateArrayInitialized is not applicable to $region"
     }
 
-    val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)
+    val newRegion = region.initializeAllocatedArray(
+        address.address,
+        type,
+        elementSort,
+        arrayValues,
+        operationGuard = trueExpr,
+        ownership = ownership
+    )
 
     setRegion(regionId, newRegion)
 

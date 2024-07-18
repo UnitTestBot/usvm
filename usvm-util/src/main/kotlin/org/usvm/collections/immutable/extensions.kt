@@ -61,6 +61,8 @@ fun <K, V> persistentHashMapOf(): UPersistentHashMap<K, V> = UPersistentHashMap.
 fun <K, V> persistentHashMapOf(map : Map<K,V>, owner : MutabilityOwnership): UPersistentHashMap<K, V> =
         persistentHashMapOf<K, V>().putAll(map, owner)
 
+fun <K, V> persistentHashMapOf(owner : MutabilityOwnership, vararg pairs : Pair<K,V> ): UPersistentHashMap<K,V> =
+        pairs.fold(persistentHashMapOf<K,V>()) { acc, (k, v) -> acc.put(k, v, owner) }
 
 /**
  * Returns a persistent map containing all entries from this map.

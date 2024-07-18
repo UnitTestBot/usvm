@@ -21,8 +21,8 @@ fun <K,V> UPersistentMultiMap<K,V>.addToSet(
     value: V,
     ownership: MutabilityOwnership,
 ): UPersistentMultiMap<K,V> {
-    val current = this[key]
-    val updated = current?.add(value, ownership) ?: persistentHashSetOf<V>().add(value, ownership)
+    val current = getOrDefault(key, persistentHashSetOf())
+    val updated = current.add(value, ownership)
     return this.put(key, updated, ownership)
 }
 
@@ -31,8 +31,8 @@ fun <K,V> UPersistentMultiMap<K,V>.addAll(
     values: Set<V>,
     ownership: MutabilityOwnership,
 ) : UPersistentMultiMap<K,V> {
-    val current = this[key]
-    val updated = current?.addAll(values, ownership) ?: persistentHashSetOf<V>().addAll(values, ownership)
+    val current = getOrDefault(key, persistentHashSetOf())
+    val updated = current.addAll(values, ownership)
     return this.put(key, updated, ownership)
 }
 
