@@ -59,7 +59,7 @@ class ApproximationsTest : ApproximationsTestRunner() {
 
     private fun approximationTests(): List<ApproximationTestCase> {
         val allClasses = runBlocking {
-            cp.hierarchyExt().findSubClasses(cp.objectClass, allHierarchy = true, includeOwn = true)
+            cp.hierarchyExt().findSubClasses(cp.objectClass, entireHierarchy = true, includeOwn = true)
         }
         return allClasses
             .filter { cls ->

@@ -16,8 +16,6 @@
 
 package org.usvm.dataflow.jvm.unused
 
-import org.usvm.dataflow.ifds.AccessPath
-import org.usvm.dataflow.util.Traits
 import org.jacodb.api.common.CommonMethod
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonInst
@@ -28,19 +26,23 @@ import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcLocal
 import org.jacodb.api.jvm.cfg.JcSpecialCallExpr
 import org.jacodb.api.jvm.cfg.JcTerminatingInst
+import org.usvm.dataflow.ifds.AccessPath
+import org.usvm.dataflow.util.Traits
 
 context(Traits<CommonMethod, CommonInst>)
 internal fun AccessPath.isUsedAt(
     expr: CommonExpr,
 ): Boolean {
-    return expr.getValues().any { it.toPathOrNull() == this }
+    return getValues(expr).any {
+        convertToPathOrNull(it) == this
+    }
 }
 
 context(Traits<CommonMethod, CommonInst>)
 internal fun AccessPath.isUsedAt(
     inst: CommonInst,
 ): Boolean {
-    val callExpr = inst.getCallExpr()
+    val callExpr = getCallExpr(inst)
 
     if (callExpr != null) {
         // Don't count constructor calls as usages
