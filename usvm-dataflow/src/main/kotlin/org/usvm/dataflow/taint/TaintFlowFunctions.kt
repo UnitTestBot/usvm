@@ -590,7 +590,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
                 ?: error("Call statement should have non-null callExpr")
             val callee = getCallee(callExpr)
 
-            if (callee in graph.callees(callStatement) && unitResolver.resolve(callee) != UnknownUnit) {
+            if (callee in graph.callees(callStatement)) {
 
                 if (fact.variable.isStatic) {
                     return@FlowFunction emptyList()
