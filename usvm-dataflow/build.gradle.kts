@@ -5,12 +5,9 @@ plugins {
 }
 
 dependencies {
-    implementation("${Versions.jacodbPackage}:jacodb-api-common:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-taint-configuration:${Versions.jacodb}")
-
-    api("io.github.detekt.sarif4k", "sarif4k", Versions.sarif4k)
-
-    api("io.github.microutils:kotlin-logging:${Versions.klogging}")
+    implementation(Libs.jacodb_api_common)
+    implementation(Libs.jacodb_taint_configuration)
+    implementation(Libs.sarif4k)
 }
 
 tasks.withType<KotlinCompile> {

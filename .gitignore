@@ -8,3 +8,10 @@ buildSrc/.gradle
 
 # Ignore Idea directory
 .idea
+
+# Ignore vim cache
+*.swp
+
+# Ignore Python execution cache
+__pycache__/
+run_python_with_gdb.sh

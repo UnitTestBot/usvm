@@ -19,7 +19,7 @@ With USVM, you can achieve completely automated
 * [unit test cases generation](#usvm-for-unit-test-generation),
 * [targeted fuzzing and more symbolic execution based solutions](#using-usvm-to-confirm-sarif-reports).
 
-Right now, we have ready-to-be-used implementation for [Java](https://github.com/UnitTestBot/usvm/tree/main/usvm-jvm) and experimental implementation for [Python](https://github.com/UnitTestBot/usvm/tree/tochilinak/python/usvm-python).
+Right now, we have ready-to-be-used implementation for [Java](https://github.com/UnitTestBot/usvm/tree/main/usvm-jvm) and experimental implementation for [Python](https://github.com/UnitTestBot/usvm/tree/main/usvm-python).
 
 # Taint analysis with USVM
 

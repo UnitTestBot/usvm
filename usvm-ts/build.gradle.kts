@@ -5,15 +5,15 @@ plugins {
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation("${Versions.jacodbPackage}:jacodb-core:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-ets:${Versions.jacodb}")
+    implementation(Libs.jacodb_core)
+    implementation(Libs.jacodb_ets)
 
-    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-cvc5:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-symfpu:${Versions.ksmt}")
-    implementation("io.ksmt:ksmt-runner:${Versions.ksmt}")
+    implementation(Libs.ksmt_yices)
+    implementation(Libs.ksmt_cvc5)
+    implementation(Libs.ksmt_symfpu)
+    implementation(Libs.ksmt_runner)
 
-    testImplementation("io.mockk:mockk:${Versions.mockk}")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    testImplementation(Libs.mockk)
+    testImplementation(Libs.junit_jupiter_params)
+    testImplementation(Libs.logback)
 }

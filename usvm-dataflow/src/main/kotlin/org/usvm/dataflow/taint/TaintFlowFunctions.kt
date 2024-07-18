@@ -17,7 +17,6 @@
 package org.usvm.dataflow.taint
 
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.CommonProject
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonExpr
@@ -73,10 +72,10 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         val config = getConfigForMethod(method)
         if (config != null) {
             val conditionEvaluator = BasicConditionEvaluator(
-                 EntryPointPositionToValueResolver(method)
+                EntryPointPositionToValueResolver(method)
             )
             val actionEvaluator = TaintActionEvaluator(
-                 EntryPointPositionToAccessPathResolver(method)
+                EntryPointPositionToAccessPathResolver(method)
             )
 
             // Handle EntryPointSource config items:
@@ -258,7 +257,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
                 fact, CallPositionToValueResolver(callStatement)
             )
             val actionEvaluator = TaintActionEvaluator(
-                 CallPositionToAccessPathResolver(callStatement)
+                CallPositionToAccessPathResolver(callStatement)
             )
             var defaultBehavior = true
 
@@ -572,7 +571,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
 
         val callExpr = getCallExpr(callStatement)
             ?: error("Call statement should have non-null callExpr")
-        val callee = getCallee( callExpr)
+        val callee = getCallee(callExpr)
 
         if (callee in graph.callees(callStatement)) {
 
@@ -582,14 +581,14 @@ class BackwardTaintFlowFunctions<Method, Statement>(
 
             for (actual in callExpr.args) {
                 // Possibly tainted actual parameter:
-                if (fact.variable.startsWith(convertToPathOrNull( actual))) {
+                if (fact.variable.startsWith(convertToPathOrNull(actual))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
 
             if (callExpr is CommonInstanceCallExpr) {
                 // Possibly tainted instance:
-                if (fact.variable.startsWith(convertToPathOrNull( callExpr.instance))) {
+                if (fact.variable.startsWith(convertToPathOrNull(callExpr.instance))) {
                     return@FlowFunction emptyList() // Will be handled by summary edge
                 }
             }
@@ -598,7 +597,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
 
         if (callStatement is CommonAssignInst) {
             // Possibly tainted rhv:
-            if (fact.variable.startsWith(convertToPathOrNull( callStatement.rhv))) {
+            if (fact.variable.startsWith(convertToPathOrNull(callStatement.rhv))) {
                 return@FlowFunction emptyList() // Overridden by lhv
             }
         }

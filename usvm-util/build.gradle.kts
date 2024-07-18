@@ -3,10 +3,10 @@ plugins {
 }
 
 dependencies {
-    implementation(group = "io.github.microutils", name = "kotlin-logging", version = Versions.klogging)
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.collections}")
-    testImplementation("io.mockk:mockk:${Versions.mockk}")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
+    implementation(Libs.kotlinx_collections)
+
+    testImplementation(Libs.mockk)
+    testImplementation(Libs.junit_jupiter_params)
 }
 
 publishing {

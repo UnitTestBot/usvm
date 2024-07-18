@@ -7,13 +7,13 @@ plugins {
 dependencies {
     api(project(":usvm-dataflow"))
 
-    api("${Versions.jacodbPackage}:jacodb-api-common:${Versions.jacodb}")
-    api("${Versions.jacodbPackage}:jacodb-ets:${Versions.jacodb}")
-    implementation("${Versions.jacodbPackage}:jacodb-taint-configuration:${Versions.jacodb}")
+    api(Libs.jacodb_api_common)
+    api(Libs.jacodb_ets)
+    implementation(Libs.jacodb_taint_configuration)
 
-    testImplementation("io.mockk:mockk:${Versions.mockk}")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:${Versions.junitParams}")
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
+    testImplementation(Libs.mockk)
+    testImplementation(Libs.junit_jupiter_params)
+    testImplementation(Libs.logback)
 }
 
 tasks.withType<KotlinCompile> {

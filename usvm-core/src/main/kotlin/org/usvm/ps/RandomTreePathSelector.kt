@@ -12,7 +12,7 @@ import org.usvm.UState
  * @param executionTreeTracker a root node for a symbolic execution tree.
  * @param randomNonNegativeInt function returning non negative random integer used to select the next child in tree.
  */
-internal class RandomTreePathSelector<State : UState<*, *, Statement, *, *, State>, Statement>(
+class RandomTreePathSelector<State : UState<*, *, Statement, *, *, State>, Statement>(
     private val executionTreeTracker: ExecutionTreeTracker<State, Statement>,
     private val randomNonNegativeInt: (Int) -> Int,
 ) : UPathSelector<State> {
