@@ -22,7 +22,7 @@ import org.jacodb.api.jvm.ext.findClass
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.taint.jcTaintManager
 import org.usvm.dataflow.taint.TaintAnalysisOptions
 import kotlin.test.assertTrue
@@ -31,7 +31,7 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 @TestInstance(PER_CLASS)
-class Ifds2UpperBoundTest : BaseAnalysisTest(configFileName = "config_untrusted_loop_bound.json") {
+class IfdsUntrustedLoopBoundTest : BaseAnalysisTest(configFileName = "config_untrusted_loop_bound.json") {
 
     @Test
     fun `analyze untrusted upper bound`() {
@@ -41,7 +41,7 @@ class Ifds2UpperBoundTest : BaseAnalysisTest(configFileName = "config_untrusted_
 
     private inline fun <reified T> testOneMethod(methodName: String) {
         val method = cp.findClass<T>().declaredMethods.single { it.name == methodName }
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcTaintManager(graph, unitResolver)
         val sinks = manager.analyze(listOf(method), timeout = 60.seconds)
         logger.info { "Sinks: ${sinks.size}" }

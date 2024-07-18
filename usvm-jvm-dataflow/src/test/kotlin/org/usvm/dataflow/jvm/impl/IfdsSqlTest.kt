@@ -29,7 +29,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.dataflow.jvm.ifds.ClassUnitResolver
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.taint.jcTaintManager
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.sarif.sarifReportFromVulnerabilities
@@ -54,7 +54,7 @@ class IfdsSqlTest : BaseAnalysisTest() {
         val methodName = "bad"
         val method = cp.findClass<SqlInjectionExamples>().declaredMethods.single { it.name == methodName }
         val methods = listOf(method)
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcTaintManager(graph, unitResolver)
         val sinks = manager.analyze(methods, timeout = 30.seconds)
         assertTrue(sinks.isNotEmpty())
@@ -68,7 +68,7 @@ class IfdsSqlTest : BaseAnalysisTest() {
     @MethodSource("provideClassesForJuliet89")
     fun `test on Juliet's CWE 89`(className: String) {
         testSingleJulietClass(className) { method ->
-            val unitResolver = SingletonUnitResolver
+            val unitResolver = MethodUnitResolver
             val manager = jcTaintManager(graph, unitResolver)
             manager.analyze(listOf(method), timeout = 30.seconds)
         }
@@ -78,7 +78,7 @@ class IfdsSqlTest : BaseAnalysisTest() {
     fun `test on specific Juliet instance`() {
         val className = "juliet.testcases.CWE89_SQL_Injection.s01.CWE89_SQL_Injection__connect_tcp_execute_01"
         testSingleJulietClass(className) { method ->
-            val unitResolver = SingletonUnitResolver
+            val unitResolver = MethodUnitResolver
             val manager = jcTaintManager(graph, unitResolver)
             manager.analyze(listOf(method), timeout = 30.seconds)
         }

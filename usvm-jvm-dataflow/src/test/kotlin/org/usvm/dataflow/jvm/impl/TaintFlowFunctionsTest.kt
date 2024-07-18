@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
+import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.jvm.util.callee
 import org.usvm.dataflow.jvm.util.toPath
@@ -47,7 +48,7 @@ import org.usvm.dataflow.taint.TaintZeroFact
 import org.usvm.dataflow.taint.Tainted
 
 @TestInstance(PER_CLASS)
-open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_test.json") {
+class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_test.json") {
 
     override val graph: JcApplicationGraph = mockk {
         every { cp } returns this@TaintFlowFunctionsTest.cp
@@ -95,7 +96,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
     @Test
     fun `test obtain start facts`() {
         with(JcTraits(cp)) {
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val facts = flowSpace.obtainPossibleStartFacts(testMethod).toList()
             val arg0 = getArgument(testMethod.parameters[0])!!
             val arg0Taint = Tainted(arg0.toPath(), TaintMark("EXAMPLE"))
@@ -110,7 +111,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
             val x: JcLocal = JcLocalVar(1, "x", stringType)
             val y: JcLocal = JcLocalVar(2, "y", stringType)
             val inst = JcAssignInst(location = mockk(), lhv = x, rhv = y)
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainSequentFlowFunction(inst, next = mockk())
             val yTaint = Tainted(y.toPath(), TaintMark("TAINT"))
             val xTaint = Tainted(x.toPath(), TaintMark("TAINT"))
@@ -127,7 +128,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
             val callStatement = JcAssignInst(location = mockk(), lhv = x, rhv = mockk<JcCallExpr> {
                 every { callee } returns testMethod
             })
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainCallToReturnSiteFlowFunction(callStatement, returnSite = mockk())
             val xTaint = Tainted(x.toPath(), TaintMark("EXAMPLE"))
             val facts = f.compute(TaintZeroFact).toList()
@@ -144,7 +145,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
                 every { callee } returns testMethod
                 every { args } returns listOf(x)
             })
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainCallToReturnSiteFlowFunction(callStatement, returnSite = mockk())
             val xTaint = Tainted(x.toPath(), TaintMark("REMOVE"))
             val facts = f.compute(xTaint).toList()
@@ -162,7 +163,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
                 every { callee } returns testMethod
                 every { args } returns listOf(x)
             })
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainCallToReturnSiteFlowFunction(callStatement, returnSite = mockk())
             val xTaint = Tainted(x.toPath(), TaintMark("COPY"))
             val yTaint = Tainted(y.toPath(), TaintMark("COPY"))
@@ -184,7 +185,7 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
                 every { callee } returns testMethod
                 every { args } returns listOf(x)
             })
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainCallToStartFlowFunction(callStatement, calleeStart = mockk {
                 every { location } returns mockk {
                     every { method } returns testMethod
@@ -211,10 +212,13 @@ open class TaintFlowFunctionsTest : BaseAnalysisTest(configFileName = "config_te
                 every { callee } returns testMethod
             })
             val y: JcLocal = JcLocalVar(1, "y", stringType)
-            val exitStatement = JcReturnInst(location = mockk {
-                every { method } returns testMethod
-            }, returnValue = y)
-            val flowSpace = ForwardTaintFlowFunctions(graph, getConfigForMethod)
+            val exitStatement = JcReturnInst(
+                location = mockk {
+                    every { method } returns testMethod
+                },
+                returnValue = y,
+            )
+            val flowSpace = ForwardTaintFlowFunctions(graph, SingletonUnitResolver, getConfigForMethod)
             val f = flowSpace.obtainExitToReturnSiteFlowFunction(callStatement, returnSite = mockk(), exitStatement)
             val yTaint = Tainted(y.toPath(), TaintMark("TAINT"))
             val xTaint = Tainted(x.toPath(), TaintMark("TAINT"))

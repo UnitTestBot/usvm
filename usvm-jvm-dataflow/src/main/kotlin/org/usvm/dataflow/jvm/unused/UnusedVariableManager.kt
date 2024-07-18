@@ -29,12 +29,15 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jacodb.api.common.CommonMethod
+import org.jacodb.api.common.analysis.ApplicationGraph
+import org.jacodb.api.common.cfg.CommonInst
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.Runner
-import org.usvm.dataflow.ifds.SummaryStorageImpl
+import org.usvm.dataflow.ifds.SummaryStorageWithFlows
 import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
@@ -42,9 +45,6 @@ import org.usvm.dataflow.ifds.UnknownUnit
 import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.getPathEdges
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.api.common.cfg.CommonInst
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -65,7 +65,7 @@ class UnusedVariableManager<Method, Statement>(
     private val runnerForUnit: MutableMap<UnitType, Runner<UnusedVariableDomainFact, Method, Statement>> = hashMapOf()
     private val queueIsEmpty = ConcurrentHashMap<UnitType, Boolean>()
 
-    private val summaryEdgesStorage = SummaryStorageImpl<UnusedVariableSummaryEdge<Statement>>()
+    private val summaryEdgesStorage = SummaryStorageWithFlows<UnusedVariableSummaryEdge<Statement>>()
 
     private val stopRendezvous = Channel<Unit>(Channel.RENDEZVOUS)
 

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.unused.UnusedVariableManager
 import org.usvm.dataflow.jvm.util.JcTraits
 import java.util.stream.Stream
@@ -59,7 +59,7 @@ class IfdsUnusedTest : BaseAnalysisTest() {
     @MethodSource("provideClassesForJuliet563")
     fun `test on Juliet's CWE 563`(className: String) {
         testSingleJulietClass(className) { method ->
-            val unitResolver = SingletonUnitResolver
+            val unitResolver = MethodUnitResolver
             val manager = with(JcTraits(cp)) {
                 UnusedVariableManager(graph, unitResolver)
             }
@@ -73,7 +73,7 @@ class IfdsUnusedTest : BaseAnalysisTest() {
             "juliet.testcases.CWE563_Unused_Variable.CWE563_Unused_Variable__unused_init_variable_StringBuilder_01"
         val clazz = cp.findClass(className)
         val badMethod = clazz.methods.single { it.name == "bad" }
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = with(JcTraits(cp)) {
             UnusedVariableManager(graph, unitResolver)
         }

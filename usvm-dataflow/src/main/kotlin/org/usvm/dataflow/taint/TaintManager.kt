@@ -22,19 +22,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jacodb.api.common.CommonMethod
+import org.jacodb.api.common.analysis.ApplicationGraph
+import org.jacodb.api.common.cfg.CommonInst
+import org.jacodb.taint.configuration.TaintConfigurationItem
 import org.usvm.dataflow.graph.reversed
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.IfdsResult
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
-import org.usvm.dataflow.ifds.SummaryStorageImpl
+import org.usvm.dataflow.ifds.SummaryStorageWithFlows
+import org.usvm.dataflow.ifds.SummaryStorageWithProducers
 import org.usvm.dataflow.ifds.TraceGraph
 import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ifds.UnitResolver
@@ -43,15 +46,10 @@ import org.usvm.dataflow.ifds.UnknownUnit
 import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.getPathEdges
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.api.common.cfg.CommonInst
-import org.jacodb.taint.configuration.TaintConfigurationItem
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
 private val logger = mu.KotlinLogging.logger {}
@@ -70,8 +68,10 @@ open class TaintManager<Method, Statement>(
     val runnerForUnit: MutableMap<UnitType, TaintRunner<Method, Statement>> = hashMapOf()
     private val queueIsEmpty = ConcurrentHashMap<UnitType, Boolean>()
 
-    private val summaryEdgesStorage = SummaryStorageImpl<TaintSummaryEdge<Statement>>()
-    private val vulnerabilitiesStorage = SummaryStorageImpl<TaintVulnerability<Statement>>()
+    // TODO private val summaryEdgesStorages = map<Unit/Method, SummaryStorage>
+
+    private val summaryEdgesStorage = SummaryStorageWithProducers<TaintSummaryEdge<Statement>>(isConcurrent = true)
+    private val vulnerabilitiesStorage = SummaryStorageWithFlows<TaintVulnerability<Statement>>()
 
     private val stopRendezvous = Channel<Unit>(Channel.RENDEZVOUS)
 
@@ -91,7 +91,7 @@ open class TaintManager<Method, Statement>(
                 unitResolver = unitResolver,
                 unit = unit,
                 { manager ->
-                    val analyzer = TaintAnalyzer(graph, getConfigForMethod)
+                    val analyzer = TaintAnalyzer(graph, unitResolver, getConfigForMethod)
                     UniRunner(
                         manager = manager,
                         graph = graph,
@@ -114,7 +114,7 @@ open class TaintManager<Method, Statement>(
                 }
             )
         } else {
-            val analyzer = TaintAnalyzer(graph, getConfigForMethod)
+            val analyzer = TaintAnalyzer(graph, unitResolver, getConfigForMethod)
             UniRunner(
                 manager = this@TaintManager,
                 graph = graph,
@@ -288,10 +288,7 @@ open class TaintManager<Method, Statement>(
         scope: CoroutineScope,
         handler: (TaintEdge<Statement>) -> Unit,
     ) {
-        summaryEdgesStorage
-            .getFacts(method)
-            .onEach { handler(it.edge) }
-            .launchIn(scope)
+        summaryEdgesStorage.subscribe(method) { handler(it.edge) }
     }
 
     fun vulnerabilityTraceGraph(

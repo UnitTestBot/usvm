@@ -27,6 +27,7 @@ import org.usvm.dataflow.config.FactAwareConditionEvaluator
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Reason
+import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.util.Traits
 
 private val logger = object : KLogging() {}.logger
@@ -34,13 +35,14 @@ private val logger = object : KLogging() {}.logger
 context(Traits<Method, Statement>)
 class TaintAnalyzer<Method, Statement>(
     private val graph: ApplicationGraph<Method, Statement>,
+    private val unitResolver: UnitResolver<Method>,
     private val getConfigForMethod: (Method) -> List<TaintConfigurationItem>?,
 ) : Analyzer<TaintDomainFact, TaintEvent<Statement>, Method, Statement>
     where Method : CommonMethod,
           Statement : CommonInst {
 
     override val flowFunctions: ForwardTaintFlowFunctions<Method, Statement> by lazy {
-        ForwardTaintFlowFunctions(graph, getConfigForMethod)
+        ForwardTaintFlowFunctions(graph, unitResolver, getConfigForMethod)
     }
 
     private fun isExitPoint(statement: Statement): Boolean {

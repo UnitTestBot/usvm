@@ -32,7 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.usvm.dataflow.jvm.graph.JcApplicationGraphImpl
-import org.usvm.dataflow.jvm.ifds.SingletonUnitResolver
+import org.usvm.dataflow.jvm.ifds.MethodUnitResolver
 import org.usvm.dataflow.jvm.npe.jcNpeManager
 import org.usvm.dataflow.taint.TaintVulnerability
 import java.util.StringTokenizer
@@ -193,7 +193,7 @@ class IfdsNpeTest : BaseAnalysisTest() {
     }
 
     private fun findSinks(method: JcMethod): List<TaintVulnerability<JcInst>> {
-        val unitResolver = SingletonUnitResolver
+        val unitResolver = MethodUnitResolver
         val manager = jcNpeManager(graph, unitResolver)
         return manager.analyze(listOf(method), timeout = 30.seconds)
     }
