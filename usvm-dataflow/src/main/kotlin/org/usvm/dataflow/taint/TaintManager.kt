@@ -22,8 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -38,7 +36,8 @@ import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.IfdsResult
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
-import org.usvm.dataflow.ifds.SummaryStorageImpl
+import org.usvm.dataflow.ifds.SummaryStorageWithFlows
+import org.usvm.dataflow.ifds.SummaryStorageWithProducers
 import org.usvm.dataflow.ifds.TraceGraph
 import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ifds.UnitResolver
@@ -69,8 +68,10 @@ open class TaintManager<Method, Statement>(
     val runnerForUnit: MutableMap<UnitType, TaintRunner<Method, Statement>> = hashMapOf()
     private val queueIsEmpty = ConcurrentHashMap<UnitType, Boolean>()
 
-    private val summaryEdgesStorage = SummaryStorageImpl<TaintSummaryEdge<Statement>>()
-    private val vulnerabilitiesStorage = SummaryStorageImpl<TaintVulnerability<Statement>>()
+    // TODO private val summaryEdgesStorages = map<Unit/Method, SummaryStorage>
+
+    private val summaryEdgesStorage = SummaryStorageWithProducers<TaintSummaryEdge<Statement>>(isConcurrent = true)
+    private val vulnerabilitiesStorage = SummaryStorageWithFlows<TaintVulnerability<Statement>>()
 
     private val stopRendezvous = Channel<Unit>(Channel.RENDEZVOUS)
 
@@ -90,7 +91,7 @@ open class TaintManager<Method, Statement>(
                 unitResolver = unitResolver,
                 unit = unit,
                 { manager ->
-                    val analyzer = TaintAnalyzer(traits, graph, getConfigForMethod)
+                    val analyzer = TaintAnalyzer(traits, graph, unitResolver, getConfigForMethod)
                     UniRunner(
                         traits = traits,
                         manager = manager,
@@ -115,7 +116,7 @@ open class TaintManager<Method, Statement>(
                 }
             )
         } else {
-            val analyzer = TaintAnalyzer(traits, graph, getConfigForMethod)
+            val analyzer = TaintAnalyzer(traits, graph, unitResolver, getConfigForMethod)
             UniRunner(
                 traits = traits,
                 manager = this@TaintManager,
@@ -290,10 +291,7 @@ open class TaintManager<Method, Statement>(
         scope: CoroutineScope,
         handler: (TaintEdge<Statement>) -> Unit,
     ) {
-        summaryEdgesStorage
-            .getFacts(method)
-            .onEach { handler(it.edge) }
-            .launchIn(scope)
+        summaryEdgesStorage.subscribe(method) { handler(it.edge) }
     }
 
     fun vulnerabilityTraceGraph(

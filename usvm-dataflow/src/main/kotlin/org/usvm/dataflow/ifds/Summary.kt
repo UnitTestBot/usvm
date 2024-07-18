@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ifds
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import org.jacodb.api.common.CommonMethod
@@ -40,6 +39,7 @@ interface SummaryEdge<out Fact, out Statement : CommonInst> : Summary<CommonMeth
 }
 
 interface Vulnerability<out Fact, out Statement : CommonInst> : Summary<CommonMethod> {
+
     val message: String
     val sink: Vertex<Fact, Statement>
 
@@ -50,37 +50,14 @@ interface Vulnerability<out Fact, out Statement : CommonInst> : Summary<CommonMe
 /**
  * Contains summaries for many methods and allows to update them and subscribe for them.
  */
-interface SummaryStorage<T : Summary<*>> {
-
-    /**
-     * A list of all methods for which summaries are not empty.
-     */
-    val knownMethods: List<CommonMethod>
-
-    /**
-     * Adds [summary] the summaries storage of its method.
-     */
-    fun add(summary: T)
-
-    /**
-     * @return a flow with all facts summarized for the given [method].
-     * Already received facts, along with the facts that will be sent to this storage later,
-     * will be emitted to the returned flow.
-     */
-    fun getFacts(method: CommonMethod): Flow<T>
-
-    /**
-     * @return a list will all facts summarized for the given [method] so far.
-     */
-    fun getCurrentFacts(method: CommonMethod): List<T>
-}
-
-class SummaryStorageImpl<T : Summary<*>> : SummaryStorage<T> {
-
+class SummaryStorageWithFlows<T : Summary<*>> {
     private val summaries = ConcurrentHashMap<CommonMethod, MutableSet<T>>()
     private val outFlows = ConcurrentHashMap<CommonMethod, MutableSharedFlow<T>>()
 
-    override val knownMethods: List<CommonMethod>
+    /**
+     * @return a list with all methods for which there are some summaries.
+     */
+    val knownMethods: List<CommonMethod>
         get() = summaries.keys.toList()
 
     private fun getFlow(method: CommonMethod): MutableSharedFlow<T> {
@@ -89,21 +66,63 @@ class SummaryStorageImpl<T : Summary<*>> : SummaryStorage<T> {
         }
     }
 
-    override fun add(summary: T) {
-        val isNew = summaries.computeIfAbsent(summary.method) {
-            ConcurrentHashMap.newKeySet()
-        }.add(summary)
+    /**
+     * Adds a new [fact] to the storage.
+     */
+    fun add(fact: T) {
+        val isNew = summaries.computeIfAbsent(fact.method) { ConcurrentHashMap.newKeySet() }.add(fact)
         if (isNew) {
-            val flow = getFlow(summary.method)
-            check(flow.tryEmit(summary))
+            val flow = getFlow(fact.method)
+            check(flow.tryEmit(fact))
         }
     }
 
-    override fun getFacts(method: CommonMethod): SharedFlow<T> {
+    /**
+     * @return a flow with all facts summarized for the given [method].
+     * Already received facts, along with the facts that will be sent to this storage later,
+     * will be emitted to the returned flow.
+     */
+    fun getFacts(method: CommonMethod): SharedFlow<T> {
         return getFlow(method)
     }
 
-    override fun getCurrentFacts(method: CommonMethod): List<T> {
+    /**
+     * @return a list will all facts summarized for the given [method] so far.
+     */
+    fun getCurrentFacts(method: CommonMethod): List<T> {
         return getFacts(method).replayCache
+    }
+}
+
+class SummaryStorageWithProducers<T : Summary<*>>(
+    private val isConcurrent: Boolean = true,
+) {
+    private val summaries = ConcurrentHashMap<CommonMethod, MutableSet<T>>()
+    private val producers = ConcurrentHashMap<CommonMethod, Producer<T>>()
+
+    val knownMethods: Collection<CommonMethod>
+        get() = summaries.keys
+
+    private fun getProducer(method: CommonMethod): Producer<T> {
+        return producers.computeIfAbsent(method) {
+            if (isConcurrent) {
+                ConcurrentProducer()
+            } else {
+                SyncProducer()
+            }
+        }
+    }
+
+    fun add(fact: T) {
+        val isNew = summaries.computeIfAbsent(fact.method) { ConcurrentHashMap.newKeySet() }.add(fact)
+        if (isNew) {
+            val producer = getProducer(fact.method)
+            producer.produce(fact)
+        }
+    }
+
+    fun subscribe(method: CommonMethod, handler: (T) -> Unit) {
+        val producer = getProducer(method)
+        producer.subscribe(handler)
     }
 }

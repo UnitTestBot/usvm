@@ -45,6 +45,8 @@ import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
+import org.usvm.dataflow.ifds.UnitResolver
+import org.usvm.dataflow.ifds.UnknownUnit
 import org.usvm.dataflow.ifds.isOnHeap
 import org.usvm.dataflow.ifds.isStatic
 import org.usvm.dataflow.ifds.minus
@@ -57,6 +59,7 @@ private val logger = mu.KotlinLogging.logger {}
 class ForwardTaintFlowFunctions<Method, Statement>(
     private val traits: Traits<Method, Statement>,
     private val graph: ApplicationGraph<Method, Statement>,
+    private val unitResolver: UnitResolver<Method>,
     val getConfigForMethod: (Method) -> List<TaintConfigurationItem>?,
 ) : FlowFunctions<TaintDomainFact, Method, Statement>
     where Method : CommonMethod,
@@ -328,7 +331,7 @@ class ForwardTaintFlowFunctions<Method, Statement>(
             //    to remove any marks from 'instance' and arguments.
             //   Currently, "analyzability" of the callee depends on the fact that the callee
             //    is "accessible" through the JcApplicationGraph::callees().
-            if (callee in graph.callees(callStatement)) {
+            if (callee in graph.callees(callStatement) && unitResolver.resolve(callee) != UnknownUnit) {
 
                 if (fact.variable.isStatic) {
                     return@FlowFunction emptyList()
@@ -587,7 +590,7 @@ class BackwardTaintFlowFunctions<Method, Statement>(
                 ?: error("Call statement should have non-null callExpr")
             val callee = getCallee(callExpr)
 
-            if (callee in graph.callees(callStatement)) {
+            if (callee in graph.callees(callStatement) && unitResolver.resolve(callee) != UnknownUnit) {
 
                 if (fact.variable.isStatic) {
                     return@FlowFunction emptyList()

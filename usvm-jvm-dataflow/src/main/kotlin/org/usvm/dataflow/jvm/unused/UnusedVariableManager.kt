@@ -37,7 +37,7 @@ import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.Runner
-import org.usvm.dataflow.ifds.SummaryStorageImpl
+import org.usvm.dataflow.ifds.SummaryStorageWithFlows
 import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
@@ -65,7 +65,7 @@ class UnusedVariableManager<Method, Statement>(
     private val runnerForUnit: MutableMap<UnitType, Runner<UnusedVariableDomainFact, Method, Statement>> = hashMapOf()
     private val queueIsEmpty = ConcurrentHashMap<UnitType, Boolean>()
 
-    private val summaryEdgesStorage = SummaryStorageImpl<UnusedVariableSummaryEdge<Statement>>()
+    private val summaryEdgesStorage = SummaryStorageWithFlows<UnusedVariableSummaryEdge<Statement>>()
 
     private val stopRendezvous = Channel<Unit>(Channel.RENDEZVOUS)
 
