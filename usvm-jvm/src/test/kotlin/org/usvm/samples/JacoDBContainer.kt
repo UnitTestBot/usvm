@@ -57,7 +57,7 @@ class JacoDBContainer(
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()
-            installFeatures(InMemoryHierarchy, Usages)
+            installFeatures(InMemoryHierarchy)
         }
     }
 }
