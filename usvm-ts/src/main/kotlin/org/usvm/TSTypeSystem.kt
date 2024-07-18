@@ -1,7 +1,7 @@
 package org.usvm
 
-import org.jacodb.panda.dynamic.ets.base.EtsType
-import org.jacodb.panda.dynamic.ets.model.EtsFile
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsFile
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import kotlin.time.Duration

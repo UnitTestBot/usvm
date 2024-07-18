@@ -1,9 +1,9 @@
 package org.usvm
 
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.graph.EtsApplicationGraph
-import org.jacodb.panda.dynamic.ets.model.EtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.statistics.ApplicationGraph
 
 class TSApplicationGraph(project: EtsFile) : ApplicationGraph<EtsMethod, EtsStmt> {

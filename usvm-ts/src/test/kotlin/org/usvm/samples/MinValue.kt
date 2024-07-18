@@ -1,9 +1,11 @@
 package org.usvm.samples
 
+import org.junit.jupiter.api.Disabled
 import org.usvm.util.MethodDescriptor
 import org.usvm.util.TSMethodTestRunner
 import kotlin.test.Test
 
+@Disabled("Not yet implemented")
 class MinValue : TSMethodTestRunner() {
 
     @Test

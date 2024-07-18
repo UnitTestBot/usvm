@@ -1,9 +1,9 @@
 package org.usvm
 
 import io.ksmt.utils.asExpr
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.base.EtsType
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult

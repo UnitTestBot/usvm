@@ -3,7 +3,7 @@ package org.usvm
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.symfpu.solver.KSymFpuSolver
-import org.jacodb.panda.dynamic.ets.base.EtsType
+import org.jacodb.ets.base.EtsType
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem

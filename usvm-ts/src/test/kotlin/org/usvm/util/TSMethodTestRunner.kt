@@ -1,10 +1,10 @@
 package org.usvm.util
 
-import org.jacodb.panda.dynamic.ets.base.EtsType
-import org.jacodb.panda.dynamic.ets.dto.EtsFileDto
-import org.jacodb.panda.dynamic.ets.dto.convertToEtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathSelectionStrategy
 import org.usvm.TSMachine
 import org.usvm.TSMethodCoverage

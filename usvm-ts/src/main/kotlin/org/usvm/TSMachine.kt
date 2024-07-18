@@ -1,8 +1,8 @@
 package org.usvm
 
-import org.jacodb.panda.dynamic.ets.base.EtsStmt
-import org.jacodb.panda.dynamic.ets.model.EtsFile
-import org.jacodb.panda.dynamic.ets.model.EtsMethod
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.ps.createPathSelector
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
