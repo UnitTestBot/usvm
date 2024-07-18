@@ -12,8 +12,7 @@ import org.usvm.dataflow.ts.util.EtsTraits
 class EtsTypeInferenceTest {
 
     companion object {
-        private fun loadArkFile(name: String): EtsFile {
-            val path = "ir/$name.ts.json"
+        private fun loadArkFile(path: String): EtsFile {
             val stream = object {}::class.java.getResourceAsStream("/$path")
                 ?: error("Resource not found: $path")
             val arkDto = EtsFileDto.loadFromJson(stream)
@@ -26,13 +25,36 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `test type inference`() {
-        val arkFile = loadArkFile("types")
+        val name = "types"
+        val arkFile = loadArkFile("ir/$name.ts.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+        manager.analyze(entrypoints)
+    }
+
+    @Test
+    fun `test type inference on applications_settings_data`() {
+        val arkFile = loadArkFile("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
+        val graph = EtsApplicationGraph(arkFile)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoints = arkFile.classes
+            .asSequence()
+            .flatMap { it.methods }
+            .filterNot { it.name == "firstStartupConfig" }
+            .filterNot { it.name == "getTableName" }
+            .filterNot { it.name == "loadTableSettings" }
+            .filterNot { it.name == "loadDefaultSettingsData" }
+            .filterNot { it.name == "loadDefaultTaleData" }
+            .toList()
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
