@@ -4,6 +4,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethodImpl
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
@@ -49,12 +50,9 @@ class EtsTypeInferenceTest {
         val entrypoints = arkFile.classes
             .asSequence()
             .flatMap { it.methods }
-            .filterNot { it.name == "firstStartupConfig" }
-            .filterNot { it.name == "getTableName" }
-            .filterNot { it.name == "loadTableSettings" }
-            .filterNot { it.name == "loadDefaultSettingsData" }
-            .filterNot { it.name == "loadDefaultTaleData" }
+            .filter { (it as EtsMethodImpl).modifiers.contains("PublicKeyword") }
             .toList()
+        println("entrypoints = $entrypoints")
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
