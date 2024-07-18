@@ -177,8 +177,8 @@ open class TaintManager<Method, Statement>(
 
             // Start the runner:
             launch(start = CoroutineStart.LAZY) {
-                val methods = methodsForUnit[unit]!!.toList()
-                runner.run(methods)
+                val methods = methodsForUnit[unit]!!
+                runner.run(startMethods.filter { it in methods })
             }
         }
 

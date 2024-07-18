@@ -58,14 +58,6 @@ class NpeManager(
         runnerForUnit[unit] = runner
         return runner
     }
-
-    override fun addStart(method: JcMethod) {
-        logger.info { "Adding start method: $method" }
-        val unit = unitResolver.resolve(method)
-        if (unit == UnknownUnit) return
-        methodsForUnit.getOrPut(unit) { hashSetOf() }.add(method)
-        // Note: DO NOT add deps here!
-    }
 }
 
 fun jcNpeManager(

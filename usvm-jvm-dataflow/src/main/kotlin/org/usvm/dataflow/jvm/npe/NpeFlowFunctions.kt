@@ -16,9 +16,6 @@
 
 package org.usvm.dataflow.jvm.npe
 
-import org.jacodb.api.common.cfg.CommonAssignInst
-import org.jacodb.api.common.cfg.CommonExpr
-import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
@@ -130,12 +127,9 @@ class ForwardNpeFlowFunctions(
 
     private fun transmitTaintAssign(
         fact: Tainted,
-        from: CommonExpr,
-        to: CommonValue,
+        from: JcExpr,
+        to: JcValue,
     ): Collection<Tainted> {
-        from as JcExpr
-        to as JcValue
-
         val toPath = convertToPath(to)
         val fromPath = convertToPathOrNull(from)
 
@@ -197,8 +191,8 @@ class ForwardNpeFlowFunctions(
     private fun generates(
         inst: JcInst,
     ): Collection<TaintDomainFact> = buildList {
-        if (inst is CommonAssignInst) {
-            val toPath = convertToPath(inst.lhv as JcValue)
+        if (inst is JcAssignInst) {
+            val toPath = convertToPath(inst.lhv)
             val from = inst.rhv
             if (from is JcNullConstant || (from is JcCallExpr && from.method.method.isNullable == true)) {
                 add(Tainted(toPath, TaintMark.NULLNESS))

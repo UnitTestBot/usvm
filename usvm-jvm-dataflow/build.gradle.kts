@@ -20,6 +20,7 @@ dependencies {
 
     implementation(Libs.sarif4k)
 
+    testImplementation(Libs.logback)
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
 
