@@ -6,7 +6,6 @@ import org.jacodb.api.jvm.JcDatabase
 import org.jacodb.approximation.Approximations
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
-import org.jacodb.impl.features.Usages
 import org.jacodb.impl.jacodb
 import org.usvm.util.classpathWithApproximations
 import java.io.File
