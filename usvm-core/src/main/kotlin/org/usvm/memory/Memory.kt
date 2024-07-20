@@ -82,7 +82,6 @@ interface UReadOnlyMemory<Type> {
 }
 
 interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
-    override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort>
     fun <Key, Sort : USort> setRegion(regionId: UMemoryRegionId<Key, Sort>, newRegion: UMemoryRegion<Key, Sort>)
 
     fun <Key, Sort : USort> write(lvalue: ULValue<Key, Sort>, rvalue: UExpr<Sort>, guard: UBoolExpr)

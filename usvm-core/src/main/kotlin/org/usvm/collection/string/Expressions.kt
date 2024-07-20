@@ -1,17 +1,27 @@
 package org.usvm.collection.string
 
+import io.ksmt.KContext
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
+import io.ksmt.decl.KDecl
+import io.ksmt.decl.KDeclVisitor
+import io.ksmt.expr.KApp
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
+import io.ksmt.sort.KBv32Sort
+import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSortVisitor
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UBv32Sort
 import org.usvm.UCharSort
-import org.usvm.UConcreteHeapRef
+import org.usvm.UConcreteHashCodeBv32Expr
+import org.usvm.UConcreteHashCodeIntExpr
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHashCodeExpr
+import org.usvm.UHashCodeExpression
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UTransformer
@@ -181,9 +191,10 @@ class UCharAtExpr<USizeSort: USort> internal constructor(
 }
 
 class UStringHashCodeExpr<USizeSort: USort> internal constructor(
+    ctx: UContext<USizeSort>,
     override val sort: USizeSort,
     val string: UStringExpr,
-) : UExpr<USizeSort>(string.ctx) {
+) : UHashCodeExpr<USizeSort>(ctx, sort) {
     override fun accept(transformer: KTransformerBase): UExpr<USizeSort> {
         require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
         return transformer.asSizeTypedTransformer<USizeSort>().transform(this)
@@ -192,12 +203,81 @@ class UStringHashCodeExpr<USizeSort: USort> internal constructor(
     override fun internEquals(other: Any): Boolean = structurallyEqual(other) {string}
 
     override fun internHashCode(): Int = hash(string)
+    override fun printHashedObject(expressionPrinter: ExpressionPrinter) {
+        TODO("Not yet implemented")
+    }
+
+    override fun mkEq(ctx: UContext<*>, other: UHashCodeExpression): UBoolExpr {
+        TODO("Not yet implemented")
+    }
 
     override fun print(printer: ExpressionPrinter) {
         printer.append("(hash ")
         printer.append(string)
         printer.append(")")
     }
+}
+
+class UConcreteStringHashCodeBv32Expr internal constructor(
+    ctx: UContext<UBv32Sort>,
+    value: Int,
+    val string: UStringExpr
+): UConcreteHashCodeBv32Expr(ctx, value) {
+    private class UConcreteStringHashCodeBv32Decl(ctx: KContext, string: UStringExpr)
+        : KDecl<KBv32Sort>(ctx, "(hash $string)", ctx.mkBv32Sort(), emptyList())
+    {
+        override fun apply(args: List<KExpr<*>>): KApp<KBv32Sort, *> = error("This should not be called")
+        override fun <R> accept(visitor: KDeclVisitor<R>): R = error("This should not be called")
+    }
+
+    override val decl: KDecl<UBv32Sort>
+        get() = UConcreteStringHashCodeBv32Decl(ctx, string)
+
+    override fun accept(transformer: KTransformerBase): KExpr<UBv32Sort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.asSizeTypedTransformer<KBv32Sort>().transform(this)
+    }
+
+    override fun printHashedObject(expressionPrinter: ExpressionPrinter) {
+        string.print(expressionPrinter)
+    }
+
+    override fun mkEq(ctx: UContext<*>, other: UHashCodeExpression): UBoolExpr {
+        val otherString: UStringExpr =
+            when (other) {
+                is UConcreteStringHashCodeBv32Expr -> other.string
+                is UStringHashCodeExpr<*> -> other.string
+                else -> error("Unexpected hash code expression $other")
+            }
+        return ctx.mkEq(string, otherString)
+    }
+
+}
+
+class UConcreteStringHashCodeIntExpr internal constructor(
+    ctx: UContext<KIntSort>,
+    value: Int,
+    val string: UStringExpr
+): UConcreteHashCodeIntExpr(ctx, value) {
+    override fun accept(transformer: KTransformerBase): KExpr<KIntSort> {
+        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
+        return transformer.asSizeTypedTransformer<KIntSort>().transform(this)
+    }
+
+    override fun printHashedObject(expressionPrinter: ExpressionPrinter) {
+        string.print(expressionPrinter)
+    }
+
+    override fun mkEq(ctx: UContext<*>, other: UHashCodeExpression): UBoolExpr {
+        val otherString: UStringExpr =
+            when (other) {
+                is UConcreteStringHashCodeBv32Expr -> other.string
+                is UStringHashCodeExpr<*> -> other.string
+                else -> error("Unexpected hash code expression $other")
+            }
+        return ctx.mkEq(string, otherString)
+    }
+
 }
 
 class UStringLtExpr internal constructor(

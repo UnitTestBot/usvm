@@ -1,6 +1,8 @@
 package org.usvm.collection.string
 
 import io.ksmt.utils.cast
+import io.ksmt.utils.uncheckedCast
+import org.usvm.UBoolExpr
 import org.usvm.UCharSort
 import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapAddress
@@ -24,6 +26,7 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
+import org.usvm.mkSizeLeExpr
 import org.usvm.mkSizeLtExpr
 import org.usvm.mkSizeModExpr
 import org.usvm.mkSizeMulExpr
@@ -31,6 +34,7 @@ import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
 import org.usvm.uctx
 import org.usvm.withSizeSort
+import kotlin.math.min
 
 
 internal val UReadOnlyMemory<*>.stringRegion: UStringMemoryRegion
@@ -197,12 +201,12 @@ internal fun <USizeSort : USort> getLength(ctx: UContext<USizeSort>, expr: UStri
 
 internal fun <USizeSort : USort> getHashCode(ctx: UContext<USizeSort>, expr: UStringExpr): UExpr<USizeSort> =
     when (expr) {
-        // TODO: use another concrete hash code evaluation for other languages?
-        is UStringLiteralExpr -> ctx.mkSizeExpr(expr.s.hashCode())
+        // TODO: use another concrete hash code evaluation for non-JVM languages. It should be configured in UComponents.
+        is UStringLiteralExpr -> ctx.mkConcreteStringHashCodeExpr(expr.s.hashCode(), expr)
         else -> ctx.mkStringHashCodeExpr(expr)
     }
 
-internal fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(
+internal fun <USizeSort : USort> charAt(
     ctx: UContext<USizeSort>,
     string: UStringExpr,
     index: UExpr<USizeSort>
@@ -316,8 +320,8 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                 ctx.mkStringConcatExpr(left, right)
         }
 
-        getStringConcreteLength(ctx, right).let { it == 1 } -> {
-            val rightChar = this.charAt(ctx, right, ctx.mkSizeExpr(0))
+        getStringConcreteLength(ctx, right) == 1 -> {
+            val rightChar = charAt(ctx, right, ctx.mkSizeExpr(0))
             when {
                 left is UStringFromArrayExpr<*, *> -> {
                     left as UStringFromArrayExpr<Type, USizeSort>
@@ -343,7 +347,8 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                         rightChar,
                         ctx.trueExpr
                     )
-                    val resultCharArray = getAllocatedCharArray<Type, USizeSort>(left.charArrayType, resultCharArrayRef.address)
+                    val resultCharArray =
+                        getAllocatedCharArray<Type, USizeSort>(left.charArrayType, resultCharArrayRef.address)
                     ctx.mkStringFromArray(resultCharArray, left.charArrayType, resultLength)
                 }
 
@@ -363,8 +368,8 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
             }
         }
 
-        getStringConcreteLength(ctx, left).let { it == 1 } -> {
-            val leftChar = this.charAt(ctx, left, ctx.mkSizeExpr(0))
+        getStringConcreteLength(ctx, left) == 1 -> {
+            val leftChar = charAt(ctx, left, ctx.mkSizeExpr(0))
             when {
                 right is UStringFromArrayExpr<*, *> -> {
                     right as UStringFromArrayExpr<Type, USizeSort>
@@ -390,7 +395,8 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                         fromDst = ctx.mkSizeExpr(1),
                         length = right.length
                     )
-                    val resultCharArray = getAllocatedCharArray<Type, USizeSort>(right.charArrayType, resultCharArrayRef.address)
+                    val resultCharArray =
+                        getAllocatedCharArray<Type, USizeSort>(right.charArrayType, resultCharArrayRef.address)
                     ctx.mkStringFromArray(resultCharArray, right.charArrayType, resultLength)
                 }
 
@@ -415,10 +421,181 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
     }
 }
 
+private fun mkSymboliStringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr =
+    if (isStrict)
+        left.uctx.mkStringLtExpr(left, right)
+    else
+        left.uctx.mkStringLeExpr(left, right)
+
+/**
+ * Returns "[left] lexicographically less than [right]". If [isStrict] is false, then "less or equal".
+ */
+fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr {
+    when {
+        left is UStringLiteralExpr && right is UStringLiteralExpr -> {
+            val cmp = left.s.compareTo(right.s)
+            return left.ctx.mkBool(if (isStrict) cmp < 0 else cmp <= 0)
+        }
+
+        else -> {
+            val ctx = left.uctx.withSizeSort<USort>()
+            val len1 = getLength(ctx, left)
+            val len2 = getLength(ctx, right)
+            val concreteLen1 = ctx.getIntValue(len1)
+            val concreteLen2 = ctx.getIntValue(len2)
+            val min =
+                if (concreteLen1 == null) concreteLen2
+                else if (concreteLen2 == null) concreteLen1
+                else min(concreteLen1, concreteLen2)
+            if (min == null) {
+                return mkSymboliStringCmp(left, right, isStrict)
+            }
+            for (i in 0 until min) {
+                val index = ctx.mkSizeExpr(i)
+                val c1 = charAt(ctx, left, index)
+                val c2 = charAt(ctx, right, index)
+                if (c1 is UConcreteChar && c2 is UConcreteChar) {
+                    val cmp = c1.character.compareTo(c2.character)
+                    if (cmp != 0) {
+                        return ctx.mkBool(cmp < 0)
+                    }
+                } else {
+                    return mkSymboliStringCmp(left, right, isStrict)
+                }
+            }
+            return if (isStrict) ctx.mkSizeLtExpr(len1, len2) else ctx.mkSizeLeExpr(len1, len2)
+        }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <USizeSort : USort> UReadOnlyMemory<*>.getSubstring(
+    string: UStringExpr,
+    from: UExpr<USizeSort>,
+    length: UExpr<USizeSort>
+): UStringExpr {
+    val ctx = this.ctx.withSizeSort<USizeSort>()
+    val stringLength = getLength(ctx, string)
+    if (length == ctx.mkSizeExpr(0) && length == stringLength) {
+        return string
+    }
+    when (string) {
+        is UStringLiteralExpr -> {
+            val concreteFrom = ctx.getIntValue(from)
+            val concreteLength = ctx.getIntValue(length)
+            if (concreteFrom != null && concreteLength != null) {
+                return ctx.mkStringLiteral(string.s.substring(concreteFrom, concreteFrom + concreteLength))
+            }
+        }
+
+        is UStringFromArrayExpr<*, *> -> {
+            string as UStringFromArrayExpr<Any, USizeSort>
+            require(this is UWritableMemory<*>) { "Slicing of collection-based strings should not be done in read-only memory!" }
+            this as UWritableMemory<Any>
+            val resultCharArrayRef = this.allocateArray(string.charArrayType, ctx.sizeSort, length)
+
+            this.memcpy(
+                srcRef = string.contentRef,
+                dstRef = resultCharArrayRef,
+                type = string.charArrayType,
+                elementSort = ctx.charSort,
+                fromSrc = from,
+                fromDst = ctx.mkSizeExpr(0),
+                length = length
+            )
+
+            val resultCharArray = getAllocatedCharArray<Any, USizeSort>(string.charArrayType, resultCharArrayRef.address)
+            ctx.mkStringFromArray(resultCharArray, string.charArrayType, length)
+        }
+
+        is UStringConcatExpr -> {
+            val concreteFrom = ctx.getIntValue(from)
+            if (concreteFrom != null) {
+                val leftLen = getStringConcreteLength(ctx, string.left)
+                if (leftLen != null) {
+                    if (concreteFrom >= leftLen) {
+                        // If i >= len(s1), then (s1 + s2)[i..i+l] = s2[i-len(s1) .. i-len(s1)+l]
+                        return getSubstring(string.right, ctx.mkSizeExpr(concreteFrom - leftLen), length)
+                    }
+                    val concreteLength = ctx.getIntValue(length)
+                    if (concreteLength != null && concreteFrom + concreteLength < leftLen) {
+                        // If i+l < len(s1), then (s1 + s2)[i..i+l] = s1[i .. i+l]
+                        return getSubstring(string.left, from, length)
+                    }
+                }
+            }
+        }
+
+        is UStringSliceExpr<*> -> {
+            // s[i .. i+l1][j .. j+l2] = s[i+j .. i+j+min(l1,l2)]
+            string as UStringSliceExpr<USizeSort>
+            val newFrom = ctx.mkSizeAddExpr(string.startIndex, from)
+            val newLength = ctx.mkIte(ctx.mkSizeLeExpr(string.length, length), string.length, length)
+            return getSubstring(string.superString, newFrom, newLength)
+        }
+
+        is UStringRepeatExpr<*> -> {
+            val concreteFrom = ctx.getIntValue(from)
+            val concreteLength = ctx.getIntValue(length)
+            if (concreteFrom != null && concreteLength != null) {
+                val concretePatternLength = getStringConcreteLength(ctx, string.string)
+                if (concretePatternLength != null &&
+                    concreteFrom % concretePatternLength == 0 &&
+                    concreteLength % concretePatternLength == 0
+                ) {
+                    // If i % len(s) = 0 and l % len(s) = 0, then
+                    // repeat(s, n)[i, i..l] = repeat(s, min(l/len(s), n-i/len(s)))
+                    val lenTimes = ctx.mkSizeExpr(concreteLength / concretePatternLength)
+                    val nTimes = ctx.mkSizeSubExpr(
+                        string.times.uncheckedCast(),
+                        ctx.mkSizeExpr(concreteFrom / concretePatternLength)
+                    )
+                    val newTimes = ctx.mkIte(ctx.mkSizeLeExpr(lenTimes, nTimes), lenTimes, nTimes)
+                    return repeat(string, newTimes)
+                }
+            }
+        }
+
+        is UStringReverseExpr -> {
+            // rev(s)[i .. i+l] = rev(s[len(s) - i - l, len(s) - i])
+            val newFrom = ctx.mkSizeSubExpr(ctx.mkSizeSubExpr(stringLength, from), length)
+            val origSlice = getSubstring(string.string, newFrom, length)
+            return reverse(origSlice)
+        }
+
+    }
+    return ctx.mkStringSliceExpr(string, from, length)
+}
+
+fun <USizeSort : USort> repeat(string: UStringExpr, times: UExpr<USizeSort>): UStringExpr {
+    val ctx = string.uctx.withSizeSort<USizeSort>()
+    val concreteTimes = ctx.getIntValue(times)
+    if (concreteTimes != null && concreteTimes <= 0)
+        return ctx.mkEmptyString()
+    if (concreteTimes == 1)
+        return string
+    when (string) {
+        is UStringLiteralExpr ->
+            if (concreteTimes != null)
+                return ctx.mkStringLiteral(string.s.repeat(concreteTimes))
+
+        is UStringRepeatExpr<*> ->
+            ctx.mkStringRepeatExpr(string, ctx.mkSizeMulExpr(times, string.times.uncheckedCast()))
+    }
+    return ctx.mkStringRepeatExpr(string, times)
+}
+
+fun reverse(string: UStringExpr): UStringExpr =
+    when (string) {
+        is UStringLiteralExpr -> string.uctx.mkStringLiteral(string.s.reversed())
+        is UStringReverseExpr -> string.string
+        else -> string.uctx.mkStringReverseExpr(string)
+    }
+
 //when (expr) {
 //    is UStringLiteralExpr -> {
 //    }
-//    is UStringFromCollectionExpr<*> -> {
+//    is UStringFromArrayExpr<*, *> -> {
 //    }
 //    is UStringConcatExpr -> {
 //    }
@@ -445,3 +622,15 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
 //    is URegexReplaceAllExpr -> {
 //    }
 //}
+
+// TODO: We might consider to introduce an option to reason only about ASCII strings.
+//       With this option enabled, we might add more simplifications:
+//       1. length(s) = length(s.toUpper()) == length(s.toLower())
+//       2. concat(s1.toUpper(), s2.toUpper()) = concat(s1, s2).toUpper()
+//       3. string.toUpper() <= string and string <= string.toLower()
+//       4. string.toUpper().toUpper() = string.toUpper(), string.toLower().toUpper() = string.toUpper(), etc.
+//       5. repeat(s.toUpper(), n) = repeat(s, n).toUpper() (?)
+//       6. slice(s.toUpper(), i, n) = slice(s, i, n).toUpper()
+//       7. new string(array).toUpper()[i] == charToUpper(array[i])
+//       8. reverse(s.toUpper()) = reverse(s).toUpper()
+//       (same for toLower())
