@@ -101,10 +101,6 @@ class UMemory<Type, Method>(
     private var regions: UPersistentHashMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
 ) : UWritableMemory<Type>, UOwnedMergeable<UMemory<Type, Method>, MergeGuard> {
 
-    fun changeOwnership(newOwnership: MutabilityOwnership) {
-        ownership = newOwnership
-        mocks.ownership = newOwnership
-    }
     override val mocker: UMocker<Method>
         get() = mocks
 
@@ -158,8 +154,13 @@ class UMemory<Type, Method>(
 
     override fun nullRef(): UHeapRef = ctx.nullRef
 
-    fun clone(typeConstraints: UTypeConstraints<Type>, ownership: MutabilityOwnership): UMemory<Type, Method> =
-        UMemory(ctx, ownership, typeConstraints, stack.clone(), mocks.clone(ownership), regions)
+    fun clone(
+        typeConstraints: UTypeConstraints<Type>,
+        thisOwnership: MutabilityOwnership,
+        cloneOwnership: MutabilityOwnership
+    ): UMemory<Type, Method> =
+        UMemory(ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(thisOwnership, cloneOwnership), regions)
+            .also { ownership = thisOwnership }
 
     override fun toWritableMemory() =
     // To be perfectly rigorous, we should clone stack and types here.
@@ -178,7 +179,13 @@ class UMemory<Type, Method>(
      *
      * @return the merged memory.
      */
-    override fun mergeWith(other: UMemory<Type, Method>, by: MergeGuard, ownership: MutabilityOwnership): UMemory<Type, Method>? {
+    override fun mergeWith(
+        other: UMemory<Type, Method>,
+        by: MergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UMemory<Type, Method>? {
         val ids = regions.keys()
         val otherIds = other.regions.keys()
         if (ids != otherIds) {
@@ -197,8 +204,10 @@ class UMemory<Type, Method>(
 
         val mergedRegions = regions
         val mergedStack = stack.mergeWith(other.stack, by) ?: return null
-        val mergedMocks = mocks.mergeWith(other.mocks, by, ownership) ?: return null
+        val mergedMocks = mocks.mergeWith(other.mocks, by, thisOwnership, otherOwnership, mergedOwnership) ?: return null
 
-        return UMemory(ctx, ownership, types, mergedStack, mergedMocks, mergedRegions)
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
+        return UMemory(ctx, mergedOwnership, types, mergedStack, mergedMocks, mergedRegions)
     }
 }

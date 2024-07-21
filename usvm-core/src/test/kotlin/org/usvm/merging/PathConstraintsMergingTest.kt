@@ -40,7 +40,7 @@ class PathConstraintsMergingTest {
     @Test
     fun `Empty path constraints`() = with(ctx) {
         val pcLeft = UPathConstraints<SingleType>(this, ownership)
-        val pcRight = pcLeft.clone(ownership)
+        val pcRight = pcLeft.clone(ownership, MutabilityOwnership())
         checkMergedEqualsOriginals(pcLeft, pcRight)
     }
 
@@ -101,14 +101,14 @@ class PathConstraintsMergingTest {
         pcLeft += mkRegisterReading(4, addressSort) eq mkRegisterReading(5, addressSort)
         pcLeft += mkRegisterReading(6, addressSort) neq mkRegisterReading(7, addressSort)
 
-        val pcRight = pcLeft.clone(MutabilityOwnership())
+        val pcRight = pcLeft.clone(MutabilityOwnership(), MutabilityOwnership())
         return pcLeft to pcRight
     }
 
     private fun checkMergedEqualsOriginals(left: UPathConstraints<SingleType>, right: UPathConstraints<SingleType>) =
         with(ctx) {
             val mergeGuard = MutableMergeGuard(this)
-            val result = left.mergeWith(right, mergeGuard, MutabilityOwnership())
+            val result = left.mergeWith(right, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership())
             assertNotNull(result)
             result +=ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
             val constraintsAreNotEqual = run {

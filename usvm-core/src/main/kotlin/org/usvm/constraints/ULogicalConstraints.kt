@@ -46,8 +46,14 @@ class ULogicalConstraints private constructor(
      *
      * @return the logical constraints.
      */
-    override fun mergeWith(other: ULogicalConstraints, by: MutableMergeGuard, ownership: MutabilityOwnership): ULogicalConstraints {
-        val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints, ownership)
+    override fun mergeWith(
+        other: ULogicalConstraints,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): ULogicalConstraints {
+        val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints, mergedOwnership)
         by.appendThis(uniqueThis.asSequence())
         by.appendOther(uniqueOther.asSequence())
         return ULogicalConstraints(overlap)

@@ -50,7 +50,7 @@ class MemoryMergingTest {
         val byCondition = mkConst("cond", boolSort)
         val pathConstraints = UPathConstraints<SingleType>(this, ownership)
         val memoryLeft = UMemory<SingleType, Method>(this, ownership, pathConstraints.typeConstraints)
-        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, ownership)
+        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
 
         checkMergedEqualsToOriginal(
             memoryLeft,
@@ -72,7 +72,7 @@ class MemoryMergingTest {
         memoryLeft.stack.writeRegister(0, mkBv(42))
         memoryLeft.stack.writeRegister(1, mkBv(1337))
 
-        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership())
+        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
         memoryRight.stack.writeRegister(0, mkBv(13))
         memoryRight.stack.writeRegister(2, mkBv(9))
 
@@ -103,7 +103,7 @@ class MemoryMergingTest {
             memoryLeft.writeField(ref2, Unit, addressSort, mkRegisterReading(2, addressSort), trueExpr)
             memoryLeft.writeField(ref3, Unit, addressSort, mkRegisterReading(3, addressSort), trueExpr)
 
-            val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership())
+            val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
             memoryRight.writeField(ref1, Unit, addressSort, mkRegisterReading(-1, addressSort), trueExpr)
             memoryRight.writeField(ref2, Unit, addressSort, mkRegisterReading(-2, addressSort), trueExpr)
             memoryRight.writeField(ref3, Unit, addressSort, mkRegisterReading(-3, addressSort), trueExpr)
@@ -126,7 +126,9 @@ class MemoryMergingTest {
         vararg getters: (UMemory<SingleType, Method>) -> UExpr<out USort>,
     ) = with(ctx) {
         val mergeGuard = MutableMergeGuard(this).apply { appendThis(sequenceOf(byCondition)) }
-        val mergedMemory = checkNotNull(memoryLeft.mergeWith(memoryRight, mergeGuard, MutabilityOwnership()))
+        val mergedMemory = checkNotNull(memoryLeft.mergeWith(
+            memoryRight, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership())
+        )
 
         for (getter in getters) {
             val leftExpr: UExpr<USort> = getter(memoryLeft).uncheckedCast()

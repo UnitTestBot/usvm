@@ -38,7 +38,6 @@ import org.usvm.algorithms.separate
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
 import org.usvm.merging.UOwnedMergeable
 import org.usvm.regions.IntIntervalsRegion
 import org.usvm.solver.UExprTranslator
@@ -64,7 +63,7 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext<*>,
     val sort: Sort,
-    internal var ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     private var numericConstraints: UPersistentHashMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     private var constraintWatchList: UPersistentMultiMap<ConstraintTerms<Sort>, ConstraintTerms<Sort>>,
 ) : UOwnedMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
@@ -271,13 +270,14 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private val KBitVecValue<Sort>.intValue: Int get() = (this as KBitVec32Value).intValue
 
-    fun clone(ownership: MutabilityOwnership): UNumericConstraints<Sort> {
+    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UNumericConstraints<Sort> {
         if (this.isContradicting) {
             return this
         }
 
+        this.ownership = thisOwnership
         return UNumericConstraints(
-            ctx, sort, ownership, numericConstraints, constraintWatchList
+            ctx, sort, cloneOwnership, numericConstraints, constraintWatchList
         )
     }
 
@@ -1389,9 +1389,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             Boolean,
         ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
-        var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
-
-        val constraints = bounds.termDependency[terms] ?: emptySet()
+        val constraints = bounds.termDependency.getOrDefault(terms, persistentHashSetOf())
+        var result = initialConstraint
         for (constraint in constraints) {
             val biasedConstraint = add(termsValue, constraint.bias)
             val biases = bounds.termConstraints[constraint] ?: continue
@@ -1402,6 +1401,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
+        result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 
@@ -1420,9 +1420,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             Boolean,
         ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
-        var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
-
-        val constraints = bounds.termDependency[terms] ?: emptySet()
+        val constraints = bounds.termDependency.getOrDefault(terms, persistentHashSetOf())
+        var result = initialConstraint
         for (constraint in constraints) {
             val biases = bounds.termConstraints[constraint] ?: continue
             for (bias in biases) {
@@ -1436,6 +1435,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
+        result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 
@@ -2426,9 +2426,15 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      *
      * @return the numeric constraints.
      */
-    override fun mergeWith(other: UNumericConstraints<Sort>, by: MutableMergeGuard, ownership: MutabilityOwnership): UNumericConstraints<Sort> {
+    override fun mergeWith(
+        other: UNumericConstraints<Sort>,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UNumericConstraints<Sort> {
         val (overlap, thisUnique, otherUnique) = this.numericConstraints
-            .separate(other.numericConstraints, ownership)
+            .separate(other.numericConstraints, mergedOwnership)
 
         for (entry in thisUnique) {
             by.appendThis(entry.value.mkExpressions())
@@ -2437,6 +2443,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             by.appendOther(entry.value.mkExpressions())
         }
 
-        return UNumericConstraints(ctx, sort, ownership, overlap, constraintWatchList)
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
+        return UNumericConstraints(ctx, sort, mergedOwnership, overlap, constraintWatchList)
     }
 }

@@ -430,11 +430,7 @@ class TrieNode<K, V>(
 
     private fun containsKey(keyHash: Int, key: K, shift: Int): Boolean {
         val keyPositionMask = 1 shl indexSegment(keyHash, shift)
-        if (hasEntryAt(keyPositionMask)) {
-            if (entryKeyIndex(keyPositionMask) >= buffer.size) {
-                println("wtf")
-            }
-            // key is directly in buffer
+        if (hasEntryAt(keyPositionMask)) { // key is directly in buffer
             return key == keyAtIndex(entryKeyIndex(keyPositionMask))
         }
         if (hasNodeAt(keyPositionMask)) { // key is in node

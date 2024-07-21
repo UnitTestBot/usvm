@@ -27,14 +27,14 @@ interface UMocker<Method> : UMockEvaluator {
 
     fun getTrackedExpression(trackedLiteral: TrackedLiteral): UExpr<USort>
 
-    fun clone(ownership: MutabilityOwnership): UMocker<Method>
+    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UMocker<Method>
 }
 
 class UIndexedMocker<Method>(
     private var methodMockClauses: UPersistentHashMap<Method, PersistentList<UMockSymbol<out USort>>> = persistentHashMapOf(),
     private var trackedSymbols: UPersistentHashMap<TrackedLiteral, UExpr<out USort>> = persistentHashMapOf(),
     private var untrackedSymbols: PersistentList<UExpr<out USort>> = persistentListOf(),
-    internal var ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
 ) : UMocker<Method>, UOwnedMergeable<UIndexedMocker<Method>, MergeGuard> {
     override fun <Sort : USort> call(
         method: Method,
@@ -76,8 +76,8 @@ class UIndexedMocker<Method>(
         return trackedSymbols[trackedLiteral]!!.cast()
     }
 
-    override fun clone(ownership: MutabilityOwnership): UIndexedMocker<Method> =
-        UIndexedMocker(methodMockClauses, trackedSymbols, untrackedSymbols, ownership)
+    override fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UIndexedMocker<Method> =
+        UIndexedMocker(methodMockClauses, trackedSymbols, untrackedSymbols, cloneOwnership).also { ownership = thisOwnership }
 
     /**
      * Check if this [UIndexedMocker] can be merged with [other] indexed mocker.
@@ -86,14 +86,22 @@ class UIndexedMocker<Method>(
      *
      * @return the merged indexed mocker.
      */
-    override fun mergeWith(other: UIndexedMocker<Method>, by: MergeGuard, ownership: MutabilityOwnership): UIndexedMocker<Method>? {
+    override fun mergeWith(
+        other: UIndexedMocker<Method>,
+        by: MergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UIndexedMocker<Method>? {
         if (methodMockClauses !== other.methodMockClauses
             || trackedSymbols !== other.trackedSymbols
             || untrackedSymbols !== other.untrackedSymbols
         ) {
             return null
         }
-        this.ownership = ownership
+
+        this.ownership = mergedOwnership
+        other.ownership = otherOwnership
         return this
     }
 }

@@ -380,10 +380,11 @@ class UEqualityConstraints private constructor(
      * Creates a mutable copy of this structure.
      * Note that current subscribers get unsubscribed!
      */
-    fun clone(ownership: MutabilityOwnership): UEqualityConstraints {
+    fun clone(thisOwnership: MutabilityOwnership, clonerOwnership: MutabilityOwnership): UEqualityConstraints {
+        this.ownership = thisOwnership
         if (isContradicting) {
             val result = UEqualityConstraints(
-                ctx, ownership, DisjointSets(),
+                ctx, clonerOwnership, DisjointSets(),
                 persistentHashSetOf(),
                 persistentHashMapOf(),
                 persistentHashMapOf()
@@ -394,7 +395,7 @@ class UEqualityConstraints private constructor(
 
         return UEqualityConstraints(
             ctx,
-            ownership,
+            clonerOwnership,
             equalReferences.clone(),
             distinctReferences,
             referenceDisequalities,
@@ -415,7 +416,13 @@ class UEqualityConstraints private constructor(
      *
      * @return the merged equality constraints.
      */
-    override fun mergeWith(other: UEqualityConstraints, by: MutableMergeGuard, ownership: MutabilityOwnership): UEqualityConstraints? {
+    override fun mergeWith(
+        other: UEqualityConstraints,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UEqualityConstraints? {
         // TODO: refactor it
         if (distinctReferences != other.distinctReferences) {
             return null
@@ -430,8 +437,9 @@ class UEqualityConstraints private constructor(
             return null
         }
 
+        other.ownership = otherOwnership
         // Clone because of mutable [isStaticRefAssignableToSymbolic]
-        return clone(ownership)
+        return clone(thisOwnership, mergedOwnership)
     }
 
     fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> {

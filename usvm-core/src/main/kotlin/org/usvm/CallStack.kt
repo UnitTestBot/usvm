@@ -1,6 +1,5 @@
 package org.usvm
 
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.UMergeable
 
 data class UCallStackFrame<Method, Statement>(

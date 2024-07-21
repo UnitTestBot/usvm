@@ -32,11 +32,12 @@ class PyPathConstraints(
     typeConstraints,
     numericConstraints
 ) {
-    override fun clone(ownership: MutabilityOwnership): PyPathConstraints {
+    override fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): PyPathConstraints {
         val clonedLogicalConstraints = logicalConstraints.clone()
-        val clonedEqualityConstraints = equalityConstraints.clone(ownership)
+        val clonedEqualityConstraints = equalityConstraints.clone(thisOwnership, cloneOwnership)
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        val clonedNumericConstraints = numericConstraints.clone(ownership)
+        val clonedNumericConstraints = numericConstraints.clone(thisOwnership, cloneOwnership)
+        this.ownership = thisOwnership
         return PyPathConstraints(
             ctx = ctx,
             logicalConstraints = clonedLogicalConstraints,
@@ -44,7 +45,7 @@ class PyPathConstraints(
             typeConstraints = clonedTypeConstraints,
             numericConstraints = clonedNumericConstraints,
             pythonSoftConstraints = pythonSoftConstraints,
-            ownership = ownership
+            ownership = cloneOwnership
         )
     }
 }

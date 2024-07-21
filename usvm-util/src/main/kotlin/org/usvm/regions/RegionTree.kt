@@ -58,7 +58,7 @@ class RegionTree<Reg, Value>(
                 // fixme: here we might have a deep recursion, maybe we should rewrite it
                 entry.second.splitRecursively(region, filterPredicate).completelyCoveredRegionTree
             }
-            val outside = entries.remove(region)    
+            val outside = entries.remove(region)
             val disjointRegionTree = RegionTree(outside)
 
             return RecursiveSplitResult(completelyCoveredRegionTree, disjointRegionTree)

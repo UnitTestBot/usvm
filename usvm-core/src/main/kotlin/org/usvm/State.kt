@@ -37,12 +37,6 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
 
     open var ownership = initOwnership
         protected set
-    
-    protected fun changeOwnership(newOwnership: MutabilityOwnership) {
-        ownership = newOwnership
-        pathConstraints.changeOwnership(ownership)
-        memory.changeOwnership(ownership)
-    }
 
     /**
      * Creates new state structurally identical to this.

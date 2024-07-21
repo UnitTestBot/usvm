@@ -44,16 +44,16 @@ class SampleState(
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
-        this.changeOwnership(MutabilityOwnership())
+        val thisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
-        val clonedConstraints = newConstraints ?: pathConstraints.clone(cloneOwnership)
+        val clonedConstraints = newConstraints ?: pathConstraints.clone(thisOwnership, cloneOwnership)
         return SampleState(
             ctx,
             cloneOwnership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints, cloneOwnership),
+            memory.clone(clonedConstraints.typeConstraints, thisOwnership, cloneOwnership),
             models,
             pathNode,
             forkPoints,
@@ -68,17 +68,21 @@ class SampleState(
      *
      * @return the merged state. TODO: Now it may reuse some of the internal components of the former states.
      */
-    override fun mergeWith(other: SampleState, by: Unit, ownership: MutabilityOwnership): SampleState? {
+    override fun mergeWith(other: SampleState, by: Unit): SampleState? {
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
-
+        val thisOwnership = MutabilityOwnership()
+        val otherOwnership = MutabilityOwnership()
+        val mergedOwnership = MutabilityOwnership()
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
         val mergedForkPoints = forkPoints.mergeWith(other.forkPoints, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard, ownership)
+        val mergedPathConstraints = 
+            pathConstraints.mergeWith(other.pathConstraints, mergeGuard, thisOwnership, otherOwnership, mergedOwnership)
             ?: return null
-        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints, ownership).mergeWith(other.memory, mergeGuard, ownership)
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints, thisOwnership, otherOwnership)
+            .mergeWith(other.memory, mergeGuard, thisOwnership, otherOwnership, mergedOwnership)
             ?: return null
         val mergedModels = models + other.models
         val mergedReturnRegister = if (returnRegister == null && other.returnRegister == null) {
@@ -94,9 +98,11 @@ class SampleState(
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
         mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
         return SampleState(
             ctx,
-            ownership,
+            mergedOwnership,
             entrypoint,
             mergedCallStack,
             mergedPathConstraints,

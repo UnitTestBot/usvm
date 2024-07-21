@@ -236,7 +236,7 @@ class TypeSolverTest {
 
         pc += mkHeapRefEq(b1, b2)
 
-        with(pc.clone(MutabilityOwnership())) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             val result = solver.check(this)
             assertIs<USatResult<UModelBase<TestType>>>(result)
 
@@ -249,7 +249,7 @@ class TypeSolverTest {
             assertTrue(concreteA != concreteB1 || concreteB1 != concreteC || concreteC != concreteA)
         }
 
-        with(pc.clone(MutabilityOwnership())) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             val model = mockk<UModelBase<TestType>> {
                 every { eval(a) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
                 every { eval(b1) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
@@ -268,7 +268,7 @@ class TypeSolverTest {
         }
 
 
-        with(pc.clone(MutabilityOwnership())) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkHeapRefEq(a, c) and mkHeapRefEq(b1, c)
             val result = solver.check(this)
             assertIs<UUnsatResult<UModelBase<TestType>>>(result)
@@ -504,12 +504,12 @@ class TypeSolverTest {
         val ref = mkConcreteHeapRef(1)
         pc.typeConstraints.allocate(ref.address, base1)
 
-        with(pc.clone(MutabilityOwnership())) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkIsSubtypeExpr(ref, top).not()
             assertTrue(isFalse)
         }
 
-        with(pc.clone(MutabilityOwnership())) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkIsSupertypeExpr(ref, derived1A).not()
             assertTrue(isFalse)
         }

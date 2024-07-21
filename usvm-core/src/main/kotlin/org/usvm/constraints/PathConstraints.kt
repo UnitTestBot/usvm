@@ -24,7 +24,7 @@ import org.usvm.uctx
  */
 open class UPathConstraints<Type>(
     protected val ctx: UContext<*>,
-    protected var ownership: MutabilityOwnership,
+    ownership: MutabilityOwnership,
     protected val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -46,13 +46,8 @@ open class UPathConstraints<Type>(
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
         equalityConstraints.setTypesCheck(typeConstraints::canStaticRefBeEqualToSymbolic)
     }
-
-    fun changeOwnership(newOwnership: MutabilityOwnership) {
-       ownership = newOwnership
-       numericConstraints.ownership = newOwnership
-       equalityConstraints.ownership = newOwnership
-    }
-
+    var ownership : MutabilityOwnership = ownership
+        private set
     /**
      * Constraints solved by SMT solver.
      */
@@ -63,9 +58,9 @@ open class UPathConstraints<Type>(
 
     val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
-            typeConstraints.isContradicting ||
-            numericConstraints.isContradicting ||
-            logicalConstraints.isContradicting
+                typeConstraints.isContradicting ||
+                numericConstraints.isContradicting ||
+                logicalConstraints.isContradicting
 
     // TODO: refactor
     fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
@@ -73,9 +68,9 @@ open class UPathConstraints<Type>(
             return sequenceOf(ctx.falseExpr)
         }
         return logicalConstraints.asSequence().map(translator::translate) +
-            equalityConstraints.constraints(translator) +
-            numericConstraints.constraints(translator) +
-            typeConstraints.constraints(translator)
+                equalityConstraints.constraints(translator) +
+                numericConstraints.constraints(translator) +
+                typeConstraints.constraints(translator)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -121,21 +116,21 @@ open class UPathConstraints<Type>(
                     val notConstraint = constraint.arg
                     when {
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as USymbolicHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as UConcreteHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.rhs as USymbolicHeapRef,
                                 notConstraint.lhs as UConcreteHeapRef
@@ -168,14 +163,15 @@ open class UPathConstraints<Type>(
             }
         }
 
-    open fun clone(ownership: MutabilityOwnership): UPathConstraints<Type> {
+    open fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UPathConstraints<Type> {
         val clonedLogicalConstraints = logicalConstraints.clone()
-        val clonedEqualityConstraints = equalityConstraints.clone(ownership)
+        val clonedEqualityConstraints = equalityConstraints.clone(thisOwnership, cloneOwnership)
         val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
-        val clonedNumericConstraints = numericConstraints.clone(ownership)
+        val clonedNumericConstraints = numericConstraints.clone(thisOwnership, cloneOwnership)
+        this.ownership = thisOwnership
         return UPathConstraints(
             ctx = ctx,
-            ownership,
+            cloneOwnership,
             logicalConstraints = clonedLogicalConstraints,
             equalityConstraints = clonedEqualityConstraints,
             typeConstraints = clonedTypeConstraints,
@@ -201,18 +197,26 @@ open class UPathConstraints<Type>(
      *
      * @return the merged path constraints.
      */
-    override fun mergeWith(other: UPathConstraints<Type>, by: MutableMergeGuard, ownership: MutabilityOwnership): UPathConstraints<Type>? {
+    override fun mergeWith(
+        other: UPathConstraints<Type>,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UPathConstraints<Type>? {
         // TODO: elaborate on some merge parameters here
-        val mergedLogicalConstraints = logicalConstraints.mergeWith(other.logicalConstraints, by, ownership)
-        val mergedEqualityConstraints = equalityConstraints.mergeWith(other.equalityConstraints, by, ownership) ?: return null
+        val mergedLogicalConstraints =
+            logicalConstraints.mergeWith(other.logicalConstraints, by, thisOwnership, otherOwnership, mergedOwnership)
+        val mergedEqualityConstraints =
+            equalityConstraints.mergeWith(other.equalityConstraints, by, thisOwnership, otherOwnership, mergedOwnership) ?: return null
         val mergedTypeConstraints = typeConstraints
             .clone(mergedEqualityConstraints)
             .mergeWith(other.typeConstraints, by) ?: return null
-        val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by, ownership)
+        val mergedNumericConstraints = numericConstraints.mergeWith(other.numericConstraints, by, thisOwnership, otherOwnership, mergedOwnership)
 
         return UPathConstraints(
             ctx,
-            ownership,
+            mergedOwnership,
             mergedLogicalConstraints,
             mergedEqualityConstraints,
             mergedTypeConstraints,

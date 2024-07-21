@@ -196,12 +196,6 @@ class TrieNode<E>(
         return buffer.contains(element)
     }
 
-    private fun collisionAdd(element: E): TrieNode<E> {
-        if (collisionContainsElement(element)) return this
-        val newBuffer = buffer.addElementAtIndex(0, element)
-        return setProperties(newBitmap = 0, newBuffer, owner = null)
-    }
-
     private fun mutableCollisionAdd(element: E, owner: MutabilityOwnership): TrieNode<E> {
         if (collisionContainsElement(element)) return this
         val newBuffer = buffer.addElementAtIndex(0, element)
@@ -535,7 +529,7 @@ class TrieNode<E>(
                     thisIsNode -> @Suppress("UNCHECKED_CAST") {
                         thisCell as TrieNode<E>
                         otherNodeCell as E
-                        val oldCounter = mutableRemovesCount
+                        val oldCounter = this.calculateSize()
                         val removed = thisCell.mutableRemove(
                                 otherNodeCell.hashCode(),
                                 otherNodeCell,
