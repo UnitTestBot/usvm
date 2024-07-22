@@ -18,11 +18,12 @@ package org.usvm.dataflow.ts.ifds
 
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
 
-data class MethodUnit(val method: EtsMethod) : UnitType {
+data class MethodUnit(val method: EtsMethodSignature) : UnitType {
     override fun toString(): String {
         return "MethodUnit(${method.name})"
     }
@@ -44,11 +45,11 @@ data class ClassUnit(val clazz: EtsClassSignature) : UnitType {
 fun interface EtsUnitResolver : UnitResolver<EtsMethod>
 
 val MethodUnitResolver = EtsUnitResolver { method ->
-    MethodUnit(method)
+    MethodUnit(method.signature)
 }
 
 val ClassUnitResolver = EtsUnitResolver { method ->
-    ClassUnit(method.enclosingClass)
+    ClassUnit(method.signature.enclosingClass)
 }
 
 // TODO: PackageUnitResolver

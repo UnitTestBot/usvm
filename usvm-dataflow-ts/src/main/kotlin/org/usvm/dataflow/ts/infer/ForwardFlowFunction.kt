@@ -1,6 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import analysis.type.EtsTypeFact
 import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsAssignStmt
@@ -155,7 +154,7 @@ class ForwardFlowFunction(
             return listOf(fact, TypedVariable(path, fact.type))
         }
 
-        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
+        // check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
 
         val accessor = lhv.accesses.single()
         if (fact.variable.base == lhv.base) {

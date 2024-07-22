@@ -1,7 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import analysis.type.EtsTypeFact
-import analysis.type.withGuard
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -42,7 +40,7 @@ class TypeInferenceManager(
             method.flowGraph().findDominators()
         }
 
-    fun analyze(startMethods: List<EtsMethod>): Unit = runBlocking(Dispatchers.Default) {
+    fun analyze(startMethods: List<EtsMethod>): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, ::methodDominators)
         val backwardRunner = UniRunner(
@@ -68,7 +66,12 @@ class TypeInferenceManager(
         logger.info {
             buildString {
                 appendLine("Backward types:")
-                methodTypeScheme.values.forEach { appendLine(it) }
+                for ((method, typeFacts) in methodTypeScheme) {
+                    appendLine("Types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    for ((base, fact) in typeFacts.types) {
+                        appendLine("  $base: $fact")
+                    }
+                }
             }
         }
 
@@ -96,12 +99,19 @@ class TypeInferenceManager(
         logger.info {
             buildString {
                 appendLine("Forward types:")
-                refinedTypes.values.forEach { appendLine(it) }
+                for ((method, typeFacts) in refinedTypes) {
+                    appendLine("Types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    for ((base, fact) in typeFacts.types) {
+                        appendLine("  $base: $fact")
+                    }
+                }
             }
         }
 
-        backwardRunner.let {  }
-        forwardRunner.let {  }
+        backwardRunner.let { }
+        forwardRunner.let { }
+
+        refinedTypes
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =
@@ -151,7 +161,7 @@ class TypeInferenceManager(
             val typeRefinements = typeFacts[base] ?: return@mapValues typeScheme
 
             val propertyRefinements = typeRefinements
-                .groupBy ({ it.variable.accesses }, { it.type })
+                .groupBy({ it.variable.accesses }, { it.type })
                 .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
             var refinedScheme = typeScheme
@@ -175,6 +185,7 @@ class TypeInferenceManager(
             is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
                 types.mapTo(hashSetOf()) { it.refineProperty(property, type) ?: return null }
             )
+
             is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(
                 types.mapNotNullTo(hashSetOf()) { it.refineProperty(property, type) }
             )
@@ -182,14 +193,15 @@ class TypeInferenceManager(
 
     private fun EtsTypeFact.BasicType.refineProperty(
         property: List<Accessor>,
-        type: EtsTypeFact
+        type: EtsTypeFact,
     ): EtsTypeFact? {
         when (this) {
             EtsTypeFact.AnyEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
             EtsTypeFact.NumberEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
-            EtsTypeFact.UnknownEtsTypeFact -> return if (property.isNotEmpty()) this else intersect(type)
+            EtsTypeFact.UnknownEtsTypeFact,
+            -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor
@@ -228,7 +240,7 @@ class TypeInferenceManager(
     override fun subscribeOnSummaryEdges(
         method: EtsMethod,
         scope: CoroutineScope,
-        handler: (Edge<Nothing, EtsStmt>) -> Unit
+        handler: (Edge<Nothing, EtsStmt>) -> Unit,
     ) {
         error("No cross unit subscriptions")
     }

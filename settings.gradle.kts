@@ -31,3 +31,5 @@ pluginManagement {
         }
     }
 }
+
+includeBuild("../../../jacodb")

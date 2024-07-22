@@ -1,7 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import analysis.type.EtsTypeFact
-import analysis.type.withGuard
 import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.BinaryOp
@@ -17,6 +15,7 @@ import org.jacodb.ets.base.EtsRelationOperation
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
@@ -31,13 +30,13 @@ private val logger = KotlinLogging.logger {}
 
 class BackwardFlowFunction(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
-    val dominators: (EtsMethod) -> GraphDominators<EtsStmt>
+    val dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
     override fun obtainPossibleStartFacts(method: EtsMethod) = listOf(Zero)
 
     override fun obtainSequentFlowFunction(
         current: EtsStmt,
-        next: EtsStmt
+        next: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> sequentZero(current)
@@ -117,7 +116,7 @@ class BackwardFlowFunction(
     private fun findAssignment(
         value: EtsEntity,
         stmt: EtsStmt,
-        cache: MutableMap<EtsStmt, Maybe<EtsAssignStmt>>
+        cache: MutableMap<EtsStmt, Maybe<EtsAssignStmt>>,
     ) {
         if (stmt in cache) return
 
@@ -146,10 +145,11 @@ class BackwardFlowFunction(
 
     private fun resolveTypeGuardFromIn(
         left: EtsEntity,
-        right: EtsEntity
+        right: EtsEntity,
     ): Pair<AccessPathBase, EtsTypeFact.BasicType>? {
         if (left !is EtsStringConstant) return null
 
+        check(right is EtsValue)
         val base = right.toBase()
         val type = EtsTypeFact.ObjectEtsTypeFact(
             cls = null,
@@ -218,7 +218,12 @@ class BackwardFlowFunction(
         return result
     }
 
-    private fun sequentFact(current: EtsStmt, fact: TypedVariable): List<BackwardTypeDomainFact> {
+    private fun sequentFact(
+        current: EtsStmt,
+        fact: TypedVariable,
+    ): List<BackwardTypeDomainFact> {
+        // println("sequentFact(current = $current, fact = $fact)")
+
         if (current !is EtsAssignStmt) {
             return listOf(fact)
         }
@@ -251,7 +256,7 @@ class BackwardFlowFunction(
             return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
         }
 
-        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
+        // check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
         val lhvAccessor = lhv.accesses.single()
 
         if (lhvAccessor !is FieldAccessor) {
@@ -280,7 +285,7 @@ class BackwardFlowFunction(
 
     override fun obtainCallToReturnSiteFlowFunction(
         callStatement: EtsStmt,
-        returnSite: EtsStmt
+        returnSite: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
@@ -291,19 +296,23 @@ class BackwardFlowFunction(
     private fun callToReturn(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
-        fact: TypedVariable
+        fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
         val result = mutableListOf<BackwardTypeDomainFact>()
 
         val callExpr = callStatement.callExpr ?: error("No call")
         if (callExpr is EtsInstanceCallExpr) {
-            val instance = callExpr.instance.toBase()
+            val instance = callExpr.instance
+            if (instance !is EtsValue) {
+                return emptyList()
+            }
+            val instancePath = instance.toBase()
 
             val objectWithMethod = EtsTypeFact.ObjectEtsTypeFact(
                 cls = null,
                 properties = mapOf(callExpr.method.name to EtsTypeFact.FunctionEtsTypeFact)
             )
-            result.add(TypedVariable(instance, objectWithMethod))
+            result.add(TypedVariable(instancePath, objectWithMethod))
         }
 
         val callResultValue = (callStatement as? EtsAssignStmt)?.lhv
@@ -318,7 +327,7 @@ class BackwardFlowFunction(
 
     override fun obtainCallToStartFlowFunction(
         callStatement: EtsStmt,
-        calleeStart: EtsStmt
+        calleeStart: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
@@ -329,7 +338,7 @@ class BackwardFlowFunction(
     private fun callToStart(
         callStatement: EtsStmt,
         calleeStart: EtsStmt,
-        fact: TypedVariable
+        fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
         val callResultValue = (callStatement as? EtsAssignStmt)?.lhv ?: return emptyList()
 
@@ -346,7 +355,7 @@ class BackwardFlowFunction(
     override fun obtainExitToReturnSiteFlowFunction(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
-        exitStatement: EtsStmt
+        exitStatement: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
@@ -358,7 +367,7 @@ class BackwardFlowFunction(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
         exitStatement: EtsStmt,
-        fact: TypedVariable
+        fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
         val factVariableBase = fact.variable
         val callExpr = callStatement.callExpr ?: error("No call")
@@ -369,8 +378,13 @@ class BackwardFlowFunction(
                     return emptyList()
                 }
 
-                val instance = callExpr.instance.toBase()
-                return listOf(TypedVariable(instance, fact.type))
+                val instance = callExpr.instance
+                if (instance !is EtsValue) {
+                    error("Unexpected instance: $instance")
+                    // return emptyList()
+                }
+                val instancePath = instance.toBase()
+                return listOf(TypedVariable(instancePath, fact.type))
             }
 
             is AccessPathBase.Arg -> {

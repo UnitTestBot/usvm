@@ -1,4 +1,4 @@
-package analysis.type
+package org.usvm.dataflow.ts.infer
 
 import org.jacodb.ets.base.EtsType
 
@@ -89,11 +89,29 @@ sealed interface EtsTypeFact {
     data class ObjectEtsTypeFact(
         val cls: EtsType?,
         val properties: Map<String, EtsTypeFact>,
-    ) : BasicType
+    ) : BasicType {
+        override fun toString(): String {
+            val clsName = cls?.typeName ?: "Object"
+            val props = properties.entries.joinToString(", ") { (name, type) -> "$name: $type" }
+            return "$clsName { $props }"
+        }
+    }
 
-    data class UnionEtsTypeFact(val types: Set<EtsTypeFact>) : EtsTypeFact
+    data class UnionEtsTypeFact(
+        val types: Set<EtsTypeFact>,
+    ) : EtsTypeFact {
+        override fun toString(): String {
+            return types.joinToString(" | ")
+        }
+    }
 
-    data class IntersectionEtsTypeFact(val types: Set<EtsTypeFact>) : EtsTypeFact
+    data class IntersectionEtsTypeFact(
+        val types: Set<EtsTypeFact>,
+    ) : EtsTypeFact {
+        override fun toString(): String {
+            return types.joinToString(" & ")
+        }
+    }
 
     data class GuardedTypeFact(
         val guard: BasicType,

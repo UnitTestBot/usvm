@@ -8,6 +8,7 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
+import org.usvm.dataflow.ts.util.CONSTRUCTOR
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,6 +32,14 @@ class EtsApplicationGraphWithExplicitEntryPoint(
 
         val callExpr = node.callExpr
         if (callees.isEmpty() && callExpr != null) {
+            if (callExpr.method.name == CONSTRUCTOR) {
+                val enclosingClass = graph.cp.classes.first {
+                    it.name == callExpr.method.enclosingClass.name
+                }
+                val ctor = enclosingClass.ctor
+                logger.info { "Constructor call at $node: $ctor" }
+                return sequenceOf(ctor)
+            }
             logger.info { "No methods found for: $node" }
         }
 

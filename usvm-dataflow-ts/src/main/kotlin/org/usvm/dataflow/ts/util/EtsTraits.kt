@@ -81,7 +81,7 @@ object EtsTraits : Traits<EtsMethod, EtsStmt> {
     }
 
     override fun getThisInstance(method: EtsMethod): EtsThis {
-        return EtsThis(EtsClassType(method.enclosingClass))
+        return EtsThis(EtsClassType(method.signature.enclosingClass))
     }
 
     override fun getArgument(param: CommonMethodParameter): EtsParameterRef {

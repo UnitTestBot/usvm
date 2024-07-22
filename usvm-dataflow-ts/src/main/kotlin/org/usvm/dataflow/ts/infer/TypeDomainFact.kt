@@ -1,7 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import analysis.type.EtsTypeFact
-
 sealed interface BackwardTypeDomainFact {
     data object Zero : BackwardTypeDomainFact
 

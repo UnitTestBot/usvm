@@ -9,6 +9,7 @@ import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsThis
+import org.jacodb.ets.base.EtsValue
 import org.usvm.dataflow.ifds.Accessor
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
@@ -41,7 +42,7 @@ sealed interface AccessPathBase {
     }
 }
 
-fun EtsEntity.toBase(): AccessPathBase = when (this) {
+fun EtsValue.toBase(): AccessPathBase = when (this) {
     is EtsConstant -> AccessPathBase.Const(this)
     is EtsLocal -> AccessPathBase.Local(name)
     is EtsThis -> AccessPathBase.This
