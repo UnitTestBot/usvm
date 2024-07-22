@@ -3,7 +3,6 @@ package org.usvm.utils
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
 import org.usvm.UState
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isTrue
 import org.usvm.logger
 import org.usvm.model.UModelBase

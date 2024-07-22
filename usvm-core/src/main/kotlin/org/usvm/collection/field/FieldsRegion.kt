@@ -56,16 +56,17 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
     private fun updateInput(updated: UInputFields<Field, Sort>) =
         UFieldsMemoryRegion(sort, field, allocatedFields, updated)
 
-    override fun read(key: UFieldLValue<Field, Sort>, ownership: MutabilityOwnership): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
-        concreteMapper = { concreteRef -> allocatedFields[concreteRef.address] ?: sort.sampleUValue() },
-        symbolicMapper = { symbolicRef -> getInputFields(key).read(symbolicRef, ownership) }
-    )
+    override fun read(key: UFieldLValue<Field, Sort>, ownership: MutabilityOwnership): UExpr<Sort> =
+        key.ref.mapWithStaticAsSymbolic(
+            concreteMapper = { concreteRef -> allocatedFields[concreteRef.address] ?: sort.sampleUValue() },
+            symbolicMapper = { symbolicRef -> getInputFields(key).read(symbolicRef, ownership) }
+        )
 
     override fun write(
         key: UFieldLValue<Field, Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,

@@ -9,7 +9,6 @@ import org.usvm.UPathSelector
 import org.usvm.UState
 import org.usvm.algorithms.DeterministicPriorityCollection
 import org.usvm.algorithms.RandomizedPriorityCollection
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.CloseStatesSearcherImpl
 import org.usvm.merging.MergingPathSelector
 import org.usvm.statistics.ApplicationGraph

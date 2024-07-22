@@ -2,8 +2,8 @@ package org.usvm
 
 import io.ksmt.utils.cast
 import kotlinx.collections.immutable.PersistentList
-import org.usvm.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentListOf
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.MergeGuard
@@ -77,7 +77,9 @@ class UIndexedMocker<Method>(
     }
 
     override fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UIndexedMocker<Method> =
-        UIndexedMocker(methodMockClauses, trackedSymbols, untrackedSymbols, cloneOwnership).also { ownership = thisOwnership }
+        UIndexedMocker(
+            methodMockClauses, trackedSymbols, untrackedSymbols, cloneOwnership
+        ).also { ownership = thisOwnership }
 
     /**
      * Check if this [UIndexedMocker] can be merged with [other] indexed mocker.
@@ -91,7 +93,7 @@ class UIndexedMocker<Method>(
         by: MergeGuard,
         thisOwnership: MutabilityOwnership,
         otherOwnership: MutabilityOwnership,
-        mergedOwnership: MutabilityOwnership
+        mergedOwnership: MutabilityOwnership,
     ): UIndexedMocker<Method>? {
         if (methodMockClauses !== other.methodMockClauses
             || trackedSymbols !== other.trackedSymbols

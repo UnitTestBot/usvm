@@ -2,7 +2,6 @@ package org.usvm.collection.set.ref
 
 import org.usvm.UBoolExpr
 import org.usvm.UHeapRef
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx

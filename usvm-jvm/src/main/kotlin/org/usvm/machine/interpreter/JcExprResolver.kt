@@ -1015,7 +1015,10 @@ class JcExprResolver(
                     if (sort === voidSort) return@forEach
 
                     val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
-                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass, scope.ownership)
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(
+                        staticInitializer.enclosingClass,
+                        scope.ownership
+                    )
                 }
             }
         }

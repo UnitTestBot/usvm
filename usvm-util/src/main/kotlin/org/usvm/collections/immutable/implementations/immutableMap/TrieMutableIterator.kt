@@ -23,7 +23,7 @@ internal class TrieNodeMutableEntriesIterator<K, V>(
 private class MutableMapEntry<K, V>(
     private val parentIterator: TrieMutableIterator<K, V>,
     key: K,
-    override var value: V
+    override var value: V,
 ) : MapEntry<K, V>(key, value), MutableMap.MutableEntry<K, V> {
 
     override fun setValue(newValue: V): V {
@@ -38,7 +38,7 @@ private class MutableMapEntry<K, V>(
 internal open class UPersistentHashSetMutableIterator<K, V, T>(
     private val node: TrieNode<K, V>,
     path: Array<TrieNodeBaseIterator<K, V, T>>,
-    val ownership: MutabilityOwnership
+    val ownership: MutabilityOwnership,
 ) : MutableIterator<T>, UPersistentHashMapBaseIterator<K, V, T>(node, path) {
 
     private var lastIteratedKey: K? = null
@@ -76,7 +76,6 @@ internal open class UPersistentHashSetMutableIterator<K, V, T>(
         } else {
             node.put(key, newValue, ownership)
         }
-
     }
 
     private fun resetPath(keyHash: Int, node: TrieNode<*, *>, key: K, pathIndex: Int) {
@@ -119,7 +118,7 @@ internal open class UPersistentHashSetMutableIterator<K, V, T>(
 
 internal class TrieMutableIterator<K, V>(
     node: TrieNode<K, V>,
-    ownership: MutabilityOwnership
+    ownership: MutabilityOwnership,
 ) : MutableIterator<MutableMap.MutableEntry<K, V>> {
     private val base = UPersistentHashSetMutableIterator<K, V, MutableMap.MutableEntry<K, V>>(
         node,

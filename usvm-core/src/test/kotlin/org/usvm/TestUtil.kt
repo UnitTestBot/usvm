@@ -41,7 +41,8 @@ internal class TestTarget(method: TestMethod, offset: Int) : UTarget<TestInstruc
 internal class TestState(
     ctx: UContext<*>,
     ownership: MutabilityOwnership,
-    callStack: UCallStack<TestMethod, TestInstruction>, pathConstraints: UPathConstraints<Any>,
+    callStack: UCallStack<TestMethod, TestInstruction>,
+    pathConstraints: UPathConstraints<Any>,
     memory: UMemory<Any, TestMethod>, models: List<UModelBase<Any>>,
     pathLocation: PathNode<TestInstruction>,
     targetTrees: UTargetsSet<TestTarget, TestInstruction> = UTargetsSet.empty(),
@@ -73,7 +74,11 @@ internal fun mockState(id: StateId, startMethod: TestMethod, startInstruction: I
     val ctxMock = mockk<UContext<*>>()
     every { ctxMock.getNextStateId() } returns id
     val callStack = UCallStack<TestMethod, TestInstruction>(startMethod)
-    val spyk = spyk(TestState(ctxMock, MutabilityOwnership(), callStack, mockk(), mockk(), emptyList(), mockk(), UTargetsSet.from(targets)))
+    val spyk = spyk(
+        TestState(
+            ctxMock, MutabilityOwnership(), callStack, mockk(), mockk(), emptyList(), mockk(), UTargetsSet.from(targets)
+        )
+    )
     every { spyk.currentStatement } returns TestInstruction(startMethod, startInstruction)
     return spyk
 }

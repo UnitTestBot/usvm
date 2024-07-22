@@ -81,7 +81,7 @@ class ModelCompositionTest {
 
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
         val inputArray = UMemory2DArray(
-            persistentHashMapOf(ownership, (composedSymbolicHeapRef to mkBv(0)) to  mkBv(1)), mkBv(0)
+            persistentHashMapOf(ownership, (composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0)
         )
 
         val arrayModel = UArrayEagerModelRegion(arrayMemoryId, inputArray)

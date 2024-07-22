@@ -46,9 +46,10 @@ private fun Array<Any?>.removeCellAtIndex(cellIndex: Int): Array<Any?> {
  * return number of elements written to [newArray]
  **/
 private inline fun Array<Any?>.filterTo(
-        newArray: Array<Any?>,
-        newArrayOffset: Int = 0,
-        predicate: (Any?) -> Boolean = { it !== TrieNode.EMPTY }): Int {
+    newArray: Array<Any?>,
+    newArrayOffset: Int = 0,
+    predicate: (Any?) -> Boolean = { it !== TrieNode.EMPTY },
+): Int {
     var i = 0
     var j = 0
     while (i < size) {
@@ -140,15 +141,25 @@ class TrieNode<E>(
         return TrieNode(bitmap, newBuffer, owner)
     }
 
-    private fun makeNodeAtIndex(elementIndex: Int, newElementHash: Int, newElement: E,
-                                shift: Int, owner: MutabilityOwnership?): TrieNode<E> {
+    private fun makeNodeAtIndex(
+        elementIndex: Int,
+        newElementHash: Int,
+        newElement: E,
+        shift: Int,
+        owner: MutabilityOwnership?,
+    ): TrieNode<E> {
         val storedElement = elementAtIndex(elementIndex)
         return makeNode(storedElement.hashCode(), storedElement,
                 newElementHash, newElement, shift + LOG_MAX_BRANCHING_FACTOR, owner)
     }
 
-    private fun moveElementToNode(elementIndex: Int, newElementHash: Int, newElement: E,
-                                         shift: Int, owner: MutabilityOwnership?): TrieNode<E> {
+    private fun moveElementToNode(
+        elementIndex: Int,
+        newElementHash: Int,
+        newElement: E,
+        shift: Int,
+        owner: MutabilityOwnership?
+    ): TrieNode<E> {
         val node = makeNodeAtIndex(elementIndex, newElementHash, newElement, shift, owner)
         return setCellAtIndex(elementIndex, node, owner)
     }
@@ -535,7 +546,7 @@ class TrieNode<E>(
                                 otherNodeCell,
                                 shift + LOG_MAX_BRANCHING_FACTOR,
                                 owner)
-                        
+
                         // additional check needed for removal
                         val newCounter = mutableRemovesCount
                         if (oldCounter != newCounter) {

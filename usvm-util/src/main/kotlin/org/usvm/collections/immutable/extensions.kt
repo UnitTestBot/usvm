@@ -20,7 +20,8 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
  * @return a new persistent map with keys and values from the specified [map] associated;
  * or this instance if no modifications were made in the result of this operation.
  */
-public inline operator fun <K, V> UPersistentHashMap<out K, V>.plus(map: Map<out K, V>): UPersistentHashMap<K, V> = putAll(map)
+inline operator fun <K, V> UPersistentHashMap<out K, V>.plus(map: Map<out K, V>): UPersistentHashMap<K, V> =
+        putAll(map)
 
 
 /**
@@ -33,8 +34,8 @@ public inline operator fun <K, V> UPersistentHashMap<out K, V>.plus(map: Map<out
  * or this instance if no modifications were made in the result of this operation.
  */
 @Suppress("UNCHECKED_CAST")
-public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPersistentHashMap<K, V> =
-        (this as UPersistentHashMap<K, V>).putAll(map)
+public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPersistentHashMap<K, V> = 
+    (this as UPersistentHashMap<K, V>).putAll(map)
 
 /**
  * Returns a new persistent map with the specified contents, given as a list of pairs
@@ -44,8 +45,8 @@ public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPers
  *
  * Entries of the map are iterated in the order they were specified.
  */
-//public fun <K, V> persistentMapOf(ownership: MutabilityOwnership, vararg pairs: Pair<K, V>): UPersistentHashMap<K, V> = 
-//        persistentMapBuilderOf(ownership, *pairs).build()
+// public fun <K, V> persistentMapOf(ownership: MutabilityOwnership, vararg pairs: Pair<K, V>): UPersistentHashMap<K, V> = 
+//    persistentMapBuilderOf(ownership, *pairs).build()
 
 /**
  * Returns an empty persistent map.
@@ -58,11 +59,11 @@ public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPers
 @Suppress("UNCHECKED_CAST")
 fun <K, V> persistentHashMapOf(): UPersistentHashMap<K, V> = UPersistentHashMap.EMPTY as UPersistentHashMap<K, V>
 
-fun <K, V> persistentHashMapOf(map : Map<K,V>, owner : MutabilityOwnership): UPersistentHashMap<K, V> =
-        persistentHashMapOf<K, V>().putAll(map, owner)
+fun <K, V> persistentHashMapOf(map: Map<K, V>, owner: MutabilityOwnership): UPersistentHashMap<K, V> =
+    persistentHashMapOf<K, V>().putAll(map, owner)
 
-fun <K, V> persistentHashMapOf(owner : MutabilityOwnership, vararg pairs : Pair<K,V> ): UPersistentHashMap<K,V> =
-        pairs.fold(persistentHashMapOf<K,V>()) { acc, (k, v) -> acc.put(k, v, owner) }
+fun <K, V> persistentHashMapOf(owner: MutabilityOwnership, vararg pairs: Pair<K, V>): UPersistentHashMap<K, V> =
+    pairs.fold(persistentHashMapOf<K, V>()) { acc, (k, v) -> acc.put(k, v, owner) }
 
 /**
  * Returns a persistent map containing all entries from this map.
@@ -74,8 +75,8 @@ fun <K, V> persistentHashMapOf(owner : MutabilityOwnership, vararg pairs : Pair<
  */
 //fun <K, V> Map<K, V>.toPersistentMap(): UPersistentHashMap<K, V>
 //    = this as? UPersistentOrderedMap<K, V>
-//        ?: (this as? UPersistentOrderedMapBuilder<K, V>)?.build()
-//        ?: UPersistentOrderedMap.emptyOf<K, V>().putAll(this)
+//    ?: (this as? UPersistentOrderedMapBuilder<K, V>)?.build()
+//    ?: UPersistentOrderedMap.emptyOf<K, V>().putAll(this)
 
 /**
  * Returns an immutable map containing all entries from this map.
@@ -86,7 +87,7 @@ fun <K, V> persistentHashMapOf(owner : MutabilityOwnership, vararg pairs : Pair<
  * Order of the entries in the returned map is unspecified.
  */
 fun <K, V> Map<K, V>.toPersistentHashMap(ownership: MutabilityOwnership): UPersistentHashMap<K, V> =
-        persistentHashMapOf(this, ownership)
+    persistentHashMapOf(this, ownership)
 
 /**
  * Returns an empty persistent set.
@@ -99,6 +100,6 @@ public fun <E> persistentHashSetOf(): UPersistentHashSet<E> = UPersistentHashSet
  *
  * Order of the elements in the returned set is unspecified.
  */
-public fun <E> persistentHashSetOf(elements : Collection<E>, ownership: MutabilityOwnership): UPersistentHashSet<E> =
-        persistentHashSetOf<E>().addAll(elements, ownership) 
+fun <E> persistentHashSetOf(elements: Collection<E>, ownership: MutabilityOwnership): UPersistentHashSet<E> =
+    persistentHashSetOf<E>().addAll(elements, ownership) 
 

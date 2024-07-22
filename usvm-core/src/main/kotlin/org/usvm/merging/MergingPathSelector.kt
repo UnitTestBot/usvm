@@ -3,7 +3,6 @@ package org.usvm.merging
 import mu.KotlinLogging
 import org.usvm.UPathSelector
 import org.usvm.UState
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 
 val logger = KotlinLogging.logger { }
 

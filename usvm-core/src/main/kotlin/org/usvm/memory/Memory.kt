@@ -63,7 +63,7 @@ class UAddressCounter {
 }
 
 interface UReadOnlyMemory<Type> {
-    val ownership : MutabilityOwnership
+    val ownership: MutabilityOwnership
     val stack: UReadOnlyRegistersStack
     val mocker: UMockEvaluator
     val types: UTypeEvaluator<Type>
@@ -157,10 +157,11 @@ class UMemory<Type, Method>(
     fun clone(
         typeConstraints: UTypeConstraints<Type>,
         thisOwnership: MutabilityOwnership,
-        cloneOwnership: MutabilityOwnership
+        cloneOwnership: MutabilityOwnership,
     ): UMemory<Type, Method> =
-        UMemory(ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(thisOwnership, cloneOwnership), regions)
-            .also { ownership = thisOwnership }
+        UMemory(
+            ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(thisOwnership, cloneOwnership), regions
+        ).also { ownership = thisOwnership }
 
     override fun toWritableMemory() =
     // To be perfectly rigorous, we should clone stack and types here.
@@ -184,7 +185,7 @@ class UMemory<Type, Method>(
         by: MergeGuard,
         thisOwnership: MutabilityOwnership,
         otherOwnership: MutabilityOwnership,
-        mergedOwnership: MutabilityOwnership
+        mergedOwnership: MutabilityOwnership,
     ): UMemory<Type, Method>? {
         val ids = regions.keys()
         val otherIds = other.regions.keys()
@@ -204,7 +205,8 @@ class UMemory<Type, Method>(
 
         val mergedRegions = regions
         val mergedStack = stack.mergeWith(other.stack, by) ?: return null
-        val mergedMocks = mocks.mergeWith(other.mocks, by, thisOwnership, otherOwnership, mergedOwnership) ?: return null
+        val mergedMocks = mocks.mergeWith(other.mocks, by, thisOwnership, otherOwnership, mergedOwnership)
+            ?: return null
 
         this.ownership = thisOwnership
         other.ownership = otherOwnership

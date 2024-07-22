@@ -119,20 +119,20 @@ class NumericConstraintsTests {
             solver.checkConstraints(0)
         }
     }
-    
+
     @Test
-    fun test() = with(ctx){
+    fun test() = with(ctx) {
         val a = ctx.mkConst("a", bvSort)
         val b = ctx.mkConst("b", bvSort)
         val c = ctx.mkConst("c", bvSort)
 
         val constraintsArray = arrayOf(
             mkNotNoSimplify(mkBvSignedLessOrEqualExprNoSimplify(
-                mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(c), mkBvNegationExprNoSimplify(b)), 
+                mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(c), mkBvNegationExprNoSimplify(b)),
                 mkBvAddExprNoSimplify(c, mkBv(0xEE, bvSort)))),
             mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(mkBvAddExprNoSimplify(b, a), mkBv(0x3E, bvSort))),
             mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(
-                mkBvAddExprNoSimplify(c, mkBv(0xF8, bvSort)), 
+                mkBvAddExprNoSimplify(c, mkBv(0xF8, bvSort)),
                 mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(b), mkBvNegationExprNoSimplify(a)))),
             mkBvSignedGreaterOrEqualExprNoSimplify(mkBv(0x79, bvSort),
                 mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(b), mkBv(0x48, bvSort))),
@@ -141,18 +141,17 @@ class NumericConstraintsTests {
             mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(
                 mkBvAddExprNoSimplify(mkBv(0xAD, bvSort), a), mkBv(0x65, bvSort))),
             mkNotNoSimplify(mkBvSignedLessOrEqualExprNoSimplify(
-                mkBvAddExprNoSimplify(mkBv(0x6E, bvSort),  mkBvNegationExprNoSimplify(c)),
-                mkBvAddExprNoSimplify(mkBv(0xE0, bvSort), mkBvNegationExprNoSimplify(b)))  
-        ))
+                mkBvAddExprNoSimplify(mkBv(0x6E, bvSort), mkBvNegationExprNoSimplify(c)),
+                mkBvAddExprNoSimplify(mkBv(0xE0, bvSort), mkBvNegationExprNoSimplify(b)))
+            )
+        )
 
-
-        KYicesSolver(ctx).use {  solver ->
-            for (constraint in constraintsArray){
+        KYicesSolver(ctx).use { solver ->
+            for (constraint in constraintsArray) {
                 addConstraint(constraint)
                 solver.checkConstraints(0)
             }
         }
-        
     }
 
     @Test
@@ -267,9 +266,9 @@ class NumericConstraintsTests {
         assert(ctx.mkNot(ctx.mkEq(actualConstraints, expectedConstraints)))
 
         val status = check()
-        if (status == KSolverStatus.SAT) {
-            debugFailedStatement()
-        }
+//        if (status == KSolverStatus.SAT) {
+//            debugFailedStatement()
+//        }
 
         assertEquals(KSolverStatus.UNSAT, status, "Failed on $seed")
     } finally {
@@ -285,10 +284,6 @@ class NumericConstraintsTests {
 
         logger.error { "Incorrect state after add: $lastExpr" }
         logger.error { "Unsatisfied statements: $failedStatements" }
-        val a = "Incorrect state after add: $lastExpr" 
-        val b = "Unsatisfied statements: $failedStatements" 
-        println(a)
-        println(b)
 
         previousConstraints?.addConstraint(lastExpr)
     }

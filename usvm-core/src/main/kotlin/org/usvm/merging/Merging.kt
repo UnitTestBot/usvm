@@ -11,13 +11,14 @@ interface UMergeable<Entity, By> {
 
 interface UOwnedMergeable<Entity, By> {
     /**
-     * @return Merged entity with new ownership or `null` if `this` and [other] are non-mergeable.
+     * @return Merged entity with [mergedOwnership] as ownership or `null` if `this` and [other] are non-mergeable.
+     * Changes [this] and [other] ownerships to [thisOwnership] and [otherOwnership] respectively.
      */
     fun mergeWith(
         other: Entity,
         by: By,
         thisOwnership: MutabilityOwnership,
         otherOwnership: MutabilityOwnership,
-        mergedOwnership: MutabilityOwnership
+        mergedOwnership: MutabilityOwnership,
     ): Entity?
 }

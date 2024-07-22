@@ -66,17 +66,20 @@ interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegi
 
 internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
     private var allocatedArrays: UPersistentHashMap<UConcreteHeapAddress, UAllocatedArray<ArrayType, Sort, USizeSort>> = persistentHashMapOf(),
-    private var inputArray: UInputArray<ArrayType, Sort, USizeSort>? = null
+    private var inputArray: UInputArray<ArrayType, Sort, USizeSort>? = null,
 ) : UArrayRegion<ArrayType, Sort, USizeSort> {
 
     private fun getAllocatedArray(
         arrayType: ArrayType,
         sort: Sort,
         address: UConcreteHeapAddress,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UAllocatedArray<ArrayType, Sort, USizeSort> {
-        val (updatedArrays, collection) = 
-            allocatedArrays.getOrPut(address, UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address).emptyRegion(), ownership)
+        val (updatedArrays, collection) = allocatedArrays.getOrPut(
+            address,
+            UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address).emptyRegion(),
+            ownership
+        )
         allocatedArrays = updatedArrays
         return collection
     }
@@ -84,7 +87,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
     private fun updateAllocatedArray(
         ref: UConcreteHeapAddress,
         updated: UAllocatedArray<ArrayType, Sort, USizeSort>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = UArrayMemoryRegion(allocatedArrays.put(ref, updated, ownership), inputArray)
 
     private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort, USizeSort> {
@@ -96,16 +99,21 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
     private fun updateInput(updated: UInputArray<ArrayType, Sort, USizeSort>) =
         UArrayMemoryRegion(allocatedArrays, updated)
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>, ownership: MutabilityOwnership): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
-        concreteMapper = { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address, ownership).read(key.index, ownership) },
-        symbolicMapper = { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index, ownership) }
-    )
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>, ownership: MutabilityOwnership): UExpr<Sort> =
+        key.ref.mapWithStaticAsSymbolic(
+            concreteMapper = { concreteRef ->
+                getAllocatedArray(key.arrayType, key.sort, concreteRef.address, ownership).read(key.index, ownership)
+            },
+            symbolicMapper = { symbolicRef ->
+                getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index, ownership)
+            }
+        )
 
     override fun write(
         key: UArrayIndexLValue<ArrayType, Sort, USizeSort>,
         value: UExpr<Sort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,
@@ -191,7 +199,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         sort: Sort,
         content: Map<UExpr<USizeSort>, UExpr<Sort>>,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UArrayMemoryRegion<ArrayType, Sort, USizeSort> {
         val arrayId = UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address)
         val newCollection = arrayId.initializedArray(content, operationGuard)

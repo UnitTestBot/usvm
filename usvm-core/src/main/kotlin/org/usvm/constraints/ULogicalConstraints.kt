@@ -10,7 +10,6 @@ import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHa
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isFalse
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
 import org.usvm.merging.UOwnedMergeable
 
 class ULogicalConstraints private constructor(

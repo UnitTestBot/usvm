@@ -63,13 +63,13 @@ internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
         key.ref.mapWithStaticAsSymbolic(
             concreteMapper = { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
             symbolicMapper = { symbolicRef -> getInputLength(key).read(symbolicRef, ownership) }
-    )
+        )
 
     override fun write(
         key: UArrayLengthLValue<ArrayType, USizeSort>,
         value: UExpr<USizeSort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,

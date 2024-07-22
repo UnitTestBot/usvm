@@ -13,7 +13,7 @@ typealias StateId = UInt
 abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
     val ctx: Context,
-    initOwnership : MutabilityOwnership,
+    initOwnership: MutabilityOwnership,
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemory<Type, Method>,

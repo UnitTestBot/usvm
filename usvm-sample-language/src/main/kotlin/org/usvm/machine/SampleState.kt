@@ -44,16 +44,22 @@ class SampleState(
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
-        val thisOwnership = MutabilityOwnership()
-        val cloneOwnership = MutabilityOwnership()
-        val clonedConstraints = newConstraints ?: pathConstraints.clone(thisOwnership, cloneOwnership)
+        var newThisOwnership = MutabilityOwnership()
+        var cloneOwnership = MutabilityOwnership()
+        val clonedConstraints = newConstraints.also {
+            if (it != null) {
+                // if newConstraints is not null it was cloned with new ownership
+                newThisOwnership = this.pathConstraints.ownership
+                cloneOwnership = it.ownership
+            }
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         return SampleState(
             ctx,
             cloneOwnership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints, thisOwnership, cloneOwnership),
+            memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
             models,
             pathNode,
             forkPoints,
@@ -78,9 +84,10 @@ class SampleState(
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = 
-            pathConstraints.mergeWith(other.pathConstraints, mergeGuard, thisOwnership, otherOwnership, mergedOwnership)
-            ?: return null
+        val mergedPathConstraints =
+            pathConstraints.mergeWith(
+                other.pathConstraints, mergeGuard, thisOwnership, otherOwnership, mergedOwnership
+            ) ?: return null
         val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints, thisOwnership, otherOwnership)
             .mergeWith(other.memory, mergeGuard, thisOwnership, otherOwnership, mergedOwnership)
             ?: return null

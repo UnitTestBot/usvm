@@ -48,7 +48,8 @@ data class JcStaticFieldRegionId<Sort : USort>(
 internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     private val sort: Sort,
     // TODO multimap
-    private var fieldValuesByClass: UPersistentHashMap<JcClassOrInterface, UPersistentHashMap<JcField, UExpr<Sort>>> = persistentHashMapOf(),
+    private var fieldValuesByClass: UPersistentHashMap<JcClassOrInterface, UPersistentHashMap<JcField, UExpr<Sort>>> =
+        persistentHashMapOf(),
     private var initialStatics: PersistentList<JcField> = persistentListOf()
 ) : UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     val mutableStaticFields: List<JcField>
@@ -64,12 +65,12 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
         key: JcStaticFieldLValue<Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
         val field = key.field
         val enclosingClass = field.enclosingClass
-        val classFields =  fieldValuesByClass.getOrDefault(enclosingClass, persistentHashMapOf())
-        
+        val classFields = fieldValuesByClass.getOrDefault(enclosingClass, persistentHashMapOf())
+
         val newFieldValues = classFields.guardedWrite(key.field, value, guard, ownership) { key.sort.sampleUValue() }
         val newFieldsByClass = fieldValuesByClass.put(enclosingClass, newFieldValues, ownership)
 

@@ -49,11 +49,12 @@ abstract class USetCollectionDecoder<ElementSort : USort> {
             val (rawSetRef, rawElement) = key.args
             val setRef: UHeapRef = rawSetRef.uncheckedCast()
             val element: UExpr<ElementSort> = rawElement.uncheckedCast()
- 
             val setRefModel = model.eval(setRef, isComplete = true).mapAddress(mapping)
             val elementModel = model.eval(element, isComplete = true).mapAddress(mapping)
 
-            entries = entries.put(setRefModel to elementModel, inputFunction.ctx.trueExpr, evaluator.ctx.defaultOwnership)
+            entries = entries.put(
+                setRefModel to elementModel, inputFunction.ctx.trueExpr, evaluator.ctx.defaultOwnership
+            )
         }
 
         return UMemory2DArray(entries, constValue = inputFunction.ctx.falseExpr)

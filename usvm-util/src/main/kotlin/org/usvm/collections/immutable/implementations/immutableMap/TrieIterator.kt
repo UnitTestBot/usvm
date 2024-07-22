@@ -98,7 +98,7 @@ internal open class MapEntry<out K, out V>(override val key: K, override val val
 
 internal abstract class UPersistentHashMapBaseIterator<K, V, T>(
     node: TrieNode<K, V>,
-    protected val path: Array<TrieNodeBaseIterator<K, V, T>>
+    protected val path: Array<TrieNodeBaseIterator<K, V, T>>,
 ) : Iterator<T> {
 
     protected var pathLastIndex = 0
@@ -116,7 +116,7 @@ internal abstract class UPersistentHashMapBaseIterator<K, V, T>(
         }
         if (path[pathIndex].hasNextNode()) {
             val node = path[pathIndex].currentNode()
-            if (pathIndex == TRIE_MAX_HEIGHT - 1) {     // collision
+            if (pathIndex == TRIE_MAX_HEIGHT - 1) { // collision
                 path[pathIndex + 1].reset(node.buffer, node.buffer.size)
             } else {
                 path[pathIndex + 1].reset(node.buffer, ENTRY_SIZE * node.entryCount())
@@ -130,7 +130,7 @@ internal abstract class UPersistentHashMapBaseIterator<K, V, T>(
         if (path[pathLastIndex].hasNextKey()) {
             return
         }
-        for(i in pathLastIndex downTo 0) {
+        for (i in pathLastIndex downTo 0) {
             var result = moveToNextNodeWithData(i)
 
             if (result == -1 && path[i].hasNextNode()) {
@@ -171,8 +171,10 @@ internal abstract class UPersistentHashMapBaseIterator<K, V, T>(
     }
 }
 
-internal class UPersistentHashMapEntriesIterator<K, V>(node: TrieNode<K, V>)
-    : UPersistentHashMapBaseIterator<K, V, Map.Entry<K, V>>(node, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeEntriesIterator<K, V>() })
+internal class UPersistentHashMapEntriesIterator<K, V>(
+    node: TrieNode<K, V>
+): UPersistentHashMapBaseIterator<K, V, Map.Entry<K, V>>(
+    node, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeEntriesIterator<K, V>() })
 
 internal class UPersistentHashMapKeysIterator<K, V>(node: TrieNode<K, V>)
     : UPersistentHashMapBaseIterator<K, V, K>(node, Array(TRIE_MAX_HEIGHT + 1) { TrieNodeKeysIterator<K, V>() })

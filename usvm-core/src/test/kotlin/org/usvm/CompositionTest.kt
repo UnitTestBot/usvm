@@ -313,7 +313,8 @@ internal class CompositionTest {
 
         val answer = 43.toBv()
 
-        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, MutabilityOwnership(), mockk())) // TODO replace with jacoDB type
+        // TODO replace with jacoDB type
+        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, MutabilityOwnership(), mockk()))
 
         every { fstAddress.accept(composer) } returns sndAddress
         every { fstIndex.accept(composer) } returns sndIndex
@@ -508,7 +509,7 @@ internal class CompositionTest {
 
         val answer = 43.toBv()
 
-        val composeMemory = UMemory<Type, Any>(ctx, MutabilityOwnership(),  mockk())
+        val composeMemory = UMemory<Type, Any>(ctx, MutabilityOwnership(), mockk())
         composeMemory.writeField(aAddress, field, bv32Sort, 42.toBv(), guard = trueExpr)
 
         val composer = UComposer(ctx, composeMemory)

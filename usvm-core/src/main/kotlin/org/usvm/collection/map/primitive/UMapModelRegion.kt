@@ -15,7 +15,10 @@ abstract class UMapModelRegion<MapType, KeySort : USort, ValueSort : USort, Reg 
 ) : UReadOnlyMemoryRegion<UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ValueSort> {
     abstract val inputMap: UReadOnlyMemoryRegion<USymbolicMapKey<KeySort>, ValueSort>
 
-    override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>, ownership: MutabilityOwnership): UExpr<ValueSort> {
+    override fun read(
+        key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
+        ownership: MutabilityOwnership,
+    ): UExpr<ValueSort> {
         val mapRef = modelEnsureConcreteInputRef(key.mapRef)
         return inputMap.read(mapRef to key.mapKey, ownership)
     }

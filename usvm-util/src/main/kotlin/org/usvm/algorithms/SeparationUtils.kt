@@ -1,7 +1,5 @@
 package org.usvm.algorithms
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.toImmutableSet
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -26,13 +24,13 @@ fun <E> UPersistentHashSet<E>.separate(
 // should be used with ownership that does not occur in both maps so that they will not be mutated
 fun <K, V> UPersistentHashMap<K, V>.separate(
     other: UPersistentHashMap<K, V>,
-    ownership : MutabilityOwnership
+    ownership: MutabilityOwnership,
 ): SeparationResult<UPersistentHashMap<K, V>> {
     val overlap = 
         this.fold(persistentHashMapOf<K,V>()) { map, entry ->
             if (other.containsKey(entry.key)) map.put(entry.key, entry.value, ownership) else map 
         }
-    val leftUnique = overlap.fold(this) {map, entry -> map.remove(entry.key, ownership) }
-    val rightUnique = overlap.fold(other) {map, entry -> map.remove(entry.key, ownership) }
+    val leftUnique = overlap.fold(this) { map, entry -> map.remove(entry.key, ownership) }
+    val rightUnique = overlap.fold(other) { map, entry -> map.remove(entry.key, ownership) }
     return SeparationResult(overlap, leftUnique, rightUnique)
 }

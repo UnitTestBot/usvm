@@ -80,9 +80,9 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
     private fun getAllocatedMap(
         id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UAllocatedMap<MapType, KeySort, ValueSort, Reg> {
-        val (updatesMaps, collection) =  allocatedMaps.getOrPut(id, id.emptyRegion(), ownership)
+        val (updatesMaps, collection) = allocatedMaps.getOrPut(id, id.emptyRegion(), ownership)
         allocatedMaps = updatesMaps
         return collection
     }
@@ -90,7 +90,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     private fun updateAllocatedMap(
         id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
         updatedMap: UAllocatedMap<MapType, KeySort, ValueSort, Reg>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = UMapMemoryRegion(
         keySort,
         valueSort,
@@ -119,7 +119,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
     override fun read(
         key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UExpr<ValueSort> =
         key.mapRef.mapWithStaticAsSymbolic(
             concreteMapper = { concreteRef ->
@@ -133,7 +133,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
         value: UExpr<ValueSort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.mapRef,
         initial = this,
@@ -157,7 +157,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         mapType: MapType,
         srcKeySet: USetRegion<MapType, KeySort, *>,
         initialGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,

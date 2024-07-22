@@ -6,7 +6,6 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.set.primitive.USetRegion
 import org.usvm.collection.set.primitive.USetRegionId
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UWritableMemory
 import org.usvm.regions.Region

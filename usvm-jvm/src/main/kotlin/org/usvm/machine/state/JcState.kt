@@ -41,11 +41,13 @@ class JcState(
     override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
         var newThisOwnership = MutabilityOwnership()
         var cloneOwnership = MutabilityOwnership()
-        val clonedConstraints = newConstraints.also { if (it != null) {
-            // if newConstraints is not null it was cloned with new ownership
-            newThisOwnership = this.pathConstraints.ownership
-            cloneOwnership = it.ownership
-        }} 
+        val clonedConstraints = newConstraints.also {
+            if (it != null) {
+                // if newConstraints is not null it was cloned with new ownership
+                newThisOwnership = this.pathConstraints.ownership
+                cloneOwnership = it.ownership
+            }
+        }
             ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         return JcState(
             ctx,
@@ -71,7 +73,7 @@ class JcState(
         val newThisOwnership = MutabilityOwnership()
         val newOtherOwnership = MutabilityOwnership()
         val mergedOwnership = MutabilityOwnership()
-        
+
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
         // TODO: copy-paste
 
@@ -80,13 +82,13 @@ class JcState(
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = 
-            pathConstraints.mergeWith(other.pathConstraints, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership)
-            ?: return null
-        val mergedMemory = 
+        val mergedPathConstraints = pathConstraints.mergeWith(
+                other.pathConstraints, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership
+            ) ?: return null
+        val mergedMemory =
             memory.clone(mergedPathConstraints.typeConstraints, newThisOwnership, newOtherOwnership)
-                  .mergeWith(other.memory, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership)
-            ?: return null
+                .mergeWith(other.memory, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership)
+                ?: return null
         val mergedModels = models + other.models
         val methodResult = if (other.methodResult == JcMethodResult.NoCall && methodResult == JcMethodResult.NoCall) {
             JcMethodResult.NoCall

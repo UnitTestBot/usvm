@@ -36,7 +36,7 @@ internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<
         if (path[pathLastIndex].hasNextElement()) {
             return
         }
-        for(i in pathLastIndex downTo 0) {
+        for (i in pathLastIndex downTo 0) {
             var result = moveToNextNodeWithData(i)
 
             if (result == -1 && path[i].hasNextCell()) {

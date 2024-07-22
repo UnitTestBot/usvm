@@ -27,7 +27,7 @@ import kotlin.test.assertTrue
 
 class MemoryRegionTest {
     private lateinit var ctx: UContext<USizeSort>
-    private lateinit var ownership : MutabilityOwnership
+    private lateinit var ownership: MutabilityOwnership
 
     @BeforeEach
     fun initializeContext() {

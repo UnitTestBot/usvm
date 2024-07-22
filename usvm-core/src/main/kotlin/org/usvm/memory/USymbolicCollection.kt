@@ -1,7 +1,6 @@
 package org.usvm.memory
 
 import io.ksmt.utils.asExpr
-import kotlinx.collections.immutable.PersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapRef
@@ -253,7 +252,7 @@ inline fun <K, VSort : USort> UPersistentHashMap<K, UExpr<VSort>>.guardedWrite(
     value: UExpr<VSort>,
     guard: UBoolExpr,
     ownership: MutabilityOwnership,
-    defaultValue: () -> UExpr<VSort>
+    defaultValue: () -> UExpr<VSort>,
 ): UPersistentHashMap<K, UExpr<VSort>> {
     val guardedValue = guard.uctx.mkIte(
         guard,

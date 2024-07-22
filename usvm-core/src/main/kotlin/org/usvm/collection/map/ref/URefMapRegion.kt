@@ -54,7 +54,7 @@ interface URefMapRegion<MapType, ValueSort : USort>
         sort: ValueSort,
         keySet: URefSetRegion<MapType>,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): URefMapRegion<MapType, ValueSort>
 }
 
@@ -97,7 +97,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
 
     private fun getInputMapWithAllocatedKeys(
         id: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UInputRefMapWithAllocatedKeys<MapType, ValueSort> {
         val (updatedMap, collection) = inputMapWithAllocatedKeys.getOrPut(id, id.emptyRegion(), ownership)
         inputMapWithAllocatedKeys = updatedMap
@@ -107,7 +107,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     private fun updateInputMapWithAllocatedKeys(
         id: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>,
         updatedMap: UInputRefMapWithAllocatedKeys<MapType, ValueSort>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = URefMapMemoryRegion(
         valueSort,
         mapType,
@@ -124,7 +124,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         id: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
         ownership: MutabilityOwnership
     ): UAllocatedRefMapWithInputKeys<MapType, ValueSort> {
-        val  (updatedMap, collection) = allocatedMapWithInputKeys.getOrPut(id, id.emptyRegion(), ownership)
+        val (updatedMap, collection) = allocatedMapWithInputKeys.getOrPut(id, id.emptyRegion(), ownership)
         allocatedMapWithInputKeys = updatedMap
         return collection
     }
@@ -132,7 +132,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     private fun updateAllocatedMapWithInputKeys(
         id: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>,
         updatedMap: UAllocatedRefMapWithInputKeys<MapType, ValueSort>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = URefMapMemoryRegion(
         valueSort,
         mapType,

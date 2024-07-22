@@ -165,7 +165,9 @@ class CloseStatesSearcherTest {
             val ctxMock = mockk<UContext<*>>()
             every { ctxMock.getNextStateId() } returns 0u
             val callStack = UCallStack<String, TestInstruction>("")
-            val spyk = spyk(TestState(ctxMock, MutabilityOwnership(), callStack, mockk(), mockk(), emptyList(), pathNode, mockk()))
+            val spyk = spyk(
+                TestState(ctxMock, MutabilityOwnership(), callStack, mockk(), mockk(), emptyList(), pathNode, mockk())
+            )
             spyk
         }
         val executionTreeTracker = ExecutionTreeTracker<TestState, TestInstruction>(rootNode).apply { add(states) }

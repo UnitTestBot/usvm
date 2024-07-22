@@ -16,7 +16,10 @@ class WrappedRefMapRegion<MapType>(
     private val keys: Set<UConcreteHeapRef>,
     private val underlyingModel: UModelBase<PythonType>,
 ) : UReadOnlyMemoryRegion<URefMapEntryLValue<MapType, UAddressSort>, UAddressSort> {
-    override fun read(key: URefMapEntryLValue<MapType, UAddressSort>, ownership: MutabilityOwnership): UExpr<UAddressSort> {
+    override fun read(
+        key: URefMapEntryLValue<MapType, UAddressSort>,
+        ownership: MutabilityOwnership,
+    ): UExpr<UAddressSort> {
         if (key.mapKey !in keys) {
             return underlyingModel.eval(ctx.nullRef)
         }

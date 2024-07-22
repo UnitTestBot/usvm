@@ -8,12 +8,18 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
-import org.usvm.algorithms.*
+import org.usvm.algorithms.addToSet
+import org.usvm.algorithms.addAll
+import org.usvm.algorithms.DisjointSets
+import org.usvm.algorithms.UPersistentMultiMap
+import org.usvm.algorithms.containsValue
+import org.usvm.algorithms.removeValue
+import org.usvm.algorithms.removeAllValues
+import org.usvm.algorithms.multiMapIterator
 import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isStaticHeapRef
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
 import org.usvm.merging.UOwnedMergeable
 import org.usvm.solver.UExprTranslator
 
@@ -221,7 +227,8 @@ class UEqualityConstraints private constructor(
 
             if (distinctReferences.all { it == refInClique || containsReferenceDisequality(refNotInClique, it) }) {
                 // Ref is not in clique and disjoint from all refs in clique. Thus, we can join it to clique...
-                referenceDisequalities = referenceDisequalities.removeAllValues(refNotInClique, distinctReferences, ownership)
+                referenceDisequalities =
+                    referenceDisequalities.removeAllValues(refNotInClique, distinctReferences, ownership)
 
                 for (ref in distinctReferences) {
                     referenceDisequalities = referenceDisequalities.removeValue(ref, refNotInClique, ownership)

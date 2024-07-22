@@ -26,7 +26,8 @@ class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
         mappedConstValue: UExpr<Sort>,
     ) : this(persistentHashMapOf(), mappedConstValue)
 
-    override fun read(key: KExpr<KeySort>, ownership: MutabilityOwnership): UExpr<Sort> = values.getOrDefault(key, constValue)
+    override fun read(key: KExpr<KeySort>, ownership: MutabilityOwnership): UExpr<Sort> =
+        values.getOrDefault(key, constValue)
 }
 
 /**

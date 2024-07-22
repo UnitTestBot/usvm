@@ -56,7 +56,7 @@ class URegistersStack(
         key: URegisterStackLValue<*>,
         value: UExpr<USort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<URegisterStackLValue<*>, USort> {
         check(guard.isTrue) { "Guarded writes are not supported for register" }
         writeRegister(key.idx, value)

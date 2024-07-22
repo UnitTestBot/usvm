@@ -70,14 +70,17 @@ interface URefSetRegion<SetType> :
     URefSetReadOnlyRegion<SetType>,
     UMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
 
-    fun allocatedSetWithInputElements(setRef: UConcreteHeapAddress, ownership: MutabilityOwnership): UAllocatedRefSetWithInputElements<SetType>
+    fun allocatedSetWithInputElements(
+        setRef: UConcreteHeapAddress,
+        ownership: MutabilityOwnership,
+        ): UAllocatedRefSetWithInputElements<SetType>
     fun inputSetWithInputElements(): UInputRefSetWithInputElements<SetType>
 
     fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): URefSetRegion<SetType>
 }
 
@@ -104,7 +107,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     private fun getAllocatedSetWithInputElements(
         id: UAllocatedRefSetWithInputElementsId<SetType>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UAllocatedRefSetWithInputElements<SetType> {
         val (updatedSet, collection) = allocatedSetWithInputElements.getOrPut(id, id.emptyRegion(), ownership)
         allocatedSetWithInputElements = updatedSet
@@ -117,7 +120,7 @@ internal class URefSetMemoryRegion<SetType>(
     private fun updateAllocatedSetWithInputElements(
         id: UAllocatedRefSetWithInputElementsId<SetType>,
         updatedSet: UAllocatedRefSetWithInputElements<SetType>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = URefSetMemoryRegion(
         setType, sort,
         allocatedSetWithAllocatedElements,
@@ -131,7 +134,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     private fun getInputSetWithAllocatedElements(
         id: UInputRefSetWithAllocatedElementsId<SetType>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UInputRefSetWithAllocatedElements<SetType> {
         var collection = inputSetWithAllocatedElements[id]
         if (collection == null) {
@@ -144,7 +147,7 @@ internal class URefSetMemoryRegion<SetType>(
     private fun updateInputSetWithAllocatedElements(
         id: UInputRefSetWithAllocatedElementsId<SetType>,
         updatedSet: UInputRefSetWithAllocatedElements<SetType>,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = URefSetMemoryRegion(
         setType, sort,
         allocatedSetWithAllocatedElements,
@@ -199,7 +202,7 @@ internal class URefSetMemoryRegion<SetType>(
         key: URefSetEntryLValue<SetType>,
         value: UBoolExpr,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.setRef,
         initial = this,
@@ -248,7 +251,7 @@ internal class URefSetMemoryRegion<SetType>(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,

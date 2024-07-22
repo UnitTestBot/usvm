@@ -16,7 +16,10 @@ class WrappedSetRegion<SetType>(
     private val region: UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort>,
     private val keys: Set<KInterpretedValue<KIntSort>>,
 ) : UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort> {
-    override fun read(key: USetEntryLValue<SetType, KIntSort, USizeRegion>, ownership: MutabilityOwnership): UExpr<UBoolSort> {
+    override fun read(
+        key: USetEntryLValue<SetType, KIntSort, USizeRegion>,
+        ownership: MutabilityOwnership,
+    ): UExpr<UBoolSort> {
         if (!isAllocatedConcreteHeapRef(key.setRef) && key.setElement !in keys) {
             return ctx.falseExpr
         }

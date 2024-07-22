@@ -1,6 +1,5 @@
 package org.usvm.collection.set.primitive
 
-import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapAddress
@@ -11,6 +10,7 @@ import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
@@ -70,7 +70,10 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     USetReadOnlyRegion<SetType, ElementSort, Reg>,
     UMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
 
-    fun allocatedSetElements(address: UConcreteHeapAddress, ownership: MutabilityOwnership): UAllocatedSet<SetType, ElementSort, Reg>
+    fun allocatedSetElements(
+        address: UConcreteHeapAddress,
+        ownership: MutabilityOwnership,
+    ): UAllocatedSet<SetType, ElementSort, Reg>
 
     fun inputSetElements(): UInputSet<SetType, ElementSort, Reg>
 
@@ -78,7 +81,7 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
@@ -97,7 +100,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
 
     override fun allocatedSetElements(
         address: UConcreteHeapAddress,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UAllocatedSet<SetType, ElementSort, Reg> =
         getAllocatedSet(UAllocatedSetId(address, elementSort, setType, elementInfo), ownership)
 
@@ -135,7 +138,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         key: USetEntryLValue<SetType, ElementSort, Reg>,
         value: UExpr<UBoolSort>,
         guard: UBoolExpr,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.setRef,
         initial = this,

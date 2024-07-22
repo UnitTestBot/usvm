@@ -84,8 +84,12 @@ abstract class SymbolicCollectionTestBase {
             val thisOwnership = MutabilityOwnership()
             val cloneOwnership = MutabilityOwnership()
             val clonedConstraints = newConstraints ?: pathConstraints.clone(thisOwnership, cloneOwnership)
-            return StateStub(ctx, cloneOwnership, clonedConstraints,
-                memory.clone(clonedConstraints.typeConstraints, thisOwnership, cloneOwnership))
+            return StateStub(
+                ctx,
+                cloneOwnership,
+                clonedConstraints,
+                memory.clone(clonedConstraints.typeConstraints, thisOwnership, cloneOwnership)
+            )
         }
 
         override val isExceptional: Boolean

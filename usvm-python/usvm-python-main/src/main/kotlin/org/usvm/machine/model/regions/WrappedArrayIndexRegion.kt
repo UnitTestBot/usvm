@@ -19,7 +19,10 @@ class WrappedArrayIndexRegion<ArrayType, Sort : USort>(
     private val ctx: PyContext,
     private val nullRef: UConcreteHeapRef,
 ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort> {
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort, KIntSort>, ownership: MutabilityOwnership): UExpr<UAddressSort> {
+    override fun read(
+        key: UArrayIndexLValue<ArrayType, Sort, KIntSort>,
+        ownership: MutabilityOwnership,
+    ): UExpr<UAddressSort> {
         val underlyingResult = region.read(key, ownership)
         val array = key.ref as UConcreteHeapRef
         if (array.address > 0) {

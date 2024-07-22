@@ -27,7 +27,10 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
         return inputSet.read(setRef to key.setElement, ownership)
     }
 
-    override fun setEntries(ref: UHeapRef, ownership: MutabilityOwnership): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
+    override fun setEntries(
+        ref: UHeapRef,
+        ownership: MutabilityOwnership,
+    ): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
         val setRef = modelEnsureConcreteInputRef(ref)
 
         check(inputSet.constValue.isFalse) { "Set model is not complete" }

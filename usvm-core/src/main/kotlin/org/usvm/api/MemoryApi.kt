@@ -10,6 +10,8 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.array.memcpy as memcpyInternal
+import org.usvm.collection.array.memset as memsetInternal
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
@@ -21,8 +23,6 @@ import org.usvm.regions.Region
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
-import org.usvm.collection.array.memcpy as memcpyInternal
-import org.usvm.collection.array.memset as memsetInternal
 import org.usvm.collection.array.allocateArray as allocateArrayInternal
 import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitializedInternal
 
@@ -88,7 +88,7 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     type: ArrayType,
     sort: Sort,
     sizeSort: USizeSort,
-    contents: Sequence<UExpr<Sort>>,
+    contents: Sequence<UExpr<Sort>>
 ) {
     memsetInternal(ref, type, sort, sizeSort, contents)
 }

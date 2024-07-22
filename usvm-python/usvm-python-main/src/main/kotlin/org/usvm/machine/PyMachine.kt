@@ -62,7 +62,7 @@ class PyMachine(
 
     private fun getInitialState(target: PyUnpinnedCallable): PyState {
         val initOwnership = MutabilityOwnership()
-        val pathConstraints = PyPathConstraints(ctx,initOwnership )
+        val pathConstraints = PyPathConstraints(ctx, initOwnership)
         val memory = UMemory<PythonType, PyCallable>(
             ctx,
             initOwnership,

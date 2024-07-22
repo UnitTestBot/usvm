@@ -16,7 +16,7 @@ import kotlin.test.assertSame
 class HeapRefEqTest {
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
-    private lateinit var ownership : MutabilityOwnership
+    private lateinit var ownership: MutabilityOwnership
 
     @BeforeEach
     fun initializeContext() {

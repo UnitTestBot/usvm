@@ -158,7 +158,6 @@ object ListCollectionApi {
         srcFrom: UExpr<USizeSort>,
         dstFrom: UExpr<USizeSort>,
         length: UExpr<USizeSort>,
-
     ) {
         memory.memcpy(
             srcRef = srcRef,
