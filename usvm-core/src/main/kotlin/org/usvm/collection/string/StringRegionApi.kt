@@ -1,5 +1,10 @@
 package org.usvm.collection.string
 
+import io.ksmt.expr.KFp32Value
+import io.ksmt.expr.KFp64Value
+import io.ksmt.sort.KFp32Sort
+import io.ksmt.sort.KFp64Sort
+import io.ksmt.sort.KFpSort
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
@@ -22,6 +27,7 @@ import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.getIntValue
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeAddExpr
@@ -112,7 +118,7 @@ internal fun UReadOnlyMemory<*>.getString(ref: UHeapRef): UStringExpr =
 
 internal inline fun <Sort : USort> UReadOnlyMemory<*>.mapString(
     ref: UHeapRef,
-    mapper: (UStringExpr) -> UExpr<Sort>
+    crossinline mapper: (UStringExpr) -> UExpr<Sort>
 ): UExpr<Sort> =
     this.stringRegion.mapString(ref, mapper)
 
@@ -144,8 +150,14 @@ internal fun <USizeSort : USort> getStringConcreteLength(ctx: UContext<USizeSort
             return repeatedLength * times
         }
 
-        is UStringToUpperExpr -> return getStringConcreteLength(ctx, expr.string)
-        is UStringToLowerExpr -> return getStringConcreteLength(ctx, expr.string)
+        is UStringToUpperExpr -> return getStringConcreteLength(
+            ctx,
+            expr.string
+        ) // TODO: This is incorrect for some locales...
+        is UStringToLowerExpr -> return getStringConcreteLength(
+            ctx,
+            expr.string
+        ) // TODO: This is incorrect for some locales...
         is UStringReverseExpr -> return getStringConcreteLength(ctx, expr.string)
         is UStringReplaceFirstExpr -> {
             val whereLength = getStringConcreteLength(ctx, expr.where) ?: return null
@@ -172,7 +184,7 @@ internal fun <USizeSort : USort> getStringConcreteLength(ctx: UContext<USizeSort
 }
 
 internal fun <USizeSort : USort> isStringEmpty(ctx: UContext<USizeSort>, expr: UStringExpr): Boolean =
-    getStringConcreteLength(ctx, expr).let { it == 0 }
+    getStringConcreteLength(ctx, expr) == 0
 
 internal fun <USizeSort : USort> getLength(ctx: UContext<USizeSort>, expr: UStringExpr): UExpr<USizeSort> =
     when (expr) {
@@ -430,7 +442,7 @@ private fun mkSymboliStringCmp(left: UStringExpr, right: UStringExpr, isStrict: 
 /**
  * Returns "[left] lexicographically less than [right]". If [isStrict] is false, then "less or equal".
  */
-fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr {
+internal fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr {
     when {
         left is UStringLiteralExpr && right is UStringLiteralExpr -> {
             val cmp = left.s.compareTo(right.s)
@@ -469,7 +481,7 @@ fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolEx
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <USizeSort : USort> UReadOnlyMemory<*>.getSubstring(
+internal fun <USizeSort : USort> UReadOnlyMemory<*>.getSubstring(
     string: UStringExpr,
     from: UExpr<USizeSort>,
     length: UExpr<USizeSort>
@@ -504,7 +516,8 @@ fun <USizeSort : USort> UReadOnlyMemory<*>.getSubstring(
                 length = length
             )
 
-            val resultCharArray = getAllocatedCharArray<Any, USizeSort>(string.charArrayType, resultCharArrayRef.address)
+            val resultCharArray =
+                getAllocatedCharArray<Any, USizeSort>(string.charArrayType, resultCharArrayRef.address)
             ctx.mkStringFromArray(resultCharArray, string.charArrayType, length)
         }
 
@@ -567,7 +580,7 @@ fun <USizeSort : USort> UReadOnlyMemory<*>.getSubstring(
     return ctx.mkStringSliceExpr(string, from, length)
 }
 
-fun <USizeSort : USort> repeat(string: UStringExpr, times: UExpr<USizeSort>): UStringExpr {
+internal fun <USizeSort : USort> repeat(string: UStringExpr, times: UExpr<USizeSort>): UStringExpr {
     val ctx = string.uctx.withSizeSort<USizeSort>()
     val concreteTimes = ctx.getIntValue(times)
     if (concreteTimes != null && concreteTimes <= 0)
@@ -585,11 +598,111 @@ fun <USizeSort : USort> repeat(string: UStringExpr, times: UExpr<USizeSort>): US
     return ctx.mkStringRepeatExpr(string, times)
 }
 
-fun reverse(string: UStringExpr): UStringExpr =
+internal fun stringToUpper(string: UStringExpr): UStringExpr =
+    when {
+        string is UStringLiteralExpr -> string.uctx.mkStringLiteral(string.s.uppercase())
+        string is UStringToUpperExpr || // TODO: can this be incorrect for some locales?
+                string is UStringFromIntExpr<*> && string.radix <= 10 -> string
+
+        else -> string.uctx.mkStringToUpperExpr(string)
+    }
+
+internal fun stringToLower(string: UStringExpr): UStringExpr =
+    when {
+        string is UStringLiteralExpr -> string.uctx.mkStringLiteral(string.s.lowercase())
+        string is UStringToLowerExpr || // TODO: can this be incorrect for some locales?
+                string is UStringFromIntExpr<*> && string.radix <= 10 -> string
+
+        else -> string.uctx.mkStringToLowerExpr(string)
+    }
+
+internal fun reverse(string: UStringExpr): UStringExpr =
     when (string) {
         is UStringLiteralExpr -> string.uctx.mkStringLiteral(string.s.reversed())
         is UStringReverseExpr -> string.string
         else -> string.uctx.mkStringReverseExpr(string)
+    }
+
+internal fun <USizeSort : USort> indexOf(
+    ctx: UContext<USizeSort>,
+    string: UStringExpr,
+    pattern: UStringExpr
+): UExpr<USizeSort> =
+    when {
+        string == pattern -> ctx.mkSizeExpr(0)
+        pattern is UStringLiteralExpr && pattern.s.isEmpty() -> ctx.mkSizeExpr(0)
+        string is UStringLiteralExpr && pattern is UStringLiteralExpr ->
+            ctx.mkSizeExpr(string.s.indexOf(pattern.s))
+
+        else -> ctx.mkStringIndexOfExpr(string, pattern)
+    }
+
+internal fun matches(ctx: UContext<*>, string: UStringExpr, pattern: URegexExpr): UBoolExpr =
+    when {
+        pattern is UStringLiteralExpr && pattern.s.isEmpty() -> ctx.mkTrue()
+        string is UStringLiteralExpr && pattern is UStringLiteralExpr ->
+            // TODO: optimize regex'es up by storing compiled regex into expression
+            ctx.mkBool(Regex(pattern.s).matches(string.s))
+
+        else -> ctx.mkRegexMatchesExpr(string, pattern)
+    }
+
+internal fun replaceFirst(where: UStringExpr, what: UStringExpr, with: UStringExpr): UStringExpr =
+    when {
+        what == with -> where
+        where is UStringLiteralExpr && what is UStringLiteralExpr && with is UStringLiteralExpr ->
+            where.uctx.mkStringLiteral(where.s.replaceFirst(what.s, with.s))
+
+        else ->
+            where.uctx.mkStringReplaceFirstExpr(where, what, with)
+    }
+
+internal fun replaceAll(where: UStringExpr, what: UStringExpr, with: UStringExpr): UStringExpr =
+    when {
+        what == with -> where
+        where is UStringLiteralExpr && what is UStringLiteralExpr && with is UStringLiteralExpr ->
+            where.uctx.mkStringLiteral(where.s.replace(what.s, with.s))
+
+        else ->
+            where.uctx.mkStringReplaceAllExpr(where, what, with)
+    }
+
+internal fun replaceFirstRegex(where: UStringExpr, what: URegexExpr, with: UStringExpr): UStringExpr =
+    when {
+        where is UStringLiteralExpr && what is UStringLiteralExpr && with is UStringLiteralExpr ->
+            where.uctx.mkStringLiteral(where.s.replaceFirst(Regex(what.s), with.s))
+
+        else ->
+            where.uctx.mkRegexReplaceFirstExpr(where, what, with)
+    }
+
+internal fun replaceAllRegex(where: UStringExpr, what: URegexExpr, with: UStringExpr): UStringExpr =
+    when {
+        where is UStringLiteralExpr && what is UStringLiteralExpr && with is UStringLiteralExpr ->
+            where.uctx.mkStringLiteral(where.s.replace(Regex(what.s), with.s))
+
+        else ->
+            where.uctx.mkRegexReplaceAllExpr(where, what, with)
+    }
+
+internal fun <USizeSort : USort> stringFromInt(
+    ctx: UContext<USizeSort>,
+    value: UExpr<USizeSort>,
+    radix: Int
+): UStringExpr {
+    // TODO: decompose ite's in [value]?
+    val concreteValue = ctx.getIntValue(value)
+    if (concreteValue != null)
+        return ctx.mkStringLiteral(concreteValue.toString(radix))
+    return ctx.mkStringFromIntExpr(value, radix)
+}
+
+internal fun <UFloatSort : KFpSort> stringFromFloat(ctx: UContext<*>, value: UExpr<UFloatSort>): UStringExpr =
+    // TODO: decompose ite's in [value]?
+    when (value) {
+        is KFp32Value -> ctx.mkStringLiteral(value.value.toString())
+        is KFp64Value -> ctx.mkStringLiteral(value.value.toString())
+        else -> ctx.mkStringFromFloatExpr(value)
     }
 
 //when (expr) {
