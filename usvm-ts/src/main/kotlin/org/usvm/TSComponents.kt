@@ -11,7 +11,7 @@ import org.usvm.types.UTypeSystem
 
 class TSComponents(
     private val typeSystem: TSTypeSystem,
-    private val options: UMachineOptions
+    private val options: UMachineOptions,
 ) : UComponents<EtsType, TSSizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
@@ -23,7 +23,7 @@ class TSComponents(
     }
 
     override fun mkTypeSystem(
-        ctx: UContext<TSSizeSort>
+        ctx: UContext<TSSizeSort>,
     ): UTypeSystem<EtsType> = typeSystem
 
     override fun <Context : UContext<TSSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {

@@ -9,7 +9,7 @@ import kotlin.time.Duration
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
-    val project: EtsFile
+    val project: EtsFile,
 ) : UTypeSystem<EtsType> {
 
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
