@@ -25,7 +25,14 @@ class TSState(
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
-    ctx, callStack, pathConstraints, memory, models, pathNode, forkPoints, targets
+    ctx,
+    callStack,
+    pathConstraints,
+    memory,
+    models,
+    pathNode,
+    forkPoints,
+    targets
 ) {
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
         val clonedConstraints = newConstraints ?: pathConstraints.clone()

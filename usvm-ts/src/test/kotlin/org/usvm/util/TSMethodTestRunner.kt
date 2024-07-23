@@ -126,7 +126,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         get() = TODO("Not yet implemented")
 
     private fun getProject(fileName: String): EtsFile {
-        val jsonWithoutExtension = "/ir/${fileName}.json"
+        val jsonWithoutExtension = "/ir/$fileName.json"
         val sampleFilePath = javaClass.getResourceAsStream(jsonWithoutExtension)
             ?: error("Resource not found: $jsonWithoutExtension")
 
@@ -141,7 +141,6 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
         return cls.methods.find { it.name == desc.methodName && it.parameters.size == desc.argumentsNumber }
             ?: error("No method matching $desc found in $name")
-
     }
 
     override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>

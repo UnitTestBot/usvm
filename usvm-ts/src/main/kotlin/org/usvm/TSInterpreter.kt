@@ -14,7 +14,7 @@ import org.usvm.targets.UTargetsSet
 
 class TSInterpreter(
     private val ctx: TSContext,
-    private val applicationGraph: TSApplicationGraph
+    private val applicationGraph: TSApplicationGraph,
 ) : UInterpreter<TSState>() {
     private val forkBlackList: UForkBlackList<TSState, EtsStmt> = UForkBlackList.createDefault()
 
