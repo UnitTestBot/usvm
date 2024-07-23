@@ -30,7 +30,6 @@ class TSApplicationGraph(project: EtsFile) : ApplicationGraph<EtsMethod, EtsStmt
     override fun methodOf(node: EtsStmt): EtsMethod =
         applicationGraph.methodOf(node)
 
-    override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> = sequence {
-        method.cfg.stmts.forEach { yield(it) }
-    }
+    override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> =
+        method.cfg.stmts.asSequence()
 }
