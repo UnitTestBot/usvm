@@ -1,28 +1,41 @@
 package org.usvm.util
 
+import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsNumberType
+import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
 import org.usvm.TSMachine
 import org.usvm.TSMethodCoverage
+import org.usvm.TSObject
 import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
+typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
 open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
 
     protected val globalClassName = "_DEFAULT_ARK_CLASS"
 
-    protected inline fun <reified R> discoverProperties(
+    protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
+
+    protected inline fun <reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
         vararg analysisResultMatchers: (R?) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
             target = methodIdentifier,
@@ -32,14 +45,15 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             extractValuesToCheck = { r -> r.parameters + r.resultValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { _ -> true }
+            coverageChecker = coverageChecker
         )
     }
 
-    protected inline fun <reified T, reified R> discoverProperties(
+    protected inline fun <reified T : TSObject, reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
         vararg analysisResultMatchers: (T, R?) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
             target = methodIdentifier,
@@ -49,14 +63,15 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             extractValuesToCheck = { r -> r.parameters + r.resultValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(T::class), typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { _ -> true }
+            coverageChecker = coverageChecker
         )
     }
 
-    protected inline fun <reified T1, reified T2, reified R> discoverProperties(
+    protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
         vararg analysisResultMatchers: (T1, T2, R?) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
             target = methodIdentifier,
@@ -70,57 +85,27 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 typeTransformer(R::class)
             ),
             checkMode = CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { _ -> true }
-        )
-    }
-
-    protected inline fun <reified T1, reified T2, reified T3, reified R> discoverProperties(
-        methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T1, T2, T3, R?) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
-    ) {
-        internalCheck(
-            target = methodIdentifier,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
-            analysisResultsMatchers = analysisResultMatchers,
-            invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
-            expectedTypesForExtractedValues = arrayOf(
-                typeTransformer(T1::class),
-                typeTransformer(T2::class),
-                typeTransformer(T3::class),
-                typeTransformer(R::class)
-            ),
-            checkMode = CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { _ -> true }
-        )
-    }
-
-    protected inline fun <reified T1, reified T2, reified T3, reified T4, reified R> discoverProperties(
-        methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T1, T2, T3, T4, R?) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
-    ) {
-        internalCheck(
-            target = methodIdentifier,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
-            analysisResultsMatchers = analysisResultMatchers,
-            invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
-            expectedTypesForExtractedValues = arrayOf(
-                typeTransformer(T1::class),
-                typeTransformer(T2::class),
-                typeTransformer(T3::class),
-                typeTransformer(T4::class),
-                typeTransformer(R::class)
-            ),
-            checkMode = CheckMode.MATCH_PROPERTIES,
-            coverageChecker = { _ -> true }
+            coverageChecker = coverageChecker
         )
     }
 
     override val typeTransformer: (Any?) -> EtsType
-        get() = TODO("Not yet implemented")
+        get() = {
+            require(it is KClass<*>) { "Only TSObjects are allowed" }
+
+            when (it) {
+                TSObject.AnyObject::class -> EtsAnyType
+                TSObject.Array::class -> TODO()
+                TSObject.Boolean::class -> EtsBooleanType
+                TSObject.Class::class -> TODO()
+                TSObject.String::class -> EtsStringType
+                TSObject.TSNumber::class -> EtsNumberType
+                TSObject.TSNumber.Double::class -> EtsNumberType
+                TSObject.TSNumber.Integer::class -> EtsNumberType
+                TSObject.UndefinedObject::class -> EtsUndefinedType
+                else -> error("Should not be called")
+            }
+        }
 
     override val checkType: (EtsType?, EtsType?) -> Boolean
         get() = TODO("Not yet implemented")
@@ -157,7 +142,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             }
         }
 
-    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = TODO()
+    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = { _ -> NoCoverage }
 
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
@@ -168,6 +153,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 }
+
 
 data class MethodDescriptor(
     val fileName: String,
