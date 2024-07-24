@@ -5,7 +5,7 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val detekt = "1.18.1"
     const val ini4j = "0.5.4"
-    const val jacodb = "30594f5f7c"
+    const val jacodb = "4b15fc6452"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "1.9.20"
