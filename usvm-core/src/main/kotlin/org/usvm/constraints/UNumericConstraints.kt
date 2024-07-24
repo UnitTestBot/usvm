@@ -63,7 +63,7 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext<*>,
     val sort: Sort,
-    private var ownership: MutabilityOwnership,
+    internal var ownership: MutabilityOwnership,
     private var numericConstraints: UPersistentHashMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     private var constraintWatchList: UPersistentMultiMap<ConstraintTerms<Sort>, ConstraintTerms<Sort>>,
 ) : UOwnedMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
@@ -1965,8 +1965,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun size(): Int =
             inferredTermLowerBounds.size +
-                termUpperBounds.size +
-                termDisequalities.size
+                    termUpperBounds.size +
+                    termDisequalities.size
 
         fun lowerBound(bias: KBitVecValue<Sort>): ValueConstraint<Sort>? =
             concreteLowerBounds[bias]

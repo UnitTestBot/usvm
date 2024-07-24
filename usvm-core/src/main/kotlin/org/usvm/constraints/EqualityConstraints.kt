@@ -387,11 +387,11 @@ class UEqualityConstraints private constructor(
      * Creates a mutable copy of this structure.
      * Note that current subscribers get unsubscribed!
      */
-    fun clone(thisOwnership: MutabilityOwnership, clonerOwnership: MutabilityOwnership): UEqualityConstraints {
+    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UEqualityConstraints {
         this.ownership = thisOwnership
         if (isContradicting) {
             val result = UEqualityConstraints(
-                ctx, clonerOwnership, DisjointSets(),
+                ctx, cloneOwnership, DisjointSets(),
                 persistentHashSetOf(),
                 persistentHashMapOf(),
                 persistentHashMapOf()
@@ -402,7 +402,7 @@ class UEqualityConstraints private constructor(
 
         return UEqualityConstraints(
             ctx,
-            clonerOwnership,
+            cloneOwnership,
             equalReferences.clone(),
             distinctReferences,
             referenceDisequalities,

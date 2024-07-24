@@ -39,7 +39,7 @@ class HeapMemsetTest {
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx, ownership)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        val typeConstraints = UTypeConstraints(ownership, components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, ownership, typeConstraints)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.addressSort

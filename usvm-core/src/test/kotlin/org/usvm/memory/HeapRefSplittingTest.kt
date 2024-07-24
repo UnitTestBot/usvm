@@ -51,7 +51,7 @@ class HeapRefSplittingTest {
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         val eqConstraints = UEqualityConstraints(ctx, ownership)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
+        val typeConstraints = UTypeConstraints(ownership, components.mkTypeSystem(ctx), eqConstraints)
         heap = UMemory(ctx, ownership, typeConstraints)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort

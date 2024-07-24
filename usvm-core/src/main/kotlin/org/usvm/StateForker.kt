@@ -145,9 +145,7 @@ object WithSolverStateForker : StateForker {
         newConstraintToForkedState: UBoolExpr,
         stateToCheck: StateToCheck,
     ): T? {
-        val thisOwnership = MutabilityOwnership()
-        val cloneOwnership = MutabilityOwnership()
-        val constraintsToCheck = state.pathConstraints.clone(thisOwnership, cloneOwnership)
+        val constraintsToCheck = state.pathConstraints.clone()
 
         constraintsToCheck += if (stateToCheck) {
             newConstraintToForkedState
@@ -195,7 +193,7 @@ object NoSolverStateForker : StateForker {
     ): ForkResult<T> {
         val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
         val notCondition = state.ctx.mkNot(condition)
-        val clonedPathConstraints = state.pathConstraints.clone(MutabilityOwnership(), MutabilityOwnership())
+        val clonedPathConstraints = state.pathConstraints.clone()
         clonedPathConstraints += condition
 
         val (posState, negState) = if (clonedPathConstraints.isFalse) {

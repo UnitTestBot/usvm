@@ -41,14 +41,11 @@ class JcState(
     override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
         var newThisOwnership = MutabilityOwnership()
         var cloneOwnership = MutabilityOwnership()
-        val clonedConstraints = newConstraints.also {
-            if (it != null) {
-                // if newConstraints is not null it was cloned with new ownership
-                newThisOwnership = this.pathConstraints.ownership
-                cloneOwnership = it.ownership
-            }
-        }
-            ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        val clonedConstraints = newConstraints?.also {
+            this.pathConstraints.setOwnership(newThisOwnership)
+            it.setOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        this.ownership = newThisOwnership
         return JcState(
             ctx,
             cloneOwnership,
@@ -83,8 +80,8 @@ class JcState(
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
         val mergedPathConstraints = pathConstraints.mergeWith(
-                other.pathConstraints, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership
-            ) ?: return null
+            other.pathConstraints, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership
+        ) ?: return null
         val mergedMemory =
             memory.clone(mergedPathConstraints.typeConstraints, newThisOwnership, newOtherOwnership)
                 .mergeWith(other.memory, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership)

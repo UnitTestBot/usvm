@@ -77,7 +77,7 @@ class TrieNode<K, V>(
     // positionMask — an int in form 2^n, i.e. having the single bit set, whose ordinal is a logical position in buffer
 
 
-    /** Returns true if the data bit map has the bit specified by [positionMask] set, indicating there's a data entry 
+    /** Returns true if the data bit map has the bit specified by [positionMask] set, indicating there's a data entry
      * in the buffer at that position. */
     internal fun hasEntryAt(positionMask: Int): Boolean {
         return dataMap and positionMask != 0
@@ -192,7 +192,7 @@ class TrieNode<K, V>(
         val storedKeyHash = storedKey.hashCode()
         val storedValue = valueAtKeyIndex(keyIndex)
         val newNode = makeNode(storedKeyHash, storedKey, storedValue,
-                newKeyHash, newKey, newValue, shift + LOG_MAX_BRANCHING_FACTOR, owner)
+            newKeyHash, newKey, newValue, shift + LOG_MAX_BRANCHING_FACTOR, owner)
 
         val nodeIndex = nodeIndex(positionMask) + 1 // place where to insert new node in the current buffer
 
@@ -346,7 +346,7 @@ class TrieNode<K, V>(
                 tempBuffer[i] = otherNode.buffer[j]
                 tempBuffer[i + 1] = otherNode.buffer[j + 1]
                 i += ENTRY_SIZE
-            } 
+            }
         }
 
         return when (val newSize = i) {
@@ -706,9 +706,9 @@ class TrieNode<K, V>(
     }
 
     private fun accept(
-            visitor: (node: TrieNode<K, V>, shift: Int, hash: Int, dataMap: Int, nodeMap: Int) -> Unit,
-            hash: Int,
-            shift: Int
+        visitor: (node: TrieNode<K, V>, shift: Int, hash: Int, dataMap: Int, nodeMap: Int) -> Unit,
+        hash: Int,
+        shift: Int
     ) {
         visitor(this, shift, hash, dataMap, nodeMap)
 
@@ -738,7 +738,7 @@ class TrieNode<K, V>(
     operator fun get(key: K) = get(key.hashCode(), key, 0)
 
     fun getOrDefault(key: K, defaultValue: V) = get(key) ?: defaultValue
-    fun getOrPut(key: K, value: V, owner: MutabilityOwnership): Pair<TrieNode<K,V>, V> { 
+    fun getOrPut(key: K, value: V, owner: MutabilityOwnership): Pair<TrieNode<K,V>, V> {
         val current = get(key) ?: return put(key, value, owner) to value
         return this to current
     }
@@ -756,7 +756,7 @@ class TrieNode<K, V>(
 
     fun removeAll(keys: Iterable<K>, owner: MutabilityOwnership): TrieNode<K, V> =
         keys.fold(this) {node, k -> node.remove(k, owner)}
-    
+
     fun removeAndGetValue(key: K, owner: MutabilityOwnership): Pair<TrieNode<K,V>, V?> {
         val (node, value) = mutableRemoveAndGetValue(key.hashCode(), key, 0, owner)
         @Suppress("UNCHECKED_CAST")
@@ -772,6 +772,9 @@ class TrieNode<K, V>(
         map.iterator().forEach { (k, v) -> result = result.put(k, v, owner) }
         return result
     }
+
+    fun toMutableMap() : MutableMap<in K,V> = mutableMapOf<K, V>().also {
+        this.forEach {entry -> it[entry.key] = entry.value } }
 
     @Suppress("UNCHECKED_CAST")
     fun clear() = EMPTY as TrieNode<K,V>

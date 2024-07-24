@@ -24,7 +24,7 @@ import org.usvm.uctx
  */
 open class UPathConstraints<Type>(
     protected val ctx: UContext<*>,
-    ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     protected val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -34,6 +34,7 @@ open class UPathConstraints<Type>(
      * Constraints solved by type solver.
      */
     val typeConstraints: UTypeConstraints<Type> = UTypeConstraints(
+        ownership,
         ctx.typeSystem(),
         equalityConstraints
     ),
@@ -48,8 +49,15 @@ open class UPathConstraints<Type>(
         equalityConstraints.setTypesCheck(typeConstraints::canStaticRefBeEqualToSymbolic)
     }
 
-    var ownership: MutabilityOwnership = ownership
-        protected set
+    /**
+     * Recursively changes ownership for all nested data structures that use persistent maps.
+     */
+    fun setOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+        numericConstraints.ownership = ownership
+        equalityConstraints.ownership = ownership
+        typeConstraints.ownership = ownership
+    }
 
     /**
      * Constraints solved by SMT solver.
@@ -61,9 +69,9 @@ open class UPathConstraints<Type>(
 
     val isFalse: Boolean
         get() = equalityConstraints.isContradicting ||
-            typeConstraints.isContradicting ||
-            numericConstraints.isContradicting ||
-            logicalConstraints.isContradicting
+                typeConstraints.isContradicting ||
+                numericConstraints.isContradicting ||
+                logicalConstraints.isContradicting
 
     // TODO: refactor
     fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
@@ -71,9 +79,9 @@ open class UPathConstraints<Type>(
             return sequenceOf(ctx.falseExpr)
         }
         return logicalConstraints.asSequence().map(translator::translate) +
-            equalityConstraints.constraints(translator) +
-            numericConstraints.constraints(translator) +
-            typeConstraints.constraints(translator)
+                equalityConstraints.constraints(translator) +
+                numericConstraints.constraints(translator) +
+                typeConstraints.constraints(translator)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -119,21 +127,21 @@ open class UPathConstraints<Type>(
                     val notConstraint = constraint.arg
                     when {
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as USymbolicHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as UConcreteHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.rhs as USymbolicHeapRef,
                                 notConstraint.lhs as UConcreteHeapRef
@@ -166,15 +174,18 @@ open class UPathConstraints<Type>(
             }
         }
 
-    open fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UPathConstraints<Type> {
+    open fun clone(
+        thisOwnership: MutabilityOwnership = ownership,
+        cloneOwnership: MutabilityOwnership = MutabilityOwnership(), // clone ownership must be brand new because of plus assign operations
+    ): UPathConstraints<Type> {
         val clonedLogicalConstraints = logicalConstraints.clone()
         val clonedEqualityConstraints = equalityConstraints.clone(thisOwnership, cloneOwnership)
-        val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
+        val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints, thisOwnership, cloneOwnership)
         val clonedNumericConstraints = numericConstraints.clone(thisOwnership, cloneOwnership)
         this.ownership = thisOwnership
         return UPathConstraints(
             ctx = ctx,
-            cloneOwnership,
+            ownership = cloneOwnership,
             logicalConstraints = clonedLogicalConstraints,
             equalityConstraints = clonedEqualityConstraints,
             typeConstraints = clonedTypeConstraints,
@@ -214,8 +225,8 @@ open class UPathConstraints<Type>(
             equalityConstraints.mergeWith(other.equalityConstraints, by, thisOwnership, otherOwnership, mergedOwnership)
                 ?: return null
         val mergedTypeConstraints = typeConstraints
-            .clone(mergedEqualityConstraints)
-            .mergeWith(other.typeConstraints, by) ?: return null
+            .clone(mergedEqualityConstraints, thisOwnership, otherOwnership)
+            .mergeWith(other.typeConstraints, by, thisOwnership, otherOwnership, mergedOwnership) ?: return null
         val mergedNumericConstraints =
             numericConstraints.mergeWith(other.numericConstraints, by, thisOwnership, otherOwnership, mergedOwnership)
 
