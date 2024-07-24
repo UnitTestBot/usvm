@@ -21,7 +21,7 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
  * or this instance if no modifications were made in the result of this operation.
  */
 inline operator fun <K, V> UPersistentHashMap<out K, V>.plus(map: Map<out K, V>): UPersistentHashMap<K, V> =
-        putAll(map)
+    putAll(map)
 
 
 /**
@@ -34,7 +34,7 @@ inline operator fun <K, V> UPersistentHashMap<out K, V>.plus(map: Map<out K, V>)
  * or this instance if no modifications were made in the result of this operation.
  */
 @Suppress("UNCHECKED_CAST")
-public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPersistentHashMap<K, V> = 
+public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPersistentHashMap<K, V> =
     (this as UPersistentHashMap<K, V>).putAll(map)
 
 /**
@@ -101,5 +101,4 @@ public fun <E> persistentHashSetOf(): UPersistentHashSet<E> = UPersistentHashSet
  * Order of the elements in the returned set is unspecified.
  */
 fun <E> persistentHashSetOf(elements: Collection<E>, ownership: MutabilityOwnership): UPersistentHashSet<E> =
-    persistentHashSetOf<E>().addAll(elements, ownership) 
-
+    persistentHashSetOf<E>().addAll(elements, ownership)

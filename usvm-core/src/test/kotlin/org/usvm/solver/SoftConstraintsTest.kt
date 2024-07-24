@@ -136,7 +136,7 @@ open class SoftConstraintsTest {
 
         val size = 25
 
-        val reading = region.read(secondInputRef, ownership)
+        val reading = region.read(secondInputRef)
 
         val pc = UPathConstraints<Type>(ctx, ownership)
         pc += reading eq size.toBv()

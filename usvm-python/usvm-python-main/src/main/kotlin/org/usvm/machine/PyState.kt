@@ -63,10 +63,13 @@ class PyState(
 ) {
     override fun clone(newConstraints: UPathConstraints<PythonType>?): PyState {
         require(newConstraints is PyPathConstraints?)
-        val thisOwnership = MutabilityOwnership()
+        val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
-        val newPathConstraints = newConstraints ?: pathConstraints.clone(thisOwnership, cloneOwnership)
-        val newMemory = memory.clone(newPathConstraints.typeConstraints, thisOwnership, cloneOwnership)
+        val newPathConstraints = newConstraints?.also {
+            this.pathConstraints.setOwnership(newThisOwnership)
+            it.setOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        val newMemory = memory.clone(newPathConstraints.typeConstraints, newThisOwnership, cloneOwnership)
         return PyState(
             ctx,
             cloneOwnership,

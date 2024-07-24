@@ -4,7 +4,6 @@ import io.ksmt.expr.KExpr
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -26,7 +25,7 @@ class UMemory1DArray<KeySort : USort, Sort : USort> internal constructor(
         mappedConstValue: UExpr<Sort>,
     ) : this(persistentHashMapOf(), mappedConstValue)
 
-    override fun read(key: KExpr<KeySort>, ownership: MutabilityOwnership): UExpr<Sort> =
+    override fun read(key: KExpr<KeySort>): UExpr<Sort> =
         values.getOrDefault(key, constValue)
 }
 
@@ -46,7 +45,7 @@ class UMemory2DArray<Key1Sort : USort, Key2Sort : USort, Sort : USort> internal 
         mappedConstValue: UExpr<Sort>,
     ) : this(persistentHashMapOf(), mappedConstValue)
 
-    override fun read(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>, ownership: MutabilityOwnership): UExpr<Sort> {
+    override fun read(key: Pair<KExpr<Key1Sort>, KExpr<Key2Sort>>): UExpr<Sort> {
         return values.getOrDefault(key, constValue)
     }
 }

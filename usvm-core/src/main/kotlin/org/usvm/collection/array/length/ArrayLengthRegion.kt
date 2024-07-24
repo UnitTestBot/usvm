@@ -59,11 +59,10 @@ internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
     private fun updatedInput(updated: UInputArrayLengths<ArrayType, USizeSort>) =
         UArrayLengthsMemoryRegion(sort, arrayType, allocatedLengths, updated)
 
-    override fun read(key: UArrayLengthLValue<ArrayType, USizeSort>, ownership: MutabilityOwnership): UExpr<USizeSort> =
-        key.ref.mapWithStaticAsSymbolic(
-            concreteMapper = { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
-            symbolicMapper = { symbolicRef -> getInputLength(key).read(symbolicRef, ownership) }
-        )
+    override fun read(key: UArrayLengthLValue<ArrayType, USizeSort>): UExpr<USizeSort> = key.ref.mapWithStaticAsSymbolic(
+        concreteMapper = { concreteRef -> allocatedLengths[concreteRef.address] ?: sort.sampleUValue() },
+        symbolicMapper = { symbolicRef -> getInputLength(key).read(symbolicRef) }
+    )
 
     override fun write(
         key: UArrayLengthLValue<ArrayType, USizeSort>,

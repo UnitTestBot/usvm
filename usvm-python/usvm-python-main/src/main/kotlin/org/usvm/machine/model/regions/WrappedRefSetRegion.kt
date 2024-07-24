@@ -4,7 +4,6 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.collection.set.ref.URefSetEntryLValue
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -14,10 +13,10 @@ class WrappedRefSetRegion<SetType>(
     private val region: UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort>,
     private val keys: Set<UConcreteHeapRef>,
 ) : UReadOnlyMemoryRegion<URefSetEntryLValue<SetType>, UBoolSort> {
-    override fun read(key: URefSetEntryLValue<SetType>, ownership: MutabilityOwnership): UExpr<UBoolSort> {
+    override fun read(key: URefSetEntryLValue<SetType>): UExpr<UBoolSort> {
         if (!isAllocatedConcreteHeapRef(key.setRef) && key.setElement !in keys) {
             return ctx.falseExpr
         }
-        return region.read(key, ownership)
+        return region.read(key)
     }
 }

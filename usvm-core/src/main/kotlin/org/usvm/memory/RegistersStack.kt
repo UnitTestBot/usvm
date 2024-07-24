@@ -31,8 +31,7 @@ class URegisterStackLValue<Sort : USort>(
 interface UReadOnlyRegistersStack : UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
     fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
 
-    override fun read(key: URegisterStackLValue<*>, ownership: MutabilityOwnership): UExpr<USort> =
-        readRegister(key.idx, key.sort)
+    override fun read(key: URegisterStackLValue<*>): UExpr<USort> = readRegister(key.idx, key.sort)
 }
 
 class URegistersStack(

@@ -81,7 +81,7 @@ internal open class UPersistentHashSetMutableIterator<K, V, T>(
     private fun resetPath(keyHash: Int, node: TrieNode<*, *>, key: K, pathIndex: Int) {
         val shift = pathIndex * LOG_MAX_BRANCHING_FACTOR
 
-        if (shift > MAX_SHIFT) {    // collision
+        if (shift > MAX_SHIFT) { // collision
             path[pathIndex].reset(node.buffer, node.buffer.size, 0)
             while (path[pathIndex].currentKey() != key) {
                 path[pathIndex].moveToNextKey()

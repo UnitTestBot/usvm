@@ -39,8 +39,8 @@ class JcState(
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<JcType>?): JcState {
-        var newThisOwnership = MutabilityOwnership()
-        var cloneOwnership = MutabilityOwnership()
+        val newThisOwnership = MutabilityOwnership()
+        val cloneOwnership = MutabilityOwnership()
         val clonedConstraints = newConstraints?.also {
             this.pathConstraints.setOwnership(newThisOwnership)
             it.setOwnership(cloneOwnership)

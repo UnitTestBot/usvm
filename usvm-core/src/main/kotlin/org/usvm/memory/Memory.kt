@@ -27,7 +27,7 @@ interface UMemoryRegionId<Key, Sort : USort> {
 }
 
 interface UReadOnlyMemoryRegion<Key, Sort : USort> {
-    fun read(key: Key, ownership: MutabilityOwnership): UExpr<Sort>
+    fun read(key: Key): UExpr<Sort>
 }
 
 interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
@@ -70,7 +70,7 @@ interface UReadOnlyMemory<Type> {
 
     private fun <Key, Sort : USort> read(regionId: UMemoryRegionId<Key, Sort>, key: Key): UExpr<Sort> {
         val region = getRegion(regionId)
-        return region.read(key, ownership)
+        return region.read(key)
     }
 
     fun <Key, Sort : USort> read(lvalue: ULValue<Key, Sort>) = read(lvalue.memoryRegionId, lvalue.key)

@@ -57,7 +57,7 @@ fun <K, V> UPersistentMultiMap<K, V>.removeAllValues(
 
 fun <K, V> UPersistentMultiMap<K, V>.multiMapIterator() = MultiMapIterator(this)
 
-class MultiMapIterator<K, V>(multiMap: UPersistentMultiMap<K, V>): Iterator<Pair<K, V>> {
+class MultiMapIterator<K, V>(multiMap: UPersistentMultiMap<K, V>) : Iterator<Pair<K, V>> {
     private val valueIterators = multiMap.mapTo(mutableListOf()) { it.key to it.value.iterator() }
     private var value: Pair<K, V>? = null
 
@@ -84,4 +84,3 @@ class MultiMapIterator<K, V>(multiMap: UPersistentMultiMap<K, V>): Iterator<Pair
         }
     }
 }
-

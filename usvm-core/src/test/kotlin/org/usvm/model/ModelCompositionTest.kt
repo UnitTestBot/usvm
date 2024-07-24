@@ -68,7 +68,7 @@ class ModelCompositionTest {
             .write(1.toBv(), 1.toBv(), trueExpr, ownership)
             .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr, ownership)
             .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr, ownership)
-        val reading = region.read(mkRegisterReading(0, sizeSort), ownership)
+        val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)
         assertSame(mkBv(2), expr)
@@ -114,7 +114,7 @@ class ModelCompositionTest {
 
         val idx = mkRegisterReading(1, sizeSort)
 
-        val reading = concreteRegion.read(idx, ownership)
+        val reading = concreteRegion.read(idx)
 
         val expr = composer.compose(reading)
         assertSame(mkBv(1), expr)
@@ -159,7 +159,7 @@ class ModelCompositionTest {
             .write(symbolicRef1, 0.toBv(), trueExpr, ownership)
             .write(symbolicRef2, 1.toBv(), trueExpr, ownership)
             .write(symbolicRef3, 2.toBv(), trueExpr, ownership)
-        val reading = region.read(symbolicRef0, ownership)
+        val reading = region.read(symbolicRef0)
 
         val expr = composer.compose(reading)
         assertSame(mkBv(42), expr)
@@ -204,7 +204,7 @@ class ModelCompositionTest {
             .write(symbolicRef1, symbolicRef1, trueExpr, ownership)
             .write(symbolicRef2, symbolicRef2, trueExpr, ownership)
             .write(symbolicRef3, symbolicRef3, trueExpr, ownership)
-        val reading = region.read(symbolicRef0, ownership)
+        val reading = region.read(symbolicRef0)
 
         val expr = composer.compose(reading)
         assertSame(composedRef0, expr)
@@ -235,7 +235,7 @@ class ModelCompositionTest {
             val region = emptyRegion
                 .write(index0, nonDefaultValue0, trueGuard, ownership)
                 .write(index0, nonDefaultValue1, falseGuard, ownership)
-            val reading = region.read(index0, ownership)
+            val reading = region.read(index0)
 
             val expr = composer.compose(reading)
             assertEquals(nonDefaultValue0, expr)
@@ -245,7 +245,7 @@ class ModelCompositionTest {
             val region = emptyRegion
                 .write(index1, nonDefaultValue0, trueGuard, ownership)
                 .write(index0, nonDefaultValue1, falseGuard, ownership)
-            val reading = region.read(index0, ownership)
+            val reading = region.read(index0)
 
             val expr = composer.compose(reading)
             assertEquals(defaultValue, expr)

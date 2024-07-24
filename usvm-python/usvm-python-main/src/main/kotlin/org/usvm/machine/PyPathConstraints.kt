@@ -15,10 +15,11 @@ import org.usvm.machine.types.PythonType
 
 class PyPathConstraints(
     ctx: UContext<*>,
-    ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx, ownership),
     typeConstraints: UTypeConstraints<PythonType> = UTypeConstraints(
+        ownership,
         ctx.typeSystem(),
         equalityConstraints
     ),
@@ -36,7 +37,7 @@ class PyPathConstraints(
     override fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): PyPathConstraints {
         val clonedLogicalConstraints = logicalConstraints.clone()
         val clonedEqualityConstraints = equalityConstraints.clone(thisOwnership, cloneOwnership)
-        val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints)
+        val clonedTypeConstraints = typeConstraints.clone(clonedEqualityConstraints, thisOwnership, cloneOwnership)
         val clonedNumericConstraints = numericConstraints.clone(thisOwnership, cloneOwnership)
         this.ownership = thisOwnership
         return PyPathConstraints(

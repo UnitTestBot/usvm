@@ -10,7 +10,6 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UTransformer
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
 import org.usvm.machine.interpreter.statics.JcStaticFieldReading
 import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
@@ -63,7 +62,7 @@ class JcStaticFieldModel<Sort : USort>(
     private val translatedFields: Map<JcField, UExpr<Sort>>,
     private val translator: UExprTranslator<*, *>
 ) : UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
-    override fun read(key: JcStaticFieldLValue<Sort>, ownership: MutabilityOwnership): UExpr<Sort> {
+    override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val translated = translatedFields[key.field]
             ?: translator.translate(
                 key.sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, key.field, key.sort)

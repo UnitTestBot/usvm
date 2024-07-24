@@ -153,7 +153,7 @@ class TranslationTest {
         val ref3 = mkRegisterReading(4, addressSort)
         val idx3 = mkRegisterReading(5, sizeSort)
 
-        val reading = region.read(ref3 to idx3, ownership)
+        val reading = region.read(ref3 to idx3)
 
         val translated = translator.translate(reading)
 
@@ -196,13 +196,13 @@ class TranslationTest {
             .copyRange(region, adapter, trueExpr)
 
         val idx = mkRegisterReading(4, sizeSort)
-        val reading = concreteRegion.read(idx, ownership)
+        val reading = concreteRegion.read(idx)
 
 
         val keyInfo = region.collectionId.keyInfo()
         val key = keyInfo.mapKey(adapter.convert(translator.translate(idx), composer = null), translator)
         val innerReading =
-            translator.translate(region.read(key, ownership))
+            translator.translate(region.read(key))
         val guard =
             translator.translate((mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and mkBvSignedLessOrEqualExpr(idx, mkBv(5)))
         val expected = mkIte(guard, innerReading, mkBv(0))
@@ -235,7 +235,7 @@ class TranslationTest {
             .write(ref3, mkBv(3), g3, ownership)
 
         val ref0 = mkRegisterReading(0, addressSort)
-        val reading = region.read(ref0, ownership)
+        val reading = region.read(ref0)
 
         val ref0Eq1Or2Or3 = (ref0 eq ref1) or (ref0 eq ref2) or (ref0 eq ref3)
         val readingNeq123 = (reading neq mkBv(1)) and (reading neq mkBv(2)) and (reading neq mkBv(3))
@@ -261,7 +261,7 @@ class TranslationTest {
             .write(ref3, mkBv(3), trueExpr, ownership)
 
         val ref0 = mkRegisterReading(0, addressSort)
-        val reading = region.read(ref0, ownership)
+        val reading = region.read(ref0)
 
         val ref0Eq1Or2Or3 = (ref0 eq ref1) or (ref0 eq ref2) or (ref0 eq ref3)
         val readingNeq123 = (reading neq mkBv(1)) and (reading neq mkBv(2)) and (reading neq mkBv(3))
@@ -300,12 +300,12 @@ class TranslationTest {
         var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
-        val reading1 = inputRegion2.read(ref2 to idx, ownership)
+        val reading1 = inputRegion2.read(ref2 to idx)
 
         inputRegion2 = inputRegion2
             .copyRange(inputRegion1, adapter, trueExpr)
 
-        val reading2 = inputRegion2.read(ref2 to idx, ownership)
+        val reading2 = inputRegion2.read(ref2 to idx)
 
         val expr = (reading1 neq reading2) and (ref1 neq ref2)
         val translated = translator.translate(expr)
@@ -399,12 +399,12 @@ class TranslationTest {
         var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort).emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
-        val reading1 = inputRegion2.read(ref2 to idx, ownership)
+        val reading1 = inputRegion2.read(ref2 to idx)
 
         inputRegion2 = inputRegion2
             .copyRange(inputRegion1, adapter, trueExpr)
 
-        val reading2 = inputRegion2.read(ref2 to idx, ownership)
+        val reading2 = inputRegion2.read(ref2 to idx)
 
         val expr = (reading1 neq reading2) and (ref1 neq ref2)
         val translated = translator.translate(expr)
@@ -438,12 +438,12 @@ class TranslationTest {
             .emptyRegion()
 
         val idx = mkRegisterReading(4, sizeSort)
-        val readingBeforeCopy = allocatedRegion2.read(idx, ownership)
+        val readingBeforeCopy = allocatedRegion2.read(idx)
 
         allocatedRegion2 = allocatedRegion2
             .copyRange(allocatedRegion1, adapter, trueExpr)
 
-        val readingAfterCopy = allocatedRegion2.read(idx, ownership)
+        val readingAfterCopy = allocatedRegion2.read(idx)
 
         val outsideOfCopy = mkBvSignedLessExpr(idx, mkBv(0)) or mkBvSignedLessExpr(mkBv(5), idx)
         val expr = (readingBeforeCopy neq readingAfterCopy) and outsideOfCopy
@@ -468,8 +468,8 @@ class TranslationTest {
             .write(mkRegisterReading(2, sizeSort), mkBv(2), trueExpr, ownership)
             .write(mkRegisterReading(3, sizeSort), mkBv(3), trueExpr, ownership)
 
-        val reading = allocatedRegion.read(mkRegisterReading(4, sizeSort), ownership)
-        val readingExtended = allocatedRegionExtended.read(mkRegisterReading(5, sizeSort), ownership)
+        val reading = allocatedRegion.read(mkRegisterReading(4, sizeSort))
+        val readingExtended = allocatedRegionExtended.read(mkRegisterReading(5, sizeSort))
 
         translator.translate(reading)
 

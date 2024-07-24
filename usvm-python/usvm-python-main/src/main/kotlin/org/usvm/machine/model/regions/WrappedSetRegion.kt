@@ -5,7 +5,6 @@ import io.ksmt.sort.KIntSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.collection.set.primitive.USetEntryLValue
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.PyContext
 import org.usvm.memory.UReadOnlyMemoryRegion
@@ -16,13 +15,10 @@ class WrappedSetRegion<SetType>(
     private val region: UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort>,
     private val keys: Set<KInterpretedValue<KIntSort>>,
 ) : UReadOnlyMemoryRegion<USetEntryLValue<SetType, KIntSort, USizeRegion>, UBoolSort> {
-    override fun read(
-        key: USetEntryLValue<SetType, KIntSort, USizeRegion>,
-        ownership: MutabilityOwnership,
-    ): UExpr<UBoolSort> {
+    override fun read(key: USetEntryLValue<SetType, KIntSort, USizeRegion>): UExpr<UBoolSort> {
         if (!isAllocatedConcreteHeapRef(key.setRef) && key.setElement !in keys) {
             return ctx.falseExpr
         }
-        return region.read(key, ownership)
+        return region.read(key)
     }
 }

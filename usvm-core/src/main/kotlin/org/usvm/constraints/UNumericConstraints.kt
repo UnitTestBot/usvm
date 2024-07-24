@@ -1965,8 +1965,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
         fun size(): Int =
             inferredTermLowerBounds.size +
-                    termUpperBounds.size +
-                    termDisequalities.size
+                termUpperBounds.size +
+                termDisequalities.size
 
         fun lowerBound(bias: KBitVecValue<Sort>): ValueConstraint<Sort>? =
             concreteLowerBounds[bias]

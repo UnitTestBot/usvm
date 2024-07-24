@@ -30,7 +30,7 @@ internal class JcLambdaCallSiteMemoryRegion(
 
     fun findCallSite(ref: UConcreteHeapRef): JcLambdaCallSite? = callSites[ref.address]
 
-    override fun read(key: Nothing, ownership: MutabilityOwnership): UExpr<UAddressSort> {
+    override fun read(key: Nothing): UExpr<UAddressSort> {
         error("Unsupported operation for call site region")
     }
 

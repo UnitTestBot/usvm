@@ -26,9 +26,9 @@ fun <K, V> UPersistentHashMap<K, V>.separate(
     other: UPersistentHashMap<K, V>,
     ownership: MutabilityOwnership,
 ): SeparationResult<UPersistentHashMap<K, V>> {
-    val overlap = 
-        this.fold(persistentHashMapOf<K,V>()) { map, entry ->
-            if (other.containsKey(entry.key)) map.put(entry.key, entry.value, ownership) else map 
+    val overlap =
+        this.fold(persistentHashMapOf<K, V>()) { map, entry ->
+            if (other.containsKey(entry.key)) map.put(entry.key, entry.value, ownership) else map
         }
     val leftUnique = overlap.fold(this) { map, entry -> map.remove(entry.key, ownership) }
     val rightUnique = overlap.fold(other) { map, entry -> map.remove(entry.key, ownership) }

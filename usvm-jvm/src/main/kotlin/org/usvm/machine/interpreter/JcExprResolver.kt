@@ -644,7 +644,7 @@ class JcExprResolver(
 
         val enumValuesFieldLengthLValue = UArrayLengthLValue(enumValuesRef, enumValuesArrayDescriptor, sizeSort)
         val enumValuesFieldLengthBeforeClinit =
-            enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue, ownership)
+            enumValuesFieldLengthLValue.memoryRegionId.emptyRegion().read(enumValuesFieldLengthLValue)
         val enumValuesFieldLengthAfterClinit = memory.read(enumValuesFieldLengthLValue)
 
         // Ensure that $VALUES in a model has the same length as the $VALUES in the memory
@@ -659,13 +659,13 @@ class JcExprResolver(
                 UArrayIndexLValue(addressSort, enumValuesRef, mkSizeExpr(ordinal), cp.objectType)
             val enumConstantRefAfterClinit = memory.read(enumConstantLValue)
             val enumConstantRefBeforeClinit =
-                enumConstantLValue.memoryRegionId.emptyRegion().read(enumConstantLValue, ownership)
+                enumConstantLValue.memoryRegionId.emptyRegion().read(enumConstantLValue)
 
             val ordinalFieldLValue =
                 UFieldLValue(sizeSort, enumConstantRefAfterClinit, enumOrdinalField)
             val ordinalFieldValueAfterClinit = memory.read(ordinalFieldLValue)
             val ordinalEmptyRegion = ordinalFieldLValue.memoryRegionId.emptyRegion()
-            val ordinalFieldValueBeforeClinit = ordinalEmptyRegion.read(ordinalFieldLValue, ownership)
+            val ordinalFieldValueBeforeClinit = ordinalEmptyRegion.read(ordinalFieldLValue)
 
             // Ensure that the ordinal of each enum constant equals to the real ordinal value
             scope.assert(mkEq(ordinalFieldValueAfterClinit, ordinalFieldValueBeforeClinit))

@@ -8,7 +8,6 @@ import org.usvm.UBoolSort
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.set.USetCollectionDecoder
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isFalse
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UMemory2DArray
@@ -22,15 +21,12 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
     USetReadOnlyRegion<SetType, ElementSort, Reg> {
     abstract val inputSet: UMemory2DArray<UAddressSort, ElementSort, UBoolSort>
 
-    override fun read(key: USetEntryLValue<SetType, ElementSort, Reg>, ownership: MutabilityOwnership): UBoolExpr {
+    override fun read(key: USetEntryLValue<SetType, ElementSort, Reg>): UBoolExpr {
         val setRef = modelEnsureConcreteInputRef(key.setRef)
-        return inputSet.read(setRef to key.setElement, ownership)
+        return inputSet.read(setRef to key.setElement)
     }
 
-    override fun setEntries(
-        ref: UHeapRef,
-        ownership: MutabilityOwnership,
-    ): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
+    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
         val setRef = modelEnsureConcreteInputRef(ref)
 
         check(inputSet.constValue.isFalse) { "Set model is not complete" }

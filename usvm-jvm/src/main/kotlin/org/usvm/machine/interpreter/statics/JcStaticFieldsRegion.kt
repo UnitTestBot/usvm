@@ -55,7 +55,7 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     val mutableStaticFields: List<JcField>
         get() = initialStatics
 
-    override fun read(key: JcStaticFieldLValue<Sort>, ownership: MutabilityOwnership): UExpr<Sort> {
+    override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
         return fieldValuesByClass[field.enclosingClass]?.get(field)
             ?: sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, field, sort)

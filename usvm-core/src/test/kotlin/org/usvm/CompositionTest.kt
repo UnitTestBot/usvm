@@ -598,7 +598,7 @@ internal class CompositionTest {
 
         val idx0 = mkRegisterReading(3, bv32Sort)
 
-        val reading0 = fromRegion2.read(symbolicRef2 to idx0, ownership)
+        val reading0 = fromRegion2.read(symbolicRef2 to idx0)
 
         val composedExpr0 = composer.compose(reading0)
         val composedReading0 = assertIs<UAllocatedArrayReading<Type, UBv32Sort, USizeSort>>(composedExpr0)
@@ -631,7 +631,7 @@ internal class CompositionTest {
         val composer = UComposer(this, composedMemory)
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyRegion()
-        val reading = region.read(mkRegisterReading(0, sizeSort), ownership)
+        val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)
         assertSame(concreteNull, expr)
@@ -652,7 +652,7 @@ internal class CompositionTest {
             .write(ref0, mkBv(0), trueExpr, ownership)
             .write(ref1, mkBv(1), trueExpr, ownership)
 
-        val reading = region.read(ref2, ownership)
+        val reading = region.read(ref2)
 
         val composer = spyk(UComposer(this, composedMemory))
 

@@ -150,7 +150,7 @@ class MemoryRegionTest {
             val readRef = symbolicRefs.random(random)
             val readIdx = indices.random(random)
 
-            memoryRegion.read(readRef to readIdx, ownership)
+            memoryRegion.read(readRef to readIdx)
         }
     }
 }

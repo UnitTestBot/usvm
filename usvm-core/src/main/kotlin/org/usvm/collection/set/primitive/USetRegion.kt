@@ -63,17 +63,14 @@ typealias UPrimitiveSetEntries<SetType, ElementSort, Reg> = USymbolicSetEntries<
 
 interface USetReadOnlyRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     UReadOnlyMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
-    fun setEntries(ref: UHeapRef, ownership: MutabilityOwnership): UPrimitiveSetEntries<SetType, ElementSort, Reg>
+    fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg>
 }
 
 interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     USetReadOnlyRegion<SetType, ElementSort, Reg>,
     UMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
 
-    fun allocatedSetElements(
-        address: UConcreteHeapAddress,
-        ownership: MutabilityOwnership,
-    ): UAllocatedSet<SetType, ElementSort, Reg>
+    fun allocatedSetElements(address: UConcreteHeapAddress): UAllocatedSet<SetType, ElementSort, Reg>
 
     fun inputSetElements(): UInputSet<SetType, ElementSort, Reg>
 
@@ -81,7 +78,6 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership,
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
@@ -92,23 +88,21 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     private var allocatedSets: UPersistentHashMap<UAllocatedSetId<SetType, ElementSort, Reg>, UAllocatedSet<SetType, ElementSort, Reg>> = persistentHashMapOf(),
     private var inputSet: UInputSet<SetType, ElementSort, Reg>? = null,
 ) : USetRegion<SetType, ElementSort, Reg> {
+
+    private val defaultOwnership = elementSort.uctx.defaultOwnership
     init {
         check(elementSort != elementSort.uctx.addressSort) {
             "Ref set must be used to handle sets with ref elements"
         }
     }
 
-    override fun allocatedSetElements(
-        address: UConcreteHeapAddress,
-        ownership: MutabilityOwnership,
-    ): UAllocatedSet<SetType, ElementSort, Reg> =
-        getAllocatedSet(UAllocatedSetId(address, elementSort, setType, elementInfo), ownership)
+    override fun allocatedSetElements(address: UConcreteHeapAddress): UAllocatedSet<SetType, ElementSort, Reg> =
+        getAllocatedSet(UAllocatedSetId(address, elementSort, setType, elementInfo))
 
     private fun getAllocatedSet(
-        id: UAllocatedSetId<SetType, ElementSort, Reg>,
-        ownership: MutabilityOwnership,
+        id: UAllocatedSetId<SetType, ElementSort, Reg>
     ): UAllocatedSet<SetType, ElementSort, Reg> {
-        val (updatesSets, collection) = allocatedSets.getOrPut(id, id.emptyRegion(), ownership)
+        val (updatesSets, collection) = allocatedSets.getOrPut(id, id.emptyRegion(), defaultOwnership)
         allocatedSets = updatesSets
         return collection
     }
@@ -129,10 +123,10 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     private fun updateInputSet(updated: UInputSet<SetType, ElementSort, Reg>) =
         USetMemoryRegion(setType, elementSort, elementInfo, allocatedSets, updated)
 
-    override fun read(key: USetEntryLValue<SetType, ElementSort, Reg>, ownership: MutabilityOwnership): UExpr<UBoolSort> =
+    override fun read(key: USetEntryLValue<SetType, ElementSort, Reg>): UExpr<UBoolSort> =
         key.setRef.mapWithStaticAsSymbolic(
-            { concreteRef -> allocatedSetElements(concreteRef.address, ownership).read(key.setElement, ownership) },
-            { symbolicRef -> inputSetElements().read(symbolicRef to key.setElement, ownership) }
+            { concreteRef -> allocatedSetElements(concreteRef.address).read(key.setElement) },
+            { symbolicRef -> inputSetElements().read(symbolicRef to key.setElement) }
         )
     override fun write(
         key: USetEntryLValue<SetType, ElementSort, Reg>,
@@ -145,7 +139,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, guard) ->
             val id = UAllocatedSetId(concreteRef.address, elementSort, setType, elementInfo)
-            val newCollection = region.getAllocatedSet(id, ownership)
+            val newCollection = region.getAllocatedSet(id)
                 .write(key.setElement, value, guard, ownership)
             region.updateAllocatedSet(id, newCollection, ownership)
         },
@@ -160,7 +154,6 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
-        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -168,18 +161,18 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         initialGuard = operationGuard,
         blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
             val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
-            val srcCollection = region.getAllocatedSet(srcId, ownership)
+            val srcCollection = region.getAllocatedSet(srcId)
 
             val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
-            val dstCollection = region.getAllocatedSet(dstId, ownership)
+            val dstCollection = region.getAllocatedSet(dstId)
 
             val adapter = UAllocatedToAllocatedSymbolicSetUnionAdapter(srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedSet(dstId, updated, ownership)
+            region.updateAllocatedSet(dstId, updated, defaultOwnership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
-            val srcCollection = region.getAllocatedSet(srcId, ownership)
+            val srcCollection = region.getAllocatedSet(srcId)
 
             val dstCollection = region.inputSetElements()
 
@@ -191,11 +184,11 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
             val srcCollection = region.inputSetElements()
 
             val dstId = UAllocatedSetId(dstConcrete.address, elementSort, setType, elementInfo)
-            val dstCollection = region.getAllocatedSet(dstId, ownership)
+            val dstCollection = region.getAllocatedSet(dstId)
 
             val adapter = UInputToAllocatedSymbolicSetUnionAdapter(srcSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedSet(dstId, updated, ownership)
+            region.updateAllocatedSet(dstId, updated, defaultOwnership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.inputSetElements()
@@ -207,13 +200,13 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         },
     )
 
-    override fun setEntries(ref: UHeapRef, ownership: MutabilityOwnership): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
+    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
         foldHeapRefWithStaticAsSymbolic(
             ref = ref,
             initial = UPrimitiveSetEntries(),
             initialGuard = ref.uctx.trueExpr,
             blockOnConcrete = { entries, (concreteRef, _) ->
-                val setElements = allocatedSetElements(concreteRef.address, ownership)
+                val setElements = allocatedSetElements(concreteRef.address)
                 val elements = USymbolicSetElementsCollector.collect(setElements.updates)
                 elements.elements.forEach { elem ->
                     entries.add(USetEntryLValue(elementSort, concreteRef, elem, setType, elementInfo))

@@ -6,7 +6,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.PyContext
 import org.usvm.machine.model.PyModel
 import org.usvm.machine.model.getConcreteType
@@ -19,11 +18,8 @@ class WrappedArrayIndexRegion<ArrayType, Sort : USort>(
     private val ctx: PyContext,
     private val nullRef: UConcreteHeapRef,
 ) : UReadOnlyMemoryRegion<UArrayIndexLValue<ArrayType, Sort, KIntSort>, UAddressSort> {
-    override fun read(
-        key: UArrayIndexLValue<ArrayType, Sort, KIntSort>,
-        ownership: MutabilityOwnership,
-    ): UExpr<UAddressSort> {
-        val underlyingResult = region.read(key, ownership)
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, KIntSort>): UExpr<UAddressSort> {
+        val underlyingResult = region.read(key)
         val array = key.ref as UConcreteHeapRef
         if (array.address > 0) {
             // allocated object

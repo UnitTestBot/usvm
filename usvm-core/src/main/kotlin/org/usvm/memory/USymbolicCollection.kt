@@ -215,7 +215,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
         return this.copy(updates = updatesCopy)
     }
 
-    override fun read(key: Key, ownership: MutabilityOwnership): UExpr<Sort> = read(key, composer = null)
+    override fun read(key: Key): UExpr<Sort> = read(key, composer = null)
 
     override fun toString(): String =
         buildString {

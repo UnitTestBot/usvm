@@ -3,7 +3,6 @@ package org.usvm.collection.field
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -14,9 +13,9 @@ abstract class UFieldsModelRegion<Field, Sort : USort>(
 ) : UReadOnlyMemoryRegion<UFieldLValue<Field, Sort>, Sort> {
     abstract val inputFields: UReadOnlyMemoryRegion<UHeapRef, Sort>
 
-    override fun read(key: UFieldLValue<Field, Sort>, ownership: MutabilityOwnership): UExpr<Sort> {
+    override fun read(key: UFieldLValue<Field, Sort>): UExpr<Sort> {
         val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputFields.read(ref, ownership)
+        return inputFields.read(ref)
     }
 }
 

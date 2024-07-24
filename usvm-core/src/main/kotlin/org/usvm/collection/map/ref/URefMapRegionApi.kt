@@ -27,6 +27,6 @@ internal fun <MapType, ValueSort : USort> UWritableMemory<*>.refMapMerge(
         "refMapMerge is not applicable to set $region"
     }
 
-    val newRegion = region.merge(srcRef, dstRef, mapType, sort, keySet, guard, ownership)
+    val newRegion = region.merge(srcRef, dstRef, mapType, sort, keySet, guard)
     setRegion(regionId, newRegion)
 }

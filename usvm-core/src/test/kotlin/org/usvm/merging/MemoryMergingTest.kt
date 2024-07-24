@@ -127,9 +127,8 @@ class MemoryMergingTest {
     ) = with(ctx) {
         val mergeGuard = MutableMergeGuard(this).apply { appendThis(sequenceOf(byCondition)) }
         val mergedMemory = checkNotNull(memoryLeft.mergeWith(
-                memoryRight, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership()
-            )
-        )
+            memoryRight, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership()
+        ))
 
         for (getter in getters) {
             val leftExpr: UExpr<USort> = getter(memoryLeft).uncheckedCast()

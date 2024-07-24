@@ -60,7 +60,6 @@ interface UMapRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<R
         mapType: MapType,
         srcKeySet: USetRegion<MapType, KeySort, *>,
         initialGuard: UBoolExpr,
-        ownership: MutabilityOwnership,
     ): UMapRegion<MapType, KeySort, ValueSort, Reg>
 }
 
@@ -72,6 +71,9 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     private var allocatedMaps: UPersistentHashMap<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UAllocatedMap<MapType, KeySort, ValueSort, Reg>> = persistentHashMapOf(),
     private var inputMap: UInputMap<MapType, KeySort, ValueSort, Reg>? = null,
 ) : UMapRegion<MapType, KeySort, ValueSort, Reg> {
+
+    private val defaultOwnership = valueSort.uctx.defaultOwnership
+
     init {
         check(keySort != keySort.uctx.addressSort) {
             "Ref map must be used to handle maps with ref keys"
@@ -79,10 +81,9 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     }
 
     private fun getAllocatedMap(
-        id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>,
-        ownership: MutabilityOwnership,
+        id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>
     ): UAllocatedMap<MapType, KeySort, ValueSort, Reg> {
-        val (updatesMaps, collection) = allocatedMaps.getOrPut(id, id.emptyRegion(), ownership)
+        val (updatesMaps, collection) = allocatedMaps.getOrPut(id, id.emptyRegion(), defaultOwnership)
         allocatedMaps = updatesMaps
         return collection
     }
@@ -117,16 +118,13 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         updatedMap
     )
 
-    override fun read(
-        key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>,
-        ownership: MutabilityOwnership,
-    ): UExpr<ValueSort> =
+    override fun read(key: UMapEntryLValue<MapType, KeySort, ValueSort, Reg>): UExpr<ValueSort> =
         key.mapRef.mapWithStaticAsSymbolic(
             concreteMapper = { concreteRef ->
                 val id = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, concreteRef.address)
-                getAllocatedMap(id, ownership).read(key.mapKey, ownership)
+                getAllocatedMap(id).read(key.mapKey)
             },
-            symbolicMapper = { symbolicRef -> getInputMap().read(symbolicRef to key.mapKey, ownership) }
+            symbolicMapper = { symbolicRef -> getInputMap().read(symbolicRef to key.mapKey) }
         )
 
     override fun write(
@@ -140,7 +138,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, guard) ->
             val id = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, concreteRef.address)
-            val map = region.getAllocatedMap(id, ownership)
+            val map = region.getAllocatedMap(id)
             val newMap = map.write(key.mapKey, value, guard, ownership)
             region.updateAllocatedMap(id, newMap, ownership)
         },
@@ -157,7 +155,6 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         mapType: MapType,
         srcKeySet: USetRegion<MapType, KeySort, *>,
         initialGuard: UBoolExpr,
-        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -165,20 +162,20 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         initialGuard = initialGuard,
         blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
             val srcId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, srcConcrete.address)
-            val srcCollection = region.getAllocatedMap(srcId, ownership)
-            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address, ownership)
+            val srcCollection = region.getAllocatedMap(srcId)
+            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address)
 
             val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
-            val dstCollection = region.getAllocatedMap(dstId, ownership)
+            val dstCollection = region.getAllocatedMap(dstId)
 
             val adapter = UAllocatedToAllocatedSymbolicMapMergeAdapter(srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedMap(dstId, newDstCollection, ownership)
+            region.updateAllocatedMap(dstId, newDstCollection, defaultOwnership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, srcConcrete.address)
-            val srcCollection = region.getAllocatedMap(srcId, ownership)
-            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address, ownership)
+            val srcCollection = region.getAllocatedMap(srcId)
+            val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address)
 
             val dstCollection = getInputMap()
             val adapter = UAllocatedToInputSymbolicMapMergeAdapter(dstSymbolic, srcKeys)
@@ -190,11 +187,11 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
             val srcKeys = srcKeySet.inputSetElements()
 
             val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
-            val dstCollection = region.getAllocatedMap(dstId, ownership)
+            val dstCollection = region.getAllocatedMap(dstId)
 
             val adapter = UInputToAllocatedSymbolicMapMergeAdapter(srcSymbolic, srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedMap(dstId, newDstCollection, ownership)
+            region.updateAllocatedMap(dstId, newDstCollection, defaultOwnership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputMap()

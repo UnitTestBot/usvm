@@ -3,7 +3,6 @@ package org.usvm.collection.array.length
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -14,9 +13,9 @@ abstract class UArrayLengthModelRegion<ArrayType, USizeSort : USort>(
 ) : UReadOnlyMemoryRegion<UArrayLengthLValue<ArrayType, USizeSort>, USizeSort> {
     abstract val inputArrayLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>
 
-    override fun read(key: UArrayLengthLValue<ArrayType, USizeSort>, ownership: MutabilityOwnership): UExpr<USizeSort> {
+    override fun read(key: UArrayLengthLValue<ArrayType, USizeSort>): UExpr<USizeSort> {
         val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputArrayLength.read(ref, ownership)
+        return inputArrayLength.read(ref)
     }
 }
 

@@ -3,7 +3,6 @@ package org.usvm.collection.map.length
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelEvaluator
 import org.usvm.model.modelEnsureConcreteInputRef
@@ -14,9 +13,9 @@ abstract class UMapLengthModelRegion<MapType, USizeSort : USort>(
 ) : UReadOnlyMemoryRegion<UMapLengthLValue<MapType, USizeSort>, USizeSort> {
     abstract val inputMapLength: UReadOnlyMemoryRegion<UHeapRef, USizeSort>
 
-    override fun read(key: UMapLengthLValue<MapType, USizeSort>, ownership: MutabilityOwnership): UExpr<USizeSort> {
+    override fun read(key: UMapLengthLValue<MapType, USizeSort>): UExpr<USizeSort> {
         val ref = modelEnsureConcreteInputRef(key.ref)
-        return inputMapLength.read(ref, ownership)
+        return inputMapLength.read(ref)
     }
 }
 

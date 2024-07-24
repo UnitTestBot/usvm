@@ -355,8 +355,8 @@ class TypeSolverTest {
             .write(arr1 to idx1, val1, trueExpr, ownership)
             .write(arr2 to idx2, val2, trueExpr, ownership)
 
-        val firstReading = inputRegion.read(arr1 to idx1, ownership)
-        val secondReading = inputRegion.read(arr2 to idx2, ownership)
+        val firstReading = inputRegion.read(arr1 to idx1)
+        val secondReading = inputRegion.read(arr2 to idx2)
 
         pc += mkIsSubtypeExpr(arr1, base1)
         pc += mkIsSubtypeExpr(arr2, base1)

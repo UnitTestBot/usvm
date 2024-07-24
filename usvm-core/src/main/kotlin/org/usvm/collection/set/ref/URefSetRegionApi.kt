@@ -19,7 +19,7 @@ internal fun <SetType> UWritableMemory<*>.refSetUnion(
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, guard, ownership)
+    val newRegion = region.union(srcRef, dstRef, guard)
     setRegion(regionId, newRegion)
 }
 
@@ -31,5 +31,5 @@ fun <SetType> UReadOnlyMemory<*>.refSetEntries(
     val region = getRegion(regionId) as? URefSetReadOnlyRegion<SetType>
         ?: return URefSetEntries<SetType>().apply { markAsInput() }
 
-    return region.setEntries(setRef, ownership)
+    return region.setEntries(setRef)
 }

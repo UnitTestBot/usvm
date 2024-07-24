@@ -699,30 +699,30 @@ class TrieNode<E>(
     fun remove(element: E, owner: MutabilityOwnership): TrieNode<E> =
         mutableRemove(element.hashCode(), element, 0, owner)
 
-    fun removeAll(elements: Collection<E>, owner: MutabilityOwnership) : TrieNode<E> =
+    fun removeAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.remove(e, owner)}
 
-    fun removeAll(elements: Iterable<E>, owner: MutabilityOwnership) : TrieNode<E> =
+    fun removeAll(elements: Iterable<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.remove(e, owner)}
 
     @Suppress("UNCHECKED_CAST")
-    fun removeAll(otherNode: TrieNode<E>, owner: MutabilityOwnership) : TrieNode<E> =
+    fun removeAll(otherNode: TrieNode<E>, owner: MutabilityOwnership): TrieNode<E> =
         mutableRemoveAll(otherNode, 0, owner) as TrieNode<E>
 
-    fun add(element: E, owner: MutabilityOwnership) : TrieNode<E> =
+    fun add(element: E, owner: MutabilityOwnership): TrieNode<E> =
         mutableAdd(element.hashCode(), element, 0, owner)
 
-    fun addAll(elements: Collection<E>, owner: MutabilityOwnership) : TrieNode<E> =
+    fun addAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.add(e, owner)}
 
     fun addAll(otherNode: TrieNode<E>, owner: MutabilityOwnership): TrieNode<E> =
         mutableAddAll(otherNode, 0, owner)
 
-    fun contains(element: E) : Boolean = contains(element.hashCode(), element, 0)
+    fun contains(element: E): Boolean = contains(element.hashCode(), element, 0)
 
     fun containsAll(otherNode: TrieNode<E>): Boolean = containsAll(otherNode, 0)
 
-    fun containsAll(elements: Collection<E>) : Boolean = elements.all { e -> this.contains(e) }
+    fun containsAll(elements: Collection<E>): Boolean = elements.all { e -> this.contains(e) }
 
     @Suppress("UNCHECKED_CAST")
     fun retainAll(otherNode: TrieNode<E>, owner: MutabilityOwnership) =

@@ -64,7 +64,7 @@ class TrieNode<K, V>(
     private var nodeMap: Int,
     buffer: Array<Any?>,
     private val ownedBy: MutabilityOwnership?
-) : Iterable<Map.Entry<K,V>> {
+) : Iterable<Map.Entry<K, V>> {
     constructor(dataMap: Int, nodeMap: Int, buffer: Array<Any?>) : this(dataMap, nodeMap, buffer, null)
 
     internal var buffer: Array<Any?> = buffer
@@ -199,8 +199,15 @@ class TrieNode<K, V>(
         return buffer.replaceEntryWithNode(keyIndex, nodeIndex, newNode)
     }
 
-    private fun mutableMoveEntryToNode(keyIndex: Int, positionMask: Int, newKeyHash: Int,
-                                       newKey: K, newValue: V, shift: Int, owner: MutabilityOwnership): TrieNode<K, V> {
+    private fun mutableMoveEntryToNode(
+        keyIndex: Int,
+        positionMask: Int,
+        newKeyHash: Int,
+        newKey: K,
+        newValue: V,
+        shift: Int,
+        owner: MutabilityOwnership,
+        ): TrieNode<K, V> {
 //        assert(hasEntryAt(positionMask))
 //        assert(!hasNodeAt(positionMask))
         modificationsCount++
@@ -731,53 +738,53 @@ class TrieNode<K, V>(
     fun isEmpty() = singleOrNull() == null
     fun isNotEmpty() = singleOrNull() != null
 
-    fun containsKey(key: K) : Boolean = containsKey(key.hashCode(), key, 0)
+    fun containsKey(key: K): Boolean = containsKey(key.hashCode(), key, 0)
 
-    operator fun contains(key : K) = containsKey(key)
+    operator fun contains(key: K) = containsKey(key)
 
     operator fun get(key: K) = get(key.hashCode(), key, 0)
 
     fun getOrDefault(key: K, defaultValue: V) = get(key) ?: defaultValue
-    fun getOrPut(key: K, value: V, owner: MutabilityOwnership): Pair<TrieNode<K,V>, V> {
+    fun getOrPut(key: K, value: V, owner: MutabilityOwnership): Pair<TrieNode<K, V>, V> {
         val current = get(key) ?: return put(key, value, owner) to value
         return this to current
     }
 
-    fun put(key: K, value: V, owner: MutabilityOwnership): TrieNode<K,V> =
+    fun put(key: K, value: V, owner: MutabilityOwnership): TrieNode<K, V> =
         mutablePut(key.hashCode(), key, value, 0, owner)
 
     @Suppress("UNCHECKED_CAST")
     fun remove(key: K, owner: MutabilityOwnership): TrieNode<K, V> =
-        mutableRemove(key.hashCode(), key, 0, owner) ?: EMPTY as TrieNode<K,V>
+        mutableRemove(key.hashCode(), key, 0, owner) ?: EMPTY as TrieNode<K, V>
 
     @Suppress("UNCHECKED_CAST")
     fun remove(key: K, value: V, owner: MutabilityOwnership): TrieNode<K, V> =
-        mutableRemove(key.hashCode(), key, value, 0, owner) ?: EMPTY as TrieNode<K,V>
+        mutableRemove(key.hashCode(), key, value, 0, owner) ?: EMPTY as TrieNode<K, V>
 
     fun removeAll(keys: Iterable<K>, owner: MutabilityOwnership): TrieNode<K, V> =
         keys.fold(this) {node, k -> node.remove(k, owner)}
 
-    fun removeAndGetValue(key: K, owner: MutabilityOwnership): Pair<TrieNode<K,V>, V?> {
+    fun removeAndGetValue(key: K, owner: MutabilityOwnership): Pair<TrieNode<K, V>, V?> {
         val (node, value) = mutableRemoveAndGetValue(key.hashCode(), key, 0, owner)
         @Suppress("UNCHECKED_CAST")
-        return (node ?: EMPTY as TrieNode<K,V>) to value
+        return (node ?: EMPTY as TrieNode<K, V>) to value
     }
 
-    fun putAll(otherNode: TrieNode<K, V>, owner: MutabilityOwnership): TrieNode<K,V> {
+    fun putAll(otherNode: TrieNode<K, V>, owner: MutabilityOwnership): TrieNode<K, V> {
         return mutablePutAll(otherNode, 0, owner)
     }
 
-    fun putAll(map: Map<K,V>, owner: MutabilityOwnership): TrieNode<K,V> {
+    fun putAll(map: Map<K, V>, owner: MutabilityOwnership): TrieNode<K, V> {
         var result = this
         map.iterator().forEach { (k, v) -> result = result.put(k, v, owner) }
         return result
     }
 
-    fun toMutableMap() : MutableMap<in K,V> = mutableMapOf<K, V>().also {
+    fun toMutableMap(): MutableMap<in K, V> = mutableMapOf<K, V>().also {
         this.forEach {entry -> it[entry.key] = entry.value } }
 
     @Suppress("UNCHECKED_CAST")
-    fun clear() = EMPTY as TrieNode<K,V>
+    fun clear() = EMPTY as TrieNode<K, V>
 
     companion object {
         var modificationsCount: Int = 0
@@ -788,4 +795,4 @@ class TrieNode<K, V>(
     override fun iterator(): Iterator<Map.Entry<K, V>> = UPersistentHashMapEntriesIterator(this)
 }
 
-typealias UPersistentHashMap<K,V> = TrieNode<K,V>
+typealias UPersistentHashMap<K, V> = TrieNode<K, V>
