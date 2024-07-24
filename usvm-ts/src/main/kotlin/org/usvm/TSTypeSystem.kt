@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.jacodb.ets.base.EtsPrimitiveType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsFile
 import org.usvm.types.UTypeStream
@@ -10,8 +11,11 @@ class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
     val project: EtsFile,
 ) : UTypeSystem<EtsType> {
+
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
-        TODO("Not yet implemented")
+       if (supertype == type) return true
+
+        if (type is EtsPrimitiveType) return false
     }
 
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean {
