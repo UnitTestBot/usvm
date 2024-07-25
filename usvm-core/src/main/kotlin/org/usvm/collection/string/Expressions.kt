@@ -10,6 +10,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBv32Sort
+import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSortVisitor
 import org.usvm.UBoolExpr
@@ -401,7 +402,7 @@ class UIntFromStringExpr<USizeSort: USort> internal constructor(
     }
 }
 
-class UStringFromFloatExpr<UFloatSort: USort> internal constructor(
+class UStringFromFloatExpr<UFloatSort: KFpSort> internal constructor(
     val value: UExpr<UFloatSort>
 ) : UStringExpr(value.ctx) {
     override val sort: UStringSort = uctx.stringSort
@@ -422,7 +423,7 @@ class UStringFromFloatExpr<UFloatSort: USort> internal constructor(
     }
 }
 
-class UFloatFromStringExpr<UFloatSort: USort> internal constructor(
+class UFloatFromStringExpr<UFloatSort: KFpSort> internal constructor(
     override val sort: UFloatSort,
     val string: UStringExpr
 ) : UExpr<UFloatSort>(string.ctx) {

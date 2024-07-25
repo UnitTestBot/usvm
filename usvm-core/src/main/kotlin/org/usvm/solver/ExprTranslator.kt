@@ -3,6 +3,7 @@ package org.usvm.solver
 import io.ksmt.decl.KDecl
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KFpSort
 import io.ksmt.utils.mkConst
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
@@ -383,11 +384,11 @@ open class UExprTranslator<Type, USizeSort : USort>(
         TODO("Not yet implemented")
     }
 
-    override fun <UFloatSort : USort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
+    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
         TODO("Not yet implemented")
     }
 
-    override fun <UFloatSort : USort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
+    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
         TODO("Not yet implemented")
     }
 

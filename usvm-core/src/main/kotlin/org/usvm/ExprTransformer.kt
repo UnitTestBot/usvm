@@ -2,6 +2,7 @@ package org.usvm
 
 import io.ksmt.expr.transformer.KNonRecursiveTransformer
 import io.ksmt.expr.transformer.KTransformer
+import io.ksmt.sort.KFpSort
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
@@ -129,9 +130,9 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort>
 
-    fun <UFloatSort: USort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr
+    fun <UFloatSort: KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr
 
-    fun <UFloatSort: USort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort>
+    fun <UFloatSort: KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort>
 
     fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr
 

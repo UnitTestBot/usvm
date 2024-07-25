@@ -2,8 +2,6 @@ package org.usvm.collection.string
 
 import io.ksmt.expr.KFp32Value
 import io.ksmt.expr.KFp64Value
-import io.ksmt.sort.KFp32Sort
-import io.ksmt.sort.KFp64Sort
 import io.ksmt.sort.KFpSort
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
@@ -27,7 +25,6 @@ import org.usvm.collection.array.UAllocatedArray
 import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
 import org.usvm.getIntValue
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeAddExpr
