@@ -216,7 +216,7 @@ class TrieNode<E>(
     private fun mutableCollisionRemove(element: E, owner: MutabilityOwnership): TrieNode<E> {
         val index = buffer.indexOf(element)
         if (index != -1) {
-            mutableRemovesCount++;
+            mutableRemovesCount++
             return collisionRemoveElementAtIndex(index, owner)
         }
         return this

@@ -15,7 +15,7 @@ import org.usvm.machine.types.PythonType
 
 class PyPathConstraints(
     ctx: UContext<*>,
-    private var ownership: MutabilityOwnership,
+    override var ownership: MutabilityOwnership,
     logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     equalityConstraints: UEqualityConstraints = UEqualityConstraints(ctx, ownership),
     typeConstraints: UTypeConstraints<PythonType> = UTypeConstraints(

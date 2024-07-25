@@ -24,7 +24,7 @@ import org.usvm.uctx
  */
 open class UPathConstraints<Type>(
     protected val ctx: UContext<*>,
-    private var ownership: MutabilityOwnership,
+    protected open var ownership: MutabilityOwnership,
     protected val logicalConstraints: ULogicalConstraints = ULogicalConstraints.empty(),
     /**
      * Specially represented equalities and disequalities between objects, used in various part of constraints management.
@@ -52,7 +52,7 @@ open class UPathConstraints<Type>(
     /**
      * Recursively changes ownership for all nested data structures that use persistent maps.
      */
-    fun setOwnership(ownership: MutabilityOwnership) {
+    fun changeOwnership(ownership: MutabilityOwnership) {
         this.ownership = ownership
         numericConstraints.ownership = ownership
         equalityConstraints.ownership = ownership

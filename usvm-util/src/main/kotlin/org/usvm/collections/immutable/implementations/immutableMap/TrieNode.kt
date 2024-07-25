@@ -432,7 +432,7 @@ class TrieNode<K, V>(
         if (nodeMap == 0) return buffer.size / ENTRY_SIZE
         val numValues = dataMap.countOneBits()
         var result = numValues
-        for(i in (numValues * ENTRY_SIZE) until buffer.size) {
+        for (i in (numValues * ENTRY_SIZE) until buffer.size) {
             result += nodeAtIndex(i).calculateSize()
         }
         return result

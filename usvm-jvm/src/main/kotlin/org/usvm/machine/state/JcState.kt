@@ -42,8 +42,8 @@ class JcState(
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
         val clonedConstraints = newConstraints?.also {
-            this.pathConstraints.setOwnership(newThisOwnership)
-            it.setOwnership(cloneOwnership)
+            this.pathConstraints.changeOwnership(newThisOwnership)
+            it.changeOwnership(cloneOwnership)
         } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         this.ownership = newThisOwnership
         return JcState(

@@ -45,7 +45,7 @@ public fun <K, V> UPersistentHashMap<out K, V>.putAll(map: Map<out K, V>): UPers
  *
  * Entries of the map are iterated in the order they were specified.
  */
-// public fun <K, V> persistentMapOf(ownership: MutabilityOwnership, vararg pairs: Pair<K, V>): UPersistentHashMap<K, V> = 
+// public fun <K, V> persistentMapOf(ownership: MutabilityOwnership, vararg pairs: Pair<K, V>): UPersistentHashMap<K, V> =
 //    persistentMapBuilderOf(ownership, *pairs).build()
 
 /**
