@@ -52,7 +52,11 @@ class ForwardFlowFunction(
             EtsTypeFact.NumberEtsTypeFact,
             EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
-            -> facts += TypedVariable(ap, type)
+                EtsTypeFact.NullEtsTypeFact,
+                EtsTypeFact.UndefinedEtsTypeFact,
+            -> {
+                facts += TypedVariable(ap, type)
+            }
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 for ((propertyName, propertyType) in type.properties) {
@@ -185,7 +189,7 @@ class ForwardFlowFunction(
             return listOf(fact, TypedVariable(path, fact.type))
         }
 
-        // check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
+        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
 
         val accessor = lhv.accesses.single()
         if (fact.variable.base == lhv.base) {

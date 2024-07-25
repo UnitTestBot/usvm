@@ -14,7 +14,7 @@ private val logger = KotlinLogging.logger {}
 
 class EtsApplicationGraphWithExplicitEntryPoint(
     internal val graph: EtsApplicationGraph,
-): ApplicationGraph<EtsMethod, EtsStmt> {
+) : ApplicationGraph<EtsMethod, EtsStmt> {
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
 
@@ -33,12 +33,14 @@ class EtsApplicationGraphWithExplicitEntryPoint(
         val callExpr = node.callExpr
         if (callees.isEmpty() && callExpr != null) {
             if (callExpr.method.name == CONSTRUCTOR) {
-                val enclosingClass = graph.cp.classes.first {
+                val enclosingClass = graph.cp.classes.firstOrNull {
                     it.name == callExpr.method.enclosingClass.name
                 }
-                val ctor = enclosingClass.ctor
-                logger.info { "Constructor call at $node: $ctor" }
-                return sequenceOf(ctor)
+                if (enclosingClass != null) {
+                    val ctor = enclosingClass.ctor
+                    logger.info { "Constructor call at $node: $ctor" }
+                    return sequenceOf(ctor)
+                }
             }
             logger.info { "No methods found for: $node" }
         }

@@ -46,22 +46,15 @@ sealed interface EtsTypeFact {
 
         return when (this) {
             is UnknownEtsTypeFact -> other
+
             is AnyEtsTypeFact -> this
-            is StringEtsTypeFact -> when (other) {
-                is UnionEtsTypeFact -> intersect(other, this)
-                is IntersectionEtsTypeFact -> intersect(other, this)
-                is GuardedTypeFact -> intersect(other, this)
-                else -> null
-            }
 
-            is NumberEtsTypeFact -> when (other) {
-                is UnionEtsTypeFact -> intersect(other, this)
-                is IntersectionEtsTypeFact -> intersect(other, this)
-                is GuardedTypeFact -> intersect(other, this)
-                else -> null
-            }
-
-            is BooleanEtsTypeFact -> when (other) {
+            is StringEtsTypeFact,
+            is NumberEtsTypeFact,
+            is BooleanEtsTypeFact,
+            is NullEtsTypeFact,
+            is UndefinedEtsTypeFact,
+            -> when (other) {
                 is UnionEtsTypeFact -> intersect(other, this)
                 is IntersectionEtsTypeFact -> intersect(other, this)
                 is GuardedTypeFact -> intersect(other, this)
@@ -110,6 +103,22 @@ sealed interface EtsTypeFact {
     object BooleanEtsTypeFact : BasicType {
         override fun toString(): String = "boolean"
     }
+
+    object NullEtsTypeFact : BasicType {
+        override fun toString(): String = "null"
+    }
+
+    object UndefinedEtsTypeFact : BasicType {
+        override fun toString(): String = "undefined"
+    }
+
+    // object VoidEtsTypeFact : BasicType {
+    //     override fun toString(): String = "void"
+    // }
+    //
+    // object NeverEtsTypeFact : BasicType {
+    //     override fun toString(): String = "never"
+    // }
 
     object FunctionEtsTypeFact : BasicType {
         override fun toString(): String = "function"
@@ -275,8 +284,8 @@ sealed interface EtsTypeFact {
                 is EtsBooleanType -> BooleanEtsTypeFact
                 is EtsNumberType -> NumberEtsTypeFact
                 is EtsStringType -> StringEtsTypeFact
-                is EtsNullType -> TODO()
-                is EtsUndefinedType -> TODO()
+                is EtsNullType -> NullEtsTypeFact
+                is EtsUndefinedType -> UndefinedEtsTypeFact
                 is EtsVoidType -> TODO()
                 is EtsNeverType -> TODO()
                 is EtsLiteralType -> TODO()

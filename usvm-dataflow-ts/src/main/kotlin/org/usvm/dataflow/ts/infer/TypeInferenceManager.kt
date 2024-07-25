@@ -61,6 +61,18 @@ class TypeInferenceManager(
         runnerFinished.await()
         backwardJob.cancelAndJoin()
 
+        logger.info {
+            buildString {
+                appendLine("Backward summaries: ${backwardSummaries.size}")
+                for ((method, summaries) in backwardSummaries) {
+                    appendLine("- Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
+                    for (summary in summaries) {
+                        appendLine("  ${summary.initialFact} -> ${summary.exitFact}")
+                    }
+                }
+            }
+        }
+
         val methodTypeScheme = methodTypeScheme()
 
         logger.info {
@@ -94,6 +106,18 @@ class TypeInferenceManager(
         forwardJob.start()
         runnerFinished.await()
         forwardJob.cancelAndJoin()
+
+        logger.info {
+            buildString {
+                appendLine("Forward summaries: ${forwardSummaries.size}")
+                for ((method, summaries) in forwardSummaries) {
+                    appendLine("- Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
+                    for (summary in summaries) {
+                        appendLine("  ${summary.initialFact} -> ${summary.exitFact}")
+                    }
+                }
+            }
+        }
 
         val refinedTypes = refineMethodTypes(methodTypeScheme)
         logger.info {
@@ -197,11 +221,13 @@ class TypeInferenceManager(
     ): EtsTypeFact? {
         when (this) {
             EtsTypeFact.AnyEtsTypeFact,
+            EtsTypeFact.UnknownEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
             EtsTypeFact.NumberEtsTypeFact,
             EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
-            EtsTypeFact.UnknownEtsTypeFact,
+            EtsTypeFact.NullEtsTypeFact,
+            EtsTypeFact.UndefinedEtsTypeFact,
             -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ObjectEtsTypeFact -> {

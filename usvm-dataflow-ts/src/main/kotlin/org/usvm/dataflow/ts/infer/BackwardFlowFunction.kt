@@ -256,7 +256,9 @@ class BackwardFlowFunction(
             return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
         }
 
-        // check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
+        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty()) {
+            "Unexpected non-three address code: $current"
+        }
         val lhvAccessor = lhv.accesses.single()
 
         if (lhvAccessor !is FieldAccessor) {
