@@ -1,5 +1,6 @@
 package org.usvm
 
+import kotlin.time.Duration.Companion.seconds
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
@@ -17,7 +18,6 @@ import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
-import kotlin.time.Duration.Companion.seconds
 
 class TSMachine(
     private val project: EtsFile,

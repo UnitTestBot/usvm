@@ -1,13 +1,24 @@
 package org.usvm
 
+import kotlin.time.Duration
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
-import org.jacodb.ets.base.*
+import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsNumberType
+import org.jacodb.ets.base.EtsPrimitiveType
+import org.jacodb.ets.base.EtsStringType
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFile
-import org.usvm.types.*
+import org.usvm.types.TypesResult
 import org.usvm.types.TypesResult.Companion.toTypesResult
-import kotlin.time.Duration
+import org.usvm.types.USingleTypeStream
+import org.usvm.types.UTypeStream
+import org.usvm.types.UTypeSystem
+import org.usvm.types.emptyTypeStream
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
