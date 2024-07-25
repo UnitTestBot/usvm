@@ -28,7 +28,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.mem
         "memcpy is not applicable to $region"
     }
 
-    val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard)
+    val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard, ownership)
     setRegion(regionId, newRegion)
 }
 

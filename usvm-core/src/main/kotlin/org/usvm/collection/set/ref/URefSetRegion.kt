@@ -77,6 +77,7 @@ interface URefSetRegion<SetType> :
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): URefSetRegion<SetType>
 }
 
@@ -245,6 +246,7 @@ internal class URefSetMemoryRegion<SetType>(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -259,7 +261,7 @@ internal class URefSetMemoryRegion<SetType>(
                 read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
                 mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
                 write = { result, dstKeyId, value, g ->
-                    result.guardedWrite(dstKeyId, value, g, defaultOwnership) { sort.uctx.falseExpr }
+                    result.guardedWrite(dstKeyId, value, g, ownership) { sort.uctx.falseExpr }
                 }
             )
             val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
@@ -272,7 +274,7 @@ internal class URefSetMemoryRegion<SetType>(
 
             val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter(srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, defaultOwnership)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, ownership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
@@ -282,8 +284,8 @@ internal class URefSetMemoryRegion<SetType>(
                 mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
                 write = { result, dstKeyId, value, g ->
                     val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                        .write(dstSymbolic, value, g, defaultOwnership)
-                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, defaultOwnership)
+                        .write(dstSymbolic, value, g, ownership)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, ownership)
                 }
             )
 
@@ -303,7 +305,7 @@ internal class URefSetMemoryRegion<SetType>(
                 read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
                 mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
                 write = { result, dstKeyId, value, g ->
-                    result.guardedWrite(dstKeyId, value, g, defaultOwnership) { sort.uctx.falseExpr }
+                    result.guardedWrite(dstKeyId, value, g, ownership) { sort.uctx.falseExpr }
                 }
             )
             val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
@@ -315,7 +317,7 @@ internal class URefSetMemoryRegion<SetType>(
 
             val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter(srcSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, defaultOwnership)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, ownership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val updatedRegion = region.unionInputSetAllocatedElements(
@@ -324,8 +326,8 @@ internal class URefSetMemoryRegion<SetType>(
                 mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
                 write = { result, dstKeyId, value, g ->
                     val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                        .write(dstSymbolic, value, g, defaultOwnership)
-                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, defaultOwnership)
+                        .write(dstSymbolic, value, g, ownership)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, ownership)
                 }
             )
             val srcCollection = updatedRegion.inputSetWithInputElements()

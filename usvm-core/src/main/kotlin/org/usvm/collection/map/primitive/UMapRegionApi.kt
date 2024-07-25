@@ -32,6 +32,6 @@ internal fun <MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>> UW
         "mapMerge is not applicable to set $region"
     }
 
-    val newRegion = region.merge(srcRef, dstRef, mapType, keySetRegion, guard)
+    val newRegion = region.merge(srcRef, dstRef, mapType, keySetRegion, guard, ownership)
     setRegion(regionId, newRegion)
 }

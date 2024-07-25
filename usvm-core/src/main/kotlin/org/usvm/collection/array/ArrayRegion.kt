@@ -52,6 +52,7 @@ interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegi
         fromDstIdx: UExpr<USizeSort>,
         toDstIdx: UExpr<USizeSort>,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): UArrayRegion<ArrayType, Sort, USizeSort>
 
     fun initializeAllocatedArray(
@@ -134,6 +135,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         fromDstIdx: UExpr<USizeSort>,
         toDstIdx: UExpr<USizeSort>,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -146,7 +148,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
                 fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedArray(dstConcrete.address, newDstCollection, srcRef.uctx.defaultOwnership)
+            region.updateAllocatedArray(dstConcrete.address, newDstCollection, ownership)
         },
 
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
@@ -171,7 +173,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
                 USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedArray(dstConcrete.address, newDstCollection, srcRef.uctx.defaultOwnership)
+            region.updateAllocatedArray(dstConcrete.address, newDstCollection, ownership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputArray(type, elementSort)

@@ -78,6 +78,7 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
@@ -154,6 +155,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -168,7 +170,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
 
             val adapter = UAllocatedToAllocatedSymbolicSetUnionAdapter(srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedSet(dstId, updated, defaultOwnership)
+            region.updateAllocatedSet(dstId, updated, ownership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcId = UAllocatedSetId(srcConcrete.address, elementSort, setType, elementInfo)
@@ -188,7 +190,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
 
             val adapter = UInputToAllocatedSymbolicSetUnionAdapter(srcSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedSet(dstId, updated, defaultOwnership)
+            region.updateAllocatedSet(dstId, updated, ownership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.inputSetElements()

@@ -60,6 +60,7 @@ interface UMapRegion<MapType, KeySort : USort, ValueSort : USort, Reg : Region<R
         mapType: MapType,
         srcKeySet: USetRegion<MapType, KeySort, *>,
         initialGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): UMapRegion<MapType, KeySort, ValueSort, Reg>
 }
 
@@ -155,6 +156,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
         mapType: MapType,
         srcKeySet: USetRegion<MapType, KeySort, *>,
         initialGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -170,7 +172,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
             val adapter = UAllocatedToAllocatedSymbolicMapMergeAdapter(srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedMap(dstId, newDstCollection, defaultOwnership)
+            region.updateAllocatedMap(dstId, newDstCollection, ownership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, srcConcrete.address)
@@ -191,7 +193,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
             val adapter = UInputToAllocatedSymbolicMapMergeAdapter(srcSymbolic, srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
-            region.updateAllocatedMap(dstId, newDstCollection, defaultOwnership)
+            region.updateAllocatedMap(dstId, newDstCollection, ownership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputMap()
