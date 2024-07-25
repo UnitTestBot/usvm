@@ -1,37 +1,29 @@
 package org.usvm.dataflow.ts.test
 
-import org.usvm.dataflow.ts.infer.EtsTypeFact
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethodImpl
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
+import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 
 class EtsTypeInferenceTest {
 
     companion object {
-        private fun loadArkFile(path: String): EtsFile {
-            val stream = object {}::class.java.getResourceAsStream("/$path")
-                ?: error("Resource not found: $path")
-            val arkDto = EtsFileDto.loadFromJson(stream)
-            // println("arkDto = $arkDto")
-            val ark = convertToEtsFile(arkDto)
-            // println("ark = $ark")
-            return ark
+        private fun load(path: String): EtsFile {
+            return loadEtsFileFromResource("/$path")
         }
     }
 
     @Test
     fun `test type inference on microphone`() {
         val name = "microphone"
-        val arkFile = loadArkFile("ir/$name.ts.json")
+        val arkFile = load("ir/$name.ts.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
@@ -52,7 +44,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on types`() {
         val name = "types"
-        val arkFile = loadArkFile("ir/$name.ts.json")
+        val arkFile = load("ir/$name.ts.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
@@ -71,9 +63,9 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on cast`() {
-        val name = "cast"
-        val arkFile = loadArkFile("ir/$name.ts.json")
+    fun `test type inference on data`() {
+        val name = "data"
+        val arkFile = load("ir/$name.ts.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
@@ -94,7 +86,7 @@ class EtsTypeInferenceTest {
     // @Disabled
     @Test
     fun `test type inference on applications_settings_data SettingsDBHelper`() {
-        val arkFile = loadArkFile("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
+        val arkFile = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
@@ -165,7 +157,7 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `test type inference on applications_settings_data GlobalContext`() {
-        val arkFile = loadArkFile("ir/applications_settings_data/Utils/GlobalContext.ets.json")
+        val arkFile = load("ir/applications_settings_data/Utils/GlobalContext.ets.json")
         val graph = EtsApplicationGraph(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 

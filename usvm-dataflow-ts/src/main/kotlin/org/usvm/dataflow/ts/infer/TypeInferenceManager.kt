@@ -199,6 +199,7 @@ class TypeInferenceManager(
             EtsTypeFact.AnyEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
             EtsTypeFact.NumberEtsTypeFact,
+            EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.UnknownEtsTypeFact,
             -> return if (property.isNotEmpty()) this else intersect(type)

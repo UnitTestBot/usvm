@@ -1,5 +1,5 @@
 {
-  "name": "cast.ts",
+  "name": "data.ts",
   "namespaces": [],
   "classes": [
     {
@@ -100,12 +100,6 @@
                 }
               },
               {
-                "name": "process",
-                "type": {
-                  "_": "UnknownType"
-                }
-              },
-              {
                 "name": "$temp0",
                 "type": {
                   "_": "ClassType",
@@ -115,10 +109,9 @@
                 }
               },
               {
-                "name": "$temp1",
+                "name": "process",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Data"
+                  "_": "UnknownType"
                 }
               }
             ],
@@ -149,36 +142,6 @@
                             "name": "_DEFAULT_ARK_CLASS"
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "StaticCallExpr",
-                        "method": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "process",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": [
-                          {
-                            "_": "ObjectLiteralExpr",
-                            "anonymousClass": {
-                              "name": "AnonymousClass-entrypoint-0"
-                            },
-                            "type": {
-                              "_": "ClassType",
-                              "signature": {
-                                "name": "AnonymousClass-entrypoint-0"
-                              }
-                            }
-                          }
-                        ]
                       }
                     },
                     {
@@ -268,62 +231,6 @@
                               "signature": {
                                 "name": "Data"
                               }
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "$temp1",
-                        "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Data"
-                        }
-                      },
-                      "right": {
-                        "_": "CastExpr",
-                        "arg": {
-                          "_": "ObjectLiteralExpr",
-                          "anonymousClass": {
-                            "name": "AnonymousClass-entrypoint-1"
-                          },
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "AnonymousClass-entrypoint-1"
-                            }
-                          }
-                        },
-                        "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Data"
-                        }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "StaticCallExpr",
-                        "method": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "process",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": [
-                          {
-                            "_": "Local",
-                            "name": "$temp1",
-                            "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "Data"
                             }
                           }
                         ]
@@ -480,7 +387,40 @@
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
-      "fields": [],
+      "fields": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "Data"
+            },
+            "name": "a",
+            "type": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false,
+          "initializer": null
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "Data"
+            },
+            "name": "b",
+            "type": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false,
+          "initializer": null
+        }
+      ],
       "methods": [
         {
           "signature": {
@@ -598,6 +538,70 @@
                       }
                     },
                     {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Data"
+                            }
+                          }
+                        },
+                        "field": {
+                          "enclosingClass": {
+                            "name": ""
+                          },
+                          "name": "a",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Data"
+                            }
+                          }
+                        },
+                        "field": {
+                          "enclosingClass": {
+                            "name": ""
+                          },
+                          "name": "b",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "b",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
                       "_": "ReturnVoidStmt"
                     }
                   ]
@@ -607,129 +611,6 @@
           }
         }
       ]
-    },
-    {
-      "signature": {
-        "name": "AnonymousClass-entrypoint-0"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "AnonymousClass-entrypoint-0"
-            },
-            "name": "a",
-            "type": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "Constant",
-            "value": "1",
-            "type": {
-              "_": "NumberType"
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "AnonymousClass-entrypoint-0"
-            },
-            "name": "b",
-            "type": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "Constant",
-            "value": "2",
-            "type": {
-              "_": "NumberType"
-            }
-          }
-        }
-      ],
-      "methods": []
-    },
-    {
-      "signature": {
-        "name": "AnonymousClass-entrypoint-1"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "AnonymousClass-entrypoint-1"
-            },
-            "name": "a",
-            "type": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "Constant",
-            "value": "4",
-            "type": {
-              "_": "NumberType"
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "AnonymousClass-entrypoint-1"
-            },
-            "name": "b",
-            "type": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "BinopExpr",
-            "op": "+",
-            "left": {
-              "_": "Constant",
-              "value": "2",
-              "type": {
-                "_": "NumberType"
-              }
-            },
-            "right": {
-              "_": "Constant",
-              "value": "3",
-              "type": {
-                "_": "NumberType"
-              }
-            }
-          }
-        }
-      ],
-      "methods": []
     }
   ],
   "importInfos": [],

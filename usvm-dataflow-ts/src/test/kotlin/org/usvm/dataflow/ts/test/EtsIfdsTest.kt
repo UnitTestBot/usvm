@@ -16,8 +16,6 @@
 
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
@@ -37,6 +35,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.taint.TaintManager
 import org.usvm.dataflow.ts.ifds.SingletonUnitResolver
+import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.time.Duration.Companion.seconds
 
@@ -45,19 +44,15 @@ private val logger = mu.KotlinLogging.logger {}
 class EtsIfdsTest {
 
     companion object {
-        private fun loadEtsFile(name: String): EtsFile {
-            val path = "ir/$name.json"
-            val stream = object {}::class.java.getResourceAsStream("/$path")
-                ?: error("Resource not found: $path")
-            val etsFileDto = EtsFileDto.loadFromJson(stream)
-            val etsFile = convertToEtsFile(etsFileDto)
-            return etsFile
+        private fun load(name: String): EtsFile {
+            val path = "/ir/$name.json"
+            return loadEtsFileFromResource(path)
         }
     }
 
     @Test
     fun `test taint analysis`() {
-        val etsFile = loadEtsFile("taint")
+        val etsFile = load("taint")
         val graph = EtsApplicationGraph(etsFile)
         val unitResolver = SingletonUnitResolver
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =

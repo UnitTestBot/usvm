@@ -3,9 +3,12 @@ package org.usvm.dataflow.ts.infer
 import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsBooleanConstant
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
 import org.jacodb.ets.base.EtsNewExpr
+import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
@@ -25,6 +28,7 @@ class ForwardFlowFunction(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
+
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
@@ -41,12 +45,14 @@ class ForwardFlowFunction(
 
     private fun addTypes(ap: AccessPath, type: EtsTypeFact, facts: MutableList<ForwardTypeDomainFact>) {
         when (type) {
-            EtsTypeFact.UnknownEtsTypeFact -> facts.add(TypedVariable(ap, EtsTypeFact.AnyEtsTypeFact))
+            EtsTypeFact.UnknownEtsTypeFact -> facts += TypedVariable(ap, EtsTypeFact.AnyEtsTypeFact)
+
             EtsTypeFact.AnyEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
             EtsTypeFact.NumberEtsTypeFact,
+            EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
-            -> facts.add(TypedVariable(ap, type))
+            -> facts += TypedVariable(ap, type)
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 for ((propertyName, propertyType) in type.properties) {
@@ -55,7 +61,7 @@ class ForwardFlowFunction(
                 }
 
                 val objType = EtsTypeFact.ObjectEtsTypeFact(type.cls, properties = emptyMap())
-                facts.add(TypedVariable(ap, objType))
+                facts += TypedVariable(ap, objType)
             }
 
             is EtsTypeFact.GuardedTypeFact -> {
@@ -94,12 +100,37 @@ class ForwardFlowFunction(
 
         when (rhv) {
             is EtsNewExpr -> {
-                val type = EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
-                result.add(TypedVariable(lhv, type))
+                val newType = rhv.type
+                val type = if (newType is EtsClassType) {
+                    val cls = (graph as EtsApplicationGraphWithExplicitEntryPoint).graph.cp.classes
+                        .firstOrNull { it.name == newType.typeName }
+                    if (cls != null) {
+                        EtsTypeFact.ObjectEtsTypeFact(
+                            cls = rhv.type,
+                            properties = cls.fields.associate {
+                                // it.name to EtsTypeFact.UnknownEtsTypeFact
+                                it.name to EtsTypeFact.from(it.type)
+                            }
+                        )
+                    } else {
+                        EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
+                    }
+                } else {
+                    EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
+                }
+                result += TypedVariable(lhv, type)
             }
 
             is EtsStringConstant -> {
-                result.add(TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact))
+                result += TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact)
+            }
+
+            is EtsNumberConstant -> {
+                result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
+            }
+
+            is EtsBooleanConstant -> {
+                result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
 
             else -> {

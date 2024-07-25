@@ -1,8 +1,26 @@
 package org.usvm.dataflow.ts.infer
 
+import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayObjectType
+import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsCallableType
+import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsLiteralType
+import org.jacodb.ets.base.EtsNeverType
+import org.jacodb.ets.base.EtsNullType
+import org.jacodb.ets.base.EtsNumberType
+import org.jacodb.ets.base.EtsStringType
+import org.jacodb.ets.base.EtsTupleType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnclearRefType
+import org.jacodb.ets.base.EtsUndefinedType
+import org.jacodb.ets.base.EtsUnionType
+import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.base.EtsVoidType
 
 sealed interface EtsTypeFact {
+
     sealed interface BasicType : EtsTypeFact
 
     fun union(other: EtsTypeFact): EtsTypeFact {
@@ -37,6 +55,13 @@ sealed interface EtsTypeFact {
             }
 
             is NumberEtsTypeFact -> when (other) {
+                is UnionEtsTypeFact -> intersect(other, this)
+                is IntersectionEtsTypeFact -> intersect(other, this)
+                is GuardedTypeFact -> intersect(other, this)
+                else -> null
+            }
+
+            is BooleanEtsTypeFact -> when (other) {
                 is UnionEtsTypeFact -> intersect(other, this)
                 is IntersectionEtsTypeFact -> intersect(other, this)
                 is GuardedTypeFact -> intersect(other, this)
@@ -80,6 +105,10 @@ sealed interface EtsTypeFact {
 
     object NumberEtsTypeFact : BasicType {
         override fun toString(): String = "number"
+    }
+
+    object BooleanEtsTypeFact : BasicType {
+        override fun toString(): String = "boolean"
     }
 
     object FunctionEtsTypeFact : BasicType {
@@ -235,6 +264,42 @@ sealed interface EtsTypeFact {
         fun mkIntersectionType(types: Set<EtsTypeFact>): EtsTypeFact {
             if (types.size == 1) return types.single()
             return IntersectionEtsTypeFact(types)
+        }
+
+        fun from(type: EtsType): EtsTypeFact {
+            return when (type) {
+                is EtsAnyType -> AnyEtsTypeFact
+                is EtsUnknownType -> UnknownEtsTypeFact
+                is EtsUnionType -> UnionEtsTypeFact(type.types.map { from(it) }.toSet())
+                is EtsTupleType -> TODO()
+                is EtsBooleanType -> BooleanEtsTypeFact
+                is EtsNumberType -> NumberEtsTypeFact
+                is EtsStringType -> StringEtsTypeFact
+                is EtsNullType -> TODO()
+                is EtsUndefinedType -> TODO()
+                is EtsVoidType -> TODO()
+                is EtsNeverType -> TODO()
+                is EtsLiteralType -> TODO()
+                is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
+                is EtsCallableType -> FunctionEtsTypeFact
+                is EtsArrayType -> ObjectEtsTypeFact(
+                    cls = type,
+                    properties = mapOf(
+                        "index" to ObjectEtsTypeFact(
+                            cls = null,
+                            properties = mapOf(
+                                "value" to from(type.elementType),
+                                "name" to StringEtsTypeFact
+                            )
+                        ),
+                        "length" to NumberEtsTypeFact
+                    )
+                )
+
+                is EtsArrayObjectType -> TODO()
+                is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
+                else -> TODO()
+            }
         }
     }
 }

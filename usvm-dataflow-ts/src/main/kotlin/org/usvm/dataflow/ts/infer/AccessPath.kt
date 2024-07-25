@@ -17,7 +17,6 @@ import org.usvm.dataflow.ifds.FieldAccessor
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)
     operator fun plus(accessors: List<Accessor>) = AccessPath(base, accesses + accessors)
-
 }
 
 sealed interface AccessPathBase {

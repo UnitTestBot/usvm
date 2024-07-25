@@ -977,7 +977,39 @@
           }
         }
       ],
-      "methods": []
+      "methods": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualMicro"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "signature": {
@@ -1016,7 +1048,39 @@
           }
         }
       ],
-      "methods": []
+      "methods": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualDevices"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "importInfos": [],

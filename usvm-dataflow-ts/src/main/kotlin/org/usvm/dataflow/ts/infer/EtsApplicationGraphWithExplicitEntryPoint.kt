@@ -13,7 +13,7 @@ import org.usvm.dataflow.ts.util.CONSTRUCTOR
 private val logger = KotlinLogging.logger {}
 
 class EtsApplicationGraphWithExplicitEntryPoint(
-    private val graph: EtsApplicationGraph,
+    internal val graph: EtsApplicationGraph,
 ): ApplicationGraph<EtsMethod, EtsStmt> {
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
