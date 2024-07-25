@@ -6,16 +6,16 @@ import org.usvm.util.MethodDescriptor
 import org.usvm.util.TSMethodTestRunner
 import kotlin.test.Test
 
-class MinValue : TSMethodTestRunner() {
+class Arguments : TSMethodTestRunner() {
     @Test
     @Disabled
     fun testMinValue() {
-        discoverProperties<TSObject.Array, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSNumber>(
             methodIdentifier = MethodDescriptor(
-                fileName = "MinValue.ts",
-                className = globalClassName,
-                methodName = "findMinValue",
-                argumentsNumber = 1
+                fileName = "Arguments.ts",
+                className = "SimpleClass",
+                methodName = "noArguments",
+                argumentsNumber = 0
             )
         )
     }
