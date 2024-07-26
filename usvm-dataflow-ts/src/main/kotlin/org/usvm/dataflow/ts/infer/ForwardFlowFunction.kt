@@ -40,7 +40,7 @@ class ForwardFlowFunction(
             }
         }
 
-        return result
+        return result.map { it.fixThis() }
     }
 
     private fun addTypes(ap: AccessPath, type: EtsTypeFact, facts: MutableList<ForwardTypeDomainFact>) {
@@ -89,7 +89,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> zeroSequent(current)
             is TypedVariable -> factSequent(current, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun zeroSequent(current: EtsStmt): List<ForwardTypeDomainFact> {
@@ -100,17 +100,17 @@ class ForwardFlowFunction(
 
         when (val rhv = current.rhv) {
             is EtsNewExpr -> {
-                val newType = rhv.type
-                if (newType is EtsClassType) {
-                    val cls = graph.cp.classes
-                        .firstOrNull { it.name == newType.typeName }
-                    if (cls != null) {
-                        for (f in cls.fields) {
-                            val path = lhv + FieldAccessor(f.name)
-                            result += TypedVariable(path, EtsTypeFact.from(f.type))
-                        }
-                    }
-                }
+                // val newType = rhv.type
+                // if (newType is EtsClassType) {
+                //     val cls = graph.cp.classes
+                //         .firstOrNull { it.name == newType.typeName }
+                //     if (cls != null) {
+                //         for (f in cls.fields) {
+                //             val path = lhv + FieldAccessor(f.name)
+                //             result += TypedVariable(path, EtsTypeFact.from(f.type))
+                //         }
+                //     }
+                // }
 
                 val type = EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
                 result += TypedVariable(lhv, type)
@@ -213,7 +213,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> callToReturn(callStatement, returnSite, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun callToReturn(
@@ -253,7 +253,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> callToStart(callStatement, calleeStart, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun callToStart(
@@ -292,7 +292,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun exitToReturn(

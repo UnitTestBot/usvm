@@ -271,7 +271,16 @@ class TypeInferenceManager(
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor
                 if (propertyAccessor == null) {
-                    // TODO: handle union by exploding it into multiple ObjectFacts with class names from union
+                    // TODO: handle 'type=union' by exploding it into multiple ObjectFacts (later combined with union) with class names from union.
+                    // if (type is EtsTypeFact.UnionEtsTypeFact) {
+                    //     return EtsTypeFact.mkUnionType(
+                    //         type.types.mapTo(hashSetOf()) {
+                    //             // Note: properties of type from union (`it`) are lost here.
+                    //             EtsTypeFact.ObjectEtsTypeFact((it as EtsTypeFact.ObjectEtsTypeFact).cls!!, properties)
+                    //         }
+                    //     )
+                    // }
+
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
                         TODO("Unexpected: $this & $type")
                     }

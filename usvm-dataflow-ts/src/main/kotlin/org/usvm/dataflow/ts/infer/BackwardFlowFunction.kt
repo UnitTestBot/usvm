@@ -42,7 +42,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentFact(current, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun TypedVariable.withTypeGuards(current: EtsStmt): TypedVariable {
@@ -294,7 +294,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> callToReturn(callStatement, returnSite, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun callToReturn(
@@ -336,7 +336,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> callToStart(callStatement, calleeStart, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun callToStart(
@@ -364,7 +364,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
-        }
+        }.map { it.fixThis() }
     }
 
     private fun exitToReturn(
