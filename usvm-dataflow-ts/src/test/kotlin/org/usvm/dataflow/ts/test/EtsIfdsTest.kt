@@ -16,7 +16,7 @@
 
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.taint.configuration.Argument
@@ -53,7 +53,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis`() {
         val etsFile = load("taint")
-        val graph = EtsApplicationGraph(etsFile)
+        val graph = EtsApplicationGraphImpl(etsFile)
         val unitResolver = SingletonUnitResolver
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
             { method ->

@@ -1,6 +1,6 @@
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethodImpl
 import org.junit.jupiter.api.Assertions
@@ -22,9 +22,9 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `test type inference on microphone`() {
-        val name = "microphone"
+        val name = "microphone_ctor"
         val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraph(arkFile)
+        val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes
@@ -38,14 +38,40 @@ class EtsTypeInferenceTest {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
         }
-        manager.analyze(entrypoints)
+        val types = manager.analyze(entrypoints)
+
+        run {
+            val m = types.keys.first { it.name == "getMicrophoneUuid" }
+
+            // arg0 = 'devices'
+            val devices = types[m]!!.types[AccessPathBase.Arg(0)]!!
+            Assertions.assertTrue(devices is EtsTypeFact.ObjectEtsTypeFact)
+            check(devices is EtsTypeFact.ObjectEtsTypeFact)
+
+            val devicesCls = devices.cls
+            Assertions.assertTrue(devicesCls?.typeName == "VirtualDevices")
+
+            val devicesProps = devices.properties
+            Assertions.assertTrue("microphone" in devicesProps)
+
+            val microphone = devicesProps["microphone"]!!
+            Assertions.assertTrue(microphone is EtsTypeFact.ObjectEtsTypeFact)
+            check(microphone is EtsTypeFact.ObjectEtsTypeFact)
+
+            val microphoneProps = microphone.properties
+            Assertions.assertTrue("uuid" in microphoneProps)
+
+            val uuid = microphoneProps["uuid"]!!
+            Assertions.assertTrue(uuid is EtsTypeFact.StringEtsTypeFact)
+            check(uuid is EtsTypeFact.StringEtsTypeFact)
+        }
     }
 
     @Test
     fun `test type inference on types`() {
         val name = "types"
         val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraph(arkFile)
+        val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes
@@ -66,7 +92,7 @@ class EtsTypeInferenceTest {
     fun `test type inference on data`() {
         val name = "data"
         val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraph(arkFile)
+        val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes
@@ -87,7 +113,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on applications_settings_data SettingsDBHelper`() {
         val arkFile = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
-        val graph = EtsApplicationGraph(arkFile)
+        val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes
@@ -153,12 +179,14 @@ class EtsTypeInferenceTest {
             println("  ${clazz.fields.size} fields: ${clazz.fields.map { it.name }}")
             println("  ${clazz.methods.size} methods: ${clazz.methods.map { it.name }}")
         }
+
+        // val allMethods =
     }
 
     @Test
     fun `test type inference on applications_settings_data GlobalContext`() {
         val arkFile = load("ir/applications_settings_data/Utils/GlobalContext.ets.json")
-        val graph = EtsApplicationGraph(arkFile)
+        val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
         val entrypoints = arkFile.classes

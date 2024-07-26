@@ -3,7 +3,11 @@ interface Microphone {
 }
 
 class VirtualMicro implements Microphone {
-    uuid: string = "virtual_micro_v3"
+    uuid: string;
+
+    constructor() {
+        this.uuid = "virtual_micro_v3"
+    }
 }
 
 interface Devices {
@@ -11,11 +15,15 @@ interface Devices {
 }
 
 class VirtualDevices implements Devices {
-    microphone: Microphone = new VirtualMicro()
+    microphone: Microphone;
+
+    constructor() {
+        this.microphone = new VirtualMicro();
+    }
 }
 
-function getMicrophoneUuid(device: Devices): string {
-    return device.microphone.uuid
+function getMicrophoneUuid(devices: Devices): string {
+    return devices.microphone.uuid;
 }
 
 function entrypoint() {

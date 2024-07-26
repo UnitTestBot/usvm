@@ -1,14 +1,14 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex
 
 class ForwardAnalyzer(
-    val graph: ApplicationGraph<EtsMethod, EtsStmt>,
+    val graph: EtsApplicationGraph,
     methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
 ) : Analyzer<ForwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 

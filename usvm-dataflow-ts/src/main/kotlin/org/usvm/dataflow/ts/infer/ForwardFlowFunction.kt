@@ -1,7 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsClassType
@@ -13,6 +12,7 @@ import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ifds.ElementAccessor
@@ -25,7 +25,7 @@ import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
 private val logger = KotlinLogging.logger {}
 
 class ForwardFlowFunction(
-    val graph: ApplicationGraph<EtsMethod, EtsStmt>,
+    val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
@@ -60,7 +60,7 @@ class ForwardFlowFunction(
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 for ((propertyName, propertyType) in type.properties) {
-                    val propertyAp = ap.plus(FieldAccessor(propertyName))
+                    val propertyAp = ap + FieldAccessor(propertyName)
                     addTypes(propertyAp, propertyType, facts)
                 }
 
@@ -95,33 +95,24 @@ class ForwardFlowFunction(
     private fun zeroSequent(current: EtsStmt): List<ForwardTypeDomainFact> {
         if (current !is EtsAssignStmt) return listOf(Zero)
 
+        val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        val rhv = current.rhv
-        if (rhv is EtsLValue || rhv is EtsRef) return result
-
-        val lhv = current.lhv.toPath()
-
-        when (rhv) {
+        when (val rhv = current.rhv) {
             is EtsNewExpr -> {
                 val newType = rhv.type
-                val type = if (newType is EtsClassType) {
-                    val cls = (graph as EtsApplicationGraphWithExplicitEntryPoint).graph.cp.classes
+                if (newType is EtsClassType) {
+                    val cls = graph.cp.classes
                         .firstOrNull { it.name == newType.typeName }
                     if (cls != null) {
-                        EtsTypeFact.ObjectEtsTypeFact(
-                            cls = rhv.type,
-                            properties = cls.fields.associate {
-                                // it.name to EtsTypeFact.UnknownEtsTypeFact
-                                it.name to EtsTypeFact.from(it.type)
-                            }
-                        )
-                    } else {
-                        EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
+                        for (f in cls.fields) {
+                            val path = lhv + FieldAccessor(f.name)
+                            result += TypedVariable(path, EtsTypeFact.from(f.type))
+                        }
                     }
-                } else {
-                    EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
                 }
+
+                val type = EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
                 result += TypedVariable(lhv, type)
             }
 
@@ -136,6 +127,11 @@ class ForwardFlowFunction(
             is EtsBooleanConstant -> {
                 result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
+
+            // Note: do not handle cast in forward ff!
+            // is EtsCastExpr -> {
+            //     result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
+            // }
 
             else -> {
                 logger.info { "TODO: forward assign $current" }
@@ -206,7 +202,7 @@ class ForwardFlowFunction(
         }
 
         check(fact.variable.base == rhv.base)
-        val path = lhv.plus(fact.variable.accesses)
+        val path = lhv + fact.variable.accesses
         return listOf(fact, TypedVariable(path, fact.type))
     }
 

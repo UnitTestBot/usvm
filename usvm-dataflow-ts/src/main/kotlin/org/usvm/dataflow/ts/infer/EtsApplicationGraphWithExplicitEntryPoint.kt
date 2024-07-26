@@ -6,6 +6,8 @@ import org.jacodb.ets.base.EtsInstLocation
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsApplicationGraph
+import org.jacodb.ets.graph.EtsApplicationGraphImpl
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
@@ -13,8 +15,11 @@ import org.usvm.dataflow.ts.util.CONSTRUCTOR
 private val logger = KotlinLogging.logger {}
 
 class EtsApplicationGraphWithExplicitEntryPoint(
-    internal val graph: EtsApplicationGraph,
-) : ApplicationGraph<EtsMethod, EtsStmt> {
+    private val graph: EtsApplicationGraph,
+) : EtsApplicationGraph {
+
+    override val cp: EtsFile
+        get() = graph.cp
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
 

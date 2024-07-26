@@ -5,6 +5,7 @@ import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.BinaryOp
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryOperation
+import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInstanceCallExpr
@@ -233,6 +234,7 @@ class BackwardFlowFunction(
         val rhv = when (val r = current.rhv) {
             is EtsRef -> r.toPath()
             is EtsLValue -> r.toPath()
+            is EtsCastExpr -> r.toPath()
             else -> {
                 logger.info { "TODO backward assign: $current" }
                 return listOf(fact)

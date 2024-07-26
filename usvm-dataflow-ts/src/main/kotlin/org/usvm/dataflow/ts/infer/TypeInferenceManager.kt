@@ -7,8 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.findDominators
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 context(EtsTraits)
 class TypeInferenceManager(
-    val graph: ApplicationGraph<EtsMethod, EtsStmt>,
+    val graph: EtsApplicationGraph,
 ) : Manager<Nothing, AnalyzerEvent, EtsMethod, EtsStmt> {
     private lateinit var runnerFinished: CompletableDeferred<Unit>
 
@@ -63,11 +63,11 @@ class TypeInferenceManager(
 
         logger.info {
             buildString {
-                appendLine("Backward summaries: ${backwardSummaries.size}")
+                appendLine("Backward summaries: (${backwardSummaries.size})")
                 for ((method, summaries) in backwardSummaries) {
-                    appendLine("- Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
+                    appendLine("=== Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
                     for (summary in summaries) {
-                        appendLine("  ${summary.initialFact} -> ${summary.exitFact}")
+                        appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
                     }
                 }
             }
@@ -109,11 +109,11 @@ class TypeInferenceManager(
 
         logger.info {
             buildString {
-                appendLine("Forward summaries: ${forwardSummaries.size}")
+                appendLine("Forward summaries: (${forwardSummaries.size})")
                 for ((method, summaries) in forwardSummaries) {
-                    appendLine("- Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
+                    appendLine("=== Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
                     for (summary in summaries) {
-                        appendLine("  ${summary.initialFact} -> ${summary.exitFact}")
+                        appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
                     }
                 }
             }
@@ -132,6 +132,41 @@ class TypeInferenceManager(
             }
         }
 
+        val allClasses = methodTypeScheme.keys
+            .map { it.enclosingClass }
+            .distinct()
+            .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.name == sig.name }!! }
+        val combinedThis = allClasses.associateWith { cls ->
+            val combinedBackwardType = methodTypeScheme.keys
+                .filter { it in cls.methods }
+                .mapNotNull { methodTypeScheme[it]!!.types[AccessPathBase.This] }
+                .reduceOrNull { acc, type ->
+                    val intersection = acc.intersect(type)
+
+                    if (intersection == null) {
+                        System.err.println("Empty intersection type: $acc & $type")
+                    }
+
+                    intersection ?: acc
+                }
+            combinedBackwardType
+
+            // val typeFacts = forwardSummaries[]
+            //     .asSequence()
+            //     .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
+            //     .filter { it.variable.base is AccessPathBase.This || it.variable.base is AccessPathBase.Arg }
+            //     .groupBy { it.variable.base }
+
+        }
+        logger.info {
+            buildString {
+                appendLine("Combined types for This:")
+                for ((cls, type) in combinedThis) {
+                    appendLine("Class '${cls.name}': $type")
+                }
+            }
+        }
+
         backwardRunner.let { }
         forwardRunner.let { }
 
@@ -146,7 +181,7 @@ class TypeInferenceManager(
     private fun refineMethodTypes(types: Map<EtsMethod, EtsMethodTypeFacts>): Map<EtsMethod, EtsMethodTypeFacts> =
         types.mapValues { (method, type) ->
             val summaries = forwardSummaries[method].orEmpty()
-            refineMethodType(type, summaries)
+            refineMethodTypes(type, summaries)
         }
 
     private fun buildMethodTypeScheme(
@@ -172,16 +207,17 @@ class TypeInferenceManager(
         return EtsMethodTypeFacts(method, types)
     }
 
-    private fun refineMethodType(
-        type: EtsMethodTypeFacts,
+    private fun refineMethodTypes(
+        facts: EtsMethodTypeFacts,
         summaries: Iterable<ForwardSummaryAnalyzerEvent>,
     ): EtsMethodTypeFacts {
         val typeFacts = summaries
+            .asSequence()
             .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
-            .groupBy({ it.variable.base }, { it })
-            .filter { (base, _) -> base is AccessPathBase.This || base is AccessPathBase.Arg }
+            .filter { it.variable.base is AccessPathBase.This || it.variable.base is AccessPathBase.Arg }
+            .groupBy { it.variable.base }
 
-        val types = type.types.mapValues { (base, typeScheme) ->
+        val refinedTypes = facts.types.mapValues { (base, typeScheme) ->
             val typeRefinements = typeFacts[base] ?: return@mapValues typeScheme
 
             val propertyRefinements = typeRefinements
@@ -191,7 +227,7 @@ class TypeInferenceManager(
             var refinedScheme = typeScheme
             for ((property, propertyType) in propertyRefinements) {
                 refinedScheme = refinedScheme.refineProperty(property, propertyType) ?: run {
-                    System.err.println("Empty intersection type: $typeScheme[$property] & $type")
+                    System.err.println("Empty intersection type: $typeScheme[$property] & $facts")
                     refinedScheme
                 }
             }
@@ -199,13 +235,15 @@ class TypeInferenceManager(
             refinedScheme
         }
 
-        return EtsMethodTypeFacts(type.method, types)
+        return EtsMethodTypeFacts(facts.method, refinedTypes)
     }
 
     private fun EtsTypeFact.refineProperty(property: List<Accessor>, type: EtsTypeFact): EtsTypeFact? =
         when (this) {
             is EtsTypeFact.BasicType -> refineProperty(property, type)
+
             is EtsTypeFact.GuardedTypeFact -> this.type.refineProperty(property, type)?.withGuard(guard, guardNegated)
+
             is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
                 types.mapTo(hashSetOf()) { it.refineProperty(property, type) ?: return null }
             )
@@ -233,8 +271,9 @@ class TypeInferenceManager(
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor
                 if (propertyAccessor == null) {
+                    // TODO: handle union by exploding it into multiple ObjectFacts with class names from union
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
-                        TODO("$this & $type")
+                        TODO("Unexpected: $this & $type")
                     }
 
                     return EtsTypeFact.ObjectEtsTypeFact(type.cls, properties)
