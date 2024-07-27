@@ -21,6 +21,7 @@ import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
@@ -286,117 +287,34 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         return expr
     }
 
-    override fun transform(expr: UStringLiteralExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringFromLanguageExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringConcatExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringLtExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringLeExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringToUpperExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringToLowerExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UCharToUpperExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UCharToLowerExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringReverseExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: URegexMatchesExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: URegexReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLiteralExpr): UStringExpr  = expr
+    override fun transform(expr: UStringFromLanguageExpr): UStringExpr = expr
+    override fun transform(expr: UStringConcatExpr): UStringExpr = expr
+    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> = expr.uncheckedCast()
+    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> = expr.uncheckedCast()
+    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> = expr
+    override fun transform(expr: UStringLtExpr): UBoolExpr = expr
+    override fun transform(expr: UStringLeExpr): UBoolExpr = expr
+    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr = expr
+    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> = expr
+    override fun transform(expr: UStringToUpperExpr): UStringExpr = expr
+    override fun transform(expr: UStringToLowerExpr): UStringExpr = expr
+    override fun transform(expr: UCharToUpperExpr): UCharExpr = expr
+    override fun transform(expr: UCharToLowerExpr): UCharExpr = expr
+    override fun transform(expr: UStringReverseExpr): UStringExpr = expr
+    override fun transform(expr: URegexMatchesExpr): UBoolExpr = expr
+    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr = expr
+    override fun transform(expr: UStringReplaceAllExpr): UStringExpr = expr
+    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr = expr
+    override fun transform(expr: URegexReplaceAllExpr): UStringExpr = expr
+    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> = expr
+    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr = expr
+    override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> = expr
+    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr = expr
+    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr = expr
+    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr = expr
+    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> = expr
+    override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr = expr
 
     companion object {
         const val PREFERRED_MAX_ARRAY_SIZE = 10
