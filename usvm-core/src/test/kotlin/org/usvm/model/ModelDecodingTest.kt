@@ -74,7 +74,7 @@ class ModelDecodingTest {
 
         stack = URegistersStack()
         stack.push(10)
-        mocker = UIndexedMocker(ownership = ownership)
+        mocker = UIndexedMocker()
         heap = UMemory(ctx, ownership, pc.typeConstraints, stack, mocker)
     }
 
@@ -134,7 +134,7 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort)
+        val mockedValue = mocker.call(method, emptySequence(), addressSort, ownership)
         val ref1 = heap.readField(mockedValue, field, addressSort)
         heap.writeField(ref1, field, addressSort, allocateConcreteRef(), trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
@@ -156,7 +156,7 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort)
+        val mockedValue = mocker.call(method, emptySequence(), addressSort, ownership)
         val ref1 = heap.readField(mockedValue, field, addressSort)
         heap.writeField(ref1, field, addressSort, ref1, trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)

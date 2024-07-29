@@ -103,7 +103,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     private fun getAllocatedSet(
         id: UAllocatedSetId<SetType, ElementSort, Reg>
     ): UAllocatedSet<SetType, ElementSort, Reg> {
-        val (updatesSets, collection) = allocatedSets.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatesSets, collection) = allocatedSets.getOrPut(id, defaultOwnership) { id.emptyRegion() }
         allocatedSets = updatesSets
         return collection
     }

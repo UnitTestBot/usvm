@@ -149,8 +149,8 @@ open class USolverBase<Type>(
         pop()
     }
 
-    fun emptyModel(ownership: MutabilityOwnership): UModelBase<Type> =
-        (check(UPathConstraints(ctx, ownership)) as USatResult<UModelBase<Type>>).model
+    fun emptyModel(): UModelBase<Type> =
+        (check(UPathConstraints(ctx, ctx.defaultOwnership)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

@@ -100,7 +100,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     private fun getInputMapWithAllocatedKeys(
         id: UInputRefMapWithAllocatedKeysId<MapType, ValueSort>
     ): UInputRefMapWithAllocatedKeys<MapType, ValueSort> {
-        val (updatedMap, collection) = inputMapWithAllocatedKeys.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatedMap, collection) = inputMapWithAllocatedKeys.getOrPut(id, defaultOwnership) {  id.emptyRegion() }
         inputMapWithAllocatedKeys = updatedMap
         return collection
     }
@@ -124,7 +124,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     private fun getAllocatedMapWithInputKeys(
         id: UAllocatedRefMapWithInputKeysId<MapType, ValueSort>
     ): UAllocatedRefMapWithInputKeys<MapType, ValueSort> {
-        val (updatedMap, collection) = allocatedMapWithInputKeys.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatedMap, collection) = allocatedMapWithInputKeys.getOrPut(id, defaultOwnership) { id.emptyRegion() }
         allocatedMapWithInputKeys = updatedMap
         return collection
     }

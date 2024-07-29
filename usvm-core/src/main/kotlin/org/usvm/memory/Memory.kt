@@ -97,7 +97,7 @@ class UMemory<Type, Method>(
     override var ownership: MutabilityOwnership,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
-    private val mocks: UIndexedMocker<Method> = UIndexedMocker(ownership = ownership),
+    private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
     private var regions: UPersistentHashMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
 ) : UWritableMemory<Type>, UOwnedMergeable<UMemory<Type, Method>, MergeGuard> {
 
@@ -108,7 +108,7 @@ class UMemory<Type, Method>(
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
         if (regionId is URegisterStackId) return stack as UMemoryRegion<Key, Sort>
 
-        val (updatedRegions, region) = regions.getOrPut(regionId, regionId.emptyRegion(), ownership)
+        val (updatedRegions, region) = regions.getOrPut(regionId, ownership) { regionId.emptyRegion() }
         regions = updatedRegions
         return region as UMemoryRegion<Key, Sort>
     }
@@ -205,7 +205,7 @@ class UMemory<Type, Method>(
 
         val mergedRegions = regions
         val mergedStack = stack.mergeWith(other.stack, by) ?: return null
-        val mergedMocks = mocks.mergeWith(other.mocks, by, thisOwnership, otherOwnership, mergedOwnership)
+        val mergedMocks = mocks.mergeWith(other.mocks, by)
             ?: return null
 
         this.ownership = thisOwnership

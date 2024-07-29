@@ -8,6 +8,8 @@ package org.usvm.collections.immutable.implementations.immutableSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.internal.forEachOneBit
 
+typealias UPersistentHashSet<E> = TrieNode<E>
+
 
 internal const val MAX_BRANCHING_FACTOR = 32
 internal const val LOG_MAX_BRANCHING_FACTOR = 5
@@ -738,6 +740,3 @@ class TrieNode<E>(
 
     override fun iterator(): Iterator<E> = UPersistentHashSetIterator(this)
 }
-
-
-typealias UPersistentHashSet<E> = TrieNode<E>

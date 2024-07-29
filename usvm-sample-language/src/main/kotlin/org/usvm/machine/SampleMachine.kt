@@ -126,7 +126,7 @@ class SampleMachine(
     ): SampleState =
         SampleState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets)).apply {
             addEntryMethodCall(applicationGraph, method)
-            val model = solver.emptyModel(MutabilityOwnership())
+            val model = solver.emptyModel()
             models = persistentListOf(model)
         }
 

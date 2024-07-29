@@ -75,11 +75,9 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         sort: Sort,
         address: UConcreteHeapAddress,
     ): UAllocatedArray<ArrayType, Sort, USizeSort> {
-        val (updatedArrays, collection) = allocatedArrays.getOrPut(
-            address,
-            UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address).emptyRegion(),
-            sort.uctx.defaultOwnership
-        )
+        val (updatedArrays, collection) = allocatedArrays.getOrPut(address, sort.uctx.defaultOwnership) {
+            UAllocatedArrayId<_, _, USizeSort>(arrayType, sort, address).emptyRegion()
+        }
         allocatedArrays = updatedArrays
         return collection
     }

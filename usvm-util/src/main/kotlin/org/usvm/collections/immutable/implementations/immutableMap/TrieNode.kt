@@ -8,6 +8,8 @@ package org.usvm.collections.immutable.implementations.immutableMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.internal.forEachOneBit
 
+typealias UPersistentHashMap<K, V> = TrieNode<K, V>
+
 
 internal const val MAX_BRANCHING_FACTOR = 32
 internal const val LOG_MAX_BRANCHING_FACTOR = 5
@@ -745,8 +747,8 @@ class TrieNode<K, V>(
     operator fun get(key: K) = get(key.hashCode(), key, 0)
 
     fun getOrDefault(key: K, defaultValue: V) = get(key) ?: defaultValue
-    fun getOrPut(key: K, value: V, owner: MutabilityOwnership): Pair<TrieNode<K, V>, V> {
-        val current = get(key) ?: return put(key, value, owner) to value
+    inline fun getOrPut(key: K, owner: MutabilityOwnership, defaultValue: () -> V): Pair<TrieNode<K, V>, V> {
+        val current = get(key) ?: defaultValue().let {return put(key, it, owner) to it }
         return this to current
     }
 
@@ -794,5 +796,3 @@ class TrieNode<K, V>(
 
     override fun iterator(): Iterator<Map.Entry<K, V>> = UPersistentHashMapEntriesIterator(this)
 }
-
-typealias UPersistentHashMap<K, V> = TrieNode<K, V>

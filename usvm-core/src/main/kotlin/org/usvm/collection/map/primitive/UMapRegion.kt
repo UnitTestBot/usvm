@@ -84,7 +84,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     private fun getAllocatedMap(
         id: UAllocatedMapId<MapType, KeySort, ValueSort, Reg>
     ): UAllocatedMap<MapType, KeySort, ValueSort, Reg> {
-        val (updatesMaps, collection) = allocatedMaps.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatesMaps, collection) = allocatedMaps.getOrPut(id, defaultOwnership) { id.emptyRegion() }
         allocatedMaps = updatesMaps
         return collection
     }

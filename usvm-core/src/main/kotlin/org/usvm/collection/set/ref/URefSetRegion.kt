@@ -108,7 +108,7 @@ internal class URefSetMemoryRegion<SetType>(
     private fun getAllocatedSetWithInputElements(
         id: UAllocatedRefSetWithInputElementsId<SetType>,
     ): UAllocatedRefSetWithInputElements<SetType> {
-        val (updatedSet, collection) = allocatedSetWithInputElements.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatedSet, collection) = allocatedSetWithInputElements.getOrPut(id, defaultOwnership) { id.emptyRegion() }
         allocatedSetWithInputElements = updatedSet
         return collection
     }
@@ -134,7 +134,7 @@ internal class URefSetMemoryRegion<SetType>(
     private fun getInputSetWithAllocatedElements(
         id: UInputRefSetWithAllocatedElementsId<SetType>
     ): UInputRefSetWithAllocatedElements<SetType> {
-        val (updatedMap, collection) = inputSetWithAllocatedElements.getOrPut(id, id.emptyRegion(), defaultOwnership)
+        val (updatedMap, collection) = inputSetWithAllocatedElements.getOrPut(id, defaultOwnership) { id.emptyRegion() }
         inputSetWithAllocatedElements = updatedMap
         return collection
     }
