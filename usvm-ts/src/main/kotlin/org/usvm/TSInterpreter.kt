@@ -30,6 +30,7 @@ import org.usvm.targets.UTargetsSet
 
 typealias TSStepScope = StepScope<TSState, EtsType, EtsStmt, TSContext>
 
+@Suppress("UNUSED_PARAMETER")
 class TSInterpreter(
     private val ctx: TSContext,
     private val applicationGraph: TSApplicationGraph,
@@ -127,10 +128,9 @@ class TSInterpreter(
             ::mapLocalToIdxMapper,
         )
 
-    // (method, localIdx) -> idx
+    // (method, localName) -> idx
     private val localVarToIdx = mutableMapOf<EtsMethod, MutableMap<String, Int>>()
 
-    // TODO: now we need to explicitly evaluate indices of registers, because we don't have specific ULValues
     private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
         when (local) {
             is EtsLocal -> localVarToIdx
