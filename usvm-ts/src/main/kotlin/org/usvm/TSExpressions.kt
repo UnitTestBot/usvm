@@ -3,7 +3,6 @@ package org.usvm
 import io.ksmt.KAst
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
-import io.ksmt.expr.KExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
@@ -31,7 +30,7 @@ class TSStringSort(ctx: TSContext) : USort(ctx) {
         builder.append("string sort")
     }
 
-    override fun <T> accept(visitor: KSortVisitor<T>): T = TODO("Not yet implemented")
+    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
 }
 
 class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {

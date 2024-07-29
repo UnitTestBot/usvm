@@ -31,6 +31,7 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.memory.URegisterStackLValue
 
+@Suppress("UNUSED_PARAMETER")
 class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
@@ -153,6 +154,7 @@ class TSSimpleValueResolver(
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>> {
+
     override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
