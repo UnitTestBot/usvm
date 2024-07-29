@@ -30,5 +30,4 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     override fun print(printer: ExpressionPrinter) {
         printer.append("undefined")
     }
-
 }

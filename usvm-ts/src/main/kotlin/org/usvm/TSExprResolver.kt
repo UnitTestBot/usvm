@@ -263,5 +263,4 @@ class TSSimpleValueResolver(
         val sort = ctx.typeToSort(local.type)
         return URegisterStackLValue(sort, localIdx)
     }
-
 }
