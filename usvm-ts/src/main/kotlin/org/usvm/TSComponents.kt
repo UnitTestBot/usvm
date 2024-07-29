@@ -1,6 +1,5 @@
 package org.usvm
 
-import io.ksmt.expr.KBitVec32Value
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.symfpu.solver.KSymFpuSolver
@@ -19,7 +18,7 @@ class TSComponents(
         get() = options.useSolverForForks
 
     override fun <Context : UContext<TSSizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<TSSizeSort> {
-        return TSFpSortSizeExprProvider(ctx as TSContext)
+        return UBv32SizeExprProvider(ctx)
     }
 
     override fun mkTypeSystem(
@@ -44,31 +43,4 @@ class TSComponents(
     fun close() {
         closeableResources.forEach(AutoCloseable::close)
     }
-}
-
-class TSFpSortSizeExprProvider(
-    override val ctx: TSContext,
-) : USizeExprProvider<TSSizeSort> {
-    override val sizeSort: TSSizeSort = ctx.sizeSort
-
-    override fun mkSizeExpr(size: Int): UExpr<TSSizeSort> = ctx.mkBv(size, sizeSort)
-    override fun getIntValue(expr: UExpr<TSSizeSort>): Int? = (expr as? KBitVec32Value)?.numberValue
-
-    override fun mkSizeSubExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UExpr<TSSizeSort> =
-        ctx.mkBvSubExpr(lhs, rhs)
-
-    override fun mkSizeAddExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UExpr<TSSizeSort> =
-        ctx.mkBvAddExpr(lhs, rhs)
-
-    override fun mkSizeGtExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UBoolExpr =
-        ctx.mkBvUnsignedGreaterExpr(lhs, rhs)
-
-    override fun mkSizeGeExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UBoolExpr =
-        ctx.mkBvUnsignedGreaterOrEqualExpr(lhs, rhs)
-
-    override fun mkSizeLtExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UBoolExpr =
-        ctx.mkBvUnsignedLessExpr(lhs, rhs)
-
-    override fun mkSizeLeExpr(lhs: UExpr<TSSizeSort>, rhs: UExpr<TSSizeSort>): UBoolExpr =
-        ctx.mkBvUnsignedLessOrEqualExpr(lhs, rhs)
 }
