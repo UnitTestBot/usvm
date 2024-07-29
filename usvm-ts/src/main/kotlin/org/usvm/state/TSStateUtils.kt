@@ -24,6 +24,6 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
     }
 }
 
-fun EtsMethod.localIdx(idx: Int) = if (TODO("isStatic")) idx else idx + 1
+fun EtsMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
 
 inline val EtsMethod.parametersWithThisCount get() = localIdx(parameters.size)
