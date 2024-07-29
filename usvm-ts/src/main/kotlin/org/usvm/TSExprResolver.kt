@@ -29,6 +29,7 @@ import org.jacodb.ets.base.EtsUnaryOperation
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
 @Suppress("UNUSED_PARAMETER")
@@ -45,8 +46,15 @@ class TSExprResolver(
     )
 
     fun resolveTSExpr(expr: EtsEntity, type: EtsType = expr.type): UExpr<out USort>? {
-        TODO()
+        return expr.accept(this)
     }
+
+    fun resolveLValue(value: EtsValue): ULValue<*, *>? =
+        when (value) {
+            is EtsParameterRef,
+            is EtsLocal -> simpleValueResolver.resolveLocal(value)
+            else -> error("Unexpected value: $value")
+        }
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
         TODO("Not yet implemented")

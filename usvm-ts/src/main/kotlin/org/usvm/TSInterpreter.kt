@@ -94,7 +94,16 @@ class TSInterpreter(
     }
 
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
-        TODO()
+        val exprResolver = exprResolverWithScope(scope)
+
+        val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
+        val expr = exprResolver.resolveTSExpr(stmt.rhv, stmt.lhv.type) ?: return
+
+        scope.doWithState {
+            memory.write(lvalue, expr)
+            val nextStmt = stmt.nextStmt ?: return@doWithState
+            newStmt(nextStmt)
+        }
     }
 
     private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
