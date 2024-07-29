@@ -71,10 +71,6 @@ class TSInterpreter(
             else -> error("Unknown stmt: $stmt")
         }
 
-//        stmt.nextStmt?.let { nextStmt ->
-//            scope.doWithState { newStmt(nextStmt) }
-//        }
-
         return scope.stepResult()
     }
 

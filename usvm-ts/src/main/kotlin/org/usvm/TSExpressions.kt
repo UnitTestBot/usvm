@@ -9,25 +9,9 @@ import io.ksmt.sort.KSortVisitor
 
 val KAst.tctx get() = ctx as TSContext
 
-class TSVoidSort(ctx: TSContext) : USort(ctx) {
-    override fun print(builder: StringBuilder) {
-        builder.append("void sort")
-    }
-
-    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
-}
-
 class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
         builder.append("undefined sort")
-    }
-
-    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
-}
-
-class TSStringSort(ctx: TSContext) : USort(ctx) {
-    override fun print(builder: StringBuilder) {
-        builder.append("string sort")
     }
 
     override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
