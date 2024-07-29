@@ -109,7 +109,27 @@ class EtsTypeInferenceTest {
         manager.analyze(entrypoints)
     }
 
-    // @Disabled
+    @Test
+    fun `test type inference on call`() {
+        val name = "call"
+        val arkFile = load("ir/$name.ts.json")
+        val graph = EtsApplicationGraphImpl(arkFile)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoints = arkFile.classes
+            .flatMap { it.methods }
+            .filter { it.name.startsWith("entrypoint") }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+        manager.analyze(entrypoints)
+    }
+
     @Test
     fun `test type inference on applications_settings_data SettingsDBHelper`() {
         val arkFile = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
@@ -119,7 +139,11 @@ class EtsTypeInferenceTest {
         val entrypoints = arkFile.classes
             .asSequence()
             .flatMap { it.methods + it.ctor }
-            .filter { (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || it.name == "constructor" }
+            .filter {
+                (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || (!it.modifiers.contains("PrivateKeyword") && !it.modifiers.contains(
+                    "ProtectedKeyword"
+                )) || it.name == "constructor"
+            }
             .toList()
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {
@@ -192,7 +216,11 @@ class EtsTypeInferenceTest {
         val entrypoints = arkFile.classes
             .asSequence()
             .flatMap { it.methods + it.ctor }
-            .filter { (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || it.name == "constructor" }
+            .filter {
+                (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || (!it.modifiers.contains("PrivateKeyword") && !it.modifiers.contains(
+                    "ProtectedKeyword"
+                )) || it.name == "constructor"
+            }
             .toList()
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {

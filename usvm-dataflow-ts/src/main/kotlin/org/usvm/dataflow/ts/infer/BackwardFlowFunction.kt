@@ -191,7 +191,7 @@ class BackwardFlowFunction(
                 is EtsRef -> r.toPath()
                 is EtsLValue -> r.toPath()
                 else -> {
-                    logger.info { "TODO backward assign zero: $current" }
+                    // logger.info { "TODO backward assign zero: $current" }
                     null
                 }
             }
@@ -236,7 +236,7 @@ class BackwardFlowFunction(
             is EtsLValue -> r.toPath()
             is EtsCastExpr -> r.toPath()
             else -> {
-                logger.info { "TODO backward assign: $current" }
+                // logger.info { "TODO backward assign: $current" }
                 return listOf(fact)
             }
         }

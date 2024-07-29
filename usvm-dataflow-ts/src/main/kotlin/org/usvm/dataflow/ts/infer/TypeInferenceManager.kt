@@ -61,17 +61,17 @@ class TypeInferenceManager(
         runnerFinished.await()
         backwardJob.cancelAndJoin()
 
-        logger.info {
-            buildString {
-                appendLine("Backward summaries: (${backwardSummaries.size})")
-                for ((method, summaries) in backwardSummaries) {
-                    appendLine("=== Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
-                    for (summary in summaries) {
-                        appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
-                    }
-                }
-            }
-        }
+        // logger.info {
+        //     buildString {
+        //         appendLine("Backward summaries: (${backwardSummaries.size})")
+        //         for ((method, summaries) in backwardSummaries) {
+        //             appendLine("=== Backward summaries for ${method.signature.enclosingClass.name}::${method.name}: (${summaries.size})")
+        //             for (summary in summaries) {
+        //                 appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
+        //             }
+        //         }
+        //     }
+        // }
 
         val methodTypeScheme = methodTypeScheme()
 
@@ -79,8 +79,14 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Backward types:")
                 for ((method, typeFacts) in methodTypeScheme) {
-                    appendLine("Types for ${method.signature.enclosingClass.name}::${method.name}:")
-                    for ((base, fact) in typeFacts.types) {
+                    appendLine("Backward types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    for ((base, fact) in typeFacts.types.entries.sortedBy {
+                        when (val key = it.key) {
+                            is AccessPathBase.This -> 0
+                            is AccessPathBase.Arg -> key.index + 1
+                            else -> 1_000_000
+                        }
+                    }) {
                         appendLine("  $base: $fact")
                     }
                 }
@@ -107,25 +113,31 @@ class TypeInferenceManager(
         runnerFinished.await()
         forwardJob.cancelAndJoin()
 
-        logger.info {
-            buildString {
-                appendLine("Forward summaries: (${forwardSummaries.size})")
-                for ((method, summaries) in forwardSummaries) {
-                    appendLine("=== Summaries for ${method.signature.enclosingClass.name}::${method.name}: ${summaries.size}")
-                    for (summary in summaries) {
-                        appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
-                    }
-                }
-            }
-        }
+        // logger.info {
+        //     buildString {
+        //         appendLine("Forward summaries: (${forwardSummaries.size})")
+        //         for ((method, summaries) in forwardSummaries) {
+        //             appendLine("=== Forward summaries for ${method.signature.enclosingClass.name}::${method.name}: (${summaries.size})")
+        //             for (summary in summaries) {
+        //                 appendLine("    ${summary.initialFact} -> ${summary.exitFact}")
+        //             }
+        //         }
+        //     }
+        // }
 
         val refinedTypes = refineMethodTypes(methodTypeScheme)
         logger.info {
             buildString {
                 appendLine("Forward types:")
                 for ((method, typeFacts) in refinedTypes) {
-                    appendLine("Types for ${method.signature.enclosingClass.name}::${method.name}:")
-                    for ((base, fact) in typeFacts.types) {
+                    appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    for ((base, fact) in typeFacts.types.entries.sortedBy {
+                        when (val key = it.key) {
+                            is AccessPathBase.This -> 0
+                            is AccessPathBase.Arg -> key.index + 1
+                            else -> 1_000_000
+                        }
+                    }) {
                         appendLine("  $base: $fact")
                     }
                 }
@@ -272,14 +284,12 @@ class TypeInferenceManager(
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor
                 if (propertyAccessor == null) {
                     // TODO: handle 'type=union' by exploding it into multiple ObjectFacts (later combined with union) with class names from union.
-                    // if (type is EtsTypeFact.UnionEtsTypeFact) {
-                    //     return EtsTypeFact.mkUnionType(
-                    //         type.types.mapTo(hashSetOf()) {
-                    //             // Note: properties of type from union (`it`) are lost here.
-                    //             EtsTypeFact.ObjectEtsTypeFact((it as EtsTypeFact.ObjectEtsTypeFact).cls!!, properties)
-                    //         }
-                    //     )
-                    // }
+                    if (type is EtsTypeFact.UnionEtsTypeFact) {
+                        return type.types.map {
+                            // Note: properties of type from union (`it`) are lost here.
+                            EtsTypeFact.ObjectEtsTypeFact((it as EtsTypeFact.ObjectEtsTypeFact).cls, properties)
+                        }.reduce { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
+                    }
 
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
                         TODO("Unexpected: $this & $type")

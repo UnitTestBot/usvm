@@ -43,11 +43,11 @@ class EtsApplicationGraphWithExplicitEntryPoint(
                 }
                 if (enclosingClass != null) {
                     val ctor = enclosingClass.ctor
-                    logger.info { "Constructor call at $node: $ctor" }
+                    // logger.info { "Constructor call at $node: $ctor" }
                     return sequenceOf(ctor)
                 }
             }
-            logger.info { "No methods found for: $node" }
+            // logger.info { "No methods found for: $node" }
         }
 
         return callees.asSequence()

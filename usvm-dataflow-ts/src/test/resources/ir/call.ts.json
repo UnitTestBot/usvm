@@ -1,5 +1,5 @@
 {
-  "name": "data.ts",
+  "name": "call.ts",
   "namespaces": [],
   "classes": [
     {
@@ -100,25 +100,19 @@
                 }
               },
               {
-                "name": "data",
+                "name": "f",
                 "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "Data"
-                  }
+                  "_": "UnknownType"
                 }
               },
               {
-                "name": "$temp0",
+                "name": "x",
                 "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "Data"
-                  }
+                  "_": "NumberType"
                 }
               },
               {
-                "name": "process",
+                "name": "g",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -154,59 +148,20 @@
                       }
                     },
                     {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "$temp0",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Data"
-                          }
-                        }
-                      },
-                      "right": {
-                        "_": "NewExpr",
-                        "classType": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Data"
-                          }
-                        }
-                      }
-                    },
-                    {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "$temp0",
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Data"
-                            }
-                          }
-                        },
+                        "_": "StaticCallExpr",
                         "method": {
                           "enclosingClass": {
-                            "name": "Data"
+                            "name": ""
                           },
-                          "name": "constructor",
+                          "name": "f",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
                           }
                         },
                         "args": [
-                          {
-                            "_": "Constant",
-                            "value": "7",
-                            "type": {
-                              "_": "NumberType"
-                            }
-                          },
                           {
                             "_": "Constant",
                             "value": "42",
@@ -221,22 +176,16 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "data",
+                        "name": "x",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Data"
-                          }
+                          "_": "NumberType"
                         }
                       },
                       "right": {
-                        "_": "Local",
-                        "name": "$temp0",
+                        "_": "Constant",
+                        "value": "7",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Data"
-                          }
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -248,7 +197,7 @@
                           "enclosingClass": {
                             "name": ""
                           },
-                          "name": "process",
+                          "name": "g",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -257,12 +206,9 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "data",
+                            "name": "x",
                             "type": {
-                              "_": "ClassType",
-                              "signature": {
-                                "name": "Data"
-                              }
+                              "_": "NumberType"
                             }
                           }
                         ]
@@ -282,10 +228,10 @@
             "enclosingClass": {
               "name": "_DEFAULT_ARK_CLASS"
             },
-            "name": "process",
+            "name": "f",
             "parameters": [
               {
-                "name": "data",
+                "name": "x",
                 "type": {
                   "_": "AnyType"
                 },
@@ -310,7 +256,7 @@
                 }
               },
               {
-                "name": "data",
+                "name": "x",
                 "type": {
                   "_": "AnyType"
                 }
@@ -333,7 +279,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "data",
+                        "name": "x",
                         "type": {
                           "_": "AnyType"
                         }
@@ -392,7 +338,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "data",
+                            "name": "x",
                             "type": {
                               "_": "AnyType"
                             }
@@ -408,70 +354,18 @@
               ]
             }
           }
-        }
-      ]
-    },
-    {
-      "signature": {
-        "name": "Data"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "Data"
-            },
-            "name": "a",
-            "type": {
-              "_": "NumberType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
         },
         {
           "signature": {
             "enclosingClass": {
-              "name": "Data"
+              "name": "_DEFAULT_ARK_CLASS"
             },
-            "name": "b",
-            "type": {
-              "_": "NumberType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
-        }
-      ],
-      "methods": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "Data"
-            },
-            "name": "constructor",
+            "name": "g",
             "parameters": [
               {
-                "name": "a",
+                "name": "x",
                 "type": {
-                  "_": "NumberType"
-                },
-                "isOptional": false
-              },
-              {
-                "name": "b",
-                "type": {
-                  "_": "NumberType"
+                  "_": "AnyType"
                 },
                 "isOptional": false
               }
@@ -489,20 +383,20 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "Data"
+                    "name": "_DEFAULT_ARK_CLASS"
                   }
                 }
               },
               {
-                "name": "a",
+                "name": "x",
                 "type": {
-                  "_": "NumberType"
+                  "_": "AnyType"
                 }
               },
               {
-                "name": "b",
+                "name": "console",
                 "type": {
-                  "_": "NumberType"
+                  "_": "UnknownType"
                 }
               }
             ],
@@ -517,33 +411,16 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "a",
+                        "name": "x",
                         "type": {
-                          "_": "NumberType"
+                          "_": "AnyType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "NumberType"
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "b",
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      },
-                      "right": {
-                        "_": "ParameterRef",
-                        "index": 1,
-                        "type": {
-                          "_": "NumberType"
+                          "_": "AnyType"
                         }
                       }
                     },
@@ -555,7 +432,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Data"
+                            "name": "_DEFAULT_ARK_CLASS"
                           }
                         }
                       },
@@ -564,73 +441,41 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Data"
+                            "name": "_DEFAULT_ARK_CLASS"
                           }
                         }
                       }
                     },
                     {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "InstanceFieldRef",
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Data"
-                            }
-                          }
-                        },
-                        "field": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "a",
+                          "name": "console",
                           "type": {
                             "_": "UnknownType"
                           }
-                        }
-                      },
-                      "right": {
-                        "_": "Local",
-                        "name": "a",
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "InstanceFieldRef",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Data"
-                            }
-                          }
                         },
-                        "field": {
+                        "method": {
                           "enclosingClass": {
                             "name": ""
                           },
-                          "name": "b",
-                          "type": {
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
                             "_": "UnknownType"
                           }
-                        }
-                      },
-                      "right": {
-                        "_": "Local",
-                        "name": "b",
-                        "type": {
-                          "_": "NumberType"
-                        }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
                       }
                     },
                     {

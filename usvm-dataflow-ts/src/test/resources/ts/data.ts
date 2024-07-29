@@ -8,11 +8,10 @@ class Data {
 }
 
 function entrypoint() {
-    // process({a: 1, b: 2})
-    process(new Data(7, 42))
-    // process({a: 4, b: 2 + 3} as Data)
+    let data = new Data(7, 42);
+    process(data);
 }
 
 function process(data: any) {
-    console.log(data)
+    console.log(data);
 }

@@ -3,15 +3,17 @@ package org.usvm.dataflow.ts.infer
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
-import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
 import org.jacodb.ets.base.EtsNewExpr
+import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
@@ -21,8 +23,6 @@ import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
-
-private val logger = KotlinLogging.logger {}
 
 class ForwardFlowFunction(
     val graph: EtsApplicationGraph,
@@ -43,41 +43,40 @@ class ForwardFlowFunction(
         return result.map { it.fixThis() }
     }
 
-    private fun addTypes(ap: AccessPath, type: EtsTypeFact, facts: MutableList<ForwardTypeDomainFact>) {
+    private fun addTypes(
+        path: AccessPath,
+        type: EtsTypeFact,
+        facts: MutableList<ForwardTypeDomainFact>,
+    ) {
         when (type) {
-            EtsTypeFact.UnknownEtsTypeFact -> facts += TypedVariable(ap, EtsTypeFact.AnyEtsTypeFact)
-
-            EtsTypeFact.AnyEtsTypeFact,
-            EtsTypeFact.FunctionEtsTypeFact,
-            EtsTypeFact.NumberEtsTypeFact,
-            EtsTypeFact.BooleanEtsTypeFact,
-            EtsTypeFact.StringEtsTypeFact,
-                EtsTypeFact.NullEtsTypeFact,
-                EtsTypeFact.UndefinedEtsTypeFact,
-            -> {
-                facts += TypedVariable(ap, type)
+            EtsTypeFact.UnknownEtsTypeFact -> {
+                facts += TypedVariable(path, EtsTypeFact.AnyEtsTypeFact)
             }
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 for ((propertyName, propertyType) in type.properties) {
-                    val propertyAp = ap + FieldAccessor(propertyName)
-                    addTypes(propertyAp, propertyType, facts)
+                    val propertyPath = path + FieldAccessor(propertyName)
+                    addTypes(propertyPath, propertyType, facts)
                 }
 
-                val objType = EtsTypeFact.ObjectEtsTypeFact(type.cls, properties = emptyMap())
-                facts += TypedVariable(ap, objType)
+                val objType = EtsTypeFact.ObjectEtsTypeFact(cls = type.cls, properties = emptyMap())
+                facts += TypedVariable(path, objType)
             }
 
             is EtsTypeFact.GuardedTypeFact -> {
-                addTypes(ap, type.type, facts)
+                addTypes(path, type.type, facts)
             }
 
             is EtsTypeFact.IntersectionEtsTypeFact -> {
-                type.types.forEach { addTypes(ap, it, facts) }
+                type.types.forEach { addTypes(path, it, facts) }
             }
 
             is EtsTypeFact.UnionEtsTypeFact -> {
-                type.types.forEach { addTypes(ap, it, facts) }
+                type.types.forEach { addTypes(path, it, facts) }
+            }
+
+            else -> {
+                facts += TypedVariable(path, type)
             }
         }
     }
@@ -128,13 +127,21 @@ class ForwardFlowFunction(
                 result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
 
+            is EtsNullConstant -> {
+                result += TypedVariable(lhv, EtsTypeFact.NullEtsTypeFact)
+            }
+
+            is EtsUndefinedConstant -> {
+                result += TypedVariable(lhv, EtsTypeFact.UndefinedEtsTypeFact)
+            }
+
             // Note: do not handle cast in forward ff!
-            // is EtsCastExpr -> {
-            //     result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
-            // }
+            is EtsCastExpr -> {
+                result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
+            }
 
             else -> {
-                logger.info { "TODO: forward assign $current" }
+                // logger.info { "TODO: forward assign $current" }
             }
         }
 
@@ -150,11 +157,12 @@ class ForwardFlowFunction(
             is EtsRef -> r.toPath()
             is EtsLValue -> r.toPath()
             else -> {
-                logger.info { "TODO forward assign: $current" }
+                // logger.info { "TODO forward assign: $current" }
                 null
             }
         }
 
+        // Pass-through completely unrelated facts:
         if (fact.variable.base != lhv.base && fact.variable.base != rhv?.base) {
             return listOf(fact)
         }
@@ -164,6 +172,7 @@ class ForwardFlowFunction(
             return emptyList()
         }
 
+        // Case `x := y`
         if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
             if (lhv.base == fact.variable.base) return emptyList()
             check(fact.variable.base == rhv.base)
@@ -172,6 +181,7 @@ class ForwardFlowFunction(
             return listOf(fact, TypedVariable(path, fact.type))
         }
 
+        // Case `x := y.f`
         if (lhv.accesses.isEmpty()) {
             if (lhv.base == fact.variable.base) return emptyList()
             check(fact.variable.base == rhv.base)
@@ -185,8 +195,11 @@ class ForwardFlowFunction(
             return listOf(fact, TypedVariable(path, fact.type))
         }
 
+        // Case `x.f := y`
+        // `fact == x.f` |= drop `fact`
+        // `fact == x[i]` |= keep the fact
+        // `fact.base != x` |= continue
         check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
-
         val accessor = lhv.accesses.single()
         if (fact.variable.base == lhv.base) {
             if (fact.variable.accesses.firstOrNull() == accessor) {
