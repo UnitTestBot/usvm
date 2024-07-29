@@ -75,7 +75,7 @@ class TypeSolverTest {
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
     }
 
     private val pc = UPathConstraints<TestType>(ctx, ownership)

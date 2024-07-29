@@ -35,7 +35,7 @@ class UInputArrayLengthId<ArrayType, USizeSort : USort> internal constructor(
             return key.uctx.withSizeSort<USizeSort>().mkInputArrayLengthReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

@@ -79,7 +79,7 @@ interface UReadOnlyMemory<Type> {
 
     fun nullRef(): UHeapRef
 
-    fun toWritableMemory(): UWritableMemory<Type>
+    fun toWritableMemory(ownership: MutabilityOwnership): UWritableMemory<Type>
 }
 
 interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
@@ -163,7 +163,7 @@ class UMemory<Type, Method>(
             ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(thisOwnership, cloneOwnership), regions
         ).also { ownership = thisOwnership }
 
-    override fun toWritableMemory() =
+    override fun toWritableMemory(ownership: MutabilityOwnership) =
     // To be perfectly rigorous, we should clone stack and types here.
         // But in fact they should not be used, so to optimize things up, we don't touch them.
         UMemory(ctx, ownership, types, stack, mocks, regions)

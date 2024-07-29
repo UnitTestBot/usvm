@@ -47,7 +47,7 @@ class ModelCompositionTest {
         ctx = UContext(components)
         ownership = MutabilityOwnership()
 
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
@@ -60,7 +60,7 @@ class ModelCompositionTest {
         )
 
         val model = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1)
             .emptyRegion()
@@ -93,7 +93,7 @@ class ModelCompositionTest {
         val model = UModelBase<Type>(
             ctx, stackModel, mockk(), mockk(), mapOf(arrayMemoryId to arrayModel), concreteNull
         )
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val symbolicRef = mkRegisterReading(0, addressSort) as UHeapRef
 
@@ -152,7 +152,7 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), mapOf(arrayLengthMemoryId to arrayLengthModel), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UInputArrayLengthId(arrayType, bv32Sort)
             .emptyRegion()
@@ -197,7 +197,7 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), mapOf(fieldMemoryId to fieldModel), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UInputFieldId(field, addressSort)
             .emptyRegion()
@@ -227,7 +227,7 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val emptyRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1).emptyRegion()
 

@@ -63,7 +63,7 @@ class ModelDecodingTest {
         ctx = UContext(components)
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
 
         val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)

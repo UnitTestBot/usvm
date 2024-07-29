@@ -67,7 +67,7 @@ internal class CompositionTest {
         ctx = UContext(components)
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership : MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
 
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         stackEvaluator = mockk()
@@ -79,7 +79,7 @@ internal class CompositionTest {
         every { memory.stack } returns stackEvaluator
         every { memory.mocker } returns mockEvaluator
 
-        composer = UComposer(ctx, memory)
+        composer = UComposer(ctx, memory, ownership)
     }
 
     @Test
@@ -263,7 +263,7 @@ internal class CompositionTest {
         heapToComposeWith.writeArrayLength(fstConcreteAddress, fstValueFromHeap, arrayType, sizeSort)
         heapToComposeWith.writeArrayLength(sndConcreteAddress, sndValueFromHeap, arrayType, sizeSort)
 
-        val composer = UComposer(ctx, heapToComposeWith)
+        val composer = UComposer(ctx, heapToComposeWith, MutabilityOwnership())
 
         every { fstAddress.accept(composer) } returns fstConcreteAddress
         every { sndAddress.accept(composer) } returns sndConcreteAddress
@@ -314,7 +314,7 @@ internal class CompositionTest {
         val answer = 43.toBv()
 
         // TODO replace with jacoDB type
-        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, MutabilityOwnership(), mockk()))
+        val composer = UComposer(ctx, UMemory<KClass<*>, Any>(ctx, ownership, mockk()), MutabilityOwnership())
 
         every { fstAddress.accept(composer) } returns sndAddress
         every { fstIndex.accept(composer) } returns sndIndex
@@ -348,13 +348,13 @@ internal class CompositionTest {
         // create a heap with a record: (sndAddress, sndIndex) = 2
         sndMemory.writeArrayIndex(sndAddress, sndIndex, arrayType, mkBv32Sort(), 2.toBv(), mkTrue())
 
-        val sndComposer = UComposer(ctx, sndMemory)
+        val sndComposer = UComposer(ctx, sndMemory, MutabilityOwnership())
 
         val fstMemory = UMemory<KClass<*>, Any>(ctx, ownership, mockk(), mockk())
         // create a heap with a record: (fstAddress, fstIndex) = 1
         fstMemory.writeArrayIndex(fstAddress, fstIndex, arrayType, mkBv32Sort(), 1.toBv(), mkTrue())
 
-        val fstComposer = UComposer(ctx, fstMemory) // TODO replace with jacoDB type
+        val fstComposer = UComposer(ctx, fstMemory, MutabilityOwnership()) // TODO replace with jacoDB type
 
         // Both heaps leave everything untouched
         every { sndAddress.accept(sndComposer) } returns sndAddress
@@ -429,7 +429,7 @@ internal class CompositionTest {
             sndAddressForCompose, concreteIndex, arrayType, regionArray.sort, sndValue, guard = trueExpr
         )
 
-        val composer = UComposer(ctx, heapToComposeWith)
+        val composer = UComposer(ctx, heapToComposeWith, MutabilityOwnership())
 
         every { fstSymbolicIndex.accept(composer) } returns concreteIndex
         every { sndSymbolicIndex.accept(composer) } returns concreteIndex
@@ -463,7 +463,7 @@ internal class CompositionTest {
             ctx, mockk(), mockk(), mockk(), emptyMap(), concreteNullRef
         )
 
-        val composer = spyk(UComposer(ctx, heapToComposeWith))
+        val composer = spyk(UComposer(ctx, heapToComposeWith, MutabilityOwnership()))
 
         every { symbolicIndex.accept(composer) } returns mkBv(2)
         every { symbolicAddress.accept(composer) } returns mkConcreteHeapRef(-1)
@@ -512,7 +512,7 @@ internal class CompositionTest {
         val composeMemory = UMemory<Type, Any>(ctx, MutabilityOwnership(), mockk())
         composeMemory.writeField(aAddress, field, bv32Sort, 42.toBv(), guard = trueExpr)
 
-        val composer = UComposer(ctx, composeMemory)
+        val composer = UComposer(ctx, composeMemory, MutabilityOwnership())
 
         val composedExpression = composer.compose(expression)
 
@@ -527,7 +527,7 @@ internal class CompositionTest {
         )
         val model = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, MutabilityOwnership())
 
         val heapRefEvalEq = mkHeapRefEq(mkRegisterReading(0, addressSort), mkRegisterReading(1, addressSort))
 
@@ -543,7 +543,7 @@ internal class CompositionTest {
         every { composedMemory.nullRef() } returns concreteNull
         every { composedMemory.stack } returns stackModel
 
-        val composer = UComposer(this, composedMemory)
+        val composer = UComposer(this, composedMemory, MutabilityOwnership())
 
         val heapRefEvalEq = mkHeapRefEq(mkRegisterReading(0, addressSort), nullRef)
 
@@ -570,7 +570,7 @@ internal class CompositionTest {
         composeMemory.stack.writeRegister(2, composedSymbolicHeapRef)
         composeMemory.stack.writeRegister(3, mkRegisterReading(3, bv32Sort))
 
-        val composer = UComposer(ctx, composeMemory)
+        val composer = UComposer(ctx, composeMemory, MutabilityOwnership())
 
         val fromRegion0 = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort)
             .emptyRegion()
@@ -628,7 +628,7 @@ internal class CompositionTest {
         val stackModel = URegistersStackEagerModel(concreteNull, mapOf(0 to mkBv(0), 1 to mkBv(0), 2 to mkBv(2)))
         every { composedMemory.stack } returns stackModel
 
-        val composer = UComposer(this, composedMemory)
+        val composer = UComposer(this, composedMemory, MutabilityOwnership())
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyRegion()
         val reading = region.read(mkRegisterReading(0, sizeSort))
@@ -654,7 +654,8 @@ internal class CompositionTest {
 
         val reading = region.read(ref2)
 
-        val composer = spyk(UComposer(this, composedMemory))
+        val composerOwnership = MutabilityOwnership()
+        val composer = spyk(UComposer(this, composedMemory, composerOwnership))
 
         val writableMemory: UWritableMemory<Type> = mockk()
 
@@ -662,7 +663,7 @@ internal class CompositionTest {
         every { composer.transform(ref1) } returns ref1
         every { composer.transform(ref2) } returns ref2
 
-        every { composedMemory.toWritableMemory() } returns writableMemory
+        every { composedMemory.toWritableMemory(composerOwnership) } returns writableMemory
 
         every {
             val lvalue = UFieldLValue(bv32Sort, ref1, field)

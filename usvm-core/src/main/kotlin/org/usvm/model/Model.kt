@@ -41,7 +41,7 @@ open class UModelBase<Type>(
     override val ownership: MutabilityOwnership = ctx.defaultOwnership,
 ) : UModel, UWritableMemory<Type> {
     @Suppress("LeakingThis")
-    protected open val composer = ctx.composer(this)
+    protected open val composer = ctx.composer(this, ownership)
 
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
@@ -63,7 +63,7 @@ open class UModelBase<Type>(
 
     override fun nullRef(): UHeapRef = nullRef
 
-    override fun toWritableMemory(): UWritableMemory<Type> = this
+    override fun toWritableMemory(ownership: MutabilityOwnership): UWritableMemory<Type> = this
 
     override fun <Key, Sort : USort> setRegion(
         regionId: UMemoryRegionId<Key, Sort>,

@@ -7,13 +7,13 @@ import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
-import kotlin.time.Duration
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
@@ -34,8 +34,8 @@ class JcComponents(
 
     override fun <Context : UContext<USizeSort>> mkComposer(
         ctx: Context
-    ): (UReadOnlyMemory<JcType>) -> UComposer<JcType, USizeSort> =
-        { memory: UReadOnlyMemory<JcType> -> JcComposer(ctx, memory) }
+    ): (UReadOnlyMemory<JcType>, MutabilityOwnership) -> UComposer<JcType, USizeSort> =
+        { memory: UReadOnlyMemory<JcType>, ownership: MutabilityOwnership -> JcComposer(ctx, memory, ownership) }
 
     override fun <Context : UContext<USizeSort>> mkSolver(ctx: Context): USolverBase<JcType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)

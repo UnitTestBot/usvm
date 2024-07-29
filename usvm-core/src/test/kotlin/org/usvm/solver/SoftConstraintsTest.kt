@@ -42,7 +42,7 @@ open class SoftConstraintsTest {
         ctx = UContext(components)
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(any()) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(any()) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
 
         softConstraintsProvider = USoftConstraintsProvider(ctx)
 
