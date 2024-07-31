@@ -1,6 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
@@ -153,14 +152,15 @@ class ForwardFlowFunction(
 
         val lhv = current.lhv.toPath()
 
-        val rhv = when (val r = current.rhv) {
-            is EtsRef -> r.toPath()
-            is EtsLValue -> r.toPath()
-            else -> {
-                // logger.info { "TODO forward assign: $current" }
-                null
-            }
-        }
+        // val rhv = when (val r = current.rhv) {
+        //     is EtsRef -> r.toPath()
+        //     is EtsLValue -> r.toPath()
+        //     else -> {
+        //         // logger.info { "TODO forward assign: $current" }
+        //         null
+        //     }
+        // }
+        val rhv = current.rhv.toPathOrNull()
 
         // Pass-through completely unrelated facts:
         if (fact.variable.base != lhv.base && fact.variable.base != rhv?.base) {
