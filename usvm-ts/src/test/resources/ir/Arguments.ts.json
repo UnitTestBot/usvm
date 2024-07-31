@@ -1,5 +1,5 @@
 {
-  "name": "StaticMethods.ts",
+  "name": "Arguments.ts",
   "namespaces": [],
   "classes": [
     {
@@ -79,7 +79,7 @@
     },
     {
       "signature": {
-        "name": "StaticMethods"
+        "name": "SimpleClass"
       },
       "modifiers": [],
       "typeParameters": [],
@@ -90,7 +90,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "StaticMethods"
+              "name": "SimpleClass"
             },
             "name": "@instance_init",
             "parameters": [],
@@ -123,7 +123,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       }
@@ -140,7 +140,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "StaticMethods"
+              "name": "SimpleClass"
             },
             "name": "@static_init",
             "parameters": [],
@@ -173,7 +173,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       }
@@ -190,81 +190,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "StaticMethods"
-            },
-            "name": "constructor",
-            "parameters": [],
-            "returnType": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "body": {
-            "locals": [],
-            "cfg": {
-              "blocks": [
-                {
-                  "id": 0,
-                  "successors": [],
-                  "predecessors": [],
-                  "stmts": [
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "this",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "ThisRef",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "StaticMethods"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "StaticMethods"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
-                      }
-                    },
-                    {
-                      "_": "ReturnVoidStmt"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "StaticMethods"
+              "name": "SimpleClass"
             },
             "name": "noArguments",
             "parameters": [],
@@ -272,9 +198,7 @@
               "_": "NumberType"
             }
           },
-          "modifiers": [
-            "StaticKeyword"
-          ],
+          "modifiers": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -283,7 +207,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "StaticMethods"
+                    "name": "SimpleClass"
                   }
                 }
               }
@@ -303,7 +227,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       },
@@ -312,7 +236,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       }
@@ -336,7 +260,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "StaticMethods"
+              "name": "SimpleClass"
             },
             "name": "singleArgument",
             "parameters": [
@@ -352,9 +276,7 @@
               "_": "NumberType"
             }
           },
-          "modifiers": [
-            "StaticKeyword"
-          ],
+          "modifiers": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -363,7 +285,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "StaticMethods"
+                    "name": "SimpleClass"
                   }
                 }
               },
@@ -378,10 +300,7 @@
               "blocks": [
                 {
                   "id": 0,
-                  "successors": [
-                    1,
-                    2
-                  ],
+                  "successors": [],
                   "predecessors": [],
                   "stmts": [
                     {
@@ -409,7 +328,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       },
@@ -418,71 +337,16 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       }
                     },
                     {
-                      "_": "IfStmt",
-                      "condition": {
-                        "_": "ConditionExpr",
-                        "op": "!=",
-                        "left": {
-                          "_": "Local",
-                          "name": "a",
-                          "type": {
-                            "_": "NumberType"
-                          }
-                        },
-                        "right": {
-                          "_": "Constant",
-                          "value": "1",
-                          "type": {
-                            "_": "NumberType"
-                          }
-                        },
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "id": 1,
-                  "successors": [],
-                  "predecessors": [
-                    0,
-                    2
-                  ],
-                  "stmts": [
-                    {
                       "_": "ReturnStmt",
                       "arg": {
-                        "_": "Constant",
-                        "value": "0",
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "id": 2,
-                  "successors": [
-                    1
-                  ],
-                  "predecessors": [
-                    0
-                  ],
-                  "stmts": [
-                    {
-                      "_": "ReturnStmt",
-                      "arg": {
-                        "_": "Constant",
-                        "value": "100",
+                        "_": "Local",
+                        "name": "a",
                         "type": {
                           "_": "NumberType"
                         }
@@ -497,7 +361,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "StaticMethods"
+              "name": "SimpleClass"
             },
             "name": "manyArguments",
             "parameters": [
@@ -521,22 +385,13 @@
                   "_": "NumberType"
                 },
                 "isOptional": false
-              },
-              {
-                "name": "d",
-                "type": {
-                  "_": "NumberType"
-                },
-                "isOptional": false
               }
             ],
             "returnType": {
               "_": "NumberType"
             }
           },
-          "modifiers": [
-            "StaticKeyword"
-          ],
+          "modifiers": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -545,7 +400,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "StaticMethods"
+                    "name": "SimpleClass"
                   }
                 }
               },
@@ -566,12 +421,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "d",
-                "type": {
-                  "_": "NumberType"
-                }
               }
             ],
             "cfg": {
@@ -580,7 +429,7 @@
                   "id": 0,
                   "successors": [
                     1,
-                    8
+                    6
                   ],
                   "predecessors": [],
                   "stmts": [
@@ -639,28 +488,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "d",
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      },
-                      "right": {
-                        "_": "ParameterRef",
-                        "index": 3,
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
                         "name": "this",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       },
@@ -669,7 +501,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "StaticMethods"
+                            "name": "SimpleClass"
                           }
                         }
                       }
@@ -704,11 +536,11 @@
                   "id": 1,
                   "successors": [
                     2,
-                    7
+                    5
                   ],
                   "predecessors": [
                     0,
-                    8
+                    6
                   ],
                   "stmts": [
                     {
@@ -741,11 +573,11 @@
                   "id": 2,
                   "successors": [
                     3,
-                    6
+                    4
                   ],
                   "predecessors": [
                     1,
-                    7
+                    5
                   ],
                   "stmts": [
                     {
@@ -776,47 +608,10 @@
                 },
                 {
                   "id": 3,
-                  "successors": [
-                    4,
-                    5
-                  ],
-                  "predecessors": [
-                    2,
-                    6
-                  ],
-                  "stmts": [
-                    {
-                      "_": "IfStmt",
-                      "condition": {
-                        "_": "ConditionExpr",
-                        "op": "!=",
-                        "left": {
-                          "_": "Local",
-                          "name": "d",
-                          "type": {
-                            "_": "NumberType"
-                          }
-                        },
-                        "right": {
-                          "_": "Constant",
-                          "value": "4",
-                          "type": {
-                            "_": "NumberType"
-                          }
-                        },
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "id": 4,
                   "successors": [],
                   "predecessors": [
-                    3,
-                    5
+                    2,
+                    4
                   ],
                   "stmts": [
                     {
@@ -832,28 +627,7 @@
                   ]
                 },
                 {
-                  "id": 5,
-                  "successors": [
-                    4
-                  ],
-                  "predecessors": [
-                    3
-                  ],
-                  "stmts": [
-                    {
-                      "_": "ReturnStmt",
-                      "arg": {
-                        "_": "Local",
-                        "name": "d",
-                        "type": {
-                          "_": "NumberType"
-                        }
-                      }
-                    }
-                  ]
-                },
-                {
-                  "id": 6,
+                  "id": 4,
                   "successors": [
                     3
                   ],
@@ -874,7 +648,7 @@
                   ]
                 },
                 {
-                  "id": 7,
+                  "id": 5,
                   "successors": [
                     2
                   ],
@@ -895,7 +669,7 @@
                   ]
                 },
                 {
-                  "id": 8,
+                  "id": 6,
                   "successors": [
                     1
                   ],
@@ -912,6 +686,154 @@
                           "_": "NumberType"
                         }
                       }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "SimpleClass"
+            },
+            "name": "thisArgument",
+            "parameters": [],
+            "returnType": {
+              "_": "UnclearReferenceType",
+              "name": "SimpleClass"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "SimpleClass"
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "SimpleClass"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "SimpleClass"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "SimpleClass"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "SimpleClass"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "SimpleClass"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "SimpleClass"
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
                     }
                   ]
                 }

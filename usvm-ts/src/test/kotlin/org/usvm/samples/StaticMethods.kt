@@ -17,4 +17,28 @@ class StaticMethods : TSMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun testSingleArgStaticMethod() {
+        discoverProperties<TSObject.TSNumber>(
+            methodIdentifier = MethodDescriptor(
+                fileName = "StaticMethods.ts",
+                className = "StaticMethods",
+                methodName = "singleArgument",
+                argumentsNumber = 1
+            )
+        )
+    }
+
+    @Test
+    fun testManyArgsStaticMethod() {
+        discoverProperties<TSObject.TSNumber>(
+            methodIdentifier = MethodDescriptor(
+                fileName = "StaticMethods.ts",
+                className = "StaticMethods",
+                methodName = "manyArguments",
+                argumentsNumber = 4
+            )
+        )
+    }
 }
