@@ -3,6 +3,8 @@ package org.usvm
 import io.ksmt.KAst
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
+import io.ksmt.expr.KBitVec32Value
+import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
@@ -31,3 +33,12 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
         printer.append("undefined")
     }
 }
+
+fun extractBool(expr: UExpr<out USort>): Boolean = when (expr) {
+    expr.ctx.trueExpr -> true
+    expr.ctx.falseExpr -> false
+    else -> error("Expression $expr is not boolean")
+}
+
+fun extractInt(expr: UExpr<out USort>): Int = (expr as? KBitVec32Value)?.intValue ?: 0
+fun extractDouble(expr: UExpr<out USort>): Double = (expr as? KFp64Value)?.value ?: 0.0

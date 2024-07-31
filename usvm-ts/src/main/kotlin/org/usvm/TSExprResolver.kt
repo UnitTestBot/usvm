@@ -57,7 +57,7 @@ class TSExprResolver(
         }
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsArrayLiteral): UExpr<out USort> {
@@ -65,15 +65,15 @@ class TSExprResolver(
     }
 
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsNumberConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsObjectLiteral): UExpr<out USort> {
@@ -145,7 +145,7 @@ class TSExprResolver(
     }
 
     override fun visit(ref: EtsParameterRef): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(ref)
     }
 
     override fun visit(ref: EtsStaticFieldRef): UExpr<out USort> {
@@ -153,7 +153,7 @@ class TSExprResolver(
     }
 
     override fun visit(ref: EtsThis): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return simpleValueResolver.visit(ref)
     }
 }
 
@@ -262,7 +262,8 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(ref: EtsThis): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+        val lValue = resolveLocal(ref)
+        scope.calcOnState { memory.read(lValue) }
     }
 
     fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {

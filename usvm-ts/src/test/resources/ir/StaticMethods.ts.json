@@ -269,8 +269,7 @@
             "name": "noArguments",
             "parameters": [],
             "returnType": {
-              "_": "UnclearReferenceType",
-              "name": "Number"
+              "_": "NumberType"
             }
           },
           "modifiers": [
@@ -344,13 +343,13 @@
               {
                 "name": "a",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 },
                 "isOptional": false
               }
             ],
             "returnType": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [
@@ -371,7 +370,7 @@
               {
                 "name": "a",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -388,14 +387,14 @@
                         "_": "Local",
                         "name": "a",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -427,7 +426,7 @@
                         "_": "Local",
                         "name": "a",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
@@ -447,34 +446,34 @@
               {
                 "name": "a",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 },
                 "isOptional": false
               },
               {
                 "name": "b",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 },
                 "isOptional": false
               },
               {
                 "name": "c",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 },
                 "isOptional": false
               },
               {
                 "name": "d",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 },
                 "isOptional": false
               }
             ],
             "returnType": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [
@@ -495,25 +494,25 @@
               {
                 "name": "a",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
                 "name": "b",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
                 "name": "c",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
                 "name": "d",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -530,14 +529,14 @@
                         "_": "Local",
                         "name": "a",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -547,14 +546,14 @@
                         "_": "Local",
                         "name": "b",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 1,
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -564,14 +563,14 @@
                         "_": "Local",
                         "name": "c",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 2,
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -581,14 +580,14 @@
                         "_": "Local",
                         "name": "d",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 3,
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     },
@@ -620,7 +619,7 @@
                         "_": "Local",
                         "name": "d",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
