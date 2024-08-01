@@ -177,6 +177,9 @@ fun UReadOnlyMemory<*>.readString(ref: UHeapRef): UStringExpr =
 fun <Type> UWritableMemory<Type>.allocateStringLiteral(stringType: Type, string: String): UConcreteHeapRef =
     this.allocateStringExpr(stringType, ctx.mkStringLiteral(string))
 
+fun <Type> UWritableMemory<Type>.copyString(stringType: Type, ref: UHeapRef): UConcreteHeapRef =
+    this.allocateStringExpr(stringType, readString(ref))
+
 fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateInternedStringLiteral(
     ctx: UContext<USizeSort>,
     type: Type,

@@ -259,4 +259,10 @@ data class UMachineOptions(
      * Limit loop iterations.
      * */
     val loopIterationLimit: Int? = null,
+    /**
+     * If false, invokes code of String class as-is; this is precise but might be inefficient.
+     * If true, models string operations; this is efficient, but might cause loss of precision.
+     */
+    // TODO: for now, this option is java-specific. Move it to relevant class?
+    val useStringsApproximation: Boolean = true,
 )

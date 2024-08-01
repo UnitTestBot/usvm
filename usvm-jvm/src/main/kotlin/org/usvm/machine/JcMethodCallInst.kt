@@ -11,6 +11,8 @@ import org.jacodb.impl.cfg.JcInstLocationImpl
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.machine.interpreter.JcExprResolver
+import org.usvm.machine.interpreter.JcStepScope
 
 /**
  * An interface for instructions that replace or surround some [originalInst].
@@ -101,4 +103,22 @@ data class JcDynamicMethodCallInst(
     override val location: JcInstLocation = returnSite.location
     override val method: JcMethod = dynamicCall.method.method
     override val originalInst: JcInst = returnSite
+}
+
+/**
+ * An auxiliary instruction which calls [action] and passes control to [returnSite].
+ */
+data class JcApproximatedReturnSiteInst(
+    val returnSite: JcInst,
+    val action: (JcStepScope, JcExprResolver) -> Unit
+): JcTransparentInstruction, JcInst {
+    override val originalInst: JcInst
+        get() = returnSite
+    override val location: JcInstLocation
+        get() = returnSite.location
+    override val operands: List<JcExpr>
+        get() = emptyList()
+
+    override fun <T> accept(visitor: JcInstVisitor<T>): T =
+        error("Auxiliary instruction")
 }

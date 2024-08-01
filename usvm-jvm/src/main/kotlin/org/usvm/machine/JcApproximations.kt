@@ -88,6 +88,8 @@ class JcMethodApproximationResolver(
     private val usvmApiSymbolicMap by lazy { ctx.cp.findClassOrNull<SymbolicMap<*, *>>() }
     private val usvmApiSymbolicIdentityMap by lazy { ctx.cp.findClassOrNull<SymbolicIdentityMap<*, *>>() }
 
+    private val stringApproximations by lazy { JcStringApproximations(ctx) }
+
     fun approximate(scope: JcStepScope, exprResolver: JcExprResolver, callJcInst: JcMethodCall): Boolean = try {
         this.currentScope = scope
         this.currentExprResolver = exprResolver
@@ -127,6 +129,10 @@ class JcMethodApproximationResolver(
 
         if (method.enclosingClass == ctx.cp.objectClass) {
             if (approximateObjectVirtualMethod(methodCall)) return true
+        }
+
+        if (method.enclosingClass == ctx.stringType.jcClass && ctx.useStringsApproximation) {
+            if (approximateStringMethod(methodCall)) return true
         }
 
         if (method.enclosingClass == ctx.classType.jcClass) {
@@ -248,6 +254,9 @@ class JcMethodApproximationResolver(
 
         return false
     }
+
+    private fun approximateStringMethod(methodCall: JcMethodCall): Boolean =
+        stringApproximations.approximateStringOperation(scope, exprResolver, methodCall)
 
     private fun approximateUnsafeVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         // Array offset is usually the same on various JVM
