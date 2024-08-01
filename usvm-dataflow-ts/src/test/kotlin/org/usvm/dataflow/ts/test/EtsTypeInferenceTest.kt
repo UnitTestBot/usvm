@@ -24,6 +24,7 @@ class EtsTypeInferenceTest {
     fun `test type inference on microphone`() {
         val name = "microphone_ctor"
         val arkFile = load("ir/$name.ts.json")
+        // val arkFile = load("abcir/$name.abc.json")
         val graph = EtsApplicationGraphImpl(arkFile)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 

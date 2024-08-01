@@ -153,7 +153,7 @@ class TypeInferenceManager(
                 .asSequence()
                 .filter { (method, _) -> method in cls.methods }
                 .mapNotNull { (_, facts) -> facts.types[AccessPathBase.This] }
-                .reduce { acc, type ->
+                .reduceOrNull { acc, type ->
                     val intersection = acc.intersect(type)
 
                     if (intersection == null) {
@@ -161,7 +161,7 @@ class TypeInferenceManager(
                     }
 
                     intersection ?: acc
-                }
+                } ?: return@associateWith null
             logger.info {
                 buildString {
                     appendLine("Combined backward type for This in class '${cls.name}': $combinedBackwardType")
