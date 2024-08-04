@@ -110,9 +110,9 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
 ) : U1DUpdatesTranslator<USizeSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<USizeSort, Sort>>,
-        update: URangedUpdateNode<*, *, UExpr<USizeSort>, Sort>
+        update: URangedUpdateNode<*, *, UExpr<USizeSort>, *, Sort>
     ): KExpr<KArraySort<USizeSort, Sort>> {
-        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *>) {
+        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *>) {
             "Unexpected array ranged operation: ${update.adapter}"
         }
 
@@ -121,20 +121,20 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
             previous,
             update,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, Sort, *>, Any, Sort>,
-            update.adapter as USymbolicArrayCopyAdapter<Any, UExpr<USizeSort>, USizeSort>
+            update.adapter as USymbolicArrayCopyAdapter<Any, UExpr<USizeSort>, USizeSort, *>
         )
     }
 
     private fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> KContext.translateArrayCopy(
         previous: KExpr<KArraySort<USizeSort, Sort>>,
-        update: URangedUpdateNode<*, *, UExpr<USizeSort>, Sort>,
+        update: URangedUpdateNode<*, *, UExpr<USizeSort>, *, Sort>,
         sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicArrayCopyAdapter<SrcKey, UExpr<USizeSort>, USizeSort>
+        adapter: USymbolicArrayCopyAdapter<SrcKey, UExpr<USizeSort>, USizeSort, *>
     ): KExpr<KArraySort<USizeSort, Sort>> {
         val key = mkFreshConst("k", previous.sort.domain)
 
         val keyInfo = sourceCollection.collectionId.keyInfo()
-        val convertedKey = keyInfo.mapKey(adapter.convert(key, composer = null), exprTranslator)
+        val convertedKey = keyInfo.mapKey(adapter.convertKey(key, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key, composer = null).translated // already includes guard
 
@@ -153,9 +153,9 @@ private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
 ) : U2DUpdatesTranslator<UAddressSort, USizeSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>,
-        update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, Sort>
+        update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, *, Sort>
     ): KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
-        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *>) {
+        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *>) {
             "Unexpected array ranged operation: ${update.adapter}"
         }
 
@@ -164,21 +164,21 @@ private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
             previous,
             update,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, Sort, *>, Any, Sort>,
-            update.adapter as USymbolicArrayCopyAdapter<Any, USymbolicArrayIndex<USizeSort>, USizeSort>
+            update.adapter as USymbolicArrayCopyAdapter<Any, USymbolicArrayIndex<USizeSort>, USizeSort, *>
         )
     }
 
     private fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> KContext.translateArrayCopy(
         previous: KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>,
-        update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, Sort>,
+        update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, *, Sort>,
         sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicArrayCopyAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, USizeSort>
+        adapter: USymbolicArrayCopyAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, USizeSort, *>
     ): KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
         val key1 = mkFreshConst("k1", previous.sort.domain0)
         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
         val keyInfo = sourceCollection.collectionId.keyInfo()
-        val convertedKey = keyInfo.mapKey(adapter.convert(key1 to key2, composer = null), exprTranslator)
+        val convertedKey = keyInfo.mapKey(adapter.convertKey(key1 to key2, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key1 to key2, composer = null).translated // already includes guard
 

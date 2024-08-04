@@ -165,7 +165,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
             val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
             val dstCollection = region.getAllocatedMap(dstId)
 
-            val adapter = UAllocatedToAllocatedSymbolicMapMergeAdapter(srcKeys)
+            val adapter = UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort, ValueSort>(srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedMap(dstId, newDstCollection)
         },
@@ -175,7 +175,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
             val srcKeys = srcKeySet.allocatedSetElements(srcConcrete.address)
 
             val dstCollection = getInputMap()
-            val adapter = UAllocatedToInputSymbolicMapMergeAdapter(dstSymbolic, srcKeys)
+            val adapter = UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort, ValueSort>(dstSymbolic, srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInputMap(newDstCollection)
         },
@@ -186,7 +186,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
             val dstId = UAllocatedMapId(keySort, valueSort, mapType, keyInfo, dstConcrete.address)
             val dstCollection = region.getAllocatedMap(dstId)
 
-            val adapter = UInputToAllocatedSymbolicMapMergeAdapter(srcSymbolic, srcKeys)
+            val adapter = UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort, ValueSort>(srcSymbolic, srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateAllocatedMap(dstId, newDstCollection)
         },
@@ -196,7 +196,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
             val dstCollection = getInputMap()
 
-            val adapter = UInputToInputSymbolicMapMergeAdapter(srcSymbolic, dstSymbolic, srcKeys)
+            val adapter = UInputToInputSymbolicMapMergeAdapter<MapType, KeySort, ValueSort>(srcSymbolic, dstSymbolic, srcKeys)
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
             region.updateInputMap(newDstCollection)
         },

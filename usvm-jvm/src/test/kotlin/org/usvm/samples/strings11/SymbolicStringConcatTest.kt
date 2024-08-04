@@ -7,7 +7,7 @@ import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-class StringConcatTest : JavaMethodTestRunner() {
+class SymbolicStringConcatTest : JavaMethodTestRunner() {
     @Test
     @Disabled("Expected exactly 1 executions, but 130 found")
     fun testConcatArguments() {

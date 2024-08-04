@@ -28,7 +28,7 @@ class USymbolicSetElementsCollector<Element> private constructor()
 
         when (update) {
             is UPinpointUpdateNode -> previous.elements.add(update.key)
-            is URangedUpdateNode<*, *, Element, UBoolSort> -> {
+            is URangedUpdateNode<*, *, Element, *, UBoolSort> -> {
                 val unionAdapter = update.adapter
                 check(unionAdapter is USymbolicSetUnionElements<*>) {
                     "Unexpected adapter: $unionAdapter"

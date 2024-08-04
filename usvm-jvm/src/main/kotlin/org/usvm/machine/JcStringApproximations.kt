@@ -122,6 +122,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("<init>([BB)V") {
+                
                 TODO()
             }
             dispatchMethod("<init>([BI)V") {
@@ -188,15 +189,15 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("coder()B") {
+                // TODO: other coders?
                 scope.calcOnState { ctx.mkBv(0, ctx.byteSort) }
             }
             dispatchMethod("compare(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)I") {
                 TODO()
             }
-            dispatchMethod("compareTo(Ljava/lang/Object;)I") {
-                TODO()
-            }
+            // compareTo(Object) is not approximated
             dispatchMethod("compareTo(Ljava/lang/String;)I") {
+                scope.calcOnState {  }
                 TODO()
             }
             dispatchMethod("compareToIgnoreCase(Ljava/lang/String;)I") {
@@ -225,9 +226,7 @@ class JcStringApproximations(private val ctx: JcContext) {
             dispatchMethod("decodeASCII([BI[CII)I") {
                 TODO()
             }
-            dispatchMethod("describeConstable()Ljava/util/Optional;") {
-                TODO()
-            }
+            // describeConstable() is not approximated
             dispatchMethod("endsWith(Ljava/lang/String;)Z") {
                 TODO()
             }
@@ -346,12 +345,6 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("newStringUTF8NoRepl([BII)Ljava/lang/String;") {
-                TODO()
-            }
-            dispatchMethod("notify()V") {
-                TODO()
-            }
-            dispatchMethod("notifyAll()V") {
                 TODO()
             }
             dispatchMethod("offsetByCodePoints(II)I") {
@@ -483,6 +476,11 @@ class JcStringApproximations(private val ctx: JcContext) {
         }
     }
 }
+
+// 1. Exceptions
+// 2. Lt -> cmp
+// 3. adapters: byte to char, char to int, etc.
+// 4. string to collection
 
 
 /**

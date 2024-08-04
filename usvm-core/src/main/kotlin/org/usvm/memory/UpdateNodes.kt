@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UExpr
@@ -8,6 +9,7 @@ import org.usvm.compose
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.uctx
+import org.usvm.util.ProxyList
 
 /**
  * Represents the result of memory write operation.
@@ -125,22 +127,22 @@ class UPinpointUpdateNode<Key, Sort : USort>(
 }
 
 /**
- * Represents a synchronous overwriting the range of addresses [[fromKey] : [toKey]]
- * with values from symbolic collection [sourceCollection] read from range
- * of addresses [[adapter].convert([fromKey]) : [adapter].convert([toKey])]
+ * Represents a synchronous overwriting the range of elements
+ * with values from symbolic collection [sourceCollection].
+ * Which range is overwritten and with which values is specified by [adapter].
  */
-class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey, DstKey, Sort : USort>(
-    val sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-    val adapter: USymbolicCollectionAdapter<SrcKey, DstKey>,
+class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, DstKey, SrcSort : USort, DstSort : USort>(
+    val sourceCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+    val adapter: USymbolicCollectionAdapter<SrcKey, DstKey, SrcSort, DstSort>,
     override val guard: UBoolExpr,
-) : UUpdateNode<DstKey, Sort> {
+) : UUpdateNode<DstKey, DstSort> {
 
     override fun includesConcretely(
         key: DstKey,
         precondition: UBoolExpr,
     ): Boolean =
         adapter.includesConcretely(key) &&
-            (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
+                (guard == guard.ctx.trueExpr || precondition == guard) // TODO: some optimizations here?
     // in fact, we can check less strict formulae: precondition _implies_ guard, but this is too complex to compute.
 
 
@@ -148,19 +150,23 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         guard.ctx.mkAnd(adapter.includesSymbolically(key, composer), composer.compose(guard))
 
     override fun isIncludedByUpdateConcretely(
-        update: UUpdateNode<DstKey, Sort>,
+        update: UUpdateNode<DstKey, DstSort>,
     ): Boolean = adapter.isIncludedByUpdateConcretely(update, guard)
 
-    override fun value(key: DstKey, composer: UComposer<*, *>?): UExpr<Sort> =
-        sourceCollection.read(adapter.convert(key, composer), composer)
+    override fun value(key: DstKey, composer: UComposer<*, *>?): UExpr<DstSort> {
+        val srcKey = adapter.convertKey(key, composer)
+        val srcValue = sourceCollection.read(srcKey, composer)
+        return adapter.convertValue(srcValue)
+    }
+
 
     override fun split(
         key: DstKey,
-        predicate: (UExpr<Sort>) -> Boolean,
-        matchingWrites: MutableList<GuardedExpr<UExpr<Sort>>>,
+        predicate: (UExpr<DstSort>) -> Boolean,
+        matchingWrites: MutableList<GuardedExpr<UExpr<DstSort>>>,
         guardBuilder: GuardBuilder,
         composer: UComposer<*, *>?,
-    ): UUpdateNode<DstKey, Sort>? {
+    ): UUpdateNode<DstKey, DstSort>? {
         val ctx = guardBuilder.nonMatchingUpdatesGuard.ctx
         val nodeIncludesKey = includesSymbolically(key, composer) // contains guard
         val nextGuard = guardBuilder.guarded(nodeIncludesKey)
@@ -171,6 +177,15 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         }
 
         val nextGuardBuilder = GuardBuilder(nextGuard)
+        val sourcePredicate = { srcValue: UExpr<SrcSort> -> predicate(adapter.convertValue(srcValue)) }
+        val proxyWrites = ProxyList(matchingWrites) { gval: GuardedExpr<UExpr<SrcSort>> ->
+            val convertedExpr = adapter.convertValue(gval.expr)
+            if (convertedExpr === gval.expr) {
+                gval.uncheckedCast()
+            } else {
+                GuardedExpr(convertedExpr, gval.guard)
+            }
+        }
 
         /**
          * Here's the explanation of the [split] function. Consider these symbolic collections and updates:
@@ -197,7 +212,13 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
          * it's a [nextGuardBuilder].
          */
         val splitCollection =
-            sourceCollection.split(adapter.convert(key, composer), predicate, matchingWrites, nextGuardBuilder, composer) // ???
+            sourceCollection.split(
+                adapter.convertKey(key, composer),
+                sourcePredicate,
+                proxyWrites,
+                nextGuardBuilder,
+                composer
+            )
 
         val resultUpdateNode = if (splitCollection === sourceCollection) {
             this
@@ -220,7 +241,7 @@ class URangedUpdateNode<CollectionId : USymbolicCollectionId<SrcKey, Sort, Colle
         key: DstKey?,
         composer: UComposer<*, *>,
     ) {
-        val convertedKey = if (key == null) null else adapter.convert(key, composer)
+        val convertedKey = if (key == null) null else adapter.convertKey(key, composer)
         sourceCollection.applyTo(memory, convertedKey, composer)
         adapter.applyTo(
             memory,

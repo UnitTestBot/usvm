@@ -2,16 +2,23 @@ package org.usvm.memory
 
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
+import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.regions.Region
 
 /**
  * Redirects reads from one collection into another. Used in [URangedUpdateNode].
  */
-interface USymbolicCollectionAdapter<SrcKey, DstKey> {
+interface USymbolicCollectionAdapter<SrcKey, DstKey, SrcSort: USort, DstSort: USort> {
     /**
      * Converts destination memory key into source memory key.
      */
-    fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
+    fun convertKey(key: DstKey, composer: UComposer<*, *>?): SrcKey
+
+    /**
+     * Converts value stored in source collection to value of destination sort.
+     */
+    fun convertValue(value: UExpr<SrcSort>): UExpr<DstSort>
 
     /**
      * @return region in the destination collection covered by the adapted collection.

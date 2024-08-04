@@ -25,16 +25,16 @@ import org.usvm.withSizeSort
  * For instance, when we copy array slice [i : i + len] to destination memory slice [j : j + len],
  * we emulate it by memorizing the source memory updates as-is, but read the destination memory by
  * 'redirecting' the index k to k + j - i of the source memory.
- * This conversion is done by [convert].
+ * This conversion is done by [convertKey].
  * Do not be confused: it converts [DstKey] to [SrcKey] (not vice-versa), as we use it when we
  * read from destination buffer index to source memory.
  */
-abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
+abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, Sort: USort>(
     val srcFrom: SrcKey,
     val dstFrom: DstKey,
     val dstTo: DstKey,
     private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
-) : USymbolicCollectionAdapter<SrcKey, DstKey> {
+) : USymbolicCollectionAdapter<SrcKey, DstKey, Sort, Sort> {
 
     abstract val ctx: UContext<USizeSort>
 
@@ -45,7 +45,10 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
     /**
      * Converts source memory key into destination memory key
      */
-    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
+    abstract override fun convertKey(key: DstKey, composer: UComposer<*, *>?): SrcKey
+
+    override fun convertValue(value: UExpr<Sort>): UExpr<Sort> =
+        value
 
     protected fun convertIndex(
         idx: UExpr<USizeSort>,
@@ -95,9 +98,9 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
         append("] <- ")
         append(collection)
         append("[")
-        append(convert(dstFrom, composer = null))
+        append(convertKey(dstFrom, composer = null))
         append("..")
-        append(convert(dstTo, composer = null))
+        append(convertKey(dstTo, composer = null))
         append("]")
     }
 
@@ -114,16 +117,16 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort>(
     }
 }
 
-class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort>(
+class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort, Sort: USort>(
     srcFrom: UExpr<USizeSort>, dstFrom: UExpr<USizeSort>, dstTo: UExpr<USizeSort>,
     keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, UExpr<USizeSort>, USizeSort>(
+) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, UExpr<USizeSort>, USizeSort, Sort>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.uctx.withSizeSort()
 
-    override fun convert(key: UExpr<USizeSort>, composer: UComposer<*, *>?): UExpr<USizeSort> =
+    override fun convertKey(key: UExpr<USizeSort>, composer: UComposer<*, *>?): UExpr<USizeSort> =
         convertIndex(key, composer.compose(dstFrom), composer.compose(srcFrom))
 
     override fun <Type> applyTo(
@@ -150,17 +153,17 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort>(
     }
 }
 
-class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort>(
+class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort, Sort: USort>(
     srcFrom: UExpr<USizeSort>,
     dstFrom: USymbolicArrayIndex<USizeSort>, dstTo: USymbolicArrayIndex<USizeSort>,
     keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort>(
+) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, Sort>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.uctx.withSizeSort()
 
-    override fun convert(key: USymbolicArrayIndex<USizeSort>, composer: UComposer<*, *>?): UExpr<USizeSort> =
+    override fun convertKey(key: USymbolicArrayIndex<USizeSort>, composer: UComposer<*, *>?): UExpr<USizeSort> =
         convertIndex(key.second, composer.compose(dstFrom.second), composer.compose(srcFrom))
 
     override fun <Type> applyTo(
@@ -187,16 +190,16 @@ class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort>(
     }
 }
 
-class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort>(
+class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort, Sort: USort>(
     srcFrom: USymbolicArrayIndex<USizeSort>, dstFrom: UExpr<USizeSort>, dstTo: UExpr<USizeSort>,
     keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, UExpr<USizeSort>, USizeSort>(
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, UExpr<USizeSort>, USizeSort, Sort>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
     override val ctx: UContext<USizeSort>
         get() = dstFrom.uctx.withSizeSort()
 
-    override fun convert(key: UExpr<USizeSort>, composer: UComposer<*, *>?): USymbolicArrayIndex<USizeSort> =
+    override fun convertKey(key: UExpr<USizeSort>, composer: UComposer<*, *>?): USymbolicArrayIndex<USizeSort> =
         composer.compose(srcFrom.first) to
                 convertIndex(key, composer.compose(dstFrom), composer.compose(srcFrom.second))
 
@@ -224,17 +227,17 @@ class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort>(
     }
 }
 
-class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort>(
+class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort, Sort: USort>(
     srcFrom: USymbolicArrayIndex<USizeSort>,
     dstFrom: USymbolicArrayIndex<USizeSort>, dstTo: USymbolicArrayIndex<USizeSort>,
     keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort>(
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, Sort>(
     srcFrom, dstFrom, dstTo, keyInfo
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.second.uctx.withSizeSort()
 
-    override fun convert(key: USymbolicArrayIndex<USizeSort>, composer: UComposer<*, *>?): USymbolicArrayIndex<USizeSort> =
+    override fun convertKey(key: USymbolicArrayIndex<USizeSort>, composer: UComposer<*, *>?): USymbolicArrayIndex<USizeSort> =
         composer.compose(srcFrom.first) to
                 convertIndex(key.second, composer.compose(dstFrom.second), composer.compose(srcFrom.second))
 

@@ -545,6 +545,9 @@ class JcExprResolver(
                 if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
 
                 val sort = ctx.typeToSort(field.type)
+                if (ctx.useStringsApproximation && field == ctx.stringValueField) {
+                    TODO("string value field modeling")
+                }
                 return UFieldLValue(sort, instanceRef, field.field)
             }
 
