@@ -27,13 +27,14 @@ import org.usvm.state.localIdx
 class TSTestResolver {
 
     fun resolve(method: EtsMethod, state: TSState): TSTest = with(state.ctx) {
+        val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
-                val returnValue = resolveExpr(methodResult.value, method.returnType)
+                val returnValue = resolveExpr(model.eval(methodResult.value), method.returnType)
                 val params = method.parameters.mapIndexed { idx, param ->
                     val registerIdx = method.localIdx(idx)
                     val lValue = URegisterStackLValue(typeToSort(param.type), registerIdx)
-                    val expr = state.memory.read(lValue)
+                    val expr = model.read(lValue)
                     resolveExpr(expr, param.type)
                 }
 

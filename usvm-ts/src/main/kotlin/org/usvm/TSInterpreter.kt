@@ -75,7 +75,23 @@ class TSInterpreter(
     }
 
     private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
-        TODO()
+        val exprResolver = exprResolverWithScope(scope)
+
+        val boolExpr = exprResolver
+            .resolveTSExpr(stmt.condition)
+            ?.asExpr(ctx.boolSort)
+            ?: return
+
+        val succs = applicationGraph.successors(stmt).take(2).toList()
+        val (posStmt, negStmt) = succs[0] to succs[1]
+
+        scope.forkWithBlackList(
+            boolExpr,
+            posStmt,
+            negStmt,
+            blockOnTrueState = { newStmt(posStmt) },
+            blockOnFalseState = { newStmt(negStmt) }
+        )
     }
 
     private fun visitReturnStmt(scope: TSStepScope, stmt: EtsReturnStmt) {
@@ -138,11 +154,15 @@ class TSInterpreter(
 
     private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
         when (local) {
-            is EtsLocal -> localVarToIdx
-                .getOrPut(method) { mutableMapOf() }
-                .run {
-                    getOrPut(local.name) { method.parametersWithThisCount + size }
-                }
+            is EtsLocal -> {
+                // See https://github.com/UnitTestBot/usvm/issues/202
+                if (local.name == "this") 0 else
+                localVarToIdx
+                    .getOrPut(method) { mutableMapOf() }
+                    .run {
+                        getOrPut(local.name) { method.parametersWithThisCount + size }
+                    }
+            }
 
             is EtsThis -> 0
             is EtsParameterRef -> method.localIdx(local.index)
