@@ -210,6 +210,34 @@ class BackwardFlowFunction(
                     result += TypedVariable(rhv.base, type).withTypeGuards(current)
                 }
             }
+
+            val lhv = when (val r = current.lhv) {
+                is EtsRef -> r.toPath()
+                is EtsLValue -> r.toPath()
+                else -> {
+                // logger.info { "TODO backward assign zero: $current" }
+                null
+            }
+            }
+
+            if (lhv != null) {
+                if (lhv.accesses.isEmpty()) {
+                    // result += TypedVariable(lhv.base, EtsTypeFact.UnknownEtsTypeFact)
+                } else {
+                    val accessor = lhv.accesses.single()
+
+                    if (accessor !is FieldAccessor) {
+                        TODO("$accessor")
+                    }
+
+                    val type = EtsTypeFact.ObjectEtsTypeFact(
+                        cls = null,
+                        properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
+                    )
+
+                    result += TypedVariable(lhv.base, type).withTypeGuards(current)
+                }
+            }
         }
 
         return result

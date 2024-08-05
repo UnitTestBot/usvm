@@ -207,26 +207,24 @@ class EtsTypeInferenceTest {
             Assertions.assertTrue("length" in settingsProps)
         }
 
-        val objects = inferred.values
-            .asSequence()
-            .flatMap { it.types.values.asSequence() }
-            .filterIsInstance<EtsTypeFact.ObjectEtsTypeFact>()
-            .toSet()
-        println()
-        println("Objects: (${objects.size})")
-        for (obj in objects) {
-            println("obj = $obj")
-        }
-
-        println()
-        println("Classes: (${arkFile.classes.size})")
-        for (clazz in arkFile.classes) {
-            println("clazz '${clazz.name}'")
-            println("  ${clazz.fields.size} fields: ${clazz.fields.map { it.name }}")
-            println("  ${clazz.methods.size} methods: ${clazz.methods.map { it.name }}")
-        }
-
-        // val allMethods =
+        // val objects = inferred.values
+        //     .asSequence()
+        //     .flatMap { it.types.values.asSequence() }
+        //     .filterIsInstance<EtsTypeFact.ObjectEtsTypeFact>()
+        //     .toSet()
+        // println()
+        // println("Objects: (${objects.size})")
+        // for (obj in objects) {
+        //     println("obj = $obj")
+        // }
+        //
+        // println()
+        // println("Classes: (${arkFile.classes.size})")
+        // for (clazz in arkFile.classes) {
+        //     println("clazz '${clazz.name}'")
+        //     println("  ${clazz.fields.size} fields: ${clazz.fields.map { it.name }}")
+        //     println("  ${clazz.methods.size} methods: ${clazz.methods.map { it.name }}")
+        // }
     }
 
     @Test

@@ -135,9 +135,9 @@ class ForwardFlowFunction(
             }
 
             // Note: do not handle cast in forward ff!
-            is EtsCastExpr -> {
-                result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
-            }
+            // is EtsCastExpr -> {
+            //     result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
+            // }
 
             else -> {
                 // logger.info { "TODO: forward assign $current" }
@@ -152,15 +152,15 @@ class ForwardFlowFunction(
 
         val lhv = current.lhv.toPath()
 
-        // val rhv = when (val r = current.rhv) {
-        //     is EtsRef -> r.toPath()
-        //     is EtsLValue -> r.toPath()
-        //     else -> {
-        //         // logger.info { "TODO forward assign: $current" }
-        //         null
-        //     }
-        // }
-        val rhv = current.rhv.toPathOrNull()
+        val rhv = when (val r = current.rhv) {
+            is EtsRef -> r.toPath()
+            is EtsLValue -> r.toPath()
+            is EtsCastExpr -> r.arg.toPath()
+            else -> {
+                // logger.info { "TODO forward assign: $current" }
+                null
+            }
+        }
 
         // Pass-through completely unrelated facts:
         if (fact.variable.base != lhv.base && fact.variable.base != rhv?.base) {
@@ -172,14 +172,29 @@ class ForwardFlowFunction(
             return emptyList()
         }
 
-        // Case `x := y`
+        // Case `x := y [as T]`
         if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
             if (lhv.base == fact.variable.base) return emptyList()
             check(fact.variable.base == rhv.base)
 
             val path = AccessPath(lhv.base, fact.variable.accesses)
-            return listOf(fact, TypedVariable(path, fact.type))
+
+            val newFact = if (current.rhv is EtsCastExpr && fact.variable.accesses.isEmpty()) {
+                TypedVariable(path, EtsTypeFact.from(current.rhv.type).intersect(fact.type) ?: fact.type)
+            } else {
+                TypedVariable(path, fact.type)
+            }
+            return listOf(fact, newFact)
         }
+
+        // // Case `x := y`
+        // if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
+        //     if (lhv.base == fact.variable.base) return emptyList()
+        //     check(fact.variable.base == rhv.base)
+        //
+        //     val path = AccessPath(lhv.base, fact.variable.accesses)
+        //     return listOf(fact, TypedVariable(path, fact.type))
+        // }
 
         // Case `x := y.f`
         if (lhv.accesses.isEmpty()) {

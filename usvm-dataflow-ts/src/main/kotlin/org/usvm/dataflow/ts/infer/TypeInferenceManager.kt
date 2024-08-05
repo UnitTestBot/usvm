@@ -144,7 +144,6 @@ class TypeInferenceManager(
             }
         }
 
-        if (false) {
             val allClasses = methodTypeScheme.keys
                 .map { it.enclosingClass }
                 .distinct()
@@ -152,7 +151,7 @@ class TypeInferenceManager(
             val combinedThis = allClasses.associateWith { cls ->
                 val combinedBackwardType = methodTypeScheme
                     .asSequence()
-                    .filter { (method, _) -> method in cls.methods }
+                    .filter { (method, _) -> method in (cls.methods + cls.ctor) }
                     .mapNotNull { (_, facts) -> facts.types[AccessPathBase.This] }
                     .reduceOrNull { acc, type ->
                         val intersection = acc.intersect(type)
@@ -162,14 +161,18 @@ class TypeInferenceManager(
                         }
 
                         intersection ?: acc
-                    } ?: return@associateWith null
+                    }
                 logger.info {
                     buildString {
                         appendLine("Combined backward type for This in class '${cls.name}': $combinedBackwardType")
                     }
                 }
 
-                val typeFactsOnThis = forwardSummaries
+                if (combinedBackwardType == null) {
+                    return@associateWith null
+                }
+
+                val typeFactsOnThisMethods = forwardSummaries
                     .asSequence()
                     .filter { (method, _) -> method in cls.methods }
                     .flatMap { (_, summaries) -> summaries.asSequence() }
@@ -177,11 +180,98 @@ class TypeInferenceManager(
                     .filter { it.variable.base is AccessPathBase.This }
                     .toList()
 
+                val typeFactsOnThisCtor = forwardSummaries
+                    .asSequence()
+                    .filter { (method, _) -> method == cls.ctor }
+                    .flatMap { (_, summaries) -> summaries.asSequence() }
+                    .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
+                    .filter { it.variable.base is AccessPathBase.This }
+                    .toList()
+
+                val typeFactsOnThis = typeFactsOnThisMethods + typeFactsOnThisCtor
+
                 val propertyRefinements = typeFactsOnThis
                     .groupBy({ it.variable.accesses }, { it.type })
                     .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
-                var refined = combinedBackwardType
+                var refined: EtsTypeFact = combinedBackwardType
+                for ((property, propertyType) in propertyRefinements) {
+                    refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
+                        System.err.println("Empty intersection type: $combinedBackwardType[$property] & $propertyType")
+                        refined
+                    }
+                }
+
+                refined
+            }
+            logger.info {
+                buildString {
+                    appendLine("Combined and refined types for This:")
+                    for ((cls, type) in combinedThis) {
+                        appendLine("Class '${cls.name}': $type")
+                    }
+                }
+            }
+
+        backwardRunner.let { }
+        forwardRunner.let { }
+
+        refinedTypes
+    }
+
+    private fun extracted(methodTypeScheme: Map<EtsMethod, EtsMethodTypeFacts>) {
+        if (true) {
+            val allClasses = methodTypeScheme.keys
+                .map { it.enclosingClass }
+                .distinct()
+                .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.name == sig.name }!! }
+            val combinedThis = allClasses.associateWith { cls ->
+                val combinedBackwardType = methodTypeScheme
+                    .asSequence()
+                    .filter { (method, _) -> method in (cls.methods + cls.ctor) }
+                    .mapNotNull { (_, facts) -> facts.types[AccessPathBase.This] }
+                    .reduceOrNull { acc, type ->
+                        val intersection = acc.intersect(type)
+
+                        if (intersection == null) {
+                            System.err.println("Empty intersection type: $acc & $type")
+                        }
+
+                        intersection ?: acc
+                    }
+                logger.info {
+                    buildString {
+                        appendLine("Combined backward type for This in class '${cls.name}': $combinedBackwardType")
+                    }
+                }
+
+                if (combinedBackwardType == null) {
+                    return@associateWith null
+                }
+
+                val typeFactsOnThisMethods = forwardSummaries
+                    .asSequence()
+                    .filter { (method, _) -> method in cls.methods }
+                    .flatMap { (_, summaries) -> summaries.asSequence() }
+                    .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
+                    .filter { it.variable.base is AccessPathBase.This }
+                    .toList()
+
+                val typeFactsOnThisCtor = forwardSummaries
+                    .asSequence()
+                    .filter { (method, _) -> method == cls.ctor }
+                    .flatMap { (_, summaries) -> summaries.asSequence() }
+                    .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
+                    .filter { it.variable.base is AccessPathBase.This }
+                    .toList()
+
+                val typeFactsOnThis = typeFactsOnThisMethods + typeFactsOnThisCtor
+
+                val propertyRefinements = typeFactsOnThis
+                    .groupBy({ it.variable.accesses }, { it.type })
+                    .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+
+                var refined: EtsTypeFact = combinedBackwardType
                 for ((property, propertyType) in propertyRefinements) {
                     refined = refined.refineProperty(property, propertyType) ?: run {
                         System.err.println("Empty intersection type: $combinedBackwardType[$property] & $propertyType")
@@ -200,11 +290,6 @@ class TypeInferenceManager(
                 }
             }
         }
-
-        backwardRunner.let { }
-        forwardRunner.let { }
-
-        refinedTypes
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =
@@ -308,12 +393,14 @@ class TypeInferenceManager(
                     // TODO: handle 'type=union' by exploding it into multiple ObjectFacts (later combined with union) with class names from union.
                     if (type is EtsTypeFact.UnionEtsTypeFact) {
                         return type.types.map {
-                            // Note: properties of type from union (`it`) are lost here.
-                            EtsTypeFact.ObjectEtsTypeFact((it as EtsTypeFact.ObjectEtsTypeFact).cls, properties)
+                            refineProperty(property, it) ?: return null
                         }.reduce { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
                     }
 
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
+                        // todo: hack
+                        if (type is EtsTypeFact.AnyEtsTypeFact) return this
+
                         TODO("Unexpected: $this & $type")
                     }
 
