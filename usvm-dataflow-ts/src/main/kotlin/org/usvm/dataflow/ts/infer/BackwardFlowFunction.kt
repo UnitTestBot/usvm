@@ -2,17 +2,16 @@ package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
 import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.ets.base.BinaryOp
 import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBinaryOperation
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsEqExpr
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
-import org.jacodb.ets.base.EtsRelationOperation
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
@@ -78,9 +77,9 @@ class BackwardFlowFunction(
     }
 
     private fun resolveTypeGuard(branch: EtsIfStmt): Pair<AccessPathBase, EtsTypeFact.BasicType>? {
-        val condition = branch.condition as? EtsRelationOperation ?: return null
+        val condition = branch.condition as? EtsEqExpr ?: return null
 
-        if (condition.relop == "==" && condition.right == EtsNumberConstant(0.0)) {
+        if (condition.right == EtsNumberConstant(0.0)) {
             return resolveTypeGuard(condition.left, branch)
         }
 
@@ -95,11 +94,8 @@ class BackwardFlowFunction(
                 resolveTypeGuard(rhv, valueAssignment)
             }
 
-            is EtsBinaryOperation -> {
-                when (rhv.op) {
-                    BinaryOp.In -> resolveTypeGuardFromIn(rhv.left, rhv.right)
-                    else -> null
-                }
+            is EtsInExpr -> {
+                resolveTypeGuardFromIn(rhv.left, rhv.right)
             }
 
             else -> null

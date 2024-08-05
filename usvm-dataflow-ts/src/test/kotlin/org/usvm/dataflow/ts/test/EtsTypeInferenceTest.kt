@@ -132,6 +132,27 @@ class EtsTypeInferenceTest {
     }
 
     @Test
+    fun `test type inference on cast ABC`() {
+        val name = "cast"
+        val arkFile = load("abcir/$name.abc.json")
+        val graph = EtsApplicationGraphImpl(arkFile)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoints = arkFile.classes
+            .flatMap { it.methods }
+            .filter { it.name.startsWith("entrypoint") }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+        manager.analyze(entrypoints)
+    }
+
+    @Test
     fun `test type inference on applications_settings_data SettingsDBHelper`() {
         val arkFile = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
         val graph = EtsApplicationGraphImpl(arkFile)
