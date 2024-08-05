@@ -1,7 +1,6 @@
 package org.usvm.state
 
 import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.model.EtsMethod
 import org.usvm.UExpr
 import org.usvm.USort
 
@@ -23,7 +22,3 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
         newStmt(returnSite)
     }
 }
-
-fun EtsMethod.localIdx(idx: Int) = if (isStatic) idx else idx + 1
-
-inline val EtsMethod.parametersWithThisCount get() = localIdx(parameters.size)

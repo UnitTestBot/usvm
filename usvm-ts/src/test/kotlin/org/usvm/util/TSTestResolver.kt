@@ -22,7 +22,6 @@ import org.usvm.extractInt
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
-import org.usvm.state.localIdx
 
 class TSTestResolver {
 
@@ -32,8 +31,7 @@ class TSTestResolver {
             is TSMethodResult.Success -> {
                 val returnValue = resolveExpr(model.eval(methodResult.value), method.returnType)
                 val params = method.parameters.mapIndexed { idx, param ->
-                    val registerIdx = method.localIdx(idx)
-                    val lValue = URegisterStackLValue(typeToSort(param.type), registerIdx)
+                    val lValue = URegisterStackLValue(typeToSort(param.type), idx)
                     val expr = model.read(lValue)
                     resolveExpr(expr, param.type)
                 }
