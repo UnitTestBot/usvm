@@ -1,10 +1,8 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.kotlin
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
 import com.spbpu.bbfinfrastructure.util.NodeCollector
 import com.spbpu.bbfinfrastructure.util.getAllChildrenNodes
 import org.jetbrains.kotlin.psi.KtConstantExpression
-import org.jetbrains.kotlin.psi.KtNamedFunction
 import java.io.File
 import kotlin.random.Random
 

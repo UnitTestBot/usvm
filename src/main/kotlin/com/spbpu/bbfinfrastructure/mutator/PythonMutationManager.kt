@@ -1,7 +1,7 @@
 package com.spbpu.bbfinfrastructure.mutator
 
 import com.spbpu.bbfinfrastructure.project.suite.PythonTestSuite
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 
 class PythonMutationManager: MutationManager {
@@ -24,7 +24,7 @@ class PythonMutationManager: MutationManager {
         )
         ScoreCardParser.parseAndSaveDiff(
             scorecardsDir = "tmp/scorecards",
-            pathToSources = CompilerArgs.tmpPath,
+            pathToSources = FuzzingConf.tmpPath,
             pathToToolsGroundTruthSarif = "$pathToBenchmarkToFuzz/tools_truth.sarif"
         )
         TODO("Not yet implemented")

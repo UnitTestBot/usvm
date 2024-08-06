@@ -7,7 +7,7 @@ import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.sarif.SarifBuilder
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.util.replaceThis
 import java.io.BufferedReader
@@ -71,16 +71,16 @@ class JavaTestSuite: TestSuite {
     ) {
         val sarifBuilder = SarifBuilder()
         val remoteToLocalPaths = mutableMapOf<String, String>()
-        File(CompilerArgs.tmpPath).deleteRecursively()
-        File(CompilerArgs.tmpPath).mkdirs()
-        val sarif = File("${CompilerArgs.tmpPath}/truth.sarif").apply {
+        File(FuzzingConf.tmpPath).deleteRecursively()
+        File(FuzzingConf.tmpPath).mkdirs()
+        val sarif = File("${FuzzingConf.tmpPath}/truth.sarif").apply {
             writeText(sarifBuilder.serialize(suiteProjects))
         }
 
         for ((project, _) in suiteProjects) {
-            val localPaths = project.saveToDir(CompilerArgs.tmpPath)
+            val localPaths = project.saveToDir(FuzzingConf.tmpPath)
             localPaths.forEach { localPath ->
-                val fileName = localPath.substringAfter(CompilerArgs.tmpPath)
+                val fileName = localPath.substringAfter(FuzzingConf.tmpPath)
                 val mutatedFileUri = project.configuration.mutatedUri ?: error("URI should not be null")
                 val pathToBenchmarkHelpers =
                     pathToFuzzBenchmark + "/" + mutatedFileUri.substringBeforeLast('/')

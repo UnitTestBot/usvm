@@ -3,12 +3,9 @@ package com.spbpu.bbfinfrastructure.project
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.PsiFile
 import com.spbpu.bbfinfrastructure.util.containsChildOfType
-import com.spbpu.bbfinfrastructure.util.filterNotLines
 import com.spbpu.bbfinfrastructure.util.getAllPSIChildrenOfType
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
-import com.spbpu.bbfinfrastructure.psicreator.util.Factory
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
-import java.io.File
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 
 data class BBFFile(var name: String, var psiFile: PsiFile) {
 
@@ -52,7 +49,7 @@ data class BBFFile(var name: String, var psiFile: PsiFile) {
     fun copy() = BBFFile(name, psiFile.copy() as PsiFile)
 
     override fun toString(): String =
-        "// FILE: ${name.substringAfter(CompilerArgs.pathToTmpDir).substring(1)}\n\n${psiFile.text}"
+        "// FILE: ${name.substringAfter(FuzzingConf.pathToTmpDir).substring(1)}\n\n${psiFile.text}"
 
     val text: String
         get() = psiFile.text

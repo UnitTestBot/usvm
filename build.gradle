@@ -135,7 +135,22 @@ dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit', version: "${kotlin_version}"
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: "${kotlin_version}"
 
+    //Antlr
+    implementation("org.antlr:antlr4-runtime:4.13.1")
+
 }
+
+sourceSets {
+    main {
+        java {
+            srcDirs("src/main/java", "templates-db/src/generated")
+        }
+        kotlin {
+            srcDirs("src/main/kotlin")
+        }
+    }
+}
+
 
 test {
     useJUnitPlatform()
@@ -145,7 +160,7 @@ task(runFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
-    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? project.programArgs : ""
+    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? vulnomiconJavaHome : ""
     environment('VULNOMICON_JAVA_HOME_17', vulnomiconJavaHome)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"
@@ -155,7 +170,7 @@ task(runInfFuzzer, dependsOn: 'classes', type: JavaExec) {
     main = 'com.spbpu.bbfinfrastructure.runner.MainKt'
     classpath = sourceSets.main.runtimeClasspath
     def programArgs = project.hasProperty('programArgs') ? project.programArgs : ""
-    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? project.programArgs : ""
+    def vulnomiconJavaHome = project.hasProperty("vulnomiconJavaHome") ? vulnomiconJavaHome : ""
     environment('VULNOMICON_JAVA_HOME_17', vulnomiconJavaHome)
     argsString programArgs
     jvmArgs "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED"

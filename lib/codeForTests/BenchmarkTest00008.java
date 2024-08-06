@@ -41,6 +41,8 @@ public class BenchmarkTest00008 extends HttpServlet {
         // some code
         response.setContentType("text/html;charset=UTF-8");
 
+        Integer var1 = 123;
+        int var2 = 111;
         String param = "";
         if (request.getHeader("BenchmarkTest00008") != null) {
             param = request.getHeader("BenchmarkTest00008");

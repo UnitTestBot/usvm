@@ -35,9 +35,9 @@ class MarkupBenchmark {
                     val groundTruthKind = resultFromGroundTruth.kind!!
                     if (groundTruthKind == "fail") {
                         val groundTruthCwe = resultFromGroundTruth.ruleId.substringAfter("CWE-").toInt()
-                        val toolsFoundCWE = toolRes.ruleId.substringAfter("CWE-").toInt()
+                        val toolsFoundCWE = toolRes.ruleId.split(',').map { it.substringAfter("CWE-").toInt() }.toSet()
                         val groundTruthCweWithChildren = CweUtil.getCweChildrenOf(groundTruthCwe) + groundTruthCwe
-                        if (groundTruthCweWithChildren.contains(toolsFoundCWE)) {
+                        if (groundTruthCweWithChildren.intersect(toolsFoundCWE).isNotEmpty()) {
                             if (groundTruth[resultFromGroundTruth]?.all { !it.contains(toolName) } == true) {
                                 groundTruth[resultFromGroundTruth]?.add("${toolName}: true")
                             }

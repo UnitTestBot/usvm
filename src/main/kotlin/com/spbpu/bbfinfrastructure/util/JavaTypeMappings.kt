@@ -6,7 +6,7 @@ object JavaTypeMappings {
     val mappings = initMappings(mutableMapOf())
 
     private fun initMappings(mappings: MutableMap<String, String>): MutableMap<String, String> {
-        JarFile(CompilerArgs.pathToOwaspJar).use { jar ->
+        JarFile(FuzzingConf.pathToOwaspJar).use { jar ->
             val entries = jar.entries()
 
             while (entries.hasMoreElements()) {

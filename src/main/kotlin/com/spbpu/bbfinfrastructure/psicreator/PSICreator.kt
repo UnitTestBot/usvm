@@ -5,11 +5,9 @@ import com.intellij.core.CoreProjectEnvironment
 import com.intellij.core.JavaCoreApplicationEnvironment
 import com.intellij.core.JavaCoreProjectEnvironment
 import com.intellij.lang.java.JavaLanguage
-import com.intellij.mock.MockProject
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.ExtensionPoint
-import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.util.Disposer
 import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
@@ -21,7 +19,6 @@ import com.intellij.psi.augment.PsiAugmentProvider
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.jetbrains.python.*
 import com.jetbrains.python.documentation.doctest.PyDocstringTokenSetContributor
-import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.psi.PyAstElementGenerator
 import com.jetbrains.python.psi.PyPsiFacade
 import com.jetbrains.python.psi.impl.PyElementGeneratorImpl
@@ -32,17 +29,14 @@ import com.spbpu.bbfinfrastructure.psicreator.util.FooBarCompiler.setupMyCfg
 import com.spbpu.bbfinfrastructure.psicreator.util.FooBarCompiler.setupMyEnv
 import com.spbpu.bbfinfrastructure.psicreator.util.JvmResolveUtil
 import com.spbpu.bbfinfrastructure.psicreator.util.opt
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoots
-import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.cli.jvm.config.addJavaSourceRoots
 import org.jetbrains.kotlin.cli.jvm.config.addJvmClasspathRoots
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
-import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.BindingContext
 import java.io.File
 
@@ -135,7 +129,7 @@ object PSICreator {
         cfg.put(JVMConfigurationKeys.JDK_HOME, File(System.getProperty("java.home")))
         cfg.addJvmClasspathRoots(
             listOf(
-                CompilerArgs.pathToOwaspJar
+                FuzzingConf.pathToOwaspJar
             ).map { File(it) }
         )
 

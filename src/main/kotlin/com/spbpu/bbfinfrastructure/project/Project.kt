@@ -80,19 +80,19 @@ class Project(
     fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean): String {
         files.forEach {
             if (trueSaveFalseDelete) {
-                val name = "${CompilerArgs.pathToTmpJava}/${it.name}"
+                val name = "${FuzzingConf.pathToTmpJava}/${it.name}"
                 File(name.substringBeforeLast("/")).mkdirs()
                 File(name).writeText(it.psiFile.text)
             } else {
-                val createdDirectories = it.name.substringAfter(CompilerArgs.pathToTmpJava).substringBeforeLast('/')
+                val createdDirectories = it.name.substringAfter(FuzzingConf.pathToTmpJava).substringBeforeLast('/')
                 if (createdDirectories.trim().isNotEmpty()) {
-                    File("${CompilerArgs.pathToTmpJava}$createdDirectories").deleteRecursively()
+                    File("${FuzzingConf.pathToTmpJava}$createdDirectories").deleteRecursively()
                 } else {
                     File(it.name).delete()
                 }
             }
         }
-        return files.joinToString(" ") { "${CompilerArgs.pathToTmpJava}/${it.name}" }
+        return files.joinToString(" ") { "${FuzzingConf.pathToTmpJava}/${it.name}" }
     }
 
 

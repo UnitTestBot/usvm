@@ -2,7 +2,7 @@ package com.spbpu.bbfinfrastructure.compiler
 
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.test.ErrorCollector
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSourceLocation
 import java.io.File
 import javax.tools.Diagnostic
@@ -29,7 +29,7 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
     }
 
     override fun compile(project: Project, includeRuntime: Boolean): CompilingResult {
-        File(CompilerArgs.pathToTmpJava).apply {
+        File(FuzzingConf.pathToTmpJava).apply {
             deleteRecursively()
             mkdir()
         }
@@ -38,15 +38,15 @@ class JCompiler(override val arguments: String = "") : CommonCompiler() {
         val diagnostics = DiagnosticCollector<JavaFileObject>()
         val manager = compiler.getStandardFileManager(diagnostics, null, null)
         val sources = manager.getJavaFileObjectsFromFiles(pathToFiles)
-        val pathToTmpDir = CompilerArgs.pathToTmpFile.substringBeforeLast('/') + "/tmp"
+        val pathToTmpDir = FuzzingConf.pathToTmpFile.substringBeforeLast('/') + "/tmp"
         File(pathToTmpDir).deleteRecursively()
-        val classPath = "${CompilerArgs.pathToOwaspJar}:${CompilerArgs.pathToJulietSupportJar}"
+        val classPath = "${FuzzingConf.pathToOwaspJar}:${FuzzingConf.pathToJulietSupportJar}"
         val options = mutableListOf("-classpath", classPath, "-d", pathToTmpDir)
         val task = compiler.getTask(null, manager, diagnostics, options, null, sources)
         task.call()
         val errorDiagnostics = diagnostics.diagnostics.filter { it.kind == Diagnostic.Kind.ERROR }
         if (errorDiagnostics.isNotEmpty()) {
-            if (CompilerArgs.testMode) {
+            if (FuzzingConf.testMode) {
                 ErrorCollector.putError("COMPILATION ERROR: ${errorDiagnostics.joinToString("\n")}")
             }
         }

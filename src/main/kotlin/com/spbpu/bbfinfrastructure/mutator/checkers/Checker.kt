@@ -11,7 +11,7 @@ import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.test.ErrorCollector
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import org.apache.log4j.Logger
 
 //Project adaptation
@@ -28,8 +28,8 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
         val allTexts = project.files.map { it.psiFile.text }.joinToString()
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, curFile)) {
-            if (CompilerArgs.testMode) {
-                ErrorCollector.putError("Syntax error! Can't parse template")
+            if (FuzzingConf.testMode) {
+                ErrorCollector.putError("Syntax error! Can't parse code with template")
             }
 //            println("Wrong syntax or breaks conditions")
             return false

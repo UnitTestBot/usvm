@@ -7,7 +7,7 @@ import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.results.ScoreCardParser
 import kotlinx.serialization.json.Json
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
@@ -23,7 +23,7 @@ class JavaMutationManager: MutationManager {
         numOfFilesToCheck: Int,
         isLocal: Boolean
     ) {
-        val toolsTruthSarif = File("$pathToBenchmark/tools_truth.sarif")
+        val toolsTruthSarif = File("$pathToBenchmarkToFuzz/tools_truth.sarif")
         toolsTruthSarif.exists().ifFalse { error("Can't find tools_truth.sarif in $pathToBenchmark directory") }
         val decodedToolsTruth = Json.decodeFromString<MarkupSarif.Sarif>(toolsTruthSarif.readText())
         val randomMutationTargets =
@@ -54,7 +54,7 @@ class JavaMutationManager: MutationManager {
         )
         ScoreCardParser.parseAndSaveDiff(
             scorecardsDir = "tmp/scorecards",
-            pathToSources = CompilerArgs.tmpPath,
+            pathToSources = FuzzingConf.tmpPath,
             pathToToolsGroundTruthSarif = "$pathToBenchmarkToFuzz/tools_truth.sarif"
         )
     }

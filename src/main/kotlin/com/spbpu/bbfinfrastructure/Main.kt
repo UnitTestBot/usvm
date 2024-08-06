@@ -3,7 +3,7 @@ package com.spbpu.bbfinfrastructure
 import com.spbpu.bbfinfrastructure.mutator.JavaMutationManager
 import com.spbpu.bbfinfrastructure.mutator.PythonMutationManager
 import com.spbpu.bbfinfrastructure.results.ResultsSorter
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
@@ -87,9 +87,9 @@ fun main(args: Array<String>) {
         exitProcess(0)
     }
 
-    CompilerArgs.numberOfMutationsPerFile = numberOfMutationsPerFile
-    CompilerArgs.numberOfMutantsPerFile = numberOfMutantsPerFile
-    CompilerArgs.badTemplatesOnlyMode = badTemplatesOnlyMode
+    FuzzingConf.numberOfMutationsPerFile = numberOfMutationsPerFile
+    FuzzingConf.numberOfMutantsPerFile = numberOfMutantsPerFile
+    FuzzingConf.badTemplatesOnlyMode = badTemplatesOnlyMode
     if (badTemplatesOnlyMode) {
         StatsManager.updateBadTemplatesList()
     }

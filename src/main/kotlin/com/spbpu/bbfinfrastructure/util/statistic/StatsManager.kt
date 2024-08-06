@@ -1,10 +1,8 @@
 package com.spbpu.bbfinfrastructure.util.statistic
 
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesInserter
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
-import com.spbpu.bbfinfrastructure.test.TestTemplatesInserter
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
-import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 import java.io.File
 import java.nio.file.Files
@@ -12,14 +10,19 @@ import java.nio.file.Paths
 
 object StatsManager {
 
-    private val features = Files.walk(Paths.get("templates"))
+    private val templates = Files.walk(Paths.get(FuzzingConf.dirToTemplates))
         .toList()
         .map { it.toFile() }
-        .filter { it.isFile }
-        .map { it to TemplatesParser.parse(it.readText())!! }
+        .filter { it.isFile && !it.path.contains("extensions") && !it.path.contains("helpers") && !it.path.contains("objects") }
+        .map { it to TemplatesParser.parse(it.absolutePath) }
         .flatMap { (f, t) -> List(t.templates.size) { index -> Triple(f.path, index, t) } }
 
-    var currentBadTemplatesList: List<Pair<TemplatesParser.Template, String>> = getBadTemplatesList()
+    var currentBadTemplatesList: List<Pair<TemplatesParser.Template, String>> =
+        if (FuzzingConf.badTemplatesOnlyMode) {
+            getBadTemplatesList()
+        } else {
+            listOf()
+        }
 
     fun updateBadTemplatesList() {
         currentBadTemplatesList = getBadTemplatesList()
@@ -54,7 +57,11 @@ object StatsManager {
         calc(pathToResults, printInfo = true, forFeatures)
     }
 
-    private fun calc(pathToResults: String, printInfo: Boolean = false, forFeatures: Collection<String>? = null): TemplatesResults {
+    private fun calc(
+        pathToResults: String,
+        printInfo: Boolean = false,
+        forFeatures: Collection<String>? = null
+    ): TemplatesResults {
         val templatesWithoutResults = mutableListOf<Pair<TemplatesParser.Template, String>>()
         val successFullTemplates = mutableMapOf<String, Int>()
         val results =
@@ -64,7 +71,7 @@ object StatsManager {
                 .filter { it.isFile }
                 .filter { it.path.endsWith("java") }
                 .map { it to ResultHeader.convertFromString(it.readText())!! }
-        features.forEach { (templateName, templateIndex, template) ->
+        templates.forEach { (templateName, templateIndex, template) ->
             val resultsForFeature =
                 results.filter { it.second.mutationDescriptionChain.any { it.contains("$templateName with index $templateIndex") } }
             if (printInfo) {

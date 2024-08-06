@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -8,27 +9,22 @@ import kotlin.streams.toList
 
 object TemplatesDB {
 
-    fun getTemplatesForFeature(feature: TestingFeature): List<String>? {
-        val templates = getTemplates(feature.dir)?.toList() ?: return null
-        return templates.map { it.readText() }
-    }
+    fun getRandomObjectTemplate(): File? =
+        availableTemplates
+            .filter { it.path.contains("objects") }
+            .randomOrNull()
 
-    fun getRandomTemplateForFeature(feature: TestingFeature): File? {
-        val templates = getTemplates(feature.dir) ?: return null
-        return templates.randomOrNull()
-    }
+    fun getRandomSensitivityTemplate(): File? =
+        availableTemplates
+            .filter { it.path.contains("sensitivity") }
+            .randomOrNull()
 
-    fun getRandomTemplateForPath(path: String): Pair<String, String>? {
-        val templates = getTemplates(path) ?: return null
-        return templates.randomOrNull()?.let { it.readText() to it.path }
-    }
-
-    private fun getTemplates(dir: String): List<File>? =
-        Files.walk(Paths.get(dir))
+    private val availableTemplates =
+        Files.walk(Paths.get(FuzzingConf.dirToTemplates))
             .map { it.toFile() }
             .filter { it.isFile && it.extension == "tmt" }
             .filter { !it.path.contains("helpers") && !it.path.contains("extensions") }
             .toList()
-            .ifEmpty { null }
+            .ifEmpty { error("I can't fuzz without templates, sorry") }
 
 }

@@ -5,12 +5,11 @@ import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.util.CompilerArgs
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlin.system.exitProcess
 
 class JavaTemplatesChecker {
 
@@ -32,7 +31,7 @@ class JavaTemplatesChecker {
             curFile,
             false,
         )
-        Files.walk(Paths.get("templates"))
+        Files.walk(Paths.get(FuzzingConf.dirToTemplates))
             .map { it.toFile() }
             .filter { !it.path.contains("helpers") && !it.path.contains("extensions") }
             .filter { it.path.endsWith("tmt") && it.path.contains(templateName) }
@@ -40,8 +39,8 @@ class JavaTemplatesChecker {
             .map { it as File }
             .toList()
             .forEach {
-                println("CHECKING TEMPLATES FROM FILE: ${it.name}")
-                testTemplate(it, it.name, templateBodyIndex)
+                println("CHECKING TEMPLATES FROM FILE: ${it.path}")
+                testTemplate(it, it.path, templateBodyIndex)
             }
     }
 
@@ -83,7 +82,7 @@ class JavaTemplatesChecker {
 }
 
 fun main(args: Array<String>) {
-    CompilerArgs.testMode = true
+    FuzzingConf.testMode = true
     System.setProperty("idea.home.path", "lib/bin")
     JavaTemplatesChecker().testTemplates(
         templateName = args.firstOrNull() ?: "",
