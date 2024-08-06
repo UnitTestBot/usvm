@@ -54,9 +54,9 @@ open class UPathConstraints<Type>(
      */
     fun changeOwnership(ownership: MutabilityOwnership) {
         this.ownership = ownership
-        numericConstraints.ownership = ownership
-        equalityConstraints.ownership = ownership
-        typeConstraints.ownership = ownership
+        numericConstraints.changeOwnership(ownership)
+        equalityConstraints.changeOwnership(ownership)
+        typeConstraints.changeOwnership(ownership)
     }
 
     /**
@@ -175,8 +175,8 @@ open class UPathConstraints<Type>(
         }
 
     open fun clone(
-        thisOwnership: MutabilityOwnership = ownership,
-        cloneOwnership: MutabilityOwnership = MutabilityOwnership(), // clone ownership must be brand new because of plus assign operations
+        thisOwnership: MutabilityOwnership = MutabilityOwnership(),
+        cloneOwnership: MutabilityOwnership = MutabilityOwnership(), // ownerships must be fresh new because of plus assign operations
     ): UPathConstraints<Type> {
         val clonedLogicalConstraints = logicalConstraints.clone()
         val clonedEqualityConstraints = equalityConstraints.clone(thisOwnership, cloneOwnership)

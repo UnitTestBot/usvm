@@ -160,7 +160,7 @@ class UMemory<Type, Method>(
         cloneOwnership: MutabilityOwnership,
     ): UMemory<Type, Method> =
         UMemory(
-            ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(thisOwnership, cloneOwnership), regions
+            ctx, cloneOwnership, typeConstraints, stack.clone(), mocks.clone(), regions
         ).also { ownership = thisOwnership }
 
     override fun toWritableMemory(ownership: MutabilityOwnership) =

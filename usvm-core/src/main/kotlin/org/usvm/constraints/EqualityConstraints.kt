@@ -39,7 +39,7 @@ import org.usvm.solver.UExprTranslator
  */
 class UEqualityConstraints private constructor(
     internal val ctx: UContext<*>,
-    internal var ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     private val equalReferences: DisjointSets<UHeapRef>,
     var distinctReferences: UPersistentHashSet<UHeapRef>,
     var referenceDisequalities: UPersistentMultiMap<UHeapRef, UHeapRef>,
@@ -53,6 +53,10 @@ class UEqualityConstraints private constructor(
         persistentHashMapOf(),
         persistentHashMapOf(),
     )
+
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     /**
      * Determines whether a static ref could be assigned to a symbolic, according to additional information.

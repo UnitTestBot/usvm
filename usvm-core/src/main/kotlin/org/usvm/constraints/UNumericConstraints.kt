@@ -63,7 +63,7 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext<*>,
     val sort: Sort,
-    internal var ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     private var numericConstraints: UPersistentHashMap<ConstraintTerms<Sort>, Constraint<Sort>>,
     private var constraintWatchList: UPersistentMultiMap<ConstraintTerms<Sort>, ConstraintTerms<Sort>>,
 ) : UOwnedMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
@@ -74,6 +74,10 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         persistentHashMapOf(),
         persistentHashMapOf()
     )
+
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     private val constraintPropagationQueue = arrayListOf<ConstraintUpdateEvent<Sort>>()
 

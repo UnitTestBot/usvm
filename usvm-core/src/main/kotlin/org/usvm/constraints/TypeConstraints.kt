@@ -53,13 +53,17 @@ interface UTypeEvaluator<Type> {
  * precisely, thus we can evaluate the subtyping constraints for them concretely (modulo generic type variables).
  */
 class UTypeConstraints<Type>(
-    internal var ownership: MutabilityOwnership,
+    private var ownership: MutabilityOwnership,
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
     private var concreteRefToType: UPersistentHashMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
     private var symbolicRefToTypeRegion: UPersistentHashMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
 ) : UTypeEvaluator<Type>, UOwnedMergeable<UTypeConstraints<Type>, MutableMergeGuard> {
     private val ctx: UContext<*> get() = equalityConstraints.ctx
+
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     init {
         equalityConstraints.subscribeEquality(::intersectRegions)

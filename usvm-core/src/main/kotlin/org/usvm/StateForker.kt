@@ -156,7 +156,11 @@ object WithSolverStateForker : StateForker {
         val satResult = solver.check(constraintsToCheck)
 
         return when (satResult) {
-            is UUnsatResult -> null
+            is UUnsatResult -> {
+                // rollback previous ownership
+                state.pathConstraints.changeOwnership(state.ownership)
+                null
+            }
 
             is USatResult -> {
                 // Note that we cannot extract common code here due to
@@ -178,6 +182,8 @@ object WithSolverStateForker : StateForker {
             }
 
             is UUnknownResult -> {
+                // rollback previous ownership
+                state.pathConstraints.changeOwnership(state.ownership)
                 state.pathConstraints += if (stateToCheck) newConstraintToOriginalState else newConstraintToForkedState
 
                 null

@@ -43,7 +43,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 
     val isDead: Boolean get() = stepScopeState === DEAD
 
-    val ownership get() = originalState.ownership
+    val ownership = originalState.ownership
 
     /**
      * Executes [block] on a state.

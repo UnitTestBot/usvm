@@ -38,7 +38,7 @@ open class UModelBase<Type>(
     override val mocker: UMockEvaluator,
     val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
     val nullRef: UConcreteHeapRef,
-    override val ownership: MutabilityOwnership = ctx.defaultOwnership,
+    override val ownership: MutabilityOwnership = MutabilityOwnership(),
 ) : UModel, UWritableMemory<Type> {
     @Suppress("LeakingThis")
     protected open val composer = ctx.composer(this, ownership)

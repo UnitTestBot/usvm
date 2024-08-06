@@ -8,7 +8,6 @@ import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHa
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.MergeGuard
 import org.usvm.merging.UMergeable
-import org.usvm.merging.UOwnedMergeable
 
 interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
@@ -33,7 +32,7 @@ interface UMocker<Method> : UMockEvaluator {
 
     fun getTrackedExpression(trackedLiteral: TrackedLiteral): UExpr<USort>
 
-    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UMocker<Method>
+    fun clone(): UMocker<Method>
 }
 
 class UIndexedMocker<Method>(
@@ -86,7 +85,7 @@ class UIndexedMocker<Method>(
         return trackedSymbols[trackedLiteral]!!.cast()
     }
 
-    override fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UIndexedMocker<Method> =
+    override fun clone(): UIndexedMocker<Method> =
         UIndexedMocker(methodMockClauses, trackedSymbols, untrackedSymbols)
 
     /**
