@@ -1,121 +1,115 @@
 package org.usvm.api;
 
+import org.usvm.api.internal.SymbolicIdentityMapImpl;
+import org.usvm.api.internal.SymbolicListImpl;
+import org.usvm.api.internal.SymbolicMapImpl;
+
+import java.lang.reflect.Array;
+
 public class Engine {
+
     public static void assume(boolean expr) {
-        engineApiStubError();
+        assert expr;
     }
 
+    @SuppressWarnings("unused")
     public static <T> T makeSymbolic(Class<T> clazz) {
-        engineApiStubError();
+        return null;
+    }
+
+    @SuppressWarnings("unused")
+    public static <T> T makeNullableSymbolic(Class<T> clazz) {
         return null;
     }
 
     public static boolean makeSymbolicBoolean() {
-        engineApiStubError();
         return false;
     }
 
     public static byte makeSymbolicByte() {
-        engineApiStubError();
         return 0;
     }
 
     public static char makeSymbolicChar() {
-        engineApiStubError();
         return 0;
     }
 
     public static short makeSymbolicShort() {
-        engineApiStubError();
         return 0;
     }
 
     public static int makeSymbolicInt() {
-        engineApiStubError();
         return 0;
     }
 
     public static long makeSymbolicLong() {
-        engineApiStubError();
         return 0;
     }
 
     public static float makeSymbolicFloat() {
-        engineApiStubError();
         return 0;
     }
 
     public static double makeSymbolicDouble() {
-        engineApiStubError();
         return 0;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T[] makeSymbolicArray(Class<T> clazz, int size) {
-        engineApiStubError();
-        return null;
+        assert clazz.isArray();
+
+        return (T[]) Array.newInstance(clazz, size);
     }
 
     public static boolean[] makeSymbolicBooleanArray(int size) {
-        engineApiStubError();
-        return null;
+        return new boolean[size];
     }
 
     public static byte[] makeSymbolicByteArray(int size) {
-        engineApiStubError();
-        return null;
+        return new byte[size];
     }
 
     public static char[] makeSymbolicCharArray(int size) {
-        engineApiStubError();
-        return null;
+        return new char[size];
     }
 
     public static short[] makeSymbolicShortArray(int size) {
-        engineApiStubError();
-        return null;
+        return new short[size];
     }
 
     public static int[] makeSymbolicIntArray(int size) {
-        engineApiStubError();
-        return null;
+        return new int[size];
     }
 
     public static long[] makeSymbolicLongArray(int size) {
-        engineApiStubError();
-        return null;
+        return new long[size];
     }
 
     public static float[] makeSymbolicFloatArray(int size) {
-        engineApiStubError();
-        return null;
+        return new float[size];
     }
 
     public static double[] makeSymbolicDoubleArray(int size) {
-        engineApiStubError();
-        return null;
+        return new double[size];
     }
 
     public static <T> SymbolicList<T> makeSymbolicList() {
-        engineApiStubError();
-        return null;
+        return new SymbolicListImpl<>();
     }
 
     public static <K, V> SymbolicMap<K, V> makeSymbolicMap() {
-        engineApiStubError();
-        return null;
+        return new SymbolicMapImpl<>();
     }
 
     public static <K, V> SymbolicIdentityMap<K, V> makeSymbolicIdentityMap() {
-        engineApiStubError();
-        return null;
+        return new SymbolicIdentityMapImpl<>();
     }
 
     public static boolean typeEquals(Object a, Object b) {
-        engineApiStubError();
-        return false;
+        return a.getClass() == b.getClass();
     }
 
-    private static void engineApiStubError() {
-        throw new IllegalStateException("Engine API method must not be invoked");
+    public static boolean typeIs(Object a, Class<?> type) {
+        return a.getClass() == type;
     }
 }
