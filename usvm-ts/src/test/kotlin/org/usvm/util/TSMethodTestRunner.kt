@@ -89,6 +89,14 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         )
     }
 
+    /*
+        For now type checks are disabled for development purposes
+
+        See https://github.com/UnitTestBot/usvm/issues/203
+     */
+    override val checkType: (EtsType?, EtsType?) -> Boolean
+        get() = { _, _ -> true }
+
     override val typeTransformer: (Any?) -> EtsType
         get() = {
             // Both KClass and TSObject instances come here
@@ -107,13 +115,6 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 else -> error("Should not be called")
             }
         }
-
-    /*
-        For now type checks are disabled for development purposes
-        TODO: implement
-     */
-    override val checkType: (EtsType?, EtsType?) -> Boolean
-        get() = { _, _ -> true }
 
     private fun getProject(fileName: String): EtsFile {
         val jsonWithoutExtension = "/ir/$fileName.json"

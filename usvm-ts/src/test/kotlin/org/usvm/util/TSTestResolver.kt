@@ -29,7 +29,8 @@ class TSTestResolver {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
-                val returnValue = resolveExpr(model.eval(methodResult.value), method.returnType)
+                val valueToResolve = model.eval(methodResult.value)
+                val returnValue = resolveExpr(valueToResolve, method.returnType)
                 val params = method.parameters.mapIndexed { idx, param ->
                     val lValue = URegisterStackLValue(typeToSort(param.type), idx)
                     val expr = model.read(lValue)

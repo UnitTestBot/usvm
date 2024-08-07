@@ -85,7 +85,7 @@ class TSExprResolver(
     fun resolveLValue(value: EtsValue): ULValue<*, *>? =
         when (value) {
             is EtsParameterRef,
-            is EtsLocal -> simpleValueResolver.resolveLocal(value)
+            is EtsLocal, -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
