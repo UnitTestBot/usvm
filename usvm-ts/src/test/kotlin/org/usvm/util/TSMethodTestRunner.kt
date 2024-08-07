@@ -89,6 +89,57 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         )
     }
 
+    protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
+                          reified T3 : TSObject, reified R : TSObject>
+    discoverProperties(
+        methodIdentifier: MethodDescriptor,
+        vararg analysisResultMatchers: (T1, T2, T3, R?) -> Boolean,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
+                          reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject>
+    discoverProperties(
+        methodIdentifier: MethodDescriptor,
+        vararg analysisResultMatchers: (T1, T2, T3, T4, R?) -> Boolean,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(T4::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
     /*
         For now type checks are disabled for development purposes
 
