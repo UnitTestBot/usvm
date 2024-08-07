@@ -70,6 +70,7 @@ import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.jvm.javaMethod
+import org.usvm.api.makeNullableSymbolicRefWithSameType
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
@@ -110,34 +111,37 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateRegularMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
-        if (method.enclosingClass == usvmApiSymbolicList) {
+        val enclosingClass = method.enclosingClass
+        val className = enclosingClass.name
+
+        if (enclosingClass == usvmApiSymbolicList) {
             approximateUsvmSymbolicListMethod(methodCall)
             return true
         }
 
-        if (method.enclosingClass == usvmApiSymbolicMap) {
+        if (enclosingClass == usvmApiSymbolicMap) {
             approximateUsvmSymbolicMapMethod(methodCall)
             return true
         }
 
-        if (method.enclosingClass == usvmApiSymbolicIdentityMap) {
+        if (enclosingClass == usvmApiSymbolicIdentityMap) {
             approximateUsvmSymbolicIdMapMethod(methodCall)
             return true
         }
 
-        if (method.enclosingClass == ctx.cp.objectClass) {
+        if (enclosingClass == ctx.cp.objectClass) {
             if (approximateObjectVirtualMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass == ctx.classType.jcClass) {
+        if (enclosingClass == ctx.classType.jcClass) {
             if (approximateClassVirtualMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass.name == "jdk.internal.misc.Unsafe") {
+        if (className == "jdk.internal.misc.Unsafe") {
             if (approximateUnsafeVirtualMethod(methodCall)) return true
         }
 
-        if (method.name == "clone" && method.enclosingClass == ctx.cp.objectClass) {
+        if (method.name == "clone" && enclosingClass == ctx.cp.objectClass) {
             if (approximateArrayClone(methodCall)) return true
         }
 
@@ -145,28 +149,30 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
-        if (method.enclosingClass == usvmApiEngine) {
+        val enclosingClass = method.enclosingClass
+        val className = enclosingClass.name
+        if (enclosingClass == usvmApiEngine) {
             approximateUsvmApiEngineStaticMethod(methodCall)
             return true
         }
 
-        if (method.enclosingClass == ctx.classType.jcClass) {
+        if (enclosingClass == ctx.classType.jcClass) {
             if (approximateClassStaticMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass.name == "java.lang.System") {
+        if (className == "java.lang.System") {
             if (approximateSystemStaticMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass.name == "java.lang.StringUTF16") {
+        if (className == "java.lang.StringUTF16") {
             if (approximateStringUtf16StaticMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass.name == "java.lang.Float") {
+        if (className == "java.lang.Float") {
             if (approximateFloatStaticMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass.name == "java.lang.Double") {
+        if (className == "java.lang.Double") {
             if (approximateDoubleStaticMethod(methodCall)) return true
         }
 
@@ -208,6 +214,7 @@ class JcMethodApproximationResolver(
             scope.doWithState {
                 skipMethodInvocationWithValue(methodCall, classRef)
             }
+
             return true
         }
 
@@ -602,12 +609,26 @@ class JcMethodApproximationResolver(
                 val (ref0, ref1) = it.arguments.map { it.asExpr(ctx.addressSort) }
                 scope.calcOnState { objectTypeEquals(ref0, ref1) }
             }
+            dispatchUsvmApiMethod(Engine::typeIs) {
+                val (ref, classRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.calcOnState { objectTypeEquals(ref, classRefTypeRepresentative) }
+            }
             dispatchMkRef(Engine::makeSymbolic) {
                 val classRef = it.arguments.single().asExpr(ctx.addressSort)
                 val classRefTypeRepresentative = scope.calcOnState {
                     memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
                 }
                 scope.makeSymbolicRefWithSameType(classRefTypeRepresentative)
+            }
+            dispatchMkRef(Engine::makeNullableSymbolic) {
+                val classRef = it.arguments.single().asExpr(ctx.addressSort)
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.makeNullableSymbolicRefWithSameType(classRefTypeRepresentative)
             }
             dispatchMkRef2(Engine::makeSymbolicArray) {
                 val (elementClassRefExpr, sizeExpr) = it.arguments
