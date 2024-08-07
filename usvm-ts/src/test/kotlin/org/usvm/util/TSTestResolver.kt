@@ -39,9 +39,11 @@ class TSTestResolver {
 
                 return TSTest(params, returnValue)
             }
+
             is TSMethodResult.TSException -> {
                 TODO()
             }
+
             is TSMethodResult.NoCall -> {
                 TODO()
             }
@@ -51,12 +53,12 @@ class TSTestResolver {
     }
 
     private fun resolveExpr(expr: UExpr<out USort>, type: EtsType): TSObject = when (type) {
-            is EtsPrimitiveType -> resolvePrimitive(expr, type)
-            is EtsRefType -> TODO()
-            else -> TODO()
+        is EtsPrimitiveType -> resolvePrimitive(expr, type)
+        is EtsRefType -> TODO()
+        else -> TODO()
     }
 
-    private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when(type) {
+    private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when (type) {
         EtsNumberType -> {
             when (expr.sort) {
                 expr.ctx.fp64Sort -> TSObject.TSNumber.Double(extractDouble(expr))
@@ -64,24 +66,31 @@ class TSTestResolver {
                 else -> error("Unexpected sort: ${expr.sort}")
             }
         }
+
         EtsBooleanType -> {
             TSObject.Boolean(extractBool(expr))
         }
+
         EtsUndefinedType -> {
             TSObject.UndefinedObject
         }
+
         is EtsLiteralType -> {
             TODO()
         }
+
         EtsNullType -> {
             TODO()
         }
+
         EtsNeverType -> {
             TODO()
         }
+
         EtsStringType -> {
             TODO()
         }
+
         EtsVoidType -> {
             TODO()
         }
