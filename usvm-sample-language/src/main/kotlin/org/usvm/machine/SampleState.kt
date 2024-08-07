@@ -46,7 +46,10 @@ class SampleState(
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
-        val clonedConstraints = newConstraints ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        val clonedConstraints = newConstraints?.also {
+            this.pathConstraints.changeOwnership(newThisOwnership)
+            it.changeOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         return SampleState(
             ctx,
             cloneOwnership,

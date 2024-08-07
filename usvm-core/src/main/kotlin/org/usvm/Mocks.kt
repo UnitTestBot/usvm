@@ -27,7 +27,7 @@ interface UMocker<Method> : UMockEvaluator {
     fun <Sort : USort> createMockSymbol(
         trackedLiteral: TrackedLiteral?,
         sort: Sort,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UExpr<Sort>
 
     fun getTrackedExpression(trackedLiteral: TrackedLiteral): UExpr<USort>
@@ -66,7 +66,7 @@ class UIndexedMocker<Method>(
     override fun <Sort : USort> createMockSymbol(
         trackedLiteral: TrackedLiteral?,
         sort: Sort,
-        ownership: MutabilityOwnership
+        ownership: MutabilityOwnership,
     ): UExpr<Sort> {
         val const = sort.uctx.mkTrackedSymbol(sort)
 

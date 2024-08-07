@@ -65,7 +65,10 @@ class PyState(
         require(newConstraints is PyPathConstraints?)
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
-        val newPathConstraints = newConstraints ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        val newPathConstraints = newConstraints?.also {
+            this.pathConstraints.changeOwnership(newThisOwnership)
+            it.changeOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         val newMemory = memory.clone(newPathConstraints.typeConstraints, newThisOwnership, cloneOwnership)
         return PyState(
             ctx,

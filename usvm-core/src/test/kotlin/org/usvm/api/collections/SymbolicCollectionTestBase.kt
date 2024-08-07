@@ -52,7 +52,7 @@ abstract class SymbolicCollectionTestBase {
         ownership = MutabilityOwnership()
 
         every { components.mkComposer(ctx) } answers {
-            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType>, ownership : MutabilityOwnership -> UComposer(ctx, memory, ownership) }
+            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) }
         }
 
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
