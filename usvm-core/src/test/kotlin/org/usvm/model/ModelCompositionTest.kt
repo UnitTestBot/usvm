@@ -97,7 +97,7 @@ class ModelCompositionTest {
 
         val concreteRef = mkConcreteHeapRef(1)
 
-        val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
+        val adapter = USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, USizeSort, USizeSort>(
             symbolicRef to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),

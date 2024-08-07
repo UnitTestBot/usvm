@@ -181,7 +181,7 @@ class TranslationTest {
         val concreteRef = allocateConcreteRef()
 
 
-        val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
+        val adapter = USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, USizeSort, USizeSort>(
             ref1 to mkSizeExpr(0),
             mkSizeExpr(0),
             mkSizeExpr(5),
@@ -287,7 +287,7 @@ class TranslationTest {
             .write(ref2 to idx2, val2, trueExpr)
 
 
-        val adapter = USymbolicArrayInputToInputCopyAdapter(
+        val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort, USizeSort, USizeSort>(
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
@@ -386,7 +386,7 @@ class TranslationTest {
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
-        val adapter = USymbolicArrayInputToInputCopyAdapter(
+        val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort, UAddressSort, UAddressSort>(
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(0),
             ref1 to mkSizeExpr(5),
@@ -427,7 +427,7 @@ class TranslationTest {
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
 
-        val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
+        val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, UAddressSort, UAddressSort>(
             mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo()
         )
 

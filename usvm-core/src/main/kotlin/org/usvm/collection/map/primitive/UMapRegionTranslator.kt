@@ -154,16 +154,16 @@ private class UInputMapUpdatesTranslator<KeySort : USort, ValueSort : USort>(
 ) : U2DUpdatesTranslator<UAddressSort, KeySort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<UAddressSort, KeySort, ValueSort>>,
-        update: URangedUpdateNode<*, *, USymbolicMapKey<KeySort>, ValueSort, ValueSort>
+        update: URangedUpdateNode<*, *, USymbolicMapKey<KeySort>, *, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, KeySort, ValueSort>> {
-        check(update.adapter is USymbolicMapMergeAdapter<*, *, USymbolicMapKey<KeySort>, *, ValueSort>) {
+        check(update.adapter is USymbolicMapMergeAdapter<*, *, *, *, *>) {
             "Unexpected adapter: ${update.adapter}"
         }
 
         @Suppress("UNCHECKED_CAST")
         return translateMapMerge(
             previous,
-            update,
+            update as URangedUpdateNode<*, *, USymbolicMapKey<KeySort>, ValueSort, ValueSort>,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
             update.adapter as USymbolicMapMergeAdapter<*, Any, USymbolicMapKey<KeySort>, *, ValueSort>
         )

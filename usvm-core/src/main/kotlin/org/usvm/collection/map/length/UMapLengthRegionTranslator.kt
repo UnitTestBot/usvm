@@ -74,7 +74,7 @@ private class UInputMapLengthUpdateTranslator<USizeSort : USort>(
 ) : U1DUpdatesTranslator<UAddressSort, USizeSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<UAddressSort, USizeSort>>,
-        update: URangedUpdateNode<*, *, UHeapRef, USizeSort, USizeSort>
+        update: URangedUpdateNode<*, *, UHeapRef, *, USizeSort>
     ): KExpr<KArraySort<UAddressSort, USizeSort>> {
         error("Map length has no ranged updates")
     }

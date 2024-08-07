@@ -572,7 +572,7 @@ internal class CompositionTest {
             .emptyRegion()
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
 
-        val adapter1 = USymbolicArrayInputToInputCopyAdapter(
+        val adapter1 = USymbolicArrayInputToInputCopyAdapter<USizeSort, USizeSort, USizeSort>(
             symbolicRef0 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef1 to mkSizeExpr(5),
@@ -582,7 +582,7 @@ internal class CompositionTest {
         val fromRegion1 = fromRegion0
             .copyRange(fromRegion0, adapter1, trueExpr)
 
-        val adapter2 = USymbolicArrayInputToInputCopyAdapter(
+        val adapter2 = USymbolicArrayInputToInputCopyAdapter<USizeSort, USizeSort, USizeSort>(
             symbolicRef1 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(0),
             symbolicRef2 to mkSizeExpr(5),
@@ -602,7 +602,7 @@ internal class CompositionTest {
         fun USymbolicCollectionUpdates<*, *>.allUpdates(): Collection<UUpdateNode<*, *>> =
             fold(mutableListOf()) { acc, r ->
                 acc += r
-                acc += (r as? URangedUpdateNode<*, *, *, *>)?.sourceCollection?.updates?.allUpdates() ?: emptyList()
+                acc += (r as? URangedUpdateNode<*, *, *, *, *>)?.sourceCollection?.updates?.allUpdates() ?: emptyList()
                 acc
             }
 

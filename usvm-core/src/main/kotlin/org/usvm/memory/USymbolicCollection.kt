@@ -203,8 +203,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * @return Symbolic collection which obtained from this one by overwriting the range of addresses
      * with values from collection [fromCollection].
      */
-    fun <OtherCollectionId : USymbolicCollectionId<SrcKey, Sort, OtherCollectionId>, SrcKey, SrcSort: USort> copyRange(
-        fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, Sort>,
+    fun <OtherCollectionId : USymbolicCollectionId<SrcKey, SrcSort, OtherCollectionId>, SrcKey, SrcSort: USort> copyRange(
+        fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, SrcSort>,
         adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr
     ): USymbolicCollection<CollectionId, Key, Sort> {
