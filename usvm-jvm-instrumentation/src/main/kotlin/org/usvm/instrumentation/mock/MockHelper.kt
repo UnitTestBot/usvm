@@ -176,19 +176,18 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
 
     private fun addMockInfoAndRedefineClass(
         jcClass: JcClassOrInterface, methods: List<JcMethod>
-    ): Class<*> {
-        val classNode = jcClass.asmNode()
+    ): Class<*> = jcClass.withAsmNode { classNode ->
         val asmMethods = classNode.methods
         for (jcMethod in methods) {
             if (mockCache.contains(jcMethod)) continue
-            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            val asmMethod = asmMethods.find { jcMethod.isSameSignature(it) } ?: continue
             val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId, false)
             asmMethods.replace(asmMethod, mockedMethod)
         }
         val jClass = jcClass.toJavaClass(classLoader)
         classLoader.redefineClass(jClass, classNode)
-        return classLoader.loadClass(jcClass.name)
+        return@withAsmNode classLoader.loadClass(jcClass.name)
     }
 
 
@@ -196,41 +195,40 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         val filteredMethods = jcMethods.filter { it !in mockCache && !it.isAbstract }
         val groupedByClasses = filteredMethods.groupBy { it.enclosingClass }
         for ((jcClass, methodsToModify) in groupedByClasses) {
-            val jcClassByteCode = jcClass.asmNode()
-            val jClass = jcClass.toJavaClass(classLoader)
-            val asmMethods = jcClassByteCode.methods
-            for (jcMethod in methodsToModify) {
-                val encodedMethodId = encodeMethod(jcMethod)
-                val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId, false)
-                val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
-                asmMethods.replace(asmMethod, mockedMethod)
+            jcClass.withAsmNode { jcClassByteCode ->
+                val jClass = jcClass.toJavaClass(classLoader)
+                val asmMethods = jcClassByteCode.methods
+                for (jcMethod in methodsToModify) {
+                    val encodedMethodId = encodeMethod(jcMethod)
+                    val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId, false)
+                    val asmMethod = asmMethods.find { jcMethod.isSameSignature(it) } ?: continue
+                    asmMethods.replace(asmMethod, mockedMethod)
+                }
+                classLoader.redefineClass(jClass, jcClassByteCode)
             }
-            classLoader.redefineClass(jClass, jcClassByteCode)
         }
     }
 
     private fun mockGlobal(
         jcClass: JcClassOrInterface, methods: List<JcMethod>
-    ): Class<*> {
-        val classNode = jcClass.asmNode()
+    ): Class<*> = jcClass.withAsmNode { classNode ->
         val asmMethods = classNode.methods
         for (jcMethod in methods) {
             if (mockCache.contains(jcMethod)) continue
-            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            val asmMethod = asmMethods.find { jcMethod.isSameSignature(it) } ?: continue
             val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToMethod(jcClass, jcMethod, encodedMethodId, true)
             asmMethods.replace(asmMethod, mockedMethod)
         }
         val jClass = jcClass.toJavaClass(classLoader)
         classLoader.redefineClass(jClass, classNode)
-        return classLoader.loadClass(jcClass.name)
+        return@withAsmNode classLoader.loadClass(jcClass.name)
     }
 
     //TODO Decide what to do with partially mocked classes
     private fun addMockInfoAndDefineNewClass(
         jcClass: JcClassOrInterface, methods: List<JcMethod>
-    ): Class<*> {
-        val classNode = jcClass.asmNode()
+    ): Class<*> = jcClass.withAsmNode { classNode ->
         val mockedClassJVMName = "${classNode.name}${MOCKED_CLASS_POSTFIX}"
         val mockedClassName = mockedClassJVMName.replace('/', '.')
         val mockedClass =
@@ -242,7 +240,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
 
         if (mockedClass != null) {
             processMethodsWithDefaultImplementation(methods)
-            return mockedClass
+            return@withAsmNode mockedClass
         }
 
         val mockedClassNode = ClassNode()
@@ -268,13 +266,13 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         for (jcMethod in abstractMethods) {
             val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToAbstractMethod(jcMethod, encodedMethodId, classRebuilder)
-            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            val asmMethod = asmMethods.find { jcMethod.isSameSignature(it) } ?: continue
             asmMethods.replace(asmMethod, mockedMethod)
         }
 
         val defaultMethods = methods.filter { !it.isAbstract }
         for (jcMethod in defaultMethods) {
-            val asmMethod = asmMethods.find { jcMethod.asmNode().isSameSignature(it) } ?: continue
+            val asmMethod = asmMethods.find { jcMethod.isSameSignature(it) } ?: continue
             asmMethods.remove(asmMethod)
         }
 
@@ -283,7 +281,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         for (jcConstructor in jcClass.constructors) {
             val newConstructor = rebuildConstructorForAbstractClass(jcConstructor, classRebuilder)
             val oldConstructor =
-                asmMethods.find { jcConstructor.asmNode().isSameSignature(it) } ?: error("cant find constructor in ASM")
+                asmMethods.find { jcConstructor.isSameSignature(it) } ?: error("cant find constructor in ASM")
             asmMethods.replace(oldConstructor, newConstructor)
         }
 
@@ -293,7 +291,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         //Handle methods with default implementation
         processMethodsWithDefaultImplementation(methods)
 
-        return mockedJClass
+        return@withAsmNode mockedJClass
     }
 
     private fun rebuildConstructorForAbstractClass(

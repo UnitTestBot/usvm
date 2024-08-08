@@ -4,6 +4,7 @@ import org.jacodb.api.jvm.*
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.ext.*
 import org.jacodb.impl.types.TypeNameImpl
+import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.testcase.executor.TestExecutorException
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
@@ -167,3 +168,6 @@ private fun Array<Class<*>>.toJcdbFormat(): String =
 
 fun Method.isSameSignatures(jcMethod: JcMethod) =
     jcdbSignature == jcMethod.jcdbSignature
+
+fun JcMethod.isSameSignature(mn: MethodNode): Boolean =
+    withAsmNode { it.isSameSignature(mn) }
