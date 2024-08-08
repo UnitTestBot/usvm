@@ -41,6 +41,7 @@ class TypeInferenceManager(
         }
 
     fun analyze(startMethods: List<EtsMethod>): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
+        logger.info { "Preparing forward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, ::methodDominators)
         val backwardRunner = UniRunner(
@@ -56,10 +57,12 @@ class TypeInferenceManager(
             backwardRunner.run(startMethods)
         }
 
+        logger.info { "Running backward analysis" }
         runnerFinished = CompletableDeferred()
         backwardJob.start()
         runnerFinished.await()
         backwardJob.cancelAndJoin()
+        logger.info { "Backward analysis finished" }
 
         // logger.info {
         //     buildString {
@@ -93,6 +96,7 @@ class TypeInferenceManager(
             }
         }
 
+        logger.info { "Preparing forward analysis" }
         val forwardGraph = graph
         val forwardAnalyzer = ForwardAnalyzer(forwardGraph, methodTypeScheme)
         val forwardRunner = UniRunner(
@@ -108,10 +112,12 @@ class TypeInferenceManager(
             forwardRunner.run(startMethods)
         }
 
+        logger.info { "Running forward analysis" }
         runnerFinished = CompletableDeferred()
         forwardJob.start()
         runnerFinished.await()
         forwardJob.cancelAndJoin()
+        logger.info { "Forward analysis finished" }
 
         // logger.info {
         //     buildString {

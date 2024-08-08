@@ -2,29 +2,37 @@ interface Microphone {
     uuid: string
 }
 
+class VirtualMicro implements Microphone {
+    uuid: string;
+
+    constructor() {
+        this.uuid = "virtual_micro_v3"
+    }
+}
+
 interface Devices {
     microphone: Microphone
 }
 
-class VirtualMicro implements Microphone {
-    uuid: string = "virtual_micro_v3"
-}
-
 class VirtualDevices implements Devices {
-    microphone: Microphone = new VirtualMicro()
+    microphone: Microphone;
+
+    constructor() {
+        this.microphone = new VirtualMicro();
+    }
 }
 
-function getMicrophoneUuid(device: Devices): string {
-    return device.microphone.uuid
+function getMicrophoneUuid(devices: Devices): string {
+    return devices.microphone.uuid;
 }
 
-function entrypoint0() {
+function entrypoint() {
     let devices = new VirtualDevices()
     let uuid = getMicrophoneUuid(devices)
     console.log(uuid)
 }
 
-function entrypoint0_no_ctor() {
+function entrypoint0_manual() {
     let micro = new VirtualMicro()
     micro.uuid = "virtual_micro_v3"
 
@@ -34,7 +42,6 @@ function entrypoint0_no_ctor() {
     let uuid = getMicrophoneUuid(devices)
     console.log(uuid)
 }
-
 
 interface A {
     aStr: string

@@ -1,5 +1,5 @@
 {
-  "name": "microphone_ctor.ts",
+  "name": "nested_init.ts",
   "namespaces": [],
   "classes": [
     {
@@ -80,182 +80,6 @@
             "enclosingClass": {
               "name": "_DEFAULT_ARK_CLASS"
             },
-            "name": "getMicrophoneUuid",
-            "parameters": [
-              {
-                "name": "devices",
-                "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Devices"
-                },
-                "isOptional": false
-              }
-            ],
-            "returnType": {
-              "_": "StringType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "body": {
-            "locals": [
-              {
-                "name": "this",
-                "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
-                  }
-                }
-              },
-              {
-                "name": "devices",
-                "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Devices"
-                }
-              },
-              {
-                "name": "$temp0",
-                "type": {
-                  "_": "UnknownType"
-                }
-              },
-              {
-                "name": "$temp1",
-                "type": {
-                  "_": "UnknownType"
-                }
-              }
-            ],
-            "cfg": {
-              "blocks": [
-                {
-                  "id": 0,
-                  "successors": [],
-                  "predecessors": [],
-                  "stmts": [
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "devices",
-                        "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Devices"
-                        }
-                      },
-                      "right": {
-                        "_": "ParameterRef",
-                        "index": 0,
-                        "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Devices"
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "this",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
-                          }
-                        }
-                      },
-                      "right": {
-                        "_": "ThisRef",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "$temp0",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "InstanceFieldRef",
-                        "instance": {
-                          "_": "Local",
-                          "name": "devices",
-                          "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "Devices"
-                          }
-                        },
-                        "field": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "microphone",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "$temp1",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "InstanceFieldRef",
-                        "instance": {
-                          "_": "Local",
-                          "name": "$temp0",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "field": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "uuid",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "ReturnStmt",
-                      "arg": {
-                        "_": "Local",
-                        "name": "$temp1",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
-            },
             "name": "entrypoint",
             "parameters": [],
             "returnType": {
@@ -276,11 +100,11 @@
                 }
               },
               {
-                "name": "devices",
+                "name": "cat",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualDevices"
+                    "name": "Cat"
                   }
                 }
               },
@@ -289,24 +113,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualDevices"
+                    "name": "Cat"
                   }
                 }
               },
               {
-                "name": "uuid",
-                "type": {
-                  "_": "UnknownType"
-                }
-              },
-              {
-                "name": "getMicrophoneUuid",
-                "type": {
-                  "_": "UnknownType"
-                }
-              },
-              {
-                "name": "console",
+                "name": "infer",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -349,7 +161,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           }
                         }
                       },
@@ -358,7 +170,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           }
                         }
                       }
@@ -373,13 +185,13 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualDevices"
+                              "name": "Cat"
                             }
                           }
                         },
                         "method": {
                           "enclosingClass": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -394,11 +206,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "devices",
+                        "name": "cat",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           }
                         }
                       },
@@ -408,27 +220,20 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           }
                         }
                       }
                     },
                     {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "uuid",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
+                      "_": "CallStmt",
+                      "expr": {
                         "_": "StaticCallExpr",
                         "method": {
                           "enclosingClass": {
                             "name": ""
                           },
-                          "name": "getMicrophoneUuid",
+                          "name": "infer",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -437,15 +242,115 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "devices",
+                            "name": "cat",
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "VirtualDevices"
+                                "name": "Cat"
                               }
                             }
                           }
                         ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "_DEFAULT_ARK_CLASS"
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS"
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS"
+                          }
+                        }
                       }
                     },
                     {
@@ -472,9 +377,9 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "uuid",
+                            "name": "x",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "AnyType"
                             }
                           }
                         ]
@@ -493,63 +398,18 @@
     },
     {
       "signature": {
-        "name": "Microphone"
+        "name": "Foo"
       },
       "modifiers": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "Microphone"
-            },
-            "name": "uuid",
-            "type": {
-              "_": "StringType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false
-        }
-      ],
-      "methods": []
-    },
-    {
-      "signature": {
-        "name": "VirtualMicro"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [
-        "Microphone"
-      ],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "VirtualMicro"
-            },
-            "name": "uuid",
-            "type": {
-              "_": "StringType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false
-        }
-      ],
+      "fields": [],
       "methods": [
         {
           "signature": {
             "enclosingClass": {
-              "name": "VirtualMicro"
+              "name": "Foo"
             },
             "name": "@instance_init",
             "parameters": [],
@@ -582,7 +442,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
                       }
@@ -599,7 +459,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "VirtualMicro"
+              "name": "Foo"
             },
             "name": "@static_init",
             "parameters": [],
@@ -632,7 +492,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
                       }
@@ -649,7 +509,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "VirtualMicro"
+              "name": "Foo"
             },
             "name": "constructor",
             "parameters": [],
@@ -660,17 +520,7 @@
           "modifiers": [],
           "typeParameters": [],
           "body": {
-            "locals": [
-              {
-                "name": "this",
-                "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "VirtualMicro"
-                  }
-                }
-              }
-            ],
+            "locals": [],
             "cfg": {
               "blocks": [
                 {
@@ -684,10 +534,7 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "VirtualMicro"
-                          }
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -695,7 +542,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
                       }
@@ -713,7 +560,7 @@
                         },
                         "method": {
                           "enclosingClass": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -722,38 +569,6 @@
                           }
                         },
                         "args": []
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "InstanceFieldRef",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "VirtualMicro"
-                            }
-                          }
-                        },
-                        "field": {
-                          "enclosingClass": {
-                            "name": ""
-                          },
-                          "name": "uuid",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        }
-                      },
-                      "right": {
-                        "_": "Constant",
-                        "value": "virtual_micro_v3",
-                        "type": {
-                          "_": "StringType"
-                        }
                       }
                     },
                     {
@@ -769,7 +584,7 @@
     },
     {
       "signature": {
-        "name": "Devices"
+        "name": "Cat"
       },
       "modifiers": [],
       "typeParameters": [],
@@ -779,42 +594,12 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "Devices"
+              "name": "Cat"
             },
-            "name": "microphone",
+            "name": "foo",
             "type": {
               "_": "UnclearReferenceType",
-              "name": "Microphone"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false
-        }
-      ],
-      "methods": []
-    },
-    {
-      "signature": {
-        "name": "VirtualDevices"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [
-        "Devices"
-      ],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
-            },
-            "name": "microphone",
-            "type": {
-              "_": "UnclearReferenceType",
-              "name": "Microphone"
+              "name": "Foo"
             }
           },
           "modifiers": [],
@@ -827,7 +612,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "VirtualDevices"
+              "name": "Cat"
             },
             "name": "@instance_init",
             "parameters": [],
@@ -838,122 +623,13 @@
           "modifiers": [],
           "typeParameters": [],
           "body": {
-            "locals": [],
-            "cfg": {
-              "blocks": [
-                {
-                  "id": 0,
-                  "successors": [],
-                  "predecessors": [],
-                  "stmts": [
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "this",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "ThisRef",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "VirtualDevices"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "ReturnVoidStmt"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
-            },
-            "name": "@static_init",
-            "parameters": [],
-            "returnType": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "body": {
-            "locals": [],
-            "cfg": {
-              "blocks": [
-                {
-                  "id": 0,
-                  "successors": [],
-                  "predecessors": [],
-                  "stmts": [
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "this",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "ThisRef",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "VirtualDevices"
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "ReturnVoidStmt"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        },
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
-            },
-            "name": "constructor",
-            "parameters": [],
-            "returnType": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "body": {
             "locals": [
-              {
-                "name": "this",
-                "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "VirtualDevices"
-                  }
-                }
-              },
               {
                 "name": "$temp0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualMicro"
+                    "name": "Foo"
                   }
                 }
               }
@@ -971,10 +647,7 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "VirtualDevices"
-                          }
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -982,33 +655,9 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "Cat"
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "VirtualDevices"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
                       }
                     },
                     {
@@ -1019,7 +668,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
                       },
@@ -1028,7 +677,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
                       }
@@ -1043,13 +692,13 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualMicro"
+                              "name": "Foo"
                             }
                           }
                         },
                         "method": {
                           "enclosingClass": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -1070,17 +719,18 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualDevices"
+                              "name": "Cat"
                             }
                           }
                         },
                         "field": {
                           "enclosingClass": {
-                            "name": ""
+                            "name": "Cat"
                           },
-                          "name": "microphone",
+                          "name": "foo",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "UnclearReferenceType",
+                            "name": "Foo"
                           }
                         }
                       },
@@ -1090,9 +740,133 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "Foo"
                           }
                         }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "Cat"
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Cat"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "Cat"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Cat"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "Cat"
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
                       }
                     },
                     {

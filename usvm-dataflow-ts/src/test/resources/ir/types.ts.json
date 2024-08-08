@@ -83,7 +83,7 @@
             "name": "getMicrophoneUuid",
             "parameters": [
               {
-                "name": "device",
+                "name": "devices",
                 "type": {
                   "_": "UnclearReferenceType",
                   "name": "Devices"
@@ -109,7 +109,7 @@
                 }
               },
               {
-                "name": "device",
+                "name": "devices",
                 "type": {
                   "_": "UnclearReferenceType",
                   "name": "Devices"
@@ -139,7 +139,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "device",
+                        "name": "devices",
                         "type": {
                           "_": "UnclearReferenceType",
                           "name": "Devices"
@@ -189,7 +189,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "device",
+                          "name": "devices",
                           "type": {
                             "_": "UnclearReferenceType",
                             "name": "Devices"
@@ -256,7 +256,7 @@
             "enclosingClass": {
               "name": "_DEFAULT_ARK_CLASS"
             },
-            "name": "entrypoint0",
+            "name": "entrypoint",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -494,7 +494,7 @@
             "enclosingClass": {
               "name": "_DEFAULT_ARK_CLASS"
             },
-            "name": "entrypoint0_no_ctor",
+            "name": "entrypoint0_manual",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1034,7 +1034,7 @@
                       "_": "IfStmt",
                       "condition": {
                         "_": "ConditionExpr",
-                        "op": "==",
+                        "op": "!=",
                         "left": {
                           "_": "Local",
                           "name": "cond",
@@ -1050,7 +1050,7 @@
                           }
                         },
                         "type": {
-                          "_": "UnknownType"
+                          "_": "BooleanType"
                         }
                       }
                     }
@@ -1059,9 +1059,7 @@
                 {
                   "id": 1,
                   "successors": [],
-                  "predecessors": [
-                    0
-                  ],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1137,9 +1135,7 @@
                 {
                   "id": 2,
                   "successors": [],
-                  "predecessors": [
-                    0
-                  ],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1469,19 +1465,13 @@
                 }
               },
               {
-                "name": "$temp1",
-                "type": {
-                  "_": "UnknownType"
-                }
-              },
-              {
                 "name": "strBar",
                 "type": {
                   "_": "UnknownType"
                 }
               },
               {
-                "name": "$temp2",
+                "name": "$temp1",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -1563,53 +1553,15 @@
                       }
                     },
                     {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "$temp0",
-                        "type": {
-                          "_": "UnknownType"
-                        }
-                      },
-                      "right": {
-                        "_": "BinopExpr",
-                        "op": "in",
-                        "left": {
-                          "_": "Constant",
-                          "value": "a",
-                          "type": {
-                            "_": "StringType"
-                          }
-                        },
-                        "right": {
-                          "_": "Local",
-                          "name": "x",
-                          "type": {
-                            "_": "UnionType",
-                            "types": [
-                              {
-                                "_": "UnclearReferenceType",
-                                "name": "X"
-                              },
-                              {
-                                "_": "UnclearReferenceType",
-                                "name": "Y"
-                              }
-                            ]
-                          }
-                        }
-                      }
-                    },
-                    {
                       "_": "IfStmt",
                       "condition": {
                         "_": "ConditionExpr",
-                        "op": "==",
+                        "op": "!=",
                         "left": {
-                          "_": "Local",
-                          "name": "$temp0",
+                          "_": "Constant",
+                          "value": "undefined",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "UndefinedType"
                           }
                         },
                         "right": {
@@ -1620,7 +1572,7 @@
                           }
                         },
                         "type": {
-                          "_": "UnknownType"
+                          "_": "BooleanType"
                         }
                       }
                     }
@@ -1631,15 +1583,13 @@
                   "successors": [
                     2
                   ],
-                  "predecessors": [
-                    0
-                  ],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp2",
+                        "name": "$temp1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1691,7 +1641,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp2",
+                            "name": "$temp1",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -1704,10 +1654,7 @@
                 {
                   "id": 2,
                   "successors": [],
-                  "predecessors": [
-                    1,
-                    3
-                  ],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "ReturnVoidStmt"
@@ -1719,15 +1666,13 @@
                   "successors": [
                     2
                   ],
-                  "predecessors": [
-                    0
-                  ],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "$temp0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1779,7 +1724,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp1",
+                            "name": "$temp0",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -2275,6 +2220,15 @@
                 }
               },
               {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                  }
+                }
+              },
+              {
                 "name": "baz",
                 "type": {
                   "_": "UnknownType"
@@ -2401,6 +2355,55 @@
                       }
                     },
                     {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                            }
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
                       "_": "CallStmt",
                       "expr": {
                         "_": "StaticCallExpr",
@@ -2416,14 +2419,12 @@
                         },
                         "args": [
                           {
-                            "_": "ObjectLiteralExpr",
-                            "anonymousClass": {
-                              "name": "AnonymousClass-entrypoint2-0"
-                            },
+                            "_": "Local",
+                            "name": "$temp0",
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-entrypoint2-0"
+                                "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
                               }
                             }
                           }
@@ -2463,37 +2464,7 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
-        }
-      ],
-      "methods": []
-    },
-    {
-      "signature": {
-        "name": "Devices"
-      },
-      "modifiers": [],
-      "typeParameters": [],
-      "superClassName": "",
-      "implementedInterfaceNames": [],
-      "fields": [
-        {
-          "signature": {
-            "enclosingClass": {
-              "name": "Devices"
-            },
-            "name": "microphone",
-            "type": {
-              "_": "UnclearReferenceType",
-              "name": "Microphone"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         }
       ],
       "methods": []
@@ -2522,14 +2493,255 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "Constant",
-            "value": "\"virtual_micro_v3\"",
-            "type": {
-              "_": "StringType"
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualMicro"
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
             }
           }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualMicro"
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualMicro"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "VirtualMicro"
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "VirtualMicro"
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "VirtualMicro"
+                            }
+                          }
+                        },
+                        "field": {
+                          "enclosingClass": {
+                            "name": ""
+                          },
+                          "name": "uuid",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "virtual_micro_v3",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "Devices"
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "Devices"
+            },
+            "name": "microphone",
+            "type": {
+              "_": "UnclearReferenceType",
+              "name": "Microphone"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false
         }
       ],
       "methods": []
@@ -2559,19 +2771,291 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "NewExpr",
-            "classType": {
-              "_": "ClassType",
-              "signature": {
-                "name": "VirtualMicro"
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualDevices"
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualDevices"
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "VirtualDevices"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "VirtualDevices"
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "VirtualMicro"
+                  }
+                }
               }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "VirtualDevices"
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "VirtualMicro"
+                            }
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "VirtualMicro"
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "VirtualDevices"
+                            }
+                          }
+                        },
+                        "field": {
+                          "enclosingClass": {
+                            "name": ""
+                          },
+                          "name": "microphone",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
             }
           }
         }
-      ],
-      "methods": []
+      ]
     },
     {
       "signature": {
@@ -2595,8 +3079,7 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         },
         {
           "signature": {
@@ -2612,8 +3095,7 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         }
       ],
       "methods": []
@@ -2640,8 +3122,7 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         }
       ],
       "methods": []
@@ -2668,8 +3149,7 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         }
       ],
       "methods": []
@@ -2696,15 +3176,14 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": null
+          "exclamationToken": false
         }
       ],
       "methods": []
     },
     {
       "signature": {
-        "name": "AnonymousClass-entrypoint2-0"
+        "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
       },
       "modifiers": [],
       "typeParameters": [],
@@ -2714,7 +3193,7 @@
         {
           "signature": {
             "enclosingClass": {
-              "name": "AnonymousClass-entrypoint2-0"
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
             },
             "name": "",
             "type": {
@@ -2724,17 +3203,135 @@
           "modifiers": [],
           "typeParameters": [],
           "questionToken": false,
-          "exclamationToken": false,
-          "initializer": {
-            "_": "Local",
-            "name": "arg1",
-            "type": {
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
               "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "enclosingClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "enclosingClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0"
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
             }
           }
         }
-      ],
-      "methods": []
+      ]
     }
   ],
   "importInfos": [],
