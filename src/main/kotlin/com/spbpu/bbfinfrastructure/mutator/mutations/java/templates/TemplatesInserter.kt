@@ -83,11 +83,11 @@ open class TemplatesInserter : Transformation() {
         val randomPlaceToInsert =
             project.configuration.mutationRegion?.run {
                 when {
-                    startLine != null && endLine != null -> file.getRandomPlaceToInsertNewLine(startLine, endLine)
-                    startLine != null -> file.getRandomPlaceToInsertNewLine(startLine)
-                    else -> file.getRandomPlaceToInsertNewLine()
+                    startLine != null && endLine != null -> file.getRandomPlaceToInsertNewLine(startLine, endLine, !insertingObjectsTemplates)
+                    startLine != null -> file.getRandomPlaceToInsertNewLine(startLine, !insertingObjectsTemplates)
+                    else -> file.getRandomPlaceToInsertNewLine(!insertingObjectsTemplates)
                 }
-            } ?: file.getRandomPlaceToInsertNewLine()
+            } ?: file.getRandomPlaceToInsertNewLine(!insertingObjectsTemplates)
         if (randomPlaceToInsert == null) return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
         var currentBlockLineNumber = randomPlaceToInsertLineNumber
@@ -98,7 +98,7 @@ open class TemplatesInserter : Transformation() {
         //TODO CAN WE REPLACE ~[BODY]~ by another template????
         val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
             .map { block ->
-                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber) ?: return false
+                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber, !insertingObjectsTemplates) ?: return false
                 var fillIteration = 0
                 var filledTemplate =
                     fillTemplateBody(
@@ -135,7 +135,7 @@ open class TemplatesInserter : Transformation() {
                             it.rBrace!!.delete()
                         }
                     } catch (e: Throwable) {
-                        return false
+                        throw IllegalArgumentException()
                     }
                 randomPlaceToInsert.replaceThis(newPsiBlock)
                 newPsiBlock
@@ -151,16 +151,19 @@ open class TemplatesInserter : Transformation() {
                 } + filledBlocks.last().first + "\n"
                 val newPsiBlock =
                     try {
-                        Factory.javaPsiFactory.createCodeBlockFromText("{\n$newBody\n}", null).also {
+                        Factory.javaPsiFactory.createCodeBlockFromText("{\n${newBody.trim()}\n}", null).also {
                             it.lBrace!!.delete()
                             it.rBrace!!.delete()
                         }
                     } catch (e: Throwable) {
-                        return false
+                        throw IllegalArgumentException()
                     }
                 val start = filledBlocks.first().second
                 val end = filledBlocks.last().second
                 val nodesBetween = file.getNodesBetweenWhitespaces(start, end)
+                if (nodesBetween.any { it.children.any { it !in nodesBetween } }) {
+                    throw IllegalArgumentException()
+                }
                 val nodeToReplace =
                     nodesBetween
                         .filter { it.parent !in nodesBetween }
@@ -198,13 +201,14 @@ open class TemplatesInserter : Transformation() {
     }
 
     protected fun checkNewCode(mutationInfo: MutationInfo?): Boolean {
-        return if (!checker.checkCompiling()) {
+        if (!checker.checkCompiling()) {
             throw IllegalArgumentException()
         } else {
             mutationInfo?.let { currentMutationChain.add(it) }
             checker.curFile.changePsiFile(PSICreator.getPsiForJava(file.text))
-            if (++addedObjectsTemplates >= numToInsertObjectTemplates) {
+            if (insertingObjectsTemplates && ++addedObjectsTemplates >= numToInsertObjectTemplates) {
                 insertingObjectsTemplates = false
+                return true
             }
             if (!insertingObjectsTemplates && ++addedSensitivityTemplates >= numToInsertSensitivityTemplates) {
                 addedSensitivityTemplates = 0
@@ -215,7 +219,7 @@ open class TemplatesInserter : Transformation() {
                 currentMutationChain.clear()
                 checker.curFile.changePsiFile(PSICreator.getPsiForJava(originalPsiText))
             }
-            true
+            return true
         }
     }
 
@@ -386,7 +390,7 @@ open class TemplatesInserter : Transformation() {
                 .filter { it.key in methodsToAdd }
         for ((_, auxMethod) in auxMethods) {
             val psiClass = randomPlaceToInsert.parents.find { it is PsiClass } as? PsiClassImpl ?: return false
-            val m = Factory.javaPsiFactory.createMethodFromText(auxMethod, null)
+            val m = Factory.javaPsiFactory.createMethodFromText(auxMethod.trim(), null)
             val lastMethod =
                 psiClass.getAllChildrenOfCurLevel().findLast { it is PsiMethod && it.containingClass == psiClass }
                     ?: return false

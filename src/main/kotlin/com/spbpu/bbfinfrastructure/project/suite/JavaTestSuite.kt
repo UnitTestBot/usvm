@@ -135,8 +135,10 @@ class JavaTestSuite: TestSuite {
                     .associateWith { "tmp/scorecards/${it.substringAfterLast('/')}" }
                 val commandToCpScoreCards = pathToReports.entries.joinToString("; ") { "cp ${it.key} ${it.value}" }
                 command("bash", "-c", commandToCpScoreCards).start().waitFor()
-                val commandToRm = remoteToLocalPaths.keys.joinToString("; ") {"rm $it"}
-                command("bash", "-c", commandToRm).start().waitFor()
+                remoteToLocalPaths.keys.forEach { key ->
+                    val commandToRm = "rm $key"
+                    command("bash", "-c", commandToRm).start().waitFor()
+                }
             }
         }
     }

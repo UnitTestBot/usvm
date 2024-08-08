@@ -29,19 +29,48 @@ class Project(
             region: ToolsResultsSarifBuilder.ResultRegion? = null,
             uri: String? = null,
             originalUri: String? = null
+        ): Project =
+            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri) { PSICreator.getPsiForJava(it) }
+
+        fun createPythonProjectFromFiles(
+            files: List<File>,
+            originalFileName: String = "",
+            originalCWEs: List<Int> = listOf(),
+            region: ToolsResultsSarifBuilder.ResultRegion? = null,
+            uri: String? = null,
+            originalUri: String? = null
+        ): Project =
+            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri) { PSICreator.getPsiForPython(it)!! }
+
+        private fun createProjectFromFiles(
+            files: List<File>,
+            originalFileName: String = "",
+            originalCWEs: List<Int> = listOf(),
+            region: ToolsResultsSarifBuilder.ResultRegion? = null,
+            uri: String? = null,
+            originalUri: String? = null,
+            funcToBuildPsi: (String) -> PsiFile
         ): Project {
-            val javaFiles =
+            val srcFiles =
                 files.map {
                     val text = it.readText()
-                    BBFFile(it.name, PSICreator.getPsiForJava(text))
+                    BBFFile(it.name, funcToBuildPsi.invoke(text))
                 }
-            return Project(Metadata(originalFileName, originalCWEs, originalUri, uri, region), javaFiles, LANGUAGE.JAVA)
+            return Project(Metadata(
+                sourceFileName = originalFileName,
+                initialCWEs = originalCWEs,
+                originalUri = originalUri,
+                mutatedUri = uri,
+                mutationRegion = region
+            ), srcFiles, LANGUAGE.JAVA)
         }
+
 
         fun createJavaProjectFromCode(code: String, name: String): Project {
             val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code, Factory.file.project))
             return Project(Metadata.createEmptyHeader(), listOf(bbfFile), LANGUAGE.JAVA)
         }
+
 
         fun createFromCode(code: String): Project {
             TODO()

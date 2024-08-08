@@ -251,20 +251,22 @@ fun KotlinType.isIterable() =
 fun PsiElement.getLocationLineNumber()  =
     PsiDiagnosticUtils.atLocation(this).substringAfter('(').substringBefore(',').toInt()
 
-fun PsiFile.getRandomPlaceToInsertNewLine() = this.getRandomPlaceToInsertNewLine(-1)
-fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int): PsiElement? {
+fun PsiFile.getRandomPlaceToInsertNewLine(inMethod: Boolean = false) = this.getRandomPlaceToInsertNewLine(-1, inMethod)
+fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int, inMethod: Boolean = false): PsiElement? {
     val lastImportStatementLineNumber = text.split("\n").indexOfLast { it.startsWith("import ") }
     return getAllPSIChildrenOfType<PsiWhiteSpace>()
         .filter { it.text.contains("\n") }
         .filter { it.getLocationLineNumber().let { it > lastImportStatementLineNumber && it > fromLine }}
+        .filter { !inMethod || it.parents.any { it is PsiMethod } }
         .randomOrNull()
 }
 
-fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int, toLine: Int): PsiElement? {
+fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int, toLine: Int, inMethod: Boolean = false): PsiElement? {
     val lastImportStatementLineNumber = text.split("\n").indexOfLast { it.startsWith("import ") }
     return getAllPSIChildrenOfType<PsiWhiteSpace>()
         .filter { it.text.contains("\n") }
         .filter { it.getLocationLineNumber().let { it > lastImportStatementLineNumber && it > fromLine && it < toLine }}
+        .filter { !inMethod || it.parents.any { it is PsiMethod } }
         .randomOrNull()
 }
 

@@ -96,6 +96,7 @@ object StatsManager {
             statisticsFile.exists().ifTrue {
                 statisticsFile.readText()
                     .split("\n")
+                    .filter { it.trim().isNotEmpty() }
                     .associate {
                         it.split(" -> ").let { it.first().trim() to it.last().trim().toInt() }
                     }.toMutableMap()

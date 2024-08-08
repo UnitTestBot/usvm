@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.psicreator
 
 import com.intellij.core.CoreApplicationEnvironment
+import com.intellij.core.CoreFileTypeRegistry
 import com.intellij.core.CoreProjectEnvironment
 import com.intellij.core.JavaCoreApplicationEnvironment
 import com.intellij.core.JavaCoreProjectEnvironment
@@ -8,14 +9,15 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.ExtensionPoint
+import com.intellij.openapi.fileTypes.FileTypeRegistry
 import com.intellij.openapi.util.Disposer
 import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
 import com.intellij.pom.core.impl.PomModelImpl
 import com.intellij.pom.tree.TreeAspect
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.*
 import com.intellij.psi.augment.PsiAugmentProvider
+import com.intellij.psi.impl.file.impl.FileManagerImpl
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.jetbrains.python.*
 import com.jetbrains.python.documentation.doctest.PyDocstringTokenSetContributor
@@ -38,6 +40,7 @@ import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
+import com.jetbrains.python.PythonFileType
 import java.io.File
 
 typealias IntellijProject = com.intellij.openapi.project.Project
@@ -87,6 +90,7 @@ object PSICreator {
         System.setProperty("idea.home.path", "lib/bin")
         val coreApplicationEnvironment = CoreApplicationEnvironment(disposable, false)
         env = CoreProjectEnvironment(disposable, coreApplicationEnvironment)
+        (FileTypeRegistry.getInstance() as CoreFileTypeRegistry).registerFileType(PythonFileType.INSTANCE, "py")
         env.project.registerService(PyAstElementGenerator::class.java, PyElementGeneratorImpl(env.project))
         coreApplicationEnvironment.registerParserDefinition(PythonLanguage.INSTANCE, PythonParserDefinition())
         env.project.extensionArea.registerExtensionPoint(PythonDialectsTokenSetContributor.EP_NAME.name, PythonDialectsTokenSetContributor::class.java.name, ExtensionPoint.Kind.INTERFACE, false)

@@ -107,7 +107,7 @@ class ExpressionGenerator {
 
     private fun Method.canBeInvokedWithScopeVariables(scope: List<JavaScopeCalculator.JavaScopeComponent>): Boolean =
         parameters.isEmpty() ||
-        parameterTypes.all { parameterType -> scope.any { it.type == parameterType.name } }
+        parameterTypes.all { parameterType -> scope.any { it.type == parameterType.name } || parameterType.isPrimitive }
 
     private fun Field.hasGetter(): Boolean {
         val getterName = "get${name.capitalizeAsciiOnly()}"
