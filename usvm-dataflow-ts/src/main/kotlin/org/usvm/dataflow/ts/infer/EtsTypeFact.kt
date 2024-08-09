@@ -4,7 +4,7 @@ import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsCallableType
+import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
@@ -290,7 +290,7 @@ sealed interface EtsTypeFact {
                 is EtsNeverType -> TODO()
                 is EtsLiteralType -> TODO()
                 is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
-                is EtsCallableType -> FunctionEtsTypeFact
+                is EtsFunctionType -> FunctionEtsTypeFact
                 is EtsArrayType -> ObjectEtsTypeFact(
                     cls = type,
                     properties = mapOf(
