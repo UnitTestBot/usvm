@@ -1,16 +1,25 @@
 package org.usvm.dataflow.ts.test
 
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethodImpl
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
+import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.extension
+import kotlin.io.path.inputStream
+import kotlin.io.path.toPath
+import kotlin.io.path.walk
 
 class EtsTypeInferenceTest {
 
@@ -272,5 +281,39 @@ class EtsTypeInferenceTest {
             TypeInferenceManager(graphWithExplicitEntryPoint)
         }
         val inferred = manager.analyze(entrypoints)
+    }
+
+    @OptIn(ExperimentalPathApi::class)
+    @Disabled("ArkIR-ABC is a little bit broken right now")
+    @Test
+    fun `type-infer on Calc_Demo`() {
+        val resource = "/abcir/Calc_Demo"
+        val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
+            ?: error("Resource not found: $resource")
+        println("Found project dir: '$dir'")
+
+        dir.resolve("entry/ets/model").walk()
+            .filter { it.extension == "json" }
+            .forEach { path ->
+                println("Processing '$path'")
+
+                val dto = EtsFileDto.loadFromJson(path.inputStream())
+                val file = convertToEtsFile(dto)
+                val graphOrig = EtsApplicationGraphImpl(file)
+                val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
+
+                val entrypoints = file.classes
+                    .flatMap { it.methods + it.ctor }
+                    .filter { it.isPublic || it.name == CONSTRUCTOR }
+                println("entrypoints: (${entrypoints.size})")
+                entrypoints.forEach {
+                    println("  ${it.signature.enclosingClass.name}::${it.name}")
+                }
+
+                val manager = with(EtsTraits) {
+                    TypeInferenceManager(graph)
+                }
+                val inferred = manager.analyze(entrypoints)
+            }
     }
 }
