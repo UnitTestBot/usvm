@@ -150,13 +150,15 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     override val typeTransformer: (Any?) -> EtsType
         get() = {
+            requireNotNull(it) { "Raw null value should not be passed here" }
+
             /*
                 Both KClass and TSObject instances come here because
                 only KClass<TSObject> is available to match different objects.
                 However, this method is also used in parent TestRunner class
                 and passes here TSObject instances. So this check on current level is required.
              */
-            val temp = if (it is KClass<*> || it == null) it else it::class
+            val temp = if (it is KClass<*>) it else it::class
 
             when (temp) {
                 TSObject.AnyObject::class -> EtsAnyType
