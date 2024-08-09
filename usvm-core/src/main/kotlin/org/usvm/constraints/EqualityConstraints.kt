@@ -479,9 +479,7 @@ class UEqualityConstraints private constructor(
 
         val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
 
-        var multiMapIterator = referenceDisequalities.multiMapIterator()
-        while (multiMapIterator.hasNext()) {
-            val (ref1, ref2) = multiMapIterator.next()
+        for ((ref1, ref2) in referenceDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
                 val translatedRef1 = translator.translate(ref1)
@@ -492,9 +490,7 @@ class UEqualityConstraints private constructor(
 
         processedConstraints.clear()
         val translatedNull = translator.transform(ctx.nullRef)
-        multiMapIterator = nullableDisequalities.multiMapIterator()
-        while (multiMapIterator.hasNext()) {
-            val (ref1, ref2) = multiMapIterator.next()
+        for ((ref1, ref2) in nullableDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
                 val translatedRef1 = translator.translate(ref1)

@@ -57,7 +57,7 @@ class UIndexedMocker<Method>(
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol
 
     override val trackedLiterals: Collection<TrackedLiteral>
-        get() = trackedSymbols.keys()
+        get() = trackedSymbols.keys().asSequence().toList()
 
     /**
      * Creates a mock symbol. If [trackedLiteral] is not null, created expression

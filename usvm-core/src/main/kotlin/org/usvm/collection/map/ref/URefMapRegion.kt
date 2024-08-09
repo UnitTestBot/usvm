@@ -366,7 +366,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         write: (R, DstKeyId, UExpr<ValueSort>, UBoolExpr) -> R
     ) = mergeAllocatedKeys(
         initial,
-        inputMapWithAllocatedKeys.keys(),
+        inputMapWithAllocatedKeys.keys().asSequence().toList(),
         guard,
         keySet,
         srcMapRef,
@@ -386,7 +386,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         write: (R, DstKeyId, UExpr<ValueSort>, UBoolExpr) -> R
     ) = mergeAllocatedKeys(
         initial,
-        allocatedMapWithAllocatedKeys.keys().filter { it.mapAddress == srcMapRef.address },
+        allocatedMapWithAllocatedKeys.keys().asSequence().filter { it.mapAddress == srcMapRef.address }.toList(),
         guard,
         keySet,
         srcMapRef,

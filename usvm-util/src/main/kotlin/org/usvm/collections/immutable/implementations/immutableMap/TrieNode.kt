@@ -735,7 +735,7 @@ class TrieNode<K, V>(
         }
     }
 
-    fun keys() = UPersistentHashMapKeysIterator(this).asSequence().toSet()
+    fun keys() = UPersistentHashMapKeysIterator(this) as Iterator<K>
 
     fun isEmpty() = singleOrNull() == null
     fun isNotEmpty() = singleOrNull() != null
@@ -782,7 +782,7 @@ class TrieNode<K, V>(
         return result
     }
 
-    fun toMutableMap(): MutableMap<in K, V> = mutableMapOf<K, V>().also {
+    fun toMutableMap(): MutableMap<K, V> = mutableMapOf<K, V>().also {
         this.forEach {entry -> it[entry.key] = entry.value } }
 
     @Suppress("UNCHECKED_CAST")

@@ -230,6 +230,8 @@ open class UPathConstraints<Type>(
         val mergedNumericConstraints =
             numericConstraints.mergeWith(other.numericConstraints, by, thisOwnership, otherOwnership, mergedOwnership)
 
+        this.changeOwnership(thisOwnership)
+        other.changeOwnership(otherOwnership)
         return UPathConstraints(
             ctx,
             mergedOwnership,

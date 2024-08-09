@@ -1409,7 +1409,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
-        result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
+        result = updateBounds(result, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 
@@ -1443,7 +1443,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
-        result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms, ownership))
+        result = updateBounds(result, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 

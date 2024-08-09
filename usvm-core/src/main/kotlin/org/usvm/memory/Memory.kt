@@ -187,8 +187,8 @@ class UMemory<Type, Method>(
         otherOwnership: MutabilityOwnership,
         mergedOwnership: MutabilityOwnership,
     ): UMemory<Type, Method>? {
-        val ids = regions.keys()
-        val otherIds = other.regions.keys()
+        val ids = regions.keys().asSequence().toList()
+        val otherIds = other.regions.keys().asSequence().toList()
         if (ids != otherIds) {
             return null
         }
