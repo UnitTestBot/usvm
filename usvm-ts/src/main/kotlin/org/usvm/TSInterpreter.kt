@@ -152,16 +152,11 @@ class TSInterpreter(
 
     private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
         when (local) {
-            is EtsLocal -> {
-//                // See https://github.com/UnitTestBot/usvm/issues/202
-//                if (local.name == "this") 0 else
-                localVarToIdx
-                    .getOrPut(method) { mutableMapOf() }
-                    .run {
-                        getOrPut(local.name) { method.parameters.size + size }
-                    }
-            }
-
+            is EtsLocal -> localVarToIdx
+                .getOrPut(method) { mutableMapOf() }
+                .run {
+                    getOrPut(local.name) { method.parameters.size + size }
+                }
             is EtsThis -> 0
             is EtsParameterRef -> local.index
             else -> error("Unexpected local: $local")
