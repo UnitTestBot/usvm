@@ -81,7 +81,7 @@ class TSInterpreter(
             ?: return
 
         val succs = applicationGraph.successors(stmt).take(2).toList()
-        val (posStmt, negStmt) = succs[0] to succs[1]
+        val (posStmt, negStmt) = succs[1] to succs[0]
 
         scope.forkWithBlackList(
             boolExpr,

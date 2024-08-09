@@ -21,7 +21,6 @@ import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import java.nio.file.Paths
-import kotlin.io.path.pathString
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -205,7 +204,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
                 ?: error("No such file found")
             val filePath = Paths.get(fileURL.toURI())
-            val file = loadEtsFileAutoConvert(filePath.pathString)
+            val file = loadEtsFileAutoConvert(filePath)
 
             val method = file.getMethodByDescriptor(id)
 
