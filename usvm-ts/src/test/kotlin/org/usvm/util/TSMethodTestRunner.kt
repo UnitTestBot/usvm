@@ -10,6 +10,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
 import org.usvm.TSMachine
@@ -19,6 +20,7 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -89,11 +91,78 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         )
     }
 
+    protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
+                          reified T3 : TSObject, reified R : TSObject>
+    discoverProperties(
+        methodIdentifier: MethodDescriptor,
+        vararg analysisResultMatchers: (T1, T2, T3, R?) -> Boolean,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
+                          reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject>
+    discoverProperties(
+        methodIdentifier: MethodDescriptor,
+        vararg analysisResultMatchers: (T1, T2, T3, T4, R?) -> Boolean,
+        invariants: Array<out Function<Boolean>> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = methodIdentifier,
+            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(T4::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    /*
+        For now type checks are disabled for development purposes
+
+        See https://github.com/UnitTestBot/usvm/issues/203
+     */
+    override val checkType: (EtsType?, EtsType?) -> Boolean
+        get() = { _, _ -> true }
+
     override val typeTransformer: (Any?) -> EtsType
         get() = {
-            require(it is KClass<*>) { "Only TSObjects are allowed" }
+            requireNotNull(it) { "Raw null value should not be passed here" }
 
-            when (it) {
+            /*
+                Both KClass and TSObject instances come here because
+                only KClass<TSObject> is available to match different objects.
+                However, this method is also used in parent TestRunner class
+                and passes here TSObject instances. So this check on current level is required.
+             */
+            val temp = if (it is KClass<*>) it else it::class
+
+            when (temp) {
                 TSObject.AnyObject::class -> EtsAnyType
                 TSObject.Array::class -> TODO()
                 TSObject.Boolean::class -> EtsBooleanType
@@ -106,9 +175,6 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 else -> error("Should not be called")
             }
         }
-
-    override val checkType: (EtsType?, EtsType?) -> Boolean
-        get() = TODO("Not yet implemented")
 
     private fun getProject(fileName: String): EtsFile {
         val jsonWithoutExtension = "/ir/$fileName.json"
@@ -130,10 +196,19 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>
         get() = { id, options ->
-            val project = getProject(id.fileName)
-            val method = project.getMethodByDescriptor(id)
+            val packagePath = this.javaClass.`package`.name
+                .split(".")
+                .drop(3) // drop org.usvm.samples
+                .joinToString("/")
 
-            TSMachine(project, options).use { machine ->
+            val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
+                ?: error("No such file found")
+            val filePath = Paths.get(fileURL.toURI())
+            val file = loadEtsFileAutoConvert(filePath)
+
+            val method = file.getMethodByDescriptor(id)
+
+            TSMachine(file, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver()

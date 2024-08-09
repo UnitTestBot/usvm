@@ -15,10 +15,10 @@ class TSComponents(
     private val closeableResources = mutableListOf<AutoCloseable>()
 
     override val useSolverForForks: Boolean
-        get() = TODO("Not yet implemented")
+        get() = options.useSolverForForks
 
     override fun <Context : UContext<TSSizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<TSSizeSort> {
-        TODO("Not yet implemented")
+        return UBv32SizeExprProvider(ctx)
     }
 
     override fun mkTypeSystem(
