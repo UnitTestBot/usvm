@@ -10,6 +10,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
 import org.usvm.TSMachine
@@ -19,6 +20,8 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import java.nio.file.Paths
+import kotlin.io.path.pathString
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -194,10 +197,19 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>
         get() = { id, options ->
-            val project = getProject(id.fileName)
-            val method = project.getMethodByDescriptor(id)
+            val packagePath = this.javaClass.`package`.name
+                .split(".")
+                .drop(3) // drop org.usvm.samples
+                .joinToString("/")
 
-            TSMachine(project, options).use { machine ->
+            val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
+                ?: error("No such file found")
+            val filePath = Paths.get(fileURL.toURI())
+            val file = loadEtsFileAutoConvert(filePath.pathString)
+
+            val method = file.getMethodByDescriptor(id)
+
+            TSMachine(file, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver()
