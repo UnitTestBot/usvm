@@ -441,6 +441,11 @@ JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasNbPositiv
     return type->tp_as_number && type->tp_as_number->nb_positive;
 }
 
+JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasSqConcat(JNIEnv *env, jobject _, jlong type_ref) {
+    QUERY_TYPE_HAS_PREFIX
+    return type->tp_as_sequence && type->tp_as_sequence->sq_concat;
+}
+
 JNIEXPORT jint JNICALL Java_org_usvm_interpreter_CPythonAdapter_typeHasSqLength(JNIEnv *env, jobject _, jlong type_ref) {
     QUERY_TYPE_HAS_PREFIX
     return type->tp_as_sequence && type->tp_as_sequence->sq_length;

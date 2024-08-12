@@ -89,6 +89,7 @@ public class CPythonAdapter {
     public native int typeHasNbMatrixMultiply(long type);
     public native int typeHasNbNegative(long type);
     public native int typeHasNbPositive(long type);
+    public native int typeHasSqConcat(long type);
     public native int typeHasSqLength(long type);
     public native int typeHasMpLength(long type);
     public native int typeHasMpSubscript(long type);

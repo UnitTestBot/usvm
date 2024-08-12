@@ -15,6 +15,7 @@ import org.usvm.machine.types.HasNbMultiply
 import org.usvm.machine.types.HasNbNegative
 import org.usvm.machine.types.HasNbPositive
 import org.usvm.machine.types.HasNbSubtract
+import org.usvm.machine.types.HasSqConcat
 import org.usvm.machine.types.HasSqLength
 import org.usvm.machine.types.HasTpCall
 import org.usvm.machine.types.HasTpGetattro
@@ -37,7 +38,10 @@ fun nbAddKt(
     context.ctx
 ) {
     context.curState ?: return
-    pyAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
+    val nbAdd = left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd)
+    val sqConcat = left.evalIsSoft(context, HasSqConcat) and right.evalIsSoft(context, HasSqConcat)
+    pyAssert(context, context.ctx.mkImplies(nbAdd.not(), sqConcat))
+    pyFork(context, nbAdd)
 }
 
 fun nbSubtractKt(
