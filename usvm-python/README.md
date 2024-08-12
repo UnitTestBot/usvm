@@ -7,7 +7,7 @@ To turn them on, first you need to set up `CPython`. For that:
 
 1. Clone `CPython` as repository submodule ([refer to the section about submodules](#working-with-git-submodule)).
 
-2. If you are using Unix, you also need to install optional dependencies  ([refer to the section about CPython build](#cpython-build)).
+2. Install dependencies ([refer to the section about CPython build](#cpython-build)). This step is mandatory for all operating systems.
 
 After these steps, add gradle property `cpythonActivated=true`. This can be done in `GRADLE_USER_HOME` directory 
 ([about](https://docs.gradle.org/current/userguide/directory_layout.html#dir:gradle_user_home))
@@ -49,9 +49,16 @@ Official instruction: https://devguide.python.org/getting-started/setup-building
 
 Gradle tasks for building and running were tested on Windows, Ubuntu and MacOS 14.4.1.
 
+### Windows
+
 For Windows you need MSBuild (see https://devguide.python.org/getting-started/setup-building/#windows).
 
-1. Install optional dependencies.
+Note that you need `Python native development tool` component. You may also need `Desktop development with C++` component.
+
+### Linux and MacOS
+
+For these OS you need to install optional dependencies.
+  
   - Only for Linux.
     - Official instruction: https://devguide.python.org/getting-started/setup-building/#install-dependencies
     - __Short version (Ubuntu)__. Install the following packages with apt:
@@ -73,16 +80,18 @@ For Windows you need MSBuild (see https://devguide.python.org/getting-started/se
     cpython.ssl.path=/opt/homebrew/opt/openssl    
     ```
 
-2. Use Gradle tasks to do the rest.
-    
-    - Task to run tests (see `src/test/resources/samples` and `src/test/kotlin/org/usvm/samples`):
+### After dependecies are installed
 
-      - `:usvm-python:test` (name of task group --- `verification`)
-
-    - Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+Use Gradle tasks to do the rest.
     
-      - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
-      - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
+- Task to run tests (see `src/test/resources/samples` and `src/test/kotlin/org/usvm/samples`):
+
+  - `:usvm-python:test` (name of task group --- `verification`)
+
+- Tasks for running `src/test/kotlin/manualTest.kt` (name of task group --- `run`): 
+    
+  - `:usvm-python:manualTestDebug`: run with debug logging and debug build of CPython
+  - `:usvm-python:manualTestDebugNoLogs`: run with info logging and debug build of CPython
 
 ## Structure of `usvm-python`
 
@@ -125,19 +134,11 @@ For Windows you need MSBuild (see https://devguide.python.org/getting-started/se
 
 Add the definition of the native method in `CPythonAdapter.java`.
 
-Regenerate `org_usvm_interpreter_CPythonAdapter.h`:
-
-```
-cd usvm-python-main/src/main/java
-javah org.usvm.interpreter.CPythonAdapter
-mv org_usvm_interpreter_CPythonAdapter.h ../../../../cpythonadapter/src/main/c/include
-```
+Header `org_usvm_interpreter_CPythonAdapter.h` should be generated automatically before building `usvm-python:cpythonadapter` module. It can be found in the build directory. The Gradle task that is responsible for that is `usvm-python-main:build`.
 
 Then implement the corresponding methods in `org_usvm_interpreter_CPythonAdapter.c`.
 
 ### Static method that can be called from C code
-
-TODO: this is deprecated.
 
 Implement the method in `CPythonAdapter.java`.
 
