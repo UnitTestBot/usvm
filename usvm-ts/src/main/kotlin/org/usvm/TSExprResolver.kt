@@ -99,7 +99,7 @@ class TSExprResolver(
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(lhs, rhs)
+        operator(lhs, rhs, scope)
     }
 
     private inline fun <T> resolveAfterResolved(
