@@ -179,7 +179,8 @@ open class TemplatesInserter : Transformation() {
         return checkNewCode(
             MutationInfo(
                 mutationName = "TemplateInsertion",
-                mutationDescription = "Insert template from $pathToTemplateFile with index $randomTemplateIndex",
+                isObjectTemplate = insertingObjectsTemplates,
+                mutationDescription = "Insert template from $pathToTemplateFile with name ${randomTemplate.name} $randomTemplateIndex",
                 usedExtensions = usedExtensions,
                 location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
             )

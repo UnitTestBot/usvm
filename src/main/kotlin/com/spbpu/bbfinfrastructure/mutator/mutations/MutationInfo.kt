@@ -2,6 +2,7 @@ package com.spbpu.bbfinfrastructure.mutator.mutations
 
 class MutationInfo(
     val mutationName: String,
+    val isObjectTemplate: Boolean,
     val mutationDescription: String,
     val usedExtensions: List<String>,
     val location: MutationLocation

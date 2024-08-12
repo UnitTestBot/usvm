@@ -95,7 +95,7 @@ object ScoreCardParser {
                         originalResults = originalResults,
                         originalFileName = p.first.configuration.originalUri!!,
                         originalFileCWE = setOf(originalCwes.first()),
-                        mutationDescriptionChain = p.second.map { it.mutationDescription },
+                        mutationDescriptionChain = p.second.filter { !it.isObjectTemplate }.map { it.mutationDescription },
                         usedExtensions = p.second.flatMap { it.usedExtensions },
                         kind = resultsFromGroundTruth.kind
                     ),

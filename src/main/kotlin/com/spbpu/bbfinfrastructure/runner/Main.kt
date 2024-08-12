@@ -77,11 +77,12 @@ fun main(args: Array<String>) {
 
     fun makeCommand(): CommandLine? {
         val javaVersion = System.getenv()["GRADLE_JAVA_HOME"] ?: ""
+        val vulnomiconJava = System.getenv()["VULNOMICON_JAVA_HOME_17"] ?: ""
         val cmdLine =
             if (javaVersion.isEmpty()) {
                 CommandLine.parse("gradle runFuzzer")
             } else {
-                CommandLine.parse("gradle runFuzzer -Dorg.gradle.java.home=$javaVersion")
+                CommandLine.parse("gradle runFuzzer -Dorg.gradle.java.home=$javaVersion -PvulnomiconJavaHome=$vulnomiconJava")
             }
         val arg =
             when {
