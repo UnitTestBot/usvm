@@ -19,10 +19,18 @@ class IntPair {
 
 public class StringExamples {
     public String newEmptyString() {
+        return new String();
+    }
+
+    public String stringFromStringBuilder() {
         StringBuilder s = new StringBuilder();
         s.append("123");
         s.append("321");
         return new String(s);
+    }
+
+    public String stringFromByteArray(byte[] bytes) {
+        return new String(bytes);
     }
 
     public String concat(String fst, String snd) {

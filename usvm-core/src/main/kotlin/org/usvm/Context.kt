@@ -688,3 +688,21 @@ inline fun <USizeSort : USort, R> UContext<*>.withSizeSort(block: UContext<USize
 
 val UConcreteChar.character
     get() = Char(this.shortValue.toInt())
+
+/**
+ * Widens or narrows a bit-vec expression to match the [sizeBits] regarding [signed] flag.
+ *
+ * @return the bit-vec expression of [sizeBits] size.
+ */
+fun <BvSort: UBvSort> UExpr<BvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
+    val diff = sizeBits - sort.sizeBits.toInt()
+    return if (diff > 0) {
+        if (signed) {
+            ctx.mkBvSignExtensionExpr(diff, this)
+        } else {
+            ctx.mkBvZeroExtensionExpr(diff, this)
+        }
+    } else {
+        ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, this)
+    }
+}

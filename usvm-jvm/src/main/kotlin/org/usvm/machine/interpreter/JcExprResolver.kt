@@ -109,7 +109,6 @@ import org.usvm.machine.interpreter.statics.markAsInitialized
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
-import org.usvm.machine.operator.mkNarrow
 import org.usvm.machine.operator.wideTo32BitsIfNeeded
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
@@ -120,6 +119,7 @@ import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.mkNarrow
 import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import org.usvm.util.allocHeapRef

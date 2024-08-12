@@ -9,6 +9,7 @@ import org.usvm.UFpSort
 import org.usvm.USort
 import org.usvm.machine.JcContext
 import org.usvm.machine.jctx
+import org.usvm.mkNarrow
 
 /**
  * An util class for performing unary operations on expressions.

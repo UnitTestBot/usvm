@@ -34,7 +34,7 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, SrcS
     val dstFrom: DstKey,
     val dstTo: DstKey,
     private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>,
-    private val valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)?
+    protected val valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)?
 ) : USymbolicCollectionAdapter<SrcKey, DstKey, SrcSort, DstSort> {
 
     abstract val ctx: UContext<USizeSort>
@@ -183,17 +183,38 @@ class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort, SrcSort: USor
     ) = with(ctx) {
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $srcCollectionId" }
+        @Suppress("UNCHECKED_CAST")
+        srcCollectionId as USymbolicArrayId<Type, *, SrcSort, *>
+        @Suppress("UNCHECKED_CAST")
+        dstCollectionId as USymbolicArrayId<Type, *, DstSort, *>
 
-        memory.memcpy(
-            srcRef = mkConcreteHeapRef(srcCollectionId.address),
-            dstRef = composer.compose(dstFrom.first),
-            type = dstCollectionId.arrayType,
-            elementSort = dstCollectionId.sort,
-            fromSrcIdx = composer.compose(srcFrom),
-            fromDstIdx = composer.compose(dstFrom.second),
-            toDstIdx = composer.compose(dstTo.second),
-            guard = guard
-        )
+        val converter = valueConverter
+        if (converter == null) {
+            memory.memcpy(
+                srcRef = mkConcreteHeapRef(srcCollectionId.address),
+                dstRef = composer.compose(dstFrom.first),
+                type = dstCollectionId.arrayType,
+                elementSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom),
+                fromDstIdx = composer.compose(dstFrom.second),
+                toDstIdx = composer.compose(dstTo.second),
+                guard = guard // TODO: should we compose it (and other below)?
+            )
+        } else {
+            memory.convert(
+                srcType = srcCollectionId.arrayType,
+                dstType = dstCollectionId.arrayType,
+                srcRef = mkConcreteHeapRef(srcCollectionId.address),
+                dstRef = composer.compose(dstFrom.first),
+                srcSort = srcCollectionId.sort,
+                dstSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom),
+                fromDstIdx = composer.compose(dstFrom.second),
+                toDstIdx = composer.compose(dstTo.second),
+                guard = guard,
+                converter = converter
+                )
+        }
     }
 }
 
@@ -221,17 +242,38 @@ class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort, SrcSort: USor
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
+        @Suppress("UNCHECKED_CAST")
+        srcCollectionId as USymbolicArrayId<Type, *, SrcSort, *>
+        @Suppress("UNCHECKED_CAST")
+        dstCollectionId as USymbolicArrayId<Type, *, DstSort, *>
 
-        memory.memcpy(
-            srcRef = composer.compose(srcFrom.first),
-            dstRef = mkConcreteHeapRef(dstCollectionId.address),
-            type = dstCollectionId.arrayType,
-            elementSort = dstCollectionId.sort,
-            fromSrcIdx = composer.compose(srcFrom.second),
-            fromDstIdx = composer.compose(dstFrom),
-            toDstIdx = composer.compose(dstTo),
-            guard = guard
-        )
+        val converter = valueConverter
+        if (converter == null) {
+            memory.memcpy(
+                srcRef = composer.compose(srcFrom.first),
+                dstRef = mkConcreteHeapRef(dstCollectionId.address),
+                type = dstCollectionId.arrayType,
+                elementSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom.second),
+                fromDstIdx = composer.compose(dstFrom),
+                toDstIdx = composer.compose(dstTo),
+                guard = guard
+            )
+        } else {
+            memory.convert(
+                srcType = srcCollectionId.arrayType,
+                dstType = dstCollectionId.arrayType,
+                srcRef = composer.compose(srcFrom.first),
+                dstRef = mkConcreteHeapRef(dstCollectionId.address),
+                srcSort = srcCollectionId.sort,
+                dstSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom.second),
+                fromDstIdx = composer.compose(dstFrom),
+                toDstIdx = composer.compose(dstTo),
+                guard = guard,
+                converter = converter
+            )
+        }
     }
 }
 
@@ -261,15 +303,37 @@ class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort, SrcSort: USort, D
         check(dstCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is USymbolicArrayId<*, *, *, *>) { "Unexpected collection: $srcCollectionId" }
 
-        return memory.memcpy(
-            srcRef = composer.compose(srcFrom.first),
-            dstRef = composer.compose(dstFrom.first),
-            type = dstCollectionId.arrayType,
-            elementSort = dstCollectionId.sort,
-            fromSrcIdx = composer.compose(srcFrom.second),
-            fromDstIdx = composer.compose(dstFrom.second),
-            toDstIdx = composer.compose(dstTo.second),
-            guard = guard
-        )
+        @Suppress("UNCHECKED_CAST")
+        srcCollectionId as USymbolicArrayId<Type, *, SrcSort, *>
+        @Suppress("UNCHECKED_CAST")
+        dstCollectionId as USymbolicArrayId<Type, *, DstSort, *>
+
+        val converter = valueConverter
+        if (converter == null) {
+            memory.memcpy(
+                srcRef = composer.compose(srcFrom.first),
+                dstRef = composer.compose(dstFrom.first),
+                type = dstCollectionId.arrayType,
+                elementSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom.second),
+                fromDstIdx = composer.compose(dstFrom.second),
+                toDstIdx = composer.compose(dstTo.second),
+                guard = guard
+            )
+        } else {
+            memory.convert(
+                srcType = srcCollectionId.arrayType,
+                dstType = dstCollectionId.arrayType,
+                srcRef = composer.compose(srcFrom.first),
+                dstRef = composer.compose(dstFrom.first),
+                srcSort = srcCollectionId.sort,
+                dstSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom.second),
+                fromDstIdx = composer.compose(dstFrom.second),
+                toDstIdx = composer.compose(dstTo.second),
+                guard = guard,
+                converter = converter
+            )
+        }
     }
 }
