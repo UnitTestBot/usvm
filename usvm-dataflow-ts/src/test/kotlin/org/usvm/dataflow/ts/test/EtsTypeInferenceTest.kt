@@ -294,13 +294,12 @@ class EtsTypeInferenceTest {
     @OptIn(ExperimentalPathApi::class)
     @Test
     fun `infer types on Calc`() {
-        val resource = "/projects/applications_app_samples/etsir/ast"
+        val resource = "/projects/applications_app_samples/etsir/ast/ArkTSDistributedCalc"
         val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
             ?: error("Resource not found: $resource")
         println("Found project dir: '$dir'")
 
         val files = dir
-            .resolve("SuperFeature/DistributedAppDev/ArkTSDistributedCalc/entry/src/main/ets")
             .walk()
             .filter { it.extension == "json" }
             // .filter { it.name.startsWith("Calculator") }
