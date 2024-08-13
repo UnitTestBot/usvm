@@ -5,8 +5,8 @@ import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethodImpl
+import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
@@ -18,6 +18,7 @@ import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
+import kotlin.io.path.name
 import kotlin.io.path.toPath
 import kotlin.io.path.walk
 
@@ -32,12 +33,13 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on microphone`() {
         val name = "microphone_ctor"
-        val arkFile = load("ir/$name.ts.json")
-        // val arkFile = load("abcir/$name.abc.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/$name.ts.json")
+        // val file = load("abcir/$name.abc.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -80,11 +82,12 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on types`() {
         val name = "types"
-        val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -101,11 +104,12 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on data`() {
         val name = "data"
-        val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -122,11 +126,12 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on call`() {
         val name = "call"
-        val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -143,11 +148,12 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on nested_init`() {
         val name = "nested_init"
-        val arkFile = load("ir/$name.ts.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -164,11 +170,12 @@ class EtsTypeInferenceTest {
     @Test
     fun `test type inference on cast ABC`() {
         val name = "cast"
-        val arkFile = load("abcir/$name.abc.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("abcir/$name.abc.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .flatMap { it.methods }
             .filter { it.name.startsWith("entrypoint") }
         println("entrypoints: (${entrypoints.size})")
@@ -184,11 +191,12 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `test type inference on applications_settings_data SettingsDBHelper`() {
-        val arkFile = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .asSequence()
             .flatMap { it.methods + it.ctor }
             .filter {
@@ -259,11 +267,12 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `test type inference on applications_settings_data GlobalContext`() {
-        val arkFile = load("ir/applications_settings_data/Utils/GlobalContext.ets.json")
-        val graph = EtsApplicationGraphImpl(arkFile)
+        val file = load("ir/applications_settings_data/Utils/GlobalContext.ets.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
-        val entrypoints = arkFile.classes
+        val entrypoints = project.classes
             .asSequence()
             .flatMap { it.methods + it.ctor }
             .filter {
@@ -284,36 +293,48 @@ class EtsTypeInferenceTest {
     }
 
     @OptIn(ExperimentalPathApi::class)
-    @Disabled("ArkIR-ABC is a little bit broken right now")
     @Test
-    fun `type-infer on Calc_Demo`() {
-        val resource = "/abcir/Calc_Demo"
+    fun `infer types on Calc`() {
+        val resource = "/projects/applications_app_samples/etsir/ast"
         val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
             ?: error("Resource not found: $resource")
         println("Found project dir: '$dir'")
 
-        dir.resolve("entry/ets/model").walk()
+        val files = dir
+            .resolve("SuperFeature/DistributedAppDev/ArkTSDistributedCalc/entry/src/main/ets")
+            .walk()
             .filter { it.extension == "json" }
-            .forEach { path ->
-                println("Processing '$path'")
+            // .filter { it.name.startsWith("Calculator") }
+            // .filter { it.name.startsWith("ImageList") }
+            // .filter { it.name.startsWith("KvStoreModel") }
+            // .filter { it.name.startsWith("RemoteDeviceModel") }
+            // .filter { it.name.startsWith("Index") }
+            .toList()
+        println("Found files: (${files.size})")
+        for (path in files) {
+            println("  $path")
+        }
 
-                val dto = EtsFileDto.loadFromJson(path.inputStream())
-                val file = convertToEtsFile(dto)
-                val graphOrig = EtsApplicationGraphImpl(file)
-                val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
+        println("Processing ${files.size} files...")
+        val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
+        val project = EtsScene(etsFiles)
 
-                val entrypoints = file.classes
-                    .flatMap { it.methods + it.ctor }
-                    .filter { it.isPublic || it.name == CONSTRUCTOR }
-                println("entrypoints: (${entrypoints.size})")
-                entrypoints.forEach {
-                    println("  ${it.signature.enclosingClass.name}::${it.name}")
-                }
+        val graphOrig = EtsApplicationGraphImpl(project)
+        val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
 
-                val manager = with(EtsTraits) {
-                    TypeInferenceManager(graph)
-                }
-                val inferred = manager.analyze(entrypoints)
-            }
+        val entrypoints = project.classes
+            .flatMap { it.methods + it.ctor }
+            .filter { it.isPublic || it.name == CONSTRUCTOR }
+            .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
+        // .filter { it.name == "build" || it.name == CONSTRUCTOR }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graph)
+        }
+        val inferred = manager.analyze(entrypoints)
     }
 }

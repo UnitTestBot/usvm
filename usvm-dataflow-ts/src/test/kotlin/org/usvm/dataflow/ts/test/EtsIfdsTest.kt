@@ -19,6 +19,7 @@ package org.usvm.dataflow.ts.test
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.taint.configuration.Argument
 import org.jacodb.taint.configuration.AssignMark
 import org.jacodb.taint.configuration.ConstantTrue
@@ -52,8 +53,9 @@ class EtsIfdsTest {
 
     @Test
     fun `test taint analysis`() {
-        val etsFile = load("taint")
-        val graph = EtsApplicationGraphImpl(etsFile)
+        val file = load("taint")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
         val unitResolver = SingletonUnitResolver
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
             { method ->
@@ -104,7 +106,7 @@ class EtsIfdsTest {
             )
         }
 
-        val methods = etsFile.classes.flatMap { it.methods }.filter { it.name == "bad" }
+        val methods = project.classes.flatMap { it.methods }.filter { it.name == "bad" }
         logger.info { "Methods: ${methods.size}" }
         for (method in methods) {
             logger.info { "  ${method.name}" }

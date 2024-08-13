@@ -199,7 +199,8 @@ class BackwardFlowFunction(
                     val accessor = rhv.accesses.single()
 
                     if (accessor !is FieldAccessor) {
-                        TODO("$accessor")
+                        // TODO("$accessor")
+                        return result
                     }
 
                     val type = EtsTypeFact.ObjectEtsTypeFact(
@@ -227,7 +228,8 @@ class BackwardFlowFunction(
                     val accessor = lhv.accesses.single()
 
                     if (accessor !is FieldAccessor) {
-                        TODO("$accessor")
+                        // TODO("$accessor")
+                        return result
                     }
 
                     val type = EtsTypeFact.ObjectEtsTypeFact(
@@ -275,7 +277,8 @@ class BackwardFlowFunction(
             val rhvAccessor = rhv.accesses.single()
 
             if (rhvAccessor !is FieldAccessor) {
-                TODO("$rhvAccessor")
+                // TODO("$rhvAccessor")
+                return listOf(fact)
             }
 
             val rhvType = EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = mapOf(rhvAccessor.name to fact.type))
@@ -288,7 +291,8 @@ class BackwardFlowFunction(
         val lhvAccessor = lhv.accesses.single()
 
         if (lhvAccessor !is FieldAccessor) {
-            TODO("$lhvAccessor")
+            // TODO("$lhvAccessor")
+            return listOf(fact)
         }
 
         // todo: check fact has object type

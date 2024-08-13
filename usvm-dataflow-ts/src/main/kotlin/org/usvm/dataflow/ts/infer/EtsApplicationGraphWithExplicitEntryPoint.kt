@@ -1,14 +1,12 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsInstLocation
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsApplicationGraph
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 
@@ -18,7 +16,7 @@ class EtsApplicationGraphWithExplicitEntryPoint(
     private val graph: EtsApplicationGraph,
 ) : EtsApplicationGraph {
 
-    override val cp: EtsFile
+    override val cp: EtsScene
         get() = graph.cp
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
