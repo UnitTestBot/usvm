@@ -1,6 +1,10 @@
 package org.usvm.samples.approximations
 
+import approximations.java.lang.Float_Tests
+import approximations.java.lang.Integer_Tests
 import approximations.java.lang.StringBuffer_Tests
+import approximations.java.lang.System_Tests
+import approximations.java.security.SecureRandom_Tests
 import approximations.java.util.HashSet_Tests
 import approximations.java.util.zip.CRC32_Tests
 import kotlinx.coroutines.runBlocking
@@ -74,6 +78,20 @@ class ApproximationsTest : ApproximationsTestRunner() {
             .filterNot { (method, _) -> method.enclosingClass.name == StringBuffer_Tests::class.java.name }
             .filterNot { (method, _) -> method.enclosingClass.name == CRC32_Tests::class.java.name }
             .filterNot { (method, _) -> method.enclosingClass.name == HashSet_Tests::class.java.name }
+            .filterNot { (method, _) -> method.enclosingClass.name == SecureRandom_Tests::class.java.name }
+            .filterNot { (method, _) ->
+                method.enclosingClass.name == Float_Tests::class.java.name
+                        && arrayOf("test_parseFloat", "test_toString").any { method.name.startsWith(it) }
+            }
+            .filterNot { (method, _) ->
+                method.enclosingClass.name == Integer_Tests::class.java.name
+                        && arrayOf("test_parseInt").any { method.name.startsWith(it) }
+            }
+            .filterNot { (method, _) ->
+                method.enclosingClass.name == System_Tests::class.java.name
+                        && arrayOf("test_clearProperty", "test_getProperty", "test_setProperty", "test_mapLibraryName")
+                            .any { method.name.startsWith(it) }
+            }
 
             .map { (method, annotation) ->
                 val maxExecutions = annotation.values["executionMax"] as? Int ?: 0

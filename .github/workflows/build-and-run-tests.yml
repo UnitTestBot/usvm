@@ -29,6 +29,38 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up ArkAnalyzer
+        run: |
+          REPO_URL="https://gitee.com/Lipenx/arkanalyzer.git"
+          DEST_DIR="arkanalyzer"
+          MAX_RETRIES=10
+          RETRY_DELAY=3  # Delay between retries in seconds  
+          BRANCH="neo/2024-08-07"
+
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+              git clone --depth=1 --branch $BRANCH $REPO_URL $DEST_DIR && break
+              echo "Clone failed, retrying in $RETRY_DELAY seconds..."
+              sleep "$RETRY_DELAY"
+          done
+
+          if [[ $i -gt $MAX_RETRIES ]]; then
+              echo "Failed to clone the repository after $MAX_RETRIES attempts."
+              exit 1
+          else
+              echo "Repository cloned successfully."
+          fi
+
+          echo "ARKANALYZER_DIR=$(realpath $DEST_DIR)" >> $GITHUB_ENV
+          cd $DEST_DIR
+
+          npm install
+          npm run build
+
       - name: Install CPython optional dependencies
         run: |
           sudo apt-get update
