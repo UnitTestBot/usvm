@@ -39,10 +39,12 @@ fun nbAddKt(
 ) {
     context.curState ?: return
     /*
-    The __add__ method corresponds both to the nb_add and sq_concat slots,
-    so it is crucial not to assert the presence of nb_add, but to fork on these
-    two possible options.
-    */
+     * The __add__ method corresponds both to the nb_add and sq_concat slots,
+     * so it is crucial not to assert the presence of nb_add, but to fork on these
+     * two possible options.
+     * Moreover, for now it was decided, that operation `sq_concat` makes sense
+     * only in the situation, when both operands have the corresponding slot.
+     */
     val nbAdd = left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd)
     val sqConcat = left.evalIsSoft(context, HasSqConcat) and right.evalIsSoft(context, HasSqConcat)
     pyAssert(context, nbAdd.not() implies sqConcat)
