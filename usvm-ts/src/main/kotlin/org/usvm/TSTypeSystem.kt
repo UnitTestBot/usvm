@@ -1,14 +1,14 @@
 package org.usvm
 
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsScene
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import kotlin.time.Duration
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
-    val project: EtsFile,
+    val project: EtsScene,
 ) : UTypeSystem<EtsType> {
 
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {

@@ -10,6 +10,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
@@ -205,10 +206,11 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 ?: error("No such file found")
             val filePath = Paths.get(fileURL.toURI())
             val file = loadEtsFileAutoConvert(filePath)
+            val project = EtsScene(listOf(file))
 
             val method = file.getMethodByDescriptor(id)
 
-            TSMachine(file, options).use { machine ->
+            TSMachine(project, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver()

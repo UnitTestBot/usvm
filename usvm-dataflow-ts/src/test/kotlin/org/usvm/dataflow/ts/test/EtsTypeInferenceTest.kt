@@ -18,7 +18,6 @@ import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
-import kotlin.io.path.name
 import kotlin.io.path.toPath
 import kotlin.io.path.walk
 
