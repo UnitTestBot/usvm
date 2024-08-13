@@ -78,6 +78,17 @@ fun nbPositiveKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObj
     pyAssert(context, on.evalIsSoft(context, HasNbPositive))
 }
 
+fun sqConcatKt(
+    context: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+) = with(
+    context.ctx
+) {
+    context.curState ?: return
+    pyAssert(context, left.evalIsSoft(context, HasSqConcat) and right.evalIsSoft(context, HasSqConcat))
+}
+
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     val sqLength = on.evalIsSoft(context, HasSqLength)

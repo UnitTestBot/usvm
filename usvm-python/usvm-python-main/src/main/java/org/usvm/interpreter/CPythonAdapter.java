@@ -1072,6 +1072,18 @@ public class CPythonAdapter {
         nbPositiveKt(context, on.obj);
     }
 
+    @CPythonAdapterJavaMethod(cName = "sq_concat")
+    @CPythonFunction(
+            argCTypes = {CType.PyObject, CType.PyObject},
+            argConverters = {ObjectConverter.StandardConverter, ObjectConverter.StandardConverter}
+    )
+    public static void notifySqConcat(ConcolicRunContext context, SymbolForCPython left, SymbolForCPython right) {
+        if (left.obj == null || right.obj == null)
+            return;
+        context.curOperation = new MockHeader(SqConcatMethod.INSTANCE, Arrays.asList(left.obj, right.obj), null);
+        sqConcatKt(context, left.obj, right.obj);
+    }
+
     @CPythonAdapterJavaMethod(cName = "sq_length")
     @CPythonFunction(
             argCTypes = {CType.PyObject},
