@@ -21,6 +21,7 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.toPath
 import kotlin.io.path.walk
 
+@OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
 
     companion object {
@@ -30,7 +31,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on microphone`() {
+    fun `type inference for microphone`() {
         val name = "microphone_ctor"
         val file = load("ir/$name.ts.json")
         // val file = load("abcir/$name.abc.json")
@@ -79,7 +80,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on types`() {
+    fun `type inference for types`() {
         val name = "types"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
@@ -101,7 +102,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on data`() {
+    fun `type inference for data`() {
         val name = "data"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
@@ -123,7 +124,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on call`() {
+    fun `type inference for call`() {
         val name = "call"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
@@ -145,7 +146,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on nested_init`() {
+    fun `type inference for nested_init`() {
         val name = "nested_init"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
@@ -167,7 +168,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on cast ABC`() {
+    fun `type inference for cast ABC`() {
         val name = "cast"
         val file = load("abcir/$name.abc.json")
         val project = EtsScene(listOf(file))
@@ -189,9 +190,17 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on applications_settings_data SettingsDBHelper`() {
-        val file = load("ir/applications_settings_data/Utils/SettingsDBHelper.ets.json")
-        val project = EtsScene(listOf(file))
+    fun `type inference for applications_settings_data`() {
+        val res = "/projects/applications_settings_data/etsir/ast"
+        val dir = object {}::class.java.getResource(res)?.toURI()?.toPath()
+            ?: error("Resource not found: $res")
+        println("Found project dir: '$dir'")
+
+        val files = dir
+            .walk()
+            .map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
+            .toList()
+        val project = EtsScene(files)
         val graph = EtsApplicationGraphImpl(project)
         val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
 
@@ -265,35 +274,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test type inference on applications_settings_data GlobalContext`() {
-        val file = load("ir/applications_settings_data/Utils/GlobalContext.ets.json")
-        val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
-
-        val entrypoints = project.classes
-            .asSequence()
-            .flatMap { it.methods + it.ctor }
-            .filter {
-                (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || (!it.modifiers.contains("PrivateKeyword") && !it.modifiers.contains(
-                    "ProtectedKeyword"
-                )) || it.name == "constructor"
-            }
-            .toList()
-        println("entrypoints: (${entrypoints.size})")
-        entrypoints.forEach {
-            println("  ${it.signature.enclosingClass.name}::${it.name}")
-        }
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
-        }
-        val inferred = manager.analyze(entrypoints)
-    }
-
-    @OptIn(ExperimentalPathApi::class)
-    @Test
-    fun `infer types on Calc`() {
+    fun `type inference for Calc`() {
         val resource = "/projects/applications_app_samples/etsir/ast/ArkTSDistributedCalc"
         val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
             ?: error("Resource not found: $resource")

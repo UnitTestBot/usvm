@@ -267,12 +267,15 @@ class BackwardFlowFunction(
             }
         }
 
+        // Pass-through completely unrelated facts
         if (fact.variable != lhv.base) return listOf(fact)
 
+        // Case `x := y`
         if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
             return listOf(TypedVariable(rhv.base, fact.type).withTypeGuards(current))
         }
 
+        // Case `x := y.f`
         if (lhv.accesses.isEmpty()) {
             val rhvAccessor = rhv.accesses.single()
 
@@ -293,6 +296,7 @@ class BackwardFlowFunction(
             return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
         }
 
+        // Case `x.f := y`
         check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty()) {
             "Unexpected non-three address code: $current"
         }
@@ -352,7 +356,7 @@ class BackwardFlowFunction(
                 cls = null,
                 properties = mapOf(callExpr.method.name to EtsTypeFact.FunctionEtsTypeFact)
             )
-            result.add(TypedVariable(instancePath, objectWithMethod))
+            result += TypedVariable(instancePath, objectWithMethod)
         }
 
         val callResultValue = (callStatement as? EtsAssignStmt)?.lhv
@@ -361,7 +365,7 @@ class BackwardFlowFunction(
             if (fact.variable == callResultPath) return result
         }
 
-        result.add(fact)
+        result += fact
         return result
     }
 
