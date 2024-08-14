@@ -314,14 +314,18 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
                 serializeUTestInstList(args)
             },
             serialize = {
-                writeUTestExpressionList(args)
                 writeJcMethod(method)
+                writeInt(args.size)
+                args.forEach { writeUTestInst(it) }
             }
         )
 
     private fun AbstractBuffer.deserializeUTestStaticMethodCall(): UTestStaticMethodCall {
-        val args = readUTestExpressionList()
         val method = readJcMethod(jcClasspath)
+        val args = mutableListOf<UTestExpression>()
+        repeat(readInt()) {
+            args.add(readUTestExpression())
+        }
         return UTestStaticMethodCall(method, args)
     }
 
@@ -658,13 +662,17 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
             },
             serialize = {
                 writeJcMethod(method)
-                writeUTestExpressionList(args)
+                writeInt(args.size)
+                args.forEach { writeUTestInst(it) }
             }
         )
 
     private fun AbstractBuffer.deserializeConstructorCall(): UTestConstructorCall {
         val jcMethod = readJcMethod(jcClasspath)
-        val args = readUTestExpressionList()
+        val args = mutableListOf<UTestExpression>()
+        repeat(readInt()) {
+            args.add(readUTestExpression())
+        }
         return UTestConstructorCall(jcMethod, args)
     }
 
@@ -678,14 +686,18 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         serialize = {
             writeJcMethod(method)
             writeUTestInst(instance)
-            writeUTestExpressionList(args)
+            writeInt(args.size)
+            args.forEach { writeUTestInst(it) }
         }
     )
 
     private fun AbstractBuffer.deserializeMethodCall(): UTestMethodCall {
         val jcMethod = readJcMethod(jcClasspath)
         val instance = readUTestExpression()
-        val args = readUTestExpressionList()
+        val args = mutableListOf<UTestExpression>()
+        repeat(readInt()) {
+            args.add(readUTestExpression())
+        }
         return UTestMethodCall(instance, jcMethod, args)
     }
 
@@ -697,7 +709,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         serialize: T.() -> Unit
     ) {
         val id = ctx.serializedUTestInstructions.size + 1
-        if (ctx.serializedUTestInstructions.putIfAbsent(uTestExpression, -id) != null) return
+        if (ctx.serializedUTestInstructions.putIfAbsent(uTestExpression, id) != null) return
         uTestExpression.serializeInternals()
         ctx.serializedUTestInstructions[uTestExpression] = id
         writeEnum(kind)

@@ -74,9 +74,7 @@ class JcTestExecutor(
         val after: JcParametersState
         val uTest = memoryScope.createUTest()
 
-        val execResult = runBlocking {
-            runner.executeAsync(uTest)
-        }
+        val execResult = executeUTest(uTest)
         descriptor2ValueConverter.clear()
         val result =
             when (execResult) {
@@ -178,6 +176,15 @@ class JcTestExecutor(
         val coverage = resolveCoverage(method, state)
 
         return JcTest(method, before, after, result, coverage)
+    }
+
+    fun executeUTest(uTest: UTest) =
+        runBlocking {
+            runner.executeAsync(uTest)
+        }
+
+    fun terminateExecutor() {
+        runner.close()
     }
 
     @Suppress("UNUSED_PARAMETER")
