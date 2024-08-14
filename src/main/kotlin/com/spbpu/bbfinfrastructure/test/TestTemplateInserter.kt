@@ -216,7 +216,10 @@ class TestTemplatesInserter : Transformation() {
                 else -> HOLE_TYPE.MACRO
             }
         if (holeType == HOLE_TYPE.MACRO) {
-            val replacement = checkFromExtensionsAndMacros(parsedTemplate, hole)
+            val replacement = checkFromExtensionsAndMacros(parsedTemplate, hole.substringBefore("@"))
+            if (hole.contains("@") && replacement != null) {
+                mappedHoles[hole] = replacement
+            }
             return replacement?.also { usedExtensions.add("$hole -> $it") }
                 ?: error("Can't find replacement for hole $hole")
         }

@@ -22,6 +22,9 @@ import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
 import org.jetbrains.kotlin.descriptors.runtime.structure.primitiveByWrapper
 import org.jetbrains.kotlin.psi.psiUtil.parents
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.random.Random
 
 open class TemplatesInserter : Transformation() {
@@ -40,6 +43,8 @@ open class TemplatesInserter : Transformation() {
 
     override fun transform() {
         repeat(1_000) {
+            //Add all helpers
+            insertClasses((file as PsiJavaFile).packageName)
             val fileBackupText = file.text
             println("TRY $it")
             try {
@@ -83,7 +88,12 @@ open class TemplatesInserter : Transformation() {
         val randomPlaceToInsert =
             project.configuration.mutationRegion?.run {
                 when {
-                    startLine != null && endLine != null -> file.getRandomPlaceToInsertNewLine(startLine, endLine, !insertingObjectsTemplates)
+                    startLine != null && endLine != null -> file.getRandomPlaceToInsertNewLine(
+                        startLine,
+                        endLine,
+                        !insertingObjectsTemplates
+                    )
+
                     startLine != null -> file.getRandomPlaceToInsertNewLine(startLine, !insertingObjectsTemplates)
                     else -> file.getRandomPlaceToInsertNewLine(!insertingObjectsTemplates)
                 }
@@ -98,7 +108,8 @@ open class TemplatesInserter : Transformation() {
         //TODO CAN WE REPLACE ~[BODY]~ by another template????
         val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
             .map { block ->
-                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber, !insertingObjectsTemplates) ?: return false
+                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber, !insertingObjectsTemplates)
+                    ?: return false
                 var fillIteration = 0
                 var filledTemplate =
                     fillTemplateBody(
@@ -172,7 +183,6 @@ open class TemplatesInserter : Transformation() {
                 nodeToReplace.replaceThis(newPsiBlock)
                 newPsiBlock
             }
-        insertClasses(parsedTemplate, (file as PsiJavaFile).packageName)
         insertImports(parsedTemplate)
         val numberOfAddedImports = parsedTemplate.imports.size
         insertAuxMethods(replacementPsiBlock, parsedTemplate, randomTemplate).let { if (!it) return false }
@@ -180,7 +190,7 @@ open class TemplatesInserter : Transformation() {
             MutationInfo(
                 mutationName = "TemplateInsertion",
                 isObjectTemplate = insertingObjectsTemplates,
-                mutationDescription = "Insert template from $pathToTemplateFile with name ${randomTemplate.name} $randomTemplateIndex",
+                mutationDescription = "Insert template from $pathToTemplateFile with name ${randomTemplate.name}",
                 usedExtensions = usedExtensions,
                 location = MutationLocation(file.name, randomPlaceToInsertLineNumber)
             )
@@ -287,7 +297,10 @@ open class TemplatesInserter : Transformation() {
                 else -> HOLE_TYPE.MACRO
             }
         if (holeType == HOLE_TYPE.MACRO) {
-            val replacement = checkFromExtensionsAndMacros(parsedTemplate, hole)
+            val replacement = checkFromExtensionsAndMacros(parsedTemplate, hole.substringBefore("@"))
+            if (hole.contains("@") && replacement != null) {
+                mappedHoles[hole] = replacement
+            }
             return replacement?.also { usedExtensions.add("$hole -> $it") }
                 ?: error("Can't find replacement for hole $hole")
         }
@@ -355,19 +368,29 @@ open class TemplatesInserter : Transformation() {
         return (extensions + macros).randomOrNull()
     }
 
-    protected fun insertClasses(parsedTemplate: TemplatesParser.Template, originalPackageDirective: String) {
-        for ((auxClassName, auxClassBody) in parsedTemplate.auxClasses) {
-            if (project.files.any { it.name == "$auxClassName.java" }) {
-                continue
+    protected fun insertClasses(originalPackageDirective: String) {
+        Files.walk(Paths.get(FuzzingConf.dirToTemplates))
+            .map { it.toFile() }
+            .filter { it.path.contains("helpers") && it.isFile}
+            .toArray()
+            .map { it as File }
+            .toList()
+            .flatMap { it.readText().split(Regex("~class .* start~\n"))
+                .filter { it.trim().isNotEmpty() }
+                .map { it.substringBefore("~class") }
             }
-            val psiForClass =
-                PSICreator.getPsiForJava(auxClassBody) as PsiJavaFile
-            //Set package directive
-            psiForClass.packageName = originalPackageDirective
-            val bbfFile =
-                BBFFile("$auxClassName.java", psiForClass)
-            project.addFile(bbfFile)
-        }
+            .map {
+                val psiForClass =
+                    PSICreator.getPsiForJava(it) as PsiJavaFile
+                psiForClass.packageName = originalPackageDirective
+                val auxClassName = (psiForClass.getAllChildren().first { it is PsiClass } as PsiClass).name
+                if (project.files.any { it.name == "$auxClassName.java" }) {
+                    return@map
+                }
+                val bbfFile =
+                    BBFFile("$auxClassName.java", psiForClass)
+                project.addFile(bbfFile)
+            }
     }
 
     protected fun insertImports(parsedTemplate: TemplatesParser.Template) {
