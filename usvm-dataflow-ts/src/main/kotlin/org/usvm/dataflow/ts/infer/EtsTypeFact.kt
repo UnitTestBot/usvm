@@ -4,8 +4,8 @@ import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
@@ -28,6 +28,7 @@ sealed interface EtsTypeFact {
 
         return when {
             this is ObjectEtsTypeFact && other is ObjectEtsTypeFact -> union(this, other)
+            this is ObjectEtsTypeFact && other is StringEtsTypeFact -> union(this, other)
             this is UnionEtsTypeFact -> union(this, other)
             this is IntersectionEtsTypeFact -> union(this, other)
             this is GuardedTypeFact -> union(this, other)
@@ -54,7 +55,7 @@ sealed interface EtsTypeFact {
             is BooleanEtsTypeFact,
             is NullEtsTypeFact,
             is UndefinedEtsTypeFact,
-            -> when (other) {
+                -> when (other) {
                 is UnionEtsTypeFact -> intersect(other, this)
                 is IntersectionEtsTypeFact -> intersect(other, this)
                 is GuardedTypeFact -> intersect(other, this)
@@ -71,6 +72,7 @@ sealed interface EtsTypeFact {
 
             is ObjectEtsTypeFact -> when (other) {
                 is ObjectEtsTypeFact -> intersect(this, other)
+                is StringEtsTypeFact -> intersect(this, other)
                 is FunctionEtsTypeFact -> mkIntersectionType(this, other)
                 is UnionEtsTypeFact -> intersect(other, this)
                 is IntersectionEtsTypeFact -> intersect(other, this)
@@ -158,6 +160,61 @@ sealed interface EtsTypeFact {
     ) : EtsTypeFact
 
     companion object {
+        internal val allStringProperties = listOf(
+            "length",
+            "constructor",
+            "anchor",
+            "at",
+            "big",
+            "blink",
+            "bold",
+            "charAt",
+            "charCodeAt",
+            "codePointAt",
+            "concat",
+            "endsWith",
+            "fontcolor",
+            "fontsize",
+            "fixed",
+            "includes",
+            "indexOf",
+            "isWellFormed",
+            "italics",
+            "lastIndexOf",
+            "link",
+            "localeCompare",
+            "match",
+            "matchAll",
+            "normalize",
+            "padEnd",
+            "padStart",
+            "repeat",
+            "replace",
+            "replaceAll",
+            "search",
+            "slice",
+            "small",
+            "split",
+            "strike",
+            "sub",
+            "substr",
+            "substring",
+            "sup",
+            "startsWith",
+            "toString",
+            "toWellFormed",
+            "trim",
+            "trimStart",
+            "trimLeft",
+            "trimEnd",
+            "trimRight",
+            "toLocaleLowerCase",
+            "toLocaleUpperCase",
+            "toLowerCase",
+            "toUpperCase",
+            "valueOf",
+        )
+
         private fun intersect(unionType: UnionEtsTypeFact, other: EtsTypeFact): EtsTypeFact {
             // todo: push intersection
             return mkIntersectionType(unionType, other)
@@ -207,6 +264,20 @@ sealed interface EtsTypeFact {
             return ObjectEtsTypeFact(intersectionCls, intersectionProperties)
         }
 
+        private fun intersect(obj: ObjectEtsTypeFact, string: StringEtsTypeFact): EtsTypeFact? {
+            if (obj.cls == EtsStringType) return string
+            if (obj.cls != null) return null
+
+            val intersectionProperties = obj.properties
+                .filter { it.key in allStringProperties }
+                .mapValues { (_, type) ->
+                    // TODO: intersect with the corresponding type of String's property
+                    type
+                }
+
+            return ObjectEtsTypeFact(obj.cls, intersectionProperties)
+        }
+
         private fun union(unionType: UnionEtsTypeFact, other: EtsTypeFact): EtsTypeFact {
             val result = hashSetOf<EtsTypeFact>()
             for (type in unionType.types) {
@@ -244,9 +315,6 @@ sealed interface EtsTypeFact {
             val o1OnlyProperties = obj1.properties.filter { it.key !in obj2.properties }
             val o2OnlyProperties = obj2.properties.filter { it.key !in obj1.properties }
 
-            val commonCls = obj1.cls.takeIf { it == obj2.cls }
-            val commonObject = ObjectEtsTypeFact(commonCls, commonProperties)
-
             val o1 = ObjectEtsTypeFact(obj1.cls, o1OnlyProperties)
             val o2 = ObjectEtsTypeFact(obj2.cls, o2OnlyProperties)
 
@@ -254,11 +322,27 @@ sealed interface EtsTypeFact {
                 return mkUnionType(o1, o2)
             }
 
+            val commonCls = obj1.cls.takeIf { it == obj2.cls }
+            val commonObject = ObjectEtsTypeFact(commonCls, commonProperties)
+
             if (o1OnlyProperties.isEmpty() && o2OnlyProperties.isEmpty()) {
                 return commonObject
             }
 
             return mkIntersectionType(commonObject, mkUnionType(o1, o2))
+        }
+
+        private fun union(obj: ObjectEtsTypeFact, string: StringEtsTypeFact): EtsTypeFact {
+            if (obj.cls == EtsStringType) return string
+            if (obj.cls != null) return mkUnionType(obj, string)
+
+            for (p in obj.properties.keys) {
+                if (p !in allStringProperties) {
+                    return mkUnionType(obj, string)
+                }
+            }
+
+            return string
         }
 
         fun mkUnionType(vararg types: EtsTypeFact): EtsTypeFact = mkUnionType(types.toHashSet())

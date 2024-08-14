@@ -305,9 +305,9 @@ class EtsTypeInferenceTest {
 
         val entrypoints = project.classes
             .flatMap { it.methods + it.ctor }
+            // .filter { it.enclosingClass.name == "Index" && (it.name == "build" || it.name == CONSTRUCTOR) }
             .filter { it.isPublic || it.name == CONSTRUCTOR }
             .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
-        // .filter { it.name == "build" || it.name == CONSTRUCTOR }
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {
             println("  ${it.signature.enclosingClass.name}::${it.name}")

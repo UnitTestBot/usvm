@@ -8,6 +8,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.findDominators
 import org.jacodb.ets.model.EtsMethod
@@ -21,6 +22,7 @@ import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UniRunner
+import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.util.concurrent.ConcurrentHashMap
 
@@ -153,7 +155,7 @@ class TypeInferenceManager(
         val allClasses = methodTypeScheme.keys
             .map { it.enclosingClass }
             .distinct()
-            .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.name == sig.name }!! }
+            .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.signature == sig }!! }
         val combinedThis = allClasses.associateWith { cls ->
             val combinedBackwardType = methodTypeScheme
                 .asSequence()
@@ -170,7 +172,7 @@ class TypeInferenceManager(
                 }
             logger.info {
                 buildString {
-                    appendLine("Combined backward type for This in class '${cls.name}': $combinedBackwardType")
+                    appendLine("Combined backward type for This in class '${cls.signature}': $combinedBackwardType")
                 }
             }
 
@@ -200,6 +202,15 @@ class TypeInferenceManager(
                 .groupBy({ it.variable.accesses }, { it.type })
                 .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
+            logger.info {
+                buildString {
+                    appendLine("Property refinements for This in class '${cls.signature}':")
+                    for ((property, propertyType) in propertyRefinements.toList().sortedBy { it.first.joinToString(".") }) {
+                        appendLine("  this.${property.joinToString(".")}: $propertyType")
+                    }
+                }
+            }
+
             var refined: EtsTypeFact = combinedBackwardType
             for ((property, propertyType) in propertyRefinements) {
                 refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
@@ -208,13 +219,15 @@ class TypeInferenceManager(
                 }
             }
 
+            { cls }
+
             refined
         }
         logger.info {
             buildString {
                 appendLine("Combined and refined types for This:")
                 for ((cls, type) in combinedThis) {
-                    appendLine("Class '${cls.name}': $type")
+                    appendLine("Combined This in class '${cls.signature}': $type")
                 }
             }
         }
@@ -223,79 +236,6 @@ class TypeInferenceManager(
         forwardRunner.let { }
 
         refinedTypes
-    }
-
-    private fun extracted(methodTypeScheme: Map<EtsMethod, EtsMethodTypeFacts>) {
-        if (true) {
-            val allClasses = methodTypeScheme.keys
-                .map { it.enclosingClass }
-                .distinct()
-                .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.name == sig.name }!! }
-            val combinedThis = allClasses.associateWith { cls ->
-                val combinedBackwardType = methodTypeScheme
-                    .asSequence()
-                    .filter { (method, _) -> method in (cls.methods + cls.ctor) }
-                    .mapNotNull { (_, facts) -> facts.types[AccessPathBase.This] }
-                    .reduceOrNull { acc, type ->
-                        val intersection = acc.intersect(type)
-
-                        if (intersection == null) {
-                            System.err.println("Empty intersection type: $acc & $type")
-                        }
-
-                        intersection ?: acc
-                    }
-                logger.info {
-                    buildString {
-                        appendLine("Combined backward type for This in class '${cls.name}': $combinedBackwardType")
-                    }
-                }
-
-                if (combinedBackwardType == null) {
-                    return@associateWith null
-                }
-
-                val typeFactsOnThisMethods = forwardSummaries
-                    .asSequence()
-                    .filter { (method, _) -> method in cls.methods }
-                    .flatMap { (_, summaries) -> summaries.asSequence() }
-                    .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
-                    .filter { it.variable.base is AccessPathBase.This }
-                    .toList()
-
-                val typeFactsOnThisCtor = forwardSummaries
-                    .asSequence()
-                    .filter { (method, _) -> method == cls.ctor }
-                    .flatMap { (_, summaries) -> summaries.asSequence() }
-                    .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
-                    .filter { it.variable.base is AccessPathBase.This }
-                    .toList()
-
-                val typeFactsOnThis = typeFactsOnThisMethods + typeFactsOnThisCtor
-
-                val propertyRefinements = typeFactsOnThis
-                    .groupBy({ it.variable.accesses }, { it.type })
-                    .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
-
-                var refined: EtsTypeFact = combinedBackwardType
-                for ((property, propertyType) in propertyRefinements) {
-                    refined = refined.refineProperty(property, propertyType) ?: run {
-                        System.err.println("Empty intersection type: $combinedBackwardType[$property] & $propertyType")
-                        refined
-                    }
-                }
-
-                refined
-            }
-            logger.info {
-                buildString {
-                    appendLine("Combined and refined types for This:")
-                    for ((cls, type) in combinedThis) {
-                        appendLine("Class '${cls.name}': $type")
-                    }
-                }
-            }
-        }
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =
@@ -401,6 +341,28 @@ class TypeInferenceManager(
                         return type.types.map {
                             refineProperty(property, it) ?: return null
                         }.reduce { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
+                    }
+
+                    if (type is EtsTypeFact.StringEtsTypeFact) {
+                        // intersect(this:object, type:string)
+
+                        if (cls == EtsStringType) return type
+                        if (cls != null) return null
+
+                        val intersectionProperties = properties
+                            .filter { it.key in allStringProperties }
+                            .mapValues { (_, type) ->
+                                // TODO: intersect with the corresponding type of String's property
+                                type
+                            }
+
+                        return EtsTypeFact.ObjectEtsTypeFact(cls, intersectionProperties)
+                    }
+
+                    if (type is EtsTypeFact.NullEtsTypeFact) {
+                        // intersect(this:object, type:null)
+                        // return EtsTypeFact.NullEtsTypeFact
+                        return EtsTypeFact.mkUnionType(this, EtsTypeFact.NullEtsTypeFact)
                     }
 
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
