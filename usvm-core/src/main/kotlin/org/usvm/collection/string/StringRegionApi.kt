@@ -55,15 +55,18 @@ internal fun <Type> UWritableMemory<Type>.allocateStringExpr(stringType: Type, e
 
 private fun <Type, USizeSort : USort> UReadOnlyMemory<*>.getConcreteCharArray(
     ctx: UContext<USizeSort>,
+    startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>,
     refToCharArray: UHeapRef,
     arrayType: Type
 ): CharArray? {
+    val concreteStartIndex = ctx.getIntValue(startIndex) ?: return null
     val concreteLength = ctx.getIntValue(length) ?: return null
     // TODO: use UConcreteStringBuilder?
     val result = CharArray(concreteLength)
     for (i in 0 until concreteLength) {
-        val charExpr = this.readArrayIndex(refToCharArray, ctx.mkSizeExpr(i), arrayType, ctx.charSort)
+        val index = ctx.mkSizeExpr(i + concreteStartIndex)
+        val charExpr = this.readArrayIndex(refToCharArray, index, arrayType, ctx.charSort)
         val char = (charExpr as? UConcreteChar)?.character ?: return null
         result[i] = char
     }
@@ -85,11 +88,14 @@ private fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.getAllocatedCharArra
 
 internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCharArray(
     charArrayType: Type,
-    refToCharArray: UHeapRef
+    refToCharArray: UHeapRef,
+    startIndex: UExpr<USizeSort>? = null,
+    length: UExpr<USizeSort>? = null
 ): UStringExpr {
     val ctx = ctx.withSizeSort<USizeSort>()
-    val length = this.readArrayLength(refToCharArray, charArrayType, ctx.sizeSort)
-    val concreteCharArray = getConcreteCharArray(ctx, length, refToCharArray, charArrayType)
+    val actualLength = length ?: this.readArrayLength(refToCharArray, charArrayType, ctx.sizeSort)
+    val actualStartIndex = startIndex ?: ctx.mkSizeExpr(0)
+    val concreteCharArray = getConcreteCharArray(ctx, actualStartIndex, actualLength, refToCharArray, charArrayType)
     if (concreteCharArray != null) {
         return ctx.mkStringLiteral(String(concreteCharArray))
     }
@@ -97,17 +103,17 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCha
     require(this is UWritableMemory<*>) { "String from non-concrete collections should not be allocated in read-only memory!" }
     this as UWritableMemory<Type>
 
-    val stringContentArrayRef: UConcreteHeapRef = when (refToCharArray) {
-        is UConcreteHeapRef -> refToCharArray
+    val stringContentArrayRef: UConcreteHeapRef = when {
+        refToCharArray is UConcreteHeapRef && startIndex == null && length == null -> refToCharArray
         else -> {
-            val charArray = this.allocateArray(charArrayType, ctx.sizeSort, length)
+            val charArray = this.allocateArray(charArrayType, ctx.sizeSort, actualLength)
             val zero = ctx.mkSizeExpr(0)
-            memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, zero, zero, length)
+            memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, actualStartIndex, zero, actualLength)
             charArray
         }
     }
     val stringContentArray = getAllocatedCharArray<Type, USizeSort>(charArrayType, stringContentArrayRef.address)
-    return ctx.mkStringFromArray(stringContentArray, charArrayType, length)
+    return ctx.mkStringFromArray(stringContentArray, charArrayType, actualLength)
 }
 
 internal fun UReadOnlyMemory<*>.getString(ref: UHeapRef): UStringExpr =
