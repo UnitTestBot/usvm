@@ -17,6 +17,7 @@ import org.usvm.util.isException
 import kotlin.math.pow
 
 internal class RecursionTest : ApproximationsTestRunner() {
+
     @UsvmTest([Options([PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM])])
     fun testFactorial(options: UMachineOptions) {
         withOptions(options) {
@@ -81,12 +82,15 @@ internal class RecursionTest : ApproximationsTestRunner() {
 
     @Test
     fun vertexSumTest() {
-        checkDiscoveredProperties(
-            Recursion::vertexSum,
-            between(2..3),
-            { _, x, _ -> x <= 10 },
-            { _, x, _ -> x > 10 }
-        )
+        val options = options.copy(stepsFromLastCovered = 4500L)
+        withOptions(options) {
+            checkDiscoveredProperties(
+                Recursion::vertexSum,
+                between(2..3),
+                { _, x, _ -> x <= 10 },
+                { _, x, _ -> x > 10 }
+            )
+        }
     }
 
     @Test
