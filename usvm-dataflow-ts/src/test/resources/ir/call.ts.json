@@ -1,10 +1,18 @@
 {
-  "name": "call.ts",
+  "signature": {
+    "projectName": "ts",
+    "fileName": "call.ts"
+  },
   "namespaces": [],
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS"
+        "name": "_DEFAULT_ARK_CLASS",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "call.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -14,8 +22,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "call.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -32,7 +45,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "call.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -42,7 +60,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -52,7 +69,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -61,7 +83,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -77,8 +104,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "call.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -95,7 +127,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "call.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -123,7 +160,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -133,7 +169,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -142,7 +183,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -152,8 +198,13 @@
                       "expr": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "f",
                           "parameters": [],
@@ -194,8 +245,13 @@
                       "expr": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "g",
                           "parameters": [],
@@ -225,8 +281,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "call.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "f",
             "parameters": [
@@ -251,7 +312,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "call.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -273,7 +339,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -300,7 +365,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -309,7 +379,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -326,8 +401,13 @@
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -357,8 +437,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "call.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "g",
             "parameters": [
@@ -383,7 +468,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "call.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -405,7 +495,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -432,7 +521,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -441,7 +535,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "call.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -458,8 +557,13 @@
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],

@@ -1,10 +1,18 @@
 {
-  "name": "microphone.ts",
+  "signature": {
+    "projectName": "ts",
+    "fileName": "microphone.ts"
+  },
   "namespaces": [],
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS"
+        "name": "_DEFAULT_ARK_CLASS",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "microphone.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -14,8 +22,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -32,7 +45,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -42,7 +60,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -52,7 +69,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -61,7 +83,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -77,8 +104,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "getMicrophoneUuid",
             "parameters": [
@@ -104,7 +136,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -133,7 +170,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -162,7 +198,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -171,7 +212,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -196,8 +242,13 @@
                           }
                         },
                         "field": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "microphone",
                           "type": {
@@ -225,8 +276,13 @@
                           }
                         },
                         "field": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
@@ -253,8 +309,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -271,7 +332,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -280,7 +346,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualDevices"
+                    "name": "VirtualDevices",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -289,7 +360,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualDevices"
+                    "name": "VirtualDevices",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -317,7 +393,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -327,7 +402,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -336,7 +416,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -349,7 +434,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -358,7 +448,12 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -373,13 +468,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualDevices"
+                              "name": "VirtualDevices",
+                              "declaringFile": {
+                                "projectName": "_UnknownProjectName",
+                                "fileName": "_UnknownFileName"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": "VirtualDevices"
+                          "declaringClass": {
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -398,7 +503,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -408,7 +518,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -425,8 +540,13 @@
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "getMicrophoneUuid",
                           "parameters": [],
@@ -441,7 +561,12 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "VirtualDevices"
+                                "name": "VirtualDevices",
+                                "declaringFile": {
+                                  "projectName": "_UnknownProjectName",
+                                  "fileName": "_UnknownFileName"
+                                },
+                                "declaringNamespace": null
                               }
                             }
                           }
@@ -460,8 +585,13 @@
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -493,7 +623,12 @@
     },
     {
       "signature": {
-        "name": "Microphone"
+        "name": "Microphone",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "microphone.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -502,8 +637,13 @@
       "fields": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Microphone"
+            "declaringClass": {
+              "name": "Microphone",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "uuid",
             "type": {
@@ -520,7 +660,12 @@
     },
     {
       "signature": {
-        "name": "VirtualMicro"
+        "name": "VirtualMicro",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "microphone.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -531,8 +676,13 @@
       "fields": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualMicro"
+            "declaringClass": {
+              "name": "VirtualMicro",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "uuid",
             "type": {
@@ -548,8 +698,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualMicro"
+            "declaringClass": {
+              "name": "VirtualMicro",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -566,7 +721,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -574,7 +728,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -582,7 +744,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -597,13 +764,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualMicro"
+                              "name": "VirtualMicro",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone.ts"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "field": {
-                          "enclosingClass": {
-                            "name": "VirtualMicro"
+                          "declaringClass": {
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
@@ -630,8 +807,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualMicro"
+            "declaringClass": {
+              "name": "VirtualMicro",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -648,7 +830,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -656,7 +837,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -664,7 +853,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -680,8 +874,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualMicro"
+            "declaringClass": {
+              "name": "VirtualMicro",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -698,7 +897,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -714,33 +912,14 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "VirtualMicro"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
                       }
                     },
                     {
@@ -756,7 +935,12 @@
     },
     {
       "signature": {
-        "name": "Devices"
+        "name": "Devices",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "microphone.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -765,8 +949,13 @@
       "fields": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Devices"
+            "declaringClass": {
+              "name": "Devices",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "microphone",
             "type": {
@@ -784,7 +973,12 @@
     },
     {
       "signature": {
-        "name": "VirtualDevices"
+        "name": "VirtualDevices",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "microphone.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -795,8 +989,13 @@
       "fields": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
+            "declaringClass": {
+              "name": "VirtualDevices",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "microphone",
             "type": {
@@ -813,8 +1012,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
+            "declaringClass": {
+              "name": "VirtualDevices",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -831,7 +1035,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "VirtualMicro"
+                    "name": "VirtualMicro",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -841,7 +1050,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -849,7 +1057,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -857,7 +1073,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -870,7 +1091,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -879,7 +1105,12 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -894,13 +1125,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualMicro"
+                              "name": "VirtualMicro",
+                              "declaringFile": {
+                                "projectName": "_UnknownProjectName",
+                                "fileName": "_UnknownFileName"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": "VirtualMicro"
+                          "declaringClass": {
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -921,13 +1162,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "VirtualDevices"
+                              "name": "VirtualDevices",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone.ts"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "field": {
-                          "enclosingClass": {
-                            "name": "VirtualDevices"
+                          "declaringClass": {
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "microphone",
                           "type": {
@@ -942,7 +1193,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualMicro"
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -958,8 +1214,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
+            "declaringClass": {
+              "name": "VirtualDevices",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -976,7 +1237,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -984,7 +1244,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -992,7 +1260,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1008,8 +1281,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "VirtualDevices"
+            "declaringClass": {
+              "name": "VirtualDevices",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "microphone.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -1026,7 +1304,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1042,33 +1319,14 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "VirtualDevices"
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "VirtualDevices"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
                       }
                     },
                     {

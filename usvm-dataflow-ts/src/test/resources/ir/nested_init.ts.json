@@ -1,10 +1,18 @@
 {
-  "name": "nested_init.ts",
+  "signature": {
+    "projectName": "ts",
+    "fileName": "nested_init.ts"
+  },
   "namespaces": [],
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS"
+        "name": "_DEFAULT_ARK_CLASS",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "nested_init.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -14,8 +22,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -32,7 +45,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "nested_init.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -42,7 +60,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -52,7 +69,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -61,7 +83,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -77,8 +104,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -95,7 +127,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "nested_init.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -104,7 +141,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "Cat"
+                    "name": "Cat",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -113,7 +155,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "Cat"
+                    "name": "Cat",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -129,7 +176,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -139,7 +185,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -148,7 +199,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -161,7 +217,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -170,7 +231,12 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -185,13 +251,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "Cat"
+                              "name": "Cat",
+                              "declaringFile": {
+                                "projectName": "_UnknownProjectName",
+                                "fileName": "_UnknownFileName"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": "Cat"
+                          "declaringClass": {
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -210,7 +286,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -220,7 +301,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -230,8 +316,13 @@
                       "expr": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "infer",
                           "parameters": [],
@@ -246,7 +337,12 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "Cat"
+                                "name": "Cat",
+                                "declaringFile": {
+                                  "projectName": "_UnknownProjectName",
+                                  "fileName": "_UnknownFileName"
+                                },
+                                "declaringNamespace": null
                               }
                             }
                           }
@@ -264,8 +360,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "infer",
             "parameters": [
@@ -290,7 +391,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "nested_init.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -312,7 +418,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -339,7 +444,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -348,7 +458,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -365,8 +480,13 @@
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -398,7 +518,12 @@
     },
     {
       "signature": {
-        "name": "Foo"
+        "name": "Foo",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "nested_init.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -408,8 +533,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Foo"
+            "declaringClass": {
+              "name": "Foo",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -426,7 +556,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -434,7 +563,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -442,7 +579,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -458,8 +600,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Foo"
+            "declaringClass": {
+              "name": "Foo",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -476,7 +623,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -484,7 +630,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -492,7 +646,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -508,8 +667,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Foo"
+            "declaringClass": {
+              "name": "Foo",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -526,7 +690,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -542,33 +705,14 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "Foo"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
                       }
                     },
                     {
@@ -584,7 +728,12 @@
     },
     {
       "signature": {
-        "name": "Cat"
+        "name": "Cat",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "nested_init.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -593,8 +742,13 @@
       "fields": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Cat"
+            "declaringClass": {
+              "name": "Cat",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "foo",
             "type": {
@@ -611,8 +765,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Cat"
+            "declaringClass": {
+              "name": "Cat",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -629,7 +788,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "Foo"
+                    "name": "Foo",
+                    "declaringFile": {
+                      "projectName": "_UnknownProjectName",
+                      "fileName": "_UnknownFileName"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -639,7 +803,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -647,7 +810,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -655,7 +826,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -668,7 +844,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -677,7 +858,12 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -692,13 +878,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "Foo"
+                              "name": "Foo",
+                              "declaringFile": {
+                                "projectName": "_UnknownProjectName",
+                                "fileName": "_UnknownFileName"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": "Foo"
+                          "declaringClass": {
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -719,13 +915,23 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "Cat"
+                              "name": "Cat",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "nested_init.ts"
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
                         "field": {
-                          "enclosingClass": {
-                            "name": "Cat"
+                          "declaringClass": {
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "foo",
                           "type": {
@@ -740,7 +946,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Foo"
+                            "name": "Foo",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -756,8 +967,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Cat"
+            "declaringClass": {
+              "name": "Cat",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -774,7 +990,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -782,7 +997,15 @@
                         "_": "Local",
                         "name": "this",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -790,7 +1013,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -806,8 +1034,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "Cat"
+            "declaringClass": {
+              "name": "Cat",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "nested_init.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -824,7 +1057,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -840,33 +1072,14 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "Cat"
+                            "name": "Cat",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "nested_init.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "enclosingClass": {
-                            "name": "Cat"
-                          },
-                          "name": "@instance_init",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": []
                       }
                     },
                     {

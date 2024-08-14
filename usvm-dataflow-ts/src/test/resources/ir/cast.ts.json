@@ -1,10 +1,18 @@
 {
-  "name": "cast.ts",
+  "signature": {
+    "projectName": "ts",
+    "fileName": "cast.ts"
+  },
   "namespaces": [],
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS"
+        "name": "_DEFAULT_ARK_CLASS",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "cast.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -14,8 +22,13 @@
       "methods": [
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "cast.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -32,7 +45,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "cast.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -42,7 +60,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -52,7 +69,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -61,7 +83,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -77,8 +104,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "cast.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "getData",
             "parameters": [],
@@ -94,8 +126,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "cast.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "infer",
             "parameters": [
@@ -120,7 +157,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "cast.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -142,7 +184,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -169,7 +210,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -178,7 +224,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -195,8 +246,13 @@
                           }
                         },
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -226,8 +282,13 @@
         },
         {
           "signature": {
-            "enclosingClass": {
-              "name": "_DEFAULT_ARK_CLASS"
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "cast.ts"
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -244,7 +305,12 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS"
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "cast.ts"
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -279,7 +345,6 @@
                 {
                   "id": 0,
                   "successors": [],
-                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -289,7 +354,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -298,7 +368,12 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS"
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -315,8 +390,13 @@
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "getData",
                           "parameters": [],
@@ -357,8 +437,13 @@
                       "expr": {
                         "_": "StaticCallExpr",
                         "method": {
-                          "enclosingClass": {
-                            "name": ""
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "infer",
                           "parameters": [],
@@ -391,7 +476,12 @@
     },
     {
       "signature": {
-        "name": "Data"
+        "name": "Data",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "cast.ts"
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
