@@ -281,7 +281,15 @@ class BackwardFlowFunction(
                 return listOf(fact)
             }
 
-            val rhvType = EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = mapOf(rhvAccessor.name to fact.type))
+            if (fact.type is EtsTypeFact.ObjectEtsTypeFact && rhvAccessor.name in fact.type.properties) {
+                // can just drop?
+                return listOf(fact)
+            }
+
+            val rhvType = EtsTypeFact.ObjectEtsTypeFact(
+                cls = null,
+                properties = mapOf(rhvAccessor.name to fact.type)
+            )
             return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
         }
 
