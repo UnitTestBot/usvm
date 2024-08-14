@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
@@ -167,6 +168,7 @@ class EtsTypeInferenceTest {
         manager.analyze(entrypoints)
     }
 
+    @Disabled("EtsIR-ABC is outdated")
     @Test
     fun `type inference for cast ABC`() {
         val name = "cast"
