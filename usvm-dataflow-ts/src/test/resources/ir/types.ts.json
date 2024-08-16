@@ -4082,7 +4082,14 @@
           "modifiers": [],
           "typeParameters": [],
           "body": {
-            "locals": [],
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
             "cfg": {
               "blocks": [
                 {
@@ -4111,6 +4118,35 @@
                             "declaringNamespace": null
                           }
                         }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
                       }
                     },
                     {

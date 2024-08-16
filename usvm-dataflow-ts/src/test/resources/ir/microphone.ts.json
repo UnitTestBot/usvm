@@ -891,7 +891,14 @@
           "modifiers": [],
           "typeParameters": [],
           "body": {
-            "locals": [],
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
             "cfg": {
               "blocks": [
                 {
@@ -920,6 +927,35 @@
                             "declaringNamespace": null
                           }
                         }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "VirtualMicro",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
                       }
                     },
                     {
@@ -1298,7 +1334,14 @@
           "modifiers": [],
           "typeParameters": [],
           "body": {
-            "locals": [],
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
             "cfg": {
               "blocks": [
                 {
@@ -1327,6 +1370,35 @@
                             "declaringNamespace": null
                           }
                         }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "VirtualDevices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
                       }
                     },
                     {
