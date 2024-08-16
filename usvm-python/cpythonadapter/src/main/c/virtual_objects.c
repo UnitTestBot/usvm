@@ -299,9 +299,9 @@ deinitialize_virtual_object_available_slots() {
     PyMem_RawFree(AVAILABLE_SLOTS);
 }
 
-#define MASK_SIZE (sizeof(char) * CHAR_BIT)
+#define MASK_SIZE (sizeof(unsigned char) * CHAR_BIT)
 
-int mask_count_ones(char mask) {
+int mask_count_ones(unsigned char mask) {
     int count = 0;
     for (size_t i=0; i < MASK_SIZE; i++) {
         count += mask & 1;
@@ -317,16 +317,16 @@ In that case blank_byte will be used as the continuation
 of the mask.
 */
 PyType_Slot *
-create_slot_list(char *mask, size_t length) {
+create_slot_list(const unsigned char *mask, size_t length) {
     PyType_Slot *slots = 0;
     int counter = 2;
     for (size_t i = 0; i < length; i++) {
         counter += mask_count_ones(mask[i]);
     }
     slots = PyMem_RawMalloc(sizeof(PyType_Slot) * counter);
-    char *current_byte = mask + length - 1;
+    const unsigned char *current_byte = mask + length - 1;
     int i = 0, j = 0, k = 0;
-    char blank_byte = 0;
+    const unsigned char blank_byte = 0;
 
     while (AVAILABLE_SLOTS[k].slot) {
         if (*current_byte & (1 << j)) {
@@ -349,7 +349,7 @@ create_slot_list(char *mask, size_t length) {
 }
 
 static PyTypeObject *
-create_new_virtual_object_type(char *mask, size_t length) {
+create_new_virtual_object_type(const unsigned char *mask, size_t length) {
     PyType_Slot *slots = create_slot_list(mask, length);
     PyType_Spec spec = {
         VirtualObjectTypeName,
@@ -364,7 +364,7 @@ create_new_virtual_object_type(char *mask, size_t length) {
 }
 
 PyObject *
-_allocate_virtual_object(JNIEnv *env, jobject object, char *mask, size_t length) {
+_allocate_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask, size_t length) {
     PyObject *mask_as_number = _PyLong_FromByteArray(mask, length, 0, 0);
     PyTypeObject *virtual_object_type = (PyTypeObject *) PyDict_GetItem(ready_virtual_object_types, mask_as_number);
     if (!virtual_object_type)
@@ -393,7 +393,7 @@ _allocate_virtual_object(JNIEnv *env, jobject object, char *mask, size_t length)
 
 PyObject *
 allocate_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
-    char *mask_as_array = (*env)->GetByteArrayElements(env, mask, 0);
+    const unsigned char *mask_as_array = (const unsigned char *) (*env)->GetByteArrayElements(env, mask, 0);
     size_t mask_length = (*env)->GetArrayLength(env, mask);
     PyObject *result = _allocate_virtual_object(env, object, mask_as_array, mask_length);
     (*env)->ReleaseByteArrayElements(env, mask, mask_as_array, 0);
@@ -404,8 +404,8 @@ PyObject *
 allocate_raw_virtual_object(JNIEnv *env, jobject object) {
     // There are less than 90 slots, so 12 bytes are enough.
     // That array should be able to cover all available slots.
-    char all = 0b11111111;
-    char mask[12] = {all, all, all, all, all, all, all, all, all, all, all, all};
+    const unsigned char all = 0b11111111;
+    const unsigned char mask[12] = {all, all, all, all, all, all, all, all, all, all, all, all};
     return _allocate_virtual_object(env, object, mask, 12);
 }
 
