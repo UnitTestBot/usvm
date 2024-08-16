@@ -394,10 +394,11 @@ _allocate_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask,
 
 PyObject *
 allocate_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
-    const unsigned char *mask_as_array = (const unsigned char *) (*env)->GetByteArrayElements(env, mask, 0);
+    unsigned char *mask_as_char_array = (unsigned char *) (*env)->GetByteArrayElements(env, mask, 0);
+    const unsigned char *mask_as_char = (const unsigned char *) mask_as_char_array;
     size_t mask_length = (*env)->GetArrayLength(env, mask);
     PyObject *result = _allocate_virtual_object(env, object, mask_as_array, mask_length);
-    (*env)->ReleaseByteArrayElements(env, mask, mask_as_array, 0);
+    (*env)->ReleaseByteArrayElements(env, mask, (jbyte*) mask_as_char_array, 0);
     return result;
 }
 
