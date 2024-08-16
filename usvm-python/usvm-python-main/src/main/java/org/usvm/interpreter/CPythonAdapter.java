@@ -76,7 +76,8 @@ public class CPythonAdapter {
     public native String getNameOfPythonType(long type);
     public static native int getInstructionFromFrame(long frameRef);
     public static native long getCodeFromFrame(long frameRef);
-    public native long allocateVirtualObject(VirtualPythonObject object);
+    public native long allocateRawVirtualObject(VirtualPythonObject object);
+    public native long allocateVirtualObject(VirtualPythonObject object, byte[] mask);
     public native long makeList(long[] elements);
     public native long allocateTuple(int size);
     public native void setTupleElement(long tuple, int index, long element);

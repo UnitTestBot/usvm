@@ -162,7 +162,18 @@ object ConcretePythonInterpreter {
     }
 
     fun allocateVirtualObject(virtualObject: VirtualPythonObject): PyObject {
-        val ref = pythonAdapter.allocateVirtualObject(virtualObject)
+        /*
+         * Usage example:
+         * pythonAdapter.allocateVirtualObject(virtualObject, mask), where
+         * Mask is a sequence of bits, written in the reverse order and
+         * packed into a ByteArray
+         * (ABCDEFGHIJ -> {000000JI, HGFEDCBA})
+         * So, THE LAST bit in the ByteArray (A) enables THE FIRST slot from the list.
+         * 
+         * pythonAdapter.allocateRawVirtualObject(object) does exactly the same as
+         * pythonAdapter.allocateVirtualObject(virtualObject, List(12) {0b11111111.toByte()}.toByteArray())
+         */
+        val ref = pythonAdapter.allocateRawVirtualObject(virtualObject)
         if (ref == 0L) {
             throw CPythonExecutionException()
         }

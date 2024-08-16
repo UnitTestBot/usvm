@@ -186,6 +186,13 @@ nb_matrix_multiply(PyObject *first, PyObject *second) {
 }
 PyType_Slot Virtual_nb_matrix_multiply = {Py_nb_matrix_multiply, nb_matrix_multiply};
 
+static PyObject *
+sq_concat(PyObject *first, PyObject *second) {
+    DEBUG_OUTPUT("sq_concat")
+    BINARY_FUNCTION
+}
+PyType_Slot Virtual_sq_concat = {Py_sq_concat, sq_concat};
+
 static Py_ssize_t
 sq_length(PyObject *self) {
     DEBUG_OUTPUT("sq_length")
@@ -229,31 +236,121 @@ tp_setattro(PyObject *self, PyObject *attr, PyObject *value) {
 }
 PyType_Slot Virtual_tp_setattro = {Py_tp_setattro, tp_setattro};
 
+PyType_Slot final_slot = {0, NULL};
 
-PyTypeObject *VirtualPythonObject_Type = 0;
+
+PyType_Slot *AVAILABLE_SLOTS = 0;
+PyObject *ready_virtual_object_types = 0;
+
+
+#define COUNT_OR_SET(func) \
+do { \
+    if (count) {                    \
+        counter++;                  \
+    } else {                        \
+        slots[i++] = Virtual_##func;\
+    }                               \
+} while (0)
 
 void
-initialize_virtual_object_type() {
-    PyType_Slot slots[] = {
-        Virtual_tp_dealloc,
-        Virtual_tp_richcompare,
-        Virtual_tp_getattro,
-        Virtual_tp_setattro,
-        Virtual_tp_iter,
-        Virtual_tp_hash,
-        Virtual_tp_call,
-        Virtual_nb_bool,
-        Virtual_nb_add,
-        Virtual_nb_subtract,
-        Virtual_nb_multiply,
-        Virtual_nb_matrix_multiply,
-        Virtual_nb_negative,
-        Virtual_nb_positive,
-        Virtual_sq_length,
-        Virtual_mp_subscript,
-        Virtual_mp_ass_subscript,
-        {0, 0}
-    };
+initialize_virtual_object_ready_types() {
+    ready_virtual_object_types = PyDict_New();
+}
+
+void
+deinitialize_virtual_object_ready_types() {
+    Py_DECREF(ready_virtual_object_types);
+}
+
+void
+initialize_virtual_object_available_slots() {
+    int counter = 1;
+    int i = 0;
+    PyType_Slot *slots = 0;
+    for (int count = 1; count >= 0; count--) {
+        if (!count) {
+            slots = PyMem_RawMalloc(sizeof(PyType_Slot) * counter);
+        }
+        COUNT_OR_SET(tp_richcompare);
+        COUNT_OR_SET(tp_getattro);
+        COUNT_OR_SET(tp_setattro);
+        COUNT_OR_SET(tp_iter);
+        COUNT_OR_SET(tp_hash);
+        COUNT_OR_SET(tp_call);
+        COUNT_OR_SET(nb_bool);
+        COUNT_OR_SET(nb_add);
+        COUNT_OR_SET(nb_subtract);
+        COUNT_OR_SET(nb_multiply);
+        COUNT_OR_SET(nb_matrix_multiply);
+        COUNT_OR_SET(nb_negative);
+        COUNT_OR_SET(nb_positive);
+        COUNT_OR_SET(sq_length);
+        COUNT_OR_SET(mp_subscript);
+        COUNT_OR_SET(mp_ass_subscript);
+        // COUNT_OR_SET(sq_concat);
+        // just use the macro again to add a new slot
+    }
+    slots[i++] = final_slot;
+    AVAILABLE_SLOTS = slots;
+}
+
+void
+deinitialize_virtual_object_available_slots() {
+    PyMem_RawFree(AVAILABLE_SLOTS);
+}
+
+#define MASK_SIZE (sizeof(char) * CHAR_BIT)
+
+int mask_count_ones(char mask) {
+    int count = 0;
+    for (size_t i=0; i < MASK_SIZE; i++) {
+        count += mask & 1;
+        mask >>= 1;
+    }
+    return count;
+}
+
+/*
+The length of the mask may be less than the number
+of slots available.
+In that case blank_byte will be used as the continuation
+of the mask.
+*/
+PyType_Slot *
+create_slot_list(char *mask, size_t length) {
+    PyType_Slot *slots = 0;
+    int counter = 2;
+    for (size_t i = 0; i < length; i++) {
+        counter += mask_count_ones(mask[i]);
+    }
+    slots = PyMem_RawMalloc(sizeof(PyType_Slot) * counter);
+    char *current_byte = mask + length - 1;
+    int i = 0, j = 0, k = 0;
+    char blank_byte = 0;
+
+    while (AVAILABLE_SLOTS[k].slot) {
+        if (*current_byte & (1 << j)) {
+            slots[i++] = AVAILABLE_SLOTS[k];
+        }
+        j++;
+        k++;
+        if (j >= MASK_SIZE) {
+            j = 0;
+            if (k < MASK_SIZE * length) {
+                current_byte--;
+            } else {
+                current_byte = &blank_byte;
+            }
+        }
+    }
+    slots[i++] = Virtual_tp_dealloc;
+    slots[i++] = final_slot;
+    return slots;
+}
+
+static PyTypeObject *
+create_new_virtual_object_type(char *mask, size_t length) {
+    PyType_Slot *slots = create_slot_list(mask, length);
     PyType_Spec spec = {
         VirtualObjectTypeName,
         sizeof(VirtualPythonObject),
@@ -261,12 +358,28 @@ initialize_virtual_object_type() {
         Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
         slots
     };
-    VirtualPythonObject_Type = (PyTypeObject*) PyType_FromSpec(&spec);
+    PyTypeObject *result = (PyTypeObject*) PyType_FromSpec(&spec);
+    PyMem_RawFree(slots);
+    return result;
 }
 
 PyObject *
-allocate_raw_virtual_object(JNIEnv *env, jobject object) {
-    VirtualPythonObject *result = PyObject_New(VirtualPythonObject, VirtualPythonObject_Type);
+_allocate_virtual_object(JNIEnv *env, jobject object, char *mask, size_t length) {
+    PyObject *mask_as_number = _PyLong_FromByteArray(mask, length, 0, 0);
+    PyTypeObject *virtual_object_type = (PyTypeObject *) PyDict_GetItem(ready_virtual_object_types, mask_as_number);
+    if (!virtual_object_type)
+        virtual_object_type = create_new_virtual_object_type(mask, length);
+    if (!virtual_object_type) {
+        char err_str[200];
+        sprintf(err_str, "Something went wrong in virtual object type creation");
+        PyErr_SetString(PyExc_AssertionError, err_str);
+        return 0;
+    }
+
+    PyDict_SetItem(ready_virtual_object_types, mask_as_number, (PyObject *)virtual_object_type);
+    Py_DECREF(mask_as_number);
+
+    VirtualPythonObject *result = PyObject_New(VirtualPythonObject, virtual_object_type);
 
     if (!result)
         return 0;
@@ -276,6 +389,24 @@ allocate_raw_virtual_object(JNIEnv *env, jobject object) {
     result->adapter = 0;
 
     return (PyObject *) result;
+}
+
+PyObject *
+allocate_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
+    const unsigned char *mask_as_array = (*env)->GetByteArrayElements(env, mask, 0);
+    size_t mask_length = (*env)->GetArrayLength(env, mask);
+    PyObject *result = _allocate_virtual_object(env, object, mask_as_array, mask_length);
+    (*env)->ReleaseByteArrayElements(env, mask, mask_as_array, 0);
+    return result;
+}
+
+PyObject *
+allocate_raw_virtual_object(JNIEnv *env, jobject object) {
+    // There are less than 90 slots, so 12 bytes are enough.
+    // That array should be able to cover all available slots.
+    char all = 0b11111111;
+    char mask[12] = {all, all, all, all, all, all, all, all, all, all, all, all};
+    return _allocate_virtual_object(env, object, mask, 12);
 }
 
 void
@@ -296,8 +427,8 @@ int
 is_virtual_object(PyObject *obj) {
     if (!obj)
         return 0;
-    return Py_TYPE(obj) == VirtualPythonObject_Type;
-}
+    return strcmp(Py_TYPE(obj)->tp_name, VirtualObjectTypeName) == 0; // Temporary solution
+}   
 
 void register_virtual_methods(SymbolicAdapter *adapter) {
     adapter->virtual_tp_richcompare = tp_richcompare;

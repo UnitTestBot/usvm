@@ -4,6 +4,7 @@
 extern "C" {
 #endif
 
+#include "limits.h"
 #include "Python.h"
 #include "utils.h"
 #include "symbolicadapter.h"
@@ -17,12 +18,17 @@ typedef struct {
     SymbolicAdapter *adapter;
 } VirtualPythonObject;
 
-void initialize_virtual_object_type();
+void initialize_virtual_object_available_slots();
+void deinitialize_virtual_object_available_slots();
+void initialize_virtual_object_ready_types();
+void deinitialize_virtual_object_ready_types();
+PyObject *_allocate_virtual_object(JNIEnv *env, jobject object, char *mask, size_t length);
 PyObject *allocate_raw_virtual_object(JNIEnv *env, jobject object);
+PyObject *allocate_virtual_object(JNIEnv *env, jobject object, jbyteArray mask);
 void finish_virtual_object_initialization(VirtualPythonObject *object, ConcolicContext *ctx, SymbolicAdapter *adapter);
 PyObject *create_new_virtual_object(ConcolicContext *ctx, jobject object, SymbolicAdapter *adapter);
 int is_virtual_object(PyObject *obj);
-void register_virtual_methods();
+void register_virtual_methods(SymbolicAdapter *adapter);
 
 #ifdef __cplusplus
 }
