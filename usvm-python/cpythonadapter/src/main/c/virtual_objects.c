@@ -301,11 +301,12 @@ deinitialize_virtual_object_available_slots() {
 
 #define MASK_SIZE (sizeof(unsigned char) * CHAR_BIT)
 
-int mask_count_ones(unsigned char mask) {
+int mask_count_ones(const unsigned char mask) {
+    unsigned char copy = mask;
     int count = 0;
     for (size_t i=0; i < MASK_SIZE; i++) {
-        count += mask & 1;
-        mask >>= 1;
+        count += copy & 1;
+        copy >>= 1;
     }
     return count;
 }
