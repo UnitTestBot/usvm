@@ -15,6 +15,7 @@ import org.usvm.machine.types.HasNbMultiply
 import org.usvm.machine.types.HasNbNegative
 import org.usvm.machine.types.HasNbPositive
 import org.usvm.machine.types.HasNbSubtract
+import org.usvm.machine.types.HasSqConcat
 import org.usvm.machine.types.HasSqLength
 import org.usvm.machine.types.HasTpCall
 import org.usvm.machine.types.HasTpGetattro
@@ -37,7 +38,17 @@ fun nbAddKt(
     context.ctx
 ) {
     context.curState ?: return
-    pyAssert(context, left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd))
+    /*
+     * The __add__ method corresponds both to the nb_add and sq_concat slots,
+     * so it is crucial not to assert the presence of nb_add, but to fork on these
+     * two possible options.
+     * Moreover, for now it was decided, that operation `sq_concat` makes sense
+     * only in the situation, when both operands have the corresponding slot.
+     */
+    val nbAdd = left.evalIsSoft(context, HasNbAdd) or right.evalIsSoft(context, HasNbAdd)
+    val sqConcat = left.evalIsSoft(context, HasSqConcat) and right.evalIsSoft(context, HasSqConcat)
+    pyAssert(context, nbAdd.not() implies sqConcat)
+    pyFork(context, nbAdd)
 }
 
 fun nbSubtractKt(
@@ -72,6 +83,17 @@ fun nbNegativeKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObj
 fun nbPositiveKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {
     context.curState ?: return
     pyAssert(context, on.evalIsSoft(context, HasNbPositive))
+}
+
+fun sqConcatKt(
+    context: ConcolicRunContext,
+    left: UninterpretedSymbolicPythonObject,
+    right: UninterpretedSymbolicPythonObject,
+) = with(
+    context.ctx
+) {
+    context.curState ?: return
+    pyAssert(context, left.evalIsSoft(context, HasSqConcat) and right.evalIsSoft(context, HasSqConcat))
 }
 
 fun sqLengthKt(context: ConcolicRunContext, on: UninterpretedSymbolicPythonObject) {

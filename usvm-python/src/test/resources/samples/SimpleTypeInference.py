@@ -50,6 +50,12 @@ def isinstance_sample(x):
     return "Not reachable"
 
 
+def list_concat_usage(x, y):
+    z = x + y
+    z += []
+    assert z
+
+
 def len_usage(x):
     if len(x) == 5:
         return 1
