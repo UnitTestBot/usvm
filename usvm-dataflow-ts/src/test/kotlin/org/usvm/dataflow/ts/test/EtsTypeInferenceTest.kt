@@ -33,7 +33,7 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `type inference for microphone`() {
-        val name = "microphone_ctor"
+        val name = "microphone"
         val file = load("ir/$name.ts.json")
         // val file = load("abcir/$name.abc.json")
         val project = EtsScene(listOf(file))
