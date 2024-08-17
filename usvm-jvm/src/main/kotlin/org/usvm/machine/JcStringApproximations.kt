@@ -1,12 +1,14 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
+import org.jacodb.api.JcRefType
 import org.jacodb.api.JcType
 import org.jacodb.api.ext.byte
 import org.jacodb.api.ext.char
 import org.jacodb.api.ext.findClassOrNull
 import org.jacodb.api.ext.int
 import org.jacodb.api.ext.jvmSignature
+import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -14,6 +16,7 @@ import org.usvm.USort
 import org.usvm.api.allocateStringFromBvArray
 import org.usvm.api.allocateStringFromCharArray
 import org.usvm.api.allocateStringLiteral
+import org.usvm.api.charAt
 import org.usvm.api.concat
 import org.usvm.api.copyString
 import org.usvm.api.readString
@@ -88,54 +91,111 @@ class JcStringApproximations(private val ctx: JcContext) {
 //        dispatchMethod(CONSTRUCTOR + signature, body)
 //    }
 
-    private fun allocStringFromByteArray(
+    /**
+     * Forks on 0 <= [from] <= [to] <= length, throws an exception with type [exceptionType] in else branch.
+     * If [exceptionType] is null, throws [StringIndexOutOfBoundsException].
+     */
+    private fun checkFromToIndex(
+        from: UExpr<USizeSort>,
+        to: UExpr<USizeSort>,
+        length: UExpr<USizeSort>,
+        exceptionType: JcRefType? = null
+    ) = with(ctx) {
+        val inside =
+            (mkBvSignedLessOrEqualExpr(mkBv(0), from)) and
+            (mkBvSignedLessOrEqualExpr(from, to)) and
+            (mkBvSignedLessOrEqualExpr(to, length))
+
+        scope.fork(
+            inside,
+            blockOnFalseState = exprResolver.allocateException(exceptionType ?: stringIndexOutOfBoundsExceptionType)
+        )
+    }
+
+    /**
+     * Forks on [from] >= 0 && [size] >= 0 && [length] >= 0 && [from] + [size] <= [length],
+     * throws an exception with type [exceptionType] in else branch.
+     * If [exceptionType] is null, throws [StringIndexOutOfBoundsException].
+     */
+    private fun checkFromIndexSize(
+        from: UExpr<USizeSort>,
+        size: UExpr<USizeSort>,
+        length: UExpr<USizeSort>,
+        exceptionType: JcRefType? = null
+    ) = with(ctx) {
+        val inside =
+            (mkBvSignedLessOrEqualExpr(mkBv(0), from)) and
+            (mkBvSignedLessOrEqualExpr(mkBv(0), size)) and
+            (mkBvSignedLessOrEqualExpr(mkBv(0), length)) and
+            (mkBvSignedLessOrEqualExpr(size, mkBvSubExpr(length, from)))
+
+        scope.fork(
+            inside,
+            blockOnFalseState = exprResolver.allocateException(exceptionType ?: stringIndexOutOfBoundsExceptionType)
+        )
+    }
+
+
+
+    private fun allocStringFromBvArray(
         state: JcState,
         arrayRef: UHeapRef,
+        type: JcType,
+        sort: UBvSort,
         offset: UExpr<USizeSort>,
-        length: UExpr<USizeSort>
-    ): UConcreteHeapRef {
+        length: UExpr<USizeSort>,
+    ): UConcreteHeapRef? {
+        exprResolver.checkNullPointer(arrayRef) ?: return null
+        checkFromToIndex(offset, length, length, ctx.stringIndexOutOfBoundsExceptionType) ?: return null
         return state.memory.allocateStringFromBvArray(
             ctx.stringType,
-            byteArrayType,
+            type,
             charArrayType,
-            ctx.byteSort,
+            sort,
             offset,
             length,
             arrayRef
         )
     }
 
-    private fun allocStringFromByteArray(state: JcState, arrayRef: UHeapRef): UConcreteHeapRef {
+    private fun allocStringFromBvArray(
+        state: JcState,
+        arrayRef: UHeapRef,
+        type: JcType,
+        sort: UBvSort,
+    ): UConcreteHeapRef? {
         val offset = ctx.mkSizeExpr(0)
         val length = state.memory.read(UArrayLengthLValue(arrayRef, byteArrayType, ctx.sizeSort))
 
-        return state.memory.allocateStringFromBvArray(
-            ctx.stringType,
-            byteArrayType,
-            charArrayType,
-            ctx.byteSort,
-            offset,
-            length,
-            arrayRef
-        )
+        return allocStringFromBvArray(state, arrayRef, type, sort, offset, length)
     }
-    private fun allocStringFromIntArray(
+
+    private fun allocStringFromCharArray(
         state: JcState,
         arrayRef: UHeapRef,
         offset: UExpr<USizeSort>,
-        length: UExpr<USizeSort>
-    ): UConcreteHeapRef {
-        return state.memory.allocateStringFromBvArray(
+        length: UExpr<USizeSort>,
+    ): UConcreteHeapRef? {
+        exprResolver.checkNullPointer(arrayRef) ?: return null
+        checkFromToIndex(offset, length, length, ctx.arrayIndexOutOfBoundsExceptionType) ?: return null
+        return state.memory.allocateStringFromCharArray(
             ctx.stringType,
-            intArrayType,
             charArrayType,
-            ctx.bv32Sort,
+            arrayRef,
             offset,
             length,
-            arrayRef
         )
     }
 
+    private fun allocStringFromCharArray(state: JcState, arrayRef: UHeapRef): UConcreteHeapRef? {
+        exprResolver.checkNullPointer(arrayRef) ?: return null
+        return state.memory.allocateStringFromCharArray<_, USizeSort>(
+            ctx.stringType,
+            charArrayType,
+            arrayRef,
+        )
+    }
+    // TODO: bounds check for <init>'s
     private val stringClassApproximations: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
         buildMap {
             dispatchMethod("<init>()V") {
@@ -146,8 +206,9 @@ class JcStringApproximations(private val ctx: JcContext) {
                 error("This should not be called")
             }
             dispatchMethod("<init>(Ljava/lang/String;)V") {
-                // TODO: nullability checks?
-                scope.calcOnState { memory.copyString(ctx.stringType, it.arguments.single().asExpr(ctx.addressSort)) }
+                val copiedString = it.arguments.single().asExpr(ctx.addressSort)
+                exprResolver.checkNullPointer(copiedString) ?: return@dispatchMethod null
+                scope.calcOnState { memory.copyString(ctx.stringType, copiedString) }
             }
             // Constructor of StringBuffer is not approximated
             dispatchMethod("<init>(Ljava/lang/StringBuilder;)V") { methodCall ->
@@ -181,67 +242,104 @@ class JcStringApproximations(private val ctx: JcContext) {
             dispatchMethod("<init>([B)V") {
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    allocStringFromByteArray(this, arrayRef) }
+                    allocStringFromBvArray(this, arrayRef, byteArrayType, ctx.byteSort)
+                }
             }
             dispatchMethod("<init>([BB)V") {
                 // Ignoring the coder for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    allocStringFromByteArray(this, arrayRef)
+                    allocStringFromBvArray(this, arrayRef, byteArrayType, ctx.byteSort)
                 }
             }
             dispatchMethod("<init>([BI)V") {
                 // Ignoring the hibyte for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    allocStringFromByteArray(this, arrayRef)
+                    allocStringFromBvArray(this, arrayRef, byteArrayType, ctx.byteSort)
                 }
             }
             dispatchMethod("<init>([BII)V") {
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 val offset = it.arguments[1].asExpr(ctx.sizeSort)
                 val length = it.arguments[2].asExpr(ctx.sizeSort)
-                scope.calcOnState { allocStringFromByteArray(this, arrayRef, offset, length) }
+                scope.calcOnState {
+                    allocStringFromBvArray(
+                        this,
+                        arrayRef,
+                        byteArrayType,
+                        ctx.byteSort,
+                        offset,
+                        length
+                    )
+                }
             }
             dispatchMethod("<init>([BIII)V") {
                 // Ignoring the hibyte for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 val offset = it.arguments[2].asExpr(ctx.sizeSort)
                 val length = it.arguments[3].asExpr(ctx.sizeSort)
-                scope.calcOnState { allocStringFromByteArray(this, arrayRef, offset, length) }
+                scope.calcOnState {
+                    allocStringFromBvArray(
+                        this,
+                        arrayRef,
+                        byteArrayType,
+                        ctx.byteSort,
+                        offset,
+                        length
+                    )
+                }
             }
             dispatchMethod("<init>([BIILjava/lang/String;)V") {
                 // Ignoring the charset for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 val offset = it.arguments[1].asExpr(ctx.sizeSort)
                 val length = it.arguments[2].asExpr(ctx.sizeSort)
-                scope.calcOnState { allocStringFromByteArray(this, arrayRef, offset, length) }
+                scope.calcOnState {
+                    allocStringFromBvArray(
+                        this,
+                        arrayRef,
+                        byteArrayType,
+                        ctx.byteSort,
+                        offset,
+                        length
+                    )
+                }
             }
             dispatchMethod("<init>([BIILjava/nio/charset/Charset;)V") {
                 // Ignoring the charset for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 val offset = it.arguments[1].asExpr(ctx.sizeSort)
                 val length = it.arguments[2].asExpr(ctx.sizeSort)
-                scope.calcOnState { allocStringFromByteArray(this, arrayRef, offset, length) }
+                scope.calcOnState {
+                    allocStringFromBvArray(
+                        this,
+                        arrayRef,
+                        byteArrayType,
+                        ctx.byteSort,
+                        offset,
+                        length
+                    )
+                }
             }
             dispatchMethod("<init>([BLjava/lang/String;)V") {
                 // Ignoring the charset for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    allocStringFromByteArray(this, arrayRef)
+                    allocStringFromBvArray(this, arrayRef, byteArrayType, ctx.byteSort)
                 }
             }
             dispatchMethod("<init>([BLjava/nio/charset/Charset;)V") {
                 // Ignoring the charset for now
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    allocStringFromByteArray(this, arrayRef)
+                    allocStringFromBvArray(this, arrayRef, byteArrayType, ctx.byteSort)
                 }
             }
             dispatchMethod("<init>([C)V") {
                 val arrayRef = it.arguments[0].asExpr(ctx.addressSort)
                 scope.calcOnState {
-                    memory.allocateStringFromCharArray<_, USizeSort>(ctx.stringType, charArrayType, arrayRef)
+                    allocStringFromCharArray(this, arrayRef)
                 }
             }
             dispatchMethod("<init>([CII)V") {
@@ -249,7 +347,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 val offset = it.arguments[1].asExpr(ctx.sizeSort)
                 val length = it.arguments[2].asExpr(ctx.sizeSort)
                 scope.calcOnState {
-                    memory.allocateStringFromCharArray(ctx.stringType, charArrayType, arrayRef, offset, length)
+                    allocStringFromCharArray(this, arrayRef, offset, length)
                 }
             }
             dispatchMethod("<init>([CIILjava/lang/Void;)V") {
@@ -265,27 +363,43 @@ class JcStringApproximations(private val ctx: JcContext) {
                 val offset = it.arguments[1].asExpr(ctx.sizeSort)
                 val length = it.arguments[2].asExpr(ctx.sizeSort)
                 scope.calcOnState {
-                    allocStringFromIntArray(this, arrayRef, offset, length)
+                    allocStringFromBvArray(this, arrayRef, intArrayType, ctx.bv32Sort, offset, length)
                 }
             }
             dispatchMethod("charAt(I)C") {
-                TODO()
+                val stringRef = it.arguments[0].asExpr(ctx.addressSort)
+                val index = it.arguments[1].asExpr(ctx.sizeSort)
+                scope.calcOnState {
+                    val length = memory.stringLength<USizeSort>(stringRef)
+                    exprResolver.checkArrayIndex(index, length, ctx.stringIndexOutOfBoundsExceptionType)
+                        ?: return@calcOnState null
+                    memory.charAt(stringRef, index)
+                }
             }
             dispatchMethod("chars()Ljava/util/stream/IntStream;") {
                 TODO()
             }
             dispatchMethod("checkBoundsBeginEnd(III)V") {
-                TODO()
+                val from = it.arguments[0].asExpr(ctx.sizeSort)
+                val to = it.arguments[1].asExpr(ctx.sizeSort)
+                val length = it.arguments[2].asExpr(ctx.sizeSort)
+                checkFromToIndex(from, to, length) ?: return@dispatchMethod null
+                ctx.voidValue
             }
             dispatchMethod("checkBoundsOffCount(III)V") {
-                TODO()
+                val offset = it.arguments[0].asExpr(ctx.sizeSort)
+                val count = it.arguments[1].asExpr(ctx.sizeSort)
+                val length = it.arguments[2].asExpr(ctx.sizeSort)
+                checkFromToIndex(offset, count, length) ?: return@dispatchMethod null
+                ctx.voidValue
             }
             dispatchMethod("checkIndex(II)V") {
-                TODO()
+                val index = it.arguments[0].asExpr(ctx.sizeSort)
+                val length = it.arguments[1].asExpr(ctx.sizeSort)
+                exprResolver.checkArrayIndex(index, length)
+                ctx.voidValue
             }
-            dispatchMethod("checkOffset(II)V") {
-                TODO()
-            }
+            // Check offset is not approximated
             dispatchMethod("codePointAt(I)I") {
                 TODO()
             }

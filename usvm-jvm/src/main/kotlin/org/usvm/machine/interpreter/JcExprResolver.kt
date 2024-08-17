@@ -762,13 +762,17 @@ class JcExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    fun checkArrayIndex(idx: UExpr<USizeSort>, length: UExpr<USizeSort>) = with(ctx) {
+    /**
+     * Forks on 0 <= [idx] < length, throws an exception with type [exceptionType] in else branch.
+     * If [exceptionType] is null, throws [IndexOutOfBoundsException].
+     */
+    fun checkArrayIndex(idx: UExpr<USizeSort>, length: UExpr<USizeSort>, exceptionType: JcRefType? = null) = with(ctx) {
         val inside = (mkBvSignedLessOrEqualExpr(mkBv(0), idx)) and (mkBvSignedLessExpr(idx, length))
 
         if (options.forkOnImplicitExceptions) {
             scope.fork(
                 inside,
-                blockOnFalseState = allocateException(arrayIndexOutOfBoundsExceptionType)
+                blockOnFalseState = allocateException(exceptionType ?: arrayIndexOutOfBoundsExceptionType)
             )
         } else {
             scope.assert(inside).logAssertFailure { "Jc implicit exception: Check index out of bound" }
