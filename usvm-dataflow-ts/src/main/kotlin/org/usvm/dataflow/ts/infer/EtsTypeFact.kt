@@ -132,7 +132,9 @@ sealed interface EtsTypeFact {
     ) : BasicType {
         override fun toString(): String {
             val clsName = cls?.typeName ?: "Object"
-            val props = properties.entries.joinToString(", ") { (name, type) -> "$name: $type" }
+            val props = properties.entries
+                .sortedBy { it.key }
+                .joinToString(", ") { (name, type) -> "$name: $type" }
             return "$clsName { $props }"
         }
     }
