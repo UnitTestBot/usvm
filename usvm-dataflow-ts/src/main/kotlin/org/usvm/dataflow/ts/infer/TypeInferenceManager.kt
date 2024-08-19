@@ -183,7 +183,8 @@ class TypeInferenceManager(
 
             val typeFactsOnThisMethods = forwardSummaries
                 .asSequence()
-                .filter { (method, _) -> method in cls.methods }
+                .filter { (method, _) -> method.enclosingClass == cls.signature }
+                .filter { (method, _) -> method in cls.methods && method.name != "@instance_init" }
                 .flatMap { (_, summaries) -> summaries.asSequence() }
                 .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
                 .filter { it.variable.base is AccessPathBase.This }
@@ -191,7 +192,8 @@ class TypeInferenceManager(
 
             val typeFactsOnThisCtor = forwardSummaries
                 .asSequence()
-                .filter { (method, _) -> method == cls.ctor }
+                .filter { (method, _) -> method.enclosingClass == cls.signature }
+                .filter { (method, _) -> method.name == "constructor" || method.name == "@instance_init" }
                 .flatMap { (_, summaries) -> summaries.asSequence() }
                 .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
                 .filter { it.variable.base is AccessPathBase.This }
