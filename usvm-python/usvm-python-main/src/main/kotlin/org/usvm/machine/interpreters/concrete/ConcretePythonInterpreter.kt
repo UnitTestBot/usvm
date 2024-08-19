@@ -169,7 +169,7 @@ object ConcretePythonInterpreter {
          * packed into a ByteArray
          * (ABCDEFGHIJ -> {000000JI, HGFEDCBA})
          * So, THE LAST bit in the ByteArray (A) enables THE FIRST slot from the list.
-         * 
+         *
          * pythonAdapter.allocateRawVirtualObject(object) does exactly the same as
          * pythonAdapter.allocateVirtualObject(virtualObject, List(12) {0b11111111.toByte()}.toByteArray())
          */
