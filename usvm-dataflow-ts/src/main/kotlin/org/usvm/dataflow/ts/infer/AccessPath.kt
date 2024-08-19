@@ -43,20 +43,20 @@ sealed interface AccessPathBase {
 
 fun EtsValue.toBase(): AccessPathBase = when (this) {
     is EtsConstant -> AccessPathBase.Const(this)
-    is EtsLocal -> AccessPathBase.Local(name)
+    is EtsLocal -> if (name == "this") AccessPathBase.This else AccessPathBase.Local(name)
     is EtsThis -> AccessPathBase.This
     is EtsParameterRef -> AccessPathBase.Arg(index)
     else -> error("$this is not access path base")
 }
 
 fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
-    is EtsConstant -> AccessPath(AccessPathBase.Const(this), emptyList())
+    is EtsConstant -> AccessPath(toBase(), emptyList())
 
-    is EtsLocal -> AccessPath(AccessPathBase.Local(name), emptyList())
+    is EtsLocal -> AccessPath(toBase(), emptyList())
 
-    is EtsThis -> AccessPath(AccessPathBase.This, emptyList())
+    is EtsThis -> AccessPath(toBase(), emptyList())
 
-    is EtsParameterRef -> AccessPath(AccessPathBase.Arg(index), emptyList())
+    is EtsParameterRef -> AccessPath(toBase(), emptyList())
 
     is EtsArrayAccess -> {
         array.toPathOrNull()?.let {

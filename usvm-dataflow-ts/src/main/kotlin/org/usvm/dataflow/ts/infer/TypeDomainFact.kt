@@ -10,11 +10,11 @@ sealed interface BackwardTypeDomainFact {
     ) : BackwardTypeDomainFact
 
     fun fixThis(): BackwardTypeDomainFact {
-        if (this is TypedVariable) {
-            if (variable is AccessPathBase.Local && variable.name == "this") {
-                return copy(variable = AccessPathBase.This)
-            }
-        }
+        // if (this is TypedVariable) {
+        //     if (variable is AccessPathBase.Local && variable.name == "this") {
+        //         return copy(variable = AccessPathBase.This)
+        //     }
+        // }
         return this
     }
 }
@@ -29,11 +29,11 @@ sealed interface ForwardTypeDomainFact {
     ) : ForwardTypeDomainFact
 
     fun fixThis(): ForwardTypeDomainFact {
-        if (this is TypedVariable) {
-            if (variable.base is AccessPathBase.Local && variable.base.name == "this") {
-                return copy(variable = variable.copy(base = AccessPathBase.This))
-            }
-        }
+        // if (this is TypedVariable) {
+        //     if (variable.base is AccessPathBase.Local && variable.base.name == "this") {
+        //         return copy(variable = variable.copy(base = AccessPathBase.This))
+        //     }
+        // }
         return this
     }
 }

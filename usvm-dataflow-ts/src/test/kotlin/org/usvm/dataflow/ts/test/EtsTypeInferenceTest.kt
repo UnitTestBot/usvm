@@ -19,6 +19,7 @@ import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
+import kotlin.io.path.relativeTo
 import kotlin.io.path.toPath
 import kotlin.io.path.walk
 
@@ -293,7 +294,7 @@ class EtsTypeInferenceTest {
             .toList()
         println("Found files: (${files.size})")
         for (path in files) {
-            println("  $path")
+            println("  ${path.relativeTo(dir)}")
         }
 
         println("Processing ${files.size} files...")

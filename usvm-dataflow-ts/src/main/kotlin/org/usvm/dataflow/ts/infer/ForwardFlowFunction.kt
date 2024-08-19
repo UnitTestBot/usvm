@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
@@ -12,6 +13,7 @@ import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
@@ -84,6 +86,12 @@ class ForwardFlowFunction(
         current: EtsStmt,
         next: EtsStmt,
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
+        if (current is EtsAssignStmt
+            && current.lhv is EtsLocal && (current.lhv as EtsLocal).name == "this"
+            && current.rhv is EtsThis
+        ) {
+            return@FlowFunction listOf(fact)
+        }
         when (fact) {
             Zero -> zeroSequent(current)
             is TypedVariable -> factSequent(current, fact)

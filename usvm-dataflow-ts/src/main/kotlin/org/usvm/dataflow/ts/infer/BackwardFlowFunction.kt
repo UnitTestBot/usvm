@@ -10,11 +10,13 @@ import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
@@ -32,12 +34,19 @@ class BackwardFlowFunction(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     val dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
+
     override fun obtainPossibleStartFacts(method: EtsMethod) = listOf(Zero)
 
     override fun obtainSequentFlowFunction(
         current: EtsStmt,
         next: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
+        if (current is EtsAssignStmt
+            && current.lhv is EtsLocal && (current.lhv as EtsLocal).name == "this"
+            && current.rhv is EtsThis
+        ) {
+            return@FlowFunction listOf(fact)
+        }
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentFact(current, fact)
@@ -216,9 +225,10 @@ class BackwardFlowFunction(
                 is EtsRef -> r.toPath()
                 is EtsLValue -> r.toPath()
                 else -> {
-                // logger.info { "TODO backward assign zero: $current" }
-                null
-            }
+                    logger.info { "TODO backward assign zero: $current" }
+                    error("Unexpected LHV in assignment: $current")
+                    // null
+                }
             }
 
             if (lhv != null) {
