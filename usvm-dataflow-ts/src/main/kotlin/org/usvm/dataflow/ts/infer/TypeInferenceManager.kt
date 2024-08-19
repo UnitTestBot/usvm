@@ -156,6 +156,7 @@ class TypeInferenceManager(
             .map { it.enclosingClass }
             .distinct()
             .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.signature == sig }!! }
+            .filter { !it.name.startsWith("AnonymousClass-") }
         val combinedThis = allClasses.associateWith { cls ->
             val combinedBackwardType = methodTypeScheme
                 .asSequence()
