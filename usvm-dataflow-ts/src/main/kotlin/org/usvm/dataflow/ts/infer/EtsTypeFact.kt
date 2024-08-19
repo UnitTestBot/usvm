@@ -141,7 +141,12 @@ sealed interface EtsTypeFact {
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
         override fun toString(): String {
-            return types.joinToString(" | ")
+            return types.joinToString(" | ") {
+                when (it) {
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    else -> it.toString()
+                }
+            }
         }
     }
 
@@ -149,7 +154,12 @@ sealed interface EtsTypeFact {
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
         override fun toString(): String {
-            return types.joinToString(" & ")
+            return types.joinToString(" & ") {
+                when (it) {
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    else -> it.toString()
+                }
+            }
         }
     }
 
