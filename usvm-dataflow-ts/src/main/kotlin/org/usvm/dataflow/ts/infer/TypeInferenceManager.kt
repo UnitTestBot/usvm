@@ -184,7 +184,7 @@ class TypeInferenceManager(
             val typeFactsOnThisMethods = forwardSummaries
                 .asSequence()
                 .filter { (method, _) -> method.enclosingClass == cls.signature }
-                .filter { (method, _) -> method in cls.methods && method.name != "@instance_init" }
+                .filter { (method, _) -> method.name != "@instance_init" }
                 .flatMap { (_, summaries) -> summaries.asSequence() }
                 .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
                 .filter { it.variable.base is AccessPathBase.This }
