@@ -210,11 +210,7 @@ class EtsTypeInferenceTest {
         val entrypoints = project.classes
             .asSequence()
             .flatMap { it.methods + it.ctor }
-            .filter {
-                (it as EtsMethodImpl).modifiers.contains("PublicKeyword") || (!it.modifiers.contains("PrivateKeyword") && !it.modifiers.contains(
-                    "ProtectedKeyword"
-                )) || it.name == "constructor"
-            }
+            .filter { it.isPublic || it.name == "constructor" }
             .toList()
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {
