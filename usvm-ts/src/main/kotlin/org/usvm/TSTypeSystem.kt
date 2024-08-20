@@ -97,6 +97,9 @@ class TSTopTypeStream(
         return TSTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSubtype(type))
     }
 
+    fun takeAll(): TypesResult<EtsType> {
+    }
+
     override fun take(n: Int): TypesResult<EtsType> {
         if (n <= primitiveTypes.size) {
             return primitiveTypes.toTypesResult(wasTimeoutExpired = false)

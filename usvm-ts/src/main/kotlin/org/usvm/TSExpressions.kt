@@ -4,10 +4,14 @@ import io.ksmt.KAst
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
 import io.ksmt.expr.KBitVec32Value
+import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFp64Value
+import io.ksmt.expr.KIteExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
+import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KSortVisitor
+import org.jacodb.ets.base.EtsNumberType
 
 val KAst.tctx get() = ctx as TSContext
 
@@ -32,6 +36,42 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     override fun print(printer: ExpressionPrinter) {
         printer.append("undefined")
     }
+}
+
+class TSWrappedValue(
+    ctx: TSContext,
+    scope: TSStepScope,
+    private val value: UExpr<out USort>
+) : UExpr<UAddressSort>(ctx) {
+    override val sort: UAddressSort
+        get() = uctx.addressSort
+
+    private val exprs =
+
+    private val expr: KIteExpr<UAddressSort> = with(ctx) {
+        mkIte(
+            condition = scope.calcOnState { memory.types.evalIsSubtype(this@TSWrappedValue, EtsNumberType) },
+            trueBranch = mkNullRef(),
+            falseBranch = mkNullRef()
+        ) as KIteExpr
+    }
+
+    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
+        return transformer.transform(expr)
+    }
+
+    override fun internEquals(other: Any): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun internHashCode(): Int {
+        TODO("Not yet implemented")
+    }
+
+    override fun print(printer: ExpressionPrinter) {
+        TODO("Not yet implemented")
+    }
+
 }
 
 fun extractBool(expr: UExpr<out USort>): Boolean = when (expr) {
