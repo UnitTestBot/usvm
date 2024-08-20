@@ -34,8 +34,8 @@ class BackwardAnalyzer(
         return listOf(
             BackwardSummaryAnalyzerEvent(
                 method = method,
-                initialFact = startVertex.fact,
-                exitFact = currentFact,
+                initialVertex = startVertex,
+                exitVertex = currentVertex,
             )
         )
     }

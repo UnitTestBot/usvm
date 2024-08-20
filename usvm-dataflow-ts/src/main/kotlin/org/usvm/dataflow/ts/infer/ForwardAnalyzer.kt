@@ -33,8 +33,8 @@ class ForwardAnalyzer(
         return listOf(
             ForwardSummaryAnalyzerEvent(
                 method = method,
-                initialFact = startVertex.fact,
-                exitFact = currentFact,
+                initialVertex = startVertex,
+                exitVertex = currentVertex,
             )
         )
     }
