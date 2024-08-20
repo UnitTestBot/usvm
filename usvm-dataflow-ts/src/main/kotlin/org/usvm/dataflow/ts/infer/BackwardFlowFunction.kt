@@ -41,16 +41,17 @@ class BackwardFlowFunction(
         current: EtsStmt,
         next: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
-        if (current is EtsAssignStmt
-            && current.lhv is EtsLocal && (current.lhv as EtsLocal).name == "this"
-            && current.rhv is EtsThis
-        ) {
-            return@FlowFunction listOf(fact)
+        if (current is EtsAssignStmt) {
+            val lhvPath = current.lhv.toPathOrNull()
+            val rhvPath = current.rhv.toPathOrNull()
+            if (lhvPath != null && rhvPath != null && lhvPath == rhvPath) {
+                return@FlowFunction listOf(fact)
+            }
         }
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentFact(current, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun TypedVariable.withTypeGuards(current: EtsStmt): TypedVariable {
@@ -344,7 +345,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> callToReturn(callStatement, returnSite, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun callToReturn(
@@ -386,7 +387,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> callToStart(callStatement, calleeStart, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun callToStart(
@@ -414,7 +415,7 @@ class BackwardFlowFunction(
         when (fact) {
             Zero -> listOf(fact)
             is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun exitToReturn(

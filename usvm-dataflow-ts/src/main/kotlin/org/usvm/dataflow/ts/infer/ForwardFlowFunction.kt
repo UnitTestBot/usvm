@@ -41,7 +41,7 @@ class ForwardFlowFunction(
             }
         }
 
-        return result.map { it.fixThis() }
+        return result
     }
 
     private fun addTypes(
@@ -86,16 +86,17 @@ class ForwardFlowFunction(
         current: EtsStmt,
         next: EtsStmt,
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
-        if (current is EtsAssignStmt
-            && current.lhv is EtsLocal && (current.lhv as EtsLocal).name == "this"
-            && current.rhv is EtsThis
-        ) {
-            return@FlowFunction listOf(fact)
+        if (current is EtsAssignStmt) {
+            val lhvPath = current.lhv.toPathOrNull()
+            val rhvPath = current.rhv.toPathOrNull()
+            if (lhvPath != null && rhvPath != null && lhvPath == rhvPath) {
+                return@FlowFunction listOf(fact)
+            }
         }
         when (fact) {
             Zero -> zeroSequent(current)
             is TypedVariable -> factSequent(current, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun zeroSequent(current: EtsStmt): List<ForwardTypeDomainFact> {
@@ -249,7 +250,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> callToReturn(callStatement, returnSite, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun callToReturn(
@@ -289,7 +290,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> callToStart(callStatement, calleeStart, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun callToStart(
@@ -328,7 +329,7 @@ class ForwardFlowFunction(
         when (fact) {
             Zero -> listOf(Zero)
             is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
-        }.map { it.fixThis() }
+        }
     }
 
     private fun exitToReturn(
