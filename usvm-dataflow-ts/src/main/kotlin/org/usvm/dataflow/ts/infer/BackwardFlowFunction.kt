@@ -10,17 +10,16 @@ import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
-import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
+import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
@@ -204,21 +203,27 @@ class BackwardFlowFunction(
 
             if (rhv != null) {
                 if (rhv.accesses.isEmpty()) {
+                    // Case 'x := y'
                     result += TypedVariable(rhv.base, EtsTypeFact.UnknownEtsTypeFact)
                 } else {
-                    val accessor = rhv.accesses.single()
+                    when (val accessor = rhv.accesses.single()) {
+                        // Case 'x := y.f'
+                        is FieldAccessor -> {
+                            val type = EtsTypeFact.ObjectEtsTypeFact(
+                                cls = null,
+                                properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
+                            )
 
-                    if (accessor !is FieldAccessor) {
-                        // TODO("$accessor")
-                        return result
+                            result += TypedVariable(rhv.base, type).withTypeGuards(current)
+                        }
+
+                        // Case 'x := y[i]'
+                        is ElementAccessor -> {
+                            // TODO("array")
+                            return result
+                        }
                     }
 
-                    val type = EtsTypeFact.ObjectEtsTypeFact(
-                        cls = null,
-                        properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
-                    )
-
-                    result += TypedVariable(rhv.base, type).withTypeGuards(current)
                 }
             }
 
@@ -228,28 +233,32 @@ class BackwardFlowFunction(
                 else -> {
                     logger.info { "TODO backward assign zero: $current" }
                     error("Unexpected LHV in assignment: $current")
-                    // null
                 }
             }
 
-            if (lhv != null) {
-                if (lhv.accesses.isEmpty()) {
-                    // result += TypedVariable(lhv.base, EtsTypeFact.UnknownEtsTypeFact)
-                } else {
-                    val accessor = lhv.accesses.single()
+            if (lhv.accesses.isEmpty()) {
+                // Case 'x := y'
+                // Not necessary?
+                // result += TypedVariable(lhv.base, EtsTypeFact.UnknownEtsTypeFact)
+            } else {
+                when (val accessor = lhv.accesses.single()) {
+                    // Case 'x.f := y'
+                    is FieldAccessor -> {
+                        val type = EtsTypeFact.ObjectEtsTypeFact(
+                            cls = null,
+                            properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
+                        )
 
-                    if (accessor !is FieldAccessor) {
-                        // TODO("$accessor")
-                        return result
+                        result += TypedVariable(lhv.base, type).withTypeGuards(current)
                     }
 
-                    val type = EtsTypeFact.ObjectEtsTypeFact(
-                        cls = null,
-                        properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
-                    )
-
-                    result += TypedVariable(lhv.base, type).withTypeGuards(current)
+                    // Case 'x[i] := y'
+                    is ElementAccessor -> {
+                        // TODO("array")
+                        return result
+                    }
                 }
+
             }
         }
 
