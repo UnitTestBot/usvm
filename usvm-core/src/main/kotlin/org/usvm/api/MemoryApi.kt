@@ -199,9 +199,10 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     stringType: Type,
     charArrayType: Type,
     refToCharArray: UHeapRef,
+    targetStringRef: UConcreteHeapRef? = null
 ): UConcreteHeapRef {
     val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
-    return this.allocateStringExpr(stringType, string)
+    return this.allocateStringExpr(stringType, string, targetStringRef)
 }
 
 fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
@@ -209,10 +210,11 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     charArrayType: Type,
     refToCharArray: UHeapRef,
     startIndex: UExpr<USizeSort>,
-    length: UExpr<USizeSort>
+    length: UExpr<USizeSort>,
+    targetStringRef: UConcreteHeapRef? = null
 ): UConcreteHeapRef {
     val string = this.mkStringExprFromCharArray(charArrayType, refToCharArray, startIndex, length)
-    return this.allocateStringExpr(stringType, string)
+    return this.allocateStringExpr(stringType, string, targetStringRef)
 }
 
 fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromBvArray(
@@ -223,6 +225,7 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromBvArray(
     startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>,
     refToBvArray: UHeapRef,
+    targetStringRef: UConcreteHeapRef? = null
 ): UConcreteHeapRef {
     val ctx = ctx.withSizeSort<USizeSort>()
     val refToCharArray = this.convert(
@@ -236,7 +239,7 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromBvArray(
         length = length
     ) { bvElement -> bvElement.mkNarrow(ctx.charSort.sizeBits.toInt(), signed = true) }
     val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
-    return this.allocateStringExpr(stringType, string)
+    return this.allocateStringExpr(stringType, string, targetStringRef)
 }
 
 fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
