@@ -74,6 +74,11 @@ sealed interface EtsTypeFact {
                 else -> null
             }
 
+            is ArrayEtsTypeFact -> when (other) {
+                is ArrayEtsTypeFact -> ArrayEtsTypeFact(elementType.intersect(other.elementType)!!)
+                else -> null
+            }
+
             is ObjectEtsTypeFact -> when (other) {
                 is ObjectEtsTypeFact -> intersect(this, other)
                 is StringEtsTypeFact -> intersect(this, other)
@@ -128,6 +133,12 @@ sealed interface EtsTypeFact {
 
     object FunctionEtsTypeFact : BasicType {
         override fun toString(): String = "function"
+    }
+
+    data class ArrayEtsTypeFact(
+        val elementType: EtsTypeFact,
+    ) : BasicType {
+        override fun toString(): String = "Array<$elementType>"
     }
 
     data class ObjectEtsTypeFact(

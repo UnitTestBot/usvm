@@ -374,6 +374,7 @@ class TypeInferenceManager(
             EtsTypeFact.AnyEtsTypeFact,
             EtsTypeFact.UnknownEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
+            is EtsTypeFact.ArrayEtsTypeFact, // TODO: refine array elements?
             EtsTypeFact.NumberEtsTypeFact,
             EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
