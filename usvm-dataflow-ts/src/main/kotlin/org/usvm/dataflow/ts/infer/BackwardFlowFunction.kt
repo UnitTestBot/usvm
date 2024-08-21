@@ -328,24 +328,27 @@ class BackwardFlowFunction(
             return listOf(fact)
         }
 
-        // todo: check fact has object type
-        val (typeWithoutProperty, propertyType) = fact.type.removePropertyType(lhvAccessor.name)
+        if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+            TODO("Support union type here")
+        }
+        if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
+            TODO("Support intersection type here")
+        }
 
+        if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
+            return listOf(fact)
+        }
+
+        val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(lhvAccessor.name)
         val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
-        val rhvType = propertyType?.let { TypedVariable(rhv.base, it) }?.withTypeGuards(current)
+        val rhvType = removedPropertyType?.let { TypedVariable(rhv.base, it).withTypeGuards(current) }
         return listOfNotNull(updatedFact, rhvType)
     }
 
-    private fun EtsTypeFact.removePropertyType(propertyName: String): Pair<EtsTypeFact, EtsTypeFact?> = when (this) {
-        is EtsTypeFact.ObjectEtsTypeFact -> {
-            val propertyType = properties[propertyName]
-            val updatedThis = EtsTypeFact.ObjectEtsTypeFact(cls, properties.minus(propertyName))
-            updatedThis to propertyType
-        }
-
-        is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
-        is EtsTypeFact.UnionEtsTypeFact -> TODO()
-        else -> this to null
+    private fun EtsTypeFact.ObjectEtsTypeFact.removePropertyType(propertyName: String): Pair<EtsTypeFact, EtsTypeFact?> {
+        val propertyType = properties[propertyName]
+        val updatedThis = EtsTypeFact.ObjectEtsTypeFact(cls, properties - propertyName)
+        return updatedThis to propertyType
     }
 
     override fun obtainCallToReturnSiteFlowFunction(
