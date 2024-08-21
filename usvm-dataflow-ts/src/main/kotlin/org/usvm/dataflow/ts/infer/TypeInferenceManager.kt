@@ -94,7 +94,7 @@ class TypeInferenceManager(
                             else -> 1_000_000
                         }
                     }) {
-                        appendLine("  $base: $fact")
+                        appendLine("$base: ${fact.toPrettyString()}")
                     }
                 }
             }
@@ -148,7 +148,7 @@ class TypeInferenceManager(
                             else -> 1_000_000
                         }
                     }) {
-                        appendLine("  $base: $fact")
+                        appendLine("$base: ${fact.toPrettyString()}")
                     }
                 }
             }
@@ -177,7 +177,7 @@ class TypeInferenceManager(
                     }
                 logger.info {
                     buildString {
-                        appendLine("Combined backward type for This in class '${cls.signature}': $combinedBackwardType")
+                        appendLine("Combined backward type for This in class '${cls.signature}': ${combinedBackwardType?.toPrettyString()}")
                     }
                 }
 
@@ -235,7 +235,7 @@ class TypeInferenceManager(
                 buildString {
                     appendLine("Combined and refined types for This:")
                     for ((cls, type) in combinedThis) {
-                        appendLine("Combined This in class '${cls.signature}': $type")
+                        appendLine("Combined This in class '${cls.signature}': ${type?.toPrettyString()}")
                     }
                 }
             }
@@ -272,7 +272,7 @@ class TypeInferenceManager(
                 buildString {
                     appendLine("Return types:")
                     for ((method, type) in returnTypeFacts) {
-                        appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: $type")
+                        appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
                     }
                 }
             }

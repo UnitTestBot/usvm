@@ -21,6 +21,10 @@ import org.jacodb.ets.base.EtsVoidType
 
 sealed interface EtsTypeFact {
 
+    fun toPrettyString(): String {
+        return toString()
+    }
+
     sealed interface BasicType : EtsTypeFact
 
     fun union(other: EtsTypeFact): EtsTypeFact {
@@ -132,10 +136,39 @@ sealed interface EtsTypeFact {
     ) : BasicType {
         override fun toString(): String {
             val clsName = cls?.typeName ?: "Object"
-            val props = properties.entries
+            val funProps = properties.entries
+                .filter { it.value is FunctionEtsTypeFact }
                 .sortedBy { it.key }
-                .joinToString(", ") { (name, type) -> "$name: $type" }
+            val nonFunProps = properties.entries
+                .filter { it.value !is FunctionEtsTypeFact }
+                .sortedBy { it.key }
+            val props = (funProps + nonFunProps).joinToString(", ") { (name, type) -> "$name: $type" }
             return "$clsName { $props }"
+        }
+
+        // Object {
+        // ..foo: Object {
+        // ....bar: string
+        // ..}
+        // }
+        override fun toPrettyString(): String {
+            val clsName = cls?.typeName ?: "Object"
+            val funProps = properties.entries
+                .filter { it.value is FunctionEtsTypeFact }
+                .sortedBy { it.key }
+            val nonFunProps = properties.entries
+                .filter { it.value !is FunctionEtsTypeFact }
+                .sortedBy { it.key }
+            return buildString {
+                appendLine("$clsName {")
+                for ((name, type) in funProps) {
+                    appendLine("  $name: $type")
+                }
+                for ((name, type) in nonFunProps) {
+                    appendLine("$name: ${type.toPrettyString()}".lines().joinToString("\n") { "  $it" })
+                }
+                append("}")
+            }
         }
     }
 
