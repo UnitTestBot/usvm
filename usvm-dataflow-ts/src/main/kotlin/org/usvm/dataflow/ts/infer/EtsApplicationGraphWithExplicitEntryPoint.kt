@@ -7,8 +7,6 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.callExpr
-import org.usvm.dataflow.ts.util.CONSTRUCTOR
 
 private val logger = KotlinLogging.logger {}
 
@@ -30,26 +28,7 @@ class EtsApplicationGraphWithExplicitEntryPoint(
 
     override fun callers(method: EtsMethod): Sequence<EtsStmt> = graph.callers(method)
 
-    override fun callees(node: EtsStmt): Sequence<EtsMethod> {
-        val callees = graph.callees(node).toList()
-
-        // val callExpr = node.callExpr
-        // if (callees.isEmpty() && callExpr != null) {
-        //     if (callExpr.method.name == CONSTRUCTOR) {
-        //         val enclosingClass = graph.cp.classes.firstOrNull {
-        //             it.name == callExpr.method.enclosingClass.name
-        //         }
-        //         if (enclosingClass != null) {
-        //             val ctor = enclosingClass.ctor
-        //             // logger.info { "Constructor call at $node: $ctor" }
-        //             return sequenceOf(ctor)
-        //         }
-        //     }
-        //     // logger.info { "No methods found for: $node" }
-        // }
-
-        return callees.asSequence()
-    }
+    override fun callees(node: EtsStmt): Sequence<EtsMethod> = graph.callees(node)
 
     override fun successors(node: EtsStmt): Sequence<EtsStmt> {
         val method = methodOf(node)
