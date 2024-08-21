@@ -4,7 +4,6 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Disabled
