@@ -219,8 +219,7 @@ class BackwardFlowFunction(
 
                         // Case 'x := y[i]'
                         is ElementAccessor -> {
-                            // TODO("array")
-                            return result
+                            result += TypedVariable(rhv.base, EtsTypeFact.UnknownEtsTypeFact).withTypeGuards(current)
                         }
                     }
 
@@ -254,11 +253,9 @@ class BackwardFlowFunction(
 
                     // Case 'x[i] := y'
                     is ElementAccessor -> {
-                        // TODO("array")
-                        return result
+                        result += TypedVariable(lhv.base, EtsTypeFact.ArrayEtsTypeFact(EtsTypeFact.UnknownEtsTypeFact))
                     }
                 }
-
             }
         }
 
@@ -295,54 +292,73 @@ class BackwardFlowFunction(
             return listOf(TypedVariable(rhv.base, fact.type).withTypeGuards(current))
         }
 
-        // Case `x := y.f`
         if (lhv.accesses.isEmpty()) {
-            val rhvAccessor = rhv.accesses.single()
+            when (val rhvAccessor = rhv.accesses.single()) {
+                // Case `x := y.f`
+                is FieldAccessor -> {
+                    // Drop facts that contains duplicate fields
+                    if (fact.type is EtsTypeFact.ObjectEtsTypeFact && rhvAccessor.name in fact.type.properties) {
+                        // can just drop?
+                        return listOf(fact)
+                    }
 
-            if (rhvAccessor !is FieldAccessor) {
-                // TODO("$rhvAccessor")
-                return listOf(fact)
+                    val rhvType = EtsTypeFact.ObjectEtsTypeFact(
+                        cls = null,
+                        properties = mapOf(rhvAccessor.name to fact.type)
+                    )
+                    return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
+                }
+
+                // Case `x := y[i]`
+                is ElementAccessor -> {
+                    return listOf(TypedVariable(rhv.base, fact.type).withTypeGuards(current))
+                }
             }
-
-            // Drop facts that contains duplicate fields
-            if (fact.type is EtsTypeFact.ObjectEtsTypeFact && rhvAccessor.name in fact.type.properties) {
-                // can just drop?
-                return listOf(fact)
-            }
-
-            val rhvType = EtsTypeFact.ObjectEtsTypeFact(
-                cls = null,
-                properties = mapOf(rhvAccessor.name to fact.type)
-            )
-            return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
         }
 
-        // Case `x.f := y`
         check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty()) {
             "Unexpected non-three address code: $current"
         }
-        val lhvAccessor = lhv.accesses.single()
 
-        if (lhvAccessor !is FieldAccessor) {
-            // TODO("$lhvAccessor")
-            return listOf(fact)
-        }
+        when (val lhvAccessor = lhv.accesses.single()) {
+            // Case `x.f := y`
+            is FieldAccessor -> {
+                if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+                    TODO("Support union type here")
+                }
 
-        if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-            TODO("Support union type here")
-        }
-        if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-            TODO("Support intersection type here")
-        }
+                if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
+                    TODO("Support intersection type here")
+                }
 
-        if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
-            return listOf(fact)
-        }
+                if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
+                    return listOf(fact)
+                }
 
-        val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(lhvAccessor.name)
-        val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
-        val rhvType = removedPropertyType?.let { TypedVariable(rhv.base, it).withTypeGuards(current) }
-        return listOfNotNull(updatedFact, rhvType)
+                val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(lhvAccessor.name)
+                val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
+                val rhvType = removedPropertyType?.let { TypedVariable(rhv.base, it).withTypeGuards(current) }
+                return listOfNotNull(updatedFact, rhvType)
+            }
+
+            // Case `x[i] := y`
+            is ElementAccessor -> {
+                if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+                    TODO("Support union type here")
+                }
+
+                if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
+                    TODO("Support intersection type here")
+                }
+
+                if (fact.type !is EtsTypeFact.ArrayEtsTypeFact) {
+                    return listOf(fact)
+                }
+
+                val newFact = TypedVariable(rhv.base, fact.type.elementType).withTypeGuards(current)
+                return listOf(fact, newFact)
+            }
+        }
     }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.removePropertyType(propertyName: String): Pair<EtsTypeFact, EtsTypeFact?> {
