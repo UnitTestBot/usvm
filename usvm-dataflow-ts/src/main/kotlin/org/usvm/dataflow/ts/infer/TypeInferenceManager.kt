@@ -243,19 +243,20 @@ class TypeInferenceManager(
 
         // Infer return types for each method
         run {
-            val returnTypeFacts = forwardSummaries
+            val returnType = forwardSummaries
                 .asSequence()
                 .mapNotNull { (method, summaries) ->
                     val returnFact = summaries
                         .asSequence()
                         .map { it.exitVertex }
-                        .filter { it.statement is EtsReturnStmt }
-                        .filter { it.fact is ForwardTypeDomainFact.TypedVariable }
-                        .map {
-                            Vertex(
-                                it.statement as EtsReturnStmt,
-                                it.fact as ForwardTypeDomainFact.TypedVariable
-                            )
+                        .mapNotNull {
+                            val stmt = it.statement as? EtsReturnStmt
+                            val fact = it.fact as? ForwardTypeDomainFact.TypedVariable
+                            if (stmt != null && fact != null) {
+                                Vertex(stmt, fact)
+                            } else {
+                                null
+                            }
                         }
                         .filter { it.statement.returnValue?.toPath() == it.fact.variable }
                         .map { it.fact.type }
@@ -271,7 +272,7 @@ class TypeInferenceManager(
             logger.info {
                 buildString {
                     appendLine("Return types:")
-                    for ((method, type) in returnTypeFacts) {
+                    for ((method, type) in returnType) {
                         appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
                     }
                 }
