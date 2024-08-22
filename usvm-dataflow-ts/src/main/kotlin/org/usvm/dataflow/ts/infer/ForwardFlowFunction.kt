@@ -5,7 +5,6 @@ import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
-import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
@@ -13,7 +12,6 @@ import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
@@ -162,9 +160,9 @@ class ForwardFlowFunction(
         val lhv = current.lhv.toPath()
 
         val rhv = when (val r = current.rhv) {
-            is EtsRef -> r.toPath()
-            is EtsLValue -> r.toPath()
-            is EtsCastExpr -> r.arg.toPath()
+            is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
+            is EtsLValue -> r.toPath() // Local
+            is EtsCastExpr -> r.toPath() // Cast
             else -> {
                 // logger.info { "TODO forward assign: $current" }
                 null
@@ -176,12 +174,18 @@ class ForwardFlowFunction(
             return listOf(fact)
         }
 
+        // Override LHS:
+        // TODO: what about `x.f := new T` with fact `x:U`?
         if (rhv == null) {
             check(fact.variable.base == lhv.base)
             return emptyList()
         }
 
         // Case `x := y [as T]`
+        // (if no cast):
+        //   `fact == y...:U` |= new fact `x...:U`
+        // (if cast):
+        //   `fact == y...:U` |= new fact `x...:W`, where W = U intersect T
         if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
             if (lhv.base == fact.variable.base) return emptyList()
             check(fact.variable.base == rhv.base)
@@ -196,14 +200,7 @@ class ForwardFlowFunction(
             return listOf(fact, newFact)
         }
 
-        // // Case `x := y`
-        // if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
-        //     if (lhv.base == fact.variable.base) return emptyList()
-        //     check(fact.variable.base == rhv.base)
-        //
-        //     val path = AccessPath(lhv.base, fact.variable.accesses)
-        //     return listOf(fact, TypedVariable(path, fact.type))
-        // }
+        check(current.rhv !is EtsCastExpr)
 
         // Case `x := y.f`
         if (lhv.accesses.isEmpty()) {
