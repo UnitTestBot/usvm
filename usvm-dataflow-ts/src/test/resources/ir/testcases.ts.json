@@ -1,0 +1,3677 @@
+{
+  "signature": {
+    "projectName": "ts",
+    "fileName": "testcases.ts"
+  },
+  "namespaces": [],
+  "classes": [
+    {
+      "signature": {
+        "name": "_DEFAULT_ARK_CLASS",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "_DEFAULT_ARK_METHOD",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case1",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "infer1",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer1",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "y",
+                            "type": {
+                              "_": "NumberType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer1",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case2",
+            "parameters": [
+              {
+                "name": "y",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "infer2",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "y",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer2",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "y",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer2",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case3",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "infer3",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "y",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer3",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "UnknownType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer3",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case4",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "infer4",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "100",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer4",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer4",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case5",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "infer5",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer5",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer5",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case6",
+            "parameters": [
+              {
+                "name": "y",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "infer6",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "y",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "0",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer6",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "y",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer6",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case7",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "NumberType"
+                  },
+                  "dimensions": 1
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "NumberType"
+                  },
+                  "dimensions": 1
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "infer7",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "NumberType"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "NewArrayExpr",
+                        "elementType": {
+                          "_": "NumberType"
+                        },
+                        "size": {
+                          "_": "Constant",
+                          "value": "1",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "ArrayRef",
+                        "array": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "NumberType"
+                            },
+                            "dimensions": 1
+                          }
+                        },
+                        "index": {
+                          "_": "Constant",
+                          "value": "0",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "NumberType"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "NumberType"
+                          },
+                          "dimensions": 1
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "ArrayRef",
+                        "array": {
+                          "_": "Local",
+                          "name": "y",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "NumberType"
+                            },
+                            "dimensions": 1
+                          }
+                        },
+                        "index": {
+                          "_": "Constant",
+                          "value": "0",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer7",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "NumberType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer7",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "case8",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "y",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "infer8",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "100",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "0",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "y",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer8",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer8",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "a",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "f",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case3-0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "t",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "t",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-case5-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "importInfos": [],
+  "exportInfos": []
+}

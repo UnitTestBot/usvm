@@ -314,4 +314,26 @@ class EtsTypeInferenceTest {
         }
         val inferred = manager.analyze(entrypoints)
     }
+
+    @Test
+    fun `type inference for testcases`() {
+        val name = "testcases"
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoints = project.classes
+            .flatMap { it.methods }
+            .filter { it.name.startsWith("case") }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+        manager.analyze(entrypoints)
+    }
 }

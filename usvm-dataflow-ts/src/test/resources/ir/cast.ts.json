@@ -134,162 +134,6 @@
               },
               "declaringNamespace": null
             },
-            "name": "infer",
-            "parameters": [
-              {
-                "name": "arg",
-                "type": {
-                  "_": "AnyType"
-                },
-                "isOptional": false
-              }
-            ],
-            "returnType": {
-              "_": "UnknownType"
-            }
-          },
-          "modifiers": [],
-          "typeParameters": [],
-          "body": {
-            "locals": [
-              {
-                "name": "this",
-                "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
-                    "declaringFile": {
-                      "projectName": "ts",
-                      "fileName": "cast.ts"
-                    },
-                    "declaringNamespace": null
-                  }
-                }
-              },
-              {
-                "name": "arg",
-                "type": {
-                  "_": "AnyType"
-                }
-              },
-              {
-                "name": "console",
-                "type": {
-                  "_": "UnknownType"
-                }
-              }
-            ],
-            "cfg": {
-              "blocks": [
-                {
-                  "id": 0,
-                  "successors": [],
-                  "stmts": [
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "arg",
-                        "type": {
-                          "_": "AnyType"
-                        }
-                      },
-                      "right": {
-                        "_": "ParameterRef",
-                        "index": 0,
-                        "type": {
-                          "_": "AnyType"
-                        }
-                      }
-                    },
-                    {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "Local",
-                        "name": "this",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
-                            "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
-                          }
-                        }
-                      },
-                      "right": {
-                        "_": "ThisRef",
-                        "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
-                            "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "_": "CallStmt",
-                      "expr": {
-                        "_": "InstanceCallExpr",
-                        "instance": {
-                          "_": "Local",
-                          "name": "console",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "method": {
-                          "declaringClass": {
-                            "name": "",
-                            "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
-                          },
-                          "name": "log",
-                          "parameters": [],
-                          "returnType": {
-                            "_": "UnknownType"
-                          }
-                        },
-                        "args": [
-                          {
-                            "_": "Local",
-                            "name": "arg",
-                            "type": {
-                              "_": "AnyType"
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "_": "ReturnVoidStmt"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        },
-        {
-          "signature": {
-            "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
-              "declaringFile": {
-                "projectName": "ts",
-                "fileName": "cast.ts"
-              },
-              "declaringNamespace": null
-            },
             "name": "entrypoint",
             "parameters": [],
             "returnType": {
@@ -458,6 +302,162 @@
                             "type": {
                               "_": "UnclearReferenceType",
                               "name": "Data"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "_DEFAULT_ARK_CLASS",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "cast.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "arg",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "_DEFAULT_ARK_CLASS",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "cast.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "arg",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "arg",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "_DEFAULT_ARK_CLASS",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "arg",
+                            "type": {
+                              "_": "AnyType"
                             }
                           }
                         ]
