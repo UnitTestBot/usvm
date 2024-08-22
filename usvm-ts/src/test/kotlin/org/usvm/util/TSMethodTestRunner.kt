@@ -24,6 +24,7 @@ import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import org.jacodb.ets.model.EtsScene
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
@@ -204,11 +205,11 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
                 ?: error("No such file found")
             val filePath = Paths.get(fileURL.toURI())
-            val file = loadEtsFileAutoConvert(filePath)
+            val scene = EtsScene(listOf(loadEtsFileAutoConvert(filePath)))
 
-            val method = file.getMethodByDescriptor(id)
+            val method = scene.files.single().getMethodByDescriptor(id)
 
-            TSMachine(file, options).use { machine ->
+            TSMachine(scene, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver()

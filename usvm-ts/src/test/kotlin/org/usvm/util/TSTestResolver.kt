@@ -14,6 +14,7 @@ import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.TSObject
 import org.usvm.TSTest
+import org.usvm.TSWrappedValue
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.extractBool
@@ -33,7 +34,7 @@ class TSTestResolver {
                 val returnValue = resolveExpr(valueToResolve, method.returnType)
                 val params = method.parameters.mapIndexed { idx, param ->
                     val lValue = URegisterStackLValue(typeToSort(param.type), idx)
-                    val expr = model.read(lValue)
+                    val expr = model.read(lValue).extractOrThis()
                     resolveExpr(expr, param.type)
                 }
 
@@ -52,10 +53,12 @@ class TSTestResolver {
         }
     }
 
-    private fun resolveExpr(expr: UExpr<out USort>, type: EtsType): TSObject = when (type) {
-        is EtsPrimitiveType -> resolvePrimitive(expr, type)
-        is EtsRefType -> TODO()
-        else -> TODO()
+    private fun resolveExpr(expr: UExpr<out USort>, type: EtsType): TSObject {
+        return when (type) {
+            is EtsPrimitiveType -> resolvePrimitive(expr, type)
+            is EtsRefType -> TODO()
+            else -> TODO()
+        }
     }
 
     private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when (type) {
@@ -97,4 +100,6 @@ class TSTestResolver {
 
         else -> error("Unexpected type: $type")
     }
+
+    private fun UExpr<out USort>.extractOrThis(): UExpr<out USort> = if (this is TSWrappedValue) value else this
 }

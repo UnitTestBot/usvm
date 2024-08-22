@@ -13,10 +13,11 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
 import kotlin.time.Duration
+import org.jacodb.ets.model.EtsScene
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
-    val project: EtsFile,
+    val project: EtsScene,
 ) : UTypeSystem<EtsType> {
 
     companion object {
@@ -95,9 +96,6 @@ class TSTopTypeStream(
         }
 
         return TSTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSubtype(type))
-    }
-
-    fun takeAll(): TypesResult<EtsType> {
     }
 
     override fun take(n: Int): TypesResult<EtsType> {
