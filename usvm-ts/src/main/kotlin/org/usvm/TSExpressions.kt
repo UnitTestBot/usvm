@@ -11,7 +11,10 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KSortVisitor
+import io.ksmt.utils.cast
+import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsNumberType
+import org.jacodb.ets.base.EtsType
 
 val KAst.tctx get() = ctx as TSContext
 
@@ -40,24 +43,18 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 
 class TSWrappedValue(
     ctx: TSContext,
-    scope: TSStepScope,
-    private val value: UExpr<out USort>
-) : UExpr<UAddressSort>(ctx) {
+    val value: UExpr<out USort>,
+    private val from: EtsEntity
+) : UExpr<USort>(ctx) {
     override val sort: UAddressSort
         get() = uctx.addressSort
 
-    private val exprs =
+    val type: EtsType
+        get() = from.type
 
-    private val expr: KIteExpr<UAddressSort> = with(ctx) {
-        mkIte(
-            condition = scope.calcOnState { memory.types.evalIsSubtype(this@TSWrappedValue, EtsNumberType) },
-            trueBranch = mkNullRef(),
-            falseBranch = mkNullRef()
-        ) as KIteExpr
-    }
 
-    override fun accept(transformer: KTransformerBase): KExpr<UAddressSort> {
-        return transformer.transform(expr)
+    override fun accept(transformer: KTransformerBase): UExpr<USort> {
+        return value.cast()
     }
 
     override fun internEquals(other: Any): Boolean {
