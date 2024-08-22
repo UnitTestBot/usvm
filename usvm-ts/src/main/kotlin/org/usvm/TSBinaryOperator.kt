@@ -21,32 +21,34 @@ sealed class TSBinaryOperator(
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
     )
 
-    internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> {
+    internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
-        var rhsExpr: UExpr<out USort> = rhs
 
-        if (lhsSort != rhsSort) {
-            val (temp, type) = TSExprTransformer(rhs).transform(lhs)
-            rhsExpr = temp
-            if (type !is EtsAnyType) {
-                scope.fork(
-                    condition = scope.calcOnState { memory.types.evalIsSubtype(rhsExpr.cast(), type) },
-                    blockOnTrueState = {
-                        scope.calcOnState {  }
-                    }
-
-                )
+        fun apply(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
+            assert(lhs.sort == rhs.sort)
+            val ctx = lhs.tctx
+            return when (lhs.sort) {
+                is UBoolSort -> ctx.onBool(lhs.cast(), rhs.cast())
+                is UBvSort -> ctx.onBv(lhs.cast(), rhs.cast())
+                is UFpSort -> ctx.onFp(lhs.cast(), rhs.cast())
+                else -> error("Unexpected sorts: $lhsSort, $rhsSort")
             }
         }
 
-        return when {
-            lhsSort is UBoolSort -> lhs.tctx.onBool(lhs.cast(), rhsExpr.cast())
-            lhsSort is UBvSort -> lhs.tctx.onBv(lhs.cast(), rhsExpr.cast())
-            lhsSort is UFpSort -> lhs.tctx.onFp(lhs.cast(), rhsExpr.cast())
-
-            else -> error("Unexpected sorts: $lhsSort, $rhsSort")
+        if (lhsSort != rhsSort) {
+            return when {
+                lhs is TSWrappedValue -> lhs.coerce(rhs, ::apply)
+                rhs is TSWrappedValue -> rhs.coerce(rhs, ::apply)
+                else -> {
+                    val transformer = TSExprTransformer(rhs)
+                    val coercedRhs = transformer.transform(lhsSort)
+                    apply(lhs, coercedRhs)
+                }
+            }
         }
+
+        return apply(lhs, rhs)
     }
 
     companion object {

@@ -18,9 +18,10 @@ import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 import kotlin.time.Duration.Companion.seconds
+import org.jacodb.ets.model.EtsScene
 
 class TSMachine(
-    private val project: EtsFile,
+    private val project: EtsScene,
     private val options: UMachineOptions,
 ) : UMachine<TSState>() {
     private val typeSystem = TSTypeSystem(typeOperationsTimeout = 1.seconds, project)

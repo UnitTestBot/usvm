@@ -6,15 +6,10 @@ import io.ksmt.cache.structurallyEqual
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFp64Value
-import io.ksmt.expr.KIteExpr
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
-import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.utils.cast
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsType
 
 val KAst.tctx get() = ctx as TSContext
 
@@ -43,30 +38,37 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 
 class TSWrappedValue(
     ctx: TSContext,
-    val value: UExpr<out USort>,
-    private val from: EtsEntity
-) : UExpr<USort>(ctx) {
-    override val sort: UAddressSort
-        get() = uctx.addressSort
+    val value: UExpr<out USort>
+) : USymbol<USort>(ctx) {
+    override val sort: USort
+        get() = value.sort
 
-    val type: EtsType
-        get() = from.type
+    private val transformer = TSExprTransformer(value)
 
+    fun coerce(
+        other: UExpr<out USort>,
+        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>
+    ): UExpr<out USort> = when {
+        other is UIntepretedValue -> {
+            val otherTransformer = TSExprTransformer(other)
+            transformer.intersectWithTypeCoercion(otherTransformer, action)
+        }
+        other is TSWrappedValue -> {
+            transformer.intersectWithTypeCoercion(other.transformer, action)
+        }
+        else -> TODO()
+    }
 
-    override fun accept(transformer: KTransformerBase): UExpr<USort> {
+    override fun accept(transformer: KTransformerBase): KExpr<USort> {
         return value.cast()
     }
 
-    override fun internEquals(other: Any): Boolean {
-        TODO("Not yet implemented")
-    }
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
-    override fun internHashCode(): Int {
-        TODO("Not yet implemented")
-    }
+    override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
+       printer.append("rot ebal...")
     }
 
 }
