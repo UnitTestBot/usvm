@@ -1,6 +1,7 @@
 package org.usvm.machine.types
 
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
+import org.usvm.annotations.ids.SlotId
 
 abstract class VirtualPythonType : PythonType() {
     abstract fun accepts(type: PythonType): Boolean
@@ -40,7 +41,7 @@ data class ConcreteTypeNegation(val concreteType: ConcretePythonType) : VirtualP
     }
 }
 
-sealed class TypeProtocol : VirtualPythonType() {
+sealed class TypeProtocol(private val slotId: SlotId? = null) : VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {
         if (type == this || type is MockType) {
@@ -53,7 +54,7 @@ sealed class TypeProtocol : VirtualPythonType() {
     }
 }
 
-object HasNbBool : TypeProtocol() {
+object HasNbBool : TypeProtocol(SlotId.NbBool) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbBool(type.asObject)
 }
@@ -68,42 +69,42 @@ object HasNbIndex : TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbIndex(type.asObject)
 }
 
-object HasNbAdd : TypeProtocol() {
+object HasNbAdd : TypeProtocol(SlotId.NbAdd) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbAdd(type.asObject)
 }
 
-object HasNbSubtract : TypeProtocol() {
+object HasNbSubtract : TypeProtocol(SlotId.NbSubtract) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbSubtract(type.asObject)
 }
 
-object HasNbMultiply : TypeProtocol() {
+object HasNbMultiply : TypeProtocol(SlotId.NbMultiply) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbMultiply(type.asObject)
 }
 
-object HasNbMatrixMultiply : TypeProtocol() {
+object HasNbMatrixMultiply : TypeProtocol(SlotId.NbMatrixMultiply) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbMatrixMultiply(type.asObject)
 }
 
-object HasNbNegative : TypeProtocol() {
+object HasNbNegative : TypeProtocol(SlotId.NbNegative) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbNegative(type.asObject)
 }
 
-object HasNbPositive : TypeProtocol() {
+object HasNbPositive : TypeProtocol(SlotId.NbPositive) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbPositive(type.asObject)
 }
 
-object HasSqConcat : TypeProtocol() {
+object HasSqConcat : TypeProtocol(SlotId.SqConcat) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqConcat(type.asObject)
 }
 
-object HasSqLength : TypeProtocol() {
+object HasSqLength : TypeProtocol(SlotId.SqLength) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqLength(type.asObject)
 }
@@ -113,42 +114,42 @@ object HasMpLength : TypeProtocol() {
         ConcretePythonInterpreter.typeHasMpLength(type.asObject)
 }
 
-object HasMpSubscript : TypeProtocol() {
+object HasMpSubscript : TypeProtocol(SlotId.MpSubscript) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasMpSubscript(type.asObject)
 }
 
-object HasMpAssSubscript : TypeProtocol() {
+object HasMpAssSubscript : TypeProtocol(SlotId.MpAssSubscript) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasMpAssSubscript(type.asObject)
 }
 
-object HasTpRichcmp : TypeProtocol() {
+object HasTpRichcmp : TypeProtocol(SlotId.TpRichcompare) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpRichcmp(type.asObject)
 }
 
-object HasTpGetattro : TypeProtocol() {
+object HasTpGetattro : TypeProtocol(SlotId.TpGetattro) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpGetattro(type.asObject)
 }
 
-object HasTpSetattro : TypeProtocol() {
+object HasTpSetattro : TypeProtocol(SlotId.TpSetattro) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpSetattro(type.asObject)
 }
 
-object HasTpIter : TypeProtocol() {
+object HasTpIter : TypeProtocol(SlotId.TpIter) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpIter(type.asObject)
 }
 
-object HasTpCall : TypeProtocol() {
+object HasTpCall : TypeProtocol(SlotId.TpCall) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpCall(type.asObject)
 }
 
-object HasTpHash : TypeProtocol() {
+object HasTpHash : TypeProtocol(SlotId.TpHash) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpHash(type.asObject)
 }
