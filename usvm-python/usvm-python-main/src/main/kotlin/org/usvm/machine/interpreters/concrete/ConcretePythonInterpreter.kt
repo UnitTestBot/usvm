@@ -172,6 +172,10 @@ object ConcretePythonInterpreter {
          *
          * pythonAdapter.allocateRawVirtualObjectWithAllSlots(object) does exactly the same as
          * pythonAdapter.allocateRawVirtualObject(virtualObject, List(12) {0b11111111.toByte()}.toByteArray())
+         *
+         * In order to manually enable/disable some slots, use swapSlotBit or setSlotBit:
+         * pythonAdapter.allocateRawVirtualObject(obj, obj.slotMask.swapSlotBit(SlotId.NbAdd))
+         * pythonAdapter.allocateRawVirtualObject(obj, obj.slotMask.setSlotBit(SlotId.NbAdd, false))
          */
         val ref = pythonAdapter.allocateRawVirtualObject(virtualObject, virtualObject.slotMask)
         if (ref == 0L) {

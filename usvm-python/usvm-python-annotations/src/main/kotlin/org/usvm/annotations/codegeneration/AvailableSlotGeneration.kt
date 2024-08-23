@@ -3,8 +3,8 @@ package org.usvm.annotations.codegeneration
 import org.usvm.annotations.ids.SlotId
 
 fun generateAvailableSlotInitialization(): String {
-    val filtered = SlotId.entries.filter {!it.mandatory};
-    val size = filtered.size;
+    val filtered = SlotId.entries.filter { !it.mandatory };
+    val size = filtered.size
     val prefix = """
         AVAILABLE_SLOTS = PyMem_RawMalloc(sizeof(PyType_Slot) * ${size + 1});
     """.trimIndent()
@@ -20,17 +20,18 @@ fun generateAvailableSlotInitialization(): String {
 }
 
 fun generateMandatorySlotMacro(): String {
-    val size = SlotId.values().filter {it.mandatory}.size;
-    val number_macro = "#define MANDATORY_SLOTS_NUMBER $size".trimIndent()
+    val filtered = SlotId.values().filter { it.mandatory }
+    val size = filtered.size
+    val numberMacro = "#define MANDATORY_SLOTS_NUMBER $size".trimIndent()
     val prefix = "#define INCLUDE_MANDATORY_SLOTS".trimIndent()
     if (size == 0) {
-        return number_macro + "\n\n" + prefix + "\n"
+        return numberMacro + "\n\n" + prefix + "\n"
     }
-    val items = SlotId.entries.filter {it.mandatory}.map {
+    val items = filtered.map {
         requireNotNull(it.slotName)
         "slots[i++] = Virtual_${it.slotName};".trimIndent()
     }
-    return number_macro + "\n\n" +
+    return numberMacro + "\n\n" +
         prefix + " \\\n" +
         items.joinToString("\n").replace("\n", "\\\n") + "\n"
 }

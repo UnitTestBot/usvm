@@ -41,7 +41,12 @@ data class ConcreteTypeNegation(val concreteType: ConcretePythonType) : VirtualP
     }
 }
 
-sealed class TypeProtocol(private val slotId: SlotId? = null) : VirtualPythonType() {
+/*
+ * Temporary slotId is nullable,
+ * since some slots, such as nb_int, nb_index and mp_length,
+ * are missing their implementation in virtual_objects.c
+ */
+sealed class TypeProtocol(val slotId: SlotId? = null) : VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {
         if (type == this || type is MockType) {
@@ -129,11 +134,13 @@ object HasTpRichcmp : TypeProtocol(SlotId.TpRichcompare) {
         ConcretePythonInterpreter.typeHasTpRichcmp(type.asObject)
 }
 
+// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
 object HasTpGetattro : TypeProtocol(SlotId.TpGetattro) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpGetattro(type.asObject)
 }
 
+// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
 object HasTpSetattro : TypeProtocol(SlotId.TpSetattro) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpSetattro(type.asObject)
@@ -149,6 +156,7 @@ object HasTpCall : TypeProtocol(SlotId.TpCall) {
         ConcretePythonInterpreter.typeHasTpCall(type.asObject)
 }
 
+// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
 object HasTpHash : TypeProtocol(SlotId.TpHash) {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpHash(type.asObject)

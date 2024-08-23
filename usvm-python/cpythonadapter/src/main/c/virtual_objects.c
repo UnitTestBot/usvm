@@ -251,6 +251,7 @@ initialize_virtual_object_ready_types() {
 void
 deinitialize_virtual_object_ready_types() {
     Py_DECREF(ready_virtual_object_types);
+    ready_virtual_object_types = 0;
 }
 
 void
@@ -261,6 +262,7 @@ initialize_virtual_object_available_slots() {
 void
 deinitialize_virtual_object_available_slots() {
     PyMem_RawFree(AVAILABLE_SLOTS);
+    AVAILABLE_SLOTS = 0;
 }
 
 #define MASK_SIZE (sizeof(unsigned char) * CHAR_BIT)
@@ -366,13 +368,15 @@ allocate_raw_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
     return result;
 }
 
+// Since there are about 80 slots, a mask with 96 bits (12 bytes) in it
+// should be enough to cover all of them
+#define MAX_NEEDED_MASK_BYTE_NUMBER 12
+
 PyObject *
 allocate_raw_virtual_object_with_all_slots(JNIEnv *env, jobject object) {
-    // There are less than 90 slots, so 12 bytes are enough.
-    // That array should be able to cover all available slots.
-    const unsigned char all = 0b11111111;
-    const unsigned char mask[12] = {all, all, all, all, all, all, all, all, all, all, all, all};
-    return _allocate_raw_virtual_object(env, object, mask, 12);
+    const unsigned char all = 0b11111111; // This byte enables all 8 slots that сorrespond to it.
+    const unsigned char mask[MAX_NEEDED_MASK_BYTE_NUMBER] = {all, all, all, all, all, all, all, all, all, all, all, all};
+    return _allocate_raw_virtual_object(env, object, mask, MAX_NEEDED_MASK_BYTE_NUMBER);
 }
 
 void

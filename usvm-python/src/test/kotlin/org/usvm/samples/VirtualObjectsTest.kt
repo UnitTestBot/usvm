@@ -36,14 +36,13 @@ class VirtualObjectsTest {
 
     fun checkSlotDisabling(
         slotId: SlotId,
-        checkMethod: ((PyObject) -> Boolean)? = null
     ): Boolean? {
         val obj = VirtualPythonObject(-1 - slotId.ordinal)
         obj.slotMask.setSlotBit(slotId, false)
         val pyObj = ConcretePythonInterpreter.allocateVirtualObject(obj)
         val type = ConcretePythonInterpreter.getPythonObjectType(pyObj)
-        val method = checkMethod ?: (slotMethods[slotId] ?: return null)
-        return method(type)
+        val method = slotMethods[slotId] ?: return null
+        return !method(type)
     }
 
     @Test
@@ -64,68 +63,67 @@ class VirtualObjectsTest {
     @Test
     fun testNbBoolDisabled() {
         val result = checkSlotDisabling(SlotId.NbBool) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testNbAddDisabled() {
         val result = checkSlotDisabling(SlotId.NbAdd) ?: return
-        assertFalse(result)
-    
+        assertTrue(result)
     }
     
     @Test
     fun testNbSubtractDisabled() {
         val result = checkSlotDisabling(SlotId.NbSubtract) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testNbMultiplyDisabled() {
         val result = checkSlotDisabling(SlotId.NbMultiply) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testNbMatrixMultiplyDisabled() {
         val result = checkSlotDisabling(SlotId.NbMatrixMultiply) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testNbNegativeDisabled() {
         val result = checkSlotDisabling(SlotId.NbNegative) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testNbPositiveDisabled() {
         val result = checkSlotDisabling(SlotId.NbPositive) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testSqLengthDisabled() {
         val result = checkSlotDisabling(SlotId.SqLength) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testSqConcatDisabled() {
         val result = checkSlotDisabling(SlotId.SqConcat) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testMpSubscriptDisabled() {
         val result = checkSlotDisabling(SlotId.MpSubscript) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testMpAssSubscriptDisabled() {
         val result = checkSlotDisabling(SlotId.MpAssSubscript) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
@@ -147,30 +145,30 @@ class VirtualObjectsTest {
     @Test
     fun testTpGetattroDisabled() {
         val result = checkSlotDisabling(SlotId.TpGetattro) ?: return
-        assertTrue(result)
+        assertFalse(result) // tp_getattro is marked as mandatory
     }
     
     @Test
     fun testTpSetattroDisabled() {
         val result = checkSlotDisabling(SlotId.TpSetattro) ?: return
-        assertTrue(result) // tp_setattro is marked as mandatory
+        assertFalse(result) // tp_setattro is marked as mandatory
     }
     
     @Test
     fun testTpIterDisabled() {
         val result = checkSlotDisabling(SlotId.TpIter) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testTpCallDisabled() {
         val result = checkSlotDisabling(SlotId.TpCall) ?: return
-        assertFalse(result)
+        assertTrue(result)
     }
     
     @Test
     fun testTpHashDisabled() {
         val result = checkSlotDisabling(SlotId.TpHash) ?: return
-        assertTrue(result) // tp_hash is marked as mandatory
+        assertFalse(result) // tp_hash is marked as mandatory
     }
 }
