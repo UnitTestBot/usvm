@@ -38,9 +38,8 @@ enum class SlotId(
 
     companion object {
         init {
-            values().filter { !it.mandatory }.forEachIndexed {
-                    index, entry ->
-                    entry.maskBit = index
+            values().filter { !it.mandatory }.forEachIndexed { index, entry ->
+                entry.maskBit = index
             }
         }
     }

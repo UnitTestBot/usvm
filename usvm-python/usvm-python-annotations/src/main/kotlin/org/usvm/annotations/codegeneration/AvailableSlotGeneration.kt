@@ -3,7 +3,7 @@ package org.usvm.annotations.codegeneration
 import org.usvm.annotations.ids.SlotId
 
 fun generateAvailableSlotInitialization(): String {
-    val filtered = SlotId.entries.filter { !it.mandatory };
+    val filtered = SlotId.entries.filter { !it.mandatory }
     val size = filtered.size
     val prefix = """
         AVAILABLE_SLOTS = PyMem_RawMalloc(sizeof(PyType_Slot) * ${size + 1});
