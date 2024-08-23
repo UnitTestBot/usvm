@@ -8,6 +8,7 @@ extern "C" {
 #include "Python.h"
 #include "utils.h"
 #include "symbolicadapter.h"
+#include "AvailableSlots.h" // generated
 
 #define VirtualObjectTypeName "ibmviqhlye.___virtual_object___ibmviqhlye"
 

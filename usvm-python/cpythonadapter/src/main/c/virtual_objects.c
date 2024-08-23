@@ -243,15 +243,6 @@ PyType_Slot *AVAILABLE_SLOTS = 0;
 PyObject *ready_virtual_object_types = 0;
 
 
-#define COUNT_OR_SET(func) \
-do { \
-    if (count) {                    \
-        counter++;                  \
-    } else {                        \
-        slots[i++] = Virtual_##func;\
-    }                               \
-} while (0)
-
 void
 initialize_virtual_object_ready_types() {
     ready_virtual_object_types = PyDict_New();
@@ -264,34 +255,7 @@ deinitialize_virtual_object_ready_types() {
 
 void
 initialize_virtual_object_available_slots() {
-    int counter = 1;
-    int i = 0;
-    PyType_Slot *slots = 0;
-    for (int count = 1; count >= 0; count--) {
-        if (!count) {
-            slots = PyMem_RawMalloc(sizeof(PyType_Slot) * counter);
-        }
-        COUNT_OR_SET(tp_richcompare);
-        COUNT_OR_SET(tp_getattro);
-        COUNT_OR_SET(tp_setattro);
-        COUNT_OR_SET(tp_iter);
-        COUNT_OR_SET(tp_hash);
-        COUNT_OR_SET(tp_call);
-        COUNT_OR_SET(nb_bool);
-        COUNT_OR_SET(nb_add);
-        COUNT_OR_SET(nb_subtract);
-        COUNT_OR_SET(nb_multiply);
-        COUNT_OR_SET(nb_matrix_multiply);
-        COUNT_OR_SET(nb_negative);
-        COUNT_OR_SET(nb_positive);
-        COUNT_OR_SET(sq_length);
-        COUNT_OR_SET(mp_subscript);
-        COUNT_OR_SET(mp_ass_subscript);
-        // COUNT_OR_SET(sq_concat);
-        // just use the macro again to add a new slot
-    }
-    slots[i++] = final_slot;
-    AVAILABLE_SLOTS = slots;
+    AVAILABLE_SLOT_INITIALIZATION
 }
 
 void
@@ -320,7 +284,7 @@ of the mask.
 PyType_Slot *
 create_slot_list(const unsigned char *mask, size_t length) {
     PyType_Slot *slots = 0;
-    int counter = 2;
+    int counter = 1 + MANDATORY_SLOTS_NUMBER;
     for (size_t i = 0; i < length; i++) {
         counter += mask_count_ones(mask[i]);
     }
@@ -344,7 +308,7 @@ create_slot_list(const unsigned char *mask, size_t length) {
             }
         }
     }
-    slots[i++] = Virtual_tp_dealloc;
+    INCLUDE_MANDATORY_SLOTS
     slots[i++] = final_slot;
     return slots;
 }
