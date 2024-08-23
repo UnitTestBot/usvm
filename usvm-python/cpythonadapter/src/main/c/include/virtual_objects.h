@@ -23,7 +23,7 @@ void initialize_virtual_object_available_slots();
 void deinitialize_virtual_object_available_slots();
 void initialize_virtual_object_ready_types();
 void deinitialize_virtual_object_ready_types();
-PyObject *_allocate_raw_virtual_object(JNIEnv *env, jobject object, char *mask, size_t length);
+PyObject *_allocate_raw_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask, size_t length);
 PyObject *allocate_raw_virtual_object_with_all_slots(JNIEnv *env, jobject object);
 PyObject *allocate_raw_virtual_object(JNIEnv *env, jobject object, jbyteArray mask);
 void finish_virtual_object_initialization(VirtualPythonObject *object, ConcolicContext *ctx, SymbolicAdapter *adapter);
