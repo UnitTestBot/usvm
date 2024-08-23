@@ -173,7 +173,7 @@ object ConcretePythonInterpreter {
          * pythonAdapter.allocateRawVirtualObjectWithAllSlots(object) does exactly the same as
          * pythonAdapter.allocateRawVirtualObject(virtualObject, List(12) {0b11111111.toByte()}.toByteArray())
          */
-        val ref = pythonAdapter.allocateRawVirtualObjectWithAllSlots(virtualObject)
+        val ref = pythonAdapter.allocateRawVirtualObject(virtualObject, virtualObject.slotMask)
         if (ref == 0L) {
             throw CPythonExecutionException()
         }
