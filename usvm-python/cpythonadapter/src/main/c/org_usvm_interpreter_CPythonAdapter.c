@@ -366,17 +366,17 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getCodeFromFram
     return (jlong) PyFrame_GetCode((PyFrameObject *) frame_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateRawVirtualObject(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
-    return (jlong) allocate_raw_virtual_object(env, virtual_object);
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateRawVirtualObjectWithAllSlots(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
+    return (jlong) allocate_raw_virtual_object_with_all_slots(env, virtual_object);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject(
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateRawVirtualObject(
     JNIEnv *env,
     jobject cpython_adapter,
     jobject virtual_object,
     jbyteArray mask
 ) {
-    return (jlong) allocate_virtual_object(env, virtual_object, mask);
+    return (jlong) allocate_raw_virtual_object(env, virtual_object, mask);
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList(JNIEnv *env, jobject cpython_adapter, jlongArray elements) {

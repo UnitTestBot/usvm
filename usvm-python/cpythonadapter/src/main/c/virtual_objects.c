@@ -365,7 +365,7 @@ create_new_virtual_object_type(const unsigned char *mask, size_t length) {
 }
 
 PyObject *
-_allocate_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask, size_t length) {
+_allocate_raw_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask, size_t length) {
     PyObject *mask_as_number = _PyLong_FromByteArray(mask, length, 0, 0);
     PyTypeObject *virtual_object_type = (PyTypeObject *) PyDict_GetItem(ready_virtual_object_types, mask_as_number);
     if (!virtual_object_type)
@@ -393,22 +393,22 @@ _allocate_virtual_object(JNIEnv *env, jobject object, const unsigned char *mask,
 }
 
 PyObject *
-allocate_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
+allocate_raw_virtual_object(JNIEnv *env, jobject object, jbyteArray mask) {
     unsigned char *mask_as_char_array = (unsigned char *) (*env)->GetByteArrayElements(env, mask, 0);
     const unsigned char *mask_as_array = (const unsigned char *) mask_as_char_array;
     size_t mask_length = (*env)->GetArrayLength(env, mask);
-    PyObject *result = _allocate_virtual_object(env, object, mask_as_array, mask_length);
+    PyObject *result = _allocate_raw_virtual_object(env, object, mask_as_array, mask_length);
     (*env)->ReleaseByteArrayElements(env, mask, (jbyte*) mask_as_char_array, 0);
     return result;
 }
 
 PyObject *
-allocate_raw_virtual_object(JNIEnv *env, jobject object) {
+allocate_raw_virtual_object_with_all_slots(JNIEnv *env, jobject object) {
     // There are less than 90 slots, so 12 bytes are enough.
     // That array should be able to cover all available slots.
     const unsigned char all = 0b11111111;
     const unsigned char mask[12] = {all, all, all, all, all, all, all, all, all, all, all, all};
-    return _allocate_virtual_object(env, object, mask, 12);
+    return _allocate_raw_virtual_object(env, object, mask, 12);
 }
 
 void
@@ -419,7 +419,7 @@ finish_virtual_object_initialization(VirtualPythonObject *object, ConcolicContex
 
 PyObject *
 create_new_virtual_object(ConcolicContext *ctx, jobject object, SymbolicAdapter *adapter) {
-    VirtualPythonObject *result = (VirtualPythonObject *) allocate_raw_virtual_object(ctx->env, object);
+    VirtualPythonObject *result = (VirtualPythonObject *) allocate_raw_virtual_object_with_all_slots(ctx->env, object);
     finish_virtual_object_initialization(result, ctx, adapter);
 
     return (PyObject *) result;
