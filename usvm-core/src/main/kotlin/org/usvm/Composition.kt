@@ -75,7 +75,7 @@ import org.usvm.regions.Region
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Type, USizeSort : USort>(
     override val ctx: UContext<USizeSort>,
-    internal val memory: UReadOnlyMemory<Type>
+    val memory: UReadOnlyMemory<Type>
 ) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 

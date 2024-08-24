@@ -1,13 +1,13 @@
 package org.usvm.machine
 
 import io.ksmt.utils.asExpr
-import org.jacodb.api.JcRefType
-import org.jacodb.api.JcType
-import org.jacodb.api.ext.byte
-import org.jacodb.api.ext.char
-import org.jacodb.api.ext.findClassOrNull
-import org.jacodb.api.ext.int
-import org.jacodb.api.ext.jvmSignature
+import org.jacodb.api.jvm.JcRefType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.ext.byte
+import org.jacodb.api.jvm.ext.char
+import org.jacodb.api.jvm.ext.findClassOrNull
+import org.jacodb.api.jvm.ext.int
+import org.jacodb.api.jvm.ext.jvmSignature
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
