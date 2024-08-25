@@ -9,7 +9,13 @@ val gjavahVersion = "0.3.1"
 repositories {
     mavenCentral()
     gradlePluginPortal()
-    maven("https://jitpack.io")
+    maven {
+        url = uri("https://jitpack.io")
+        credentials {
+            username = "IgorFilimonov"
+            password = "jp_e35qr3m1iun510o1f4erns14d7"
+        }
+    }
 }
 
 

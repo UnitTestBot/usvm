@@ -12,6 +12,7 @@ group = "org.usvm"
 repositories {
     mavenCentral()
     maven("https://jitpack.io")
+    mavenLocal()
 }
 
 dependencies {

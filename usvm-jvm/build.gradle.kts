@@ -23,8 +23,8 @@ val `usvm-api` by sourceSets.creating {
 }
 
 val approximations by configurations.creating
-val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "0f081f101e"
+val approximationsRepo = "org.usvm.approximations.java.stdlib"
+val approximationsVersion = "0.0.0"
 
 dependencies {
     implementation(project(":usvm-core"))
@@ -115,7 +115,6 @@ tasks.withType<Test> {
     environment("usvm.jvm.test.samples", testSamples.asPath)
     environment("usvm.jvm.test.samples.approximations", testSamplesWithApproximations.asPath)
 }
-
 
 tasks {
     register<Jar>("testJar") {
