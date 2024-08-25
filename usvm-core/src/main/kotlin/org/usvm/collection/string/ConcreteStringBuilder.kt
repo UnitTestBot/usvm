@@ -17,9 +17,12 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
 import org.usvm.character
 import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.array.UAllocatedArrayId
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
+import org.usvm.collection.array.USymbolicArrayAllocatedToAllocatedCopyAdapter
+import org.usvm.collection.array.USymbolicArrayIndex
 import org.usvm.constraints.UTypeEvaluator
 import org.usvm.getIntValue
 import org.usvm.isTrue
@@ -27,6 +30,9 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyRegistersStack
+import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.USymbolicCollectionAdapter
+import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeExpr
 
@@ -185,90 +191,124 @@ class UConcreteStringBuilder<Type, USizeSort : USort>(
 
     override fun toWritableMemory(): UWritableMemory<Type> = this
 
-    private fun copyToBaseMemory(
+    private fun <SrcKey, SrcSort : USort> copyToBaseMemory(
         mem: UWritableMemory<Type>,
-        srcRef: UHeapRef,
+        srcCollection: USymbolicCollection<USymbolicCollectionId<SrcKey, SrcSort, *>, SrcKey, SrcSort>,
         dstRef: UHeapRef,
         type: Type,
         elementSort: UCharSort,
-        fromSrcIdx: UExpr<USizeSort>,
-        fromDstIdx: UExpr<USizeSort>,
-        toDstIdx: UExpr<USizeSort>,
-        operationGuard: UBoolExpr
+        operationGuard: UBoolExpr,
+        allocatedDstAdapter: (UConcreteHeapRef) -> USymbolicCollectionAdapter<SrcKey, UExpr<USizeSort>, SrcSort, UCharSort>,
+        inputDstAdapter: (UHeapRef) -> USymbolicCollectionAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, SrcSort, UCharSort>
     ): UArrayRegion<Type, UCharSort, USizeSort> {
         val region = mem.getRegion(regionId)
         check(region is UArrayRegion<Type, UCharSort, USizeSort>) { "memcpy is not applicable to $region" }
-        return region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, operationGuard)
+        return region.memcpy(
+            srcCollection,
+            dstRef,
+            type,
+            elementSort,
+            operationGuard,
+            allocatedDstAdapter,
+            inputDstAdapter
+        )
     }
 
-    override fun memcpy(
-        srcRef: UHeapRef,
+    override fun <SrcKey, SrcSort : USort> memcpy(
+        srcCollection: USymbolicCollection<USymbolicCollectionId<SrcKey, SrcSort, *>, SrcKey, SrcSort>,
         dstRef: UHeapRef,
         type: Type,
         elementSort: UCharSort,
-        fromSrcIdx: UExpr<USizeSort>,
-        fromDstIdx: UExpr<USizeSort>,
-        toDstIdx: UExpr<USizeSort>,
-        operationGuard: UBoolExpr
+        operationGuard: UBoolExpr,
+        allocatedDstAdapter: (UConcreteHeapRef) -> USymbolicCollectionAdapter<SrcKey, UExpr<USizeSort>, SrcSort, UCharSort>,
+        inputDstAdapter: (UHeapRef) -> USymbolicCollectionAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, SrcSort, UCharSort>
     ): UArrayRegion<Type, UCharSort, USizeSort> {
-        val fromSrcIdxValue = ctx.getIntValue(fromSrcIdx)
-        val fromDstIdxValue = ctx.getIntValue(fromDstIdx)
-        val toDstIdxValue = ctx.getIntValue(toDstIdx)
-        if (fromSrcIdxValue == null ||
-            fromDstIdxValue == null ||
-            toDstIdxValue == null ||
-            srcRef !is UConcreteHeapRef ||
-            dstRef !is UConcreteHeapRef ||
-            !operationGuard.isTrue
-        ) {
-            notConcrete {
-                return copyToBaseMemory(
-                    it,
-                    srcRef,
-                    dstRef,
-                    type,
-                    elementSort,
-                    fromSrcIdx,
-                    fromDstIdx,
-                    toDstIdx,
-                    operationGuard
-                )
+        when {
+            srcCollection.collectionId is UAllocatedArrayId<*, *, *> && dstRef is UConcreteHeapRef -> {
+                val srcRefAddress = srcCollection.collectionId.address
+                val adapter =
+                    allocatedDstAdapter(dstRef) as USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, *, *>
+                val fromSrcIdxValue = ctx.getIntValue(adapter.srcFrom)
+                val fromDstIdxValue = ctx.getIntValue(adapter.dstFrom)
+                val toDstIdxValue = ctx.getIntValue(adapter.dstTo)
+                if (fromSrcIdxValue == null ||
+                    fromDstIdxValue == null ||
+                    toDstIdxValue == null ||
+                    !operationGuard.isTrue
+                ) {
+                    notConcrete {
+                        return copyToBaseMemory(
+                            it,
+                            srcCollection,
+                            dstRef,
+                            type,
+                            elementSort,
+                            operationGuard,
+                            allocatedDstAdapter,
+                            inputDstAdapter
+                        )
+                    }
+                }
+                if (srcRefAddress == targetAddress) {
+                    // Should we process this case normally?
+                    error("Unexpected operation on fake memory for concrete string building")
+                }
+                val length = toDstIdxValue - fromDstIdxValue + 1
+                if (length < 0) {
+                    error("Unexpected operation on fake memory for concrete string building")
+                }
+                val toSrcIdxValue = fromSrcIdxValue + length - 1
+                for (i in fromSrcIdxValue..toSrcIdxValue) {
+                    val character =
+                        otherArrays[srcRefAddress]?.get(i) ?: composer.memory.readArrayIndex(
+                            ctx.mkConcreteHeapRef(srcRefAddress),
+                            ctx.mkSizeExpr(i),
+                            type,
+                            elementSort
+                        )
+                            .let { (it as? UConcreteChar)?.character } ?: notConcrete {
+                            return copyToBaseMemory(
+                                it,
+                                srcCollection,
+                                dstRef,
+                                type,
+                                elementSort,
+                                operationGuard,
+                                allocatedDstAdapter,
+                                inputDstAdapter
+                            )
+                        }
+
+                    write(dstRef.address, i - fromSrcIdxValue + fromDstIdxValue, character)
+                }
+                return this
             }
-        }
-        if (srcRef.address == targetAddress) {
-            // Should we process this case normally?
-            error("Unexpected operation on fake memory for concrete string building")
-        }
-        val length = toDstIdxValue - fromDstIdxValue + 1
-        if (length < 0) {
-            error("Unexpected operation on fake memory for concrete string building")
-        }
-        val toSrcIdxValue = fromSrcIdxValue + length - 1
-        for (i in fromSrcIdxValue..toSrcIdxValue) {
-            val character =
-                otherArrays.get(srcRef.address)?.get(i) ?: composer.memory.readArrayIndex(
-                    srcRef,
-                    ctx.mkSizeExpr(i),
-                    type,
-                    elementSort
-                )
-                    .let { (it as? UConcreteChar)?.character } ?: notConcrete {
+
+            srcCollection.collectionId is UStringCollectionId<*> &&
+                    srcCollection.collectionId.string is UStringLiteralExpr &&
+                    dstRef is UConcreteHeapRef -> {
+                val string = srcCollection.collectionId.string.s
+                for (i in string.indices) {
+                    write(dstRef.address, i, string[i])
+                }
+                return this
+            }
+
+            else -> {
+                notConcrete {
                     return copyToBaseMemory(
                         it,
-                        srcRef,
+                        srcCollection,
                         dstRef,
                         type,
                         elementSort,
-                        fromSrcIdx,
-                        fromDstIdx,
-                        toDstIdx,
-                        operationGuard
+                        operationGuard,
+                        allocatedDstAdapter,
+                        inputDstAdapter
                     )
                 }
-
-            write(dstRef.address, i - fromSrcIdxValue + fromDstIdxValue, character)
+            }
         }
-        return this
     }
 
     override fun initializeAllocatedArray(

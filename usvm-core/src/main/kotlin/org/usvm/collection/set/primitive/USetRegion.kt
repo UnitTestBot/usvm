@@ -101,7 +101,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     ): UAllocatedSet<SetType, ElementSort, Reg> {
         var collection = allocatedSets[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             allocatedSets = allocatedSets.put(id, collection)
         }
         return collection
@@ -114,7 +114,7 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
 
     override fun inputSetElements(): UInputSet<SetType, ElementSort, Reg> {
         if (inputSet == null) {
-            inputSet = UInputSetId(elementSort, setType, elementInfo).emptyRegion()
+            inputSet = UInputSetId(elementSort, setType, elementInfo).emptyCollection()
         }
         return inputSet!!
     }

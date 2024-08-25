@@ -60,7 +60,7 @@ class ModelCompositionTest {
         val composer = UComposer(this, model)
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1)
-            .emptyRegion()
+            .emptyCollection()
             .write(0.toBv(), 0.toBv(), trueExpr)
             .write(1.toBv(), 1.toBv(), trueExpr)
             .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr)
@@ -93,7 +93,7 @@ class ModelCompositionTest {
 
         val symbolicRef = mkRegisterReading(0, addressSort) as UHeapRef
 
-        val fromRegion = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort).emptyRegion()
+        val fromRegion = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort).emptyCollection()
 
         val concreteRef = mkConcreteHeapRef(1)
 
@@ -105,7 +105,7 @@ class ModelCompositionTest {
         )
 
         val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(arrayType, bv32Sort, concreteRef.address)
-            .emptyRegion()
+            .emptyCollection()
             .copyRange(fromRegion, adapter, trueExpr)
 
         val idx = mkRegisterReading(1, sizeSort)
@@ -151,7 +151,7 @@ class ModelCompositionTest {
         val composer = UComposer(this, model)
 
         val region = UInputArrayLengthId(arrayType, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(symbolicRef1, 0.toBv(), trueExpr)
             .write(symbolicRef2, 1.toBv(), trueExpr)
             .write(symbolicRef3, 2.toBv(), trueExpr)
@@ -196,7 +196,7 @@ class ModelCompositionTest {
         val composer = UComposer(this, model)
 
         val region = UInputFieldId(field, addressSort)
-            .emptyRegion()
+            .emptyCollection()
             .write(symbolicRef1, symbolicRef1, trueExpr)
             .write(symbolicRef2, symbolicRef2, trueExpr)
             .write(symbolicRef3, symbolicRef3, trueExpr)
@@ -225,7 +225,7 @@ class ModelCompositionTest {
 
         val composer = UComposer(this, model)
 
-        val emptyRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1).emptyRegion()
+        val emptyRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1).emptyCollection()
 
         run {
             val region = emptyRegion

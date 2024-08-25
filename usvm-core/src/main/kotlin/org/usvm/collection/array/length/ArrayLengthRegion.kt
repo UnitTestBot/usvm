@@ -51,7 +51,7 @@ internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
 
     private fun getInputLength(ref: UArrayLengthLValue<ArrayType, USizeSort>): UInputArrayLengths<ArrayType, USizeSort> {
         if (inputLengths == null)
-            inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyRegion()
+            inputLengths = UInputArrayLengthId(ref.arrayType, ref.sort).emptyCollection()
         return inputLengths!!
     }
 

@@ -3,6 +3,7 @@ package org.usvm.api
 import io.ksmt.sort.KFpSort
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
+import org.usvm.UCharSort
 import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -27,6 +28,7 @@ import org.usvm.collection.string.allocateStringExpr
 import org.usvm.collection.string.charAt
 import org.usvm.collection.string.concatStrings
 import org.usvm.collection.string.getString
+import org.usvm.collection.string.getStringContent
 import org.usvm.collection.string.getSubstring
 import org.usvm.collection.string.isStringEmpty
 import org.usvm.collection.string.mapString
@@ -241,6 +243,19 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromBvArray(
     val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
     return this.allocateStringExpr(stringType, string, targetStringRef)
 }
+
+/**
+ * Allocates new (mutable) char buffer, copies string content there
+ */
+fun <Type, USizeSort : USort, ElementSort : USort> UWritableMemory<Type>.contentOfString(
+    stringRef: UHeapRef,
+    arrayType: Type,
+    sizeSort: USizeSort,
+    elementSort: ElementSort,
+    elementConverter: ((UExpr<UCharSort>) -> UExpr<ElementSort>)? = null
+): UHeapRef =
+    mapString(stringRef) { getStringContent(it, arrayType, sizeSort, elementSort, elementConverter) }
+
 
 fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
     mapString(ref) { charAt(ctx.withSizeSort(), it, index) }

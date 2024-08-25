@@ -24,7 +24,6 @@ import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KRealSort
 import io.ksmt.sort.KSort
-import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.uncheckedCast
 import kotlinx.collections.immutable.persistentHashMapOf
@@ -33,6 +32,8 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.string.USortVisitor
+import org.usvm.collection.string.UStringSort
 import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 
@@ -44,7 +45,7 @@ open class UModelEvaluator<SizeSort : USort>(
     val ctx: UContext<SizeSort>,
     val model: KModel,
     val addressesMapping: AddressesMapping,
-) : KSortVisitor<UExpr<*>> {
+) : USortVisitor<UExpr<*>> {
     val completedValues = hashMapOf<KExpr<*>, UExpr<*>>()
     val completed1DArrays = hashMapOf<KDecl<*>, UMemory1DArray<*, *>>()
     val completed2DArrays = hashMapOf<KDecl<*>, UMemory2DArray<*, *, *>>()
@@ -71,6 +72,9 @@ open class UModelEvaluator<SizeSort : USort>(
     } else {
         ctx.defaultValueSampler.visit(sort)
     }
+
+    override fun visit(sort: UStringSort): UExpr<*> =
+        ctx.mkEmptyString()
 
     override fun visit(sort: KRealSort): UExpr<*> = ctx.defaultValueSampler.visit(sort)
     override fun visit(sort: KFpRoundingModeSort): UExpr<*> = ctx.defaultValueSampler.visit(sort)

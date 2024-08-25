@@ -33,5 +33,5 @@ interface USymbolicCollectionId<Key, Sort : USort, out CollectionId : USymbolicC
      */
     fun keyInfo(): USymbolicCollectionKeyInfo<Key, *>
 
-    fun emptyRegion(): USymbolicCollection<CollectionId, Key, Sort>
+    fun emptyCollection(): USymbolicCollection<CollectionId, Key, Sort>
 }

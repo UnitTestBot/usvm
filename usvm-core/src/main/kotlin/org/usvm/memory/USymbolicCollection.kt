@@ -20,6 +20,10 @@ import org.usvm.uctx
 data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sort, CollectionId>, Key, Sort : USort>(
     val collectionId: CollectionId,
     val updates: USymbolicCollectionUpdates<Key, Sort>,
+    val splitPredicate: ((UExpr<Sort>) -> Boolean)? =
+        // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
+        if (collectionId.sort == collectionId.sort.uctx.addressSort) { expr -> expr is UConcreteHeapRef }
+        else null
 ) : UMemoryRegion<Key, Sort> {
     // to save memory usage
     val sort: Sort get() = collectionId.sort
@@ -51,9 +55,8 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * Reads a [key] from this collection with on-the-fly composition, if the [composer] provided.
      */
     fun read(key: Key, composer: UComposer<*, *>?): UExpr<Sort> {
-        if (sort == sort.uctx.addressSort) {
-            // Here we split concrete heap addresses from symbolic ones to optimize further memory operations.
-            return splittingRead(key, composer) { it is UConcreteHeapRef }
+        if (splitPredicate != null) {
+            return splittingRead(key, composer, splitPredicate)
         }
 
         val updates = updates.read(key, composer)

@@ -117,7 +117,29 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCha
         }
     }
     val stringContentArray = getAllocatedCharArray<Type, USizeSort>(charArrayType, stringContentArrayRef.address)
+    // TODO: if string content array contains the only ranged update from string
+    //  (i.e. its collectionId is UStringCollectionId), then return this string.
     return ctx.mkStringFromArray(stringContentArray, charArrayType, actualLength)
+}
+
+internal fun <Type, USizeSort : USort, ElementSort : USort> UWritableMemory<Type>.getStringContent(
+    string: UStringExpr,
+    arrayType: Type,
+    sizeSort: USizeSort,
+    elementSort: ElementSort,
+    elementConverter: ((UExpr<UCharSort>) -> UExpr<ElementSort>)? = null
+): UConcreteHeapRef {
+    val length = getLength<USizeSort>(ctx.withSizeSort(), string)
+    val resultBuffer = allocateArray(arrayType, sizeSort, length)
+    copyStringContentToArray<_, _, USizeSort>(
+        string,
+        resultBuffer,
+        arrayType,
+        elementSort,
+        ctx.trueExpr,
+        elementConverter
+    )
+    return resultBuffer
 }
 
 internal fun UReadOnlyMemory<*>.getString(ref: UHeapRef): UStringExpr =
@@ -440,7 +462,7 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
     }
 }
 
-private fun mkSymboliStringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr =
+private fun mkSymbolicStringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean): UBoolExpr =
     if (isStrict)
         left.uctx.mkStringLtExpr(left, right)
     else
@@ -467,7 +489,7 @@ internal fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean)
                 else if (concreteLen2 == null) concreteLen1
                 else min(concreteLen1, concreteLen2)
             if (min == null) {
-                return mkSymboliStringCmp(left, right, isStrict)
+                return mkSymbolicStringCmp(left, right, isStrict)
             }
             for (i in 0 until min) {
                 val index = ctx.mkSizeExpr(i)
@@ -479,7 +501,7 @@ internal fun stringCmp(left: UStringExpr, right: UStringExpr, isStrict: Boolean)
                         return ctx.mkBool(cmp < 0)
                     }
                 } else {
-                    return mkSymboliStringCmp(left, right, isStrict)
+                    return mkSymbolicStringCmp(left, right, isStrict)
                 }
             }
             return if (isStrict) ctx.mkSizeLtExpr(len1, len2) else ctx.mkSizeLeExpr(len1, len2)

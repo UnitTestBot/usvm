@@ -68,7 +68,7 @@ class UAllocatedRefSetWithInputElementsId<SetType>(
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): UAllocatedRefSetWithInputElements<SetType> {
+    override fun emptyCollection(): UAllocatedRefSetWithInputElements<SetType> {
         val updates = UTreeUpdates<UHeapRef, UHeapRefRegion, UBoolSort>(
             updates = emptyRegionTree(),
             UHeapRefKeyInfo
@@ -142,7 +142,7 @@ class UInputRefSetWithAllocatedElementsId<SetType>(
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): UInputRefSetWithAllocatedElements<SetType> {
+    override fun emptyCollection(): UInputRefSetWithAllocatedElements<SetType> {
         val updates = UTreeUpdates<UHeapRef, UHeapRefRegion, UBoolSort>(
             updates = emptyRegionTree(),
             UHeapRefKeyInfo
@@ -216,7 +216,7 @@ class UInputRefSetWithInputElementsId<SetType>(
 
     override fun keyInfo() = USymbolicSetKeyInfo(UHeapRefKeyInfo)
 
-    override fun emptyRegion(): USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort> {
+    override fun emptyCollection(): USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort> {
         val updates =
             UTreeUpdates<USymbolicSetElement<UAddressSort>, USymbolicSetElementRegion<UHeapRefRegion>, UBoolSort>(
                 updates = emptyRegionTree(),

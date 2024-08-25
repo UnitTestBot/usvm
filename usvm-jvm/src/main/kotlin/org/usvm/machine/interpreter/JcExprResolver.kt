@@ -5,7 +5,6 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.common.cfg.CommonExpr
-import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcClassType

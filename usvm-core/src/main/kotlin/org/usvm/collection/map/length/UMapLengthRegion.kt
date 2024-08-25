@@ -52,7 +52,7 @@ internal class UMapLengthMemoryRegion<MapType, USizeSort : USort>(
 
     private fun getInputLength(ref: UMapLengthLValue<MapType, USizeSort>): UInputMapLength<MapType, USizeSort> {
         if (inputLengths == null)
-            inputLengths = UInputMapLengthId(ref.mapType, ref.sort).emptyRegion()
+            inputLengths = UInputMapLengthId(ref.mapType, ref.sort).emptyCollection()
         return inputLengths!!
     }
 

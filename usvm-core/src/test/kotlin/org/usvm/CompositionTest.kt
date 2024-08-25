@@ -335,7 +335,7 @@ internal class CompositionTest {
         // TODO replace with jacoDB type
         val arrayType: KClass<Array<*>> = Array::class
         // Create an empty region
-        val region = UInputArrayId<_, _, USizeSort>(arrayType, mkBv32Sort()).emptyRegion()
+        val region = UInputArrayId<_, _, USizeSort>(arrayType, mkBv32Sort()).emptyCollection()
 
         // create a reading from the region
         val fstArrayIndexReading = mkInputArrayReading(region, fstAddress, fstIndex)
@@ -447,7 +447,7 @@ internal class CompositionTest {
         val symbolicAddress = mkRegisterReading(0, addressSort)
 
         val regionArray = UAllocatedArrayId<_, _, USizeSort>(arrayType, addressSort, 0)
-            .emptyRegion()
+            .emptyCollection()
             .write(mkBv(0), symbolicAddress, trueExpr)
             .write(mkBv(1), mkConcreteHeapRef(1), trueExpr)
 
@@ -569,7 +569,7 @@ internal class CompositionTest {
         val composer = UComposer(ctx, composeMemory)
 
         val fromRegion0 = UInputArrayId<_, _, USizeSort>(arrayType, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(symbolicRef0 to mkBv(0), mkBv(42), trueExpr)
 
         val adapter1 = USymbolicArrayInputToInputCopyAdapter<USizeSort, USizeSort, USizeSort>(
@@ -626,7 +626,7 @@ internal class CompositionTest {
 
         val composer = UComposer(this, composedMemory)
 
-        val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyRegion()
+        val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), addressSort, 1).emptyCollection()
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)
@@ -644,7 +644,7 @@ internal class CompositionTest {
         val ref2 = mkRegisterReading(2, addressSort)
 
         val region = UInputFieldId(field, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref0, mkBv(0), trueExpr)
             .write(ref1, mkBv(1), trueExpr)
 

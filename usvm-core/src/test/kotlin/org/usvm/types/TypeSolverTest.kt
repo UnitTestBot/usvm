@@ -350,7 +350,7 @@ class TypeSolverTest {
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
         val inputRegion = UInputArrayId<_, _, USizeSort>(mockk<TestType>(), addressSort)
-            .emptyRegion()
+            .emptyCollection()
             .write(arr1 to idx1, val1, trueExpr)
             .write(arr2 to idx2, val2, trueExpr)
 
