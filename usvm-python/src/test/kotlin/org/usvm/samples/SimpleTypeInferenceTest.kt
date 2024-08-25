@@ -94,6 +94,20 @@ class SimpleTypeInferenceTest: PythonTestRunnerForPrimitiveProgram("SimpleTypeIn
     }
 
     @Test
+    fun testListConcatUsage() {
+        check2WithConcreteRun(
+            constructFunction("list_concat_usage", List(2) { PythonAnyType }),
+            ignoreNumberOfAnalysisResults,
+            standardConcolicAndConcreteChecks,
+            /* invariants = */ emptyList(),
+            /* propertiesToDiscover = */ listOf(
+                { _, _, res -> res.selfTypeName == "AssertionError" },
+                { _, _, res -> res.repr == "None" }
+            )
+        )
+    }
+
+    @Test
     fun testLenUsage() {
         check1WithConcreteRun(
             constructFunction("len_usage", List(1) { PythonAnyType }),
