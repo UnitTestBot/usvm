@@ -430,7 +430,7 @@ class BackwardFlowFunctions(
 
         if (fact.variable != callResult) return emptyList()
 
-        if (calleeStart !is EtsReturnStmt) return emptyList()
+        check(calleeStart is EtsReturnStmt)
 
         val exitValue = calleeStart.returnValue?.toBase() ?: return emptyList()
 
