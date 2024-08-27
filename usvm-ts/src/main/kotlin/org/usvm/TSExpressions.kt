@@ -45,9 +45,11 @@ class TSWrappedValue(
 
     private val transformer = TSExprTransformer(value)
 
+    fun asSort(sort: USort): UExpr<out USort> = transformer.transform(sort)
+
     fun coerce(
         other: UExpr<out USort>,
-        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>
+        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
     ): UExpr<out USort> = when {
         other is UIntepretedValue -> {
             val otherTransformer = TSExprTransformer(other)
@@ -57,6 +59,15 @@ class TSWrappedValue(
             transformer.intersectWithTypeCoercion(other.transformer, action)
         }
         else -> TODO()
+    }
+
+    fun coerceWithSort(
+        other: UExpr<out USort>,
+        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?,
+        sort: USort,
+    ): UExpr<out USort> {
+        transformer.transform(sort)
+        return coerce(other , action)
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
