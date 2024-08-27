@@ -1,5 +1,6 @@
 package org.usvm
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsAnyType
 
@@ -21,6 +22,17 @@ sealed class TSBinaryOperator(
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
     )
 
+    object Add : TSBinaryOperator(
+        onBool = { lhs, rhs ->
+            mkFpAddExpr(
+                fpRoundingModeSortDefaultValue(),
+                TSExprTransformer(lhs).asFp64(),
+                TSExprTransformer(rhs).asFp64())
+        },
+        onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) },
+        onBv = UContext<TSSizeSort>::mkBvAddExpr,
+    )
+
     internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
@@ -36,19 +48,12 @@ sealed class TSBinaryOperator(
             }
         }
 
-        if (lhsSort != rhsSort) {
-            return when {
-                lhs is TSWrappedValue -> lhs.coerce(rhs, ::apply)
-                rhs is TSWrappedValue -> rhs.coerce(rhs, ::apply)
-                else -> {
-                    val transformer = TSExprTransformer(rhs)
-                    val coercedRhs = transformer.transform(lhsSort)
-                    apply(lhs, coercedRhs)
-                }
-            }
+        return when {
+            lhs is TSWrappedValue -> lhs.coerce(rhs, ::apply)
+            rhs is TSWrappedValue -> TSWrappedValue(lhs.tctx, lhs).coerce(rhs, ::apply)
+            lhsSort != rhsSort -> apply(lhs, TSExprTransformer(rhs).transform(lhsSort))
+            else -> apply(lhs, rhs)
         }
-
-        return apply(lhs, rhs)
     }
 
     companion object {

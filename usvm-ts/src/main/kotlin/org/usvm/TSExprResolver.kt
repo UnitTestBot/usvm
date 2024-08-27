@@ -80,14 +80,14 @@ class TSExprResolver(
         localToIdx
     )
 
-    fun resolveTSExpr(expr: EtsEntity, type: EtsType = expr.type): UExpr<out USort>? {
+    fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
 
-    fun resolveLValue(value: EtsValue): ULValue<*, *>? =
+    fun resolveLValue(value: EtsValue, sort: USort = ctx.typeToSort(value.type)): ULValue<*, *>? =
         when (value) {
             is EtsParameterRef,
-            is EtsLocal -> simpleValueResolver.resolveLocal(value)
+            is EtsLocal -> simpleValueResolver.resolveLocal(value, sort)
             else -> error("Unexpected value: $value")
         }
 
@@ -148,8 +148,8 @@ class TSExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visit(expr: EtsAddExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Add, expr)
     }
 
     override fun visit(expr: EtsAndExpr): UExpr<out USort> {
@@ -414,10 +414,9 @@ class TSSimpleValueResolver(
         scope.calcOnState { memory.read(lValue) }
     }
 
-    fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
+    fun resolveLocal(local: EtsValue, sort: USort = ctx.typeToSort(local.type)): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
-        val sort = ctx.typeToSort(local.type)
         return URegisterStackLValue(sort, localIdx)
     }
 }

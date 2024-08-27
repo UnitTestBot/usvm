@@ -1,6 +1,7 @@
 package org.usvm
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
@@ -14,9 +15,11 @@ import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.state.TSMethodResult
@@ -95,11 +98,8 @@ class TSInterpreter(
     private fun visitReturnStmt(scope: TSStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
-        val returnType = method.returnType
-
         val valueToReturn = stmt.returnValue
-            ?.let { exprResolver.resolveTSExpr(it, returnType) ?: return }
+            ?.let { exprResolver.resolveTSExpr(it) ?: return }
             ?: ctx.mkUndefinedValue()
 
         scope.doWithState {
@@ -110,12 +110,13 @@ class TSInterpreter(
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
-        val expr = exprResolver.resolveTSExpr(stmt.rhv, stmt.lhv.type) ?: return
-        val wrappedExpr = TSWrappedValue(ctx, expr)
+        val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
+        val lvalue = if (stmt.lhv.type == EtsUnknownType) exprResolver.resolveLValue(stmt.lhv, expr.sort)
+            else exprResolver.resolveLValue(stmt.lhv) ?: return
 
+        val wrappedExpr = TSWrappedValue(ctx, expr)
         scope.doWithState {
-            memory.write(lvalue, wrappedExpr)
+            memory.write(lvalue.cast(), wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
         }

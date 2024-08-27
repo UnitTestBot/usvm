@@ -30,7 +30,7 @@ class TSTestResolver {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
-                val valueToResolve = model.eval(methodResult.value)
+                val valueToResolve = model.eval(methodResult.value.extractOrThis())
                 val returnValue = resolveExpr(valueToResolve, method.returnType)
                 val params = method.parameters.mapIndexed { idx, param ->
                     val lValue = URegisterStackLValue(typeToSort(param.type), idx)
