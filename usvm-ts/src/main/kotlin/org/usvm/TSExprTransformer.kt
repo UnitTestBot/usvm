@@ -35,10 +35,10 @@ class TSExprTransformer(
     @Suppress("UNCHECKED_CAST")
     fun intersectWithTypeCoercion(
         other: TSExprTransformer,
-        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>
+        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
     ): UExpr<out USort> {
         intersect(other)
-        val exprs = exprCache.keys.map { sort -> action(transform(sort), other.transform(sort)) }
+        val exprs = exprCache.keys.mapNotNull { sort -> action(transform(sort), other.transform(sort)) }
         return if (exprs.size > 1) {
             assert(exprs.all { it.sort == ctx.boolSort })
             ctx.mkAnd(exprs as List<UBoolExpr>)
