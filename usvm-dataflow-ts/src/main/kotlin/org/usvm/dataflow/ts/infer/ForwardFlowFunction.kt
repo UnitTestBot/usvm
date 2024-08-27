@@ -92,12 +92,12 @@ class ForwardFlowFunction(
             }
         }
         when (fact) {
-            Zero -> zeroSequent(current)
-            is TypedVariable -> factSequent(current, fact)
+            Zero -> sequentZero(current)
+            is TypedVariable -> sequentFact(current, fact)
         }
     }
 
-    private fun zeroSequent(current: EtsStmt): List<ForwardTypeDomainFact> {
+    private fun sequentZero(current: EtsStmt): List<ForwardTypeDomainFact> {
         if (current !is EtsAssignStmt) return listOf(Zero)
 
         val lhv = current.lhv.toPath()
@@ -154,7 +154,7 @@ class ForwardFlowFunction(
         return result
     }
 
-    private fun factSequent(current: EtsStmt, fact: TypedVariable): List<ForwardTypeDomainFact> {
+    private fun sequentFact(current: EtsStmt, fact: TypedVariable): List<ForwardTypeDomainFact> {
         if (current !is EtsAssignStmt) return listOf(fact)
 
         val lhv = current.lhv.toPath()
@@ -286,11 +286,11 @@ class ForwardFlowFunction(
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(Zero)
-            is TypedVariable -> callToStart(callStatement, calleeStart, fact)
+            is TypedVariable -> start(callStatement, calleeStart, fact)
         }
     }
 
-    private fun callToStart(
+    private fun start(
         callStatement: EtsStmt,
         calleeStart: EtsStmt,
         fact: TypedVariable,
@@ -325,11 +325,11 @@ class ForwardFlowFunction(
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(Zero)
-            is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
+            is TypedVariable -> exit(callStatement, returnSite, exitStatement, fact)
         }
     }
 
-    private fun exitToReturn(
+    private fun exit(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
         exitStatement: EtsStmt,
@@ -340,6 +340,7 @@ class ForwardFlowFunction(
 
         when (factVariableBase) {
             is AccessPathBase.This -> {
+                // Drop facts on This if the call was static
                 if (callExpr !is EtsInstanceCallExpr) {
                     return emptyList()
                 }
@@ -363,10 +364,10 @@ class ForwardFlowFunction(
 
                 if (fact.variable.base != exitValue.base) return emptyList()
 
-                val callResultValue = (callStatement as? EtsAssignStmt)?.lhv ?: return emptyList()
-                val callResultPath = callResultValue.toPath()
+                val result = (callStatement as? EtsAssignStmt)?.lhv?.toPath() ?: return emptyList()
+                check(result.accesses.isEmpty())
 
-                val path = AccessPath(callResultPath.base, fact.variable.accesses)
+                val path = AccessPath(result.base, fact.variable.accesses)
                 return listOf(TypedVariable(path, fact.type))
             }
         }

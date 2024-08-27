@@ -49,7 +49,7 @@ class BackwardFlowFunction(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequentFact(current, fact)
+            is TypedVariable -> sequent(current, fact)
         }
     }
 
@@ -262,7 +262,7 @@ class BackwardFlowFunction(
         return result
     }
 
-    private fun sequentFact(
+    private fun sequent(
         current: EtsStmt,
         fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
@@ -373,11 +373,11 @@ class BackwardFlowFunction(
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
-            is TypedVariable -> callToReturn(callStatement, returnSite, fact)
+            is TypedVariable -> call(callStatement, returnSite, fact)
         }
     }
 
-    private fun callToReturn(
+    private fun call(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
         fact: TypedVariable,
@@ -385,24 +385,26 @@ class BackwardFlowFunction(
         val result = mutableListOf<BackwardTypeDomainFact>()
 
         val callExpr = callStatement.callExpr ?: error("No call")
+
         if (callExpr is EtsInstanceCallExpr) {
             val instance = callExpr.instance
             if (instance !is EtsValue) {
                 return emptyList()
             }
-            val instancePath = instance.toBase()
 
+            val path = instance.toBase()
             val objectWithMethod = EtsTypeFact.ObjectEtsTypeFact(
                 cls = null,
-                properties = mapOf(callExpr.method.name to EtsTypeFact.FunctionEtsTypeFact)
+                properties = mapOf(
+                    callExpr.method.name to EtsTypeFact.FunctionEtsTypeFact
+                )
             )
-            result += TypedVariable(instancePath, objectWithMethod)
+            result += TypedVariable(path, objectWithMethod)
         }
 
-        val callResultValue = (callStatement as? EtsAssignStmt)?.lhv
-        if (callResultValue != null) {
-            val callResultPath = callResultValue.toBase()
-            if (fact.variable == callResultPath) return result
+        val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase()
+        if (callResult != null) {
+            if (fact.variable == callResult) return result
         }
 
         result += fact
@@ -415,25 +417,24 @@ class BackwardFlowFunction(
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
-            is TypedVariable -> callToStart(callStatement, calleeStart, fact)
+            is TypedVariable -> start(callStatement, calleeStart, fact)
         }
     }
 
-    private fun callToStart(
+    private fun start(
         callStatement: EtsStmt,
         calleeStart: EtsStmt,
         fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
-        val callResultValue = (callStatement as? EtsAssignStmt)?.lhv ?: return emptyList()
+        val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase() ?: return emptyList()
 
-        val callResultPath = callResultValue.toBase()
-
-        if (fact.variable != callResultPath) return emptyList()
+        if (fact.variable != callResult) return emptyList()
 
         if (calleeStart !is EtsReturnStmt) return emptyList()
-        val exitValuePath = calleeStart.returnValue?.toBase() ?: return emptyList()
 
-        return listOf(TypedVariable(exitValuePath, fact.type))
+        val exitValue = calleeStart.returnValue?.toBase() ?: return emptyList()
+
+        return listOf(TypedVariable(exitValue, fact.type))
     }
 
     override fun obtainExitToReturnSiteFlowFunction(
@@ -443,20 +444,19 @@ class BackwardFlowFunction(
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
-            is TypedVariable -> exitToReturn(callStatement, returnSite, exitStatement, fact)
+            is TypedVariable -> exit(callStatement, returnSite, exitStatement, fact)
         }
     }
 
-    private fun exitToReturn(
+    private fun exit(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
         exitStatement: EtsStmt,
         fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
-        val factVariableBase = fact.variable
         val callExpr = callStatement.callExpr ?: error("No call")
 
-        when (factVariableBase) {
+        when (fact.variable) {
             is AccessPathBase.This -> {
                 if (callExpr !is EtsInstanceCallExpr) {
                     return emptyList()
@@ -472,7 +472,7 @@ class BackwardFlowFunction(
             }
 
             is AccessPathBase.Arg -> {
-                val arg = callExpr.args.getOrNull(factVariableBase.index)?.toBase() ?: return emptyList()
+                val arg = callExpr.args.getOrNull(fact.variable.index)?.toBase() ?: return emptyList()
                 return listOf(TypedVariable(arg, fact.type))
             }
 
