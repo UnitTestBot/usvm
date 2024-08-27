@@ -29,7 +29,7 @@ import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
 
 private val logger = KotlinLogging.logger {}
 
-class BackwardFlowFunction(
+class BackwardFlowFunctions(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     val dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {

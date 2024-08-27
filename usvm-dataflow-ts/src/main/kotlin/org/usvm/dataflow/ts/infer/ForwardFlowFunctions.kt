@@ -23,7 +23,7 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
 
-class ForwardFlowFunction(
+class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {

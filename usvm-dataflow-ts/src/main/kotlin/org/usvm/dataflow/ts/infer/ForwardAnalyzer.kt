@@ -12,7 +12,7 @@ class ForwardAnalyzer(
     methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
 ) : Analyzer<ForwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = ForwardFlowFunction(graph, methodInitialTypes)
+    override val flowFunctions = ForwardFlowFunctions(graph, methodInitialTypes)
 
     override fun handleCrossUnitCall(
         caller: Vertex<ForwardTypeDomainFact, EtsStmt>,
