@@ -311,7 +311,8 @@ class BackwardFlowFunctions(
 
                 // Case `x := y[i]`
                 is ElementAccessor -> {
-                    return listOf(TypedVariable(rhv.base, fact.type).withTypeGuards(current))
+                    val rhvType = EtsTypeFact.ArrayEtsTypeFact(elementType = fact.type)
+                    return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
                 }
             }
         }
