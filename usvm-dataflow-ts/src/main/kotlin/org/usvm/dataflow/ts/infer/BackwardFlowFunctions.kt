@@ -337,7 +337,8 @@ class BackwardFlowFunctions(
                 }
 
                 val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(lhvAccessor.name)
-                val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
+                // val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
+                val updatedFact = fact
                 val rhvType = removedPropertyType?.let { TypedVariable(rhv.base, it).withTypeGuards(current) }
                 return listOfNotNull(updatedFact, rhvType)
             }
