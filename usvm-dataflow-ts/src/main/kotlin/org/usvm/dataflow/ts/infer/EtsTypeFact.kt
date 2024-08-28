@@ -194,6 +194,15 @@ sealed interface EtsTypeFact {
                 }
             }
         }
+
+        override fun toPrettyString(): String {
+            return types.map {
+                when (it) {
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "($it)"
+                    else -> it.toString()
+                }
+            }.sorted().joinToString(" | ")
+        }
     }
 
     data class IntersectionEtsTypeFact(
@@ -206,6 +215,15 @@ sealed interface EtsTypeFact {
                     else -> it.toString()
                 }
             }
+        }
+
+        override fun toPrettyString(): String {
+            return types.map {
+                when (it) {
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    else -> it.toString()
+                }
+            }.sorted().joinToString(" & ")
         }
     }
 
