@@ -246,17 +246,17 @@ class ForwardFlowFunctions(
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(Zero)
-            is TypedVariable -> callToReturn(callStatement, returnSite, fact)
+            is TypedVariable -> call(callStatement, fact)
         }
     }
 
-    private fun callToReturn(
+    private fun call(
         callStatement: EtsStmt,
-        returnSite: EtsStmt,
         fact: TypedVariable,
     ): List<ForwardTypeDomainFact> {
         val callResultValue = (callStatement as? EtsAssignStmt)?.lhv?.toPath()
         if (callResultValue != null) {
+            // Drop fact on LHS as it will be overwritten by the call result
             if (fact.variable.base == callResultValue.base) return emptyList()
         }
 
@@ -286,13 +286,12 @@ class ForwardFlowFunctions(
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(Zero)
-            is TypedVariable -> start(callStatement, calleeStart, fact)
+            is TypedVariable -> start(callStatement, fact)
         }
     }
 
     private fun start(
         callStatement: EtsStmt,
-        calleeStart: EtsStmt,
         fact: TypedVariable,
     ): List<ForwardTypeDomainFact> {
         val result = mutableListOf<ForwardTypeDomainFact>()
@@ -325,13 +324,12 @@ class ForwardFlowFunctions(
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(Zero)
-            is TypedVariable -> exit(callStatement, returnSite, exitStatement, fact)
+            is TypedVariable -> exit(callStatement, exitStatement, fact)
         }
     }
 
     private fun exit(
         callStatement: EtsStmt,
-        returnSite: EtsStmt,
         exitStatement: EtsStmt,
         fact: TypedVariable,
     ): List<ForwardTypeDomainFact> {
@@ -364,10 +362,10 @@ class ForwardFlowFunctions(
 
                 if (fact.variable.base != exitValue.base) return emptyList()
 
-                val result = (callStatement as? EtsAssignStmt)?.lhv?.toPath() ?: return emptyList()
-                check(result.accesses.isEmpty())
+                val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toPath() ?: return emptyList()
+                check(callResult.accesses.isEmpty())
 
-                val path = AccessPath(result.base, fact.variable.accesses)
+                val path = AccessPath(callResult.base, fact.variable.accesses)
                 return listOf(TypedVariable(path, fact.type))
             }
         }
