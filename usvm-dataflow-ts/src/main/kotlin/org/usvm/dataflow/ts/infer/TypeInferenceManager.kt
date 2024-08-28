@@ -86,7 +86,7 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Backward types:")
                 for ((method, typeFacts) in methodTypeScheme) {
-                    appendLine("Backward types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    appendLine("Backward types for ${method.enclosingClass.name}::${method.name} in ${method.enclosingClass.enclosingFile}:")
                     for ((base, fact) in typeFacts.types.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
@@ -140,7 +140,7 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Forward types:")
                 for ((method, typeFacts) in refinedTypes) {
-                    appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name}:")
+                    appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.enclosingFile}:")
                     for ((base, fact) in typeFacts.types.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
