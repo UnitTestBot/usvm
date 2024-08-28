@@ -78,19 +78,17 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     }
 
     fun mutatePrimitiveStaticFieldValuesToSymbolic(enclosingClass: JcClassOrInterface, ownership: MutabilityOwnership) {
-        val staticFields = fieldValuesByClass[enclosingClass] ?: return
+        var staticFields = fieldValuesByClass[enclosingClass] ?: return
 
         val staticsToRemove = staticFields.keys.filter { fieldShouldBeSymbolic(it) }
 
         for (static in staticsToRemove) {
             initialStatics = initialStatics.add(static)
+            // Remove concrete fields from the region
+            staticFields = staticFields.remove(static, ownership)
         }
 
-        // Remove concrete fields from the region
-        val updatedStaticFields = staticsToRemove.fold(staticFields) { acc, field ->
-            acc.remove(field, ownership)
-        }
-        fieldValuesByClass = fieldValuesByClass.put(enclosingClass, updatedStaticFields, ownership)
+        fieldValuesByClass = fieldValuesByClass.put(enclosingClass, staticFields, ownership)
     }
 
     companion object {
