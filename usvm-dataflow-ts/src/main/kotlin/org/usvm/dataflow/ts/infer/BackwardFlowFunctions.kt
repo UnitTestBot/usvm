@@ -372,26 +372,20 @@ class BackwardFlowFunctions(
         returnSite: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
-            Zero -> listOf(fact)
-            is TypedVariable -> call(callStatement, returnSite, fact)
+            Zero -> callZero(callStatement)
+            is TypedVariable -> call(callStatement, fact)
         }
     }
 
-    private fun call(
+    private fun callZero(
         callStatement: EtsStmt,
-        returnSite: EtsStmt,
-        fact: TypedVariable,
     ): List<BackwardTypeDomainFact> {
-        val result = mutableListOf<BackwardTypeDomainFact>()
+        val result = mutableListOf<BackwardTypeDomainFact>(Zero)
 
         val callExpr = callStatement.callExpr ?: error("No call")
 
         if (callExpr is EtsInstanceCallExpr) {
             val instance = callExpr.instance
-            if (instance !is EtsValue) {
-                return emptyList()
-            }
-
             val path = instance.toBase()
             val objectWithMethod = EtsTypeFact.ObjectEtsTypeFact(
                 cls = null,
@@ -402,8 +396,18 @@ class BackwardFlowFunctions(
             result += TypedVariable(path, objectWithMethod)
         }
 
+        return result
+    }
+
+    private fun call(
+        callStatement: EtsStmt,
+        fact: TypedVariable,
+    ): List<BackwardTypeDomainFact> {
+        val result = mutableListOf<BackwardTypeDomainFact>()
+
         val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase()
         if (callResult != null) {
+            // If fact was for LHS, drop it as overridden
             if (fact.variable == callResult) return result
         }
 
