@@ -65,9 +65,7 @@ internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<
         if (!hasNext)
             throw NoSuchElementException()
 
-        val result = path[pathLastIndex].nextElement()
-        ensureNextElementIsReady()
-        return result
+        return path[pathLastIndex].nextElement()
     }
 
     protected fun currentElement(): E {
