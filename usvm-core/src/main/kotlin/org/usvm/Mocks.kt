@@ -22,7 +22,7 @@ interface UMocker<Method> : UMockEvaluator {
         sort: Sort,
         ownership: MutabilityOwnership,
     ): UMockSymbol<Sort>
-    val trackedLiterals: Collection<TrackedLiteral>
+    val trackedLiterals: Sequence<TrackedLiteral>
 
     fun <Sort : USort> createMockSymbol(
         trackedLiteral: TrackedLiteral?,
@@ -56,8 +56,8 @@ class UIndexedMocker<Method>(
 
     override fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort> = symbol
 
-    override val trackedLiterals: Collection<TrackedLiteral>
-        get() = trackedSymbols.keys().asSequence().toList()
+    override val trackedLiterals: Sequence<TrackedLiteral>
+        get() = trackedSymbols.keys
 
     /**
      * Creates a mock symbol. If [trackedLiteral] is not null, created expression

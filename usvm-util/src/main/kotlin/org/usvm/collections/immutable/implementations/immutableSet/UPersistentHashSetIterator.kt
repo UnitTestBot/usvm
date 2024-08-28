@@ -56,10 +56,12 @@ internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<
     }
 
     override fun hasNext(): Boolean {
+        ensureNextElementIsReady()
         return hasNext
     }
 
     override fun next(): E {
+        ensureNextElementIsReady()
         if (!hasNext)
             throw NoSuchElementException()
 

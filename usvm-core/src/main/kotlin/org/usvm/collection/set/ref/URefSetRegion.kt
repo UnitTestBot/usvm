@@ -347,7 +347,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        inputSetWithAllocatedElements.keys().asSequence().toList(),
+        inputSetWithAllocatedElements.keys,
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -363,7 +363,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        allocatedSetWithAllocatedElements.keys().asSequence().filter { it.setAddress == srcAddress }.toList(),
+        allocatedSetWithAllocatedElements.keys.filter { it.setAddress == srcAddress },
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -372,7 +372,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     private inline fun <R, SrcKeyId, DstKeyId> unionAllocatedElements(
         initial: R,
-        keys: Iterable<SrcKeyId>,
+        keys: Sequence<SrcKeyId>,
         guard: UBoolExpr,
         read: (SrcKeyId) -> UBoolExpr,
         mkDstKeyId: (SrcKeyId) -> DstKeyId,
@@ -391,7 +391,7 @@ internal class URefSetMemoryRegion<SetType>(
             initial = URefSetEntries(),
             initialGuard = ref.uctx.trueExpr,
             blockOnConcrete = { entries, (concreteRef, _) ->
-                allocatedSetWithAllocatedElements.keys().forEach { entry ->
+                allocatedSetWithAllocatedElements.keys.forEach { entry ->
                     if (entry.setAddress == concreteRef.address) {
                         val elem = ref.uctx.mkConcreteHeapRef(entry.elementAddress)
                         entries.add(URefSetEntryLValue(concreteRef, elem, setType))
@@ -413,7 +413,7 @@ internal class URefSetMemoryRegion<SetType>(
                 entries
             },
             blockOnSymbolic = { entries, (symbolicRef, _) ->
-                inputSetWithAllocatedElements.keys().forEach { entry ->
+                inputSetWithAllocatedElements.keys.forEach { entry ->
                     val elem = ref.uctx.mkConcreteHeapRef(entry.elementAddress)
                     entries.add(URefSetEntryLValue(symbolicRef, elem, setType))
                 }

@@ -32,7 +32,7 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
         check(inputSet.constValue.isFalse) { "Set model is not complete" }
 
         val result = UPrimitiveSetEntries<SetType, ElementSort, Reg>()
-        inputSet.values.keys().forEach {
+        inputSet.values.keys.forEach {
             if (it.first == setRef) {
                 result.add(USetEntryLValue(elementSort, setRef, it.second, setType, elementInfo))
             }

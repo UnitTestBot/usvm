@@ -542,7 +542,7 @@ class TrieNode<E>(
                     thisIsNode -> @Suppress("UNCHECKED_CAST") {
                         thisCell as TrieNode<E>
                         otherNodeCell as E
-                        val oldCounter = this.calculateSize()
+                        val oldCounter = mutableRemovesCount
                         val removed = thisCell.mutableRemove(
                                 otherNodeCell.hashCode(),
                                 otherNodeCell,
@@ -695,8 +695,8 @@ class TrieNode<E>(
         return this
     }
 
-    fun isEmpty() = singleOrNull() == null
-    fun isNotEmpty() = singleOrNull() != null
+    fun isEmpty() = firstOrNull() == null
+    fun isNotEmpty() = firstOrNull() != null
 
     fun remove(element: E, owner: MutabilityOwnership): TrieNode<E> =
         mutableRemove(element.hashCode(), element, 0, owner)

@@ -29,7 +29,7 @@ abstract class URefSetModelRegion<SetType>(
         check(inputSet.constValue.isFalse) { "Set model is not complete" }
 
         val result = URefSetEntries<SetType>()
-        inputSet.values.keys().forEach {
+        inputSet.values.keys.forEach {
             if (it.first == setRef) {
                 result.add(URefSetEntryLValue(setRef, it.second, regionId.setType))
             }

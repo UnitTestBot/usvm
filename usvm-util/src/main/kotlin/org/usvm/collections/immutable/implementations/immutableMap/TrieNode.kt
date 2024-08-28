@@ -735,7 +735,7 @@ class TrieNode<K, V>(
         }
     }
 
-    fun keys() = UPersistentHashMapKeysIterator(this) as Iterator<K>
+    val keys: Sequence<K> get() = UPersistentHashMapKeysIterator(this).asSequence()
 
     fun isEmpty() = singleOrNull() == null
     fun isNotEmpty() = singleOrNull() != null
