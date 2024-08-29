@@ -14,7 +14,7 @@ package org.usvm.annotations.ids
  */
 enum class SlotId(
     val slotName: String,
-    val mandatory: Boolean = false
+    val mandatory: Boolean = false,
 ) {
     TpGetattro("tp_getattro", true),
     TpSetattro("tp_setattro", true),
@@ -33,7 +33,8 @@ enum class SlotId(
     SqLength("sq_length"),
     MpSubscript("mp_subscript"),
     MpAssSubscript("mp_ass_subscript"),
-    SqConcat("sq_concat");
+    SqConcat("sq_concat"),
+    ;
     fun getMaskBit(): Int = ordinal
 }
 
