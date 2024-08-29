@@ -53,6 +53,8 @@ import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.collection.string.UStringLValue
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.logger
@@ -65,6 +67,7 @@ import org.usvm.machine.extractFloat
 import org.usvm.machine.extractInt
 import org.usvm.machine.extractLong
 import org.usvm.machine.extractShort
+import org.usvm.machine.extractString
 import org.usvm.machine.interpreter.JcFixedInheritorsNumberTypeSelector
 import org.usvm.machine.interpreter.JcTypeStreamPrioritization
 import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
@@ -188,6 +191,9 @@ abstract class JcTestStateResolver<T>(
     fun resolvePrimitiveChar(expr: UExpr<out USort>): Char =
         extractChar(evaluateInModel(expr)) ?: '\u0000'
 
+    fun resolveStringLiteral(expr: UExpr<out USort>): String =
+        extractString(evaluateInModel(expr)) ?: error("Unexpected string $expr in resolution")
+
     fun resolveReference(heapRef: UHeapRef, type: JcRefType): T {
         val ref = evaluateInModel(heapRef) as UConcreteHeapRef
         if (ref.address == NULL_ADDRESS) {
@@ -259,9 +265,13 @@ abstract class JcTestStateResolver<T>(
             return resolveAllocatedClass(ref)
         }
 
-        if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
-            // Note that non-negative addresses are possible only for the result value.
-            return resolveAllocatedString(ref)
+        if (type.jcClass == ctx.stringType.jcClass) {
+            if (ctx.useStringsApproximation)
+                return resolveApproximatedString(ref)
+            if (ref.address <= INITIAL_STATIC_ADDRESS) {
+                // Note that non-negative addresses are possible only for the result value.
+                return resolveAllocatedString(ref)
+            }
         }
 
         val anyEnumAncestor = type.getEnumAncestorOrNull()
@@ -345,7 +355,8 @@ abstract class JcTestStateResolver<T>(
         return decoderApi.createClassConst(classType)
     }
 
-    abstract fun allocateString(value: T): T
+    abstract fun allocateStringFromArray(value: T): T
+    abstract fun allocateString(javaString: String): T
 
     fun resolveAllocatedString(ref: UConcreteHeapRef): T {
         val valueField = ctx.stringValueField
@@ -360,9 +371,20 @@ abstract class JcTestStateResolver<T>(
             resolveLValue(strValueLValue, valueField.type)
         }
 
-        return allocateString(strValue)
+        return allocateStringFromArray(strValue)
     }
 
+    fun resolveApproximatedString(ref: UConcreteHeapRef): T {
+        val strValueLValue = UStringLValue(ref)
+
+        val resolveMode =
+            if (isStaticHeapRef(ref) || isAllocatedConcreteHeapRef(ref)) ResolveMode.CURRENT
+            else ResolveMode.MODEL
+        val stringExpr = withMode(resolveMode) { memory.read(strValueLValue) }
+        val string = resolveStringLiteral(stringExpr)
+
+        return allocateString(string)
+    }
     fun decodeObject(ref: UConcreteHeapRef, type: JcClassType, objectDecoder: ObjectDecoder): T {
         val refDecoder = TestObjectData(ref)
 

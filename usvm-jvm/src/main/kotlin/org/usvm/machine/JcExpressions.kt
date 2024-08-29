@@ -14,6 +14,7 @@ import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collection.string.UStringLiteralExpr
 
 class JcVoidSort(ctx: JcContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
@@ -54,5 +55,6 @@ fun extractInt(expr: UExpr<out USort>): Int? = (expr as? KBitVec32Value)?.intVal
 fun extractLong(expr: UExpr<out USort>): Long? = (expr as? KBitVec64Value)?.longValue
 fun extractFloat(expr: UExpr<out USort>): Float? = (expr as? KFp32Value)?.value
 fun extractDouble(expr: UExpr<out USort>): Double? = (expr as? KFp64Value)?.value
+fun extractString(expr: UExpr<out USort>): String? = (expr as? UStringLiteralExpr)?.s
 
 // endregion

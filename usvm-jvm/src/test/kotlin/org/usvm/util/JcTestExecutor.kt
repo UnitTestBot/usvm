@@ -24,6 +24,7 @@ import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
 import org.usvm.instrumentation.testcase.api.UTestExpression
 import org.usvm.instrumentation.testcase.api.UTestMethodCall
 import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
+import org.usvm.instrumentation.testcase.api.UTestStringExpression
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
@@ -223,7 +224,10 @@ class JcTestExecutor(
         override fun allocateClassInstance(type: JcClassType): UTestExpression =
             UTestAllocateMemoryCall(type.jcClass)
 
-        // todo: looks incorrect
-        override fun allocateString(value: UTestExpression): UTestExpression = value
+        // todo: looks incorrect. byte or char array might come here
+        override fun allocateStringFromArray(value: UTestExpression): UTestExpression = value
+
+        override fun allocateString(javaString: String): UTestExpression =
+            UTestStringExpression(javaString, ctx.stringType)
     }
 }
