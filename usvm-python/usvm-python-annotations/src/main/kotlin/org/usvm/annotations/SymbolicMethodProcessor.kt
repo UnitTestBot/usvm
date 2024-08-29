@@ -3,7 +3,6 @@ package org.usvm.annotations
 import org.usvm.annotations.codegeneration.generateSymbolicMethod
 import org.usvm.annotations.codegeneration.generateSymbolicMethodInitialization
 import org.usvm.annotations.codegeneration.generateAvailableSlotInitialization
-import org.usvm.annotations.codegeneration.generateMandatorySlotMacro
 import org.usvm.annotations.ids.SymbolicMethodId
 import java.io.File
 import javax.annotation.processing.AbstractProcessor
@@ -36,7 +35,7 @@ class SymbolicMethodProcessor : AbstractProcessor() {
         file.writeText(init + "\n\n" + functionsCode)
         file.createNewFile()
         // Temporary, available slots are generated here
-        val slotsInit = generateAvailableSlotInitialization() + "\n\n" + generateMandatorySlotMacro()
+        val slotsInit = generateAvailableSlotInitialization()
         val file2 = File(headerPath, "AvailableSlots.h")
         file2.writeText(slotsInit)
         file2.createNewFile()

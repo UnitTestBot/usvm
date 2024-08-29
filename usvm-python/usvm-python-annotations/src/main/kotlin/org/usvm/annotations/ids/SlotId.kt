@@ -14,7 +14,7 @@ package org.usvm.annotations.ids
  */
 enum class SlotId(
     val slotName: String,
-    val mandatory: Boolean = false,
+    val mandatory: Boolean = false
 ) {
     TpGetattro("tp_getattro", true),
     TpSetattro("tp_setattro", true),
@@ -33,27 +33,8 @@ enum class SlotId(
     SqLength("sq_length"),
     MpSubscript("mp_subscript"),
     MpAssSubscript("mp_ass_subscript"),
-    SqConcat("sq_concat"),
-    ;
-
-    companion object {
-        init {
-            values().filter { !it.mandatory }.forEachIndexed { index, entry ->
-                entry.maskBit = index
-            }
-        }
-    }
-    private var maskBit: Int? = null
-    fun getMaskBit(): Int = maskBit ?: error("No bits in the mask correspond to a mandatory slot.")
-}
-
-fun ByteArray.swapSlotBit(slot: SlotId): ByteArray {
-    if (slot.mandatory) return this
-    val bitPosition = this.size * Byte.SIZE_BITS - 1 - slot.getMaskBit()
-    val byteIndex = bitPosition / Byte.SIZE_BITS
-    val bitMask = 1 shl (slot.getMaskBit() % Byte.SIZE_BITS)
-    this[byteIndex] = (this[byteIndex].toInt() xor bitMask).toByte()
-    return this // just to allow Builder-like usage
+    SqConcat("sq_concat");
+    fun getMaskBit(): Int = ordinal
 }
 
 fun ByteArray.setSlotBit(slot: SlotId, state: Boolean): ByteArray {

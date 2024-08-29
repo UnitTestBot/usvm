@@ -286,7 +286,7 @@ of the mask.
 PyType_Slot *
 create_slot_list(const unsigned char *mask, size_t length) {
     PyType_Slot *slots = 0;
-    int counter = 1 + MANDATORY_SLOTS_NUMBER;
+    int counter = 1;
     for (size_t i = 0; i < length; i++) {
         counter += mask_count_ones(mask[i]);
     }
@@ -310,7 +310,6 @@ create_slot_list(const unsigned char *mask, size_t length) {
             }
         }
     }
-    INCLUDE_MANDATORY_SLOTS
     slots[i++] = final_slot;
     return slots;
 }
