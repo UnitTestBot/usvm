@@ -1,7 +1,7 @@
 package org.usvm.machine.interpreters.concrete.utils
 
-const val MAX_NEEDED_MASK_BYTE_NUMBER: Int = 12
-const val ALL_SLOTS_BYTE: Int = 0b11111111
+private const val MAX_NEEDED_MASK_BYTE_NUMBER: Int = 12
+private const val ALL_SLOTS_BYTE: Int = 0b11111111
 
 class VirtualPythonObject(
     @JvmField

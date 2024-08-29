@@ -1,7 +1,6 @@
 package org.usvm.machine.types
 
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
-import org.usvm.annotations.ids.SlotId
 
 abstract class VirtualPythonType : PythonType() {
     abstract fun accepts(type: PythonType): Boolean
@@ -41,12 +40,7 @@ data class ConcreteTypeNegation(val concreteType: ConcretePythonType) : VirtualP
     }
 }
 
-/*
- * Temporary slotId is nullable,
- * since some slots, such as nb_int, nb_index and mp_length,
- * are missing their implementation in virtual_objects.c
- */
-sealed class TypeProtocol(val slotId: SlotId? = null) : VirtualPythonType() {
+sealed class TypeProtocol : VirtualPythonType() {
     abstract fun acceptsConcrete(type: ConcretePythonType): Boolean
     override fun accepts(type: PythonType): Boolean {
         if (type == this || type is MockType) {
@@ -59,7 +53,7 @@ sealed class TypeProtocol(val slotId: SlotId? = null) : VirtualPythonType() {
     }
 }
 
-object HasNbBool : TypeProtocol(SlotId.NbBool) {
+object HasNbBool : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbBool(type.asObject)
 }
@@ -74,42 +68,42 @@ object HasNbIndex : TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbIndex(type.asObject)
 }
 
-object HasNbAdd : TypeProtocol(SlotId.NbAdd) {
+object HasNbAdd : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbAdd(type.asObject)
 }
 
-object HasNbSubtract : TypeProtocol(SlotId.NbSubtract) {
+object HasNbSubtract : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbSubtract(type.asObject)
 }
 
-object HasNbMultiply : TypeProtocol(SlotId.NbMultiply) {
+object HasNbMultiply : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbMultiply(type.asObject)
 }
 
-object HasNbMatrixMultiply : TypeProtocol(SlotId.NbMatrixMultiply) {
+object HasNbMatrixMultiply : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbMatrixMultiply(type.asObject)
 }
 
-object HasNbNegative : TypeProtocol(SlotId.NbNegative) {
+object HasNbNegative : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbNegative(type.asObject)
 }
 
-object HasNbPositive : TypeProtocol(SlotId.NbPositive) {
+object HasNbPositive : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasNbPositive(type.asObject)
 }
 
-object HasSqConcat : TypeProtocol(SlotId.SqConcat) {
+object HasSqConcat : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqConcat(type.asObject)
 }
 
-object HasSqLength : TypeProtocol(SlotId.SqLength) {
+object HasSqLength : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqLength(type.asObject)
 }
@@ -119,45 +113,42 @@ object HasMpLength : TypeProtocol() {
         ConcretePythonInterpreter.typeHasMpLength(type.asObject)
 }
 
-object HasMpSubscript : TypeProtocol(SlotId.MpSubscript) {
+object HasMpSubscript : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasMpSubscript(type.asObject)
 }
 
-object HasMpAssSubscript : TypeProtocol(SlotId.MpAssSubscript) {
+object HasMpAssSubscript : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasMpAssSubscript(type.asObject)
 }
 
-object HasTpRichcmp : TypeProtocol(SlotId.TpRichcompare) {
+object HasTpRichcmp : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpRichcmp(type.asObject)
 }
 
-// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
-object HasTpGetattro : TypeProtocol(SlotId.TpGetattro) {
+object HasTpGetattro : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpGetattro(type.asObject)
 }
 
-// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
-object HasTpSetattro : TypeProtocol(SlotId.TpSetattro) {
+object HasTpSetattro : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpSetattro(type.asObject)
 }
 
-object HasTpIter : TypeProtocol(SlotId.TpIter) {
+object HasTpIter : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpIter(type.asObject)
 }
 
-object HasTpCall : TypeProtocol(SlotId.TpCall) {
+object HasTpCall : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpCall(type.asObject)
 }
 
-// TODO: since we cannot turn off this slot on virtual object, we may need to remove this [TypeProtocol] in the future.
-object HasTpHash : TypeProtocol(SlotId.TpHash) {
+object HasTpHash : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasTpHash(type.asObject)
 }
