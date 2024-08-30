@@ -111,8 +111,12 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
-        val lvalue = if (stmt.lhv.type == EtsUnknownType) exprResolver.resolveLValue(stmt.lhv, expr.sort)
-            else exprResolver.resolveLValue(stmt.lhv) ?: return
+        localVarToSort
+            .getOrPut(stmt.method) { mutableMapOf() }
+            .run {
+                getOrPut(mapLocalToIdxMapper(stmt.method, stmt.lhv)) { expr.sort }
+            }
+        val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
 
         val wrappedExpr = TSWrappedValue(ctx, expr)
         scope.doWithState {
@@ -146,11 +150,17 @@ class TSInterpreter(
         TSExprResolver(
             ctx,
             scope,
-            ::mapLocalToIdxMapper,
-        )
+            ::mapLocalToIdxMapper
+        ) { m, idx ->
+            localVarToSort.getOrPut(m) {
+                mutableMapOf()
+            }.run { get(idx) }
+        }
 
     // (method, localName) -> idx
     private val localVarToIdx = mutableMapOf<EtsMethod, MutableMap<String, Int>>()
+    // (method, localIdx) -> sort
+    private val localVarToSort = mutableMapOf<EtsMethod, MutableMap<Int, USort>>()
 
     private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
         when (local) {

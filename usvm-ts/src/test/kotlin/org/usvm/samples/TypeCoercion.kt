@@ -23,11 +23,25 @@ class TypeCoercion : TSMethodTestRunner() {
 
     @Test
     fun testArgWithArg() {
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TSObject.Boolean, TSObject.TSNumber, TSObject.TSNumber>(
             methodIdentifier = MethodDescriptor(
                 fileName = "TypeCoercion.ts",
                 className = "TypeCoercion",
                 methodName = "argWithArg",
+                argumentsNumber = 2
+            ),
+            { a, b, r -> (a.number + b.number == 10.0) && r?.number == 1.0 },
+            { a, b, r -> (a.number + b.number != 10.0) && r?.number == 0.0 },
+        )
+    }
+
+    @Test
+    fun testUnreachableByType() {
+        discoverProperties<TSObject.TSNumber, TSObject.Boolean, TSObject.TSNumber>(
+            methodIdentifier = MethodDescriptor(
+                fileName = "TypeCoercion.ts",
+                className = "TypeCoercion",
+                methodName = "unreachableByType",
                 argumentsNumber = 2
             ),
             { a, b, r -> (a.number + b.number == 10.0) && r?.number == 1.0 },

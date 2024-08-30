@@ -27,7 +27,10 @@ sealed interface TSObject {
 
     data class String(val value: kotlin.String) : TSObject
 
-    data class Boolean(val value: kotlin.Boolean) : TSObject
+    data class Boolean(val value: kotlin.Boolean) : TSObject {
+        val number: Double
+            get() = if (value) 1.0 else 0.0
+    }
 
 
     data class Class(val name: String, val properties: Map<String, TSObject>) : TSObject

@@ -72,22 +72,24 @@ class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
         ctx,
         scope,
-        localToIdx
+        localToIdx,
+        localToSort
     )
 
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
 
-    fun resolveLValue(value: EtsValue, sort: USort = ctx.typeToSort(value.type)): ULValue<*, *>? =
+    fun resolveLValue(value: EtsValue): ULValue<*, *>? =
         when (value) {
             is EtsParameterRef,
-            is EtsLocal -> simpleValueResolver.resolveLocal(value, sort)
+            is EtsLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
@@ -357,6 +359,7 @@ class TSSimpleValueResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
@@ -414,9 +417,10 @@ class TSSimpleValueResolver(
         scope.calcOnState { memory.read(lValue) }
     }
 
-    fun resolveLocal(local: EtsValue, sort: USort = ctx.typeToSort(local.type)): URegisterStackLValue<*> {
+    fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
+        val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
         return URegisterStackLValue(sort, localIdx)
     }
 }

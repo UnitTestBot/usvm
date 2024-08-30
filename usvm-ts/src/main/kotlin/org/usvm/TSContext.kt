@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
+import org.jacodb.ets.base.EtsUnknownType
 
 typealias TSSizeSort = UBv32Sort
 
@@ -18,6 +19,7 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
+        is EtsUnknownType -> addressSort
         else -> TODO("Support all JacoDB types")
     }
 
