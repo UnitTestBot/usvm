@@ -27,4 +27,17 @@ class TypeCoercion {
 
         return 2
     }
+
+    transitiveCoercion(a: number, b: boolean, c: number): number {
+        // @ts-ignore
+        if (a == b) {
+            if (c && (a == c)) {
+                return 1
+            } else {
+                return 2
+            }
+        }
+
+        return 3
+    }
 }
