@@ -1,6 +1,5 @@
 package org.usvm.samples
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.TSObject
 import org.usvm.util.MethodDescriptor
@@ -44,8 +43,10 @@ class TypeCoercion : TSMethodTestRunner() {
                 methodName = "unreachableByType",
                 argumentsNumber = 2
             ),
-            { a, b, r -> (a.number + b.number == 10.0) && r?.number == 1.0 },
-            { a, b, r -> (a.number + b.number != 10.0) && r?.number == 0.0 },
+            { a, b, r -> a.number != b.number && r?.number == 2.0 },
+            { a, b, r -> (a.number == b.number) && !(a.boolean && !b.value) && r?.number == 1.0 },
+            // Unreachable branch matcher
+            { _, _, r ->  r?.number != 0.0 },
         )
     }
 }

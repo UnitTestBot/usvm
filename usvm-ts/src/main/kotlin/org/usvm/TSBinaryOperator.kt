@@ -35,6 +35,12 @@ sealed class TSBinaryOperator(
         desiredSort = { _, _ -> fp64Sort },
     )
 
+    object And : TSBinaryOperator(
+        onBool = UContext<TSSizeSort>::mkAnd,
+        onBv = UContext<TSSizeSort>::mkBvAndExpr,
+        desiredSort = { _, _ -> boolSort },
+    )
+
     internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort

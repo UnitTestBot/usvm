@@ -23,6 +23,9 @@ sealed interface TSObject {
                 is Integer -> value.toDouble()
                 is Double -> value
             }
+
+        val boolean: kotlin.Boolean
+            get() = number == 1.0
     }
 
     data class String(val value: kotlin.String) : TSObject

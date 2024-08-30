@@ -45,6 +45,8 @@ class TSWrappedValue(
 
     private val transformer = TSExprTransformer(value)
 
+    fun asSort(sort: USort): UExpr<out USort> = transformer.transform(sort)
+
     fun coerce(
         other: UExpr<out USort>,
         action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
