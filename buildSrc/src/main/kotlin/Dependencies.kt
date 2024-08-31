@@ -126,7 +126,6 @@ object Libs {
         name = "jacodb-api-jvm",
         version = Versions.jacodb
     )
-<<<<<<< HEAD
     val jacodb_api_storage = dep(
         group = jacodbPackage,
         name = "jacodb-api-storage",
@@ -135,11 +134,11 @@ object Libs {
     val jacodb_storage = dep(
         group = jacodbPackage,
         name = "jacodb-storage",
-=======
+        version = Versions.jacodb
+    )
     val jacodb_go = dep(
         group = jacodbPackage,
         name = "jacodb-go",
->>>>>>> 2b7521624 (supported more functionality in go-jacodb, todo: type system)
         version = Versions.jacodb
     )
     val jacodb_ets = dep(
