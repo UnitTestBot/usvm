@@ -56,6 +56,10 @@ const (
 	ParameterValue = "Parameter"
 	FreeVarValue   = "FreeVar"
 	VarValue       = "Var"
+
+	FunctionValue    = "Function"
+	MakeClosureValue = "MakeClosure"
+	BuiltinValue     = "Builtin"
 )
 
 type Package struct {
@@ -76,6 +80,11 @@ type Member interface {
 
 func PackMembers(membersMap map[string]ssa.Member) []Member {
 	members := lo.Values(membersMap)
+	for _, member := range membersMap {
+		if f, ok := member.(*ssa.Function); ok {
+			members = append(members, lo.Map(f.AnonFuncs, func(f *ssa.Function, _ int) ssa.Member { return f })...)
+		}
+	}
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Name() < members[j].Name()
 	})
@@ -184,7 +193,9 @@ type Instruction interface {
 
 func PackInstruction(in ssa.Instruction, _ int) Instruction {
 	common := CommonInstruction{
-		Name: in.String(),
+		Name:  in.String(),
+		Block: in.Block().Index,
+		Line:  FindInstructionIndex(in),
 	}
 
 	switch inst := in.(type) {
@@ -217,6 +228,10 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = CallInstruction
 		return Call{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             PackCallValue(inst.Call.Value),
+			Args:              lo.Map(inst.Call.Args, PackValueIdx),
 		}
 	case *ssa.ChangeInterface:
 		common.Type = ChangeInterfaceInstruction
@@ -377,6 +392,9 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = PhiInstruction
 		return Phi{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Edges:             lo.Map(inst.Edges, PackValueIdx),
 		}
 	case *ssa.Select:
 		common.Type = SelectInstruction
@@ -390,8 +408,10 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 }
 
 type CommonInstruction struct {
-	Type string `yaml:"type" json:"type"`
-	Name string `yaml:"name" json:"name"`
+	Type  string `yaml:"type" json:"type"`
+	Name  string `yaml:"name" json:"name"`
+	Block int    `yaml:"block" json:"block"`
+	Line  int    `yaml:"line" json:"line"`
 }
 
 func (CommonInstruction) isInstruction() {}
@@ -420,6 +440,10 @@ type BinOp struct {
 
 type Call struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string  `yaml:"go_type" json:"go_type"`
+	Register          string  `yaml:"register" json:"register"`
+	Value             Value   `yaml:"value" json:"value"`
+	Args              []Value `yaml:"args" json:"args"`
 }
 
 type ChangeInterface struct {
@@ -549,6 +573,9 @@ type MakeClosure struct {
 
 type Phi struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string  `yaml:"go_type" json:"go_type"`
+	Register          string  `yaml:"register" json:"register"`
+	Edges             []Value `yaml:"edges" json:"edges"`
 }
 
 type Select struct {
@@ -577,7 +604,10 @@ func PackValue(in ssa.Value) Value {
 		}
 	case *ssa.Global:
 		common.Type = GlobalValue
-		return common
+		return Global{
+			CommonValue: common,
+			Index:       int(value.Pos()),
+		}
 	case *ssa.Parameter:
 		common.Type = ParameterValue
 		return Parameter{
@@ -586,7 +616,10 @@ func PackValue(in ssa.Value) Value {
 		}
 	case *ssa.FreeVar:
 		common.Type = FreeVarValue
-		return common
+		return FreeVar{
+			CommonValue: common,
+			Index:       FindFreeVarIndex(value),
+		}
 	default:
 		common.Type = VarValue
 		return common
@@ -595,6 +628,27 @@ func PackValue(in ssa.Value) Value {
 
 func PackValueIdx(in ssa.Value, _ int) Value {
 	return PackValue(in)
+}
+
+func PackCallValue(in ssa.Value) Value {
+	common := CommonValue{
+		GoType: in.Type().String(),
+		Name:   in.Name(),
+	}
+
+	switch in.(type) {
+	case *ssa.Function:
+		common.Type = FunctionValue
+		return common
+	case *ssa.MakeClosure:
+		common.Type = MakeClosureValue
+		return common
+	case *ssa.Builtin:
+		common.Type = BuiltinValue
+		return common
+	default:
+		return common
+	}
 }
 
 type CommonValue struct {
@@ -610,13 +664,40 @@ type Const struct {
 	Value       NamedConstValue `yaml:"value" json:"value"`
 }
 
+type Global struct {
+	CommonValue `yaml:",inline"`
+	Index       int `yaml:"index" json:"index"`
+}
+
 type Parameter struct {
 	CommonValue `yaml:",inline"`
 	Index       int `yaml:"index" json:"index"`
 }
 
+type FreeVar struct {
+	CommonValue `yaml:",inline"`
+	Index       int `yaml:"index" json:"index"`
+}
+
+func FindInstructionIndex(in ssa.Instruction) int {
+	instructions := lo.FlatMap(in.Parent().Blocks, func(block *ssa.BasicBlock, _ int) []ssa.Instruction {
+		return block.Instrs
+	})
+	_, index, _ := lo.FindIndexOf(instructions, func(other ssa.Instruction) bool {
+		return other == in
+	})
+	return index
+}
+
 func FindParameterIndex(in *ssa.Parameter) int {
 	_, index, _ := lo.FindIndexOf(in.Parent().Params, func(other *ssa.Parameter) bool {
+		return other == in
+	})
+	return index
+}
+
+func FindFreeVarIndex(in *ssa.FreeVar) int {
+	_, index, _ := lo.FindIndexOf(in.Parent().FreeVars, func(other *ssa.FreeVar) bool {
 		return other == in
 	})
 	return index

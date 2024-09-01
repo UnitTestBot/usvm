@@ -2,6 +2,7 @@ package org.usvm
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
+import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoAddExpr
 import org.jacodb.go.api.GoAllocExpr
 import org.jacodb.go.api.GoAndExpr
@@ -9,22 +10,19 @@ import org.jacodb.go.api.GoAndNotExpr
 import org.jacodb.go.api.GoBinaryExpr
 import org.jacodb.go.api.GoBool
 import org.jacodb.go.api.GoBuiltin
-import org.jacodb.go.api.GoByte
 import org.jacodb.go.api.GoCallExpr
 import org.jacodb.go.api.GoChangeInterfaceExpr
 import org.jacodb.go.api.GoChangeTypeExpr
-import org.jacodb.go.api.GoChar
 import org.jacodb.go.api.GoConst
 import org.jacodb.go.api.GoConvertExpr
 import org.jacodb.go.api.GoDivExpr
-import org.jacodb.go.api.GoDouble
 import org.jacodb.go.api.GoEqlExpr
-import org.jacodb.go.api.GoExpr
 import org.jacodb.go.api.GoExprVisitor
 import org.jacodb.go.api.GoExtractExpr
 import org.jacodb.go.api.GoFieldAddrExpr
 import org.jacodb.go.api.GoFieldExpr
-import org.jacodb.go.api.GoFloat
+import org.jacodb.go.api.GoFloat32
+import org.jacodb.go.api.GoFloat64
 import org.jacodb.go.api.GoFreeVar
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoGeqExpr
@@ -34,8 +32,11 @@ import org.jacodb.go.api.GoIndexAddrExpr
 import org.jacodb.go.api.GoIndexExpr
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoInt
+import org.jacodb.go.api.GoInt16
+import org.jacodb.go.api.GoInt32
+import org.jacodb.go.api.GoInt64
+import org.jacodb.go.api.GoInt8
 import org.jacodb.go.api.GoLeqExpr
-import org.jacodb.go.api.GoLong
 import org.jacodb.go.api.GoLookupExpr
 import org.jacodb.go.api.GoLssExpr
 import org.jacodb.go.api.GoMakeChanExpr
@@ -56,7 +57,6 @@ import org.jacodb.go.api.GoPhiExpr
 import org.jacodb.go.api.GoRangeExpr
 import org.jacodb.go.api.GoSelectExpr
 import org.jacodb.go.api.GoShlExpr
-import org.jacodb.go.api.GoShort
 import org.jacodb.go.api.GoShrExpr
 import org.jacodb.go.api.GoSliceExpr
 import org.jacodb.go.api.GoSliceToArrayPointerExpr
@@ -64,6 +64,11 @@ import org.jacodb.go.api.GoStringConstant
 import org.jacodb.go.api.GoSubExpr
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.GoTypeAssertExpr
+import org.jacodb.go.api.GoUInt
+import org.jacodb.go.api.GoUInt16
+import org.jacodb.go.api.GoUInt32
+import org.jacodb.go.api.GoUInt64
+import org.jacodb.go.api.GoUInt8
 import org.jacodb.go.api.GoUnArrowExpr
 import org.jacodb.go.api.GoUnMulExpr
 import org.jacodb.go.api.GoUnNotExpr
@@ -74,7 +79,6 @@ import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownUnaryOperationException
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.writeField
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.GoPointerLValue
@@ -88,27 +92,25 @@ import org.usvm.statistics.ApplicationGraph
 
 class GoExprVisitor(
     private val ctx: GoContext,
+    private val pkg: GoPackage,
     private val scope: GoStepScope,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
     override fun visitGoCallExpr(expr: GoCallExpr): UExpr<out USort> {
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
-            scope.doWithState {
-                methodResult = GoMethodResult.NoCall
-            }
             return result.value
         }
 
         val parameters = expr.args.map { it.accept(this) }.toTypedArray()
-        val method = expr.callee ?: expr.value as GoMethod
+        val method = expr.callee ?: pkg.findMethod((expr.value as GoVar).name)
         val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
         ctx.setMethodInfo(method, parameters)
 
         scope.doWithState {
             addCall(call, currentStatement)
         }
-        return ctx.mkConst("GoCall", ctx.addressSort)
+        return ctx.nullRef
     }
 
     override fun visitGoAllocExpr(expr: GoAllocExpr): UExpr<out USort> {
@@ -309,11 +311,9 @@ class GoExprVisitor(
     }
 
     override fun visitGoVar(expr: GoVar): UExpr<out USort> {
-        val result = get(expr.name, expr.type)
-        if (result != ctx.nullRef) {
-            return result
+        return scope.calcOnState {
+            memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), index(expr.name)))
         }
-        return ctx.mkBv(index(expr.name))
     }
 
     override fun visitGoFreeVar(expr: GoFreeVar): UExpr<out USort> {
@@ -322,25 +322,12 @@ class GoExprVisitor(
 
     override fun visitGoParameter(expr: GoParameter): UExpr<out USort> {
         return scope.calcOnState {
-            memory.read(URegisterStackLValue(ctx.bv32Sort, expr.index))
+            memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), expr.index))
         }
     }
 
     override fun visitGoConst(expr: GoConst): UExpr<out USort> {
-        val result = get(expr.name, expr.type)
-        if (result != ctx.nullRef) {
-            return result
-        }
-
-        return when (expr.typeName) {
-            "int" -> ctx.mkBv(expr.name.toInt())
-            "string" -> scope.calcOnState {
-                val content = expr.name.map { ctx.mkBv(it.code) }.asSequence()
-                memory.allocateArrayInitialized(expr.type, ctx.bv32Sort, ctx.sizeSort, content)
-            }
-
-            else -> ctx.nullRef
-        }
+        TODO("Not yet implemented")
     }
 
     override fun visitGoGlobal(expr: GoGlobal): UExpr<out USort> {
@@ -359,41 +346,57 @@ class GoExprVisitor(
         return mkBool(value.value)
     }
 
-    override fun visitGoByte(value: GoByte): UExpr<out USort> = with(ctx) {
-        return mkBv(value.value)
-    }
-
-    override fun visitGoChar(value: GoChar): UExpr<out USort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitGoShort(value: GoShort): UExpr<out USort> = with(ctx) {
-        return mkBv(value.value)
-    }
-
     override fun visitGoInt(value: GoInt): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toInt())
+    }
+
+    override fun visitGoInt8(value: GoInt8): UExpr<out USort> = with(ctx) {
         return mkBv(value.value)
     }
 
-    override fun visitGoLong(value: GoLong): UExpr<out USort> = with(ctx) {
+    override fun visitGoInt16(value: GoInt16): UExpr<out USort> = with(ctx) {
         return mkBv(value.value)
     }
 
-    override fun visitGoFloat(value: GoFloat): UExpr<out USort> = with(ctx) {
+    override fun visitGoInt32(value: GoInt32): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value)
+    }
+
+    override fun visitGoInt64(value: GoInt64): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value)
+    }
+
+    override fun visitGoUInt(value: GoUInt): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toInt())
+    }
+
+    override fun visitGoUInt8(value: GoUInt8): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toByte())
+    }
+
+    override fun visitGoUInt16(value: GoUInt16): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toShort())
+    }
+
+    override fun visitGoUInt32(value: GoUInt32): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toInt())
+    }
+
+    override fun visitGoUInt64(value: GoUInt64): UExpr<out USort> = with(ctx) {
+        return mkBv(value.value.toLong())
+    }
+
+    override fun visitGoFloat32(value: GoFloat32): UExpr<out USort> = with(ctx) {
         return mkFp(value.value, fp32Sort)
     }
 
-    override fun visitGoDouble(value: GoDouble): UExpr<out USort> = with(ctx) {
+    override fun visitGoFloat64(value: GoFloat64): UExpr<out USort> = with(ctx) {
         return mkFp(value.value, fp64Sort)
     }
 
     override fun visitGoNullConstant(value: GoNullConstant): UExpr<out USort> = ctx.nullRef
 
     override fun visitGoStringConstant(value: GoStringConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun visitExternalGoExpr(expr: GoExpr): UExpr<out USort> {
         TODO("Not yet implemented")
     }
 
@@ -426,12 +429,7 @@ class GoExprVisitor(
     }
 
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
-        val result = get(expr.name, expr.type)
-        if (result != ctx.nullRef) {
-            return result
-        }
-
-        val signed = true // TODO(buraindo): make this calculated
+        val signed = expr.lhv.type is BasicType && !expr.lhv.type.typeName.startsWith("ui")
         return when (expr) {
             is GoAddExpr -> GoBinaryOperator.Add
             is GoSubExpr -> GoBinaryOperator.Sub
