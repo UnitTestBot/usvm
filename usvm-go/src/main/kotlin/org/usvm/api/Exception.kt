@@ -1,7 +1,7 @@
 package org.usvm.api
 
 class UnknownSortException : Exception()
-class UnknownMethodException : Exception()
+class UnknownMethodException(name: String) : Exception("Unknown method $name")
 class UnknownUnaryOperationException : Exception()
 class UnknownBinaryOperationException : Exception()
 class UnknownVarKindException : Exception()

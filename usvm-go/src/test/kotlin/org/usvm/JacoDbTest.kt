@@ -14,23 +14,23 @@ class JacoDbTest {
     }
 
     @Test
-    fun testMax2Improved() {
-        test("Max2Improved")
+    fun testMax2Closure() {
+        test("max2Closure")
     }
 
     @Test
-    fun testLoopSimple() {
-        test("loopSimple")
+    fun testMax3() {
+        test("max3")
     }
 
     @Test
-    fun testPanicRecover() {
-        test("panicRecover")
+    fun testMax3Call() {
+        test("max3Call")
     }
 
     @Test
-    fun testPanicRecoverSimple() {
-        test("panicRecoverSimple")
+    fun testInc() {
+        test("inc")
     }
 
     private val options: UMachineOptions = UMachineOptions(
@@ -46,8 +46,8 @@ class JacoDbTest {
     private fun test(name: String) {
         val stopwatch = measureTimeMillis {
             val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
-            val machine = GoMachine(options)
-            println(machine.analyzeAndResolve(pkg.methods.find { it.metName == name }!!))
+            val machine = GoMachine(pkg, options)
+            println(machine.analyzeAndResolve(name))
         }
 
         println(stopwatch)
