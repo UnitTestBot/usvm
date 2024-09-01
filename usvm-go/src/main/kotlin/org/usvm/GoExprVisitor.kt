@@ -309,6 +309,10 @@ class GoExprVisitor(
     }
 
     override fun visitGoVar(expr: GoVar): UExpr<out USort> {
+        val result = get(expr.name, expr.type)
+        if (result != ctx.nullRef) {
+            return result
+        }
         return ctx.mkBv(index(expr.name))
     }
 

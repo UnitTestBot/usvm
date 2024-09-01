@@ -2,8 +2,6 @@ package org.usvm
 
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
-import org.usvm.UExpr
-import org.usvm.USort
 
 class GoMethodInfo(
     val variablesCount: Int,
@@ -26,4 +24,9 @@ class GoCall(
     val method: GoMethod,
     val entrypoint: GoInst,
     val parameters: Array<UExpr<out USort>>
+)
+
+class GoPackage(
+    val name: String,
+    val methods: List<GoMethod>,
 )
