@@ -1,16 +1,16 @@
 package org.usvm
 
-import org.jacodb.go.api.GoProject
 import org.junit.jupiter.api.Test
-import java.io.File
-import java.util.zip.GZIPInputStream
+import org.usvm.model.Converter
+import org.usvm.model.Parser
 import kotlin.system.measureTimeMillis
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 class JacoDbTest {
     @Test
     fun testMax2() {
-        test("Max2")
+        test("max2")
     }
 
     @Test
@@ -33,21 +33,23 @@ class JacoDbTest {
         test("panicRecoverSimple")
     }
 
+    private val options: UMachineOptions = UMachineOptions(
+        pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
+        coverageZone = CoverageZone.TRANSITIVE,
+        exceptionsPropagation = true,
+        timeout = 60_000.milliseconds,
+        stepsFromLastCovered = 3500L,
+        solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
+        typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
+    )
+
     private fun test(name: String) {
-        val project = GoProject(emptyList())
-
-        val stream = File("./src/main/kotlin/org/usvm/jacodb/gen/filled.gzip").inputStream()
-        val reader = GZIPInputStream(stream).bufferedReader()
-
         val stopwatch = measureTimeMillis {
-//            val res = StartDeserializer(reader) as ssa_Program
-
-//            project = res.createJacoDBProject()
+            val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
+            val machine = GoMachine(options)
+            println(machine.analyzeAndResolve(pkg.methods.find { it.metName == name }!!))
         }
 
         println(stopwatch)
-
-        val machine = GoMachine(project, UMachineOptions(listOf(PathSelectionStrategy.FORK_DEPTH), timeout = Duration.INFINITE))
-        println(machine.analyzeAndResolve(project.methods.find { it.metName == name }!!))
     }
 }

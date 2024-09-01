@@ -4,7 +4,6 @@ import mu.KLogging
 import org.jacodb.go.api.GoApplicationGraphImpl
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
-import org.jacodb.go.api.GoProject
 import org.usvm.interpreter.GoInterpreter
 import org.usvm.interpreter.GoTestInterpreter
 import org.usvm.interpreter.ProgramExecutionResult
@@ -33,11 +32,10 @@ internal typealias USizeSort = UBv32Sort
 val logger = object : KLogging() {}.logger
 
 class GoMachine(
-    private val project: GoProject,
     private val options: UMachineOptions,
 ) : UMachine<GoState>() {
     private val typeSystem = GoTypeSystem(options.typeOperationsTimeout)
-    private val goApplicationGraph = GoApplicationGraphImpl(project)
+    private val goApplicationGraph = GoApplicationGraphImpl()
     private val applicationGraph = GoApplicationGraphAdapter(goApplicationGraph)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)

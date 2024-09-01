@@ -1,23 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    kotlin("jvm")
     id("org.gradle.application")
     id("usvm.kotlin-conventions")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
 }
 
 tasks {
-    test {
-        jvmArgs(
-            "-XX:+UnlockExperimentalVMOptions",
-            "-XX:+EnableJVMCI",
-            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.code=ALL-UNNAMED",
-            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.code.site=ALL-UNNAMED",
-            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.hotspot=ALL-UNNAMED",
-            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.meta=ALL-UNNAMED",
-            "--add-exports", "jdk.internal.vm.ci/jdk.vm.ci.runtime=ALL-UNNAMED",
-            "--add-opens", "java.base/java.nio=ALL-UNNAMED"
-        )
-    }
     withType<KotlinCompile> {
         kotlinOptions {
             allWarningsAsErrors = false
@@ -28,12 +18,12 @@ tasks {
 dependencies {
     implementation(project(":usvm-core"))
 
-    implementation(files("libs/nalim.jar"))
-
-    implementation("io.ksmt:ksmt-yices:${Versions.ksmt}")
-    implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
-    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable-jvm:${Versions.kotlinx_collections}")
-    testImplementation("ch.qos.logback:logback-classic:${Versions.logback}")
-
     implementation(Libs.jacodb_go)
+    implementation(Libs.kotlinx_serialization_core)
+    implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_collections)
+    implementation(Libs.ksmt_yices)
+    implementation(Libs.slf4j_simple)
+
+    testImplementation(Libs.logback)
 }
