@@ -1,6 +1,5 @@
 package org.usvm
 
-import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KConst
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -21,12 +20,14 @@ import org.jacodb.go.api.GoReturnInst
 import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
+import org.jacodb.go.api.GoVar
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.statistics.ApplicationGraph
 
 class GoInstVisitor(
     private val ctx: GoContext,
+    private val pkg: GoPackage,
     private val scope: GoStepScope,
     private val exprVisitor: GoExprVisitor,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
@@ -119,29 +120,23 @@ class GoInstVisitor(
     }
 
     override fun visitGoAssignInst(inst: GoAssignInst): GoInst {
-        val method = scope.calcOnState { lastEnteredMethod }
-
-        val index = (inst.lhv.accept(exprVisitor) as KBitVec32Value).intValue
-        ctx.unsetRegister(method, index)
-
+        val index = index((inst.lhv as GoVar).name)
         val rvalue = inst.rhv.accept(exprVisitor)
         val sort = rvalue.sort
 
-        if (rvalue is KConst && rvalue.toString() == "GoCall") {
-            ctx.setRegister(method, index)
+        if (rvalue == ctx.nullRef) {
             return GoNullInst(inst.location.method)
         }
 
         scope.doWithState {
             memory.write(URegisterStackLValue(sort, index), rvalue.asExpr(sort), ctx.trueExpr)
         }
-        ctx.setRegister(method, index)
 
         return next(inst)
     }
 
     override fun visitGoCallInst(inst: GoCallInst): GoInst {
-        TODO("Not yet implemented")
+        return unsupportedInst("Call")
     }
 
     private fun next(inst: GoInst): GoInst {
@@ -150,5 +145,9 @@ class GoInstVisitor(
 
     private fun unsupportedInst(name: String): GoInst {
         throw UnsupportedOperationException("Instruction '$name' not supported")
+    }
+
+    private fun index(name: String): Int {
+        return name.substring(1).toInt() + ctx.localVariableOffset(scope.calcOnState { lastEnteredMethod })
     }
 }

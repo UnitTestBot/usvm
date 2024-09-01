@@ -61,6 +61,9 @@ class Parser {
                 subclass(Value.Parameter::class, Value.Parameter.serializer())
                 subclass(Value.FreeVar::class, Value.FreeVar.serializer())
                 subclass(Value.Var::class, Value.Var.serializer())
+                subclass(Value.Function::class, Value.Function.serializer())
+                subclass(Value.MakeClosure::class, Value.MakeClosure.serializer())
+                subclass(Value.Builtin::class, Value.Builtin.serializer())
             }
         }
     }

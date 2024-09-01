@@ -32,6 +32,7 @@ internal typealias USizeSort = UBv32Sort
 val logger = object : KLogging() {}.logger
 
 class GoMachine(
+    private val pkg: GoPackage,
     private val options: UMachineOptions,
 ) : UMachine<GoState>() {
     private val typeSystem = GoTypeSystem(options.typeOperationsTimeout)
@@ -39,7 +40,7 @@ class GoMachine(
     private val applicationGraph = GoApplicationGraphAdapter(goApplicationGraph)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter(ctx, applicationGraph)
+    private val interpreter = GoInterpreter(ctx, pkg, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
     private val testInterpreter = GoTestInterpreter(ctx)
 
@@ -47,8 +48,16 @@ class GoMachine(
         ctx.close()
     }
 
+    fun analyzeAndResolve(methodName: String): Collection<ProgramExecutionResult> {
+        return analyzeAndResolve(pkg.findMethod(methodName))
+    }
+
     fun analyzeAndResolve(method: GoMethod): Collection<ProgramExecutionResult> {
         return analyze(method).map { testInterpreter.resolve(it, method) }
+    }
+
+    private fun analyze(methodName: String): List<GoState> {
+        return analyze(listOf(pkg.findMethod(methodName)))
     }
 
     private fun analyze(method: GoMethod): List<GoState> {
@@ -109,7 +118,7 @@ class GoMachine(
             observers.add(
                 TransitiveCoverageZoneObserver(
                     initialMethods = methods,
-                    methodExtractor = { state -> applicationGraph.methodOf(state.currentStatement) },
+                    methodExtractor = { state -> state.currentStatement.location.method },
                     addCoverageZone = { coverageStatistics.addCoverageZone(it) },
                     ignoreMethod = { false }
                 )

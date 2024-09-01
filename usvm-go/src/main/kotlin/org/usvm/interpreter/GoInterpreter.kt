@@ -10,6 +10,7 @@ import org.usvm.GoContext
 import org.usvm.GoExprVisitor
 import org.usvm.GoInstVisitor
 import org.usvm.GoMethodInfo
+import org.usvm.GoPackage
 import org.usvm.GoTarget
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -25,6 +26,7 @@ typealias GoStepScope = StepScope<GoState, GoType, GoInst, GoContext>
 
 class GoInterpreter(
     private val ctx: GoContext,
+    private val pkg: GoPackage,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
@@ -63,8 +65,8 @@ class GoInterpreter(
             }
         }
 
-        val exprVisitor = GoExprVisitor(ctx, scope, applicationGraph)
-        val instVisitor = GoInstVisitor(ctx, scope, exprVisitor, applicationGraph)
+        val exprVisitor = GoExprVisitor(ctx, pkg, scope, applicationGraph)
+        val instVisitor = GoInstVisitor(ctx, pkg, scope, exprVisitor, applicationGraph)
         val nextInst: GoInst = when(state.data.flowStatus) {
             GoFlowStatus.NORMAL -> state.getRecoverInst(method)
             GoFlowStatus.DEFER -> state.getDeferInst(method, inst)
