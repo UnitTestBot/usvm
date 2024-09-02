@@ -21,11 +21,14 @@ import org.usvm.api.concat
 import org.usvm.api.contentOfString
 import org.usvm.api.copyString
 import org.usvm.api.readString
+import org.usvm.api.stringEq
 import org.usvm.api.stringLength
 import org.usvm.api.toLower
 import org.usvm.api.toUpper
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.string.UStringLValue
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.interpreter.JcExprResolver
 import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.state.JcMethodResult
@@ -476,11 +479,25 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             // describeConstable() is not approximated
-            dispatchMethod("endsWith(Ljava/lang/String;)Z") {
-                TODO()
-            }
+            // endsWith(String) is not approximated
             dispatchMethod("equals(Ljava/lang/Object;)Z") {
-                TODO()
+                val thisRef = it.arguments[0].asExpr(ctx.addressSort)
+                val objectRef = it.arguments[1].asExpr(ctx.addressSort)
+                val referenceEquals = ctx.mkHeapRefEq(thisRef, objectRef)
+                if (referenceEquals.isTrue) {
+                    referenceEquals
+                } else {
+                    val objectIsNonNull = ctx.mkNot(ctx.mkHeapRefEq(objectRef, ctx.nullRef))
+                    if (objectIsNonNull.isFalse)
+                        ctx.falseExpr
+                    val objectIsString = scope.calcOnState { memory.types.evalIsSubtype(objectRef, ctx.stringType) }
+                    if (objectIsString.isFalse)
+                        ctx.falseExpr
+                    else {
+                        val contentEq = scope.calcOnState { memory.stringEq(thisRef, objectRef) }
+                        ctx.mkAnd(objectIsNonNull, objectIsString, contentEq)
+                    }
+                }
             }
             dispatchMethod("equalsIgnoreCase(Ljava/lang/String;)Z") {
                 TODO()
