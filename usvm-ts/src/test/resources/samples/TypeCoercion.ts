@@ -18,6 +18,12 @@ class TypeCoercion {
     unreachableByType(a: number, b: boolean): number {
         // @ts-ignore
         if (a == b) {
+            /*
+                1. a == 1, b == true
+                2. a == 0, b == false
+
+                No branch can enter this if statement
+             */
             if (a && !b) {
                 return 0
             } else {
@@ -29,6 +35,19 @@ class TypeCoercion {
     }
 
     transitiveCoercion(a: number, b: boolean, c: number): number {
+        // @ts-ignore
+        if (a == b) {
+            if (c && (a == c)) {
+                return 1
+            } else {
+                return 2
+            }
+        }
+
+        return 3
+    }
+
+    transitiveCoercionNoTypes(a, b, c): number {
         // @ts-ignore
         if (a == b) {
             if (c && (a == c)) {
