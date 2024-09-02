@@ -38,12 +38,13 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 
 class TSWrappedValue(
     ctx: TSContext,
-    val value: UExpr<out USort>
+    val value: UExpr<out USort>,
+    scope: TSStepScope
 ) : USymbol<USort>(ctx) {
     override val sort: USort
         get() = value.sort
 
-    private val transformer = TSExprTransformer(value)
+    private val transformer = TSExprTransformer(value, scope)
 
     fun asSort(sort: USort): UExpr<out USort> = transformer.transform(sort)
 

@@ -41,7 +41,7 @@ sealed class TSBinaryOperator(
         desiredSort = { _, _ -> boolSort },
     )
 
-    internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
+    internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> {
         val lhsSort = lhs.sort
         val rhsSort = rhs.sort
 

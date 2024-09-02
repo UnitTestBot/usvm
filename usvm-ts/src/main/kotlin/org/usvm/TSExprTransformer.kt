@@ -1,12 +1,16 @@
 package org.usvm
 
+import com.jetbrains.rd.framework.base.deepClonePolymorphic
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.ets.base.EtsNumberType
 
 class TSExprTransformer(
-    private val baseExpr: UExpr<out USort>
+    private val baseExpr: UExpr<out USort>,
+    private val scope: TSStepScope,
 ) {
 
     private val exprCache: MutableMap<USort, UExpr<out USort>> = mutableMapOf(baseExpr.sort to baseExpr)
@@ -22,6 +26,12 @@ class TSExprTransformer(
 //            else -> error("Should not be called")
 //        }
 //    }
+
+    init {
+        if (baseExpr.sort == ctx.addressSort) {
+            TSTypeSystem.primitiveTypes.onEach { transform(ctx.typeToSort(it)) }
+        }
+    }
 
     fun transform(sort: USort): UExpr<out USort> = with(ctx) {
         when (sort) {
@@ -60,6 +70,13 @@ class TSExprTransformer(
         when (baseExpr.sort) {
             ctx.fp64Sort -> baseExpr
             ctx.boolSort -> with(ctx) { mkIte(baseExpr.cast(), mkFp64(1.0), mkFp64(0.0)) }
+            ctx.addressSort -> with(ctx) {
+                mkIte(
+                    condition = scope.calcOnState { memory.types.evalIsSubtype(baseExpr, EtsNumberType) },
+                    trueBranch = (baseExpr as UExpr<UAddressSort>).,
+                    falseBranch = ,
+                )
+            }
             else -> ctx.mkFp64(0.0)
         }
     }.cast()
@@ -78,4 +95,6 @@ class TSExprTransformer(
             else -> error("should not be called")
         }
     }.cast()
+
+    class TSRefTransforemer
 }
