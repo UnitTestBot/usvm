@@ -193,6 +193,7 @@ class TypeInferenceManager(
                     .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }
                     .toList()
+                    .distinct()
 
                 val typeFactsOnThisCtor = forwardSummaries
                     .asSequence()
@@ -202,8 +203,9 @@ class TypeInferenceManager(
                     .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }
                     .toList()
+                    .distinct()
 
-                val typeFactsOnThis = typeFactsOnThisMethods + typeFactsOnThisCtor
+                val typeFactsOnThis = (typeFactsOnThisMethods + typeFactsOnThisCtor).distinct()
 
                 val propertyRefinements = typeFactsOnThis
                     .groupBy({ it.variable.accesses }, { it.type })
@@ -227,6 +229,11 @@ class TypeInferenceManager(
                     }
                 }
 
+                combinedBackwardType.let {}
+                typeFactsOnThisMethods.let {}
+                typeFactsOnThisCtor.let {}
+                typeFactsOnThis.let {}
+                propertyRefinements.let {}
                 cls.let {}
 
                 refined
