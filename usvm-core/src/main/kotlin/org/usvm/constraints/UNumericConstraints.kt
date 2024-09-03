@@ -1205,7 +1205,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         updateConstraint(updatedReplacement)
 
         val dependencies = constraintWatchList[constrainedTerms]
-        dependencies?.forEach { dependentTerms ->
+        // toList fixes [dependencies] because it can be mutated in foreach body
+        dependencies?.toList()?.forEach { dependentTerms ->
             withConstraint(
                 terms = dependentTerms,
                 bounds = { dependencyConstraint, _ ->
@@ -1286,7 +1287,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         )
 
         val dependencies = constraintWatchList[constrainedTerms]
-        dependencies?.forEach { dependentTerms ->
+        // toList fixes [dependencies] because it can be mutated in foreach body
+        dependencies?.toList()?.forEach { dependentTerms ->
             withConstraint(
                 terms = dependentTerms,
                 bounds = { dependencyConstraint, _ ->
@@ -1430,7 +1432,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ): BoundsConstraint<Sort> {
         val constraints = bounds.termDependency.getOrDefault(terms, persistentHashSetOf())
         var result = initialConstraint
-        for (constraint in constraints) {
+        for (constraint in constraints.toList()) {
             val biases = bounds.termConstraints[constraint] ?: continue
             for (bias in biases) {
                 // this + bias (op) terms + constraint.bias && terms = replacement + replacementBias
@@ -1461,7 +1463,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ): BoundsConstraint<Sort> {
         var result = target
 
-        for ((constraint, biases) in bounds.termConstraints) {
+        for ((constraint, biases) in bounds.termConstraints.toList()) {
             // this + bias (op) constraint <=> target + (bias - targetBias) (op) constraint
             for (bias in biases) {
                 result = addConstraint(
@@ -1481,7 +1483,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             BoundsConstraint<Sort>, KBitVecValue<Sort>, KBitVecValue<Sort>, Boolean,
         ) -> BoundsConstraint<Sort>,
     ) {
-        for ((constraint, biases) in bounds.termConstraints) {
+        for ((constraint, biases) in bounds.termConstraints.toList()) {
             withConstraint(
                 terms = constraint.terms,
                 bounds = { boundsConstraint, initialConstraintBias ->
@@ -2247,9 +2249,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             var updatedConstraints = termConstraints
             var updatedSize = size
             for (constraint in constraints) {
-                val oldMods = UPersistentHashMap.modificationsCount
-                updatedConstraints = updatedConstraints.remove(constraint, ownership)
-                if (UPersistentHashMap.modificationsCount != oldMods) updatedSize--
+                val (newUpdatedConstraints, hasChanged) = updatedConstraints.removeWithChangeInfo(constraint, ownership)
+                updatedConstraints = newUpdatedConstraints
+                if (hasChanged) updatedSize--
             }
 
             return TermConstraintSet(

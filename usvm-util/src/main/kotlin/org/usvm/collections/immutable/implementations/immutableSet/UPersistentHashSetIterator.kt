@@ -5,10 +5,11 @@
 
 package org.usvm.collections.immutable.implementations.immutableSet
 
-internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<E> {
+internal open class UPersistentHashSetIterator<E>(val node: TrieNode<E>) : Iterator<E> {
     protected val path = mutableListOf(TrieNodeIterator<E>())
     protected var pathLastIndex = 0
     private var hasNext = true
+    private val initSize = node.calculateSize()
 
     init {
         path[0].reset(node.buffer)
@@ -56,16 +57,16 @@ internal open class UPersistentHashSetIterator<E>(node: TrieNode<E>) : Iterator<
     }
 
     override fun hasNext(): Boolean {
-        ensureNextElementIsReady()
         return hasNext
     }
 
     override fun next(): E {
-        ensureNextElementIsReady()
         if (!hasNext)
             throw NoSuchElementException()
 
-        return path[pathLastIndex].nextElement()
+        val result = path[pathLastIndex].nextElement()
+        ensureNextElementIsReady()
+        return result
     }
 
     protected fun currentElement(): E {
@@ -103,6 +104,9 @@ internal class TrieNodeIterator<out E> {
     }
 
     fun nextElement(): E {
+        if (!hasNextElement()){
+
+        }
         assert(hasNextElement())
         @Suppress("UNCHECKED_CAST")
         return buffer[index++] as E

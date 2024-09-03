@@ -7,6 +7,7 @@ package org.usvm.collections.immutable.implementations.immutableSet
 
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.internal.forEachOneBit
+import org.usvm.test.util.logger
 
 typealias UPersistentHashSet<E> = TrieNode<E>
 
@@ -209,19 +210,32 @@ class TrieNode<E>(
         return buffer.contains(element)
     }
 
+    private fun collisionAdd(element: E): TrieNode<E> {
+        if (collisionContainsElement(element)) return this
+        val newBuffer = buffer.addElementAtIndex(0, element)
+        return setProperties(newBitmap = 0, newBuffer, owner = null)
+    }
+
     private fun mutableCollisionAdd(element: E, owner: MutabilityOwnership): TrieNode<E> {
         if (collisionContainsElement(element)) return this
         val newBuffer = buffer.addElementAtIndex(0, element)
         return setProperties(newBitmap = 0, newBuffer, owner = owner)
     }
 
-    private fun mutableCollisionRemove(element: E, owner: MutabilityOwnership): TrieNode<E> {
+    private fun collisionRemove(element: E): TrieNode<E> {
         val index = buffer.indexOf(element)
         if (index != -1) {
-            mutableRemovesCount++
-            return collisionRemoveElementAtIndex(index, owner)
+            return collisionRemoveElementAtIndex(index, owner = null)
         }
         return this
+    }
+
+    private fun mutableCollisionRemove(element: E, owner: MutabilityOwnership): Pair<TrieNode<E>, Boolean> {
+        val index = buffer.indexOf(element)
+        if (index != -1) {
+            return collisionRemoveElementAtIndex(index, owner) to true
+        }
+        return this to false
     }
 
     private fun mutableCollisionAddAll(otherNode: TrieNode<E>, owner: MutabilityOwnership): TrieNode<E> {
@@ -542,16 +556,14 @@ class TrieNode<E>(
                     thisIsNode -> @Suppress("UNCHECKED_CAST") {
                         thisCell as TrieNode<E>
                         otherNodeCell as E
-                        val oldCounter = mutableRemovesCount
-                        val removed = thisCell.mutableRemove(
+                        val (removed, hasChanged) = thisCell.mutableRemove(
                                 otherNodeCell.hashCode(),
                                 otherNodeCell,
                                 shift + LOG_MAX_BRANCHING_FACTOR,
                                 owner)
 
                         // additional check needed for removal
-                        val newCounter = mutableRemovesCount
-                        if (oldCounter != newCounter) {
+                        if (hasChanged) {
                             if (removed.buffer.size == 1 && removed.buffer[0] !is TrieNode<*>) removed.buffer[0]
                             else removed
                         } else thisCell
@@ -642,6 +654,32 @@ class TrieNode<E>(
         return true
     }
 
+    fun add(elementHash: Int, element: E, shift: Int): TrieNode<E> {
+        val cellPositionMask = 1 shl indexSegment(
+            elementHash,
+            shift
+        )
+
+        if (hasNoCellAt(cellPositionMask)) { // element is absent
+            return addElementAt(cellPositionMask, element, owner = null)
+        }
+
+        val cellIndex = indexOfCellAt(cellPositionMask)
+        if (buffer[cellIndex] is TrieNode<*>) { // element may be in node
+            val targetNode = nodeAtIndex(cellIndex)
+            val newNode = if (shift == MAX_SHIFT) {
+                targetNode.collisionAdd(element)
+            } else {
+                targetNode.add(elementHash, element, shift + LOG_MAX_BRANCHING_FACTOR)
+            }
+            if (targetNode === newNode) return this
+            return setCellAtIndex(cellIndex, newNode, owner = null)
+        }
+        // element is directly in buffer
+        if (element == buffer[cellIndex]) return this
+        return moveElementToNode(cellIndex, elementHash, element, shift, owner = null)
+    }
+
     private fun mutableAdd(elementHash: Int, element: E, shift: Int, owner: MutabilityOwnership): TrieNode<E> {
         val cellPosition = 1 shl indexSegment(elementHash, shift)
 
@@ -665,8 +703,11 @@ class TrieNode<E>(
         return moveElementToNode(cellIndex, elementHash, element, shift, owner)
     }
 
-    private fun mutableRemove(elementHash: Int, element: E, shift: Int, owner: MutabilityOwnership): TrieNode<E> {
-        val cellPositionMask = 1 shl indexSegment(elementHash, shift)
+    fun remove(elementHash: Int, element: E, shift: Int): TrieNode<E> {
+        val cellPositionMask = 1 shl indexSegment(
+            elementHash,
+            shift
+        )
 
         if (hasNoCellAt(cellPositionMask)) { // element is absent
             return this
@@ -676,6 +717,36 @@ class TrieNode<E>(
         if (buffer[cellIndex] is TrieNode<*>) { // element may be in node
             val targetNode = nodeAtIndex(cellIndex)
             val newNode = if (shift == MAX_SHIFT) {
+                targetNode.collisionRemove(element)
+            } else {
+                targetNode.remove(elementHash, element, shift + LOG_MAX_BRANCHING_FACTOR)
+            }
+            if (targetNode === newNode) return this
+            return canonicalizeNodeAtIndex(cellIndex, newNode, owner = null)
+        }
+        // element is directly in buffer
+        if (element == buffer[cellIndex]) {
+            return removeCellAtIndex(cellIndex, cellPositionMask, owner = null)
+        }
+        return this
+    }
+
+    private fun mutableRemove(
+        elementHash: Int,
+        element: E,
+        shift: Int,
+        owner: MutabilityOwnership
+    ): Pair<TrieNode<E>, Boolean> {
+        val cellPositionMask = 1 shl indexSegment(elementHash, shift)
+
+        if (hasNoCellAt(cellPositionMask)) { // element is absent
+            return this to false
+        }
+
+        val cellIndex = indexOfCellAt(cellPositionMask)
+        if (buffer[cellIndex] is TrieNode<*>) { // element may be in node
+            val targetNode = nodeAtIndex(cellIndex)
+            val (newNode, hasChanged) = if (shift == MAX_SHIFT) {
                 targetNode.mutableCollisionRemove(element, owner)
             } else {
                 targetNode.mutableRemove(elementHash, element, shift + LOG_MAX_BRANCHING_FACTOR, owner)
@@ -684,22 +755,22 @@ class TrieNode<E>(
             //      Otherwise the single element would have been lifted up.
             // If targetNode is owned by mutator, this node is also owned by mutator. Thus no new node will be created to replace this node.
             // If newNode !== targetNode, it is newly created.
-            if (targetNode.ownedBy !== owner && targetNode === newNode) return this
-            return canonicalizeNodeAtIndex(cellIndex, newNode, owner)
+            if (targetNode.ownedBy !== owner && targetNode === newNode) return this to hasChanged
+            return canonicalizeNodeAtIndex(cellIndex, newNode, owner) to hasChanged
         }
         // element is directly in buffer
         if (element == buffer[cellIndex]) {
-            mutableRemovesCount++
-            return removeCellAtIndex(cellIndex, cellPositionMask, owner)   // check is empty
+            return removeCellAtIndex(cellIndex, cellPositionMask, owner) to true   // check is empty
         }
-        return this
+        return this to false
     }
 
     fun isEmpty() = firstOrNull() == null
     fun isNotEmpty() = firstOrNull() != null
 
     fun remove(element: E, owner: MutabilityOwnership): TrieNode<E> =
-        mutableRemove(element.hashCode(), element, 0, owner)
+        //remove(element.hashCode(), element, 0).also { logger.debug { owner } }
+         mutableRemove(element.hashCode(), element, 0, owner).first
 
     fun removeAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.remove(e, owner)}
@@ -711,8 +782,10 @@ class TrieNode<E>(
     fun removeAll(otherNode: TrieNode<E>, owner: MutabilityOwnership): TrieNode<E> =
         mutableRemoveAll(otherNode, 0, owner) as TrieNode<E>
 
-    fun add(element: E, owner: MutabilityOwnership): TrieNode<E> =
-        mutableAdd(element.hashCode(), element, 0, owner)
+    fun add(element: E, owner: MutabilityOwnership?): TrieNode<E> =
+        if (owner == null) add(element.hashCode(), element, 0) else mutableAdd(element.hashCode(), element, 0, owner)
+        //add(element.hashCode(), element, 0).also { logger.debug { owner } }
+         //mutableAdd(element.hashCode(), element, 0, owner)
 
     fun addAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.add(e, owner)}
@@ -734,7 +807,6 @@ class TrieNode<E>(
     fun clear() = EMPTY as TrieNode<E>
 
     internal companion object {
-        private var mutableRemovesCount : Int = 0
         internal val EMPTY = TrieNode<Nothing>(0, emptyArray())
     }
 
