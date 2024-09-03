@@ -77,7 +77,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializePython
     SET_LONG_FIELD("pyNoneRef", (jlong) Py_None)
 
     initialize_java_python_type();
-    initialize_virtual_object_type();
+    initialize_virtual_object_available_slots();
+    initialize_virtual_object_ready_types();
 
     PySys_AddAuditHook(audit_hook, &illegal_operation);
 
@@ -89,6 +90,8 @@ JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_initializeSpecia
 }
 
 JNIEXPORT void JNICALL Java_org_usvm_interpreter_CPythonAdapter_finalizePython(JNIEnv *env, jobject cpython_adapter) {
+    deinitialize_virtual_object_available_slots();
+    deinitialize_virtual_object_ready_types();
     release_global_refs(env);
     clean_methods();
     Py_FinalizeEx();
@@ -363,8 +366,17 @@ JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_getCodeFromFram
     return (jlong) PyFrame_GetCode((PyFrameObject *) frame_ref);
 }
 
-JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateVirtualObject(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
-    return (jlong) allocate_raw_virtual_object(env, virtual_object);
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateRawVirtualObjectWithAllSlots(JNIEnv *env, jobject cpython_adapter, jobject virtual_object) {
+    return (jlong) allocate_raw_virtual_object_with_all_slots(env, virtual_object);
+}
+
+JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_allocateRawVirtualObject(
+    JNIEnv *env,
+    jobject cpython_adapter,
+    jobject virtual_object,
+    jbyteArray mask
+) {
+    return (jlong) allocate_raw_virtual_object(env, virtual_object, mask);
 }
 
 JNIEXPORT jlong JNICALL Java_org_usvm_interpreter_CPythonAdapter_makeList(JNIEnv *env, jobject cpython_adapter, jlongArray elements) {
