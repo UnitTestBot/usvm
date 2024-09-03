@@ -5,7 +5,6 @@ import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
@@ -21,6 +20,9 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.relativeTo
 import kotlin.io.path.toPath
 import kotlin.io.path.walk
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 @OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
@@ -58,25 +60,18 @@ class EtsTypeInferenceTest {
 
             // arg0 = 'devices'
             val devices = types[m]!!.types[AccessPathBase.Arg(0)]!!
-            Assertions.assertTrue(devices is EtsTypeFact.ObjectEtsTypeFact)
-            check(devices is EtsTypeFact.ObjectEtsTypeFact)
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(devices)
 
             val devicesCls = devices.cls
-            Assertions.assertTrue(devicesCls?.typeName == "VirtualDevices")
+            assertEquals("VirtualDevices", devicesCls?.typeName)
 
-            val devicesProps = devices.properties
-            Assertions.assertTrue("microphone" in devicesProps)
+            assertContains(devices.properties, "microphone")
+            val microphone = devices.properties["microphone"]!!
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(microphone)
 
-            val microphone = devicesProps["microphone"]!!
-            Assertions.assertTrue(microphone is EtsTypeFact.ObjectEtsTypeFact)
-            check(microphone is EtsTypeFact.ObjectEtsTypeFact)
-
-            val microphoneProps = microphone.properties
-            Assertions.assertTrue("uuid" in microphoneProps)
-
-            val uuid = microphoneProps["uuid"]!!
-            Assertions.assertTrue(uuid is EtsTypeFact.StringEtsTypeFact)
-            check(uuid is EtsTypeFact.StringEtsTypeFact)
+            assertContains(microphone.properties, "uuid")
+            val uuid = microphone.properties["uuid"]!!
+            assertIs<EtsTypeFact.StringEtsTypeFact>(uuid)
         }
     }
 
@@ -225,30 +220,29 @@ class EtsTypeInferenceTest {
             val m = inferred.keys.first { it.name == "loadTableData" }
 
             val arg0 = inferred[m]!!.types[AccessPathBase.Arg(0)]!!
-            Assertions.assertTrue(arg0 is EtsTypeFact.ObjectEtsTypeFact)
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(arg0)
 
-            val arg0props = (arg0 as EtsTypeFact.ObjectEtsTypeFact).properties
-            Assertions.assertTrue("user" in arg0props)
-            Assertions.assertTrue("userSecure" in arg0props)
-            Assertions.assertTrue("settings" in arg0props)
+            assertContains(arg0.properties, "user")
+            assertContains(arg0.properties, "userSecure")
+            assertContains(arg0.properties, "settings")
 
-            val user = arg0props["user"]
-            Assertions.assertTrue(user is EtsTypeFact.ObjectEtsTypeFact)
-            val userProps = (user as EtsTypeFact.ObjectEtsTypeFact).properties
-            Assertions.assertTrue("index" in userProps)
-            Assertions.assertTrue("length" in userProps)
+            val user = arg0.properties["user"]!!
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(user)
+            val userProps = user.properties
+            assertContains(userProps, "index")
+            assertContains(userProps, "length")
 
-            val userSecure = arg0props["userSecure"]
-            Assertions.assertTrue(userSecure is EtsTypeFact.ObjectEtsTypeFact)
-            val userSecureProps = (userSecure as EtsTypeFact.ObjectEtsTypeFact).properties
-            Assertions.assertTrue("index" in userSecureProps)
-            Assertions.assertTrue("length" in userSecureProps)
+            val userSecure = arg0.properties["userSecure"]!!
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(userSecure)
+            val userSecureProps = userSecure.properties
+            assertContains(userSecureProps, "index")
+            assertContains(userSecureProps, "length")
 
-            val settings = arg0props["settings"]
-            Assertions.assertTrue(settings is EtsTypeFact.ObjectEtsTypeFact)
-            val settingsProps = (settings as EtsTypeFact.ObjectEtsTypeFact).properties
-            Assertions.assertTrue("index" in settingsProps)
-            Assertions.assertTrue("length" in settingsProps)
+            val settings = arg0.properties["settings"]!!
+            assertIs<EtsTypeFact.ObjectEtsTypeFact>(settings)
+            val settingsProps = settings.properties
+            assertContains(settingsProps, "index")
+            assertContains(settingsProps, "length")
         }
 
         // val objects = inferred.values
