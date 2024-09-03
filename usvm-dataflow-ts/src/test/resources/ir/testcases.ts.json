@@ -137,13 +137,13 @@
                 }
               },
               {
-                "name": "x",
+                "name": "y",
                 "type": {
                   "_": "NumberType"
                 }
               },
               {
-                "name": "y",
+                "name": "x",
                 "type": {
                   "_": "NumberType"
                 }
@@ -197,7 +197,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "x",
+                        "name": "y",
                         "type": {
                           "_": "NumberType"
                         }
@@ -214,14 +214,14 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "y",
+                        "name": "x",
                         "type": {
                           "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "Local",
-                        "name": "x",
+                        "name": "y",
                         "type": {
                           "_": "NumberType"
                         }
@@ -249,7 +249,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "y",
+                            "name": "x",
                             "type": {
                               "_": "NumberType"
                             }

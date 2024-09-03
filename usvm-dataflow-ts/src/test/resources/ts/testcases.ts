@@ -1,8 +1,8 @@
 // Case `x := y`
 function case1() {
-    let x = 42; // x: number
-    let y = x; // y: number
-    infer1(y);
+    let y = 42; // y: number
+    let x = y; // x: number
+    infer1(x);
 }
 
 // Expected:
