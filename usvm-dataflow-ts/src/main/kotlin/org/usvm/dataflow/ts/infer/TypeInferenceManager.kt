@@ -421,6 +421,12 @@ class TypeInferenceManager(
                         return EtsTypeFact.mkUnionType(this, EtsTypeFact.NullEtsTypeFact)
                     }
 
+                    if (type is EtsTypeFact.UndefinedEtsTypeFact) {
+                        // intersect(this:object, type:undefined)
+                        // return EtsTypeFact.UndefinedEtsTypeFact
+                        return EtsTypeFact.mkUnionType(this, EtsTypeFact.UndefinedEtsTypeFact)
+                    }
+
                     if (type !is EtsTypeFact.ObjectEtsTypeFact || cls != null) {
                         // todo: hack
                         if (type is EtsTypeFact.AnyEtsTypeFact) return this
