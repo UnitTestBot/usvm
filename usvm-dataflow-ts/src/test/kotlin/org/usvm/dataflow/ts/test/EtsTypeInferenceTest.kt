@@ -27,6 +27,7 @@ import kotlin.io.path.walk
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
@@ -311,6 +312,43 @@ class EtsTypeInferenceTest {
             TypeInferenceManager(graph)
         }
         val inferred = manager.analyze(entrypoints)
+    }
+
+    @Test
+    fun `test if guesser does anything`() {
+        val name = "testcases"
+        val file = load("ir/$name.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = EtsApplicationGraphImpl(project)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoints = project.classes
+            .flatMap { it.methods }
+            .filter { it.name == "entrypoint" }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+        val inferredTypesWithoutGuessed = manager.analyze(entrypoints, guessUniqueTypes = false)
+        val inferredTypesWithGuessed = manager.analyze(entrypoints, guessUniqueTypes = true)
+
+        assertTrue { inferredTypesWithoutGuessed != inferredTypesWithGuessed }
+
+        println("=".repeat(42))
+        println("Inferred types WITHOUT guesser: ")
+        for (m in inferredTypesWithoutGuessed) {
+            println(m.key.enclosingClass.name to m.value.types)
+        }
+
+        println("=".repeat(42))
+        println("Inferred types with guesser: ")
+        for (m in inferredTypesWithGuessed) {
+            println(m.key.enclosingClass.name to m.value.types)
+        }
     }
 
     @Test

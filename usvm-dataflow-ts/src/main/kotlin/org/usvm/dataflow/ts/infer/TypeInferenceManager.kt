@@ -7,11 +7,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.findDominators
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.reversed
@@ -44,7 +46,10 @@ class TypeInferenceManager(
             method.flowGraph().findDominators()
         }
 
-    fun analyze(startMethods: List<EtsMethod>): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
+    fun analyze(
+        startMethods: List<EtsMethod>,
+        guessUniqueTypes: Boolean = false
+    ): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing forward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, ::methodDominators)
@@ -289,7 +294,62 @@ class TypeInferenceManager(
         backwardRunner.let {}
         forwardRunner.let {}
 
-        refinedTypes
+        if (!guessUniqueTypes) return@runBlocking refinedTypes
+
+        val possibleMatchedTypes = refinedTypes.mapValues { (method, facts) ->
+            val types = facts.types
+
+            if (types.isNotEmpty() && types.entries.singleOrNull()?.value != EtsTypeFact.UnknownEtsTypeFact) {
+                val updatedTypes = types.mapValues { (_, fact) ->
+                    fact.guessType()
+                }
+
+                return@mapValues facts.copy(types = updatedTypes)
+            }
+
+            facts
+        }
+
+        possibleMatchedTypes
+    }
+
+    private fun EtsTypeFact.guessType(): EtsTypeFact = when (this) {
+        is EtsTypeFact.ArrayEtsTypeFact -> {
+            val elementType = this.elementType
+            if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
+                this
+            } else {
+                this.copy(elementType.guessType())
+            }
+        }
+
+        EtsTypeFact.FunctionEtsTypeFact -> TODO()
+        is EtsTypeFact.ObjectEtsTypeFact -> {
+            val touchedPropertiesNames = this.properties.keys
+            val classesInSystem = this@TypeInferenceManager
+                .graph
+                .cp
+                .classes
+                .filter {
+                    val propertiesNames = it.methods.mapTo(mutableSetOf()) { it.name } + it.fields.map { it.name }
+                    touchedPropertiesNames.all { name -> name in propertiesNames }
+                }
+
+            classesInSystem.singleOrNull()
+                ?.takeUnless { it.name.startsWith("AnonymousClass-") } // TODO make it an impossible unique prefix
+                ?.let {
+                    println("UPDATED TYPE FOR ${it.name}")
+                    EtsTypeFact.ObjectEtsTypeFact(
+                        EtsClassType(EtsClassSignature(it.name)),
+                        this.properties
+                    ) // TODO how to do it properly?
+                } ?: this
+        }
+
+        is EtsTypeFact.GuardedTypeFact -> TODO()
+        is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
+        is EtsTypeFact.UnionEtsTypeFact -> TODO()
+        else -> this
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =
@@ -387,7 +447,7 @@ class TypeInferenceManager(
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.NullEtsTypeFact,
             EtsTypeFact.UndefinedEtsTypeFact,
-                -> return if (property.isNotEmpty()) this else intersect(type)
+            -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor
