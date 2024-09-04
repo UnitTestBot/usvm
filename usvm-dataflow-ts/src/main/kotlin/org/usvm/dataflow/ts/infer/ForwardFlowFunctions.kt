@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsNewArrayExpr
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
@@ -119,6 +120,13 @@ class ForwardFlowFunctions(
 
                 val type = EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
                 result += TypedVariable(lhv, type)
+            }
+
+            is EtsNewArrayExpr -> {
+                val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
+                result += TypedVariable(lhv, type)
+                // TODO: check
+                result += TypedVariable(lhv + ElementAccessor, EtsTypeFact.from(rhv.elementType))
             }
 
             is EtsStringConstant -> {

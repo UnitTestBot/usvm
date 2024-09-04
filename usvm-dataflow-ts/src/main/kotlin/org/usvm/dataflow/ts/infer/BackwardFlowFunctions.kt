@@ -206,6 +206,7 @@ class BackwardFlowFunctions(
                     // Case 'x := y'
                     result += TypedVariable(rhv.base, EtsTypeFact.UnknownEtsTypeFact)
                 } else {
+                    check(rhv.accesses.size == 1)
                     when (val accessor = rhv.accesses.single()) {
                         // Case 'x := y.f'
                         is FieldAccessor -> {
@@ -219,7 +220,9 @@ class BackwardFlowFunctions(
 
                         // Case 'x := y[i]'
                         is ElementAccessor -> {
-                            result += TypedVariable(rhv.base, EtsTypeFact.UnknownEtsTypeFact).withTypeGuards(current)
+                            // Note: ElementAccessor guarantees that `y` is an array, since `y[i]` for property access (i.e. access property with name "i") is represented via FieldAccessor.
+                            val rhvType = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.UnknownEtsTypeFact)
+                            result += TypedVariable(rhv.base, rhvType).withTypeGuards(current)
                         }
                     }
 
@@ -253,7 +256,9 @@ class BackwardFlowFunctions(
 
                     // Case 'x[i] := y'
                     is ElementAccessor -> {
-                        result += TypedVariable(lhv.base, EtsTypeFact.ArrayEtsTypeFact(EtsTypeFact.UnknownEtsTypeFact))
+                        // Note: ElementAccessor guarantees that `y` is an array, since `y[i]` for property access (i.e. access property with name "i") is represented via FieldAccessor.
+                        val lhvType = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.UnknownEtsTypeFact)
+                        result += TypedVariable(lhv.base, lhvType)
                     }
                 }
             }

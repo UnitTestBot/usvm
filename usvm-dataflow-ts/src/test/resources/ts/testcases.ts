@@ -1,102 +1,145 @@
 // Case `x := y`
-class CaseAssignLocalToLocalNumber {
+class CaseAssignLocalToLocal {
     entrypoint() {
         let x = 52; // x: number
         let y = x; // y: number
         infer(y);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x := y.f`
-class CaseAssignFieldToLocalObject {
+class CaseAssignFieldToLocal1 {
     entrypoint(y: any) {
         let x = y.f; // y: { f: any }
         infer(y);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "Object { f: any }"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: any }";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x := y.f`
-class CaseAssignFieldToLocalNumber {
+class CaseAssignFieldToLocal2 {
     entrypoint() {
         let y = {f: 42}; // y: { f: number }
         let x = y.f; // x: number
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x.f := y`
-class CaseAssignLocalToFieldObject {
+class CaseAssignLocalNumberToField {
     entrypoint(x: any) {
         let y = 100; // y: number
         x.f = y; // x: { f: number }
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "Object { f: number }"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: number }";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x.f := y`
-class CaseAssignObjectToFieldObject {
+class CaseAssignLocalObjectToField {
     entrypoint(x: any) {
-        let y = {t: 32}; // y: { t: number }
+        let y = { t: 32 }; // y: { t: number }
         x.f = y; // x: { f: { t: number } }
         infer(x);
     }
 
-    infer(a: any) {}
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: { t: number } }";
+    }
+}
 
-    EXPECTED_ARG_0 = "Object { f: { t: number } }"
+// ----------------------------------------
+
+// Case `y := [...]`
+class CaseAssignArrayToLocal {
+    entrypoint() {
+        let y = [1, 2, 3]; // y: Array<number>
+        infer(y);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<number>";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x := y[i]`
-class CaseAssignArrayElementToLocalArray {
-    entrypoint(y: any) {
+class CaseAssignArrayElementToLocal1 {
+    entrypoint() {
+        let y = [33]; // y: Array<number>
         let x = y[0]; // y: Array<any>
         infer(y);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "Array<any>"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<number>";
+    }
 }
 
 // ----------------------------------------
 
 // Case `x := y[i]`
-class CaseAssignArrayElementToLocalNumber {
+class CaseAssignArrayElementToLocal2 {
     entrypoint() {
         let y = [22]; // y: Array<number>
         let x = y[0]; // x: number
         infer(x);
     }
 
-    infer(a: any) {}
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
+}
 
-    EXPECTED_ARG_0 = "number"
+// ----------------------------------------
+
+// Case `x := y[i]`
+class CaseAssignArgumentArrayElementToLocal1 {
+    entrypoint(y: number[]) {
+        let x = y[0]; // y: Array<any>
+        infer(y);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<any>";
+    }
+}
+
+// ----------------------------------------
+
+// Case `x := y[i]`
+class CaseAssignArgumentArrayElementToLocal2 {
+    entrypoint(y: number[]) {
+        let x = y[0]; // x: any
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "any";
+    }
 }
 
 // ----------------------------------------
@@ -109,9 +152,9 @@ class CaseAssignLocalToArrayElementNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "Array<number>"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<number>";
+    }
 }
 
 // ----------------------------------------
@@ -128,9 +171,9 @@ class CaseCastToInterface {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "ICustom"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "ICustom";
+    }
 }
 
 // ----------------------------------------
@@ -142,9 +185,9 @@ class CaseCastToArrayInterface {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "Array<ICustom>"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<ICustom>";
+    }
 }
 
 // ----------------------------------------
@@ -158,9 +201,9 @@ class CaseAddNumbers {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -174,9 +217,9 @@ class CaseLogicalAndBooleans {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "boolean"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "boolean";
+    }
 }
 
 // ----------------------------------------
@@ -190,9 +233,9 @@ class CaseLogicalOrBooleanAndString {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "boolean | string"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "boolean | string";
+    }
 }
 
 // ----------------------------------------
@@ -206,9 +249,9 @@ class CaseAddStrings {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "string"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "string";
+    }
 }
 
 // ----------------------------------------
@@ -222,9 +265,9 @@ class CaseAddNumberToString {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "string"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "string";
+    }
 }
 
 // ----------------------------------------
@@ -238,9 +281,9 @@ class CaseAddStringToNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "string"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "string";
+    }
 }
 
 // ----------------------------------------
@@ -254,9 +297,9 @@ class CaseSubtractNumberFromString {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -270,9 +313,9 @@ class CaseSubtractStringFromNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -286,9 +329,9 @@ class CaseMultiplyStringByNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -302,9 +345,9 @@ class CaseMultiplyNumberByString {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -318,9 +361,9 @@ class CaseAddBooleanToNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -334,9 +377,9 @@ class CaseAddNumberToBoolean {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -350,9 +393,9 @@ class CaseAddNullToNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -366,9 +409,9 @@ class CaseAddNumberToNull {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -382,9 +425,9 @@ class CaseAddUndefinedToNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -398,9 +441,9 @@ class CaseAddNumberToUndefined {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -414,9 +457,9 @@ class CaseDivideStringByNumber {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }
 
 // ----------------------------------------
@@ -430,7 +473,7 @@ class CaseDivideNumberByString {
         infer(x);
     }
 
-    infer(a: any) {}
-
-    EXPECTED_ARG_0 = "number"
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "number";
+    }
 }

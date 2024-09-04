@@ -449,20 +449,20 @@ sealed interface EtsTypeFact {
                 is EtsLiteralType -> TODO()
                 is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
                 is EtsFunctionType -> FunctionEtsTypeFact
-                is EtsArrayType -> ObjectEtsTypeFact(
-                    cls = type,
-                    properties = mapOf(
-                        "index" to ObjectEtsTypeFact(
-                            cls = null,
-                            properties = mapOf(
-                                "value" to from(type.elementType),
-                                "name" to StringEtsTypeFact
-                            )
-                        ),
-                        "length" to NumberEtsTypeFact
-                    )
-                )
-
+                // is EtsArrayType -> ObjectEtsTypeFact(
+                //     cls = type,
+                //     properties = mapOf(
+                //         "index" to ObjectEtsTypeFact(
+                //             cls = null,
+                //             properties = mapOf(
+                //                 "name" to StringEtsTypeFact,
+                //                 "value" to from(type.elementType)
+                //             )
+                //         ),
+                //         "length" to NumberEtsTypeFact
+                //     )
+                // )
+                is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
                 is EtsArrayObjectType -> TODO()
                 is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
                 else -> TODO()

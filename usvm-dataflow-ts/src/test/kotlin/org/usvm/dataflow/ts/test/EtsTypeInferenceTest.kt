@@ -1,9 +1,13 @@
 package org.usvm.dataflow.ts.test
 
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -328,6 +332,47 @@ class EtsTypeInferenceTest {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
         }
-        manager.analyze(entrypoints)
+        val inferredForwardTypes = manager.analyze(entrypoints)
+
+        val inferMethods = project.classes
+            .asSequence()
+            .filter { it.name.startsWith("Case") }
+            .flatMap { it.methods.asSequence() }
+            .filter { it.name == "infer" }
+            .toList()
+
+        val expectedTypeString: Map<EtsMethod, String> = inferMethods
+            .associateWith {
+                for (inst in it.cfg.stmts) {
+                    if (inst is EtsAssignStmt) {
+                        val lhv = inst.lhv
+                        if (lhv is EtsLocal && lhv.name == "EXPECTED_ARG_0") {
+                            val rhv = inst.rhv
+                            check(rhv is EtsStringConstant)
+                            return@associateWith rhv.value
+                        }
+                    }
+                }
+                error("unreachable")
+            }
+
+        println("=".repeat(42))
+        var numOk = 0
+        var numBad = 0
+        for (m in inferMethods) {
+            val inferred = inferredForwardTypes[m]!!.types[AccessPathBase.Arg(0)]!!
+            val expected = expectedTypeString[m]!!
+
+            if (inferred.toString() == expected) {
+                numOk++
+                println("Correctly inferred type for '${m.enclosingClass.name}::${m.name} in ${m.enclosingClass.enclosingFile}': ${inferred.toPrettyString()}")
+            } else {
+                numBad++
+                println("Incorrectly inferred type for '${m.enclosingClass.name}::${m.name} in ${m.enclosingClass.enclosingFile}': inferred='$inferred', expected=$expected")
+            }
+        }
+        println("numOk = $numOk")
+        println("numBad = $numBad")
+        println("Success rate: %.1f%%".format(numOk / (numOk + numBad).toDouble() * 100.0))
     }
 }
