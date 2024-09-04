@@ -1,16 +1,31 @@
 package org.usvm.solver
 
+import io.ksmt.solver.KModel
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
+import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UFpSort
+import org.usvm.USort
+import org.usvm.character
+import org.usvm.collection.string.UStringModelRegion
+import org.usvm.collection.string.UStringRegionId
 import org.usvm.constraints.UPathConstraints
+import org.usvm.getFloatValue
+import org.usvm.getIntValue
 import org.usvm.isFalse
 import org.usvm.isTrue
+import org.usvm.logger
+import org.usvm.model.UModel
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import org.usvm.sizeSort
+import org.usvm.withSizeSort
 import kotlin.time.Duration
 
 sealed interface USolverResult<out T>
@@ -31,6 +46,7 @@ open class USolverBase<Type>(
     protected val ctx: UContext<*>,
     protected val smtSolver: KSolver<*>,
     protected val typeSolver: UTypeSolver<Type>,
+    protected val stringSolver: UStringSolver,
     protected val translator: UExprTranslator<Type, *>,
     protected val decoder: UModelDecoder<UModelBase<Type>>,
     // TODO this timeout must not exceed time budget for the MUT
@@ -77,18 +93,16 @@ open class USolverBase<Type>(
                 }
 
                 // second, decode it unto uModel
-                val uModel = decoder.decode(kModel, assertions)
+                var uModel = decoder.decode(kModel, assertions)
 
-                // find interpretations of type constraints
 
+                // third, build a type solver query
                 val isExprToInterpretation = kModel.declarations.mapNotNull { decl ->
                     translator.declToIsExpr[decl]?.let { isSubtypeExpr ->
                         val expr = decl.apply(emptyList())
                         isSubtypeExpr to kModel.eval(expr, isComplete = true).asExpr(ctx.boolSort).isTrue
                     }
                 }
-
-                // third, build a type solver query
                 val typeSolverQuery = TypeSolverQuery(
                     inputToConcrete = { uModel.eval(it) as UConcreteHeapRef },
                     inputRefToTypeRegion = pc.typeConstraints.inputRefToTypeRegion,
@@ -97,21 +111,40 @@ open class USolverBase<Type>(
 
                 // fourth, check it satisfies typeConstraints
                 when (val typeResult = typeSolver.check(typeSolverQuery)) {
-                    is USatResult -> return USatResult(
-                        UModelBase(
-                            ctx,
-                            uModel.stack,
-                            typeResult.model,
-                            uModel.mocker,
-                            uModel.regions,
-                            uModel.nullRef
-                        )
-                    )
+                    is USatResult -> {
+                        uModel =
+                            UModelBase(
+                                ctx,
+                                uModel.stack,
+                                typeResult.model,
+                                uModel.mocker,
+                                uModel.regions,
+                                uModel.nullRef
+                            )
+                    }
 
                     // in case of failure, assert reference disequality expressions
-                    is UTypeUnsatResult<Type> -> typeResult.conflictLemmas
-                        .map(translator::translate)
-                        .let { smtSolver.assert(it) }
+                    is UTypeUnsatResult<Type> -> {
+                        typeResult.conflictLemmas
+                            .map(translator::translate)
+                            .let { smtSolver.assert(it) }
+                        continue
+                    }
+
+                    is UUnknownResult -> return UUnknownResult()
+                    is UUnsatResult -> return UUnsatResult()
+                }
+
+                // finally, check it satisfies string constraints
+                when (val stringResult = stringSolver.check(buildStringSolverQuery(kModel, uModel))) {
+                    is USatResult -> {
+                        if (stringResult.model.isNotEmpty()) {
+                            val stringRegion = uModel.getRegion(UStringRegionId(ctx)) as UStringModelRegion
+                            stringRegion.setCompletion(true)
+                            stringRegion.add(stringResult.model)
+                        }
+                        return USatResult(uModel)
+                    }
 
                     is UUnknownResult -> return UUnknownResult()
                     is UUnsatResult -> return UUnsatResult()
@@ -139,6 +172,63 @@ open class USolverBase<Type>(
             status = smtSolver.check(timeout)
         }
         return status
+    }
+
+    private fun buildStringSolverQuery(kModel: KModel, uModel: UModel): UStringSolverQuery {
+        val logger = lazy {
+            logger.debug { "======== Query to string solver begin ========" }
+            logger
+        }
+
+        val stringSolverQuery = UStringSolverQuery()
+
+        // [stringSolverQuery] uses [uModel] to evaluate constraints. It is crucial for uModel to have
+        // [UStringRegion] in non-completing state (see docs of [UStringRegion]) to allow partial evaluation
+        // of string expressions.
+        kModel.declarations.forEach { decl ->
+            when (decl.sort) {
+                ctx.boolSort -> {
+                    translator.declToBoolStringExpr[decl]?.let { boolStringConstraint ->
+                        logger.value.debug { "Asserting (boolean) $boolStringConstraint" }
+                        val result = kModel.eval<UBoolSort>(decl.apply(listOf()).cast(), isComplete = true).isTrue
+                        stringSolverQuery.addBooleanConstraint(uModel, boolStringConstraint, result)
+                    }
+                }
+
+                ctx.sizeSort -> {
+                    translator.declToIntStringExpr[decl]?.let { intStringConstraint ->
+                        logger.value.debug { "Asserting (integer) $intStringConstraint" }
+                        val result = ctx.withSizeSort<USort>()
+                            .getIntValue(kModel.eval(decl.apply(listOf()).cast(), isComplete = true))
+                            ?: error("Wasn't able to evaluate int value")
+                        stringSolverQuery.addIntConstraint(uModel, intStringConstraint, result)
+                    }
+                }
+
+                ctx.charSort -> {
+                    translator.declToCharStringExpr[decl]?.let { charStringConstraint ->
+                        logger.value.debug { "Asserting (char) $charStringConstraint" }
+                        val result = (kModel.eval(decl.apply(listOf()), isComplete = true) as? UConcreteChar)?.character
+                            ?: error("Wasn't able to evaluate char value")
+                        stringSolverQuery.addCharConstraint(uModel, charStringConstraint, result)
+                    }
+                }
+
+                is UFpSort -> {
+                    translator.declToFloatStringExpr[decl]?.let { floatStringConstraint ->
+                        logger.value.debug { "Asserting (float) $floatStringConstraint" }
+                        val result = getFloatValue(kModel.eval(decl.apply(listOf()).cast(), true))
+                            ?: error("Wasn't able to evaluate float value")
+                        stringSolverQuery.addFloatConstraint(uModel, floatStringConstraint, result)
+                    }
+                }
+            }
+        }
+
+        if (logger.isInitialized()) {
+            logger.value.debug { "======== Query to string solver end ========" }
+        }
+        return stringSolverQuery
     }
 
     private inline fun <T> KSolver<*>.withAssertionsScope(block: KSolver<*>.() -> T): T = try {

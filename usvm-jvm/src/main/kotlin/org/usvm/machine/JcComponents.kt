@@ -9,11 +9,11 @@ import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
+import org.usvm.solver.UDumbStringSolver
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USoftConstraintsProvider
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
-import kotlin.time.Duration
 
 class JcComponents(
     private val typeSystem: JcTypeSystem,
@@ -45,10 +45,11 @@ class JcComponents(
         val solverFactory = SolverFactory.mkFactory(options.runSolverInAnotherProcess)
         val smtSolver = solverFactory.mkSolver(ctx, options.solverType)
         val typeSolver = UTypeSolver(typeSystem)
+        val stringSolver = UDumbStringSolver(ctx)
         closeableResources += smtSolver
         closeableResources += solverFactory
 
-        return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
+        return USolverBase(ctx, smtSolver, typeSolver, stringSolver, translator, decoder, options.solverTimeout)
     }
 
     fun close() {

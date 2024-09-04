@@ -26,6 +26,7 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelBase
 import org.usvm.solver.TypeSolverQuery
+import org.usvm.solver.UDumbStringSolver
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverBase
@@ -68,7 +69,8 @@ class TypeSolverTest {
         val decoder = ULazyModelDecoder(translator)
 
         typeSolver = UTypeSolver(typeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
+        val stringSolver = UDumbStringSolver(ctx)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, stringSolver, translator, decoder, timeout = INFINITE)
 
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem

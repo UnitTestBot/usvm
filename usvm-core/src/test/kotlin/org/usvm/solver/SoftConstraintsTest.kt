@@ -49,7 +49,8 @@ open class SoftConstraintsTest {
         decoder = ULazyModelDecoder(translator)
 
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
+        val stringSolver = UDumbStringSolver(ctx)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, stringSolver, translator, decoder, timeout = INFINITE)
     }
 
     @Test
@@ -92,8 +93,9 @@ open class SoftConstraintsTest {
         pc += sameAsFirstExpr
 
         val typeSolver = UTypeSolver<Type>(mockk())
+        val stringSolver = UDumbStringSolver(ctx)
         val solver: USolverBase<Type> =
-            USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
+            USolverBase(ctx, KZ3Solver(ctx), typeSolver, stringSolver, translator, decoder, timeout = INFINITE)
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
         val result = solver.checkWithSoftConstraints(pc, softConstraints) as USatResult
