@@ -43,7 +43,7 @@ open class UPathConstraints<Type>(
      */
     protected val numericConstraints: UNumericConstraints<UBv32Sort> =
         UNumericConstraints(ctx, sort = ctx.bv32Sort, ownership)
-): UOwnedMergeable<UPathConstraints<Type>, MutableMergeGuard> {
+) : UOwnedMergeable<UPathConstraints<Type>, MutableMergeGuard> {
     init {
         // Use the information from the type constraints to check whether any static ref is assignable to any symbolic ref
         equalityConstraints.setTypesCheck(typeConstraints::canStaticRefBeEqualToSymbolic)

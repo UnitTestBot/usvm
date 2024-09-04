@@ -7,7 +7,6 @@ package org.usvm.collections.immutable.implementations.immutableSet
 
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.internal.forEachOneBit
-import org.usvm.test.util.logger
 
 typealias UPersistentHashSet<E> = TrieNode<E>
 
@@ -765,12 +764,11 @@ class TrieNode<E>(
         return this to false
     }
 
-    fun isEmpty() = firstOrNull() == null
-    fun isNotEmpty() = firstOrNull() != null
+    fun isEmpty() = none()
+    fun isNotEmpty() = any()
 
     fun remove(element: E, owner: MutabilityOwnership): TrieNode<E> =
-        //remove(element.hashCode(), element, 0).also { logger.debug { owner } }
-         mutableRemove(element.hashCode(), element, 0, owner).first
+        mutableRemove(element.hashCode(), element, 0, owner).first
 
     fun removeAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.remove(e, owner)}
@@ -784,8 +782,6 @@ class TrieNode<E>(
 
     fun add(element: E, owner: MutabilityOwnership?): TrieNode<E> =
         if (owner == null) add(element.hashCode(), element, 0) else mutableAdd(element.hashCode(), element, 0, owner)
-        //add(element.hashCode(), element, 0).also { logger.debug { owner } }
-         //mutableAdd(element.hashCode(), element, 0, owner)
 
     fun addAll(elements: Collection<E>, owner: MutabilityOwnership): TrieNode<E> =
         elements.fold(this) { node, e -> node.add(e, owner)}
@@ -806,9 +802,19 @@ class TrieNode<E>(
     @Suppress("UNCHECKED_CAST")
     fun clear() = EMPTY as TrieNode<E>
 
-    internal companion object {
-        internal val EMPTY = TrieNode<Nothing>(0, emptyArray())
+    override fun toString(): String =
+        iterator().asSequence().joinToString(separator = ", ", prefix = "{", postfix = "}") { it.toString() }
+
+    override fun hashCode(): Int = toList().hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is TrieNode<*>) return false
+        return other.calculateSize() == this.calculateSize() && all { other.contains(it)}
     }
 
     override fun iterator(): Iterator<E> = UPersistentHashSetIterator(this)
+
+    internal companion object {
+        internal val EMPTY = TrieNode<Nothing>(0, emptyArray())
+    }
 }

@@ -164,8 +164,11 @@ class UMemory<Type, Method>(
         ).also { ownership = thisOwnership }
 
     override fun toWritableMemory(ownership: MutabilityOwnership) =
-    // To be perfectly rigorous, we should clone stack and types here.
-        // But in fact they should not be used, so to optimize things up, we don't touch them.
+        /* NOTE 1: To be perfectly rigorous, we should clone stack and types here.
+        But in fact they should not be used, so to optimize things up, we don't touch them.
+        NOTE 2: [ownership] bust be fresh,so we don't change this.ownership since [this]
+         is not shared among several states.
+         */
         UMemory(ctx, ownership, types, stack, mocks, regions)
 
 

@@ -9,7 +9,6 @@ internal open class UPersistentHashSetIterator<E>(val node: TrieNode<E>) : Itera
     protected val path = mutableListOf(TrieNodeIterator<E>())
     protected var pathLastIndex = 0
     private var hasNext = true
-    private val initSize = node.calculateSize()
 
     init {
         path[0].reset(node.buffer)
@@ -104,9 +103,6 @@ internal class TrieNodeIterator<out E> {
     }
 
     fun nextElement(): E {
-        if (!hasNextElement()){
-
-        }
         assert(hasNextElement())
         @Suppress("UNCHECKED_CAST")
         return buffer[index++] as E

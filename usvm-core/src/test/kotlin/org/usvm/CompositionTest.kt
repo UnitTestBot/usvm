@@ -67,7 +67,7 @@ internal class CompositionTest {
         ctx = UContext(components)
         ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership : MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
 
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
         stackEvaluator = mockk()

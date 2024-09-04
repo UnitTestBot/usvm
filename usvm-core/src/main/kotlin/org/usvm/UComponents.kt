@@ -36,7 +36,7 @@ interface UComponents<Type, USizeSort : USort> {
     fun <Context : UContext<USizeSort>> mkComposer(
         ctx: Context,
     ): (UReadOnlyMemory<Type>, MutabilityOwnership) -> UComposer<Type, USizeSort> =
-        { memory: UReadOnlyMemory<Type>, ownership : MutabilityOwnership -> UComposer(ctx, memory, ownership) }
+        { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) }
 
     fun mkStatesForkProvider(): StateForker = if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
 

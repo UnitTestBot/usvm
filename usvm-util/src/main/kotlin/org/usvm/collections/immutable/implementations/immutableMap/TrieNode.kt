@@ -434,7 +434,7 @@ class TrieNode<K, V>(
 
     private fun calculateSize(): Int {
         if (nodeMap == 0) return buffer.size / ENTRY_SIZE
-            val numValues = dataMap.countOneBits()
+        val numValues = dataMap.countOneBits()
         var result = numValues
         for (i in (numValues * ENTRY_SIZE) until buffer.size) {
             result += nodeAtIndex(i).calculateSize()
@@ -777,8 +777,8 @@ class TrieNode<K, V>(
 
     val keys: Sequence<K> get() = UPersistentHashMapKeysIterator(this).asSequence()
 
-    fun isEmpty() = singleOrNull() == null
-    fun isNotEmpty() = singleOrNull() != null
+    fun isEmpty() = none()
+    fun isNotEmpty() = any()
 
     fun containsKey(key: K): Boolean = containsKey(key.hashCode(), key, 0)
 
@@ -804,7 +804,7 @@ class TrieNode<K, V>(
         val (node, hasChanged) = if (owner == null)
             remove(key.hashCode(), key, 0)
         else mutableRemove(key.hashCode(), key, 0, owner)
-        return (node ?: EMPTY as TrieNode<K,V>) to hasChanged
+        return (node ?: EMPTY as TrieNode<K, V>) to hasChanged
     }
 
     fun removeAll(keys: Iterable<K>, owner: MutabilityOwnership): TrieNode<K, V> =
@@ -832,9 +832,22 @@ class TrieNode<K, V>(
     @Suppress("UNCHECKED_CAST")
     fun clear() = EMPTY as TrieNode<K, V>
 
+    @Suppress("UNCHECKED_CAST")
+    override fun equals(other: Any?): Boolean {
+        // TODO consider ordered map case with linked value if we preserve custom RegionTree
+        other as? TrieNode<K, V> ?: return  false
+        return this.calculateSize() == other.calculateSize() && all { other[it.key] == it.value }
+    }
+
+    override fun toString(): String =
+        iterator().asSequence()
+            .joinToString(separator = "\n", prefix = "{", postfix = "}") { "${it.key} -> ${it.value}" }
+
+    override fun hashCode(): Int = toList().hashCode()
+
+    override fun iterator(): Iterator<Map.Entry<K, V>> = UPersistentHashMapEntriesIterator(this)
+
     companion object {
         internal val EMPTY = TrieNode<Nothing, Nothing>(0, 0, emptyArray())
     }
-
-    override fun iterator(): Iterator<Map.Entry<K, V>> = UPersistentHashMapEntriesIterator(this)
 }
