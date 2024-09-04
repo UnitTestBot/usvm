@@ -80,7 +80,7 @@ class GoInstVisitor(
 
     override fun visitGoDeferInst(inst: GoDeferInst): GoInst {
         val name = (inst.func.accept(exprVisitor) as KConst).toString()
-        val method = ctx.getClosure(name)
+        val method = pkg.findMethod(name)
 
         val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
         val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
@@ -124,7 +124,7 @@ class GoInstVisitor(
         val rvalue = inst.rhv.accept(exprVisitor)
         val sort = rvalue.sort
 
-        if (rvalue == ctx.nullRef) {
+        if (rvalue == ctx.voidValue) {
             return GoNullInst(inst.location.method)
         }
 
