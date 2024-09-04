@@ -14,6 +14,11 @@ class JacoDbTest {
     }
 
     @Test
+    fun testMax2Anon() {
+        test("max2Anon")
+    }
+
+    @Test
     fun testMax2Closure() {
         test("max2Closure")
     }

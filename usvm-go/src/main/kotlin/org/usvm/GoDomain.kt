@@ -31,6 +31,10 @@ class GoPackage(
     val name: String,
     val methods: List<GoMethod>,
 ) {
+    fun hasMethod(name: String): Boolean {
+        return methods.any { it.metName == name }
+    }
+
     fun findMethod(name: String): GoMethod {
         return methods.find { it.metName == name } ?: throw UnknownMethodException(name)
     }
