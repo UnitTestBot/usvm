@@ -32,4 +32,4 @@ pluginManagement {
     }
 }
 
-includeBuild("../../../jacodb")
+includeBuild("../jacodb")
