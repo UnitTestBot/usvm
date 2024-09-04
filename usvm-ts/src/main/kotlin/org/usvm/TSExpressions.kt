@@ -36,24 +36,44 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
+class TSAddressSortExpr(
+    private val tctx: TSContext,
+    val value: UExpr<out USort>,
+) : USymbol<USort>(tctx) {
+
+    override val sort: USort = tctx.addressSort
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
+
+    override fun internHashCode(): Int = hash()
+
+    override fun accept(transformer: KTransformerBase): KExpr<USort> {
+        return tctx.mkUninterpretedSortValue(tctx.addressSort, 0).cast()
+    }
+
+    override fun print(printer: ExpressionPrinter) {
+        TODO("Not yet implemented")
+    }
+}
+
 class TSWrappedValue(
     ctx: TSContext,
     val value: UExpr<out USort>,
-    scope: TSStepScope
+    private val scope: TSStepScope
 ) : USymbol<USort>(ctx) {
     override val sort: USort
         get() = value.sort
 
     private val transformer = TSExprTransformer(value, scope)
 
-    fun asSort(sort: USort): UExpr<out USort> = transformer.transform(sort)
+    fun asSort(sort: USort): UExpr<out USort>? = transformer.transform(sort)
 
     fun coerce(
         other: UExpr<out USort>,
         action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
     ): UExpr<out USort> = when {
         other is UIntepretedValue -> {
-            val otherTransformer = TSExprTransformer(other)
+            val otherTransformer = TSExprTransformer(other, scope)
             transformer.intersectWithTypeCoercion(otherTransformer, action)
         }
         other is TSWrappedValue -> {

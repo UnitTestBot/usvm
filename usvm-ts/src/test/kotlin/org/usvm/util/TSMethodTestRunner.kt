@@ -24,6 +24,8 @@ import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import org.jacodb.ets.base.EtsRefType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsScene
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
@@ -173,6 +175,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.TSNumber.Double::class -> EtsNumberType
                 TSObject.TSNumber.Integer::class -> EtsNumberType
                 TSObject.UndefinedObject::class -> EtsUndefinedType
+                TSObject.Object::class -> EtsUnknownType
                 else -> error("Should not be called")
             }
         }

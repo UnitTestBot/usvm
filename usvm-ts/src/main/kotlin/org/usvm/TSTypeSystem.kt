@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsPrimitiveType
@@ -26,7 +26,7 @@ class TSTypeSystem(
 
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean = when {
         supertype == type -> true
-        supertype == EtsAnyType -> true
+        supertype == EtsUnknownType -> true
         else -> false
     }
 
@@ -37,19 +37,19 @@ class TSTypeSystem(
 
     override fun isFinal(type: EtsType): Boolean = when (type) {
         is EtsPrimitiveType -> true
-        is EtsAnyType -> false
+        is EtsUnknownType -> false
         else -> false
     }
 
     override fun isInstantiable(type: EtsType): Boolean = when (type) {
         is EtsPrimitiveType -> true
-        is EtsAnyType -> true
+        is EtsUnknownType -> true
         else -> false
     }
 
     override fun findSubtypes(type: EtsType): Sequence<EtsType> = when (type) {
         is EtsPrimitiveType -> emptySequence()
-        is EtsAnyType -> primitiveTypes
+        is EtsUnknownType -> primitiveTypes
         else -> emptySequence()
     }
 
@@ -61,7 +61,7 @@ class TSTypeSystem(
 class TSTopTypeStream(
     private val typeSystem: TSTypeSystem,
     private val primitiveTypes: List<EtsType> = TSTypeSystem.primitiveTypes.toList(),
-    private val anyTypeStream: UTypeStream<EtsType> = USupportTypeStream.from(typeSystem, EtsAnyType),
+    private val anyTypeStream: UTypeStream<EtsType> = USupportTypeStream.from(typeSystem, EtsUnknownType),
 ) : UTypeStream<EtsType> {
 
     override fun filterBySupertype(type: EtsType): UTypeStream<EtsType> {
@@ -121,7 +121,7 @@ class TSTopTypeStream(
         get() = anyTypeStream.isEmpty?.let { primitiveTypes.isEmpty() }
 
     override val commonSuperType: EtsType?
-        get() = EtsAnyType.takeIf { !(isEmpty ?: true) }
+        get() = EtsUnknownType.takeIf { !(isEmpty ?: true) }
 
     private fun <T> List<T>.remove(x: T): List<T> = this.filterNot { it == x }
 }

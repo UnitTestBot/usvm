@@ -101,7 +101,7 @@ class TSExprResolver(
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(lhs, rhs)
+        operator(lhs, rhs, scope)
     }
 
     private inline fun <T> resolveAfterResolved(
@@ -263,7 +263,7 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsNotExpr): UExpr<out USort>? = resolveAfterResolved(expr.arg) { arg ->
-        TSUnaryOperator.Not(arg)
+        TSUnaryOperator.Not(arg, scope)
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort> {
