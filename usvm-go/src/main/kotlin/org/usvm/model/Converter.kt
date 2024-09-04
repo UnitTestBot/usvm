@@ -2,13 +2,13 @@ package org.usvm.model
 
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoAddExpr
+import org.jacodb.go.api.GoAllocExpr
 import org.jacodb.go.api.GoAndExpr
 import org.jacodb.go.api.GoAndNotExpr
 import org.jacodb.go.api.GoBasicBlock
 import org.jacodb.go.api.GoBinaryExpr
 import org.jacodb.go.api.GoBool
 import org.jacodb.go.api.GoCallExpr
-import org.jacodb.go.api.GoCallInst
 import org.jacodb.go.api.GoConditionExpr
 import org.jacodb.go.api.GoDivExpr
 import org.jacodb.go.api.GoEqlExpr
@@ -32,6 +32,7 @@ import org.jacodb.go.api.GoInt8
 import org.jacodb.go.api.GoJumpInst
 import org.jacodb.go.api.GoLeqExpr
 import org.jacodb.go.api.GoLssExpr
+import org.jacodb.go.api.GoMakeClosureExpr
 import org.jacodb.go.api.GoModExpr
 import org.jacodb.go.api.GoMulExpr
 import org.jacodb.go.api.GoNeqExpr
@@ -43,6 +44,7 @@ import org.jacodb.go.api.GoPhiExpr
 import org.jacodb.go.api.GoReturnInst
 import org.jacodb.go.api.GoShlExpr
 import org.jacodb.go.api.GoShrExpr
+import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoStringConstant
 import org.jacodb.go.api.GoSubExpr
 import org.jacodb.go.api.GoType
@@ -60,24 +62,26 @@ import org.jacodb.go.api.GoUnaryExpr
 import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.PointerType
 import org.usvm.GoPackage
 
 object Converter {
     fun unpackPackage(pkg: Package): GoPackage {
         return GoPackage(pkg.name, pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
-                BasicType(function.name),
+                unpackType(function.name),
                 function.parameters.mapIndexed(::unpackParameter),
                 function.name,
                 emptyList(),
                 pkg.name,
-                function.returnTypes.map(::unpackReturnType),
+                function.freeVars.map { unpackValue(it) as GoFreeVar },
+                function.returnTypes.map(::unpackType),
             ).also { it.blocks = function.basicBlocks.map { block -> unpackBasicBlock(it, block) } }
         })
     }
 
     private fun unpackParameter(index: Int, param: Value): GoParameter {
-        return GoParameter(index, param.name, BasicType(param.goType))
+        return GoParameter(index, param.name, unpackType(param.goType))
     }
 
     private fun unpackBasicBlock(function: GoFunction, block: Member.BasicBlock): GoBasicBlock {
@@ -87,7 +91,7 @@ object Converter {
     private fun unpackInstruction(function: GoFunction, inst: Instruction): GoInst {
         val location = GoInstLocationImpl(function, inst.block, inst.line)
         return when (inst) {
-            is Instruction.Alloc -> TODO()
+            is Instruction.Alloc -> GoAllocExpr(location, unpackType(inst.goType), inst.register).toAssignInst()
             is Instruction.BinOp -> unpackBinOp(location, inst)
             is Instruction.Call -> unpackCall(location, inst)
             is Instruction.ChangeInterface -> TODO()
@@ -104,14 +108,14 @@ object Converter {
             is Instruction.Jump -> GoJumpInst(location, GoInstRef(inst.index))
             is Instruction.Lookup -> TODO()
             is Instruction.MakeChan -> TODO()
-            is Instruction.MakeClosure -> TODO()
+            is Instruction.MakeClosure -> unpackMakeClosure(location, inst)
             is Instruction.MakeInterface -> TODO()
             is Instruction.MakeMap -> TODO()
             is Instruction.MakeSlice -> TODO()
             is Instruction.MapUpdate -> TODO()
             is Instruction.Next -> TODO()
             is Instruction.Panic -> TODO()
-            is Instruction.Phi -> GoPhiExpr(location, BasicType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
+            is Instruction.Phi -> GoPhiExpr(location, unpackType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
             is Instruction.Range -> TODO()
             is Instruction.Return -> GoReturnInst(location, inst.results.map(::unpackValue))
             is Instruction.RunDefers -> TODO()
@@ -119,7 +123,7 @@ object Converter {
             is Instruction.Send -> TODO()
             is Instruction.Slice -> TODO()
             is Instruction.SliceToArrayPointer -> TODO()
-            is Instruction.Store -> GoNullInst(location.method)
+            is Instruction.Store -> GoStoreInst(location, unpackValue(inst.addr), unpackValue(inst.value))
             is Instruction.TypeAssert -> TODO()
             is Instruction.UnOp -> unpackUnOp(location, inst)
         }
@@ -149,7 +153,7 @@ object Converter {
         if (binaryExprConstructors.containsKey(binOp.op)) {
             return binaryExprConstructors[binOp.op]!!(
                 location,
-                BasicType(binOp.goType),
+                unpackType(binOp.goType),
                 unpackValue(binOp.first),
                 unpackValue(binOp.second),
                 binOp.register
@@ -160,27 +164,35 @@ object Converter {
     }
 
     private fun unpackCall(location: GoInstLocation, call: Instruction.Call): GoInst {
-        val expr = GoCallExpr(location, BasicType(call.goType), unpackValue(call.value), call.args.map(::unpackValue), null, call.register)
-        return GoCallInst(location, expr, call.register, BasicType(call.goType)).toAssignInst()
+        return GoCallExpr(
+            location,
+            unpackType(call.goType),
+            unpackValue(call.value),
+            call.args.map(::unpackValue),
+            null,
+            call.register
+        ).toAssignInst()
     }
 
     private fun unpackCondition(cond: Value): GoConditionExpr {
         return unpackValue(cond) as GoConditionExpr
     }
 
+    private fun unpackMakeClosure(location: GoInstLocation, makeClosure: Instruction.MakeClosure): GoInst {
+        val type = BasicType(makeClosure.name)
+        val function = functionAlias(makeClosure.function.name)
+        return GoMakeClosureExpr(location, type, function, makeClosure.bindings.map(::unpackValue), makeClosure.register).toAssignInst()
+    }
+
     private fun unpackValue(value: Value): GoValue {
         return when (value) {
             is Value.Const -> unpackConst(value)
-            is Value.FreeVar -> GoFreeVar(value.index, value.name, BasicType(value.goType))
-            is Value.Global -> GoGlobal(value.index, value.name, BasicType(value.goType))
-            is Value.Parameter -> GoParameter(value.index, value.name, BasicType(value.goType))
-            is Value.Var -> GoVar(value.name, BasicType(value.goType))
-            is Value.Builtin, is Value.Function, is Value.MakeClosure -> GoVar(value.name, BasicType(value.goType))
+            is Value.FreeVar -> GoFreeVar(value.index, value.name, unpackType(value.goType))
+            is Value.Global -> GoGlobal(value.index, value.name, unpackType(value.goType))
+            is Value.Parameter -> GoParameter(value.index, value.name, unpackType(value.goType))
+            is Value.Var -> GoVar(value.name, unpackType(value.goType))
+            is Value.Builtin, is Value.Function, is Value.MakeClosure -> GoVar(value.name, unpackType(value.goType))
         }
-    }
-
-    private fun unpackReturnType(type: String): GoType {
-        return BasicType(type)
     }
 
     private fun unpackUnOp(location: GoInstLocation, unOp: Instruction.UnOp): GoInst {
@@ -191,7 +203,7 @@ object Converter {
             "^" to ::GoUnXorExpr,
         )
 
-        val type = BasicType(unOp.goType)
+        val type = unpackType(unOp.goType)
         val arg = unpackValue(unOp.argument)
         val name = unOp.register
 
@@ -225,4 +237,28 @@ object Converter {
             else -> GoNullConstant()
         }
     }
+
+    private fun unpackType(type: String): GoType {
+        if (type.startsWith("*")) {
+            return PointerType(unpackType(type.substring(1)))
+        }
+
+        if (basicTypes.contains(type)) {
+            return BasicType(type)
+        }
+
+        return BasicType(type) // TODO real types
+    }
+
+    private fun functionAlias(name: String): GoFunction {
+        return GoFunction(BasicType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
+    }
+
+    private val basicTypes = setOf(
+        "bool",
+        "int", "int8", "int16", "int32", "int64",
+        "uint", "uint8", "uint16", "uint32", "uint64",
+        "float32", "float64",
+        "string",
+    )
 }

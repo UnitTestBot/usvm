@@ -7,7 +7,7 @@ func max2(a, b int) int {
 	return b
 }
 
-func max2Closure(a, b int) int {
+func max2Anon(a, b int) int {
 	mx := func(x, y int) int {
 		if x > y {
 			return x
@@ -15,6 +15,16 @@ func max2Closure(a, b int) int {
 		return y
 	}
 	return mx(a, b)
+}
+
+func max2Closure(a, b int) int {
+	mx := func() int {
+		if a > b {
+			return a
+		}
+		return b
+	}
+	return mx()
 }
 
 func max3(a, b, c int) int {

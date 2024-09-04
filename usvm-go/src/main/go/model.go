@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/types"
 	"log"
 	"sort"
 
@@ -119,6 +120,7 @@ func PackMember(in ssa.Member, _ int) Member {
 			CommonMember: common,
 			BasicBlocks:  lo.Map(member.Blocks, PackBasicBlock),
 			Parameters:   lo.Map(member.Params, PackParameter),
+			FreeVars:     lo.Map(member.FreeVars, func(v *ssa.FreeVar, _ int) Value { return PackValue(v) }),
 			ReturnTypes:  PackReturnTypes(member),
 		}
 	}
@@ -147,6 +149,7 @@ type Function struct {
 	CommonMember `yaml:",inline"`
 	BasicBlocks  []BasicBlock `yaml:"basic_blocks" json:"basic_blocks"`
 	Parameters   []Parameter  `yaml:"parameters" json:"parameters"`
+	FreeVars     []Value      `yaml:"free_vars" json:"free_vars"`
 	ReturnTypes  []string     `yaml:"return_types" json:"return_types"`
 }
 
@@ -179,12 +182,12 @@ func PackParameter(in *ssa.Parameter, index int) Parameter {
 
 func PackReturnTypes(in *ssa.Function) []string {
 	results := in.Signature.Results()
-	types := make([]string, 0, results.Len())
+	returnTypes := make([]string, 0, results.Len())
 	for i := 0; i < results.Len(); i++ {
-		types = append(types, results.At(i).Type().String())
+		returnTypes = append(returnTypes, results.At(i).Type().String())
 	}
 
-	return types
+	return returnTypes
 }
 
 type Instruction interface {
@@ -293,6 +296,8 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = StoreInstruction
 		return Store{
 			CommonInstruction: common,
+			Addr:              PackValue(inst.Addr),
+			Value:             PackValue(inst.Val),
 		}
 	case *ssa.If:
 		common.Type = IfInstruction
@@ -327,6 +332,8 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = AllocInstruction
 		return Alloc{
 			CommonInstruction: common,
+			GoType:            inst.Type().Underlying().(*types.Pointer).Elem().String(),
+			Register:          inst.Name(),
 		}
 	case *ssa.MakeSlice:
 		common.Type = MakeSliceInstruction
@@ -387,6 +394,9 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = MakeClosureInstruction
 		return MakeClosure{
 			CommonInstruction: common,
+			Register:          inst.Name(),
+			Function:          PackValue(inst.Fn),
+			Bindings:          lo.Map(inst.Bindings, PackValueIdx),
 		}
 	case *ssa.Phi:
 		common.Type = PhiInstruction
@@ -493,6 +503,8 @@ type Send struct {
 
 type Store struct {
 	CommonInstruction `yaml:",inline"`
+	Addr              Value `yaml:"addr" json:"addr"`
+	Value             Value `yaml:"value" json:"value"`
 }
 
 type If struct {
@@ -521,6 +533,8 @@ type MakeChan struct {
 
 type Alloc struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
 }
 
 type MakeSlice struct {
@@ -569,6 +583,9 @@ type TypeAssert struct {
 
 type MakeClosure struct {
 	CommonInstruction `yaml:",inline"`
+	Register          string  `yaml:"register" json:"register"`
+	Function          Value   `yaml:"function" json:"function"`
+	Bindings          []Value `yaml:"bindings" json:"bindings"`
 }
 
 type Phi struct {

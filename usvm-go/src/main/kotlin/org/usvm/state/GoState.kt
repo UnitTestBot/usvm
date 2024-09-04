@@ -1,19 +1,21 @@
 package org.usvm.state
 
-import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoType
+import org.usvm.GoCall
+import org.usvm.GoContext
+import org.usvm.GoTarget
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.constraints.UPathConstraints
-import org.usvm.GoCall
-import org.usvm.GoContext
-import org.usvm.GoTarget
+import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
@@ -186,14 +188,22 @@ class GoState(
     }
 
     fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
+        val currentMethod = lastEnteredMethod
         val methodInfo = getMethodInfo(call.method)
 
         callStack.push(call.method, returnInst)
         memory.stack.push(call.parameters, methodInfo.variablesCount)
 
-        getFreeVariables(call.method)?.forEachIndexed { index, variable ->
-            val lvalue = URegisterStackLValue(variable.sort, index + freeVariableOffset(call.method))
-            memory.write(lvalue, variable.asExpr(lvalue.sort), trueExpr)
+        if (call.method is GoFunction) {
+            call.method.freeVars.forEach { variable ->
+                val ref = memory.allocConcrete(variable.type)
+                val param = currentMethod.parameters.filterIsInstance<GoParameter>().find { it.name == variable.name } ?: throw IllegalStateException()
+                val rvalue = memory.read(URegisterStackLValue(typeToSort(param.type), param.index))
+                memory.write(GoPointerLValue(ref, rvalue.sort), rvalue, ctx.trueExpr)
+
+                val lvalue = URegisterStackLValue(typeToSort(variable.type), variable.index + freeVariableOffset(call.method))
+                memory.write(lvalue, ctx.mkAddressPointer(ref.address), trueExpr)
+            }
         }
 
         newInst(call.entrypoint)
