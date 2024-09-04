@@ -1,133 +1,133 @@
 // Case `x := y`
-function case1() {
-    let y = 42; // y: number
-    let x = y; // x: number
-    infer1(x);
-}
+class Case1 {
+    entrypoint() {
+        let x = 52; // x: number
+        let y = x; // y: number
+        infer(y);
+    }
 
-// Expected:
-//   a: number
-// Inferred:
-//   a: number
-function infer1(a: any) {
-    console.log(a);
-}
+    infer(a: any) {
+        console.log(a);
+    }
 
-// ----------------------------------------
-
-// Case `x := y.f`
-function case2(y: any) {
-    let x = y.f; // y: { f: any }
-    infer2(y);
-}
-
-// Expected:
-//   a: { f: any }
-// Inferred:
-//   a: Object {}
-function infer2(a: any) {
-    console.log(a);
+    EXPECTED_ARG_0 = "number"
 }
 
 // ----------------------------------------
 
 // Case `x := y.f`
-function case3() {
-    let y = {f: 42}; // y: { f: number }
-    let x = y.f; // x: number
-    infer3(x);
+class Case2 {
+    entrypoint(y: any) {
+        let x = y.f; // y: { f: any }
+        infer(y);
+    }
+
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "Object { f: any }"
 }
 
-// Expected:
-//   a: number
-// Inferred:
-//   a: number
-function infer3(a: any) {
-    console.log(a);
+// ----------------------------------------
+
+// Case `x := y.f`
+class Case3 {
+    entrypoint() {
+        let y = {f: 42}; // y: { f: number }
+        let x = y.f; // x: number
+        infer(x);
+    }
+
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "number"
 }
 
 // ----------------------------------------
 
 // Case `x.f := y`
-function case4(x: any) {
-    let y = 100; // y: number
-    x.f = y; // x: { f: number }
-    infer4(x);
-}
+class Case4 {
+    entrypoint(x: any) {
+        let y = 100; // y: number
+        x.f = y; // x: { f: number }
+        infer(x);
+    }
 
-// Expected:
-//   a: { f: number }
-// Inferred:
-//   a: Object {}
-function infer4(a: any) {
-    console.log(a);
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "Object { f: number }"
 }
 
 // ----------------------------------------
 
 // Case `x.f := y`
-function case5(x: any) {
-    let y = {t: 42}; // y: { t: number }
-    x.f = y; // x: { f: { t: number } }
-    infer5(x);
-}
+class Case5 {
+    entrypoint(x: any) {
+        let y = {t: 42}; // y: { t: number }
+        x.f = y; // x: { f: { t: number } }
+        infer(x);
+    }
 
-// Expected:
-//   a: { f: { t: number } }
-// Inferred:
-//   a: Object {}
-function infer5(a: any) {
-    console.log(a);
-}
+    infer(a: any) {
+        console.log(a);
+    }
 
-// ----------------------------------------
-
-// Case `x := y[i]`
-function case6(y: any) {
-    let x = y[0]; // y: Array<any>
-    infer6(y);
-}
-
-// Expected:
-//   a: Array<any>
-// Inferred:
-//   a: Object {}
-function infer6(a: any) {
-    console.log(a);
+    EXPECTED_ARG_0 = "Object { f: { t: number } }"
 }
 
 // ----------------------------------------
 
 // Case `x := y[i]`
-function case7() {
-    let y = [42]; // y: Array<number>
-    let x = y[0]; // x: number
-    infer7(x);
+class Case6 {
+    entrypoint(y: any) {
+        let x = y[0]; // y: Array<any>
+        infer(y);
+    }
+
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "Array<any>"
 }
 
-// Expected:
-//   a: number
-// Inferred:
-//   a: number
-function infer7(a: any) {
-    console.log(a);
+// ----------------------------------------
+
+// Case `x := y[i]`
+class Case7 {
+    entrypoint() {
+        let y = [42]; // y: Array<number>
+        let x = y[0]; // x: number
+        infer(x);
+    }
+
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "number"
 }
 
 // ----------------------------------------
 
 // Case `x[i] := y`
-function case8(x: any) {
-    let y = 100; // y: number
-    x[0] = y; // x: Array<number>
-    infer8(x);
-}
+class Case8 {
+    entrypoint(x: any) {
+        let y = 100; // y: number
+        x[0] = y; // x: Array<number>
+        infer(x);
+    }
 
-// Expected:
-//   a: Array<number>
-// Inferred:
-//   a: Object {}
-function infer8(a: any) {
-    console.log(a);
+    infer(a: any) {
+        console.log(a);
+    }
+
+    EXPECTED_ARG_0 = "Array<number>"
 }
 
 // NOTES:

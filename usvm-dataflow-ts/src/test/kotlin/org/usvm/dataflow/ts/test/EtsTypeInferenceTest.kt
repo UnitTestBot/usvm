@@ -319,7 +319,7 @@ class EtsTypeInferenceTest {
 
         val entrypoints = project.classes
             .flatMap { it.methods }
-            .filter { it.name.startsWith("case") }
+            .filter { it.name == "entrypoint" }
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
