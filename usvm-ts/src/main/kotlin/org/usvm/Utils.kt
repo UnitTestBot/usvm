@@ -1,5 +1,6 @@
 package org.usvm
 
+import io.ksmt.utils.cast
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 
@@ -7,3 +8,5 @@ import org.usvm.memory.UWritableMemory
 fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {
     write(ref as ULValue<*, USort>, value as UExpr<USort>, value.uctx.trueExpr)
 }
+
+fun UContext<*>.boolToFpSort(expr: UExpr<UBoolSort>) = mkIte(expr, mkFp64(1.0), mkFp64(0.0))

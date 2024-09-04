@@ -10,12 +10,15 @@ import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.TSObject
 import org.usvm.TSTest
 import org.usvm.TSWrappedValue
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UIntepretedValue
 import org.usvm.USort
 import org.usvm.extractBool
 import org.usvm.extractDouble
@@ -54,11 +57,17 @@ class TSTestResolver {
     }
 
     private fun resolveExpr(expr: UExpr<out USort>, type: EtsType): TSObject {
-        return when (type) {
-            is EtsPrimitiveType -> resolvePrimitive(expr, type)
-            is EtsRefType -> TODO()
+        return when  {
+            type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr)
+            type is EtsPrimitiveType -> resolvePrimitive(expr, type)
+            type is EtsRefType -> TODO()
             else -> TODO()
         }
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun resolveUnknown(expr: UExpr<out USort>): TSObject {
+        return TSObject.Object((expr as UConcreteHeapRef).address)
     }
 
     private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when (type) {

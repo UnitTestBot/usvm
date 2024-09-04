@@ -15,15 +15,16 @@ sealed class TSUnaryOperator(
         desiredSort = { boolSort },
     )
 
-    internal operator fun invoke(operand: UExpr<out USort>): UExpr<out USort> = with(operand.tctx) {
+    internal operator fun invoke(operand: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> = with(operand.tctx) {
         val sort = this.desiredSort(operand.sort)
         val expr = if (operand is TSWrappedValue) operand.asSort(sort) else
-            TSExprTransformer(operand).transform(sort)
+            TSExprTransformer(operand, scope).transform(sort)
 
-        when (expr.sort) {
+        when (expr?.sort) {
             is UBoolSort -> onBool(expr.cast())
             is UBvSort -> onBv(expr.cast())
             is UFpSort -> onFp(expr.cast())
+            null -> mkNullRef()
             else -> error("Expressions mismatch: $expr")
         }
     }

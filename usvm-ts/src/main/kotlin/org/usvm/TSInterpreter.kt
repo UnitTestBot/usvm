@@ -118,7 +118,7 @@ class TSInterpreter(
             }
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
 
-        val wrappedExpr = TSWrappedValue(ctx, expr)
+        val wrappedExpr = TSWrappedValue(ctx, expr, scope)
         scope.doWithState {
             memory.write(lvalue.cast(), wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
