@@ -1,22 +1,28 @@
 package org.usvm.dataflow.ts.test
 
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.generateEtsFileIR
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
-import org.usvm.dataflow.ts.test.utils.loadEtsFileFromTS
+import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.test.assertTrue
 
 class EtsTypeGuesserTest {
+    companion object {
+        private fun load(name: String): EtsFile {
+            return autoLoadEtsFileFromResource("/ts/$name.ts")
+        }
+    }
+
     @Test
     fun `use non unique fields`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
@@ -39,7 +45,7 @@ class EtsTypeGuesserTest {
 
     @Test
     fun `use unique fields`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
@@ -62,7 +68,7 @@ class EtsTypeGuesserTest {
 
     @Test
     fun `use unique and non unique fields`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
@@ -86,7 +92,7 @@ class EtsTypeGuesserTest {
 
     @Test
     fun `use unique methods`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
@@ -109,7 +115,7 @@ class EtsTypeGuesserTest {
 
     @Test
     fun `use non unique methods`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
@@ -132,7 +138,7 @@ class EtsTypeGuesserTest {
 
     @Test
     fun `use function and field`() {
-        val file = loadEtsFileFromTS("guesser.ts")
+        val file = load("guesser")
 
         val project = EtsScene(listOf(file))
         val graph = EtsApplicationGraphImpl(project)
