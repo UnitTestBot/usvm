@@ -9,6 +9,8 @@ import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
+import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.test.assertTrue
@@ -78,6 +80,8 @@ class EtsTypeGuesserTest {
             .flatMap { it.methods }
             .single { it.name == "useBothA" }
 
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
         }
@@ -88,6 +92,10 @@ class EtsTypeGuesserTest {
             typeFact.cls?.typeName == "FieldContainerToInfer" &&
                     listOf("defaultA", "uniqueA").all { it in typeFact.properties.keys }
         }
+
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+//        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test

@@ -29,7 +29,7 @@ function useUniqueFields(x : FieldContainerToInfer) {
     return x.uniqueA
 }
 
-function useBothA(x : FieldContainerToInfer) {
+function useBothA(x : FieldContainerToInfer): number {
     return x.uniqueA + x.defaultA
 }
 
@@ -41,7 +41,7 @@ function useNotUniqueMethod(x : MethodsContainerToInfer) {
     x.notUniqueFunction()
 }
 
-function useFunctionAndField(x : FieldContainerToInfer) {
+function useFunctionAndField(x : FieldContainerToInfer): number {
     x.notUniqueFunction()
     return x.defaultA
 }
