@@ -3,6 +3,7 @@ package com.spbpu.bbfinfrastructure.project.suite
 import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.util.FuzzingConf
+import com.spbpu.bbfinfrastructure.util.getAllWithout
 import java.io.File
 
 class PythonTestSuite : TestSuite() {
@@ -21,10 +22,13 @@ class PythonTestSuite : TestSuite() {
         val dirWithTargetFile = pathToTargetFile.substringBeforeLast('/')
         var tmpPath = dirWithTargetFile
         val pyFiles = mutableListOf<File>()
+        val helperNames = testSuite.suiteProjects.first().first.files.getAllWithout(0).map { it.name }
         while (tmpPath != FuzzingConf.pathToBenchmarkToFuzz) {
-            File(tmpPath).listFiles().forEach {
-                if (it.isFile && it.path.endsWith("py") && it.absolutePath != pathToTargetFile) pyFiles.add(it)
-            }
+            File(tmpPath).listFiles()
+                .filterNot { it.name in helperNames }
+                .forEach {
+                    if (it.isFile && it.path.endsWith("py") && it.absolutePath != pathToTargetFile) pyFiles.add(it)
+                }
             tmpPath = tmpPath.substringBeforeLast('/')
         }
         val backupText = pyFiles.map { it.readText() }
