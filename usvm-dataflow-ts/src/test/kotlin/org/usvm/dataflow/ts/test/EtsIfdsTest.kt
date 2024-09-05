@@ -46,7 +46,7 @@ class EtsIfdsTest {
 
     companion object {
         private fun load(name: String): EtsFile {
-            val path = "/ir/$name.json"
+            val path = "/ir/$name.ts.json"
             return loadEtsFileFromResource(path)
         }
     }
