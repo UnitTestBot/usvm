@@ -27,7 +27,7 @@ import kotlin.io.path.walk
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import kotlin.test.assertNotEquals
 
 @OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
@@ -336,7 +336,7 @@ class EtsTypeInferenceTest {
         val inferredTypesWithoutGuessed = manager.analyze(entrypoints, guessUniqueTypes = false)
         val inferredTypesWithGuessed = manager.analyze(entrypoints, guessUniqueTypes = true)
 
-        assertTrue { inferredTypesWithoutGuessed != inferredTypesWithGuessed }
+        assertNotEquals(inferredTypesWithoutGuessed, inferredTypesWithGuessed)
 
         println("=".repeat(42))
         println("Inferred types WITHOUT guesser: ")
