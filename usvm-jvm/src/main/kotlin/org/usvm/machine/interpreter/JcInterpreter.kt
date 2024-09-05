@@ -635,7 +635,6 @@ class JcInterpreter(
             options,
             ::mapLocalToIdxMapper,
             ::typeInstanceAllocator,
-            ::stringConstantAllocator,
             ::classInitializerAlwaysAnalysisRequiredForType
         )
 
@@ -657,15 +656,6 @@ class JcInterpreter(
 
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
     private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
-
-    private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
-
-    // Equal string constants must have equal references
-    private fun stringConstantAllocator(value: String): UConcreteHeapRef =
-        stringConstantAllocatedRefs.getOrPut(value) {
-            // Allocate globally unique ref with a negative address
-            ctx.allocateStaticRef()
-        }
 
     private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
 

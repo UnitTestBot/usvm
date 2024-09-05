@@ -5,12 +5,9 @@ import io.ksmt.cache.structurallyEqual
 import io.ksmt.decl.KConstDecl
 import io.ksmt.expr.KAndExpr
 import io.ksmt.expr.KApp
-import io.ksmt.expr.KBitVec32Value
-import io.ksmt.expr.KBitVec64Value
 import io.ksmt.expr.KEqExpr
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFalse
-import io.ksmt.expr.KIntNumExpr
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.expr.KIteExpr
 import io.ksmt.expr.KNotExpr
@@ -46,15 +43,9 @@ typealias UOrExpr = KOrExpr
 typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UEqExpr<Sort> = KEqExpr<Sort>
 typealias UNotExpr = KNotExpr
-typealias UIntepretedValue<Sort> = KInterpretedValue<Sort>
-typealias UConcreteInt = KIntNumExpr
-typealias UConcreteInt32 = KBitVec32Value
-typealias UConcreteInt64 = KBitVec64Value
-typealias UConcreteSize = KBitVec32Value
+typealias UInterpretedValue<Sort> = KInterpretedValue<Sort>
 
 typealias UAddressSort = KUninterpretedSort
-
-typealias USizeType = Int
 
 //endregion
 
@@ -119,7 +110,7 @@ class UConcreteHeapRefDecl internal constructor(
 class UConcreteHeapRef internal constructor(
     ctx: UContext<*>,
     val address: UConcreteHeapAddress,
-) : UIntepretedValue<UAddressSort>(ctx) {
+) : UInterpretedValue<UAddressSort>(ctx) {
 
     override val decl: UConcreteHeapRefDecl get() = uctx.mkConcreteHeapRefDecl(address)
 

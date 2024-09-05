@@ -42,6 +42,9 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringLiteralExpr
+import org.usvm.collection.string.UStringSort
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.splitUHeapRef
@@ -414,6 +417,26 @@ open class UContext<USizeSort : USort>(
             is UFalse -> falseBranch()
             else -> mkIte(condition, trueBranch(), falseBranch())
         }
+
+    val stringSort = UStringSort(this)
+
+    /**
+     * Strings with negative concrete heap addresses -- can be aliased by input strings
+     */
+    val internedStrings = mutableMapOf<String, UConcreteHeapRef>()
+
+    private val stringLiteralsCache = mkAstInterner<UStringLiteralExpr>()
+    fun mkStringLiteral(string: String): UStringLiteralExpr = stringLiteralsCache.createIfContextActive {
+        UStringLiteralExpr(this, string)
+    }
+    fun mkEmptyString() = mkStringLiteral("")
+
+    private val stringFromLanguageExprCache = mkAstInterner<UStringFromLanguageExpr>()
+    fun mkStringFromLanguage(ref: UHeapRef): UStringFromLanguageExpr = stringFromLanguageExprCache.createIfContextActive {
+        UStringFromLanguageExpr(this, ref)
+    }
+
+    // TODO: String interners...
 }
 
 val <USizeSort : USort> UContext<USizeSort>.sizeSort: USizeSort get() = sizeExprs.sizeSort
