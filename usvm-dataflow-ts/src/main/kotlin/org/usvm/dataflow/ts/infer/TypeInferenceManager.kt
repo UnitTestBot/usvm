@@ -319,19 +319,18 @@ class TypeInferenceManager(
             if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
                 this
             } else {
-                this.copy(elementType.guessType())
+                this.copy(elementType = elementType.guessType())
             }
         }
 
-        EtsTypeFact.FunctionEtsTypeFact -> TODO()
         is EtsTypeFact.ObjectEtsTypeFact -> {
             val touchedPropertiesNames = this.properties.keys
-            val classesInSystem = this@TypeInferenceManager
-                .graph
-                .cp
+            val classesInSystem = graph.cp
                 .classes
-                .filter {
-                    val propertiesNames = it.methods.mapTo(mutableSetOf()) { it.name } + it.fields.map { it.name }
+                .filter { cls ->
+                    val methodNames = cls.methods.map { it.name }
+                    val fieldNames = cls.fields.map { it.name }
+                    val propertiesNames = (methodNames + fieldNames).distinct()
                     touchedPropertiesNames.all { name -> name in propertiesNames }
                 }
 
@@ -339,13 +338,15 @@ class TypeInferenceManager(
                 ?.takeUnless { it.name.startsWith("AnonymousClass-") } // TODO make it an impossible unique prefix
                 ?.let {
                     println("UPDATED TYPE FOR ${it.name}")
+                    // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
-                        EtsClassType(EtsClassSignature(it.name)),
-                        this.properties
-                    ) // TODO how to do it properly?
+                        cls = EtsClassType(EtsClassSignature(it.name)),
+                        properties = this.properties,
+                    )
                 } ?: this
         }
 
+        is EtsTypeFact.FunctionEtsTypeFact -> TODO()
         is EtsTypeFact.GuardedTypeFact -> TODO()
         is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
         is EtsTypeFact.UnionEtsTypeFact -> TODO()
