@@ -454,7 +454,7 @@
               }
             ],
             "returnType": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
@@ -988,7 +988,7 @@
               }
             ],
             "returnType": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
