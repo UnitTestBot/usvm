@@ -14,10 +14,11 @@ object StatsManager {
         .toList()
         .map { it.toFile() }
         .filter { it.isFile && !it.path.contains("extensions") && !it.path.contains("helpers") && !it.path.contains("objects") }
-        .map { it to TemplatesParser.parse(it.absolutePath) }
-        .flatMap { (f, t) -> List(t.templates.size) { index -> Triple(f.path, index, t) } }
+        .map { TemplatesParser.parse(it.absolutePath) }
+        .flatMap { it.templates.map { it.name } }
 
-    var currentBadTemplatesList: List<Pair<TemplatesParser.Template, String>> =
+
+    var currentBadTemplatesList: List<String> =
         if (FuzzingConf.badTemplatesOnlyMode) {
             getBadTemplatesList()
         } else {
@@ -28,8 +29,8 @@ object StatsManager {
         currentBadTemplatesList = getBadTemplatesList()
     }
 
-    private fun getBadTemplatesList(): List<Pair<TemplatesParser.Template, String>> =
-        calc("results").templatesWithoutResults.map { it.first to it.second }
+    private fun getBadTemplatesList(): List<String> =
+        calc("results").templatesWithoutResults
 
     fun printStats(pathToResults: String = "sortedResults") {
         val (templatesWithoutResults, successFullTemplates) = calc(pathToResults)
@@ -48,7 +49,7 @@ object StatsManager {
         )
         println(
             "TEMPLATES WITHOUT RESULTS (${templatesWithoutResults.size}):\n${
-                templatesWithoutResults.joinToString("\n") { it.second }
+                templatesWithoutResults.joinToString("\n")
             }"
         )
     }
@@ -62,7 +63,7 @@ object StatsManager {
         printInfo: Boolean = false,
         forFeatures: Collection<String>? = null
     ): TemplatesResults {
-        val templatesWithoutResults = mutableListOf<Pair<TemplatesParser.Template, String>>()
+        val templatesWithoutResults = mutableListOf<String>()
         val successFullTemplates = mutableMapOf<String, Int>()
         val results =
             Files.walk(Paths.get(pathToResults))
@@ -71,20 +72,14 @@ object StatsManager {
                 .filter { it.isFile }
                 .filter { it.path.endsWith("java") }
                 .map { it to ResultHeader.convertFromString(it.readText())!! }
-        templates.forEach { (templateName, templateIndex, template) ->
+        templates.forEach { templateName ->
             val resultsForFeature =
-                results.filter { it.second.mutationDescriptionChain.any { it.contains("$templateName with index $templateIndex") } }
-            if (printInfo) {
-                if ((forFeatures != null && forFeatures.contains("$templateName $templateIndex")) || forFeatures == null) {
-                    println("------------")
-                    println("RESULTS FOR FEATURE $templateName $templateIndex:\n${resultsForFeature.joinToString("\n") { it.first.path }}")
-                }
-            }
+                results.filter { it.second.mutationDescriptionChain.any { it.contains("with name $templateName") } }
             if (resultsForFeature.isEmpty()) {
-                templatesWithoutResults.add(template to "$templateName $templateIndex")
+                templatesWithoutResults.add(templateName)
             }
             if (resultsForFeature.isNotEmpty()) {
-                successFullTemplates["$templateName $templateIndex"] = resultsForFeature.size
+                successFullTemplates[templateName] = resultsForFeature.size
             }
         }
         return TemplatesResults(templatesWithoutResults, successFullTemplates)
@@ -116,10 +111,10 @@ object StatsManager {
     }
 
     private class TemplatesResults(
-        val templatesWithoutResults: List<Pair<TemplatesParser.Template, String>>,
+        val templatesWithoutResults: List<String>,
         val successFullTemplates: Map<String, Int>
     ) {
-        operator fun component1(): List<Pair<TemplatesParser.Template, String>> {
+        operator fun component1(): List<String> {
             return templatesWithoutResults
         }
 

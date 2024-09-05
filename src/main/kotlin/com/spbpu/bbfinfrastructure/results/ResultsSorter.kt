@@ -16,7 +16,7 @@ object ResultsSorter {
         "Usvm" to 1.0,
         "Semgrep" to 0.75,
         "Insider" to 0.25,
-        "ApplicationInspector" to 0.25,
+        "ApplicationInspector" to 0.0,
         "Snyk" to 1.0
     )
 

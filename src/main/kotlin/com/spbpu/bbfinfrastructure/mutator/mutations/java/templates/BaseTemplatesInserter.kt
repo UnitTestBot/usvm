@@ -138,10 +138,17 @@ abstract class BaseTemplatesInserter: Transformation() {
 
     protected fun getRandomSensitivityTemplate(): Triple<TemplatesParser.Template, TemplatesParser.TemplateBody, Pair<String, Int>>? {
         return if (FuzzingConf.badTemplatesOnlyMode) {
-            StatsManager.currentBadTemplatesList.randomOrNull()?.let {
-                val index = it.second.substringAfter(' ').toInt()
-                val body = it.first.templates.get(index)
-                Triple(it.first, body, it.second.substringBefore(' ') to index)
+            StatsManager.currentBadTemplatesList.randomOrNull()?.let { templateName ->
+                var pathToTemplate = ""
+                val template = TemplatesDB.availableTemplates.asSequence()
+                    .map {
+                        pathToTemplate = it.path
+                        TemplatesParser.parse(it.path)
+                    }
+                    .find { it.templates.any { it.name == templateName } } ?: return null
+                val body = template.templates.find { it.name == templateName }!!
+                val index = template.templates.indexOfFirst { it.name == templateName }
+                Triple(template, body, pathToTemplate to index)
             }
         } else {
             val randomTemplateFile = TemplatesDB.getRandomSensitivityTemplate() ?: error("Cant find any template")

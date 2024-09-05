@@ -18,7 +18,7 @@ object TemplatesDB {
             .filter { it.path.contains("sensitivity") }
             .randomOrNull()
 
-    private val availableTemplates =
+    val availableTemplates =
         Files.walk(Paths.get(FuzzingConf.pathToTemplates))
             .map { it.toFile() }
             .filter { it.isFile && it.extension == "tmt" }
