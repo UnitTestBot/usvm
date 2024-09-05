@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.results
 
+import com.spbpu.bbfinfrastructure.util.CweUtil
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
 import name.fraser.neil.plaintext.Diff_match_patch
 import java.io.File
@@ -146,8 +147,9 @@ object ResultsSorter {
 
     private fun calcDiff(header: ResultHeader): Double {
         val originalCWE = header.originalFileCWE.first()
-        val trueTools = header.analysisResults.filter { it.second.contains(originalCWE) }
-        val falseTools = header.analysisResults.filterNot { it.second.contains(originalCWE) }
+        val cwes = listOf(originalCWE) + CweUtil.getCweChildrenOf(originalCWE)
+        val trueTools = header.analysisResults.filter { it.second.any { cwes.contains(it) } }
+        val falseTools = header.analysisResults.filterNot { it.second.any { cwes.contains(it) } }
         val trueToolsK = trueTools.sumOf { toolsToCoef[it.first]!! }
         val falseToolsK = falseTools.sumOf { toolsToCoef[it.first]!! }
         return abs(trueToolsK - falseToolsK)

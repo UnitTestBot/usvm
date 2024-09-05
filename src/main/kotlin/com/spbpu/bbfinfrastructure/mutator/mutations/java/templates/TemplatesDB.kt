@@ -4,7 +4,6 @@ import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
-import kotlin.streams.toList
 
 
 object TemplatesDB {
@@ -20,7 +19,7 @@ object TemplatesDB {
             .randomOrNull()
 
     private val availableTemplates =
-        Files.walk(Paths.get(FuzzingConf.dirToTemplates))
+        Files.walk(Paths.get(FuzzingConf.pathToTemplates))
             .map { it.toFile() }
             .filter { it.isFile && it.extension == "tmt" }
             .filter { !it.path.contains("helpers") && !it.path.contains("extensions") }

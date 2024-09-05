@@ -3,7 +3,7 @@ package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 import com.spbpu.bbfinfrastructure.util.getTrue
 import kotlin.random.Random
 
-object RandomTypeGenerator {
+object JavaRandomTypeGenerator {
 
     fun generateRandomType() =
         if (Random.getTrue(80)) {

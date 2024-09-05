@@ -1,10 +1,6 @@
 package com.spbpu.bbfinfrastructure.psicreator
 
-import com.intellij.core.CoreApplicationEnvironment
-import com.intellij.core.CoreFileTypeRegistry
-import com.intellij.core.CoreProjectEnvironment
-import com.intellij.core.JavaCoreApplicationEnvironment
-import com.intellij.core.JavaCoreProjectEnvironment
+import com.intellij.core.*
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -15,9 +11,9 @@ import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
 import com.intellij.pom.core.impl.PomModelImpl
 import com.intellij.pom.tree.TreeAspect
-import com.intellij.psi.*
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.augment.PsiAugmentProvider
-import com.intellij.psi.impl.file.impl.FileManagerImpl
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
 import com.jetbrains.python.*
 import com.jetbrains.python.documentation.doctest.PyDocstringTokenSetContributor
@@ -26,7 +22,6 @@ import com.jetbrains.python.psi.PyPsiFacade
 import com.jetbrains.python.psi.impl.PyElementGeneratorImpl
 import com.jetbrains.python.psi.impl.PyPsiFacadeImpl
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.psicreator.util.FooBarCompiler.setupMyCfg
 import com.spbpu.bbfinfrastructure.psicreator.util.FooBarCompiler.setupMyEnv
 import com.spbpu.bbfinfrastructure.psicreator.util.JvmResolveUtil
@@ -40,7 +35,6 @@ import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.BindingContext
-import com.jetbrains.python.PythonFileType
 import java.io.File
 
 typealias IntellijProject = com.intellij.openapi.project.Project
@@ -51,8 +45,8 @@ object PSICreator {
     private lateinit var env: CoreProjectEnvironment
     var curProject: Project? = null
 
-    fun getPsiForJava(text: String, proj: IntellijProject = Factory.file.project) =
-        PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
+//    fun getPsiForJava(text: String, proj: IntellijProject = Factory.file.project) =
+//        PsiFileFactory.getInstance(proj).createFileFromText(JavaLanguage.INSTANCE, text)
 
     fun getPsiForJava(text: String): PsiFile {
         if (!::env.isInitialized) {
@@ -100,6 +94,15 @@ object PSICreator {
         coreApplicationEnvironment.registerApplicationService(PyPsiFacade::class.java, PyPsiFacadeImpl(env.project));
         coreApplicationEnvironment.registerApplicationService(PyElementTypesFacade::class.java, PyElementTypesFacadeImpl());
         coreApplicationEnvironment.registerApplicationService(PyLanguageFacade::class.java, PyLanguageFacadeImpl());
+        env.project.registerService(TreeAspect::class.java, TreeAspect())
+
+        class MyPomModelImpl(env: CoreProjectEnvironment) : PomModelImpl(env.project) {
+            override fun runTransaction(pt: PomTransaction) = pt.run()
+        }
+        val pomModel = MyPomModelImpl(env)
+        env.project.registerService(PomModel::class.java, pomModel)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(PsiAugmentProvider.EP_NAME.name, PsiAugmentProvider::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(TreeCopyHandler.EP_NAME.name, TreeCopyHandler::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
     }
 
     fun getPSIForText(text: String, generateCtx: Boolean = true): KtFile {

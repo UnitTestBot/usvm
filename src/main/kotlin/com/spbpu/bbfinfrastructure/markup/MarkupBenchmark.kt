@@ -34,9 +34,9 @@ class MarkupBenchmark {
                 if (resultFromGroundTruth != null) {
                     val groundTruthKind = resultFromGroundTruth.kind!!
                     if (groundTruthKind == "fail") {
-                        val groundTruthCwe = resultFromGroundTruth.ruleId.substringAfter("CWE-").toInt()
+                        val groundTruthCwes = resultFromGroundTruth.ruleId.split(",").map { it.substringAfter("CWE-").toInt() }
                         val toolsFoundCWE = toolRes.ruleId.split(',').map { it.substringAfter("CWE-").toInt() }.toSet()
-                        val groundTruthCweWithChildren = CweUtil.getCweChildrenOf(groundTruthCwe) + groundTruthCwe
+                        val groundTruthCweWithChildren = groundTruthCwes.flatMap { CweUtil.getCweChildrenOf(it) } + groundTruthCwes
                         if (groundTruthCweWithChildren.intersect(toolsFoundCWE).isNotEmpty()) {
                             if (groundTruth[resultFromGroundTruth]?.all { !it.contains(toolName) } == true) {
                                 groundTruth[resultFromGroundTruth]?.add("${toolName}: true")
@@ -57,7 +57,7 @@ class MarkupBenchmark {
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
             results = groundTruth.entries.mapNotNull { (cweInfo, toolResults) ->
-                val (cwe, kind) = cweInfo.let { it.ruleId.substringAfter("CWE-") to it.kind!! }
+                val (cwe, kind) = cweInfo.let { it.ruleId to it.kind!! }
                 tools.forEach { toolName ->
                     if (toolResults.all { !it.contains(toolName) }) {
                         toolResults.add("$toolName: false")

@@ -90,6 +90,9 @@ fun main(args: Array<String>) {
     FuzzingConf.numberOfMutationsPerFile = numberOfMutationsPerFile
     FuzzingConf.numberOfMutantsPerFile = numberOfMutantsPerFile
     FuzzingConf.badTemplatesOnlyMode = badTemplatesOnlyMode
+    FuzzingConf.pathToBenchmarkToFuzz = pathToBenchmarkFuzz
+    FuzzingConf.pathToOriginalBenchmark = pathToBenchmark
+
     if (badTemplatesOnlyMode) {
         StatsManager.updateBadTemplatesList()
     }
@@ -104,6 +107,7 @@ fun main(args: Array<String>) {
     mutationManager.run(
         pathToBenchmark = pathToBenchmark,
         pathToBenchmarkToFuzz = pathToBenchmarkFuzz,
+        pathToReportsDir = FuzzingConf.pathToReportsDir,
         pathScriptToStartFuzzBenchmark = pathToScript,
         pathToVulnomicon = pathToVulnomicon,
         numOfFilesToCheck = numOfFilesToCheck,

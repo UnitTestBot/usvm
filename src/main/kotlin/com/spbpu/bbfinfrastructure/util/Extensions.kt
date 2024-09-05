@@ -6,8 +6,10 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.TokenSet
+import com.jetbrains.python.psi.PyFile
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.psicreator.util.createWhitespace
@@ -43,7 +45,6 @@ import java.util.*
 import java.util.function.BiPredicate
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
-import kotlin.reflect.jvm.kotlinFunction
 
 fun KtProperty.getLeft(): List<PsiElement> =
     if (this.allChildren.toList().any { it.node.elementType.index.toInt() == 179 }) this.allChildren.toList()
@@ -173,6 +174,26 @@ fun PsiElement.replaceThis(replacement: PsiElement) {
     for (p in this.node.getAllParentsWithoutNode()) {
         try {
             p.replaceChild(this.node, replacement.node)
+            return
+        } catch (e: AssertionError) {
+        }
+    }
+}
+
+fun PsiElement.addAfterThisSafe(psiElementToAdd: PsiElement) {
+    for (p in this.node.getAllParentsWithoutNode()) {
+        try {
+            p.psi.addAfter(psiElementToAdd, this)
+            return
+        } catch (e: AssertionError) {
+        }
+    }
+}
+
+fun PsiElement.addBeforeThisSafe(psiElementToAdd: PsiElement) {
+    for (p in this.node.getAllParentsWithoutNode()) {
+        try {
+            p.psi.addBefore(psiElementToAdd, this)
             return
         } catch (e: AssertionError) {
         }
@@ -420,11 +441,11 @@ fun KtBlockExpression.addProperty(prop: KtProperty): PsiElement? {
 fun KtFile.getBoxFuncs(): List<KtNamedFunction>? =
     this.getAllPSIChildrenOfType { it.text.contains(Regex("""fun box\d*\(""")) }
 
-fun PsiFile.addAtTheEnd(psiElement: PsiElement): PsiElement {
+fun PsiFile.addAtTheEnd(psiElement: PsiElement, whiteSpace: PsiWhiteSpace): PsiElement {
     return this.getAllPSIDFSChildrenOfType<PsiElement>().last().parent.let {
-        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        it.add(whiteSpace.copy())
         val res = it.add(psiElement)
-        it.add(Factory.psiFactory.createWhiteSpace("\n\n"))
+        it.add(whiteSpace.copy())
         res
     }
 }
@@ -443,6 +464,14 @@ fun PsiJavaFile.addToTheTop(psiElement: PsiElement): PsiElement {
     firstChild.add(Factory.javaPsiFactory.createWhitespace())
     val res = firstChild.add(psiElement)
     firstChild.add(Factory.javaPsiFactory.createWhitespace())
+    return res
+}
+
+fun PyFile.addToTheTop(psiElement: PsiElement): PsiElement {
+    val firstChild = this.allChildren.first!!
+    firstChild.add(PsiWhiteSpaceImpl("\n"))
+    val res = firstChild.add(psiElement)
+    firstChild.add(PsiWhiteSpaceImpl("\n"))
     return res
 }
 

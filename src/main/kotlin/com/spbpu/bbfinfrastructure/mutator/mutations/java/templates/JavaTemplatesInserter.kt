@@ -7,12 +7,12 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.impl.source.PsiClassImpl
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationLocation
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ConditionGenerator
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ExpressionGenerator
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaConditionGenerator
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaExpressionGenerator
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaScopeCalculator
-import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
+import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ScopeComponent
 import com.spbpu.bbfinfrastructure.project.BBFFile
-import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
+import com.spbpu.bbfinfrastructure.project.suite.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
 import com.spbpu.bbfinfrastructure.psicreator.util.Factory
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
@@ -27,19 +27,10 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.random.Random
 
-open class TemplatesInserter : Transformation() {
+open class JavaTemplatesInserter : BaseTemplatesInserter() {
 
-    private val testSuite = GlobalJavaTestSuite.javaTestSuite
+    private val testSuite = GlobalTestSuite.javaTestSuite
     private val originalPsiText = file.text
-    private var addedProjects = 0
-    private val numberOfProjectsToCheck = FuzzingConf.numberOfMutantsPerFile
-    private val currentMutationChain = mutableListOf<MutationInfo>()
-    private val numToInsertObjectTemplates = Random.nextInt(1, FuzzingConf.maxNumOfObjectsTemplates + 1)
-    private val numToInsertSensitivityTemplates = Random.nextInt(1, FuzzingConf.maxNumOfSensitivityTemplates + 1)
-    private var insertingObjectsTemplates = true
-    private var addedObjectsTemplates = 0
-    private var addedSensitivityTemplates = 0
-
 
     override fun transform() {
         repeat(1_000) {
@@ -57,30 +48,7 @@ open class TemplatesInserter : Transformation() {
         }
     }
 
-    private fun getRandomObjectTemplate(): Triple<TemplatesParser.Template, TemplatesParser.TemplateBody, Pair<String, Int>>? {
-        val randomTemplateFile = TemplatesDB.getRandomObjectTemplate() ?: error("Cant find any template")
-        val parsedTemplate = TemplatesParser.parse(randomTemplateFile.path)
-        val (randomTemplate, randomTemplateIndex) = parsedTemplate.templates.randomOrNullWithIndex() ?: return null
-        return Triple(parsedTemplate, randomTemplate, randomTemplateFile.path to randomTemplateIndex)
-    }
-
-    private fun getRandomSensitivityTemplate(): Triple<TemplatesParser.Template, TemplatesParser.TemplateBody, Pair<String, Int>>? {
-        return if (FuzzingConf.badTemplatesOnlyMode) {
-            StatsManager.currentBadTemplatesList.randomOrNull()?.let {
-                val index = it.second.substringAfter(' ').toInt()
-                val body = it.first.templates.get(index)
-                Triple(it.first, body, it.second.substringBefore(' ') to index)
-            }
-        } else {
-            val randomTemplateFile = TemplatesDB.getRandomSensitivityTemplate() ?: error("Cant find any template")
-            val parsedTemplate = TemplatesParser.parse(randomTemplateFile.path)
-            val (randomTemplate, randomTemplateIndex) = parsedTemplate.templates.randomOrNullWithIndex() ?: return null
-            Triple(parsedTemplate, randomTemplate, randomTemplateFile.path to randomTemplateIndex)
-        }
-    }
-
-
-    protected open fun tryToTransform(): Boolean {
+    override fun tryToTransform(): Boolean {
         val (parsedTemplate, randomTemplate, pathAndIndex) =
             insertingObjectsTemplates.ifTrue { getRandomObjectTemplate() } ?: getRandomSensitivityTemplate()
             ?: return false
@@ -100,42 +68,17 @@ open class TemplatesInserter : Transformation() {
             } ?: file.getRandomPlaceToInsertNewLine(!insertingObjectsTemplates)
         if (randomPlaceToInsert == null) return false
         val randomPlaceToInsertLineNumber = randomPlaceToInsert.getLocationLineNumber()
-        var currentBlockLineNumber = randomPlaceToInsertLineNumber
-        val scope = JavaScopeCalculator(file, project).calcScope(randomPlaceToInsert)
-        val mappedHoles = mutableMapOf<String, String>()
-        val mappedTypes = mutableMapOf<String, String>()
+        val scope = JavaScopeCalculator().calcVariablesAndFunctionsFromScope(randomPlaceToInsert)
         val usedExtensions = mutableListOf<String>()
+
         //TODO CAN WE REPLACE ~[BODY]~ by another template????
-        val filledBlocks = randomTemplate.templateBody.split("~[BODY]~")
-            .map { block ->
-                val endOfBlock = file.getRandomPlaceToInsertNewLine(currentBlockLineNumber, !insertingObjectsTemplates)
-                    ?: return false
-                var fillIteration = 0
-                var filledTemplate =
-                    fillTemplateBody(
-                        mappedTypes = mappedTypes,
-                        mappedHoles = mappedHoles,
-                        scope = scope,
-                        randomTemplateBody = block,
-                        parsedTemplate = parsedTemplate,
-                        iteration = fillIteration++,
-                        usedExtensions = usedExtensions
-                    )
-                while (filledTemplate.contains("~[")) {
-                    filledTemplate = fillTemplateBody(
-                        mappedTypes = mappedTypes,
-                        mappedHoles = mappedHoles,
-                        scope = scope,
-                        randomTemplateBody = filledTemplate,
-                        parsedTemplate = parsedTemplate,
-                        iteration = fillIteration++,
-                        usedExtensions = usedExtensions
-                    )
-                }
-                filledTemplate to currentBlockLineNumber.also {
-                    currentBlockLineNumber = endOfBlock.getLocationLineNumber()
-                }
-            }
+        val filledBlocks = fillBlocks(
+            randomTemplate = randomTemplate,
+            randomPlaceToInsert = randomPlaceToInsert,
+            scope = scope,
+            parsedTemplate = parsedTemplate,
+            usedExtensions = usedExtensions
+        ) ?: return false
         val replacementPsiBlock =
             if (filledBlocks.size == 1) {
                 val newText = filledBlocks.first().first
@@ -211,7 +154,9 @@ open class TemplatesInserter : Transformation() {
         } ?: false
     }
 
-    protected fun checkNewCode(mutationInfo: MutationInfo?): Boolean {
+
+
+    private fun checkNewCode(mutationInfo: MutationInfo?): Boolean {
         if (!checker.checkCompiling()) {
             throw IllegalArgumentException()
         } else {
@@ -235,56 +180,17 @@ open class TemplatesInserter : Transformation() {
     }
 
 
-    private fun fillTemplateBody(
-        mappedTypes: MutableMap<String, String>,
-        mappedHoles: MutableMap<String, String>,
-        scope: List<JavaScopeCalculator.JavaScopeComponent>,
-        randomTemplateBody: String,
-        parsedTemplate: TemplatesParser.Template,
-        iteration: Int,
-        usedExtensions: MutableList<String>
-    ): String {
-        val stack = mutableListOf<Int>() // Стек для хранения индексов открывающих скобок
-        var newText = randomTemplateBody
-        var i = 0
-        while (i < newText.length) {
-            if (newText.startsWith("~[", i)) {
-                stack.add(i)
-            }
-            if (newText.startsWith("]~", i)) {
-                val startIndex = stack.removeLast()
-                val token = newText.substring(startIndex + 2, i)
-                val replacement = getReplacementForHole(
-                    hole = token,
-                    mappedTypes = mappedTypes,
-                    mappedHoles = mappedHoles,
-                    scope = scope,
-                    randomTemplateBody = randomTemplateBody,
-                    parsedTemplate = parsedTemplate,
-                    iteration = iteration,
-                    usedExtensions = usedExtensions
-                )
-                newText = newText.replaceRange(startIndex, i + 2, replacement)
-                val diff = token.length - replacement.length
-                i = i - diff - 3
-            }
-            i++
-        }
-
-        return newText
-    }
-
-    private fun getReplacementForHole(
+    override fun getReplacementForHole(
         hole: String,
         mappedTypes: MutableMap<String, String>,
         mappedHoles: MutableMap<String, String>,
-        scope: List<JavaScopeCalculator.JavaScopeComponent>,
+        scope: List<ScopeComponent>,
         randomTemplateBody: String,
         parsedTemplate: TemplatesParser.Template,
         iteration: Int,
         usedExtensions: MutableList<String>
     ): String {
-        val expressionGenerator = ExpressionGenerator()
+        val javaExpressionGenerator = JavaExpressionGenerator()
         if (hole.contains("@")) {
             mappedHoles[hole]?.let { return it }
         }
@@ -311,7 +217,7 @@ open class TemplatesInserter : Transformation() {
             }
         }
         if (holeType == HOLE_TYPE.CONST) {
-            val literal = expressionGenerator.genConstant(getTypeFromHole(hole, mappedTypes)!!)!!
+            val literal = javaExpressionGenerator.genConstant(getTypeFromHole(hole, mappedTypes)!!)!!
             if (hole.contains("@")) {
                 mappedHoles[hole] = literal
             }
@@ -319,21 +225,21 @@ open class TemplatesInserter : Transformation() {
         }
         if (holeType == HOLE_TYPE.TYPE) {
             mappedTypes[hole]?.let { return it }
-            val randomType = RandomTypeGenerator.generateRandomType()
+            val randomType = JavaRandomTypeGenerator.generateRandomType()
             if (hole.contains("@")) {
                 mappedTypes[hole] = randomType
             }
             return randomType
         }
         val type = getTypeFromHole(hole, mappedTypes) ?: run {
-            RandomTypeGenerator.generateRandomType().also {
+            JavaRandomTypeGenerator.generateRandomType().also {
                 mappedTypes[hole.substringAfter("_")] = it
             }
         }
         val capturedType = JavaTypeMappings.mappings[type] ?: type
         if (capturedType == "boolean" || capturedType == "java.lang.Boolean") {
             if (holeType == HOLE_TYPE.EXPR) {
-                ConditionGenerator(scope).generate()?.let {
+                JavaConditionGenerator(scope).generate()?.let {
                     if (hole.contains("@")) {
                         mappedHoles[hole] = it
                     }
@@ -354,7 +260,7 @@ open class TemplatesInserter : Transformation() {
         }
         val resMapping =
             randomValueWithCompatibleType
-                ?: expressionGenerator.generateExpressionOfType(scope, capturedType)
+                ?: javaExpressionGenerator.generateExpressionOfType(scope, capturedType)
                 ?: throw IllegalArgumentException()
         if (hole.contains("@")) {
             mappedHoles[hole] = resMapping
@@ -362,22 +268,17 @@ open class TemplatesInserter : Transformation() {
         return resMapping
     }
 
-    private fun checkFromExtensionsAndMacros(template: TemplatesParser.Template, hole: String): String? {
-        val extensions = template.extensions[hole] ?: listOf()
-        val macros = template.macros[hole] ?: listOf()
-        return (extensions + macros).randomOrNull()
-    }
-
     protected fun insertClasses(originalPackageDirective: String) {
-        Files.walk(Paths.get(FuzzingConf.dirToTemplates))
+        Files.walk(Paths.get(FuzzingConf.pathToTemplates))
             .map { it.toFile() }
-            .filter { it.path.contains("helpers") && it.isFile}
+            .filter { it.path.contains("helpers") && it.isFile }
             .toArray()
             .map { it as File }
             .toList()
-            .flatMap { it.readText().split(Regex("~class .* start~\n"))
-                .filter { it.trim().isNotEmpty() }
-                .map { it.substringBefore("~class") }
+            .flatMap {
+                it.readText().split(Regex("~class .* start~\n"))
+                    .filter { it.trim().isNotEmpty() }
+                    .map { it.substringBefore("~class") }
             }
             .map {
                 val psiForClass =
@@ -423,14 +324,8 @@ open class TemplatesInserter : Transformation() {
         return true
     }
 
-    private fun getTypeFromHole(hole: String, mappedTypes: Map<String, String>) =
-        if (hole.contains("TYPE")) {
-            mappedTypes[hole.substringAfter("_")]
-        } else {
-            hole.substringAfter("_").substringBefore("@")
-        }
 
-    private fun getValueOfTypeFromScope(scope: List<JavaScopeCalculator.JavaScopeComponent>, type: String): String? {
+    private fun getValueOfTypeFromScope(scope: List<ScopeComponent>, type: String): String? {
         val jType =
             try {
                 this::class.java.classLoader.loadClass(type)
@@ -441,20 +336,5 @@ open class TemplatesInserter : Transformation() {
             scope.filter { it.type == jTypeNotNull.name || it.type == jTypeNotNull.primitiveByWrapper?.name }
                 .randomOrNull()?.name
         } ?: scope.filter { it.type == type }.randomOrNull()?.name
-    }
-
-//    class Template(
-//        val auxClasses: List<Pair<String, String>>,
-//        val imports: List<String>,
-//        val templates: List<TemplateBody>
-//    )
-//
-//    data class TemplateBody(
-//        val auxMethods: List<String>,
-//        val templateBody: String
-//    )
-
-    private enum class HOLE_TYPE {
-        VAR, EXPR, TYPE, CONST, MACRO
     }
 }

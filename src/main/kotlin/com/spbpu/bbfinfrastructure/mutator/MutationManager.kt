@@ -5,6 +5,7 @@ interface MutationManager {
     fun run(
         pathToBenchmark: String,
         pathToBenchmarkToFuzz: String,
+        pathToReportsDir: String,
         pathScriptToStartFuzzBenchmark: String,
         pathToVulnomicon: String,
         numOfFilesToCheck: Int,

@@ -1,24 +1,9 @@
 package com.spbpu.bbfinfrastructure.mutator.mutations.java.templates
 
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiJavaFile
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.impl.source.PsiClassImpl
-import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
-import com.spbpu.bbfinfrastructure.mutator.mutations.MutationLocation
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ConditionGenerator
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.ExpressionGenerator
-import com.spbpu.bbfinfrastructure.mutator.mutations.java.util.JavaScopeCalculator
-import com.spbpu.bbfinfrastructure.project.BBFFile
 import com.spbpu.bbfinfrastructure.psicreator.PSICreator
-import com.spbpu.bbfinfrastructure.psicreator.util.Factory
-import com.spbpu.bbfinfrastructure.util.*
 import com.spbpu.bbfinfrastructure.util.exceptions.MutationFinishedException
-import org.jetbrains.kotlin.psi.psiUtil.parents
-import kotlin.random.Random
 
-open class TemplateBasedMutation(private val pathToTemplates: String) : TemplatesInserter() {
+open class TemplateBasedMutation(private val pathToTemplates: String) : JavaTemplatesInserter() {
 
     override fun transform() {
         repeat(10_000) {

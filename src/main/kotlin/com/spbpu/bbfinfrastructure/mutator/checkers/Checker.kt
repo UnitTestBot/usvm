@@ -41,11 +41,12 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
 
     private fun createPsiAndCheckOnErrors(text: String, language: LANGUAGE): Boolean =
         when (language) {
-            LANGUAGE.JAVA -> PSICreator.getPsiForJava(text, Factory.file.project)
+            LANGUAGE.JAVA -> PSICreator.getPsiForJava(text)
+            LANGUAGE.PYTHON -> PSICreator.getPsiForPython(text)
             else -> Factory.psiFactory.createFile(text)
-        }.let { tree ->
+        }?.let { tree ->
             tree.getAllPSIChildrenOfType<PsiErrorElement>().isEmpty() && additionalConditions.all { it.invoke(tree) }
-        }
+        } ?: false
 
     //FALSE IF ERROR
     private fun checkSyntaxCorrectnessAndAddCond(project: Project, curFile: BBFFile?) =
@@ -58,7 +59,6 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
         compilers.map { it.tryToCompileWithStatus(project) }
 
     fun checkCompiling(project: Project): Boolean {
-        val allTexts = project.files.map { it.psiFile.text }.joinToString()
         //Checking syntax correction
         if (!checkSyntaxCorrectnessAndAddCond(project, null)) {
             // log.debug("Wrong syntax or breaks conditions")
@@ -73,6 +73,4 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
     }
 
     val additionalConditions: MutableList<(PsiFile) -> Boolean> = mutableListOf()
-
-    private val log = Logger.getLogger("mutatorLogger")
 }

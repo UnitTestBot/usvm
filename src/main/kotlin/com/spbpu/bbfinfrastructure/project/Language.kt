@@ -4,5 +4,6 @@ enum class LANGUAGE {
     KOTLIN,
     KJAVA,
     JAVA,
+    PYTHON,
     UNKNOWN
 }

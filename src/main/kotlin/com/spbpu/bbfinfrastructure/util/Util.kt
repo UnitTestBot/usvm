@@ -266,7 +266,7 @@ fun PsiFile.getRandomPlaceToInsertNewLine(fromLine: Int, toLine: Int, inMethod: 
     return getAllPSIChildrenOfType<PsiWhiteSpace>()
         .filter { it.text.contains("\n") }
         .filter { it.getLocationLineNumber().let { it > lastImportStatementLineNumber && it > fromLine && it < toLine }}
-        .filter { !inMethod || it.parents.any { it is PsiMethod } }
+        .filter { inMethod || it.parents.any { it is PsiMethod } }
         .randomOrNull()
 }
 

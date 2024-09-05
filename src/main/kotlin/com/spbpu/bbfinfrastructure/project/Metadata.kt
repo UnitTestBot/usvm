@@ -1,7 +1,9 @@
 package com.spbpu.bbfinfrastructure.project
 
+import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation.Companion.project
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder.ResultArtifactLocation
+import com.spbpu.bbfinfrastructure.util.FuzzingConf
 
 data class Metadata(
     val sourceFileName: String,
@@ -28,6 +30,9 @@ data class Metadata(
                 mutatedRegion
             )
         )
+
+    fun getDirOfOriginalFile(): String =
+        FuzzingConf.pathToBenchmarkToFuzz + "/" + originalUri!!.substringBeforeLast('/')
 
     fun copy(): Metadata =
         Metadata(

@@ -1,6 +1,6 @@
 package com.spbpu.bbfinfrastructure.test
 
-import com.spbpu.bbfinfrastructure.compiler.JCompiler
+import com.spbpu.bbfinfrastructure.compiler.python.MyPyTypeChecker
 import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
@@ -11,14 +11,20 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 
-class JavaTemplatesChecker {
+class PythonTemplatesChecker {
 
-    val testFile = File("lib/codeForTests/BenchmarkTest00008.java")
+    val testFile = run {
+        val original = File("lib/codeForTests/python/SQLI-login-bypass/SQLI-login-bypass.py")
+        File("lib/codeForTests/python/SQLI-login-bypass/SQLI-login-bypass-copy.py").apply {
+            writeText(original.readText())
+        }
+    }
 
-    var project = Project.createJavaProjectFromFiles(
+    var project = Project.createPythonProjectFromFiles(
         files = listOf(testFile),
         originalFileName = testFile.name,
-        originalCWEs = listOf()
+        originalCWEs = listOf(),
+        originalUri = testFile.path
     )
 
     var curFile = project.files.first()
@@ -26,7 +32,7 @@ class JavaTemplatesChecker {
 
     fun testTemplates(templateName: String, templateBodyIndex: Int) {
         Transformation.checker = MutationChecker(
-            listOf(JCompiler()),
+            listOf(MyPyTypeChecker()),
             project,
             curFile,
             false,
@@ -53,13 +59,8 @@ class JavaTemplatesChecker {
         }
         for (i in 0 until parsedTemplates.templates.size) {
             if (templateBodyIndex != -1 && i != templateBodyIndex) continue
-            project = Project.createJavaProjectFromFiles(
-                files = listOf(testFile),
-                originalFileName = testFile.name,
-                originalCWEs = listOf()
-            )
             curFile = project.files.first()
-            val inserter = TestTemplatesInserter()
+            val inserter = PythonTestTemplatesInserter()
             println("CHECKING $templateName with index $i")
             inserter.testTransform(templateFile.path, i).ifFalse {
                 val mostFrequentError = ErrorCollector.compilationErrors.entries.maxByOrNull { it.value }?.key ?: ""
@@ -83,9 +84,10 @@ class JavaTemplatesChecker {
 
 fun main(args: Array<String>) {
     FuzzingConf.testMode = true
+    FuzzingConf.pathToBenchmarkToFuzz = File(".").absolutePath
     System.setProperty("idea.home.path", "lib/bin")
-    JavaTemplatesChecker().testTemplates(
-        templateName = args.firstOrNull() ?: "sensitivity/collections",
+    PythonTemplatesChecker().testTemplates(
+        templateName = args.firstOrNull() ?: "sensitivity/",
         templateBodyIndex = args.lastOrNull()?.toIntOrNull() ?: -1
     )
     if (ErrorCollector.errorMap.isEmpty()) {

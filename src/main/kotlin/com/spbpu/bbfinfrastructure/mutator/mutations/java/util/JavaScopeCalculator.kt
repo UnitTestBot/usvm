@@ -2,20 +2,14 @@ package com.spbpu.bbfinfrastructure.mutator.mutations.java.util
 
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.PsiMethodImpl
-import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.util.JavaTypeMappings
 import com.spbpu.bbfinfrastructure.util.getAllChildrenOfCurLevel
 import com.spbpu.bbfinfrastructure.util.getAllChildrenWithItself
 import org.jetbrains.kotlin.psi.psiUtil.parents
 
-class JavaScopeCalculator(private val file: PsiFile, private val project: Project) {
+class JavaScopeCalculator: ScopeCalculator {
 
-    fun calcScope(node: PsiElement): List<JavaScopeComponent> {
-        return  calcVariablesAndFunctionsFromScope(node)
-    }
-
-
-    private fun calcVariablesAndFunctionsFromScope(node: PsiElement): List<JavaScopeComponent> {
+    override fun calcVariablesAndFunctionsFromScope(node: PsiElement): List<ScopeComponent> {
         val res = mutableSetOf<JavaScopeComponent>()
         for (parent in node.parents.toList()) {
             val currentLevelScope = when (parent) {
@@ -82,8 +76,8 @@ class JavaScopeCalculator(private val file: PsiFile, private val project: Projec
 
 
     class JavaScopeComponent(
-        val name: String, val type: String
-    ) {
+        override val name: String, override val type: String
+    ): ScopeComponent(name, type) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false

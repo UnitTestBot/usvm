@@ -2,6 +2,7 @@ package com.spbpu.bbfinfrastructure.sarif
 
 import com.spbpu.bbfinfrastructure.mutator.mutations.MutationInfo
 import com.spbpu.bbfinfrastructure.project.Project
+import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder.ResultRegion
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -10,7 +11,7 @@ class SarifBuilder {
 
     private val json = Json { prettyPrint = true }
 
-    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>): String {
+    fun serialize(suiteProjects: List<Pair<Project, List<MutationInfo>>>, driverName: String): String {
         val sarif = Sarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
@@ -18,7 +19,7 @@ class SarifBuilder {
                 Run(
                     tool = Tool(
                         driver = Driver(
-                            name = "flawgarden-BenchmarkJava-mutated-demo"
+                            name = driverName
                         )
                     ),
                     results = suiteProjects.map { buildResult(it.first) }
@@ -30,7 +31,8 @@ class SarifBuilder {
     }
 
     private fun buildResult(project: Project): Result {
-        val relativePath = project.configuration.sourceFileName
+        val relativePath = project.configuration.mutatedUri ?: project.configuration.sourceFileName
+        val resultRegion = project.configuration.mutatedRegion
         return Result(
             kind = "fail",
             message = Message(
@@ -42,7 +44,8 @@ class SarifBuilder {
                     physicalLocation = PhysicalLocation(
                         artifactLocation = ArtifactLocation(
                             uri = relativePath
-                        )
+                        ),
+                        region = resultRegion
                     )
                 )
             )
@@ -92,7 +95,8 @@ class SarifBuilder {
 
     @Serializable
     data class PhysicalLocation(
-        val artifactLocation: ArtifactLocation
+        val artifactLocation: ArtifactLocation,
+        val region: ResultRegion? = null
     )
 
     @Serializable

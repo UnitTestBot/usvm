@@ -11,22 +11,18 @@ import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.isPropertyParameter
 import org.jetbrains.kotlin.psi.psiUtil.isTopLevelKtOrJavaMember
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.jetbrains.kotlin.psi.synthetics.findClassDescriptor
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.bindingContextUtil.getAbbreviatedTypeOrType
 import org.jetbrains.kotlin.resolve.calls.util.getType
 import org.jetbrains.kotlin.resolve.scopes.getDescriptorsFiltered
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.isNullable
-import java.lang.StringBuilder
 import kotlin.collections.flatMap
-import kotlin.random.Random
 
-class ScopeCalculator(private val file: KtFile, private val project: Project) {
+class KotlinScopeCalculator(private val file: KtFile, private val project: Project) {
 
     var ctx: BindingContext? = null
 
-    fun calcScope(node: PsiElement): List<ScopeComponent> {
+    fun calcScope(node: PsiElement): List<KotlinScopeComponent> {
         ctx = PSICreator.analyze(file, project) ?: return emptyList()
         val res = calcVariablesAndFunctionsFromScope(node)
         //res.map { it.psiElement.text + " ${it.type} \n__________________________\n" }.forEach(::println)
@@ -37,10 +33,10 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
 
         fun processScope(
 //            rig: RandomInstancesGenerator,
-            scope: List<ScopeComponent>,
+            scope: List<KotlinScopeComponent>,
             generatedFunCalls: MutableMap<FunctionDescriptor, KtExpression?>
-        ): List<ScopeComponent> {
-            val processedScope = mutableListOf<ScopeComponent>()
+        ): List<KotlinScopeComponent> {
+            val processedScope = mutableListOf<KotlinScopeComponent>()
             for (scopeEl in scope) {
                 val expressionToCall =
                     when (scopeEl.declaration) {
@@ -68,7 +64,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
                         }
                     }.let { Factory.psiFactory.tryToCreateExpression(it) }
                 if (expressionToCall != null && expressionToCall.text.isNotEmpty()) {
-                    processedScope.add(ScopeComponent(expressionToCall, scopeEl.declaration, scopeEl.type))
+                    processedScope.add(KotlinScopeComponent(expressionToCall, scopeEl.declaration, scopeEl.type))
                 }
             }
             return processedScope
@@ -78,7 +74,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
         fun generateCallExpr(
 //            rig: RandomInstancesGenerator,
             func: CallableDescriptor,
-            scopeElements: List<ScopeCalculator.ScopeComponent>
+            scopeElements: List<KotlinScopeCalculator.KotlinScopeComponent>
         ): KtExpression? {
 //            Transformation.log.debug("GENERATION of call of type $func")
             val name = func.name
@@ -100,8 +96,8 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
     }
 
 
-    private fun calcVariablesAndFunctionsFromScope(node: PsiElement): List<ScopeComponent> {
-        val res = mutableSetOf<ScopeComponent>()
+    private fun calcVariablesAndFunctionsFromScope(node: PsiElement): List<KotlinScopeComponent> {
+        val res = mutableSetOf<KotlinScopeComponent>()
         for (parent in node.parents.toList()) {
             val currentLevelScope =
                 when (parent) {
@@ -123,7 +119,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
                         val t = parent.getLoopParameterType(ctx!!)
                         val psiRange = parent.loopParameter
                         if (t != null && psiRange != null) {
-                            listOf(ScopeComponent(psiRange, null, t))
+                            listOf(KotlinScopeComponent(psiRange, null, t))
                         } else {
                             emptyList()
                         }
@@ -139,7 +135,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
                         valueParams
                             .takeWhile { !it.getAllChildrenWithItself().contains(node) }
                             .zip(typesOfValueParams)
-                            .map { ScopeComponent(it.first, null, it.second.type) }
+                            .map { KotlinScopeComponent(it.first, null, it.second.type) }
                     }
                     is KtWhenExpression -> {
                         parent.subjectVariable?.let { prop ->
@@ -162,12 +158,12 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
         return res.filter { filterNonInterestingDeclarations(it, node) }.toList()
     }
 
-    private fun getDeclarationAndTypeForScopeComp(psi: PsiElement): ScopeComponent? {
+    private fun getDeclarationAndTypeForScopeComp(psi: PsiElement): KotlinScopeComponent? {
         val res = getDeclarationForScopeComp(psi) to getTypeForScopeComp(psi)
         return if (res.second == null) {
             null
         } else {
-            ScopeComponent(psi, res.first, res.second!!)
+            KotlinScopeComponent(psi, res.first, res.second!!)
         }
     }
 
@@ -188,7 +184,7 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
             else -> null
         }
 
-    private fun getParentClassScope(klass: KtClassOrObject, node: PsiElement): List<ScopeComponent> {
+    private fun getParentClassScope(klass: KtClassOrObject, node: PsiElement): List<KotlinScopeComponent> {
         val klassDescriptor = klass.getDeclarationDescriptorIncludingConstructors(ctx!!) as? ClassDescriptor
         val klassDeclarations =
             klassDescriptor?.unsubstitutedMemberScope
@@ -206,15 +202,15 @@ class ScopeCalculator(private val file: KtFile, private val project: Project) {
             it.initializer == node || it.initializer?.getAllChildren()?.any { it == node } == true
         } ?: false
 
-    private fun filterNonInterestingDeclarations(scopeComponent: ScopeComponent, node: PsiElement): Boolean {
-        val psiElement = scopeComponent.psiElement
+    private fun filterNonInterestingDeclarations(kotlinScopeComponent: KotlinScopeComponent, node: PsiElement): Boolean {
+        val psiElement = kotlinScopeComponent.psiElement
         if (psiElement is KtNamedFunction && psiElement.name?.contains("box") == true) return false
         if (psiElement is KtNamedFunction && psiElement.name?.contains("main") == true) return false
         if (psiElement in node.parents || psiElement == node) return false
         return true
     }
 
-    data class ScopeComponent(
+    data class KotlinScopeComponent(
         val psiElement: PsiElement,
         val declaration: DeclarationDescriptor?,
         val type: KotlinType

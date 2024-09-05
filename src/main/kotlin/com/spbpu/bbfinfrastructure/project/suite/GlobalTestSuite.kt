@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.project.suite
 
-object GlobalJavaTestSuite {
+object GlobalTestSuite {
 
     val javaTestSuite = JavaTestSuite()
+    val pythonTestSuite = PythonTestSuite()
 }

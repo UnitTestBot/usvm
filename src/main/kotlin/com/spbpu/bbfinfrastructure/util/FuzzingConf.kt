@@ -33,7 +33,10 @@ object FuzzingConf {
     val pathToTmpDir = pathToTmpFile.substringBeforeLast("/")
     val pathToTmpJava = "tmpJava"
     val tmpPath = "tmp/projects/"
-    val dirToTemplates = getPropValueWithoutQuotes("DIR_TO_TEMPLATES")
+    val pathToTemplates = getPropValueWithoutQuotes("DIR_TO_TEMPLATES")
+    val pathToReportsDir = getPropValueWithoutQuotes("PATH_TO_REPORTS_DIR")
+    var pathToBenchmarkToFuzz = ""
+    var pathToOriginalBenchmark = ""
 
     val pathToOwaspJar = "lib/owaspBenchmarkClasspath.jar"
     val pathToJulietSupportJar = "lib/juliet-support.jar"
@@ -44,6 +47,8 @@ object FuzzingConf {
     var badTemplatesOnlyMode = getPropAsBoolean("BAD_TEMPLATES_MODE")
     var maxNumOfObjectsTemplates = getPropAsInt("MAX_NUM_OF_OBJECTS_TEMPLATES")
     var maxNumOfSensitivityTemplates = getPropAsInt("MAX_NUM_OF_SENSITIVITY_TEMPLATES")
+
+    val pyEnvName = getPropValueWithoutQuotes("PYENV_NAME")
 
     //Test mode
     var testMode = false

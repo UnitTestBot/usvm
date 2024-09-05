@@ -10,7 +10,7 @@ import java.nio.file.Paths
 
 object StatsManager {
 
-    private val templates = Files.walk(Paths.get(FuzzingConf.dirToTemplates))
+    private val templates = Files.walk(Paths.get(FuzzingConf.pathToTemplates))
         .toList()
         .map { it.toFile() }
         .filter { it.isFile && !it.path.contains("extensions") && !it.path.contains("helpers") && !it.path.contains("objects") }

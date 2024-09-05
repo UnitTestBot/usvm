@@ -160,7 +160,7 @@ class NodeCollector(val dir: String) {
         val proj = PSICreator.getPSIForText("").project
         for ((ind, f) in File(dir).listFiles().filter { it.name.endsWith(".java") }.withIndex()) {
             println("HANDLING $ind from $size file")
-            val psiFile = PSICreator.getPsiForJava(f.readText(), proj)
+            val psiFile = PSICreator.getPsiForJava(f.readText())
             for (node in psiFile.node.getAllChildrenNodes()) {
                 database.getOrPut(node.elementType) { mutableSetOf(f.name) }.add(f.name)
             }

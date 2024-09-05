@@ -4,7 +4,7 @@ import com.spbpu.bbfinfrastructure.compiler.JCompiler
 import com.spbpu.bbfinfrastructure.mutator.checkers.MutationChecker
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.Transformation
 import com.spbpu.bbfinfrastructure.project.BBFFile
-import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
+import com.spbpu.bbfinfrastructure.project.suite.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.project.Project
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
 import com.spbpu.bbfinfrastructure.util.FuzzingConf
@@ -18,6 +18,7 @@ class JavaMutationManager: MutationManager {
     override fun run(
         pathToBenchmark: String,
         pathToBenchmarkToFuzz: String,
+        pathToReportsDir: String,
         pathScriptToStartFuzzBenchmark: String,
         pathToVulnomicon: String,
         numOfFilesToCheck: Int,
@@ -46,10 +47,11 @@ class JavaMutationManager: MutationManager {
             println("Mutation of target ${file.name} started")
             run(project, project.files.first())
         }
-        GlobalJavaTestSuite.javaTestSuite.flushSuiteAndRun(
+        GlobalTestSuite.javaTestSuite.flushSuiteAndRun(
             pathToFuzzBenchmark = pathToBenchmarkToFuzz,
             scriptToStartBenchmark = pathScriptToStartFuzzBenchmark,
             pathToVulnomicon = pathToVulnomicon,
+            pathToReportsDir = pathToReportsDir,
             isLocal = isLocal,
         )
         ScoreCardParser.parseAndSaveDiff(

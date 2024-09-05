@@ -9,8 +9,6 @@ import com.spbpu.bbfinfrastructure.psicreator.util.Factory.tryToCreateExpression
 import com.spbpu.bbfinfrastructure.util.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.types.KotlinType
-import org.jetbrains.kotlin.types.replace
-import org.jetbrains.kotlin.types.typeUtil.asTypeProjection
 import org.jetbrains.kotlin.types.typeUtil.isBoolean
 import kotlin.random.Random
 
@@ -61,7 +59,7 @@ class AddLoop : Transformation() {
 //        val rig = RandomInstancesGenerator(file as KtFile, ctx)
 //        RandomTypeGenerator.setFileAndContext(file as KtFile, ctx)
         val scope =
-            ScopeCalculator(file as KtFile, project)
+            KotlinScopeCalculator(file as KtFile, project)
                 .calcScope(beginningNode)
                 .map { it.psiElement to it.type }
         //val scope = (file as KtFile).getAvailableValuesToInsertIn(beginningNode, ctx).filter { it.second != null }

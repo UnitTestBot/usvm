@@ -30,7 +30,7 @@ class Project(
             uri: String? = null,
             originalUri: String? = null
         ): Project =
-            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri) { PSICreator.getPsiForJava(it) }
+            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri, LANGUAGE.JAVA) { PSICreator.getPsiForJava(it) }
 
         fun createPythonProjectFromFiles(
             files: List<File>,
@@ -40,7 +40,7 @@ class Project(
             uri: String? = null,
             originalUri: String? = null
         ): Project =
-            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri) { PSICreator.getPsiForPython(it)!! }
+            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri, LANGUAGE.PYTHON) { PSICreator.getPsiForPython(it)!! }
 
         private fun createProjectFromFiles(
             files: List<File>,
@@ -49,6 +49,7 @@ class Project(
             region: ToolsResultsSarifBuilder.ResultRegion? = null,
             uri: String? = null,
             originalUri: String? = null,
+            lang: LANGUAGE,
             funcToBuildPsi: (String) -> PsiFile
         ): Project {
             val srcFiles =
@@ -62,12 +63,12 @@ class Project(
                 originalUri = originalUri,
                 mutatedUri = uri,
                 mutationRegion = region
-            ), srcFiles, LANGUAGE.JAVA)
+            ), srcFiles, lang)
         }
 
 
         fun createJavaProjectFromCode(code: String, name: String): Project {
-            val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code, Factory.file.project))
+            val bbfFile = BBFFile(name, PSICreator.getPsiForJava(code))
             return Project(Metadata.createEmptyHeader(), listOf(bbfFile), LANGUAGE.JAVA)
         }
 

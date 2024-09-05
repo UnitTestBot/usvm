@@ -2,9 +2,9 @@ package com.spbpu.bbfinfrastructure.mutator
 
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.*
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.*
+import com.spbpu.bbfinfrastructure.mutator.mutations.python.PythonTemplatesInserter
 import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.project.Project
-import com.spbpu.bbfinfrastructure.util.getTrue
 import kotlin.random.Random
 
 class Mutator(val project: Project) {
@@ -24,6 +24,7 @@ class Mutator(val project: Project) {
             when (bbfFile.getLanguage()) {
                 LANGUAGE.JAVA -> startJavaMutations()
                 LANGUAGE.KOTLIN -> startKotlinMutations()
+                LANGUAGE.PYTHON -> startPythonMutations()
                 LANGUAGE.KJAVA -> TODO()
                 LANGUAGE.UNKNOWN -> TODO()
             }
@@ -43,11 +44,17 @@ class Mutator(val project: Project) {
 //            ).random()
 //            executeMutation(mutation, 100)
 //        } else {
-            executeMutation(TemplatesInserter(), 100)
+            executeMutation(JavaTemplatesInserter(), 100)
 //        }
         println("END JAVA MUTATIONS")
 //        log.debug("Verify = ${verify()}")
         return
+    }
+
+    private fun startPythonMutations() {
+        println("STARTING PYTHON MUTATIONS")
+        executeMutation(PythonTemplatesInserter(), 100)
+        println("END PYTHON MUTATIONS")
     }
 
     private fun startKotlinMutations() {

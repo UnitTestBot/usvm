@@ -5,6 +5,7 @@ import com.spbpu.bbfinfrastructure.template.parser.TemplateParser
 import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.ConsoleErrorListener
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -18,6 +19,7 @@ object TemplatesParser {
         val lexer = TemplateLexer(charStream)
         val tokens = CommonTokenStream(lexer)
         val parser = TemplateParser(tokens)
+        parser.addErrorListener(ConsoleErrorListener())
         val templateFile = parser.templateFile()
         val (extensions, macros) = parseExtensions(templateFile)
         val mainClass = templateFile.mainClass()
@@ -31,11 +33,11 @@ object TemplatesParser {
                     .map { it.helperClassStart().IDENTIFIER().text to it.code().text }
             }?.toMap() ?: mapOf()
             val languageImports =
-                languageImports().code().text
-                    .split("\n")
-                    .map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .map { it.substringAfter("import ") }
+                languageImports()?.code()?.text
+                    ?.split("\n")
+                    ?.map { it.trim() }
+                    ?.filter { it.isNotEmpty() }
+                    ?.map { it.substringAfter("import ") } ?: listOf()
             val bodies = template().map { templateBody ->
                 TemplateBody(
                     templateBody.templateStart().IDENTIFIER().text,
@@ -90,7 +92,7 @@ object TemplatesParser {
             extensionImports()?.extensionImport()?.forEach { extensionImport ->
                 val importIdentifier = extensionImport.IDENTIFIER().text.trim()
                 if (importIdentifier == "*") {
-                    Files.walk(Paths.get("${FuzzingConf.dirToTemplates}/extensions"))
+                    Files.walk(Paths.get("${FuzzingConf.pathToTemplates}/extensions"))
                         .toList()
                         .map { it.toFile() }
                         .filter { it.isFile }
@@ -137,7 +139,7 @@ object TemplatesParser {
     }
 
     private fun findAuxFileSource(path: String): File =
-        File("${FuzzingConf.dirToTemplates}/$path.tmt")
+        File("${FuzzingConf.pathToTemplates}/$path.tmt")
 
 
     class Template(

@@ -1,6 +1,6 @@
 package com.spbpu.bbfinfrastructure.util.results
 
-import com.spbpu.bbfinfrastructure.project.suite.GlobalJavaTestSuite
+import com.spbpu.bbfinfrastructure.project.suite.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
 import com.spbpu.bbfinfrastructure.util.CweUtil
@@ -15,14 +15,15 @@ object ScoreCardParser {
     fun parseAndSaveDiff(
         scorecardsDir: String,
         pathToSources: String,
-        pathToToolsGroundTruthSarif: String
+        pathToToolsGroundTruthSarif: String,
     ) {
         val toolsResultsSarifBuilder = ToolsResultsSarifBuilder()
         val scorecards = File(scorecardsDir).listFiles().filter { it.path.endsWith(".sarif") }
         val toolsGroundTruth = Json.decodeFromString<MarkupSarif.Sarif>(File(pathToToolsGroundTruthSarif).readText())
-        for ((i, p) in GlobalJavaTestSuite.javaTestSuite.suiteProjects.withIndex()) {
+        val suiteProjects = GlobalTestSuite.javaTestSuite.suiteProjects.ifEmpty { GlobalTestSuite.pythonTestSuite.suiteProjects }
+        for ((i, p) in suiteProjects.withIndex()) {
             println("\n--------------\n")
-            println("HANDLE $i-th project from ${GlobalJavaTestSuite.javaTestSuite.suiteProjects.size}")
+            println("HANDLE $i-th project from ${suiteProjects.size}")
             println("Original cwe: ${p.first.configuration.initialCWEs}")
             //For potential saving
             val originalResults = mutableListOf<Pair<String, Set<Int>>>()

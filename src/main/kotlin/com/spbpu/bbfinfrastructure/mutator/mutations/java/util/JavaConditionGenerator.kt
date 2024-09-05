@@ -3,13 +3,13 @@ package com.spbpu.bbfinfrastructure.mutator.mutations.java.util
 import com.spbpu.bbfinfrastructure.util.getTrue
 import kotlin.random.Random
 
-class ConditionGenerator(
-    private val scope: List<JavaScopeCalculator.JavaScopeComponent>
+class JavaConditionGenerator(
+    private val scope: List<ScopeComponent>
 ) {
 
     private val logicalOperators = listOf("&&", "||")
     private val binaryOperators = listOf("==", "!=", "<", "<=", ">", ">=")
-    private val expressionGenerator = ExpressionGenerator()
+    private val javaExpressionGenerator = JavaExpressionGenerator()
     private fun getRandomType(): String =
         if (Random.getTrue(50)) {
             listOf("byte", "short", "int", "long", "float", "double", "char", "boolean", "String").random()
@@ -37,12 +37,12 @@ class ConditionGenerator(
 
     private fun getValueOfTypeFromScopeOrGenerateNew(type: String): String? =
         if (Random.nextBoolean()) {
-            scope.filter { it.type == type }.randomOrNull()?.name ?: expressionGenerator.generateExpressionOfType(
+            scope.filter { it.type == type }.randomOrNull()?.name ?: javaExpressionGenerator.generateExpressionOfType(
                 scope,
                 type
             )
         } else {
-            expressionGenerator.generateExpressionOfType(scope, type)
+            javaExpressionGenerator.generateExpressionOfType(scope, type)
         }
 
     private fun generateBinaryExpression(): String? {
@@ -59,7 +59,7 @@ class ConditionGenerator(
         repeat(5) {
             val generatedExpr =
                 if (Random.getTrue(20)) {
-                    expressionGenerator.generateLiteral(leftExprType) ?: getValueOfTypeFromScopeOrGenerateNew(leftExprType)
+                    javaExpressionGenerator.generateLiteral(leftExprType) ?: getValueOfTypeFromScopeOrGenerateNew(leftExprType)
                 } else {
                     getValueOfTypeFromScopeOrGenerateNew(leftExprType)
                 }
