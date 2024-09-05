@@ -403,10 +403,10 @@ class EtsTypeInferenceTest {
 
             if (inferred.toString() == expected) {
                 numOk++
-                println("Correctly inferred type for '${m.enclosingClass.name}::${m.name} in ${m.enclosingClass.enclosingFile}': ${inferred.toPrettyString()}")
+                println("Correctly inferred type for Arg0 in '${m.enclosingClass.name}::${m.name}': ${inferred.toPrettyString()}")
             } else {
                 numBad++
-                println("Incorrectly inferred type for '${m.enclosingClass.name}::${m.name} in ${m.enclosingClass.enclosingFile}': inferred='$inferred', expected=$expected")
+                println("Incorrectly inferred type for Arg0 in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
             }
         }
         println("numOk = $numOk")
