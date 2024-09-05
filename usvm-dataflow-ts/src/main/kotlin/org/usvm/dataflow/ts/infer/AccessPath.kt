@@ -39,6 +39,10 @@ sealed interface AccessPathBase {
     data class Const(val constant: EtsConstant) : AccessPathBase {
         override fun toString(): String = "const($constant)"
     }
+
+    object Return : AccessPathBase {
+        override fun toString(): String = "<return>"
+    }
 }
 
 fun EtsValue.toBase(): AccessPathBase = when (this) {

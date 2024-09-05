@@ -140,7 +140,7 @@ class TypeInferenceManager(
         //     }
         // }
 
-        val refinedTypes = refineMethodTypes(methodTypeScheme)
+        val refinedTypes = refineMethodTypes(methodTypeScheme).toMutableMap()
         logger.info {
             buildString {
                 appendLine("Forward types:")
@@ -255,7 +255,7 @@ class TypeInferenceManager(
 
         // Infer return types for each method
         run {
-            val returnType = forwardSummaries
+            val returnTypes = forwardSummaries
                 .asSequence()
                 .mapNotNull { (method, summaries) ->
                     val returnFact = summaries
@@ -281,10 +281,18 @@ class TypeInferenceManager(
                 }
                 .toMap()
 
+            // Augment 'refinedTypes' with inferred return types
+            for ((method, returnType) in returnTypes) {
+                val facts = refinedTypes[method]!!
+                refinedTypes[method] = facts.copy(
+                    types = facts.types + (AccessPathBase.Return to returnType)
+                )
+            }
+
             logger.info {
                 buildString {
                     appendLine("Return types:")
-                    for ((method, type) in returnType) {
+                    for ((method, type) in returnTypes) {
                         appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
                     }
                 }
@@ -415,6 +423,8 @@ class TypeInferenceManager(
 
             refined
         }
+
+        typeFacts.let {}
 
         return EtsMethodTypeFacts(facts.method, refinedTypes)
     }
