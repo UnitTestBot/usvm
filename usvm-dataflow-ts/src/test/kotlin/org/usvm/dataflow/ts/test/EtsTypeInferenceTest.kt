@@ -370,7 +370,7 @@ class EtsTypeInferenceTest {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPoint)
         }
-        val inferredForwardTypes = manager.analyze(entrypoints)
+        val inferredTypes = manager.analyze(entrypoints)
 
         val inferMethods = project.classes
             .asSequence()
@@ -398,7 +398,7 @@ class EtsTypeInferenceTest {
         var numOk = 0
         var numBad = 0
         for (m in inferMethods) {
-            val inferred = inferredForwardTypes[m]!!.types[AccessPathBase.Arg(0)]!!
+            val inferred = inferredTypes[m]!!.types[AccessPathBase.Arg(0)]!!
             val expected = expectedTypeString[m]!!
 
             if (inferred.toString() == expected) {
