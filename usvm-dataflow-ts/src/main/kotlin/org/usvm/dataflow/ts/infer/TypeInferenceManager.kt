@@ -572,7 +572,8 @@ class TypeInferenceManager(
                         // todo: hack
                         if (type is EtsTypeFact.AnyEtsTypeFact) return this
 
-                        TODO("Unexpected: $this & $type")
+                        // TODO("Unexpected: $this & $type")
+                        return this
                     }
 
                     return EtsTypeFact.ObjectEtsTypeFact(type.cls, properties)
