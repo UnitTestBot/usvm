@@ -8,6 +8,7 @@ import org.jacodb.api.jvm.ext.char
 import org.jacodb.api.jvm.ext.findClassOrNull
 import org.jacodb.api.jvm.ext.int
 import org.jacodb.api.jvm.ext.jvmSignature
+import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -23,6 +24,7 @@ import org.usvm.api.copyString
 import org.usvm.api.readString
 import org.usvm.api.stringEq
 import org.usvm.api.stringLength
+import org.usvm.api.substring
 import org.usvm.api.toLower
 import org.usvm.api.toUpper
 import org.usvm.collection.array.length.UArrayLengthLValue
@@ -36,6 +38,9 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeLeExpr
+import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
 
 class JcStringApproximations(private val ctx: JcContext) {
@@ -107,8 +112,8 @@ class JcStringApproximations(private val ctx: JcContext) {
     ) = with(ctx) {
         val inside =
             (mkBvSignedLessOrEqualExpr(mkBv(0), from)) and
-            (mkBvSignedLessOrEqualExpr(from, to)) and
-            (mkBvSignedLessOrEqualExpr(to, length))
+                    (mkBvSignedLessOrEqualExpr(from, to)) and
+                    (mkBvSignedLessOrEqualExpr(to, length))
 
         scope.fork(
             inside,
@@ -129,16 +134,15 @@ class JcStringApproximations(private val ctx: JcContext) {
     ) = with(ctx) {
         val inside =
             (mkBvSignedLessOrEqualExpr(mkBv(0), from)) and
-            (mkBvSignedLessOrEqualExpr(mkBv(0), size)) and
-            (mkBvSignedLessOrEqualExpr(mkBv(0), length)) and
-            (mkBvSignedLessOrEqualExpr(size, mkBvSubExpr(length, from)))
+                    (mkBvSignedLessOrEqualExpr(mkBv(0), size)) and
+                    (mkBvSignedLessOrEqualExpr(mkBv(0), length)) and
+                    (mkBvSignedLessOrEqualExpr(size, mkBvSubExpr(length, from)))
 
         scope.fork(
             inside,
             blockOnFalseState = exprResolver.allocateException(exceptionType ?: stringIndexOutOfBoundsExceptionType)
         )
     }
-
 
 
     private fun allocStringFromBvArray(
@@ -205,7 +209,29 @@ class JcStringApproximations(private val ctx: JcContext) {
             stringRef,
         )
     }
-    // TODO: bounds check for <init>'s
+
+    private fun startsWith(
+        state: JcState,
+        stringRef: UHeapRef,
+        prefixRef: UHeapRef,
+        toffset: UExpr<USizeSort>
+    ): UBoolExpr? {
+        exprResolver.checkNullPointer(prefixRef) ?: return null
+        val thisLength = state.memory.stringLength<USizeSort>(stringRef);
+        val prefixLength = state.memory.stringLength<USizeSort>(prefixRef);
+        // toffset >= 0 && toffset <= length() - prefix.length()
+        val offsetIsOk = ctx.mkAnd(
+            ctx.mkSizeGeExpr(toffset, ctx.mkSizeExpr(0)),
+            ctx.mkSizeLeExpr(toffset, ctx.mkSizeSubExpr(thisLength, prefixLength)),
+        )
+        if (offsetIsOk.isFalse)
+            return ctx.falseExpr
+
+        val substring = state.memory.substring(stringRef, ctx.stringType, toffset, prefixLength)
+        val stringEq = state.memory.stringEq(substring, prefixRef)
+        return ctx.mkAnd(offsetIsOk, stringEq)
+    }
+
     private val stringClassApproximations: Map<String, (JcMethodCall) -> UExpr<*>?> by lazy {
         buildMap {
             dispatchMethod("<init>()V") {
@@ -341,7 +367,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                         offset,
                         length,
 
-                    )
+                        )
                 }
             }
             dispatchMethod("<init>([BLjava/lang/String;)V") {
@@ -449,7 +475,6 @@ class JcStringApproximations(private val ctx: JcContext) {
             }
             // compareTo(Object) is not approximated
             dispatchMethod("compareTo(Ljava/lang/String;)I") {
-                scope.calcOnState { }
                 TODO()
             }
             dispatchMethod("compareToIgnoreCase(Ljava/lang/String;)I") {
@@ -599,7 +624,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("length()I") {
-                scope.calcOnState { memory.stringLength<USort>(it.arguments.single().asExpr(ctx.addressSort)) }
+                scope.calcOnState { memory.stringLength<USizeSort>(it.arguments.single().asExpr(ctx.addressSort)) }
             }
             dispatchMethod("lines()Ljava/util/stream/Stream;") {
                 TODO()
@@ -649,11 +674,12 @@ class JcStringApproximations(private val ctx: JcContext) {
             dispatchMethod("split(Ljava/lang/String;I)[Ljava/lang/String;") {
                 TODO()
             }
-            dispatchMethod("startsWith(Ljava/lang/String;)Z") {
-                TODO()
-            }
+            // startsWith(String) is not approximated
             dispatchMethod("startsWith(Ljava/lang/String;I)Z") {
-                TODO()
+                val thisRef = it.arguments[0].asExpr(ctx.addressSort)
+                val prefixRef = it.arguments[1].asExpr(ctx.addressSort)
+                val toffset = it.arguments[2].asExpr(ctx.sizeSort)
+                scope.calcOnState { startsWith(this, thisRef, prefixRef, toffset) }
             }
             dispatchMethod("strip()Ljava/lang/String;") {
                 TODO()
@@ -672,7 +698,13 @@ class JcStringApproximations(private val ctx: JcContext) {
             }
             // substring(from) is not approximated
             dispatchMethod("substring(II)Ljava/lang/String;") {
-                TODO()
+                val thisRef = it.arguments[0].asExpr(ctx.addressSort)
+                val beginIndex = it.arguments[1].asExpr(ctx.sizeSort)
+                val endIndex = it.arguments[2].asExpr(ctx.sizeSort)
+                val length = scope.calcOnState { memory.stringLength<USizeSort>(thisRef) }
+                checkFromToIndex(beginIndex, endIndex, length) ?: return@dispatchMethod null
+                val substringLength = ctx.mkSizeSubExpr(endIndex, beginIndex)
+                scope.calcOnState { memory.substring(thisRef, ctx.stringType, beginIndex, substringLength) }
             }
             dispatchMethod("toCharArray()[C") {
                 val stringRef = it.arguments.single().asExpr(ctx.addressSort)
