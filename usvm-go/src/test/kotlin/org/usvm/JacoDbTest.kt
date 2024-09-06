@@ -38,12 +38,87 @@ class JacoDbTest {
         test("inc")
     }
 
+    @Test
+    fun testLoop() {
+        test("loop")
+    }
+
+    @Test
+    fun testLoopIf() {
+        test("loopIf")
+    }
+
+    @Test
+    fun testInfinite() {
+        test("infinite")
+    }
+
+    @Test
+    fun testInner() {
+        test("inner")
+    }
+
+    @Test
+    fun testCollatz() {
+        test("collatz")
+    }
+
+    @Test
+    fun testSum() {
+        test("sum")
+    }
+
+    @Test
+    fun testPointer() {
+        test("pointer")
+    }
+
+    @Test
+    fun testSample() {
+        test("sample")
+    }
+
+    @Test
+    fun testSampleAnother() {
+        test("sampleAnother")
+    }
+
+    @Test
+    fun testArray() {
+        test("array")
+    }
+
+    @Test
+    fun testOverwrite() {
+        test("overwrite")
+    }
+
+    @Test
+    fun testAlloc() {
+        test("alloc")
+    }
+
+    @Test
+    fun testFirst() {
+        test("first")
+    }
+
+    @Test
+    fun testSumArray() {
+        test("sumArray")
+    }
+
+    @Test
+    fun testCompare() {
+        test("compare")
+    }
+
     private val options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
         timeout = 60_000.milliseconds,
-        stepsFromLastCovered = 3500L,
+        stepsFromLastCovered = 1000000L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )

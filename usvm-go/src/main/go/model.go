@@ -339,6 +339,10 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = MakeSliceInstruction
 		return MakeSlice{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Len:               PackValue(inst.Len),
+			Cap:               PackValue(inst.Cap),
 		}
 	case *ssa.MakeMap:
 		common.Type = MakeMapInstruction
@@ -369,6 +373,10 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = IndexAddrInstruction
 		return IndexAddr{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Array:             PackValue(inst.X),
+			Index:             PackValue(inst.Index),
 		}
 	case *ssa.Index:
 		common.Type = IndexInstruction
@@ -539,6 +547,10 @@ type Alloc struct {
 
 type MakeSlice struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Len               Value  `yaml:"len" json:"len"`
+	Cap               Value  `yaml:"cap" json:"cap"`
 }
 
 type MakeMap struct {
@@ -563,6 +575,10 @@ type Field struct {
 
 type IndexAddr struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Array             Value  `yaml:"array" json:"array"`
+	Index             Value  `yaml:"index" json:"index"`
 }
 
 type Index struct {

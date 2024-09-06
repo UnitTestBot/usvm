@@ -20,6 +20,7 @@ import org.jacodb.go.api.GoGeqExpr
 import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoGtrExpr
 import org.jacodb.go.api.GoIfInst
+import org.jacodb.go.api.GoIndexAddrExpr
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoInstLocation
 import org.jacodb.go.api.GoInstLocationImpl
@@ -33,6 +34,7 @@ import org.jacodb.go.api.GoJumpInst
 import org.jacodb.go.api.GoLeqExpr
 import org.jacodb.go.api.GoLssExpr
 import org.jacodb.go.api.GoMakeClosureExpr
+import org.jacodb.go.api.GoMakeSliceExpr
 import org.jacodb.go.api.GoModExpr
 import org.jacodb.go.api.GoMulExpr
 import org.jacodb.go.api.GoNeqExpr
@@ -63,6 +65,7 @@ import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SliceType
 import org.usvm.GoPackage
 
 object Converter {
@@ -104,14 +107,21 @@ object Converter {
             is Instruction.Go -> TODO()
             is Instruction.If -> GoIfInst(location, unpackCondition(inst.condition), GoInstRef(inst.trueBranch), GoInstRef(inst.falseBranch))
             is Instruction.Index -> TODO()
-            is Instruction.IndexAddr -> TODO()
+            is Instruction.IndexAddr -> unpackIndexAddr(location, inst)
             is Instruction.Jump -> GoJumpInst(location, GoInstRef(inst.index))
             is Instruction.Lookup -> TODO()
             is Instruction.MakeChan -> TODO()
             is Instruction.MakeClosure -> unpackMakeClosure(location, inst)
             is Instruction.MakeInterface -> TODO()
             is Instruction.MakeMap -> TODO()
-            is Instruction.MakeSlice -> TODO()
+            is Instruction.MakeSlice -> GoMakeSliceExpr(
+                location,
+                unpackType(inst.goType),
+                unpackValue(inst.len),
+                unpackValue(inst.cap),
+                inst.register
+            ).toAssignInst()
+
             is Instruction.MapUpdate -> TODO()
             is Instruction.Next -> TODO()
             is Instruction.Panic -> TODO()
@@ -178,6 +188,16 @@ object Converter {
         return unpackValue(cond) as GoConditionExpr
     }
 
+    private fun unpackIndexAddr(location: GoInstLocation, indexAddr: Instruction.IndexAddr): GoInst {
+        return GoIndexAddrExpr(
+            location,
+            unpackType(indexAddr.goType),
+            unpackValue(indexAddr.array),
+            unpackValue(indexAddr.index),
+            indexAddr.register
+        ).toAssignInst()
+    }
+
     private fun unpackMakeClosure(location: GoInstLocation, makeClosure: Instruction.MakeClosure): GoInst {
         val type = BasicType(makeClosure.name)
         val function = functionAlias(makeClosure.function.name)
@@ -241,6 +261,9 @@ object Converter {
     private fun unpackType(type: String): GoType {
         if (type.startsWith("*")) {
             return PointerType(unpackType(type.substring(1)))
+        }
+        if (type.startsWith("[]")) {
+            return SliceType(unpackType(type.substring(2)))
         }
 
         if (basicTypes.contains(type)) {
