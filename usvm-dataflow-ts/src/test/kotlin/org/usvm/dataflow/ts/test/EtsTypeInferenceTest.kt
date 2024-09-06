@@ -379,34 +379,52 @@ class EtsTypeInferenceTest {
             .filter { it.name == "infer" }
             .toList()
 
-        val expectedTypeString: Map<EtsMethod, String> = inferMethods
+        val expectedTypeString: Map<EtsMethod, Map<AccessPathBase, String>> = inferMethods
             .associateWith {
+                val accessPathToValue = mutableMapOf<AccessPathBase, String>()
                 for (inst in it.cfg.stmts) {
                     if (inst is EtsAssignStmt) {
                         val lhv = inst.lhv
-                        if (lhv is EtsLocal && lhv.name == "EXPECTED_ARG_0") {
+                        if (lhv is EtsLocal) {
                             val rhv = inst.rhv
-                            check(rhv is EtsStringConstant)
-                            return@associateWith rhv.value
+                            if (lhv.name == "EXPECTED_ARG_0") {
+                                check(rhv is EtsStringConstant)
+                                accessPathToValue[AccessPathBase.Arg(0)] = rhv.value
+                            }
+                            if (lhv.name == "EXPECTED_ARG_1") {
+                                check(rhv is EtsStringConstant)
+                                accessPathToValue[AccessPathBase.Arg(1)] = rhv.value
+                            }
+                            if (lhv.name == "EXPECTED_RETURN") {
+                                check(rhv is EtsStringConstant)
+                                accessPathToValue[AccessPathBase.Return] = rhv.value
+                            }
                         }
                     }
                 }
-                error("unreachable")
+                return@associateWith accessPathToValue
             }
 
         println("=".repeat(42))
         var numOk = 0
         var numBad = 0
         for (m in inferMethods) {
-            val inferred = inferredTypes[m]!!.types[AccessPathBase.Arg(0)]!!
-            val expected = expectedTypeString[m]!!
+            for (position in listOf(AccessPathBase.Arg(0), AccessPathBase.Arg(1), AccessPathBase.Return)) {
+                val expected = (expectedTypeString[m]
+                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[position]
+                    ?: continue
+                val inferred = (inferredTypes[m]
+                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))
+                    .types[position]
+                // ?: error("No inferred type for position $position")
 
-            if (inferred.toString() == expected) {
-                numOk++
-                println("Correctly inferred type for Arg0 in '${m.enclosingClass.name}::${m.name}': ${inferred.toPrettyString()}")
-            } else {
-                numBad++
-                println("Incorrectly inferred type for Arg0 in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
+                if (inferred.toString() == expected) {
+                    numOk++
+                    println("Correctly inferred type for $position in '${m.enclosingClass.name}::${m.name}': ${inferred?.toPrettyString()}")
+                } else {
+                    numBad++
+                    println("Incorrectly inferred type for $position in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
+                }
             }
         }
         println("numOk = $numOk")

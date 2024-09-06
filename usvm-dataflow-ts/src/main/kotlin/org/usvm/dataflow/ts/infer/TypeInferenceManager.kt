@@ -20,6 +20,7 @@ import org.usvm.dataflow.graph.reversed
 import org.usvm.dataflow.ifds.Accessor
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
+import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
@@ -270,8 +271,53 @@ class TypeInferenceManager(
                                 null
                             }
                         }
-                        .filter { it.statement.returnValue?.toPath() == it.fact.variable }
-                        .map { it.fact.type }
+                        .mapNotNull {
+                            val r = it.statement.returnValue?.toPath()
+                            if (r == null) {
+                                return@mapNotNull null
+                            }
+                            if (r.base != it.fact.variable.base) {
+                                return@mapNotNull null
+                            }
+                            // return x, fact = x:T
+                            if (r.accesses.isEmpty() && it.fact.variable.accesses.isEmpty()) {
+                                return@mapNotNull it.fact.type
+                            }
+                            // return x, fact = x.f:T
+                            if (r.accesses.isEmpty() && it.fact.variable.accesses.isNotEmpty()) {
+                                check(it.fact.variable.accesses.size == 1)
+                                val a = it.fact.variable.accesses.single()
+                                check(a is FieldAccessor)
+                                return@mapNotNull EtsTypeFact.ObjectEtsTypeFact(
+                                    cls = null,
+                                    properties = mapOf(
+                                        a.name to it.fact.type
+                                    )
+                                )
+                            }
+                            // return x.f, fact = x:T
+                            if (r.accesses.isNotEmpty() && it.fact.variable.accesses.isEmpty()) {
+                                val f = it.fact.type as? EtsTypeFact.ObjectEtsTypeFact
+                                if (f != null) {
+                                    check(r.accesses.size == 1)
+                                    val a = r.accesses.single()
+                                    check(a is FieldAccessor)
+                                    val t = f.properties[a.name]
+                                    if (t != null) {
+                                        return@mapNotNull t
+                                    } else {
+                                        error("No property")
+                                    }
+                                } else {
+                                    error("Not object")
+                                }
+                            }
+                            // return x.f, fact = x.f:T
+                            if (r.accesses.isNotEmpty() && it.fact.variable.accesses.isNotEmpty()) {
+                                return@mapNotNull it.fact.type
+                            }
+                            error("Unreachable")
+                        }
                         .reduceOrNull { acc, type -> acc.union(type) }
                     if (returnFact != null) {
                         method to returnFact
@@ -450,15 +496,39 @@ class TypeInferenceManager(
     ): EtsTypeFact? {
         when (this) {
             EtsTypeFact.AnyEtsTypeFact,
-            EtsTypeFact.UnknownEtsTypeFact,
             EtsTypeFact.FunctionEtsTypeFact,
-            is EtsTypeFact.ArrayEtsTypeFact, // TODO: refine array elements?
             EtsTypeFact.NumberEtsTypeFact,
             EtsTypeFact.BooleanEtsTypeFact,
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.NullEtsTypeFact,
             EtsTypeFact.UndefinedEtsTypeFact,
-            -> return if (property.isNotEmpty()) this else intersect(type)
+                -> return if (property.isNotEmpty()) this else intersect(type)
+
+            is EtsTypeFact.ArrayEtsTypeFact -> {
+                check(property.size == 1)
+                val p = property.single()
+                check(p is ElementAccessor)
+                val t = elementType.intersect(type)
+                    ?: error("Empty intersection")
+                return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
+            }
+
+            is EtsTypeFact.UnknownEtsTypeFact -> {
+                // .f.g:T -> {f: {g: T}}
+                // .f[i].g:T -> {f: Array<{g: T}>}
+                var t = type
+                for (p in property.reversed()) {
+                    if (p is FieldAccessor) {
+                        t = EtsTypeFact.ObjectEtsTypeFact(
+                            cls = null,
+                            properties = mapOf(p.name to t),
+                        )
+                    } else {
+                        t = EtsTypeFact.ArrayEtsTypeFact(elementType = t)
+                    }
+                }
+                return t
+            }
 
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull() as? FieldAccessor

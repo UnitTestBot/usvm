@@ -63,6 +63,11 @@ class ForwardFlowFunctions(
                 facts += TypedVariable(path, objType)
             }
 
+            is EtsTypeFact.ArrayEtsTypeFact -> {
+                check(type.elementType !is EtsTypeFact.ArrayEtsTypeFact)
+                facts += TypedVariable(path + ElementAccessor, type.elementType)
+            }
+
             is EtsTypeFact.GuardedTypeFact -> {
                 addTypes(path, type.type, facts)
             }
@@ -123,9 +128,9 @@ class ForwardFlowFunctions(
             }
 
             is EtsNewArrayExpr -> {
-                val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
-                result += TypedVariable(lhv, type)
                 // TODO: check
+                // val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
+                // result += TypedVariable(lhv, type)
                 result += TypedVariable(lhv + ElementAccessor, EtsTypeFact.from(rhv.elementType))
             }
 
