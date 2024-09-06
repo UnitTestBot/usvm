@@ -4,7 +4,9 @@ import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -43,6 +45,11 @@ class EtsTypeGuesserTest {
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "defaultA"
         }
+
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test
@@ -64,8 +71,13 @@ class EtsTypeGuesserTest {
         val facts = manager.analyze(listOf(entrypoint), guessUniqueTypes = true)
 
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
-            typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.keys.single() == "uniqueA"
+            typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
         }
+
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test
@@ -89,13 +101,12 @@ class EtsTypeGuesserTest {
         val facts = manager.analyze(listOf(entrypoint), guessUniqueTypes = true)
 
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
-            typeFact.cls?.typeName == "FieldContainerToInfer" &&
-                    listOf("defaultA", "uniqueA").all { it in typeFact.properties.keys }
+            typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
         }
 
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-//        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test
@@ -117,8 +128,13 @@ class EtsTypeGuesserTest {
         val facts = manager.analyze(listOf(entrypoint), guessUniqueTypes = true)
 
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
-            typeFact.cls?.typeName == "MethodsContainerToInfer" && typeFact.properties.keys.single() == "uniqueFunction"
+            typeFact.cls?.typeName == "MethodsContainerToInfer" && typeFact.properties.isEmpty()
         }
+
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test
@@ -142,6 +158,11 @@ class EtsTypeGuesserTest {
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "notUniqueFunction"
         }
+
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     @Test
@@ -163,9 +184,13 @@ class EtsTypeGuesserTest {
         val facts = manager.analyze(listOf(entrypoint), guessUniqueTypes = true)
 
         checkAnObjectTypeOfSingleArgument(facts) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
-            typeFact.cls?.typeName == "FieldContainerToInfer" &&
-                    listOf("notUniqueFunction", "defaultA").all { it in typeFact.properties.keys }
+            typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
         }
+
+        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
     }
 
     private inline fun <reified T : EtsTypeFact> checkAnObjectTypeOfSingleArgument(
@@ -173,7 +198,7 @@ class EtsTypeGuesserTest {
         predicate: (T) -> Boolean
     ) {
         val fact = facts.values.single()
-        val type = fact.types.values.single() as T
+        val type = fact.types.filterNot { it.key is AccessPathBase.Return }.values.single() as T
 
         assertTrue(predicate(type))
     }

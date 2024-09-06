@@ -349,7 +349,7 @@ class TypeInferenceManager(
                     // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
                         cls = EtsClassType(EtsClassSignature(it.name)),
-                        properties = this.properties,
+                        properties = emptyMap(), // TODO it is correct? Mb we should save the properties?
                     )
                 } ?: this
         }
