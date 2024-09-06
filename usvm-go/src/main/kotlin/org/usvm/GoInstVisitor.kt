@@ -2,7 +2,6 @@ package org.usvm
 
 import io.ksmt.expr.KConst
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import org.jacodb.go.api.GoAssignInst
 import org.jacodb.go.api.GoCallInst
 import org.jacodb.go.api.GoDebugRefInst
@@ -52,7 +51,7 @@ class GoInstVisitor(
 
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
-            returnValue(inst.returnValues[0].accept(exprVisitor).cast())
+            returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
         }
         return GoNullInst(inst.location.method)
     }

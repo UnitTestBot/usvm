@@ -87,14 +87,6 @@ class GoContext(
         arrayTypeToSliceType[arrayType] = sliceType
     }
 
-    private var stringType: GoType = BasicType("string")
-
-    fun getStringType() = stringType
-
-    fun setStringType(type: GoType) {
-        stringType = type
-    }
-
     fun typeToSort(type: GoType): USort = when (type) {
         is BasicType -> basicTypeToSort(type.typeName)
         is PointerType -> pointerSort
