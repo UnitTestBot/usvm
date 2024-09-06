@@ -75,11 +75,16 @@ import org.jacodb.go.api.GoUnNotExpr
 import org.jacodb.go.api.GoUnSubExpr
 import org.jacodb.go.api.GoUnXorExpr
 import org.jacodb.go.api.GoUnaryExpr
+import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.PointerType
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownUnaryOperationException
+import org.usvm.api.readArrayLength
+import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.ULValue
@@ -97,12 +102,17 @@ class GoExprVisitor(
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
     override fun visitGoCallExpr(expr: GoCallExpr): UExpr<out USort> {
+        val goVar = (expr.value as GoVar)
+        val name = goVar.name
+        if (isBuiltin(name)) {
+            return callBuiltin(name, expr.args)
+        }
+
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
             return result.value
         }
 
-        val name = (expr.value as GoVar).name
         val method = when {
             expr.callee != null -> expr.callee!!
             pkg.hasMethod(name) -> pkg.findMethod(name)
@@ -133,7 +143,7 @@ class GoExprVisitor(
         val currentBlock = expr.location.index
         val lastBlock = scope.calcOnState {
             var node = pathNode
-            while (node.statement.location.index >= currentBlock) {
+            while (node.statement.location.index == currentBlock) {
                 node = node.parent!!
             }
             node.statement.location.index
@@ -248,7 +258,15 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeSliceExpr(expr: GoMakeSliceExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val len = expr.len.accept(this).asExpr(ctx.sizeSort)
+
+        checkLength(len) ?: throw IllegalStateException()
+
+        return scope.calcOnState {
+            val ref = memory.allocConcrete(expr.type)
+            memory.writeArrayLength(ref, len, expr.type, ctx.sizeSort)
+            ref.asExpr(ctx.addressSort)
+        }
     }
 
     override fun visitGoSliceExpr(expr: GoSliceExpr): UExpr<out USort> {
@@ -264,7 +282,23 @@ class GoExprVisitor(
     }
 
     override fun visitGoIndexAddrExpr(expr: GoIndexAddrExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val array = expr.instance.accept(this).asExpr(ctx.addressSort)
+        val index = expr.index.accept(this).asExpr(ctx.sizeSort)
+        val length = scope.calcOnState { memory.readArrayLength(array, expr.instance.type, ctx.sizeSort) }
+
+        scope.assert(ctx.mkSizeGeExpr(length, ctx.mkSizeExpr(0)))
+        checkNotNull(array) ?: throw IllegalStateException()
+        checkNegativeIndex(index) ?: throw IllegalStateException()
+        checkIndexOutOfBounds(index, length) ?: throw IllegalStateException()
+
+        return scope.calcOnState {
+            val type = (expr.type as PointerType).baseType
+            val sort = ctx.typeToSort(type)
+            val ref = memory.allocConcrete(type)
+            val element = UArrayIndexLValue(sort, array, index, expr.instance.type)
+            memory.write(GoPointerLValue(ref, sort), ctx.mkLValuePointer(element), ctx.trueExpr)
+            ctx.mkAddressPointer(ref.address)
+        }
     }
 
     override fun visitGoIndexExpr(expr: GoIndexExpr): UExpr<out USort> {
@@ -454,5 +488,47 @@ class GoExprVisitor(
 
     private fun index(name: String): Int {
         return name.substring(1).toInt() + ctx.localVariableOffset(scope.calcOnState { lastEnteredMethod })
+    }
+
+    private fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
+        scope.fork(mkHeapRefEq(obj, nullRef).not(), blockOnFalseState = {
+            panic("null")
+        })
+    }
+
+    private fun checkIndexOutOfBounds(index: UExpr<USizeSort>, length: UExpr<USizeSort>): Unit? = with(ctx) {
+        scope.fork(mkSizeLtExpr(index, length), blockOnFalseState = {
+            panic("index out of bounds")
+        })
+    }
+
+    private fun checkNegativeIndex(value: UExpr<USizeSort>): Unit? = with(ctx) {
+        scope.fork(mkSizeGeExpr(value, mkSizeExpr(0)), blockOnFalseState = {
+            panic("negative index")
+        })
+    }
+
+    private fun checkLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
+        scope.fork(mkSizeGeExpr(length, mkSizeExpr(0)), blockOnFalseState = {
+            panic("length < 0")
+        })
+    }
+
+    private fun isBuiltin(name: String): Boolean {
+        return name in setOf("len", "cap")
+    }
+
+    private fun callBuiltin(name: String, args: List<GoValue>): UExpr<out USort> {
+        return when (name) {
+            "len" -> {
+                val arg = args[0]
+                val arr = arg.accept(this).asExpr(ctx.addressSort)
+                checkNotNull(arr) ?: throw IllegalStateException()
+
+                return scope.calcOnState { memory.readArrayLength(arr, arg.type, ctx.sizeSort) }
+            }
+
+            else -> ctx.nullRef
+        }
     }
 }

@@ -1,6 +1,7 @@
 package org.usvm.state
 
 import io.ksmt.utils.cast
+import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
@@ -106,7 +107,7 @@ class GoState(
         pathNode += inst
     }
 
-    fun returnValue(valueToReturn: UExpr<USort>) {
+    fun returnValue(valueToReturn: UExpr<out USort>, type: GoType) {
         val returnFromMethod = lastEnteredMethod
         val returnSite = callStack.pop()
         if (callStack.isNotEmpty()) {
@@ -114,7 +115,7 @@ class GoState(
         }
 
         if (!isExceptional) {
-            methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn)
+            methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn, type)
         }
 
         if (returnSite != null) {
@@ -138,6 +139,8 @@ class GoState(
     fun panic(expr: UExpr<out USort>, type: GoType) {
         methodResult = GoMethodResult.Panic(expr.cast(), type)
     }
+
+    fun panic(text: String) = panic(mkString(text), BasicType("debug"))
 
     fun recover(method: GoMethod, inst: GoInst): UExpr<out USort> = with(ctx) {
         if (methodResult is GoMethodResult.Panic) {
@@ -213,5 +216,9 @@ class GoState(
         appendLine("Instruction: $currentStatement")
         if (isExceptional) appendLine("Exception: $methodResult")
         appendLine(callStack)
+    }
+
+    private fun mkString(value: String): UExpr<out USort> = with(ctx) {
+        mkConst(value, addressSort)
     }
 }

@@ -10,11 +10,12 @@ sealed interface GoMethodResult {
 
     class Success(
         val method: GoMethod,
-        val value: UExpr<USort>,
+        val value: UExpr<out USort>,
+        val type: GoType,
     ) : GoMethodResult
 
     class Panic(
-        val value: UExpr<USort>,
+        val value: UExpr<out USort>,
         val type: GoType
     ) : GoMethodResult
 }
