@@ -1,17 +1,17 @@
 package org.usvm.dataflow.ts.test.utils
 
 import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.dto.convertToEtsType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ts.infer.AccessPathBase
@@ -83,12 +83,18 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
     is EtsTypeFact.ObjectEtsTypeFact -> {
         // TODO it should be replaced with signatures
         val typeName = this.cls?.typeName
-        type is EtsClassType && type.typeName == typeName || type is EtsUnclearRefType && type.typeName == typeName
+        (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
     }
+
     EtsTypeFact.AnyEtsTypeFact -> type is EtsAnyType
-    is EtsTypeFact.ArrayEtsTypeFact -> TODO("How to implement it considering ")
+    is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
+        is EtsArrayType -> this.elementType.matchesWith(type.elementType)
+        is EtsUnclearRefType -> TODO()
+        else -> false
+    }
+
     EtsTypeFact.BooleanEtsTypeFact -> type is EtsBooleanType
-    EtsTypeFact.FunctionEtsTypeFact -> TODO()
+    EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType
     EtsTypeFact.NullEtsTypeFact -> type is EtsNullType
     EtsTypeFact.NumberEtsTypeFact -> type is EtsNumberType
     EtsTypeFact.StringEtsTypeFact -> type is EtsStringType
