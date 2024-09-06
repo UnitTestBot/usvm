@@ -8,6 +8,7 @@ import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.convertToEtsType
@@ -79,9 +80,13 @@ data class MethodTypesFacts(
 }
 
 private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
-    is EtsTypeFact.ObjectEtsTypeFact -> type is EtsRefType && type.typeName == this.cls?.typeName // TODO it should be replaced with signatures
+    is EtsTypeFact.ObjectEtsTypeFact -> {
+        // TODO it should be replaced with signatures
+        val typeName = this.cls?.typeName
+        type is EtsClassType && type.typeName == typeName || type is EtsUnclearRefType && type.typeName == typeName
+    }
     EtsTypeFact.AnyEtsTypeFact -> type is EtsAnyType
-    is EtsTypeFact.ArrayEtsTypeFact -> TODO()
+    is EtsTypeFact.ArrayEtsTypeFact -> TODO("How to implement it considering ")
     EtsTypeFact.BooleanEtsTypeFact -> type is EtsBooleanType
     EtsTypeFact.FunctionEtsTypeFact -> TODO()
     EtsTypeFact.NullEtsTypeFact -> type is EtsNullType
