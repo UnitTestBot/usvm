@@ -66,7 +66,7 @@ class CaseAssignLocalObjectToField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: { t: number } }";
+        const EXPECTED_ARG_0 = "Object { f: Object { t: number } }";
     }
 }
 
@@ -146,7 +146,7 @@ class CaseAssignArgumentArrayElementToLocal2 {
 
 // Case `x[i] := y`
 class CaseAssignLocalToArrayElementNumber {
-    entrypoint(x: any) {
+    entrypoint(x: any[]) {
         let y = 100; // y: number
         x[0] = y; // x: Array<number>
         infer(x);
@@ -475,5 +475,65 @@ class CaseDivideNumberByString {
 
     infer(a: any) {
         const EXPECTED_ARG_0 = "number";
+    }
+}
+
+// ----------------------------------------
+
+// Case `return x`
+class CaseReturnNumber {
+    entrypoint() {
+        infer();
+    }
+
+    infer(): any {
+        const EXPECTED_RETURN = "number";
+        let x = 93; // x: number
+        return x;
+    }
+}
+
+// ----------------------------------------
+
+ // Case `return arg`
+ class CaseReturnArgumentNumber {
+     entrypoint() {
+         let x = 94; // x: number
+         infer(x);
+     }
+
+     infer(a: any): any {
+         const EXPECTED_RETURN = "number";
+         return a;
+     }
+ }
+
+// ----------------------------------------
+
+// Case `return obj`
+class CaseReturnObject {
+    entrypoint() {
+         infer();
+    }
+
+    infer(): any {
+        const EXPECTED_RETURN = "Object { f: number }";
+        let x = { f: 95 }; // x: Object { f: number }
+        return x;
+    }
+}
+
+// ----------------------------------------
+
+// Case `return obj`
+class CaseReturnArgumentObject {
+    entrypoint() {
+        let x = { f: 96 }; // x: Object { f: number }
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_RETURN = "Object { f: number }";
+        return a;
     }
 }
