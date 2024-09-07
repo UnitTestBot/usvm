@@ -20,8 +20,17 @@ import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoVar
+import org.jacodb.go.api.TupleType
+import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.primitive.USetEntryLValue
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.statistics.ApplicationGraph
 
 class GoInstVisitor(
@@ -51,7 +60,8 @@ class GoInstVisitor(
 
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
-            returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+            val type = TupleType(inst.returnValues.map { it.type })
+            returnValue(mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()), type)
         }
         return GoNullInst(inst.location.method)
     }
@@ -107,7 +117,36 @@ class GoInstVisitor(
     }
 
     override fun visitGoMapUpdateInst(inst: GoMapUpdateInst): GoInst {
-        TODO("Not yet implemented")
+        val map = inst.map.accept(exprVisitor).asExpr(ctx.addressSort)
+        val type = inst.map.type
+        val key = inst.key.accept(exprVisitor)
+        val value = inst.value.accept(exprVisitor)
+        val isRefKey = key.sort == ctx.addressSort
+
+        exprVisitor.checkNotNull(map) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(map, type) ?: throw IllegalStateException()
+
+        scope.doWithState {
+            val mapContainsLValue = if (isRefKey) {
+                URefSetEntryLValue(map, key.asExpr(ctx.addressSort), type)
+            } else {
+                USetEntryLValue(key.sort, map, key.asExpr(key.sort), type, USizeExprKeyInfo())
+            }
+            val mapEntryLValue = if (isRefKey) {
+                URefMapEntryLValue(value.sort, map, key.asExpr(ctx.addressSort), type)
+            } else {
+                UMapEntryLValue(key.sort, value.sort, map, key.asExpr(key.sort), type, USizeExprKeyInfo())
+            }
+            val currentSize = symbolicObjectMapSize(map, type)
+
+            memory.write(mapEntryLValue, value.asExpr(value.sort), ctx.trueExpr)
+            memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
+
+            val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
+            memory.write(UMapLengthLValue(map, type, ctx.sizeSort), updatedSize, ctx.mkNot(memory.read(mapContainsLValue)))
+        }
+
+        return next(inst)
     }
 
     override fun visitGoDebugRefInst(inst: GoDebugRefInst): GoInst {

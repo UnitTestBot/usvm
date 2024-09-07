@@ -78,17 +78,27 @@ import org.jacodb.go.api.GoUnaryExpr
 import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.TupleType
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownUnaryOperationException
+import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.readArrayLength
+import org.usvm.api.readField
+import org.usvm.api.refSetContainsElement
+import org.usvm.api.setContainsElement
 import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.operator.GoBinaryOperator
 import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
@@ -250,7 +260,15 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeMapExpr(expr: GoMakeMapExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val reserve = expr.reserve.accept(this).asExpr(ctx.sizeSort)
+
+        checkLength(reserve) ?: throw IllegalStateException()
+
+        return scope.calcOnState {
+            val ref = memory.allocConcrete(expr.type)
+            memory.write(UMapLengthLValue(ref, expr.type, ctx.sizeSort), reserve, ctx.trueExpr)
+            ref.asExpr(ctx.addressSort)
+        }
     }
 
     override fun visitGoMakeChanExpr(expr: GoMakeChanExpr): UExpr<out USort> {
@@ -306,7 +324,34 @@ class GoExprVisitor(
     }
 
     override fun visitGoLookupExpr(expr: GoLookupExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val map = expr.instance.accept(this).asExpr(ctx.addressSort)
+        val type = expr.instance.type as MapType
+        val key = expr.index.accept(this)
+
+        val isRefKey = key.sort == ctx.addressSort
+        val commaOk = expr.commaOk
+        val valueSort = ctx.typeToSort(type.valueType)
+
+        checkNotNull(map) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(map, type) ?: throw IllegalStateException()
+
+        val contains = scope.calcOnState {
+            if (isRefKey) {
+                memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), type)
+            } else {
+                memory.setContainsElement(map, key, type, USizeExprKeyInfo())
+            }
+        }
+        val lvalue = if (isRefKey) {
+            URefMapEntryLValue(valueSort, map, key.asExpr(ctx.addressSort), type)
+        } else {
+            UMapEntryLValue(key.sort, valueSort, map, key.asExpr(key.sort), type, USizeExprKeyInfo())
+        }
+        val rvalue = scope.calcOnState { memory.read(lvalue).asExpr(valueSort) }
+
+        return scope.calcOnState {
+            rvalue.let { if (commaOk) mkTuple(TupleType(listOf(type.valueType, BasicType("bool"))), it, contains) else it }
+        }
     }
 
     override fun visitGoSelectExpr(expr: GoSelectExpr): UExpr<out USort> {
@@ -326,7 +371,11 @@ class GoExprVisitor(
     }
 
     override fun visitGoExtractExpr(expr: GoExtractExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val tuple = expr.instance.accept(this).asExpr(ctx.addressSort)
+
+        return scope.calcOnState {
+            memory.readField(tuple, expr.index, ctx.typeToSort(expr.type))
+        }
     }
 
     override fun visitGoVar(expr: GoVar): UExpr<out USort> {
@@ -490,7 +539,7 @@ class GoExprVisitor(
         return name.substring(1).toInt() + ctx.localVariableOffset(scope.calcOnState { lastEnteredMethod })
     }
 
-    private fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
+    fun checkNotNull(obj: UHeapRef): Unit? = with(ctx) {
         scope.fork(mkHeapRefEq(obj, nullRef).not(), blockOnFalseState = {
             panic("null")
         })

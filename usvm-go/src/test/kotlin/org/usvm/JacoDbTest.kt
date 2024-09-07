@@ -39,8 +39,8 @@ class JacoDbTest {
     }
 
     @Test
-    fun testLoop() {
-        test("loop")
+    fun testLoopSimple() {
+        test("loopSimple")
     }
 
     @Test
@@ -49,68 +49,93 @@ class JacoDbTest {
     }
 
     @Test
-    fun testInfinite() {
-        test("infinite")
+    fun testLoopInfinite() {
+        test("loopInfinite")
     }
 
     @Test
-    fun testInner() {
-        test("inner")
+    fun testLoopInner() {
+        test("loopInner")
     }
 
     @Test
-    fun testCollatz() {
-        test("collatz")
+    fun testLoopCollatz() {
+        test("loopCollatz")
     }
 
     @Test
-    fun testSum() {
-        test("sum")
+    fun testLoopSum() {
+        test("loopSum")
     }
 
     @Test
-    fun testPointer() {
-        test("pointer")
+    fun testPointerSimple() {
+        test("pointerSimple")
     }
 
     @Test
-    fun testSample() {
-        test("sample")
+    fun testPointerOther() {
+        test("pointerOther")
     }
 
     @Test
-    fun testSampleAnother() {
-        test("sampleAnother")
+    fun testPointerAnother() {
+        test("pointerAnother")
     }
 
     @Test
-    fun testArray() {
-        test("array")
+    fun testSliceSimple() {
+        test("sliceSimple")
     }
 
     @Test
-    fun testOverwrite() {
-        test("overwrite")
+    fun testSliceOverwrite() {
+        test("sliceOverwrite")
     }
 
     @Test
-    fun testAlloc() {
-        test("alloc")
+    fun testSliceAlloc() {
+        test("sliceAlloc")
     }
 
     @Test
-    fun testFirst() {
-        test("first")
+    fun testSliceFirst() {
+        test("sliceFirst")
     }
 
     @Test
-    fun testSumArray() {
-        test("sumArray")
+    fun testSliceSum() {
+        test("sliceSum")
     }
 
     @Test
-    fun testCompare() {
-        test("compare")
+    fun testSliceCompare() {
+        test("sliceCompare")
+    }
+
+    @Test
+    fun testMapAlloc() {
+        test("mapAlloc")
+    }
+
+    @Test
+    fun testMapLookup() {
+        test("mapLookup")
+    }
+
+    @Test
+    fun testMapLookupComma() {
+        test("mapLookupComma")
+    }
+
+    @Test
+    fun testMapLookupCommaReturn() {
+        test("mapLookupCommaReturn")
+    }
+
+    @Test
+    fun testMapUpdate() {
+        test("mapUpdate")
     }
 
     private val options: UMachineOptions = UMachineOptions(
