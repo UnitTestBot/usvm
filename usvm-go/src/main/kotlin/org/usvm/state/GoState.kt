@@ -1,5 +1,6 @@
 package org.usvm.state
 
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoFunction
@@ -13,8 +14,10 @@ import org.usvm.GoTarget
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.UMemory
@@ -216,6 +219,14 @@ class GoState(
         appendLine("Instruction: $currentStatement")
         if (isExceptional) appendLine("Exception: $methodResult")
         appendLine(callStack)
+    }
+
+    fun mkTuple(type: GoType, vararg fields: UExpr<out USort>): UHeapRef = with(ctx) {
+        val ref = memory.allocConcrete(type)
+        for ((index, field) in fields.withIndex()) {
+            memory.write(UFieldLValue(field.sort, ref, index), field.asExpr(field.sort), trueExpr)
+        }
+        return ref
     }
 
     private fun mkString(value: String): UExpr<out USort> = with(ctx) {

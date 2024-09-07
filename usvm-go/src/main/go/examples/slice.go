@@ -1,11 +1,11 @@
 package examples
 
-func array(arr []int) int {
+func sliceSimple(arr []int) int {
 	arr[0] = 5
 	return arr[0]
 }
 
-func overwrite(arr []int) int {
+func sliceOverwrite(arr []int) int {
 	if len(arr) == 0 {
 		return -1
 	}
@@ -13,7 +13,7 @@ func overwrite(arr []int) int {
 	return arr[0]
 }
 
-func alloc(l int) []int {
+func sliceAlloc(l int) []int {
 	arr := make([]int, l)
 	if l < 5 || l > 10 {
 		return arr
@@ -22,7 +22,7 @@ func alloc(l int) []int {
 	return arr
 }
 
-func first(nums []int) int {
+func sliceFirst(nums []int) int {
 	if len(nums) < 2 || len(nums) > 20 {
 		return -1
 	}
@@ -32,7 +32,7 @@ func first(nums []int) int {
 	return 0
 }
 
-func sumArray(nums []int) int {
+func sliceSum(nums []int) int {
 	if len(nums) < 5 {
 		return -228
 	}
@@ -47,7 +47,7 @@ func sumArray(nums []int) int {
 	return res
 }
 
-func compare(nums []int) int {
+func sliceCompare(nums []int) int {
 	i := nums[0]
 	j := nums[1]
 	if i < j {

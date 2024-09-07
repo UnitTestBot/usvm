@@ -18,25 +18,43 @@ import io.ksmt.utils.asExpr
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NullType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.TupleType
 import org.usvm.GoContext
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
+import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
+import org.usvm.api.readField
+import org.usvm.collection.map.length.UMapLengthLValue
+import org.usvm.collection.map.primitive.UMapEntryLValue
+import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.primitive.USetEntryLValue
+import org.usvm.collection.set.primitive.setEntries
+import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.interpreter.GoInterpreter.Companion.logger
 import org.usvm.isTrue
+import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
+import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
+import kotlin.random.Random
+import kotlin.random.nextUInt
+import kotlin.random.nextULong
 
 class GoTestInterpreter(
     private val ctx: GoContext,
@@ -44,8 +62,8 @@ class GoTestInterpreter(
     fun resolve(state: GoState, method: GoMethod): ProgramExecutionResult = with(ctx) {
         val model = state.models.first()
 
-        val inputScope = MemoryScope(ctx, model, model)
-        val outputScope = MemoryScope(ctx, model, state.memory)
+        val inputScope = MemoryScope(ctx, state, model, model)
+        val outputScope = MemoryScope(ctx, state, model, state.memory)
 
         val inputValues = List(method.parameters.size) { idx ->
             val type = method.parameters[idx].type as GoType
@@ -69,6 +87,7 @@ class GoTestInterpreter(
 
     private class MemoryScope(
         private val ctx: GoContext,
+        private val state: GoState,
         private val model: UModelBase<GoType>,
         private val memory: UWritableMemory<GoType>,
     ) {
@@ -84,6 +103,8 @@ class GoTestInterpreter(
                 when (type) {
                     is BasicType -> resolveString(it)
                     is SliceType -> resolveArray(it, type)
+                    is MapType -> resolveMap(it, type)
+                    is TupleType -> resolveTuple(it, type)
                     is NullType -> null
                     else -> Any()
                 }
@@ -126,6 +147,77 @@ class GoTestInterpreter(
                 convertExpr(element, elementType)
             }
             return result
+        }
+
+        fun resolveMap(map: UHeapRef, mapType: MapType): Map<Any?, Any?>? = with(ctx) {
+            if (map == mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            val keyType = mapType.keyType
+            val keySort = typeToSort(keyType)
+            val valueType = mapType.keyType
+            val valueSort = typeToSort(valueType)
+
+            val isRefSet = keySort == addressSort
+
+            val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
+                m.putAll(s.associate { entry ->
+                    val key = when (entry) {
+                        is URefSetEntryLValue<*> -> entry.setElement
+                        is USetEntryLValue<*, *, *> -> entry.setElement
+                        else -> throw IllegalStateException()
+                    }
+
+                    val lvalue = if (isRefSet) {
+                        URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
+                    } else {
+                        UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                    }
+                    val value = memory.read(lvalue)
+                    convertExpr(key, keyType) to convertExpr(value, valueType)
+                })
+            }
+            val getEntries: (UHeapRef) -> Set<ULValue<*, UBoolSort>> = {
+                if (isRefSet) {
+                    memory.refSetEntries(it, mapType)
+                } else {
+                    memory.setEntries(it, mapType, keySort, USizeExprKeyInfo())
+                }.entries
+            }
+
+            val length = clipArrayLength(resolveSize(memory.read(UMapLengthLValue(map, mapType, sizeSort))))
+
+            val result = mutableMapOf<Any?, Any?>()
+            getEntries(map).also { addToMap(result, it) }
+            getEntries(model.eval(map)).also { addToMap(result, it) }
+
+            if (length > result.size) {
+                val diff = length - result.size
+                val entries = Array(diff) {
+                    val key = if (isRefSet) {
+                        convertExpr(state.symbolicObjectMapAnyKey(map, mapType), keyType)
+                    } else {
+                        RNG(keyType as BasicType).generateUniqueMapKey(result)
+                    }
+                    val value = convertExpr(valueSort.sampleUValue(), valueType)
+                    key to value
+                }
+                result.putAll(entries)
+            }
+
+            return result
+        }
+
+        fun resolveTuple(tuple: UHeapRef, tupleType: TupleType): List<Any?>? = with(ctx) {
+            if (tuple == mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            return List(tupleType.types.size) {
+                val sort = typeToSort(tupleType.types[it])
+                convertExpr(memory.readField(tuple, it, sort), tupleType.types[it])
+            }
         }
     }
 
@@ -206,5 +298,68 @@ class UnsuccessfulExecutionResult(
             appendLine(result)
             appendLine("================================================================")
         }
+    }
+}
+
+class RNG(
+    type: BasicType,
+    seed: Long = 0,
+    private val maxAttempts: Long = 10
+) {
+    private val random = Random(seed)
+
+    private val generate: () -> Any = when (type.typeName) {
+        "int8" -> {
+            { random.nextBytes(1).first() }
+        }
+
+        "uint8" -> {
+            { random.nextBytes(1).first().toUByte() }
+        }
+
+        "int16" -> {
+            { random.nextInt().toShort() }
+        }
+
+        "uint16" -> {
+            { random.nextInt().toUShort() }
+        }
+
+        "int32" -> {
+            { random.nextInt() }
+        }
+
+        "uint32" -> {
+            { random.nextUInt() }
+        }
+
+        "int64" -> {
+            { random.nextLong() }
+        }
+
+        "uint64" -> {
+            { random.nextULong() }
+        }
+
+        "float32" -> {
+            { random.nextFloat() }
+        }
+
+        "float64" -> {
+            { random.nextDouble() }
+        }
+
+        else -> throw IllegalStateException()
+    }
+
+    fun generateUniqueMapKey(map: Map<Any?, Any?>): Any? {
+        for (i in 0 until maxAttempts) {
+            val key = generate()
+            if (!map.containsKey(key)) {
+                return key
+            }
+        }
+
+        return null
     }
 }

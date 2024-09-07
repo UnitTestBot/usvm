@@ -143,6 +143,10 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val tuple: Value,
+        val index: Int,
     ) : Instruction
 
     @Serializable
@@ -268,6 +272,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val reserve: Value,
     ) : Instruction
 
     @Serializable
@@ -328,6 +335,11 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val map: Value,
+        val key: Value,
+        @SerialName("comma_ok") val commaOk: Boolean,
     ) : Instruction
 
     @Serializable
@@ -336,6 +348,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        val map: Value,
+        val key: Value,
+        val value: Value,
     ) : Instruction
 
     @Serializable

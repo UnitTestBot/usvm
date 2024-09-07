@@ -12,6 +12,7 @@ import org.jacodb.go.api.GoCallExpr
 import org.jacodb.go.api.GoConditionExpr
 import org.jacodb.go.api.GoDivExpr
 import org.jacodb.go.api.GoEqlExpr
+import org.jacodb.go.api.GoExtractExpr
 import org.jacodb.go.api.GoFloat32
 import org.jacodb.go.api.GoFloat64
 import org.jacodb.go.api.GoFreeVar
@@ -32,9 +33,12 @@ import org.jacodb.go.api.GoInt64
 import org.jacodb.go.api.GoInt8
 import org.jacodb.go.api.GoJumpInst
 import org.jacodb.go.api.GoLeqExpr
+import org.jacodb.go.api.GoLookupExpr
 import org.jacodb.go.api.GoLssExpr
 import org.jacodb.go.api.GoMakeClosureExpr
+import org.jacodb.go.api.GoMakeMapExpr
 import org.jacodb.go.api.GoMakeSliceExpr
+import org.jacodb.go.api.GoMapUpdateInst
 import org.jacodb.go.api.GoModExpr
 import org.jacodb.go.api.GoMulExpr
 import org.jacodb.go.api.GoNeqExpr
@@ -64,6 +68,7 @@ import org.jacodb.go.api.GoUnaryExpr
 import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.SliceType
 import org.usvm.GoPackage
@@ -72,7 +77,7 @@ object Converter {
     fun unpackPackage(pkg: Package): GoPackage {
         return GoPackage(pkg.name, pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
-                unpackType(function.name),
+                BasicType(function.name),
                 function.parameters.mapIndexed(::unpackParameter),
                 function.name,
                 emptyList(),
@@ -101,7 +106,7 @@ object Converter {
             is Instruction.ChangeType -> TODO()
             is Instruction.DebugRef -> TODO()
             is Instruction.Defer -> TODO()
-            is Instruction.Extract -> TODO()
+            is Instruction.Extract -> unpackExtract(location, inst)
             is Instruction.Field -> TODO()
             is Instruction.FieldAddr -> TODO()
             is Instruction.Go -> TODO()
@@ -109,20 +114,13 @@ object Converter {
             is Instruction.Index -> TODO()
             is Instruction.IndexAddr -> unpackIndexAddr(location, inst)
             is Instruction.Jump -> GoJumpInst(location, GoInstRef(inst.index))
-            is Instruction.Lookup -> TODO()
+            is Instruction.Lookup -> unpackLookup(location, inst)
             is Instruction.MakeChan -> TODO()
             is Instruction.MakeClosure -> unpackMakeClosure(location, inst)
             is Instruction.MakeInterface -> TODO()
-            is Instruction.MakeMap -> TODO()
-            is Instruction.MakeSlice -> GoMakeSliceExpr(
-                location,
-                unpackType(inst.goType),
-                unpackValue(inst.len),
-                unpackValue(inst.cap),
-                inst.register
-            ).toAssignInst()
-
-            is Instruction.MapUpdate -> TODO()
+            is Instruction.MakeMap -> GoMakeMapExpr(location, unpackType(inst.goType), unpackValue(inst.reserve), inst.register).toAssignInst()
+            is Instruction.MakeSlice -> unpackMakeSlice(location, inst)
+            is Instruction.MapUpdate -> GoMapUpdateInst(location, unpackValue(inst.map), unpackValue(inst.key), unpackValue(inst.value))
             is Instruction.Next -> TODO()
             is Instruction.Panic -> TODO()
             is Instruction.Phi -> GoPhiExpr(location, unpackType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
@@ -184,6 +182,10 @@ object Converter {
         ).toAssignInst()
     }
 
+    private fun unpackExtract(location: GoInstLocation, extract: Instruction.Extract): GoInst {
+        return GoExtractExpr(location, unpackType(extract.goType), unpackValue(extract.tuple), extract.index, extract.register).toAssignInst()
+    }
+
     private fun unpackCondition(cond: Value): GoConditionExpr {
         return unpackValue(cond) as GoConditionExpr
     }
@@ -198,10 +200,35 @@ object Converter {
         ).toAssignInst()
     }
 
+    private fun unpackLookup(location: GoInstLocation, lookup: Instruction.Lookup): GoInst {
+        return GoLookupExpr(
+            location,
+            unpackType(lookup.goType),
+            unpackValue(lookup.map),
+            unpackValue(lookup.key),
+            lookup.register,
+            lookup.commaOk
+        ).toAssignInst()
+    }
+
     private fun unpackMakeClosure(location: GoInstLocation, makeClosure: Instruction.MakeClosure): GoInst {
-        val type = BasicType(makeClosure.name)
-        val function = functionAlias(makeClosure.function.name)
-        return GoMakeClosureExpr(location, type, function, makeClosure.bindings.map(::unpackValue), makeClosure.register).toAssignInst()
+        return GoMakeClosureExpr(
+            location,
+            BasicType(makeClosure.name),
+            functionAlias(makeClosure.function.name),
+            makeClosure.bindings.map(::unpackValue),
+            makeClosure.register
+        ).toAssignInst()
+    }
+
+    private fun unpackMakeSlice(location: GoInstLocation, makeSlice: Instruction.MakeSlice): GoInst {
+        return GoMakeSliceExpr(
+            location,
+            unpackType(makeSlice.goType),
+            unpackValue(makeSlice.len),
+            unpackValue(makeSlice.cap),
+            makeSlice.register
+        ).toAssignInst()
     }
 
     private fun unpackValue(value: Value): GoValue {
@@ -258,19 +285,17 @@ object Converter {
         }
     }
 
-    private fun unpackType(type: String): GoType {
-        if (type.startsWith("*")) {
-            return PointerType(unpackType(type.substring(1)))
-        }
-        if (type.startsWith("[]")) {
-            return SliceType(unpackType(type.substring(2)))
-        }
+    private fun unpackType(type: String): GoType = when {
+        type.startsWith("*") -> PointerType(unpackType(type.substring(1)))
+        type.startsWith("[]") -> SliceType(unpackType(type.substring(2)))
+        type.startsWith("map") -> unpackMapType(type.substring(4))
+        basicTypes.contains(type) -> BasicType(type)
+        else -> BasicType(type) // TODO real types
+    }
 
-        if (basicTypes.contains(type)) {
-            return BasicType(type)
-        }
-
-        return BasicType(type) // TODO real types
+    private fun unpackMapType(type: String): GoType {
+        val parts = type.split(']')
+        return MapType(unpackType(parts[0]), unpackType(parts[1]))
     }
 
     private fun functionAlias(name: String): GoFunction {

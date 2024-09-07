@@ -265,6 +265,10 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = ExtractInstruction
 		return Extract{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Tuple:             PackValue(inst.Tuple),
+			Index:             inst.Index,
 		}
 	case *ssa.Slice:
 		common.Type = SliceInstruction
@@ -348,6 +352,9 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = MakeMapInstruction
 		return MakeMap{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Reserve:           PackValue(inst.Reserve),
 		}
 	case *ssa.Range:
 		common.Type = RangeInstruction
@@ -387,11 +394,19 @@ func PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = LookupInstruction
 		return Lookup{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Map:               PackValue(inst.X),
+			Key:               PackValue(inst.Index),
+			CommaOk:           inst.CommaOk,
 		}
 	case *ssa.MapUpdate:
 		common.Type = MapUpdateInstruction
 		return MapUpdate{
 			CommonInstruction: common,
+			Map:               PackValue(inst.Map),
+			Key:               PackValue(inst.Key),
+			Value:             PackValue(inst.Value),
 		}
 	case *ssa.TypeAssert:
 		common.Type = TypeAssertInstruction
@@ -486,6 +501,10 @@ type MakeInterface struct {
 
 type Extract struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Tuple             Value  `yaml:"tuple" json:"tuple"`
+	Index             int    `yaml:"index" json:"index"`
 }
 
 type Slice struct {
@@ -555,6 +574,9 @@ type MakeSlice struct {
 
 type MakeMap struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Reserve           Value  `yaml:"reserve" json:"reserve"`
 }
 
 type Range struct {
@@ -587,10 +609,18 @@ type Index struct {
 
 type Lookup struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Map               Value  `yaml:"map" json:"map"`
+	Key               Value  `yaml:"key" json:"key"`
+	CommaOk           bool   `yaml:"comma_ok" json:"comma_ok"`
 }
 
 type MapUpdate struct {
 	CommonInstruction `yaml:",inline"`
+	Map               Value `yaml:"map" json:"map"`
+	Key               Value `yaml:"key" json:"key"`
+	Value             Value `yaml:"value" json:"value"`
 }
 
 type TypeAssert struct {
