@@ -1,6 +1,6 @@
 package examples
 
-func pointer(i int) int {
+func pointerSimple(i int) int {
 	j := &i
 	k := &j
 	l := &k
@@ -9,14 +9,14 @@ func pointer(i int) int {
 	return ***l + 1
 }
 
-func sample(i int) int {
+func pointerOther(i int) int {
 	j := &i
 	*j += 5
 	k := &j
 	return **k + 1
 }
 
-func sampleAnother(i int) int {
+func pointerAnother(i int) int {
 	a := 5
 	b := &a
 	*b = 3
