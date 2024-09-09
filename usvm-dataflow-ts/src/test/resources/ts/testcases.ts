@@ -551,3 +551,151 @@ class CaseReturnArgumentObject {
         return a;
     }
 }
+
+// Case `x.f[0].g = y`
+class CaseAssignToNestedObjectField {
+    entrypoint(x: any) {
+        let y = 134; // y: number
+        x.f[0].g = y; // x: { f: Array<{ g: number }> }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Array<{ g: number }> }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f.g.h = y`
+class CaseAssignDeeplyNestedField {
+    entrypoint(x: any) {
+        let y = "abc"; // y: string
+        x.f.g.h = y; // x: { f: { g: { h: string } } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: { g: { h: string } } }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f[i].g.h = y`
+class CaseAssignToArrayObjectField {
+    entrypoint(x: any) {
+        let y = false; // y: boolean
+        x.f[2].g.h = y; // x: { f: Array<{ g: { h: boolean } }> }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Array<{ g: { h: boolean } }> }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x[i].f.g = y`
+class CaseAssignArrayFieldToNestedObject {
+    entrypoint(x: any) {
+        let y = 219; // y: number
+        x[0].f.g = y; // x: Array<{ f: { g: number } }>
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<{ f: { g: number } }>"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f[i][j] = y`
+class CaseAssignToMultiDimensionalArray {
+    entrypoint(x: any) {
+        let y = "data"; // y: string
+        x.f[1][2] = y; // x: { f: Array<Array<string>> }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Array<Array<string>> }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f[0].g[1].h = y`
+class CaseAssignToComplexNestedArrayField {
+    entrypoint(x: any) {
+        let y = true; // y: boolean
+        x.f[0].g[1].h = y; // x: { f: Array<{ g: Array<{ h: boolean }> }> }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Array<{ g: Array<{ h: boolean }> }> }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f.g.h[i] = y`
+class CaseAssignToArrayInNestedObject {
+    entrypoint(x: any) {
+        let y = 3.14; // y: number
+        x.f.g.h[2] = y; // x: { f: { g: { h: Array<number> } } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: { g: { h: Array<number> } } }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f[0].g.h[i] = y`
+class CaseAssignToArrayInDeeplyNestedObject {
+    entrypoint(x: any) {
+        let y = null; // y: null
+        x.f[0].g.h[3] = y; // x: { f: Array<{ g: { h: Array<null> } }> }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Array<{ g: { h: Array<null> } }> }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f.g[i].h.j = y`
+class CaseAssignToDeeplyNestedObjectArray {
+    entrypoint(x: any) {
+        let y = "nested"; // y: string
+        x.f.g[1].h.j = y; // x: { f: { g: Array<{ h: { j: string } }> } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: { g: Array<{ h: { j: string } }> } }"
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f.g.h[0][i] = y`
+class CaseAssignToMultiDimensionalArrayField {
+    entrypoint(x: any) {
+        let y = 99; // y: number
+        x.f.g.h[0][1] = y; // x: { f: { g: { h: Array<Array<number>> } } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: { g: { h: Array<Array<number>> } } }"
+    }
+}
