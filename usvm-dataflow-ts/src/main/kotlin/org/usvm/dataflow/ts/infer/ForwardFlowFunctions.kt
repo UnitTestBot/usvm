@@ -13,6 +13,7 @@ import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
@@ -27,6 +28,7 @@ import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
+    val typeInfo: Map<EtsType, EtsTypeFact>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
@@ -59,13 +61,13 @@ class ForwardFlowFunctions(
                     addTypes(propertyPath, propertyType, facts)
                 }
 
-                val objType = EtsTypeFact.ObjectEtsTypeFact(cls = type.cls, properties = emptyMap())
-                facts += TypedVariable(path, objType)
+                facts += TypedVariable(path, type)
             }
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
                 check(type.elementType !is EtsTypeFact.ArrayEtsTypeFact)
-                facts += TypedVariable(path + ElementAccessor, type.elementType)
+                facts += TypedVariable(path, type)
+                addTypes(path + ElementAccessor, type.elementType, facts)
             }
 
             is EtsTypeFact.GuardedTypeFact -> {
@@ -123,14 +125,15 @@ class ForwardFlowFunctions(
                 //     }
                 // }
 
-                val type = EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
+                val type = typeInfo[rhv.type]
+                    ?: EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
                 result += TypedVariable(lhv, type)
             }
 
             is EtsNewArrayExpr -> {
                 // TODO: check
-                // val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
-                // result += TypedVariable(lhv, type)
+                val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
+                result += TypedVariable(lhv, type)
                 result += TypedVariable(lhv + ElementAccessor, EtsTypeFact.from(rhv.elementType))
             }
 
@@ -188,10 +191,19 @@ class ForwardFlowFunctions(
         }
 
         // Override LHS:
-        // TODO: what about `x.f := new T` with fact `x:U`?
         if (rhv == null) {
             check(fact.variable.base == lhv.base)
-            return emptyList()
+
+            if (lhv.accesses.isEmpty()) {
+                return emptyList()
+            }
+
+            val accessor = lhv.accesses.single()
+            if (fact.variable.accesses.firstOrNull() == accessor){
+                return emptyList()
+            }
+
+            return listOf(fact)
         }
 
         // Case `x := y [as T]`

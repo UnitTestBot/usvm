@@ -1,6 +1,7 @@
 package org.usvm.dataflow.ts.infer
 
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ifds.Analyzer
@@ -10,9 +11,10 @@ import org.usvm.dataflow.ifds.Vertex
 class ForwardAnalyzer(
     val graph: EtsApplicationGraph,
     methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
+    typeInfo: Map<EtsType, EtsTypeFact>,
 ) : Analyzer<ForwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = ForwardFlowFunctions(graph, methodInitialTypes)
+    override val flowFunctions = ForwardFlowFunctions(graph, methodInitialTypes, typeInfo)
 
     override fun handleCrossUnitCall(
         caller: Vertex<ForwardTypeDomainFact, EtsStmt>,

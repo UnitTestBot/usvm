@@ -10,11 +10,13 @@ import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
@@ -32,6 +34,7 @@ private val logger = KotlinLogging.logger {}
 class BackwardFlowFunctions(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     val dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
+    val savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
 
     override fun obtainPossibleStartFacts(method: EtsMethod) = listOf(Zero)
@@ -283,6 +286,13 @@ class BackwardFlowFunctions(
             is EtsRef -> r.toPath()
             is EtsLValue -> r.toPath()
             is EtsCastExpr -> r.toPath()
+            is EtsNewExpr -> {
+                if (fact.variable == lhv.base) {
+                    savedTypes.getOrPut(r.type) { mutableListOf() }.add(fact.type)
+                }
+                return listOf(fact)
+            }
+
             else -> {
                 // logger.info { "TODO backward assign: $current" }
                 return listOf(fact)

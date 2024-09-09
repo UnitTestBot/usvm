@@ -146,9 +146,11 @@ sealed interface EtsTypeFact {
         val properties: Map<String, EtsTypeFact>,
     ) : BasicType {
         override fun toString(): String {
-            val clsName = cls?.typeName ?: "Object"
+            val clsName = cls?.typeName?.takeUnless { it.startsWith("AnonymousClass-") } ?: "Object"
             val funProps = properties.entries
                 .filter { it.value is FunctionEtsTypeFact }
+                .filterNot { it.key == "constructor" }
+                .filterNot { it.key == "@instance_init" }
                 .sortedBy { it.key }
             val nonFunProps = properties.entries
                 .filter { it.value !is FunctionEtsTypeFact }
@@ -187,12 +189,12 @@ sealed interface EtsTypeFact {
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
         override fun toString(): String {
-            return types.joinToString(" | ") {
+            return types.map {
                 when (it) {
                     is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
                     else -> it.toString()
                 }
-            }
+            }.sorted().joinToString(" | ")
         }
 
         override fun toPrettyString(): String {
@@ -209,12 +211,12 @@ sealed interface EtsTypeFact {
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
         override fun toString(): String {
-            return types.joinToString(" & ") {
+            return types.map {
                 when (it) {
                     is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
                     else -> it.toString()
                 }
-            }
+            }.sorted().joinToString(" & ")
         }
 
         override fun toPrettyString(): String {
@@ -334,7 +336,11 @@ sealed interface EtsTypeFact {
                 intersectionProperties[property] = currentType.intersect(type) ?: return null
             }
 
-            val intersectionCls = obj1.cls.takeIf { it == obj2.cls }
+            val intersectionCls = if (obj1.cls != null && obj2.cls != null) {
+                obj1.cls.takeIf { it == obj2.cls }
+            } else {
+                obj1.cls ?: obj2.cls
+            }
             return ObjectEtsTypeFact(intersectionCls, intersectionProperties)
         }
 

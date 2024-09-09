@@ -167,7 +167,7 @@ class CaseAssignLocalToArrayElementNumber {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Array<number>";
+        const EXPECTED_ARG_0 = "Array<any | number>";
     }
 }
 
@@ -697,5 +697,23 @@ class CaseAssignToMultiDimensionalArrayField {
 
     infer(a: any) {
         const EXPECTED_ARG_0 = "Object { f: { g: { h: Array<Array<number>> } } }"
+    }
+}
+
+// ----------------------------------------
+
+class MyType {
+    f: number = 15;
+}
+
+// Case `x = new T()`
+class CaseNew {
+    entrypoint() {
+        let y = new MyType(); // y: { f: number }
+        infer(y);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "MyType { f: number }"
     }
 }
