@@ -21990,7 +21990,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: Array<{ g: number }> }",
+                        "value": "Object { f: Array<Object { g: number }> }",
                         "type": {
                           "_": "StringType"
                         }
@@ -22658,7 +22658,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: { g: { h: string } } }",
+                        "value": "Object { f: Object { g: Object { h: string } } }",
                         "type": {
                           "_": "StringType"
                         }
@@ -23366,7 +23366,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: Array<{ g: { h: boolean } }> }",
+                        "value": "Object { f: Array<Object { g: Object { h: boolean } }> }",
                         "type": {
                           "_": "StringType"
                         }
@@ -24034,7 +24034,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Array<{ f: { g: number } }>",
+                        "value": "Array<{ f: Object { g: number } }>",
                         "type": {
                           "_": "StringType"
                         }
@@ -25450,7 +25450,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: Array<{ g: Array<{ h: boolean }> }> }",
+                        "value": "Object { f: Array<Object { g: Array<Object { h: boolean }> }> }",
                         "type": {
                           "_": "StringType"
                         }
@@ -26158,7 +26158,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: { g: { h: Array<number> } } }",
+                        "value": "Object { f: Object { g: Object { h: Array<number> } } }",
                         "type": {
                           "_": "StringType"
                         }
@@ -26906,7 +26906,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: Array<{ g: { h: Array<null> } }> }",
+                        "value": "Object { f: Array<Object { g: Object { h: Array<null> } }> }",
                         "type": {
                           "_": "StringType"
                         }
@@ -27654,7 +27654,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: { g: Array<{ h: { j: string } }> } }",
+                        "value": "Object { f: Object { g: Array<Object { h: Object { j: string } }> } }",
                         "type": {
                           "_": "StringType"
                         }
@@ -28402,7 +28402,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Object { f: { g: { h: Array<Array<number>> } } }",
+                        "value": "Object { f: Object { g: { h: Array<Array<number>> } } }",
                         "type": {
                           "_": "StringType"
                         }

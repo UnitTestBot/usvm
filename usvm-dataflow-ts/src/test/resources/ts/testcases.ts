@@ -561,7 +561,7 @@ class CaseAssignToNestedObjectField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: Array<{ g: number }> }"
+        const EXPECTED_ARG_0 = "Object { f: Array<Object { g: number }> }"
     }
 }
 
@@ -576,7 +576,7 @@ class CaseAssignDeeplyNestedField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: { g: { h: string } } }"
+        const EXPECTED_ARG_0 = "Object { f: Object { g: Object { h: string } } }"
     }
 }
 
@@ -591,7 +591,7 @@ class CaseAssignToArrayObjectField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: Array<{ g: { h: boolean } }> }"
+        const EXPECTED_ARG_0 = "Object { f: Array<Object { g: Object { h: boolean } }> }"
     }
 }
 
@@ -606,7 +606,7 @@ class CaseAssignArrayFieldToNestedObject {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Array<{ f: { g: number } }>"
+        const EXPECTED_ARG_0 = "Array<{ f: Object { g: number } }>"
     }
 }
 
@@ -636,7 +636,7 @@ class CaseAssignToComplexNestedArrayField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: Array<{ g: Array<{ h: boolean }> }> }"
+        const EXPECTED_ARG_0 = "Object { f: Array<Object { g: Array<Object { h: boolean }> }> }"
     }
 }
 
@@ -651,7 +651,7 @@ class CaseAssignToArrayInNestedObject {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: { g: { h: Array<number> } } }"
+        const EXPECTED_ARG_0 = "Object { f: Object { g: Object { h: Array<number> } } }"
     }
 }
 
@@ -666,7 +666,7 @@ class CaseAssignToArrayInDeeplyNestedObject {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: Array<{ g: { h: Array<null> } }> }"
+        const EXPECTED_ARG_0 = "Object { f: Array<Object { g: Object { h: Array<null> } }> }"
     }
 }
 
@@ -681,7 +681,7 @@ class CaseAssignToDeeplyNestedObjectArray {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: { g: Array<{ h: { j: string } }> } }"
+        const EXPECTED_ARG_0 = "Object { f: Object { g: Array<Object { h: Object { j: string } }> } }"
     }
 }
 
@@ -696,7 +696,7 @@ class CaseAssignToMultiDimensionalArrayField {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: { g: { h: Array<Array<number>> } } }"
+        const EXPECTED_ARG_0 = "Object { f: Object { g: { h: Array<Array<number>> } } }"
     }
 }
 
