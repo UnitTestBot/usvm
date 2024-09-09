@@ -18,6 +18,9 @@ import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
@@ -408,6 +411,8 @@ class EtsTypeInferenceTest {
         println("=".repeat(42))
         var numOk = 0
         var numBad = 0
+        val testResults = mutableListOf<Triple<String, Boolean, Pair<String, String>>>()
+
         for (m in inferMethods) {
             for (position in listOf(AccessPathBase.Arg(0), AccessPathBase.Arg(1), AccessPathBase.Return)) {
                 val expected = (expectedTypeString[m]
@@ -418,7 +423,10 @@ class EtsTypeInferenceTest {
                     .types[position]
                 // ?: error("No inferred type for position $position")
 
-                if (inferred.toString() == expected) {
+                val passed = inferred.toString() == expected
+                testResults.add(Triple("${m.enclosingClass.name}::${m.name}", passed, inferred.toString() to expected))
+
+                if (passed) {
                     numOk++
                     println("Correctly inferred type for $position in '${m.enclosingClass.name}::${m.name}': ${inferred?.toPrettyString()}")
                 } else {
@@ -427,8 +435,27 @@ class EtsTypeInferenceTest {
                 }
             }
         }
+
         println("numOk = $numOk")
         println("numBad = $numBad")
         println("Success rate: %.1f%%".format(numOk / (numOk + numBad).toDouble() * 100.0))
+
+        exportResultsToCSV(testResults, "test_results.csv")
+    }
+
+    private fun exportResultsToCSV(testResults: List<Triple<String, Boolean, Pair<String, String>>>, filePath: String) {
+        val file = File(filePath)
+        val writer = BufferedWriter(FileWriter(file, false))
+
+        if (file.length() == 0L) {
+            writer.write("Name,Status,Inferred,Expected\n")
+        }
+
+        testResults.forEach { (testName, passed, inferredExpected) ->
+            val (inferred, expected) = inferredExpected
+            writer.write("$testName,${if (passed) "Passed" else "Failed"},$inferred,$expected\n")
+        }
+
+        writer.close()
     }
 }
