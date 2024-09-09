@@ -42,6 +42,20 @@ class CaseAssignFieldToLocal2 {
 
 // ----------------------------------------
 
+// Case `x := a.f`
+class CaseAssignFieldToLocal3 {
+    entrypoint(y: any) {
+        infer(y);
+    }
+
+    infer(a: any) {
+        let x = a.f; // a: { f: any }
+        const EXPECTED_ARG_0 = "Object { f: any }";
+    }
+}
+
+// ----------------------------------------
+
 // Case `x.f := y`
 class CaseAssignLocalNumberToField {
     entrypoint(x: any) {
