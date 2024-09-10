@@ -81,6 +81,11 @@ class DisjointSets<T> private constructor(
         }
     }
 
+    fun getSet(x: T): Set<T> {
+        val rep = find(x)
+        return parent.filterValues { it == rep }.keys
+    }
+
     /**
      * Subscribes [callback] to modifications of this data structure.
      * [callback](x, y) notifies that two sets with representatives x and y
