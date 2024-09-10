@@ -13,6 +13,10 @@ class DisjointSets<T> private constructor(
     private var unionCallback: ((T, T) -> Unit)?,
     private val representativeSelector: RepresentativeSelector<T>?,
 ) : Iterable<Map.Entry<T, T>> by parent.entries {
+
+    /**
+     * Create a new empty disjoint sets data structure.
+     */
     constructor(representativeSelector: RepresentativeSelector<T>? = null) :
         this(mutableMapOf(), mutableMapOf(), unionCallback = null, representativeSelector)
 
