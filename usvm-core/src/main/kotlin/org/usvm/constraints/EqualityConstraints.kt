@@ -375,7 +375,7 @@ class UEqualityConstraints private constructor(
         // Here we need to save a copy of distinct refs to use all of them except the single ref from removed references
         val oldDistinctRefs = distinctReferences.toSet()
 
-        for (ref in referencesToRemove) {
+        for (ref in referencesToRemove.toList()) {
             val otherDistinctRefs = oldDistinctRefs - ref
             distinctReferences = distinctReferences.remove(ref, ownership)
 
