@@ -18,6 +18,7 @@ import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
+import org.usvm.algorithms.DisjointSets
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.FlowFunction
@@ -30,6 +31,12 @@ class ForwardFlowFunctions(
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
+
+    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, DisjointSets<AccessPath>>> = mutableMapOf()
+
+    private fun getAliases(method: EtsMethod): Map<EtsStmt, DisjointSets<AccessPath>> {
+        return aliasesCache.getOrPut(method) { computeAliases(method) }
+    }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
@@ -110,6 +117,7 @@ class ForwardFlowFunctions(
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
+        val aliases = getAliases(current.method)[current]!!
 
         when (val rhv = current.rhv) {
             is EtsNewExpr -> {
@@ -143,6 +151,19 @@ class ForwardFlowFunctions(
 
             is EtsNumberConstant -> {
                 result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
+                if (lhv.accesses.isEmpty()) {
+                    val lhvAliases = aliases.getSet(lhv)
+                    for (alias in lhvAliases) {
+                        result += TypedVariable(alias, EtsTypeFact.NumberEtsTypeFact)
+                    }
+                } else {
+                    check(lhv.accesses.size == 1)
+                    val lhvBaseAliases = aliases.getSet(AccessPath(lhv.base, emptyList()))
+                    for (alias in lhvBaseAliases) {
+                        val path = alias + lhv.accesses.single()
+                        result += TypedVariable(path, EtsTypeFact.NumberEtsTypeFact)
+                    }
+                }
             }
 
             is EtsBooleanConstant -> {

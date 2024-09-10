@@ -9,6 +9,7 @@ plugins {
 
 dependencies {
     api(project(":usvm-dataflow"))
+    api(project(":usvm-util"))
 
     api(Libs.jacodb_api_common)
     api(Libs.jacodb_ets)

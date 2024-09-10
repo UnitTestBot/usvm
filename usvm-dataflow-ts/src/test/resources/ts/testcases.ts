@@ -768,3 +768,17 @@ class CaseArgumentUnion2 {
         const EXPECTED_ARG_0 = "any";
     }
 }
+
+// ----------------------------------------
+
+class CaseAliasChain1 {
+    entrypoint(x: any) {
+        let y = x.f; // x: { f: any }
+        y.g = 42; // x: { f: { g: number } }
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "Object { f: Object { g: number } }"
+    }
+}
