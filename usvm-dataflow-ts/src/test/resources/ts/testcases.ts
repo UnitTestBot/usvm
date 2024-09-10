@@ -782,3 +782,15 @@ class CaseAliasChain1 {
         const EXPECTED_ARG_0 = "Object { f: Object { g: number } }"
     }
 }
+
+// Case `x.f := number`
+class CaseAssignNumberToNestedField {
+    entrypoint(x: any) {
+        x.f.g = 100; // x: { f: { g: number } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Object { g: number } }";
+    }
+}
