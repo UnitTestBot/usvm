@@ -9,6 +9,7 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
