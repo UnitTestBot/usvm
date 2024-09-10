@@ -12,6 +12,7 @@ import org.usvm.UIndexedMocker
 import org.usvm.UMockEvaluator
 import org.usvm.UMocker
 import org.usvm.USort
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf

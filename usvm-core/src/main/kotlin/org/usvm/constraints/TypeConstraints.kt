@@ -7,11 +7,13 @@ import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.UNullRef
+import org.usvm.collections.immutable.getOrDefault
 import org.usvm.isStatic
 import org.usvm.isStaticHeapRef
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.toMutableMap
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable

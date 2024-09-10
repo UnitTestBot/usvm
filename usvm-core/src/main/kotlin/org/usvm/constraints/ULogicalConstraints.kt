@@ -6,8 +6,10 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UContext
 import org.usvm.algorithms.separate
+import org.usvm.collections.immutable.containsAll
 import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import org.usvm.isFalse
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable

@@ -10,6 +10,7 @@ import org.usvm.USort
 import org.usvm.collection.map.USymbolicMapKey
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.URefSetRegion
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf

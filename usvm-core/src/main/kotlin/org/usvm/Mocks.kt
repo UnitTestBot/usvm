@@ -3,6 +3,7 @@ package org.usvm
 import io.ksmt.utils.cast
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
+import org.usvm.collections.immutable.getOrDefault
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership

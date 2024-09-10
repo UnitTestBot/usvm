@@ -3,6 +3,7 @@ package org.usvm.model
 import io.ksmt.expr.KExpr
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collections.immutable.getOrDefault
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.UMemoryRegion

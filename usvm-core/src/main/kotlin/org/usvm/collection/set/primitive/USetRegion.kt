@@ -9,6 +9,7 @@ import org.usvm.USort
 import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership

@@ -18,6 +18,7 @@ import org.usvm.algorithms.removeAllValues
 import org.usvm.algorithms.multiMapIterator
 import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import org.usvm.isStaticHeapRef
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable

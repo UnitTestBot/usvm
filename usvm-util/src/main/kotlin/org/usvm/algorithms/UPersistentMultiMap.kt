@@ -1,9 +1,9 @@
 package org.usvm.algorithms
 
+import org.usvm.collections.immutable.*
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
-import org.usvm.collections.immutable.persistentHashSetOf
 
 typealias UPersistentMultiMap<K, V> = UPersistentHashMap<K, UPersistentHashSet<V>>
 

@@ -38,7 +38,7 @@ private fun <K, V> Array<Any?>.insertEntryAtIndex(keyIndex: Int, key: K, value: 
 private fun <K, V> Array<Any?>.replaceNodeWithEntry(nodeIndex: Int, keyIndex: Int, key: K, value: V): Array<Any?> {
     val newBuffer = this.copyOf(this.size + 1)
     newBuffer.copyInto(newBuffer, nodeIndex + 2, nodeIndex + 1, this.size)
-    newBuffer.copyInto(newBuffer, keyIndex + 2, keyIndex , nodeIndex)
+    newBuffer.copyInto(newBuffer, keyIndex + 2, keyIndex, nodeIndex)
     newBuffer[keyIndex] = key
     newBuffer[keyIndex + 1] = value
     return newBuffer
@@ -67,7 +67,6 @@ private fun Array<Any?>.removeNodeAtIndex(nodeIndex: Int): Array<Any?> {
     this.copyInto(newBuffer, nodeIndex, startIndex = nodeIndex + 1, endIndex = this.size)
     return newBuffer
 }
-
 
 
 class TrieNode<K, V>(
@@ -243,21 +242,27 @@ class TrieNode<K, V>(
         return TrieNode(dataMap, nodeMap xor positionMask, newBuffer, owner)
     }
 
-    private fun bufferMoveEntryToNode(keyIndex: Int, positionMask: Int, newKeyHash: Int,
-                                      newKey: K, newValue: V, shift: Int, owner: MutabilityOwnership?): Array<Any?> {
+    private fun bufferMoveEntryToNode(
+        keyIndex: Int, positionMask: Int, newKeyHash: Int,
+        newKey: K, newValue: V, shift: Int, owner: MutabilityOwnership?
+    ): Array<Any?> {
         val storedKey = keyAtIndex(keyIndex)
         val storedKeyHash = storedKey.hashCode()
         val storedValue = valueAtKeyIndex(keyIndex)
-        val newNode = makeNode(storedKeyHash, storedKey, storedValue,
-            newKeyHash, newKey, newValue, shift + LOG_MAX_BRANCHING_FACTOR, owner)
+        val newNode = makeNode(
+            storedKeyHash, storedKey, storedValue,
+            newKeyHash, newKey, newValue, shift + LOG_MAX_BRANCHING_FACTOR, owner
+        )
 
         val nodeIndex = nodeIndex(positionMask) + 1 // place where to insert new node in the current buffer
 
         return buffer.replaceEntryWithNode(keyIndex, nodeIndex, newNode)
     }
 
-    private fun moveEntryToNode(keyIndex: Int, positionMask: Int, newKeyHash: Int,
-                                newKey: K, newValue: V, shift: Int): TrieNode<K, V> {
+    private fun moveEntryToNode(
+        keyIndex: Int, positionMask: Int, newKeyHash: Int,
+        newKey: K, newValue: V, shift: Int
+    ): TrieNode<K, V> {
 //        assert(hasEntryAt(positionMask))
 //        assert(!hasNodeAt(positionMask))
 
@@ -287,8 +292,10 @@ class TrieNode<K, V>(
     }
 
     /** Creates a new TrieNode for holding two given key value entries */
-    private fun makeNode(keyHash1: Int, key1: K, value1: V,
-                         keyHash2: Int, key2: K, value2: V, shift: Int, owner: MutabilityOwnership?): TrieNode<K, V> {
+    private fun makeNode(
+        keyHash1: Int, key1: K, value1: V,
+        keyHash2: Int, key2: K, value2: V, shift: Int, owner: MutabilityOwnership?
+    ): TrieNode<K, V> {
         if (shift > MAX_SHIFT) {
 //            assert(key1 != key2)
             // when two key hashes are entirely equal: the last level subtrie node stores them just as unordered list
@@ -476,12 +483,14 @@ class TrieNode<K, V>(
                     val otherTargetNode = otherNode.nodeAtIndex(otherNode.nodeIndex(positionMask))
                     targetNode.mutablePutAll(otherTargetNode, shift + LOG_MAX_BRANCHING_FACTOR, owner)
                 }
+
                 otherNode.hasEntryAt(positionMask) -> {
                     val keyIndex = otherNode.entryKeyIndex(positionMask)
                     val key = otherNode.keyAtIndex(keyIndex)
                     val value = otherNode.valueAtKeyIndex(keyIndex)
                     targetNode.mutablePut(key.hashCode(), key, value, shift + LOG_MAX_BRANCHING_FACTOR, owner)
                 }
+
                 else -> targetNode
             }
         }
@@ -500,6 +509,7 @@ class TrieNode<K, V>(
                         otherTargetNode.mutablePut(key.hashCode(), key, value, shift + LOG_MAX_BRANCHING_FACTOR, owner)
                     }
                 }
+
                 else -> otherTargetNode
             }
         }
@@ -539,7 +549,7 @@ class TrieNode<K, V>(
         if (nodeMap != otherNode.nodeMap) return false
         if (dataMap != otherNode.dataMap) return false
         for (i in 0 until buffer.size) {
-            if(buffer[i] !== otherNode.buffer[i]) return false
+            if (buffer[i] !== otherNode.buffer[i]) return false
         }
         return true
     }
@@ -646,6 +656,7 @@ class TrieNode<K, V>(
             else -> mutableNode
         }
     }
+
     fun remove(keyHash: Int, key: K, shift: Int): Pair<TrieNode<K, V>?, Boolean> {
         val keyPositionMask = 1 shl indexSegment(keyHash, shift)
 
@@ -673,14 +684,17 @@ class TrieNode<K, V>(
         return this to false
     }
 
-    private fun replaceNode(targetNode: TrieNode<K, V>, newNode: TrieNode<K, V>?, nodeIndex: Int, positionMask: Int) = when {
-        newNode == null ->
-            removeNodeAtIndex(nodeIndex, positionMask)
-        targetNode !== newNode ->
-            updateNodeAtIndex(nodeIndex, positionMask, newNode)
-        else ->
-            this
-    }
+    private fun replaceNode(targetNode: TrieNode<K, V>, newNode: TrieNode<K, V>?, nodeIndex: Int, positionMask: Int) =
+        when {
+            newNode == null ->
+                removeNodeAtIndex(nodeIndex, positionMask)
+
+            targetNode !== newNode ->
+                updateNodeAtIndex(nodeIndex, positionMask, newNode)
+
+            else ->
+                this
+        }
 
     fun put(keyHash: Int, key: K, value: @UnsafeVariance V, shift: Int): TrieNode<K, V> {
         val keyPositionMask = 1 shl indexSegment(keyHash, shift)
@@ -712,7 +726,13 @@ class TrieNode<K, V>(
     }
 
 
-    private fun mutablePut(keyHash: Int, key: K, value: @UnsafeVariance V, shift: Int, owner: MutabilityOwnership): TrieNode<K, V> {
+    private fun mutablePut(
+        keyHash: Int,
+        key: K,
+        value: @UnsafeVariance V,
+        shift: Int,
+        owner: MutabilityOwnership
+    ): TrieNode<K, V> {
         val keyPositionMask = 1 shl indexSegment(keyHash, shift)
 
         if (hasEntryAt(keyPositionMask)) { // key is directly in buffer
@@ -746,7 +766,12 @@ class TrieNode<K, V>(
         return mutableInsertEntryAt(keyPositionMask, key, value, owner)
     }
 
-    private fun mutableRemove(keyHash: Int, key: K, shift: Int, owner: MutabilityOwnership): Pair<TrieNode<K, V>?, Boolean> {
+    private fun mutableRemove(
+        keyHash: Int,
+        key: K,
+        shift: Int,
+        owner: MutabilityOwnership
+    ): Pair<TrieNode<K, V>?, Boolean> {
         val keyPositionMask = 1 shl indexSegment(keyHash, shift)
 
         if (hasEntryAt(keyPositionMask)) { // key is directly in buffer
@@ -806,39 +831,20 @@ class TrieNode<K, V>(
         return this to null
     }
 
-    private fun mutableReplaceNode(targetNode: TrieNode<K, V>, newNode: TrieNode<K, V>?, nodeIndex: Int, positionMask: Int, owner: MutabilityOwnership) = when {
+    private fun mutableReplaceNode(
+        targetNode: TrieNode<K, V>,
+        newNode: TrieNode<K, V>?,
+        nodeIndex: Int,
+        positionMask: Int,
+        owner: MutabilityOwnership
+    ) = when {
         newNode == null ->
             mutableRemoveNodeAtIndex(nodeIndex, positionMask, owner)
+
         targetNode !== newNode ->
             mutableUpdateNodeAtIndex(nodeIndex, newNode, owner)
+
         else -> this
-    }
-
-    private fun remove(keyHash: Int, key: K, value: @UnsafeVariance V, shift: Int, owner: MutabilityOwnership): TrieNode<K, V>? {
-        val keyPositionMask = 1 shl indexSegment(keyHash, shift)
-
-        if (hasEntryAt(keyPositionMask)) { // key is directly in buffer
-            val keyIndex = entryKeyIndex(keyPositionMask)
-
-            if (key == keyAtIndex(keyIndex) && value == valueAtKeyIndex(keyIndex)) {
-                return mutableRemoveEntryAtIndex(keyIndex, keyPositionMask, owner)
-            }
-            return this
-        }
-        if (hasNodeAt(keyPositionMask)) { // key is in node
-            val nodeIndex = nodeIndex(keyPositionMask)
-
-            val targetNode = nodeAtIndex(nodeIndex)
-            val newNode = if (shift == MAX_SHIFT) {
-                targetNode.mutableCollisionRemove(key, value, owner)
-            } else {
-                targetNode.remove(keyHash, key, value, shift + LOG_MAX_BRANCHING_FACTOR, owner)
-            }
-            return mutableReplaceNode(targetNode, newNode, nodeIndex, keyPositionMask, owner)
-        }
-
-        // key is absent
-        return this
     }
 
     // For testing trie structure
@@ -896,39 +902,23 @@ class TrieNode<K, V>(
 
     val keys: Sequence<K> get() = UPersistentHashMapKeysIterator(this).asSequence()
 
-    fun isEmpty() = none()
-    fun isNotEmpty() = any()
-
     fun containsKey(key: K): Boolean = containsKey(key.hashCode(), key, 0)
-
-    operator fun contains(key: K) = containsKey(key)
 
     operator fun get(key: K) = get(key.hashCode(), key, 0)
 
-    fun getOrDefault(key: K, defaultValue: V) = get(key) ?: defaultValue
-    inline fun getOrPut(key: K, owner: MutabilityOwnership, defaultValue: () -> V): Pair<TrieNode<K, V>, V> {
-        val current = get(key) ?: defaultValue().let {return put(key, it, owner) to it }
-        return this to current
-    }
+    operator fun contains(key: K) = containsKey(key)
 
-    fun put(key: K, value: V, owner: MutabilityOwnership?): TrieNode<K, V> =
-        if (owner == null) put(key.hashCode(), key, value, 0) else
-            mutablePut(key.hashCode(), key, value, 0, owner)
+    fun put(key: K, value: V, owner: MutabilityOwnership): TrieNode<K, V> =
+        mutablePut(key.hashCode(), key, value, 0, owner)
 
-    @Suppress("UNCHECKED_CAST")
-    fun remove(key: K, owner: MutabilityOwnership?): TrieNode<K, V> =
+    fun remove(key: K, owner: MutabilityOwnership): TrieNode<K, V> =
         removeWithChangeInfo(key, owner).first
 
     @Suppress("UNCHECKED_CAST")
-    fun removeWithChangeInfo(key: K, owner: MutabilityOwnership?): Pair<TrieNode<K, V>, Boolean>{
-        val (node, hasChanged) = if (owner == null)
-            remove(key.hashCode(), key, 0)
-        else mutableRemove(key.hashCode(), key, 0, owner)
+    fun removeWithChangeInfo(key: K, owner: MutabilityOwnership): Pair<TrieNode<K, V>, Boolean> {
+        val (node, hasChanged) = mutableRemove(key.hashCode(), key, 0, owner)
         return (node ?: EMPTY as TrieNode<K, V>) to hasChanged
     }
-
-    fun removeAll(keys: Iterable<K>, owner: MutabilityOwnership): TrieNode<K, V> =
-        keys.fold(this) {node, k -> node.remove(k, owner)}
 
     fun removeAndGetValue(key: K, owner: MutabilityOwnership): Pair<TrieNode<K, V>, V?> {
         val (node, value) = mutableRemoveAndGetValue(key.hashCode(), key, 0, owner)
@@ -940,22 +930,13 @@ class TrieNode<K, V>(
         return mutablePutAll(otherNode, 0, owner)
     }
 
-    fun putAll(map: Map<K, V>, owner: MutabilityOwnership): TrieNode<K, V> {
-        var result = this
-        map.iterator().forEach { (k, v) -> result = result.put(k, v, owner) }
-        return result
-    }
-
-    fun toMutableMap(): MutableMap<K, V> = mutableMapOf<K, V>().also {
-        this.forEach {entry -> it[entry.key] = entry.value } }
-
     @Suppress("UNCHECKED_CAST")
     fun clear() = EMPTY as TrieNode<K, V>
 
     @Suppress("UNCHECKED_CAST")
     override fun equals(other: Any?): Boolean {
-        other as? TrieNode<K, V> ?: return  false
-        return this.equalsWith(other) { v1, v2 -> v1 == v2}
+        other as? TrieNode<K, V> ?: return false
+        return this.equalsWith(other) { v1, v2 -> v1 == v2 }
     }
 
     override fun toString(): String =
