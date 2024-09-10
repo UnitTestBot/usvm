@@ -805,11 +805,12 @@ class TrieNode<E>(
     override fun toString(): String =
         iterator().asSequence().joinToString(separator = ", ", prefix = "{", postfix = "}") { it.toString() }
 
-    override fun hashCode(): Int = toList().hashCode()
+    override fun hashCode(): Int = sumOf { it.hashCode() }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is TrieNode<*>) return false
-        return other.calculateSize() == this.calculateSize() && all { other.contains(it)}
+        @Suppress("UNCHECKED_CAST")
+        other as? TrieNode<E> ?: return false
+        return other.calculateSize() == this.calculateSize() && other.containsAll(this)
     }
 
     override fun iterator(): Iterator<E> = UPersistentHashSetIterator(this)

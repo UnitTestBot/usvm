@@ -347,7 +347,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        inputSetWithAllocatedElements.keys,
+        inputSetWithAllocatedElements.keys.toList(),
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -363,7 +363,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        allocatedSetWithAllocatedElements.keys.filter { it.setAddress == srcAddress },
+        allocatedSetWithAllocatedElements.keys.filterTo(mutableListOf()) { it.setAddress == srcAddress },
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -372,7 +372,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     private inline fun <R, SrcKeyId, DstKeyId> unionAllocatedElements(
         initial: R,
-        keys: Sequence<SrcKeyId>,
+        keys: List<SrcKeyId>,
         guard: UBoolExpr,
         read: (SrcKeyId) -> UBoolExpr,
         mkDstKeyId: (SrcKeyId) -> DstKeyId,

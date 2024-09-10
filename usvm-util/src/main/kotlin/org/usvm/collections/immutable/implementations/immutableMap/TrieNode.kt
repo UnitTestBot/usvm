@@ -867,6 +867,33 @@ class TrieNode<K, V>(
         }
     }
 
+    private fun <K1, V1> equalsWith(that: TrieNode<K1, V1>, equalityComparator: (V, V1) -> Boolean): Boolean {
+        if (this === that) return true
+        if (dataMap != that.dataMap || nodeMap != that.nodeMap) return false
+        if (dataMap == 0 && nodeMap == 0) { // collision node
+            if (buffer.size != that.buffer.size) return false
+            return (0 until buffer.size step ENTRY_SIZE).all { i ->
+                val thatKey = that.keyAtIndex(i)
+                val thatValue = that.valueAtKeyIndex(i)
+                val keyIndex = collisionKeyIndex(thatKey)
+                if (keyIndex != -1) {
+                    val value = valueAtKeyIndex(keyIndex)
+                    equalityComparator(value, thatValue)
+                } else false
+            }
+        }
+
+        val valueSize = dataMap.countOneBits() * ENTRY_SIZE
+        for (i in 0 until valueSize step ENTRY_SIZE) {
+            if (keyAtIndex(i) != that.keyAtIndex(i)) return false
+            if (!equalityComparator(valueAtKeyIndex(i), that.valueAtKeyIndex(i))) return false
+        }
+        for (i in valueSize until buffer.size) {
+            if (!nodeAtIndex(i).equalsWith(that.nodeAtIndex(i), equalityComparator)) return false
+        }
+        return true
+    }
+
     val keys: Sequence<K> get() = UPersistentHashMapKeysIterator(this).asSequence()
 
     fun isEmpty() = none()
@@ -927,16 +954,15 @@ class TrieNode<K, V>(
 
     @Suppress("UNCHECKED_CAST")
     override fun equals(other: Any?): Boolean {
-        // TODO consider ordered map case with linked value if we preserve custom RegionTree
         other as? TrieNode<K, V> ?: return  false
-        return this.calculateSize() == other.calculateSize() && all { other[it.key] == it.value }
+        return this.equalsWith(other) { v1, v2 -> v1 == v2}
     }
 
     override fun toString(): String =
         iterator().asSequence()
             .joinToString(separator = "\n", prefix = "{", postfix = "}") { "${it.key} -> ${it.value}" }
 
-    override fun hashCode(): Int = toList().hashCode()
+    override fun hashCode(): Int = sumOf { it.hashCode() }
 
     override fun iterator(): Iterator<Map.Entry<K, V>> = UPersistentHashMapEntriesIterator(this)
 

@@ -166,8 +166,8 @@ class UMemory<Type, Method>(
     override fun toWritableMemory(ownership: MutabilityOwnership) =
         /* NOTE 1: To be perfectly rigorous, we should clone stack and types here.
         But in fact they should not be used, so to optimize things up, we don't touch them.
-        NOTE 2: [ownership] bust be fresh,so we don't change this.ownership since [this]
-         is not shared among several states.
+        NOTE 2: method returns *temporary* copy of this [UMemory], so write operations on the copy will not
+        affect this [UMemory], while write operations on this [UMemory] *can* affect the copy.
          */
         UMemory(ctx, ownership, types, stack, mocks, regions)
 
