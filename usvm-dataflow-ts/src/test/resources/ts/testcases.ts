@@ -717,3 +717,54 @@ class CaseNew {
         const EXPECTED_ARG_0 = "MyType { f: number }"
     }
 }
+
+// ----------------------------------------
+
+class CaseUnion {
+    entrypoint() {
+        let x: string | number = "str"; // x: string
+        x = 42; // x: number
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "number";
+    }
+}
+
+class CaseArgumentUnion {
+    entrypoint(x: string | number) {
+        x = "kek";
+        x = 42;
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "number";
+    }
+}
+
+class CaseUnion2 {
+    entrypoint() {
+        let y = "str";
+        let x: string | number = y;
+        x = 42;
+        infer(y);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "string";
+    }
+}
+
+class CaseArgumentUnion2 {
+    entrypoint(y: string) {
+        let x: string | number = y;
+        x = 42;
+        infer(y);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "any";
+    }
+}
