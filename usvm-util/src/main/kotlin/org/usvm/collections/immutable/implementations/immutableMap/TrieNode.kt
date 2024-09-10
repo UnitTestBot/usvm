@@ -435,14 +435,6 @@ class TrieNode<K, V>(
         return this to null
     }
 
-    private fun mutableCollisionRemove(key: K, value: V, owner: MutabilityOwnership): TrieNode<K, V>? {
-        val keyIndex = collisionKeyIndex(key)
-        if (keyIndex != -1 && value == valueAtKeyIndex(keyIndex)) {
-            return mutableCollisionRemoveEntryAtIndex(keyIndex, owner)
-        }
-        return this
-    }
-
     private fun mutableCollisionPutAll(otherNode: TrieNode<K, V>, owner: MutabilityOwnership): TrieNode<K, V> {
         assert(nodeMap == 0)
         assert(dataMap == 0)
@@ -532,16 +524,6 @@ class TrieNode<K, V>(
                 owner
             )
         }
-    }
-
-    private fun calculateSize(): Int {
-        if (nodeMap == 0) return buffer.size / ENTRY_SIZE
-        val numValues = dataMap.countOneBits()
-        var result = numValues
-        for (i in (numValues * ENTRY_SIZE) until buffer.size) {
-            result += nodeAtIndex(i).calculateSize()
-        }
-        return result
     }
 
     private fun elementsIdentityEquals(otherNode: TrieNode<K, V>): Boolean {

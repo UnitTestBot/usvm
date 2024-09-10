@@ -161,7 +161,7 @@ class UEqualityConstraints private constructor(
             }
 
             referenceDisequalities = referenceDisequalities.remove(from, ownership)
-            fromDiseqs.forEach {
+            fromDiseqs.toList().forEach {
                 referenceDisequalities = referenceDisequalities.removeValue(it, from, ownership)
                 makeRefNonEqual(to, it)
             }

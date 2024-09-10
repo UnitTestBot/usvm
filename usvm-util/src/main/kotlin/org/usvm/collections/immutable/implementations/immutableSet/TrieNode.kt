@@ -68,9 +68,9 @@ private inline fun Array<Any?>.filterTo(
 }
 
 class TrieNode<E>(
-        internal var bitmap: Int,
+        private var bitmap: Int,
         internal var buffer: Array<Any?>,
-        internal var ownedBy: MutabilityOwnership?
+        private var ownedBy: MutabilityOwnership?
 ) : Iterable<E> {
 
     constructor(bitmap: Int, buffer: Array<Any?>) : this(bitmap, buffer, null)
