@@ -164,8 +164,7 @@ internal fun <ArrayType, ArrayElementSort : USort, USizeSort : USort> UWritableM
  */
 class UStringModelRegion(val regionId: UStringRegionId) : UReadOnlyMemoryRegion<UStringLValue, UStringSort> {
     private var strings: MutableMap<UConcreteHeapAddress, UStringLiteralExpr> = mutableMapOf()
-    private var isCompleting = false
-
+    private var isCompleting = true
 
     internal fun setCompletion(complete: Boolean) {
         isCompleting = complete

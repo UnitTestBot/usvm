@@ -64,7 +64,9 @@ class JcStringApproximations(private val ctx: JcContext) {
         this.currentScope = scope
         this.currentExprResolver = exprResolver
         val methodApproximation = stringClassApproximations[callJcInst.method.jvmSignature]
-            ?: return false.also { println("WARNING: string approx for ${callJcInst.method.jvmSignature} not defined!") }
+            ?: return false
+                // TODO: remove it before PR-ing
+                .also { println("WARNING: string approx for ${callJcInst.method.jvmSignature} not defined!") }
         val result = methodApproximation(callJcInst) ?: return true
         scope.doWithState { skipMethodInvocationWithValue(callJcInst, result) }
         return true
@@ -217,8 +219,8 @@ class JcStringApproximations(private val ctx: JcContext) {
         toffset: UExpr<USizeSort>
     ): UBoolExpr? {
         exprResolver.checkNullPointer(prefixRef) ?: return null
-        val thisLength = state.memory.stringLength<USizeSort>(stringRef);
-        val prefixLength = state.memory.stringLength<USizeSort>(prefixRef);
+        val thisLength = state.memory.stringLength<USizeSort>(stringRef)
+        val prefixLength = state.memory.stringLength<USizeSort>(prefixRef)
         // toffset >= 0 && toffset <= length() - prefix.length()
         val offsetIsOk = ctx.mkAnd(
             ctx.mkSizeGeExpr(toffset, ctx.mkSizeExpr(0)),
@@ -239,6 +241,7 @@ class JcStringApproximations(private val ctx: JcContext) {
             }
             dispatchMethod("<init>(Ljava/lang/AbstractStringBuilder;Ljava/lang/Void;)V") {
                 // This constructor is package private, all its usages should be approximated.
+                // It is used only in StringBuffer and StringBuilder.
                 error("This should not be called")
             }
             dispatchMethod("<init>(Ljava/lang/String;)V") {
@@ -283,6 +286,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 }
             }
             dispatchMethod("<init>([BB)V") {
+                // Package private constructor, used only in Integer, Long, ..., StringConcatHelper, StringUtf8, ...
                 // Ignoring the coder for now
                 val stringRef = it.arguments[0].asExpr(ctx.addressSort) as UConcreteHeapRef
                 val arrayRef = it.arguments[1].asExpr(ctx.addressSort)
@@ -467,6 +471,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("coder()B") {
+                // Package private getter, used only in AbstractStringBuilder and StringConcatHelper
                 // TODO: other coders?
                 scope.calcOnState { ctx.mkBv(0, ctx.byteSort) }
             }
@@ -501,6 +506,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("decodeASCII([BI[CII)I") {
+                // Package private method, used only in JavaLangService
                 TODO()
             }
             // describeConstable() is not approximated
@@ -549,15 +555,19 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("getBytes([BIB)V") {
+                // Package private method, used only in AbstractStringBuilder and StringConcatHelper
                 TODO()
             }
             dispatchMethod("getBytes([BIIBI)V") {
+                // Package private method, used only in AbstractStringBuilder
                 TODO()
             }
             dispatchMethod("getBytesNoRepl(Ljava/lang/String;Ljava/nio/charset/Charset;)[B") {
+                // Package private method, used only in JavaLangAccess
                 TODO()
             }
             dispatchMethod("getBytesUTF8NoRepl(Ljava/lang/String;)[B") {
+                // Package private method, used only in JavaLangAccess
                 TODO()
             }
             dispatchMethod("getChars(II[CI)V") {
@@ -585,6 +595,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("indexOf([BBILjava/lang/String;I)I") {
+                // Package private method, used only in AbstractStringBuilder
                 TODO()
             }
             dispatchMethod("intern()Ljava/lang/String;") {
@@ -597,6 +608,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("isLatin1()Z") {
+                // Package private method, used only in AbstractStringBuilder
                 TODO()
             }
             dispatchMethod("join(Ljava/lang/CharSequence;Ljava/lang/Iterable;)Ljava/lang/String;") {
@@ -606,6 +618,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("join(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;I)Ljava/lang/String;") {
+                // Package private method, used only in JavaLangAccess
                 TODO()
             }
             dispatchMethod("lastIndexOf(I)I") {
@@ -621,6 +634,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("lastIndexOf([BBILjava/lang/String;I)I") {
+                // Package private method, used only in AbstractStringBuilder
                 TODO()
             }
             dispatchMethod("length()I") {
@@ -633,9 +647,11 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("newStringNoRepl([BLjava/nio/charset/Charset;)Ljava/lang/String;") {
+                // Package private method, used only in JavaLangAccess
                 TODO()
             }
             dispatchMethod("newStringUTF8NoRepl([BII)Ljava/lang/String;") {
+                // Package private method, used only in JavaLangAccess
                 TODO()
             }
             dispatchMethod("offsetByCodePoints(II)I") {
@@ -740,6 +756,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("value()[B") {
+                // Package private method, used only in AbstractStringBuilder
                 TODO()
             }
             dispatchMethod("valueOf(C)Ljava/lang/String;") {
@@ -775,129 +792,3 @@ class JcStringApproximations(private val ctx: JcContext) {
         }
     }
 }
-
-// 1. Exceptions
-// 2. Lt -> cmp
-// 3. adapters: byte to char, char to int, etc.
-// 4. string to collection
-
-
-/**
-public String(char[] value)
-public String(char[] value, int offset, int count)
-public String(int[] codePoints, int offset, int count) {
-public String(byte[] ascii, int hibyte, int offset, int count) // deprecated
-public String(byte[] ascii, int hibyte) // deprecated
-public String(byte[] bytes, int offset, int length, Charset charset)
-public String(byte[] bytes, String charsetName) throws UnsupportedEncodingException
-public String(byte[] bytes, Charset charset)
-public String(byte[] bytes, int offset, int length)
-public String(byte[] bytes)
-public String(StringBuffer buffer)
-public String(StringBuilder builder)
-public int length()
-public boolean isEmpty()
-public char charAt(int index)
-public int codePointAt(int index)
-public int codePointBefore(int index)
-public int codePointCount(int beginIndex, int endIndex)
-public int offsetByCodePoints(int index, int codePointOffset)
-public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin)
-public void getBytes(int srcBegin, int srcEnd, byte[] dst, int dstBegin)
-public byte[] getBytes(String charsetName) throws UnsupportedEncodingException {
-public byte[] getBytes(Charset charset)
-public byte[] getBytes()
-public boolean equals(Object anObject)
-public boolean contentEquals(StringBuffer sb)
-public boolean contentEquals(CharSequence cs)
-public boolean equalsIgnoreCase(String anotherString)
-public int compareTo(String anotherString)
-public int compareToIgnoreCase(String str)
-public boolean regionMatches(int toffset, String other, int ooffset, int len)
-public boolean regionMatches(boolean ignoreCase, int toffset, String other, int ooffset, int len)
-public boolean startsWith(String prefix, int toffset)
-public boolean startsWith(String prefix)
-public boolean endsWith(String suffix)
-public int hashCode()
-public int indexOf(int ch)
-public int indexOf(int ch, int fromIndex)
-public int lastIndexOf(int ch)
-public int lastIndexOf(int ch, int fromIndex)
-public int indexOf(String str)
-public int indexOf(String str, int fromIndex)
-public int lastIndexOf(String str)
-public int lastIndexOf(String str, int fromIndex)
-public String substring(int beginIndex)
-public String substring(int beginIndex, int endIndex)
-public CharSequence subSequence(int beginIndex, int endIndex)
-public String concat(String str)
-public String replace(char oldChar, char newChar)
-public boolean matches(String regex)
-public boolean contains(CharSequence s)
-public String replaceFirst(String regex, String replacement)
-public String replaceAll(String regex, String replacement)
-public String replace(CharSequence target, CharSequence replacement)
-public String[] split(String regex, int limit)
-public String[] split(String regex)
-public static String join(CharSequence delimiter, CharSequence... elements)
-public static String join(CharSequence delimiter, Iterable<? extends CharSequence> elements)
-public String toLowerCase(Locale locale)
-public String toLowerCase()
-public String toUpperCase(Locale locale)
-public String toUpperCase()
-public String trim()
-public String strip()
-public String stripLeading()
-public String stripTrailing()
-public boolean isBlank()
-public Stream<String> lines()
-public String indent(int n)
-public String stripIndent()
-public String translateEscapes()
-public <R> R transform(Function<? super String, ? extends R> f)
-public IntStream chars()
-public IntStream codePoints()
-public char[] toCharArray()
-public static String format(String format, Object... args)
-public static String format(Locale l, String format, Object... args)
-public String formatted(Object... args)
-public static String valueOf(Object obj)
-public static String valueOf(char[] data)
-public static String valueOf(char[] data, int offset, int count)
-public static String copyValueOf(char[] data, int offset, int count)
-public static String copyValueOf(char[] data)
-public static String valueOf(boolean b)
-public static String valueOf(char c)
-public static String valueOf(int i)
-public static String valueOf(long l)
-public static String valueOf(float f)
-public static String valueOf(double d)
-public native String intern();
-public String repeat(int count) {
-
-
-[JavaLangAccess]    static String newStringUTF8NoRepl(byte[] bytes, int offset, int length)
-[JavaLangAccess]    static String newStringNoRepl(byte[] src, Charset cs) throws CharacterCodingException
-[JavaLangAccess]    static byte[] getBytesUTF8NoRepl(String s) {
-[JavaLangAccess]    static byte[] getBytesNoRepl(String s, Charset cs) throws CharacterCodingException {
-[JavaLangAccess]    static int decodeASCII(byte[] sa, int sp, char[] da, int dp, int len) {
-[AbstractStringBuilder]    static int indexOf(byte[] src, byte srcCoder, int srcCount, String tgtStr, int fromIndex) {
-[AbstractStringBuilder]    static int lastIndexOf(byte[] src, byte srcCoder, int srcCount, String tgtStr, int fromIndex) {
-[JavaLangAccess]    static String join(String prefix, String suffix, String delimiter, String[] elements, int size) {
-[AbstractStringBuilder,StringConcatHelper]    void getBytes(byte[] dst, int dstBegin, byte coder) {
-[AbstractStringBuilder]    void getBytes(byte[] dst, int srcPos, int dstBegin, byte coder, int length) {
-[StringBuffer,StringBuilder]    String(AbstractStringBuilder asb, Void sig) {
-[Integer, Long, ..., StringConcatHelper, StringUtf8, ...]    String(byte[] value, byte coder)
-[AbstractStringBuilder,StringConcatHelper]    byte coder() {
-[AbstractStringBuilder]    byte[] value() {
-[AbstractStringBuilder]    boolean isLatin1() {
-
-
-// уже есть у Вали
-[AbstractStringBuilder, StringUtf8, ...]    static void checkIndex(int index, int length) {
-[AbstractStringBuilder, StringUtf8, ...]    static void checkOffset(int offset, int length) {
-[AbstractStringBuilder, StringUtf8, ...]    static void checkBoundsOffCount(int offset, int count, int length) {
-[AbstractStringBuilder, StringUtf8, ...]    static void checkBoundsBeginEnd(int begin, int end, int length) {
-[Character.toString]    static String valueOfCodePoint(int codePoint) {
-
- */

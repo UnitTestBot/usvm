@@ -192,7 +192,8 @@ abstract class JcTestStateResolver<T>(
         extractChar(evaluateInModel(expr)) ?: '\u0000'
 
     fun resolveStringLiteral(expr: UExpr<out USort>): String =
-        extractString(evaluateInModel(expr)) ?: error("Unexpected string $expr in resolution")
+        extractString(evaluateInModel(expr))
+            ?: error("Unexpected string $expr in resolution")
 
     fun resolveReference(heapRef: UHeapRef, type: JcRefType): T {
         val ref = evaluateInModel(heapRef) as UConcreteHeapRef
