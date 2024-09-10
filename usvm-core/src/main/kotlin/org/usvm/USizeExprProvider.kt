@@ -16,6 +16,8 @@ interface USizeExprProvider<USizeSort : USort> {
 
     fun mkSizeSubExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
     fun mkSizeAddExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
+    fun mkSizeMulExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
+    fun mkSizeModExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UExpr<USizeSort>
     fun mkSizeGtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
     fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
     fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
@@ -32,6 +34,8 @@ class UBv32SizeExprProvider(
 
     override fun mkSizeSubExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = ctx.mkBvSubExpr(lhs, rhs)
     override fun mkSizeAddExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = ctx.mkBvAddExpr(lhs, rhs)
+    override fun mkSizeMulExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = ctx.mkBvMulExpr(lhs, rhs)
+    override fun mkSizeModExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = ctx.mkBvSignedModExpr(lhs, rhs)
     override fun mkSizeGtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedGreaterExpr(lhs, rhs)
     override fun mkSizeGeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedGreaterOrEqualExpr(lhs, rhs)
     override fun mkSizeLtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedLessExpr(lhs, rhs)
@@ -48,6 +52,8 @@ class UInt32SizeExprProvider(
 
     override fun mkSizeSubExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = ctx.mkArithSub(lhs, rhs)
     override fun mkSizeAddExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = ctx.mkArithAdd(lhs, rhs)
+    override fun mkSizeMulExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = ctx.mkArithMul(lhs, rhs)
+    override fun mkSizeModExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = ctx.mkIntMod(lhs, rhs)
     override fun mkSizeGtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithGt(lhs, rhs)
     override fun mkSizeGeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithGe(lhs, rhs)
     override fun mkSizeLtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithLt(lhs, rhs)

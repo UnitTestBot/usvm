@@ -428,9 +428,9 @@ class JcExprResolver(
     }
 
     private fun UWritableMemory<JcType>.writeCallSite(callSite: JcLambdaCallSite) {
-        val callSiteRegion = getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
+        val callSiteRegion = getRegion(this@JcExprResolver.ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
         val updatedRegion = callSiteRegion.writeCallSite(callSite)
-        setRegion(ctx.lambdaCallSiteRegionId, updatedRegion)
+        setRegion(this@JcExprResolver.ctx.lambdaCallSiteRegionId, updatedRegion)
     }
 
     private inline fun resolveInvoke(
@@ -1160,6 +1160,6 @@ class JcSimpleValueResolver(
 
     fun resolveStringConstant(value: String): UConcreteHeapRef =
         scope.calcOnState {
-            memory.allocateInternedStringLiteral<JcType, USizeSort>(ctx, ctx.stringType, value)
+            memory.allocateInternedStringLiteral(ctx, ctx.stringType, value)
         }
 }

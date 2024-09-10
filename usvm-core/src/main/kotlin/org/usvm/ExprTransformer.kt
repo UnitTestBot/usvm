@@ -18,6 +18,9 @@ import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
 import org.usvm.collection.string.UCharAtExpr
+import org.usvm.collection.string.UCharExpr
+import org.usvm.collection.string.UCharToLowerExpr
+import org.usvm.collection.string.UCharToUpperExpr
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexMatchesExpr
@@ -98,9 +101,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun transform(expr: UStringLiteralExpr): UStringExpr
 
-    fun <CollectionId : USymbolicCollectionId<UExpr<USizeSort>, UCharSort, CollectionId>, USizeSort: USort, UCharSort : USort> transform(
-        expr: UStringFromCollectionExpr<CollectionId, USizeSort, UCharSort>
-    ): UStringExpr
+    fun transform(expr: UStringFromCollectionExpr<USizeSort>): UStringExpr
 
     fun transform(expr: UStringFromLanguageExpr): UStringExpr
 
@@ -108,7 +109,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort>
 
-    fun <UCharSort: USort> transform(expr: UCharAtExpr<USizeSort, UCharSort>): UExpr<UCharSort>
+    fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr
 
     fun transform(expr: UStringEqExpr): UBoolExpr
 
@@ -131,6 +132,10 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
     fun transform(expr: UStringToUpperExpr): UStringExpr
 
     fun transform(expr: UStringToLowerExpr): UStringExpr
+
+    fun transform(expr: UCharToUpperExpr): UCharExpr
+
+    fun transform(expr: UCharToLowerExpr): UCharExpr
 
     fun transform(expr: UStringReverseExpr): UStringExpr
 

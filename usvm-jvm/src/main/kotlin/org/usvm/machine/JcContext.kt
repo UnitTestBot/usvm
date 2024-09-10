@@ -41,7 +41,6 @@ class JcContext(
     val longSort get() = bv64Sort
     val integerSort get() = bv32Sort
     val shortSort get() = bv16Sort
-    val charSort get() = bv16Sort
     val byteSort get() = bv8Sort
     val booleanSort get() = boolSort
 

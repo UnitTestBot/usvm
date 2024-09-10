@@ -19,13 +19,13 @@ import org.usvm.withSizeSort
 /**
  * A collection id for a collection storing non-deterministic strings.
  */
-class UInputStringId<USizeSort: USort> internal constructor(ctx: UContext<*>)
-    : USymbolicCollectionId<UHeapRef, UStringSort, UInputStringId<USizeSort>>
+class UInputStringId internal constructor(ctx: UContext<*>)
+    : USymbolicCollectionId<UHeapRef, UStringSort, UInputStringId>
 {
     override val sort: UStringSort = ctx.stringSort
 
     override fun instantiate(
-        collection: USymbolicCollection<UInputStringId<USizeSort>, UHeapRef, UStringSort>,
+        collection: USymbolicCollection<UInputStringId, UHeapRef, UStringSort>,
         key: UHeapRef,
         composer: UComposer<*, *>?
     ): UStringExpr {
@@ -48,9 +48,9 @@ class UInputStringId<USizeSort: USort> internal constructor(ctx: UContext<*>)
     }
 
     private fun mkLValue(key: UHeapRef) =
-        UStringLValue<USizeSort>(key)
+        UStringLValue(key)
 
-    override fun emptyRegion(): USymbolicCollection<UInputStringId<USizeSort>, UHeapRef, UStringSort> {
+    override fun emptyRegion(): USymbolicCollection<UInputStringId, UHeapRef, UStringSort> {
         val updates = UFlatUpdates<UHeapRef, UStringSort>(keyInfo())
         return USymbolicCollection(this, updates)
     }

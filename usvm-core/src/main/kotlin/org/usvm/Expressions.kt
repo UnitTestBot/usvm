@@ -5,6 +5,7 @@ import io.ksmt.cache.structurallyEqual
 import io.ksmt.decl.KConstDecl
 import io.ksmt.expr.KAndExpr
 import io.ksmt.expr.KApp
+import io.ksmt.expr.KBitVec16Value
 import io.ksmt.expr.KEqExpr
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFalse
@@ -16,6 +17,7 @@ import io.ksmt.expr.KTrue
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBoolSort
+import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KBv32Sort
 import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
@@ -32,6 +34,7 @@ typealias USort = KSort
 typealias UBoolSort = KBoolSort
 typealias UBvSort = KBvSort
 typealias UBv32Sort = KBv32Sort
+typealias UCharSort = KBv16Sort
 typealias UFpSort = KFpSort
 
 typealias UExpr<Sort> = KExpr<Sort>
@@ -44,6 +47,7 @@ typealias UIteExpr<Sort> = KIteExpr<Sort>
 typealias UEqExpr<Sort> = KEqExpr<Sort>
 typealias UNotExpr = KNotExpr
 typealias UInterpretedValue<Sort> = KInterpretedValue<Sort>
+typealias UConcreteChar = KBitVec16Value
 
 typealias UAddressSort = KUninterpretedSort
 

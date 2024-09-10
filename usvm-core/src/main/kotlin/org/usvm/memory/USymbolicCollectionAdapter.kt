@@ -9,7 +9,7 @@ import org.usvm.regions.Region
  */
 interface USymbolicCollectionAdapter<SrcKey, DstKey> {
     /**
-     * Converts destination memory key into source memory key
+     * Converts destination memory key into source memory key.
      */
     fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
