@@ -47,7 +47,7 @@ class TypeCoercion {
         return 3
     }
 
-    transitiveCoercionNoTypes(a: number, b, c): number {
+    transitiveCoercionNoTypes(a, b, c): number {
         // @ts-ignore
         if (a == b) {
             if (c && (a == c)) {

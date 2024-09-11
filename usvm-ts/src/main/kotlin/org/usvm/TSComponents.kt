@@ -4,6 +4,7 @@ import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.symfpu.solver.KSymFpuSolver
 import org.jacodb.ets.base.EtsType
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
@@ -39,6 +40,11 @@ class TSComponents(
 
         return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
+
+    override fun <Context : UContext<TSSizeSort>> mkComposer(
+        ctx: Context
+    ): (UReadOnlyMemory<EtsType>) -> UComposer<EtsType, TSSizeSort> =
+        { memory: UReadOnlyMemory<EtsType> -> TSComposer(ctx, memory) }
 
     fun close() {
         closeableResources.forEach(AutoCloseable::close)

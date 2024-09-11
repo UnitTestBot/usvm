@@ -1,19 +1,18 @@
 package org.usvm
 
-import org.jacodb.ets.base.EtsUnknownType
+import kotlin.time.Duration
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsPrimitiveType
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsScene
 import org.usvm.types.TypesResult
 import org.usvm.types.TypesResult.Companion.toTypesResult
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
-import kotlin.time.Duration
-import org.jacodb.ets.model.EtsScene
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,

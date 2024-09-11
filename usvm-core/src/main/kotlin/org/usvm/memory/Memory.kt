@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.ksmt.utils.cast
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.INITIAL_CONCRETE_ADDRESS
@@ -27,6 +28,7 @@ interface UMemoryRegionId<Key, Sort : USort> {
 
 interface UReadOnlyMemoryRegion<Key, Sort : USort> {
     fun read(key: Key): UExpr<Sort>
+    fun readUnsafe(key: Key): UExpr<USort> = read(key).cast()
 }
 
 interface UMemoryRegion<Key, Sort : USort> : UReadOnlyMemoryRegion<Key, Sort> {
@@ -73,6 +75,11 @@ interface UReadOnlyMemory<Type> {
 
     fun <Key, Sort : USort> read(lvalue: ULValue<Key, Sort>) = read(lvalue.memoryRegionId, lvalue.key)
 
+    fun <Key> readUnsafe(lvalue: ULValue<Key, *>): UExpr<USort> {
+        val region = getRegion(lvalue.memoryRegionId)
+        return region.readUnsafe(lvalue.key)
+    }
+
     fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UReadOnlyMemoryRegion<Key, Sort>
 
     fun nullRef(): UHeapRef
@@ -90,7 +97,7 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-class UMemory<Type, Method>(
+open class UMemory<Type, Method>(
     internal val ctx: UContext<*>,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),

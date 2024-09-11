@@ -4,7 +4,6 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 
 typealias TSSizeSort = UBv32Sort

@@ -1,17 +1,12 @@
 package org.usvm
 
-import com.jetbrains.rd.framework.base.deepClonePolymorphic
-import io.ksmt.expr.KExpr
-import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
-import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsType
-import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackLValue
+
+private typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 
 class TSExprTransformer(
     private val baseExpr: UExpr<out USort>,
@@ -20,11 +15,19 @@ class TSExprTransformer(
 
     private val exprCache: MutableMap<USort, UExpr<out USort>?> = mutableMapOf(baseExpr.sort to baseExpr)
 
+
+
     private val ctx = baseExpr.tctx
 
-    init {
-        if (baseExpr.sort == ctx.addressSort) {
-            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
+//    init {
+//        if (baseExpr.sort == ctx.addressSort) {
+//            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
+//        }
+//    }
+
+    companion object {
+        private fun <T : USort> noWrap(transformer: TSExprTransformer, sort: T): UExpr<T> {
+            return transformer.transform(sort).cast()
         }
     }
 
@@ -40,7 +43,7 @@ class TSExprTransformer(
     @Suppress("UNCHECKED_CAST")
     fun intersectWithTypeCoercion(
         other: TSExprTransformer,
-        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
+        action: CoerceAction
     ): UExpr<out USort> {
         intersect(other)
 
@@ -67,38 +70,47 @@ class TSExprTransformer(
 //        }
     }
 
-    fun asFp64(): UExpr<KFp64Sort> = exprCache.getOrPut(ctx.fp64Sort) {
+    fun asFp64(
+        modifyConstraints: Boolean = true
+    ): UExpr<KFp64Sort> = exprCache.getOrPut(ctx.fp64Sort) {
         when (baseExpr.sort) {
             ctx.fp64Sort -> baseExpr
             ctx.boolSort -> ctx.boolToFpSort(baseExpr.cast())
             ctx.addressSort -> with(ctx) {
-                val value = TSRefTransformer(ctx, scope.calcOnState { memory }, fp64Sort).apply(baseExpr.cast()) as URegisterReading
-                mkIte(
-                    condition = scope.calcOnState { memory.types.evalIsSubtype(baseExpr.cast(), EtsNumberType) },
-                    trueBranch = value,
-                    falseBranch = ctx.mkFp64NaN().cast()
-                ).also {
-                    scope.calcOnState { memory.write(URegisterStackLValue(fp64Sort, value.idx), it) }
+                val value: URegisterReading<KFp64Sort> =
+                    TSRefTransformer(ctx, fp64Sort).apply(baseExpr.cast()).cast()
+                if (modifyConstraints) {
+                    scope.calcOnState {
+                        val ref: UExpr<UAddressSort> = this.models.first().eval(baseExpr).cast()
+                        storeSuggestedType(ref, EtsNumberType)
+                    }
                 }
+                value
             }
 
             else -> ctx.mkFp64(0.0)
         }
     }.cast()
 
-    fun asBool(): UExpr<KBoolSort> = exprCache.getOrPut(ctx.boolSort) {
+
+    fun asBool(
+        modifyConstraints: Boolean = true
+    ): UExpr<KBoolSort> = exprCache.getOrPut(ctx.boolSort) {
         when (baseExpr.sort) {
             ctx.boolSort -> baseExpr
             ctx.fp64Sort -> with(ctx) { mkIte(mkFpEqualExpr(baseExpr.cast(), mkFp64(1.0)), mkTrue(), mkFalse()) }
             ctx.addressSort -> with(ctx) {
-                val value = TSRefTransformer(ctx, scope.calcOnState { memory }, boolSort).apply(baseExpr.cast()) as URegisterReading
-                mkIte(
-                    condition = scope.calcOnState { memory.types.evalIsSubtype(baseExpr.cast(), EtsBooleanType) },
-                    trueBranch = value,
-                    falseBranch = ctx.mkFalse().cast()
-                ).also {
-                    scope.calcOnState { memory.write(URegisterStackLValue(boolSort, value.idx), it) }
+                if (modifyConstraints) {
+                    scope.calcOnState {
+                        val ref: UExpr<UAddressSort> = this.models.first().eval(baseExpr).cast()
+                        storeSuggestedType(ref, EtsBooleanType)
+                    }
                 }
+                mkIte(
+                    condition = mkFpEqualExpr(asFp64(modifyConstraints = false), mkFp64(1.0)),
+                    trueBranch = mkTrue(),
+                    falseBranch = mkFalse()
+                )
             }
 
             else -> ctx.mkFalse()
@@ -111,20 +123,18 @@ class TSExprTransformer(
             else -> null
         }
     }.cast()
+}
 
-    class TSRefTransformer(
-        private val ctx: TSContext,
-        private val memory: UReadOnlyMemory<EtsType>,
-        private val sort: USort,
-    ) {
+class TSRefTransformer(
+    private val ctx: TSContext,
+    private val sort: USort,
+) {
 
-        fun apply(expr: UExpr<UAddressSort>): UExpr<USort> = when (expr) {
-            is URegisterReading -> transform(expr)
-            else -> error("Not yet implemented: $expr")
-        }
-
-        fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> =
-            memory.read(URegisterStackLValue(sort, expr.idx))
-
+    fun apply(expr: UExpr<UAddressSort>): UExpr<USort> = when (expr) {
+        is URegisterReading -> transform(expr)
+        else -> error("Not yet implemented: $expr")
     }
+
+    fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> = ctx.mkRegisterReading(expr.idx, sort)
+
 }

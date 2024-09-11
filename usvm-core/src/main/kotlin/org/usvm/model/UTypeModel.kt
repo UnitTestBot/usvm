@@ -17,7 +17,7 @@ class UTypeModel<Type>(
 ) : UTypeEvaluator<Type> {
     private val typeStreamByAddr = typeRegionByAddr.toMutableMap()
 
-    private fun typeRegion(ref: UConcreteHeapRef): UTypeRegion<Type> =
+    fun typeRegion(ref: UConcreteHeapRef): UTypeRegion<Type> =
         typeStreamByAddr[ref.address] ?: UTypeRegion(typeSystem, typeSystem.topTypeStream())
 
     override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =

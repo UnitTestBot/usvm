@@ -1,15 +1,21 @@
 package org.usvm.util
 
+import java.nio.file.Paths
+import kotlin.reflect.KClass
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
@@ -20,13 +26,6 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import java.nio.file.Paths
-import kotlin.reflect.KClass
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import org.jacodb.ets.base.EtsRefType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.model.EtsScene
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
@@ -215,8 +214,8 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             TSMachine(scene, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
-                    val resolver = TSTestResolver()
-                    resolver.resolve(method, state).also { println(it) }
+                    val resolver = TSTestResolver(state)
+                    resolver.resolve(method).also { println(it) }
                 }
             }
         }

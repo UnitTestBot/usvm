@@ -15,11 +15,9 @@ import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.state.TSMethodResult
