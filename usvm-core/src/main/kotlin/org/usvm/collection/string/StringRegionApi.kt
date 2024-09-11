@@ -2,21 +2,31 @@ package org.usvm.collection.string
 
 import io.ksmt.utils.cast
 import org.usvm.UConcreteChar
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
+import org.usvm.api.allocateArray
+import org.usvm.api.memcpy
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
+import org.usvm.api.writeArrayIndex
 import org.usvm.character
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.getIntValue
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeLtExpr
 import org.usvm.mkSizeModExpr
 import org.usvm.mkSizeMulExpr
 import org.usvm.mkSizeSubExpr
+import org.usvm.sizeSort
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
 
 internal val UReadOnlyMemory<*>.stringRegion: UStringMemoryRegion
@@ -25,23 +35,65 @@ internal val UReadOnlyMemory<*>.stringRegion: UStringMemoryRegion
         return getRegion(regionId).cast()
     }
 
+internal fun <Type> UWritableMemory<Type>.allocateStringExpr(stringType: Type, expr: UStringExpr): UConcreteHeapRef {
+    val freshRef = this.allocConcrete(stringType)
+    val ctx = freshRef.uctx
+    write(UStringLValue(freshRef), expr, ctx.trueExpr)
+    return freshRef
+}
+
+private fun <Type, USizeSort : USort> UWritableMemory<*>.getConcreteCharArray(
+    ctx: UContext<USizeSort>,
+    length: UExpr<USizeSort>,
+    refToCharArray: UHeapRef,
+    arrayType: Type
+): CharArray? {
+    val concreteLength = ctx.getIntValue(length) ?: return null
+    val result = CharArray(concreteLength)
+    for (i in 0 until concreteLength) {
+        val charExpr = this.readArrayIndex(refToCharArray, ctx.mkSizeExpr(i), arrayType, ctx.charSort)
+        val char = (charExpr as? UConcreteChar)?.character ?: return null
+        result[i] = char
+    }
+    return result
+}
+
+internal fun <Type, USizeSort : USort> UWritableMemory<Type>.mkStringExprFromCharArray(
+    charArrayType: Type,
+    refToCharArray: UHeapRef,
+): UStringExpr {
+    val ctx = ctx.withSizeSort<USizeSort>()
+    val length = this.readArrayLength(refToCharArray, charArrayType, ctx.sizeSort)
+    val concreteCharArray = getConcreteCharArray(ctx, length, refToCharArray, charArrayType)
+    if (concreteCharArray != null) {
+        return ctx.mkStringLiteral(String(concreteCharArray))
+    }
+    val charArray = this.allocateArray(charArrayType, ctx.sizeSort, length)
+    val zero = ctx.mkSizeExpr(0)
+    memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, zero, zero, length)
+    return ctx.mkStringFromArray(charArray, charArrayType, length)
+}
+
+internal fun UReadOnlyMemory<*>.getString(ref: UHeapRef): UStringExpr =
+    this.stringRegion.getString(ref)
+
 internal inline fun <Sort : USort> UReadOnlyMemory<*>.mapString(
     ref: UHeapRef,
     mapper: (UStringExpr) -> UExpr<Sort>
 ): UExpr<Sort> =
     this.stringRegion.mapString(ref, mapper)
 
-private fun <USizeSort : USort> getConcreteLength(ctx: UContext<USizeSort>, expr: UStringExpr): Int? {
+internal fun <USizeSort : USort> getStringConcreteLength(ctx: UContext<USizeSort>, expr: UStringExpr): Int? {
     when (expr) {
         is UStringLiteralExpr -> return expr.s.length
-        is UStringFromCollectionExpr<*> -> {
-            val sizedString: UStringFromCollectionExpr<USizeSort> = expr.cast()
+        is UStringFromArrayExpr<*, *> -> {
+            val sizedString: UStringFromArrayExpr<*, USizeSort> = expr.cast()
             return ctx.getIntValue(sizedString.length)
         }
 
         is UStringConcatExpr -> {
-            val leftLength = getConcreteLength(ctx, expr.left) ?: return null
-            val rightLength = getConcreteLength(ctx, expr.right) ?: return null
+            val leftLength = getStringConcreteLength(ctx, expr.left) ?: return null
+            val rightLength = getStringConcreteLength(ctx, expr.right) ?: return null
             return leftLength + rightLength
         }
 
@@ -54,31 +106,31 @@ private fun <USizeSort : USort> getConcreteLength(ctx: UContext<USizeSort>, expr
         is UStringFromFloatExpr<*> -> return null
         is UStringRepeatExpr<*> -> {
             val sizedString: UStringRepeatExpr<USizeSort> = expr.cast()
-            val repeatedLength = getConcreteLength(ctx, sizedString.string) ?: return null
+            val repeatedLength = getStringConcreteLength(ctx, sizedString.string) ?: return null
             val times = ctx.getIntValue(sizedString.times) ?: return null
             return repeatedLength * times
         }
 
-        is UStringToUpperExpr -> return getConcreteLength(ctx, expr.string)
-        is UStringToLowerExpr -> return getConcreteLength(ctx, expr.string)
-        is UStringReverseExpr -> return getConcreteLength(ctx, expr.string)
+        is UStringToUpperExpr -> return getStringConcreteLength(ctx, expr.string)
+        is UStringToLowerExpr -> return getStringConcreteLength(ctx, expr.string)
+        is UStringReverseExpr -> return getStringConcreteLength(ctx, expr.string)
         is UStringReplaceFirstExpr -> {
-            val whereLength = getConcreteLength(ctx, expr.where) ?: return null
+            val whereLength = getStringConcreteLength(ctx, expr.where) ?: return null
             val whatLength = getLength(ctx, expr.what)
             val withLength = getLength(ctx, expr.with)
             return if (whatLength == withLength) whereLength else null
         }
 
         is UStringReplaceAllExpr -> {
-            val whereLength = getConcreteLength(ctx, expr.where) ?: return null
+            val whereLength = getStringConcreteLength(ctx, expr.where) ?: return null
             val whatLength = getLength(ctx, expr.what)
             val withLength = getLength(ctx, expr.with)
             return if (whatLength == withLength) whereLength else null
         }
 
         is UIteExpr<UStringSort> -> {
-            val thenLen = getConcreteLength(ctx, expr.trueBranch) ?: return null
-            val elseLen = getConcreteLength(ctx, expr.falseBranch) ?: return null
+            val thenLen = getStringConcreteLength(ctx, expr.trueBranch) ?: return null
+            val elseLen = getStringConcreteLength(ctx, expr.falseBranch) ?: return null
             return if (thenLen == elseLen) thenLen else null
         }
 
@@ -86,10 +138,13 @@ private fun <USizeSort : USort> getConcreteLength(ctx: UContext<USizeSort>, expr
     }
 }
 
+internal fun <USizeSort : USort> isStringEmpty(ctx: UContext<USizeSort>, expr: UStringExpr): Boolean =
+    getStringConcreteLength(ctx, expr).let { it == 0 }
+
 internal fun <USizeSort : USort> getLength(ctx: UContext<USizeSort>, expr: UStringExpr): UExpr<USizeSort> =
     when (expr) {
         is UStringLiteralExpr -> ctx.mkSizeExpr(expr.s.length)
-        is UStringFromCollectionExpr<*> -> expr.length.cast()
+        is UStringFromArrayExpr<*, *> -> expr.length.cast()
         is UStringConcatExpr -> ctx.mkSizeAddExpr(getLength(ctx, expr.left), getLength(ctx, expr.right))
         is UStringSliceExpr<*> -> expr.length.cast()
         is UStringRepeatExpr<*> -> ctx.mkSizeMulExpr(getLength(ctx, expr.string), expr.times.cast())
@@ -111,20 +166,26 @@ internal fun <USizeSort : USort> getLength(ctx: UContext<USizeSort>, expr: UStri
         else -> ctx.mkStringLengthExpr(expr)
     }
 
-internal fun <USizeSort : USort> charAt(
+internal fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(
     ctx: UContext<USizeSort>,
     string: UStringExpr,
     index: UExpr<USizeSort>
 ): UCharExpr {
     when (string) {
-        is UStringFromCollectionExpr<*> -> {
-            val sizedString: UStringFromCollectionExpr<USizeSort> = string.cast()
-            return sizedString.collection.read(index)
+        is UStringFromArrayExpr<*, *> -> {
+            return read(UArrayIndexLValue(ctx.charSort, string.allocatedCharArrayRef, index, string.charArrayType))
         }
 
         is UStringSliceExpr<*> -> {
             val superStringIndex = ctx.mkSizeAddExpr(index, string.length.cast())
             return charAt(ctx, string.superString, superStringIndex)
+        }
+
+        is UStringConcatExpr -> {
+            return ctx.mkIte(
+                ctx.mkSizeLtExpr(index, getLength(ctx, string.left)),
+                { charAt(ctx, string.left, index) },
+                { charAt(ctx, string.right, index) })
         }
 
         is UStringReverseExpr -> {
@@ -147,13 +208,6 @@ internal fun <USizeSort : USort> charAt(
             return ctx.mkChar(string.s[concreteIndex])
         }
 
-        is UStringConcatExpr -> {
-            val concreteLengthOfLeft = getConcreteLength(ctx, string.left) ?: return ctx.mkCharAtExpr(string, index)
-            if (concreteIndex < concreteLengthOfLeft)
-                return charAt(ctx, string.left, index)
-            return charAt(ctx, string.right, index)
-        }
-
         is UStringFromIntExpr<*> -> {
             val value: UExpr<USizeSort> = string.value.cast()
             if (concreteIndex == 0) {
@@ -167,17 +221,152 @@ internal fun <USizeSort : USort> charAt(
     return ctx.mkCharAtExpr(string, index)
 }
 
-//internal fun concatStrings(left: UStringExpr, right: UStringExpr) =
-//    when {
-//        left is UStringLiteralExpr && right is UStringLiteralExpr -> left.uctx.mkStringLiteral(left.s + right.s)
-//        left is UStringFromCollectionExpr<*> && right is UStringFromCollectionExpr<*> -> {
-//            left.collection.copyRange()
-//        }
-//    }
 
-// Concat of (charAt s i) and (charAt s i+1) = substring(s, i, i+1)
-// Concat of (substring s i j) and (charAt s j+1) = substring(s, i, j+1)
+@Suppress("UNCHECKED_CAST")
+internal fun <Type, USizeSort : USort> UWritableMemory<Type>.concatStrings(
+    left: UStringExpr,
+    right: UStringExpr
+): UStringExpr {
+    val ctx = this.ctx.withSizeSort<USizeSort>()
+    return when {
+        left is UStringLiteralExpr && right is UStringLiteralExpr -> ctx.mkStringLiteral(left.s + right.s)
+        left is UStringFromArrayExpr<*, *> && right is UStringFromArrayExpr<*, *> -> {
+            left as UStringFromArrayExpr<Type, USizeSort>
+            right as UStringFromArrayExpr<Type, USizeSort>
+            check(left.charArrayType == right.charArrayType)
 
+            val resultLength = ctx.mkSizeAddExpr(left.length, right.length)
+            val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
+
+            this.memcpy(
+                srcRef = left.allocatedCharArrayRef,
+                dstRef = resultCharArray,
+                type = left.charArrayType,
+                elementSort = ctx.charSort,
+                fromSrc = ctx.mkSizeExpr(0),
+                fromDst = ctx.mkSizeExpr(0),
+                length = left.length
+            )
+            this.memcpy(
+                srcRef = right.allocatedCharArrayRef,
+                dstRef = resultCharArray,
+                type = right.charArrayType,
+                elementSort = ctx.charSort,
+                fromSrc = ctx.mkSizeExpr(0),
+                fromDst = left.length,
+                length = right.length
+            )
+
+            ctx.mkStringFromArray(resultCharArray, left.charArrayType, resultLength)
+        }
+
+        left is UStringRepeatExpr<*> && right is UStringRepeatExpr<*> && left.string == right.string -> {
+            left as UStringRepeatExpr<USizeSort>
+            right as UStringRepeatExpr<USizeSort>
+            ctx.mkStringRepeatExpr(left.string, ctx.mkSizeAddExpr(left.times, right.times))
+        }
+
+        left is UStringSliceExpr<*> && right is UStringSliceExpr<*> && left.superString == right.superString -> {
+            left as UStringSliceExpr<USizeSort>
+            right as UStringSliceExpr<USizeSort>
+            if (right.superString == ctx.mkSizeAddExpr(left.startIndex, left.length))
+                ctx.mkStringSliceExpr(left.superString, left.startIndex, ctx.mkSizeAddExpr(left.length, right.length))
+            else
+                ctx.mkStringConcatExpr(left, right)
+        }
+
+        getStringConcreteLength(ctx, right).let { it == 1 } -> {
+            val rightChar = this.charAt(ctx, right, ctx.mkSizeExpr(0))
+            when {
+                left is UStringFromArrayExpr<*, *> -> {
+                    left as UStringFromArrayExpr<Type, USizeSort>
+                    val resultLength = ctx.mkSizeAddExpr(left.length, ctx.mkSizeExpr(1))
+                    val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
+
+                    this.memcpy(
+                        srcRef = left.allocatedCharArrayRef,
+                        dstRef = resultCharArray,
+                        type = left.charArrayType,
+                        elementSort = ctx.charSort,
+                        fromSrc = ctx.mkSizeExpr(0),
+                        fromDst = ctx.mkSizeExpr(0),
+                        length = left.length
+                    )
+                    this.writeArrayIndex(
+                        resultCharArray,
+                        left.length,
+                        left.charArrayType,
+                        ctx.charSort,
+                        rightChar,
+                        ctx.trueExpr
+                    )
+                    ctx.mkStringFromArray(resultCharArray, left.charArrayType, resultLength)
+                }
+
+                left is UStringSliceExpr<*> && rightChar is UCharAtExpr<*> && left.superString == rightChar.string -> {
+                    left as UStringSliceExpr<USizeSort>
+                    if (ctx.mkSizeAddExpr(left.startIndex, left.length) == rightChar.index)
+                        ctx.mkStringSliceExpr(
+                            left.superString,
+                            left.startIndex,
+                            ctx.mkSizeAddExpr(left.length, ctx.mkSizeExpr(1))
+                        )
+                    else
+                        ctx.mkStringConcatExpr(left, right)
+                }
+
+                else -> ctx.mkStringConcatExpr(left, right)
+            }
+        }
+
+        getStringConcreteLength(ctx, left).let { it == 1 } -> {
+            val leftChar = this.charAt(ctx, left, ctx.mkSizeExpr(0))
+            when {
+                right is UStringFromArrayExpr<*, *> -> {
+                    right as UStringFromArrayExpr<Type, USizeSort>
+                    val resultLength = ctx.mkSizeAddExpr(right.length, ctx.mkSizeExpr(1))
+                    val resultCharArray = this.allocateArray(right.charArrayType, ctx.sizeSort, resultLength)
+
+                    this.writeArrayIndex(
+                        resultCharArray,
+                        ctx.mkSizeExpr(0),
+                        right.charArrayType,
+                        ctx.charSort,
+                        leftChar,
+                        ctx.trueExpr
+                    )
+                    this.memcpy(
+                        srcRef = right.allocatedCharArrayRef,
+                        dstRef = resultCharArray,
+                        type = right.charArrayType,
+                        elementSort = ctx.charSort,
+                        fromSrc = ctx.mkSizeExpr(0),
+                        fromDst = ctx.mkSizeExpr(1),
+                        length = right.length
+                    )
+                    ctx.mkStringFromArray(resultCharArray, right.charArrayType, resultLength)
+                }
+
+                leftChar is UCharAtExpr<*> && right is UStringSliceExpr<*> && leftChar.string == right.superString -> {
+                    leftChar as UCharAtExpr<USizeSort>
+                    right as UStringSliceExpr<USizeSort>
+                    if (ctx.mkSizeAddExpr(leftChar.index, ctx.mkSizeExpr(1)) == right.startIndex)
+                        ctx.mkStringSliceExpr(
+                            leftChar.string,
+                            leftChar.index,
+                            ctx.mkSizeAddExpr(right.length, ctx.mkSizeExpr(1))
+                        )
+                    else
+                        ctx.mkStringConcatExpr(left, right)
+                }
+
+                else -> ctx.mkStringConcatExpr(left, right)
+            }
+        }
+
+        else -> ctx.mkStringConcatExpr(left, right)
+    }
+}
 
 //when (expr) {
 //    is UStringLiteralExpr -> {

@@ -27,12 +27,13 @@ import org.usvm.collection.string.URegexMatchesExpr
 import org.usvm.collection.string.URegexReplaceAllExpr
 import org.usvm.collection.string.URegexReplaceFirstExpr
 import org.usvm.collection.string.UStringConcatExpr
-import org.usvm.collection.string.UStringEqExpr
+//import org.usvm.collection.string.UStringEqExpr
 import org.usvm.collection.string.UStringExpr
-import org.usvm.collection.string.UStringFromCollectionExpr
+import org.usvm.collection.string.UStringFromArrayExpr
 import org.usvm.collection.string.UStringFromFloatExpr
 import org.usvm.collection.string.UStringFromIntExpr
 import org.usvm.collection.string.UStringFromLanguageExpr
+import org.usvm.collection.string.UStringHashCodeExpr
 import org.usvm.collection.string.UStringIndexOfExpr
 import org.usvm.collection.string.UStringLeExpr
 import org.usvm.collection.string.UStringLengthExpr
@@ -45,7 +46,6 @@ import org.usvm.collection.string.UStringReverseExpr
 import org.usvm.collection.string.UStringSliceExpr
 import org.usvm.collection.string.UStringToLowerExpr
 import org.usvm.collection.string.UStringToUpperExpr
-import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
 
 interface UTransformer<Type, USizeSort : USort> : KTransformer {
@@ -101,7 +101,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun transform(expr: UStringLiteralExpr): UStringExpr
 
-    fun transform(expr: UStringFromCollectionExpr<USizeSort>): UStringExpr
+    fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr
 
     fun transform(expr: UStringFromLanguageExpr): UStringExpr
 
@@ -111,7 +111,7 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 
     fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr
 
-    fun transform(expr: UStringEqExpr): UBoolExpr
+    fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort>
 
     fun transform(expr: UStringLtExpr): UBoolExpr
 
