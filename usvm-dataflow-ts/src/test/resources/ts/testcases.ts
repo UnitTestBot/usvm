@@ -552,7 +552,7 @@ class CaseReturnArgumentObject {
     }
 }
 
-// Case `x.f[0].g = y`
+// Case `x.f[0].g := y`
 class CaseAssignToNestedObjectField {
     entrypoint(x: any) {
         let y = 134; // y: number
@@ -567,7 +567,7 @@ class CaseAssignToNestedObjectField {
 
 // ----------------------------------------
 
-// Case `x.f.g.h = y`
+// Case `x.f.g.h := y`
 class CaseAssignDeeplyNestedField {
     entrypoint(x: any) {
         let y = "abc"; // y: string
@@ -582,7 +582,7 @@ class CaseAssignDeeplyNestedField {
 
 // ----------------------------------------
 
-// Case `x.f[i].g.h = y`
+// Case `x.f[i].g.h := y`
 class CaseAssignToArrayObjectField {
     entrypoint(x: any) {
         let y = false; // y: boolean
@@ -597,7 +597,7 @@ class CaseAssignToArrayObjectField {
 
 // ----------------------------------------
 
-// Case `x[i].f.g = y`
+// Case `x[i].f.g := y`
 class CaseAssignArrayFieldToNestedObject {
     entrypoint(x: any) {
         let y = 219; // y: number
@@ -612,7 +612,7 @@ class CaseAssignArrayFieldToNestedObject {
 
 // ----------------------------------------
 
-// Case `x.f[i][j] = y`
+// Case `x.f[i][j] := y`
 class CaseAssignToMultiDimensionalArray {
     entrypoint(x: any) {
         let y = "data"; // y: string
@@ -627,7 +627,7 @@ class CaseAssignToMultiDimensionalArray {
 
 // ----------------------------------------
 
-// Case `x.f[0].g[1].h = y`
+// Case `x.f[0].g[1].h := y`
 class CaseAssignToComplexNestedArrayField {
     entrypoint(x: any) {
         let y = true; // y: boolean
@@ -642,7 +642,7 @@ class CaseAssignToComplexNestedArrayField {
 
 // ----------------------------------------
 
-// Case `x.f.g.h[i] = y`
+// Case `x.f.g.h[i] := y`
 class CaseAssignToArrayInNestedObject {
     entrypoint(x: any) {
         let y = 3.14; // y: number
@@ -657,7 +657,7 @@ class CaseAssignToArrayInNestedObject {
 
 // ----------------------------------------
 
-// Case `x.f[0].g.h[i] = y`
+// Case `x.f[0].g.h[i] := y`
 class CaseAssignToArrayInDeeplyNestedObject {
     entrypoint(x: any) {
         let y = null; // y: null
@@ -672,7 +672,7 @@ class CaseAssignToArrayInDeeplyNestedObject {
 
 // ----------------------------------------
 
-// Case `x.f.g[i].h.j = y`
+// Case `x.f.g[i].h.j := y`
 class CaseAssignToDeeplyNestedObjectArray {
     entrypoint(x: any) {
         let y = "nested"; // y: string
@@ -687,7 +687,7 @@ class CaseAssignToDeeplyNestedObjectArray {
 
 // ----------------------------------------
 
-// Case `x.f.g.h[0][i] = y`
+// Case `x.f.g.h[0][i] := y`
 class CaseAssignToMultiDimensionalArrayField {
     entrypoint(x: any) {
         let y = 99; // y: number
@@ -706,7 +706,7 @@ class MyType {
     f: number = 15;
 }
 
-// Case `x = new T()`
+// Case `x := new T()`
 class CaseNew {
     entrypoint() {
         let y = new MyType(); // y: { f: number }
@@ -720,6 +720,7 @@ class CaseNew {
 
 // ----------------------------------------
 
+// Case `x := number | string`
 class CaseUnion {
     entrypoint() {
         let x: string | number = "str"; // x: string
@@ -732,6 +733,7 @@ class CaseUnion {
     }
 }
 
+// Case `x := number | string`
 class CaseArgumentUnion {
     entrypoint(x: string | number) {
         x = "kek";
@@ -744,6 +746,7 @@ class CaseArgumentUnion {
     }
 }
 
+// Case `x := y`
 class CaseUnion2 {
     entrypoint() {
         let y = "str";
@@ -757,6 +760,7 @@ class CaseUnion2 {
     }
 }
 
+// Case `x := y`
 class CaseArgumentUnion2 {
     entrypoint(y: string) {
         let x: string | number = y;
@@ -771,6 +775,7 @@ class CaseArgumentUnion2 {
 
 // ----------------------------------------
 
+// Case `y := x.f.g`
 class CaseAliasChain1 {
     entrypoint(x: any) {
         let y = x.f; // x: { f: any }
@@ -783,7 +788,7 @@ class CaseAliasChain1 {
     }
 }
 
-// Case `x.f := number`
+// Case `x.f.g := number`
 class CaseAssignNumberToNestedField {
     entrypoint(x: any) {
         x.f.g = 100; // x: { f: { g: number } }
