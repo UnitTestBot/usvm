@@ -34,4 +34,30 @@ public class MultiDimensional {
         }
         return x;
     }
+
+    @SuppressWarnings("ConstantValue")
+    static int countMulti3NewArray(int x) {
+        int result = x;
+        int[][][] sum = new int[4][3][2];
+
+        if (sum.length != 4) return -1;
+
+        for (int i = 0; i < 4; i++) {
+            int[][] a0 = sum[i];
+
+            if (a0.length != 3) return -1;
+
+            for (int j = 0; j < 3; j++) {
+                int[] a1 = a0[j];
+
+                if (a1.length != 2) return -1;
+
+                for (int k = 0; k < 2; k++) {
+                    result += a1[k] + 1;
+                }
+            }
+        }
+
+        return result;
+    }
 }

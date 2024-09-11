@@ -346,8 +346,15 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolvePrimitiveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        // TODO: other dimensions ( > 1)
+        val dimension = expr.dimensions.singleOrNull()
+        if (dimension == null) {
+            check(cp.isInstalled(JcMultiDimArrayAllocationTransformer)) {
+                "Arrays with multiple dimensions are not supported"
+            }
+            error("Multi dimensional array was not eliminated")
+        }
+
+        val size = resolvePrimitiveCast(dimension, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         checkNewArrayLength(size) ?: return null
 
         scope.calcOnState {
