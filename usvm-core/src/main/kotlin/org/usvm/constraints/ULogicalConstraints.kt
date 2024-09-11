@@ -37,7 +37,7 @@ class ULogicalConstraints private constructor(
         get() = constraints.any(UBoolExpr::isFalse)
 
     fun contradiction(ctx: UContext<*>, ownership: MutabilityOwnership) {
-        constraints = persistentHashSetOf<KExpr<UBoolSort>>().add(ctx.falseExpr, ownership)
+        constraints = persistentHashSetOf<UBoolExpr>().add(ctx.falseExpr, ownership)
     }
 
     /**

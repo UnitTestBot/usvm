@@ -70,10 +70,9 @@ class UTypeConstraints<Type>(
     init {
         equalityConstraints.subscribeEquality(::intersectRegions)
     }
-
-    @Suppress("UNCHECKED_CAST")
     val inputRefToTypeRegion: Map<UHeapRef, UTypeRegion<Type>>
         get(): Map<UHeapRef, UTypeRegion<Type>> {
+            @Suppress("UNCHECKED_CAST")
             val inputTypeRegions: MutableMap<UHeapRef, UTypeRegion<Type>> =
                 symbolicRefToTypeRegion.toMutableMap() as MutableMap<UHeapRef, UTypeRegion<Type>>
 
