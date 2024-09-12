@@ -32,9 +32,9 @@ class ForwardFlowFunctions(
     val typeInfo: Map<EtsType, EtsTypeFact>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
-    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, DisjointSets<AccessPath>>> = mutableMapOf()
+    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, AliasingInfo>> = mutableMapOf()
 
-    private fun getAliases(method: EtsMethod): Map<EtsStmt, DisjointSets<AccessPath>> {
+    private fun getAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
         return aliasesCache.getOrPut(method) { computeAliases(method) }
     }
 
@@ -206,6 +206,7 @@ class ForwardFlowFunctions(
             }
         }
 
+        // todo: use alias info here
         // Pass-through completely unrelated facts:
         if (fact.variable.base != lhv.base && fact.variable.base != rhv?.base) {
             return listOf(fact)

@@ -16,38 +16,112 @@
 
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
-import org.usvm.algorithms.DisjointSets
+import org.usvm.dataflow.ifds.Accessor
+import org.usvm.dataflow.ifds.FieldAccessor
 
-fun computeAliases(method: EtsMethod): Map<EtsStmt, DisjointSets<AccessPath>> {
-    val aliases = mutableMapOf<EtsStmt, DisjointSets<AccessPath>>()
-    var dsu = DisjointSets<AccessPath>()
+sealed interface Allocation {
+    class New : Allocation
+    data class Arg(val index: Int) : Allocation
+    class CallResult : Allocation
+}
 
-    for (stmt in method.cfg.stmts) {
-        when (stmt) {
-            is EtsAssignStmt -> {
-                if (stmt.rhv is EtsRef || (stmt.rhv is EtsCastExpr && (stmt.rhv as EtsCastExpr).arg is EtsRef)) {
-                    val lhs = stmt.lhv.toPath()
-                    val rhs = stmt.rhv.toPath()
+class AliasingInfo(
+    // B: Base -> Object
+    val B: Map<AccessPathBase, Allocation>,
+    // F: Object x Field -> Object
+    val F: Map<Allocation, Map<String, Allocation>>,
+) {
+    fun find(path: AccessPath): Allocation? {
+        val b = B[path.base] ?: return null
+        if (path.accesses.isEmpty()) return b
+        val f = F[b] ?: return null
+        val a = path.accesses.single()
+        check(a is FieldAccessor) {
+            "Sorry, arrays are not supported, yet"
+        }
+        return f[a.name]
+    }
 
-                    dsu = dsu.clone()
-                    dsu.union(lhs, rhs)
+    fun merge(other: AliasingInfo): AliasingInfo {
+        // Intersect B:
+        val newB = this.B.filter { (base, obj) -> other.B[base] == obj }.toMap()
 
-                    if (rhs.accesses.isNotEmpty()) {
-                        check(rhs.accesses.size == 1)
-                        val accessor = rhs.accesses.single()
-                        for (alias in dsu.getSet(AccessPath(rhs.base, emptyList()))) {
-                            dsu.union(lhs , alias + accessor)
-                        }
+        // Intersect F:
+        val newF = mutableMapOf<Allocation, Map<String, Allocation>>()
+        for ((obj, fields) in this.F) {
+            val otherFields = other.F[obj]
+            if (otherFields != null) {
+                newF[obj] = fields.filter { (field, alloc) -> otherFields[field] == alloc }.toMap()
+            }
+        }
+
+        return AliasingInfo(newB, newF)
+    }
+
+    fun getAliases(obj: Allocation): Set<AccessPath> {
+        // TODO: traverse graph backward
+        val paths = mutableSetOf<AccessPath>()
+
+        val invF = mutableMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
+        for ((obj1, fields) in F) {
+            for ((field, obj2) in fields) {
+                invF.computeIfAbsent(obj2) { mutableMapOf() }
+                    .computeIfAbsent(field) { mutableListOf() }
+                    .add(obj1)
+            }
+        }
+
+        val invB = mutableMapOf<Allocation, MutableList<AccessPathBase>>()
+        for ((base, alloc) in B) {
+            invB.computeIfAbsent(alloc) { mutableListOf() }
+                .add(base)
+        }
+
+        val queue = ArrayDeque<Pair<Allocation, List<FieldAccessor>>>(listOf(obj to emptyList()))
+        while (queue.isNotEmpty()) {
+            val (cur, accessors) = queue.removeFirst()
+            if (cur in invB) {
+                for (base in invB[cur]!!) {
+                    paths.add(AccessPath(base, accessors.reversed()))
+                }
+            }
+            if (cur in invF) {
+                for ((field, objs) in invF[cur]!!) {
+                    for (alloc in objs) {
+                        queue.add(alloc to accessors + FieldAccessor(field))
                     }
                 }
             }
         }
-        aliases[stmt] = dsu
+
+        return paths
+    }
+
+    fun getSet(path: AccessPath) : Set<AccessPath> {
+        val obj = find(path) ?: return emptySet()
+        return getAliases(obj)
+    }
+}
+
+fun computeAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
+    val aliases = mutableMapOf<EtsStmt, AliasingInfo>()
+
+    fun compute(stmt: EtsStmt): AliasingInfo {
+        if (stmt in aliases) return aliases[stmt]!!
+
+        val preds = method.cfg.predecessors(stmt).map { compute(it) }
+        val merged = preds.reduceOrNull { a, b -> a.merge(b) } ?: AliasingInfo(emptyMap(), emptyMap())
+
+        val newInfo = TODO("handle assignment")
+
+        aliases[stmt] = newInfo
+        return newInfo
+    }
+
+    for (stmt in method.cfg.stmts) {
+        compute(stmt)
     }
 
     return aliases
