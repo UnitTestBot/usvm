@@ -14,22 +14,7 @@ class TSExprTransformer(
 ) {
 
     private val exprCache: MutableMap<USort, UExpr<out USort>?> = mutableMapOf(baseExpr.sort to baseExpr)
-
-
-
     private val ctx = baseExpr.tctx
-
-//    init {
-//        if (baseExpr.sort == ctx.addressSort) {
-//            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
-//        }
-//    }
-
-    companion object {
-        private fun <T : USort> noWrap(transformer: TSExprTransformer, sort: T): UExpr<T> {
-            return transformer.transform(sort).cast()
-        }
-    }
 
     fun transform(sort: USort): UExpr<out USort>? = with(ctx) {
         when (sort) {
@@ -65,9 +50,9 @@ class TSExprTransformer(
         exprCache.keys.forEach { sort ->
             other.transform(sort)
         }
-//        other.exprCache.keys.forEach { sort ->
-//            transform(sort)
-//        }
+        other.exprCache.keys.forEach { sort ->
+            transform(sort)
+        }
     }
 
     fun asFp64(

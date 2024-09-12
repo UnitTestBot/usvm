@@ -2,7 +2,6 @@ package org.usvm.memory
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort
@@ -30,10 +29,8 @@ class URegisterStackLValue<Sort : USort>(
 
 interface UReadOnlyRegistersStack : UReadOnlyMemoryRegion<URegisterStackLValue<*>, USort> {
     fun <Sort : USort> readRegister(index: Int, sort: Sort): KExpr<Sort>
-    fun readRegisterUnsafe(index: Int, sort: USort): KExpr<USort> = readRegister(index, sort)
 
     override fun read(key: URegisterStackLValue<*>): UExpr<USort> = readRegister(key.idx, key.sort)
-    override fun readUnsafe(key: URegisterStackLValue<*>): UExpr<USort> = readRegisterUnsafe(key.idx, key.sort)
 }
 
 class URegistersStack(
@@ -52,10 +49,6 @@ class URegistersStack(
 
     override fun <Sort : USort> readRegister(index: Int, sort: Sort): UExpr<Sort> =
         frames.lastOrNull().read(index, sort)
-
-    override fun readRegisterUnsafe(index: Int, sort: USort): KExpr<USort> {
-        return (frames.lastOrNull()?.let { frame -> frame[index] } ?: sort.uctx.mkRegisterReading(index, sort)).cast()
-    }
 
     override fun write(
         key: URegisterStackLValue<*>,
