@@ -36,7 +36,6 @@ class TSTestResolver(
     val state: TSState
 ) {
 
-    @Suppress("UNUSED_VARIABLE")
     fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {

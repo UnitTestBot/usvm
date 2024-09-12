@@ -36,26 +36,6 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
-class TSAddressSortExpr(
-    private val tctx: TSContext,
-    val value: UExpr<out USort>,
-) : USymbol<USort>(tctx) {
-
-    override val sort: USort = tctx.addressSort
-
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
-
-    override fun internHashCode(): Int = hash()
-
-    override fun accept(transformer: KTransformerBase): KExpr<USort> {
-        return tctx.mkUninterpretedSortValue(tctx.addressSort, 0).cast()
-    }
-
-    override fun print(printer: ExpressionPrinter) {
-        TODO("Not yet implemented")
-    }
-}
-
 class TSWrappedValue(
     ctx: TSContext,
     val value: UExpr<out USort>,
@@ -100,7 +80,7 @@ class TSWrappedValue(
     override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {
-       printer.append("rot ebal...")
+       printer.append("Wrapped[${value.print(printer)}]")
     }
 
 }

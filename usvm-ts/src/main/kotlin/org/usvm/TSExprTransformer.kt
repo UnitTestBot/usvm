@@ -120,6 +120,6 @@ class TSRefTransformer(
         else -> error("Not yet implemented: $expr")
     }
 
-    fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> = ctx.mkRegisterReading(expr.idx, sort)
+    private fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> = ctx.mkRegisterReading(expr.idx, sort)
 
 }

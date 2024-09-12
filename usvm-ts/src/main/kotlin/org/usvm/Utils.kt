@@ -9,4 +9,3 @@ fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {
 }
 
 fun UContext<*>.boolToFpSort(expr: UExpr<UBoolSort>) = mkIte(expr, mkFp64(1.0), mkFp64(0.0))
-
