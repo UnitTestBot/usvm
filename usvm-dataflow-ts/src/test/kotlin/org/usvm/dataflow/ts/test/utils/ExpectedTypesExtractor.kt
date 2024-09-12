@@ -37,6 +37,86 @@ class ExpectedTypesExtractor(private val applicationGraph: EtsApplicationGraph) 
     }
 }
 
+class ClassMatcherStatistics {
+    private val overallTypes: Long
+        get() = overallThisTypes + overallArgsTypes + overallReturnTypes
+    private val matched: Long
+        get() = exactlyMatchedThisTypes + exactlyMatchedArgsTypes + exactlyMatchedReturnTypes
+    private val someFactsFound: Long
+        get() = someFactsAboutThisTypes + someFactsAboutArgsTypes + someFactsAboutReturnTypes
+
+    private var overallThisTypes: Long = 0L
+    private var exactlyMatchedThisTypes: Long = 0L
+    private var someFactsAboutThisTypes: Long = 0L
+
+    private var overallArgsTypes: Long = 0L
+    private var exactlyMatchedArgsTypes: Long = 0L
+    private var someFactsAboutArgsTypes: Long = 0L
+
+    private var overallReturnTypes: Long = 0L
+    private var exactlyMatchedReturnTypes: Long = 0L
+    private var someFactsAboutReturnTypes: Long = 0L
+
+    fun verify(facts: MethodTypesFacts, types: MethodTypes) {
+        // 'this' type
+        types.thisType?.let {
+            overallThisTypes++
+
+            val thisFact = facts.thisFact ?: return@let
+            if (thisFact.matchesWith(it)) {
+                exactlyMatchedThisTypes++
+            } else {
+                someFactsAboutThisTypes++
+            }
+        }
+
+        // args
+        types.argumentsTypes.forEachIndexed { index, type ->
+            overallArgsTypes++
+
+            val fact = facts.argumentsFacts.getOrNull(index) ?: return@forEachIndexed
+            if (fact.matchesWith(type)) {
+                exactlyMatchedArgsTypes++
+            } else {
+                someFactsAboutArgsTypes++
+            }
+        }
+
+        // return type
+        overallReturnTypes++
+
+        if (facts.returnFact.matchesWith(types.returnType)) {
+            exactlyMatchedReturnTypes++
+        } else if (facts.returnFact.partialMatchedBy(types.returnType)) {
+            someFactsAboutReturnTypes++
+        }
+    }
+
+    override fun toString(): String = """
+        Total types number: $overallTypes
+        Exactly matched: $matched
+        Partially matched: $someFactsFound
+        Not found: ${overallTypes - matched - someFactsFound}
+        
+        Specifically: 
+        
+        This types total: $overallThisTypes
+        Exactly matched this types: $exactlyMatchedThisTypes
+        Partially matched this types: $someFactsAboutThisTypes
+        Not found: ${overallThisTypes - exactlyMatchedThisTypes - someFactsAboutThisTypes}
+        
+        Args types total: $overallArgsTypes
+        Exactly matched args types: $exactlyMatchedArgsTypes
+        Partially matched args types: $someFactsAboutArgsTypes
+        Not found: ${overallArgsTypes - exactlyMatchedArgsTypes - someFactsAboutArgsTypes}
+        
+        Return types total: $overallReturnTypes
+        Exactly matched return types: $exactlyMatchedReturnTypes
+        Partially matched return types: $someFactsAboutReturnTypes
+        Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes}
+    """.trimIndent()
+}
+
 data class MethodTypes(
     val thisType: EtsType?,
     val argumentsTypes: List<EtsType>,
@@ -86,7 +166,9 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
         (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
     }
 
-    EtsTypeFact.AnyEtsTypeFact -> type is EtsAnyType
+    EtsTypeFact.AnyEtsTypeFact -> {
+        type is EtsAnyType || type is EtsUnknownType // TODO any other combination?
+    }
     is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
         is EtsArrayType -> this.elementType.matchesWith(type.elementType)
         is EtsUnclearRefType -> TODO()
@@ -103,4 +185,9 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
     is EtsTypeFact.GuardedTypeFact -> TODO()
     is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
     is EtsTypeFact.UnionEtsTypeFact -> TODO()
+}
+
+private fun EtsTypeFact.partialMatchedBy(type: EtsType): Boolean {
+    if (type is EtsUnknownType) return true
+    TODO()
 }
