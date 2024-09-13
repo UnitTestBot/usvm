@@ -1,5 +1,10 @@
 package org.usvm.dataflow.ts.test
 
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.SerializationException
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStringConstant
@@ -11,6 +16,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -278,6 +284,133 @@ class EtsTypeInferenceTest {
         val resource = "/projects/applications_app_samples/etsir/ast/ArkTSDistributedCalc"
         val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
             ?: error("Resource not found: $resource")
+        println("Found project dir: '$dir'")
+
+        val files = dir
+            .walk()
+            .filter { it.extension == "json" }
+            // .filter { it.name.startsWith("Calculator") }
+            // .filter { it.name.startsWith("ImageList") }
+            // .filter { it.name.startsWith("KvStoreModel") }
+            // .filter { it.name.startsWith("RemoteDeviceModel") }
+            // .filter { it.name.startsWith("Index") }
+            .toList()
+        println("Found files: (${files.size})")
+        for (path in files) {
+            println("  ${path.relativeTo(dir)}")
+        }
+
+        println("Processing ${files.size} files...")
+        val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
+        val project = EtsScene(etsFiles)
+
+        val graphOrig = EtsApplicationGraphImpl(project)
+        val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
+
+        val entrypoints = project.classes
+            .flatMap { it.methods + it.ctor }
+            // .filter { it.enclosingClass.name == "Index" && (it.name == "build" || it.name == CONSTRUCTOR) }
+            .filter { it.isPublic || it.name == CONSTRUCTOR }
+            .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
+        println("entrypoints: (${entrypoints.size})")
+        entrypoints.forEach {
+            println("  ${it.signature.enclosingClass.name}::${it.name}")
+        }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graph)
+        }
+        val inferred = manager.analyze(entrypoints)
+    }
+
+    private fun resourceAvailable(dirName: String) =
+        object {}::class.java.getResource(dirName) != null
+
+    private fun testHapSet(setPath: String) {
+        val abcDir = object {}::class.java.getResource(setPath)?.toURI()?.toPath()
+            ?: error("Resource not found: $setPath")
+        val haps = abcDir.toFile().listFiles()?.toList() ?: emptyList()
+        processAllHAPs(haps)
+    }
+
+    private val APP_SAMPLES_PATH = "/projects/applications_app_samples/etsir/abc/"
+    private fun appSamplesAvailable() = resourceAvailable(APP_SAMPLES_PATH)
+
+    @Test
+    @EnabledIf("appSamplesAvailable")
+    fun `type inference for app samples`() = testHapSet(APP_SAMPLES_PATH)
+
+
+    private val TEST_PROJECTS_PATH = "/TestProjects/"
+    private fun testProjectsAvailable() = resourceAvailable(TEST_PROJECTS_PATH)
+
+    @Test
+    @EnabledIf("testProjectsAvailable")
+    fun `type inference for test projects`() = testHapSet(TEST_PROJECTS_PATH)
+
+    @Test
+    fun `test single HAP`() {
+        val abcDirName = "/TestProjects/CertificateManager_240801_843398b"
+        val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
+            ?: error("Resource not found: $abcDirName")
+        testHap(projectDir.toString())
+    }
+
+    private fun processAllHAPs(haps: Collection<File>) {
+        val succeed = mutableListOf<String>()
+        val timeout = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+
+        haps.forEach { project ->
+            try {
+                runBlocking {
+                    withTimeout(60_000) {
+                        runInterruptible { testHap(project.path) }
+                    }
+                }
+                succeed += project.name
+                println("$project  -  SUCCESS")
+            } catch (_: TimeoutCancellationException) {
+                timeout += project.name
+                println("$project  -  TIMEOUT")
+            } catch (e: SerializationException) {
+                e.printStackTrace()
+                error("Serialization exception")
+            } catch (e: Throwable) {
+                failed += project.name
+                println("$project  -  FAILED")
+                e.printStackTrace()
+            }
+            println("%%%")
+            println(project.name)
+            println("%%%")
+        }
+
+        println("Total: ${haps.size} HAPs")
+        println("Succeed: ${succeed.size}")
+        println("Timeout: ${timeout.size}")
+        println("Failed: ${failed.size}")
+
+        println("PASSED")
+        succeed.forEach {
+            println(it)
+        }
+        println("TIMEOUT")
+        timeout.forEach {
+            println(it)
+        }
+        println("FAILED")
+        failed.forEach {
+            println(it)
+        }
+    }
+
+    private fun testHap(projectDir: String) {
+        //val resource = "/projects/applications_app_samples/etsir/abc/$projectName"
+        //val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
+        //    ?: error("Resource not found: $resource")
+
+        val dir = File(projectDir).takeIf { it.isDirectory } ?: error("Not found project dir $projectDir")
         println("Found project dir: '$dir'")
 
         val files = dir

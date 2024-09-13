@@ -18,6 +18,7 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
+    testImplementation(Libs.kotlinx_serialization_core)
 }
 
 tasks.withType<KotlinCompile> {
