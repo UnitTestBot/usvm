@@ -14,6 +14,7 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -57,13 +58,13 @@ class ClassMatcherStatistics {
     private var exactlyMatchedReturnTypes: Long = 0L
     private var someFactsAboutReturnTypes: Long = 0L
 
-    fun verify(facts: MethodTypesFacts, types: MethodTypes) {
+    fun verify(facts: MethodTypesFacts, types: MethodTypes, scene: EtsScene) {
         // 'this' type
         types.thisType?.let {
             overallThisTypes++
 
             val thisFact = facts.thisFact ?: return@let
-            if (thisFact.matchesWith(it)) {
+            if (thisFact.matchesWith(it, scene)) {
                 exactlyMatchedThisTypes++
             } else {
                 someFactsAboutThisTypes++
@@ -75,7 +76,7 @@ class ClassMatcherStatistics {
             overallArgsTypes++
 
             val fact = facts.argumentsFacts.getOrNull(index) ?: return@forEachIndexed
-            if (fact.matchesWith(type)) {
+            if (fact.matchesWith(type, scene)) {
                 exactlyMatchedArgsTypes++
             } else {
                 someFactsAboutArgsTypes++
@@ -85,7 +86,7 @@ class ClassMatcherStatistics {
         // return type
         overallReturnTypes++
 
-        if (facts.returnFact.matchesWith(types.returnType)) {
+        if (facts.returnFact.matchesWith(types.returnType, scene)) {
             exactlyMatchedReturnTypes++
         } else if (facts.returnFact.partialMatchedBy(types.returnType)) {
             someFactsAboutReturnTypes++
@@ -122,20 +123,20 @@ data class MethodTypes(
     val argumentsTypes: List<EtsType>,
     val returnType: EtsType
 ) {
-    fun matchesWithTypeFacts(other: MethodTypesFacts, ignoreReturnType: Boolean): Boolean {
+    fun matchesWithTypeFacts(other: MethodTypesFacts, ignoreReturnType: Boolean, scene: EtsScene): Boolean {
         if (thisType == null && other.thisFact != null) return false
 
         if (thisType != null && other.thisFact != null) {
-            if (!other.thisFact.matchesWith(thisType)) return false
+            if (!other.thisFact.matchesWith(thisType, scene)) return false
         }
 
         for ((i, fact) in other.argumentsFacts.withIndex()) {
-            if (!fact.matchesWith(argumentsTypes[i])) return false
+            if (!fact.matchesWith(argumentsTypes[i], scene)) return false
         }
 
         if (ignoreReturnType) return true
 
-        return other.returnFact.matchesWith(returnType)
+        return other.returnFact.matchesWith(returnType, scene)
     }
 }
 
@@ -159,7 +160,7 @@ data class MethodTypesFacts(
     }
 }
 
-private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
+private fun EtsTypeFact.matchesWith(type: EtsType, scene: EtsScene): Boolean = when (this) {
     is EtsTypeFact.ObjectEtsTypeFact -> {
         // TODO it should be replaced with signatures
         val typeName = this.cls?.typeName
@@ -170,7 +171,8 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
         type is EtsAnyType || type is EtsUnknownType // TODO any other combination?
     }
     is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
-        is EtsArrayType -> this.elementType.matchesWith(type.elementType)
+        is EtsArrayType -> this.elementType.matchesWith(type.elementType, scene)
+
         is EtsUnclearRefType -> TODO()
         else -> false
     }
@@ -183,8 +185,12 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean = when (this) {
     EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType
     EtsTypeFact.UnknownEtsTypeFact -> type is EtsUnknownType
     is EtsTypeFact.GuardedTypeFact -> TODO()
-    is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
-    is EtsTypeFact.UnionEtsTypeFact -> TODO()
+    is EtsTypeFact.IntersectionEtsTypeFact -> {
+        // TODO intersections checks are not supported yet
+        false
+    }
+    is EtsTypeFact.UnionEtsTypeFact -> types.any { it.matchesWith(type, scene)
+    }
 }
 
 private fun EtsTypeFact.partialMatchedBy(type: EtsType): Boolean {

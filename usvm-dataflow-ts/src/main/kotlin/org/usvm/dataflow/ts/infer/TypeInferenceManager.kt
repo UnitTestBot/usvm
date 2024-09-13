@@ -332,7 +332,7 @@ class TypeInferenceManager(
 
             if (types.isNotEmpty() && types.entries.singleOrNull()?.value != EtsTypeFact.UnknownEtsTypeFact) {
                 val updatedTypes = types.mapValues { (_, fact) ->
-                    fact.guessType()
+                    fact.resolveType()
                 }
 
                 return@mapValues facts.copy(types = updatedTypes)
@@ -344,13 +344,13 @@ class TypeInferenceManager(
         possibleMatchedTypes
     }
 
-    private fun EtsTypeFact.guessType(): EtsTypeFact = when (this) {
+    private fun EtsTypeFact.resolveType(): EtsTypeFact = when (this) {
         is EtsTypeFact.ArrayEtsTypeFact -> {
             val elementType = this.elementType
             if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
                 this
             } else {
-                this.copy(elementType = elementType.guessType())
+                this.copy(elementType = elementType.resolveType())
             }
         }
 
@@ -372,15 +372,19 @@ class TypeInferenceManager(
                     // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
                         cls = EtsClassType(EtsClassSignature(it.name)),
-                        properties = emptyMap(), // TODO it is correct? Mb we should save the properties?
+                        properties = properties.mapValues { it.value.resolveType() } // TODO it is correct? Mb we should save the properties?
                     )
                 } ?: this
         }
-
-        is EtsTypeFact.FunctionEtsTypeFact -> TODO()
-        is EtsTypeFact.GuardedTypeFact -> TODO()
-        is EtsTypeFact.IntersectionEtsTypeFact -> TODO()
-        is EtsTypeFact.UnionEtsTypeFact -> TODO()
+        is EtsTypeFact.FunctionEtsTypeFact -> this
+        is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
+        is EtsTypeFact.IntersectionEtsTypeFact -> {
+            val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType() }
+            EtsTypeFact.IntersectionEtsTypeFact(updatedTypes)
+        }
+        is EtsTypeFact.UnionEtsTypeFact -> {
+            this.copy(types.mapTo(mutableSetOf()) { it.resolveType() })
+        }
         else -> this
     }
 

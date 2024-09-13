@@ -19,8 +19,13 @@ package org.usvm.dataflow.ts.test.utils
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import java.nio.file.Paths
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.extension
 import kotlin.io.path.toPath
+import kotlin.io.path.walk
 
 fun loadEtsFileDtoFromResource(jsonPath: String): EtsFileDto {
     val sampleFilePath = object {}::class.java.getResourceAsStream(jsonPath)
@@ -37,4 +42,15 @@ fun autoLoadEtsFileFromResource(tsPath: String): EtsFile {
     val path = object {}::class.java.getResource(tsPath)?.toURI()?.toPath()
         ?: error("Resource not found: $tsPath")
     return loadEtsFileAutoConvert(path)
+}
+
+@OptIn(ExperimentalPathApi::class)
+fun loadProject(path: String): EtsScene {
+    val paths = Paths.get(path).walk().filter { it.extension == "json" }
+    val files = paths
+        .map { EtsFileDto.loadFromJson(it.toFile().inputStream()) }
+        .map { convertToEtsFile(it) }
+        .toList()
+
+    return EtsScene(files)
 }

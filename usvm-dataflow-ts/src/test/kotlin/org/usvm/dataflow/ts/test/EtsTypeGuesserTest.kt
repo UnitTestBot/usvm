@@ -15,6 +15,7 @@ import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
+import org.usvm.dataflow.ts.test.utils.loadProject
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.test.assertTrue
 
@@ -23,6 +24,34 @@ class EtsTypeResolverTest {
         private fun load(name: String): EtsFile {
             return autoLoadEtsFileFromResource("/ts/$name.ts")
         }
+    }
+
+    @Test
+    fun testLoadProject() {
+        val project = "YOUR_PATH"
+        val scene = loadProject(project)
+
+        val graph = EtsApplicationGraphImpl(scene)
+        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+
+        val entrypoint = scene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPoint)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach {
+            val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(it)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(it))
+            classMatcherStatistics.verify(actualTypes, expectedTypes, scene)
+        }
+
+        println(classMatcherStatistics)
     }
 
     @Test
@@ -50,7 +79,7 @@ class EtsTypeResolverTest {
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     @Test
@@ -78,10 +107,10 @@ class EtsTypeResolverTest {
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
 
         val classMatcherStatistics = ClassMatcherStatistics()
-        classMatcherStatistics.verify(actualTypes, expectedTypes)
+        classMatcherStatistics.verify(actualTypes, expectedTypes, project)
         println(classMatcherStatistics)
     }
 
@@ -111,7 +140,7 @@ class EtsTypeResolverTest {
 
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     @Test
@@ -139,7 +168,7 @@ class EtsTypeResolverTest {
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     @Test
@@ -167,7 +196,7 @@ class EtsTypeResolverTest {
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     @Test
@@ -195,7 +224,7 @@ class EtsTypeResolverTest {
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
 
-        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true))
+        assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     private inline fun <reified T : EtsTypeFact> checkAnObjectTypeOfSingleArgument(

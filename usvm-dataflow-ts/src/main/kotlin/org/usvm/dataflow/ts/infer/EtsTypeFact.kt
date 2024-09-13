@@ -183,6 +183,20 @@ sealed interface EtsTypeFact {
                 append("}")
             }
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (other !is ObjectEtsTypeFact) return false
+
+            if (other.cls != null && other.cls == cls) return true
+
+            return properties == other.properties
+        }
+
+        override fun hashCode(): Int {
+            if (cls == null) return properties.hashCode()
+
+            return cls.hashCode()
+        }
     }
 
     data class UnionEtsTypeFact(
