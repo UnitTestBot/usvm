@@ -46,11 +46,13 @@ sealed interface Allocation {
 //     }
 // }
 
-class AliasingInfo(
+class AliasInfo(
     // B: Base -> Object
     val B: Map<AccessPathBase, Allocation>,
+    // val B: PersistentMap<AccessPathBase, Allocation>,
     // F: Object x Field -> Object
     val F: Map<Allocation, Map<String, Allocation>>,
+    // val F: PersistentMap<Allocation, PersistentMap<String, Allocation>>,
 ) {
     // A: Base x Field* -> Object
     fun find(path: AccessPath): Allocation? {
@@ -66,9 +68,16 @@ class AliasingInfo(
         }
     }
 
-    fun merge(other: AliasingInfo): AliasingInfo {
+    fun merge(other: AliasInfo): AliasInfo {
         // Intersect B:
         val newB = this.B.filter { (base, obj) -> other.B[base] == obj }.toMap()
+        // val newB = this.B.mutate { newB ->
+        //     for ((base, obj) in this.B) {
+        //         if (other.B[base] != obj) {
+        //             newB.remove(base)
+        //         }
+        //     }
+        // }
 
         // Intersect F:
         val newF = mutableMapOf<Allocation, Map<String, Allocation>>()
@@ -78,8 +87,33 @@ class AliasingInfo(
                 newF[obj] = fields.filter { (field, alloc) -> otherFields[field] == alloc }.toMap()
             }
         }
+        // val newF = this.F.mutate { newF ->
+        //     for ((obj, fields) in this.F) {
+        //         val otherFields = other.F[obj]
+        //         if (otherFields != null) {
+        //             // newF[obj] = fields.filter { (field, alloc) -> otherFields[field] == alloc }.toPersistentMap()
+        //             newF[obj] = fields.mutate { newFields ->
+        //                 for ((field, alloc) in fields) {
+        //                     if (otherFields[field] != alloc) {
+        //                         newFields.remove(field)
+        //                     }
+        //                 }
+        //             }
+        //         } else {
+        //             newF.remove(obj)
+        //         }
+        //     }
+        // }
 
-        return AliasingInfo(newB, newF)
+        return AliasInfo(newB, newF)
+    }
+
+    /**
+     * Returns the set of access paths that must alias with the given path (excluding the path itself).
+     */
+    fun getAliases(path: AccessPath): Set<AccessPath> {
+        val obj = find(path) ?: return emptySet()
+        return getAliases(obj) - path
     }
 
     private fun getAliases(obj: Allocation): Set<AccessPath> {
@@ -122,15 +156,11 @@ class AliasingInfo(
 
         return paths
     }
-
-    fun getSet(path: AccessPath) : Set<AccessPath> {
-        val obj = find(path) ?: return emptySet()
-        return getAliases(obj)
-    }
 }
 
-fun computeAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
-    val aliases = mutableMapOf<EtsStmt, AliasingInfo>()
+fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
+    val preAliases = mutableMapOf<EtsStmt, AliasInfo>()
+    val postAliases = mutableMapOf<EtsStmt, AliasInfo>()
 
     val root = method.cfg.stmts[0]
     val queue = ArrayDeque(listOf(root))
@@ -153,16 +183,12 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
         }
     }
 
-    fun compute(stmt: EtsStmt): AliasingInfo {
-        if (stmt in aliases) return aliases[stmt]!!
+    fun computePostAliases(stmt: EtsStmt): AliasInfo {
+        if (stmt in postAliases) return postAliases[stmt]!!
 
-        val merged = preds[stmt].orEmpty()
-            .map { aliases[it]!! }
-            .reduceOrNull { a, b -> a.merge(b) }
-            ?: AliasingInfo(emptyMap(), emptyMap())
-
-        val newB = merged.B.toMap(HashMap())
-        val newF = merged.F.mapValuesTo(HashMap()) { it.value.toMutableMap() }
+        val pre = preAliases[stmt]!!
+        val newB = pre.B.toMap(HashMap())
+        val newF = pre.F.mapValuesTo(HashMap()) { it.value.toMutableMap() }
 
         if (stmt is EtsAssignStmt) {
             val lhv = stmt.lhv
@@ -271,18 +297,33 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
             }
         }
 
-        val newInfo = AliasingInfo(newB, newF)
-        aliases[stmt] = newInfo
+        val newInfo = AliasInfo(newB, newF)
+        postAliases[stmt] = newInfo
         return newInfo
     }
 
+    fun computePreAliases(stmt: EtsStmt): AliasInfo {
+        if (stmt in preAliases) return preAliases[stmt]!!
+
+        val merged = preds[stmt].orEmpty()
+            // .map { computePostAliases(it) }
+            .map { postAliases[it]!! }
+            .reduceOrNull { a, b -> a.merge(b) }
+            ?: AliasInfo(emptyMap(), emptyMap())
+
+        preAliases[stmt] = merged
+        return merged
+    }
+
     for (stmt in order) {
-        compute(stmt)
+        computePreAliases(stmt)
+        computePostAliases(stmt)
     }
 
     for (stmt in method.cfg.stmts) {
-        check(stmt in aliases)
+        check(stmt in preAliases)
+        check(stmt in postAliases)
     }
 
-    return aliases
+    return method.cfg.stmts.associateWithTo(HashMap()) { stmt -> Pair(preAliases[stmt]!!, postAliases[stmt]!!) }
 }

@@ -18,7 +18,6 @@ import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
-import org.usvm.algorithms.DisjointSets
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.FlowFunction
@@ -32,9 +31,9 @@ class ForwardFlowFunctions(
     val typeInfo: Map<EtsType, EtsTypeFact>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
-    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, AliasingInfo>> = mutableMapOf()
+    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = mutableMapOf()
 
-    private fun getAliases(method: EtsMethod): Map<EtsStmt, AliasingInfo> {
+    private fun getAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
         return aliasesCache.getOrPut(method) { computeAliases(method) }
     }
 
@@ -117,7 +116,19 @@ class ForwardFlowFunctions(
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
-        val aliases = getAliases(current.method)[current]!!
+        val (preAliases, postAliases) = getAliases(current.method)[current]!!
+
+        fun addTypeFactWithAliases(path: AccessPath, type: EtsTypeFact) {
+            result += TypedVariable(path, type)
+            if (path.accesses.isNotEmpty()) {
+                check(path.accesses.size == 1)
+                val base = AccessPath(path.base, emptyList())
+                for (alias in postAliases.getAliases(base)) {
+                    val newPath = alias + path.accesses.single()
+                    result += TypedVariable(newPath, type)
+                }
+            }
+        }
 
         when (val rhv = current.rhv) {
             is EtsNewExpr -> {
@@ -135,47 +146,35 @@ class ForwardFlowFunctions(
 
                 val type = typeInfo[rhv.type]
                     ?: EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
-                result += TypedVariable(lhv, type)
+                addTypeFactWithAliases(lhv, type)
             }
 
             is EtsNewArrayExpr -> {
                 // TODO: check
-                val type = EtsTypeFact.ArrayEtsTypeFact(elementType = EtsTypeFact.from(rhv.elementType))
+                val elementType = EtsTypeFact.from(rhv.elementType)
+                val type = EtsTypeFact.ArrayEtsTypeFact(elementType = elementType)
                 result += TypedVariable(lhv, type)
-                result += TypedVariable(lhv + ElementAccessor, EtsTypeFact.from(rhv.elementType))
+                result += TypedVariable(lhv + ElementAccessor, elementType)
             }
 
             is EtsStringConstant -> {
-                result += TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact)
+                addTypeFactWithAliases(lhv, EtsTypeFact.StringEtsTypeFact)
             }
 
             is EtsNumberConstant -> {
-                result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
-                if (lhv.accesses.isEmpty()) {
-                    val lhvAliases = aliases.getSet(lhv)
-                    for (alias in lhvAliases) {
-                        result += TypedVariable(alias, EtsTypeFact.NumberEtsTypeFact)
-                    }
-                } else {
-                    check(lhv.accesses.size == 1)
-                    val lhvBaseAliases = aliases.getSet(AccessPath(lhv.base, emptyList()))
-                    for (alias in lhvBaseAliases) {
-                        val path = alias + lhv.accesses.single()
-                        result += TypedVariable(path, EtsTypeFact.NumberEtsTypeFact)
-                    }
-                }
+                addTypeFactWithAliases(lhv, EtsTypeFact.NumberEtsTypeFact)
             }
 
             is EtsBooleanConstant -> {
-                result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
+                addTypeFactWithAliases(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
 
             is EtsNullConstant -> {
-                result += TypedVariable(lhv, EtsTypeFact.NullEtsTypeFact)
+                addTypeFactWithAliases(lhv, EtsTypeFact.NullEtsTypeFact)
             }
 
             is EtsUndefinedConstant -> {
-                result += TypedVariable(lhv, EtsTypeFact.UndefinedEtsTypeFact)
+                addTypeFactWithAliases(lhv, EtsTypeFact.UndefinedEtsTypeFact)
             }
 
             // Note: do not handle cast in forward ff!
