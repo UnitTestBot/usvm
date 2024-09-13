@@ -448,7 +448,7 @@ class TypeInferenceManager(
                 .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
             val rootType = propertyRefinements[emptyList()]
-                ?: error("Missing root type")
+                ?: return@mapValues EtsTypeFact.AnyEtsTypeFact
 
             val refined = rootType.refineProperties(emptyList(), propertyRefinements)
 
