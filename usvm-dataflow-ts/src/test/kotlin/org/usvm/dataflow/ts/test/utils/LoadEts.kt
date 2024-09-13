@@ -45,11 +45,21 @@ fun autoLoadEtsFileFromResource(tsPath: String): EtsFile {
 }
 
 @OptIn(ExperimentalPathApi::class)
-fun loadProject(path: String): EtsScene {
+fun loadProjectFromJsons(path: String): EtsScene {
     val paths = Paths.get(path).walk().filter { it.extension == "json" }
     val files = paths
         .map { EtsFileDto.loadFromJson(it.toFile().inputStream()) }
         .map { convertToEtsFile(it) }
+        .toList()
+
+    return EtsScene(files)
+}
+
+@OptIn(ExperimentalPathApi::class)
+fun loadProjectFromAst(path: String) : EtsScene {
+    val paths = Paths.get(path).walk().filter { it.extension == "ets" || it.extension == "ts" }
+    val files = paths
+        .map { loadEtsFileAutoConvert(it) }
         .toList()
 
     return EtsScene(files)

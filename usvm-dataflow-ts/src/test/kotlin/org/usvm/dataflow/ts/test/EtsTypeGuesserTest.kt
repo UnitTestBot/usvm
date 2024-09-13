@@ -15,7 +15,8 @@ import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
-import org.usvm.dataflow.ts.test.utils.loadProject
+import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
+import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.test.assertTrue
 
@@ -28,17 +29,22 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject() {
-        val project = "YOUR_PATH"
-        val scene = loadProject(project)
+        val projectAbc = "YOUR_PATH"
+        val abcScene = loadProjectFromJsons(projectAbc)
 
-        val graph = EtsApplicationGraphImpl(scene)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val projectAst = "YOUR_PATH"
+        val astScene = loadProjectFromAst(projectAst)
 
-        val entrypoint = scene.classes
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
             .flatMap { it.methods }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
         }
 
         val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
@@ -46,9 +52,9 @@ class EtsTypeResolverTest {
         val classMatcherStatistics = ClassMatcherStatistics()
 
         entrypoint.forEach {
-            val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(it)
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(it)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(it))
-            classMatcherStatistics.verify(actualTypes, expectedTypes, scene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
         }
 
         println(classMatcherStatistics)
