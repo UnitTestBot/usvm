@@ -29,7 +29,7 @@ import org.usvm.util.declaringClass
 import kotlin.reflect.KFunction1
 import kotlin.test.Test
 
-class ApproximationsDecoderTest : ApproximationsTestRunner() {
+class ApproximationsDecoderTest : ApproximationsTestRunner(false) {
     @Test
     fun testOptionalDecoder() {
         checkProperties(

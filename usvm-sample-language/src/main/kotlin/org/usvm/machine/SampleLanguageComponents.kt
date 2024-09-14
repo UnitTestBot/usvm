@@ -9,10 +9,10 @@ import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.language.SampleType
+import org.usvm.solver.UDumbStringSolver
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
-import kotlin.time.Duration
 
 class SampleLanguageComponents(
     private val typeSystem: SampleTypeSystem,
@@ -30,7 +30,8 @@ class SampleLanguageComponents(
         }
 
         val typeSolver = UTypeSolver(typeSystem)
-        return USolverBase(ctx, solver, typeSolver, translator, decoder, options.solverTimeout)
+        val stringSolver = UDumbStringSolver(ctx)
+        return USolverBase(ctx, solver, typeSolver, stringSolver, translator, decoder, options.solverTimeout)
     }
 
     override fun mkTypeSystem(ctx: UContext<USizeSort>): UTypeSystem<SampleType> = typeSystem

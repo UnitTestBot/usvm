@@ -23,8 +23,6 @@ class JcComponents(
     private val closeableResources = mutableListOf<AutoCloseable>()
     override val useSolverForForks: Boolean get() = options.useSolverForForks
 
-    val useStringsApproximation: Boolean get() = options.useStringsApproximation
-
     override fun <Context : UContext<USizeSort>> buildTranslatorAndLazyDecoder(
         ctx: Context,
     ): Pair<UExprTranslator<JcType, USizeSort>, ULazyModelDecoder<JcType>> {

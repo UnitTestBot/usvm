@@ -42,6 +42,7 @@ import org.usvm.model.UModelBase
 class JcTestExecutor(
     private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     val classpath: JcClasspath,
+    private val stringsAreApproximated: Boolean
 ) : JcTestResolver {
 
     private val runner: UTestConcreteExecutor
@@ -69,7 +70,7 @@ class JcTestExecutor(
 
         val ctx = state.ctx
 
-        val memoryScope = MemoryScope(ctx, model, state.memory, method)
+        val memoryScope = MemoryScope(ctx, model, state.memory, stringsAreApproximated, method)
 
         val before: JcParametersState
         val after: JcParametersState
@@ -199,8 +200,9 @@ class JcTestExecutor(
         ctx: JcContext,
         model: UModelBase<JcType>,
         finalStateMemory: UReadOnlyMemory<JcType>,
+        stringsAreApproximated: Boolean,
         method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, method) {
+    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, stringsAreApproximated, method) {
 
         override val decoderApi = JcTestExecutorDecoderApi(ctx)
 

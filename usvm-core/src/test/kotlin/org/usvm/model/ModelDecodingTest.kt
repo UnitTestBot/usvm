@@ -32,6 +32,7 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.URegistersStack
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.solver.UDumbStringSolver
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USatResult
 import org.usvm.solver.USolverBase
@@ -65,7 +66,8 @@ class ModelDecodingTest {
         val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
+        val stringSolver = UDumbStringSolver(ctx)
+        solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, stringSolver, translator, decoder, timeout = INFINITE)
 
         pc = UPathConstraints(ctx)
 

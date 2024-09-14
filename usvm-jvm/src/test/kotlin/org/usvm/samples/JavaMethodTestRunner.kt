@@ -14,6 +14,7 @@ import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestInterpreter
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
+import org.usvm.machine.JcMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -791,11 +792,15 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
 
     protected open val resolverType: JcTestResolverType = JcTestResolverType.INTERPRETER
 
-    private val testResolver =
+    private val testResolver by lazy {
         when (resolverType) {
-            JcTestResolverType.INTERPRETER -> JcTestInterpreter()
-            JcTestResolverType.CONCRETE_EXECUTOR -> JcTestExecutor(classpath = cp)
+            JcTestResolverType.INTERPRETER -> JcTestInterpreter(jcMachineOptions.useStringsApproximation)
+            JcTestResolverType.CONCRETE_EXECUTOR -> JcTestExecutor(
+                classpath = cp,
+                stringsAreApproximated = jcMachineOptions.useStringsApproximation
+            )
         }
+    }
 
     override val typeTransformer: (Any?) -> KClass<*>? = { value -> value?.let { it::class } }
 
@@ -812,10 +817,17 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
+    open val jcMachineOptions = JcMachineOptions()
+
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val jcMethod = cp.getJcMethodByName(method)
 
-        JcMachine(cp, options, interpreterObserver = interpreterObserver).use { machine ->
+        JcMachine(
+            cp,
+            options,
+            jcMachineOptions = jcMachineOptions,
+            interpreterObserver = interpreterObserver
+        ).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it) }
         }
