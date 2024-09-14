@@ -42,7 +42,7 @@ internal fun <Type> UWritableMemory<Type>.allocateStringExpr(stringType: Type, e
     return freshRef
 }
 
-private fun <Type, USizeSort : USort> UWritableMemory<*>.getConcreteCharArray(
+private fun <Type, USizeSort : USort> UReadOnlyMemory<*>.getConcreteCharArray(
     ctx: UContext<USizeSort>,
     length: UExpr<USizeSort>,
     refToCharArray: UHeapRef,
@@ -58,7 +58,7 @@ private fun <Type, USizeSort : USort> UWritableMemory<*>.getConcreteCharArray(
     return result
 }
 
-internal fun <Type, USizeSort : USort> UWritableMemory<Type>.mkStringExprFromCharArray(
+internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCharArray(
     charArrayType: Type,
     refToCharArray: UHeapRef,
 ): UStringExpr {
@@ -68,6 +68,9 @@ internal fun <Type, USizeSort : USort> UWritableMemory<Type>.mkStringExprFromCha
     if (concreteCharArray != null) {
         return ctx.mkStringLiteral(String(concreteCharArray))
     }
+
+    require(this is UWritableMemory<*>) { "String from non-concrete collections should not be allocated in read-only memory!" }
+    this as UWritableMemory<Type>
     val charArray = this.allocateArray(charArrayType, ctx.sizeSort, length)
     val zero = ctx.mkSizeExpr(0)
     memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, zero, zero, length)
@@ -166,6 +169,13 @@ internal fun <USizeSort : USort> getLength(ctx: UContext<USizeSort>, expr: UStri
         else -> ctx.mkStringLengthExpr(expr)
     }
 
+internal fun <USizeSort : USort> getHashCode(ctx: UContext<USizeSort>, expr: UStringExpr): UExpr<USizeSort> =
+    when (expr) {
+        // TODO: use another concrete hash code evaluation for other languages?
+        is UStringLiteralExpr -> ctx.mkSizeExpr(expr.s.hashCode())
+        else -> ctx.mkStringHashCodeExpr(expr)
+    }
+
 internal fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(
     ctx: UContext<USizeSort>,
     string: UStringExpr,
@@ -223,7 +233,7 @@ internal fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(
 
 
 @Suppress("UNCHECKED_CAST")
-internal fun <Type, USizeSort : USort> UWritableMemory<Type>.concatStrings(
+internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
     left: UStringExpr,
     right: UStringExpr
 ): UStringExpr {
@@ -235,6 +245,8 @@ internal fun <Type, USizeSort : USort> UWritableMemory<Type>.concatStrings(
             right as UStringFromArrayExpr<Type, USizeSort>
             check(left.charArrayType == right.charArrayType)
 
+            require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should not be done in read-only memory!" }
+            this as UWritableMemory<Type>
             val resultLength = ctx.mkSizeAddExpr(left.length, right.length)
             val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
 
@@ -281,6 +293,8 @@ internal fun <Type, USizeSort : USort> UWritableMemory<Type>.concatStrings(
                 left is UStringFromArrayExpr<*, *> -> {
                     left as UStringFromArrayExpr<Type, USizeSort>
                     val resultLength = ctx.mkSizeAddExpr(left.length, ctx.mkSizeExpr(1))
+                    require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should not be done in read-only memory!" }
+                    this as UWritableMemory<Type>
                     val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
 
                     this.memcpy(
@@ -325,6 +339,8 @@ internal fun <Type, USizeSort : USort> UWritableMemory<Type>.concatStrings(
                 right is UStringFromArrayExpr<*, *> -> {
                     right as UStringFromArrayExpr<Type, USizeSort>
                     val resultLength = ctx.mkSizeAddExpr(right.length, ctx.mkSizeExpr(1))
+                    require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should be done on a UWritableMemory" }
+                    this as UWritableMemory<Type>
                     val resultCharArray = this.allocateArray(right.charArrayType, ctx.sizeSort, resultLength)
 
                     this.writeArrayIndex(

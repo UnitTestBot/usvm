@@ -474,12 +474,12 @@ open class UContext<USizeSort : USort>(
 
     private val stringFromArrayExprCache = mkAstInterner<UStringFromArrayExpr<*, USizeSort>>()
     fun <ArrayType> mkStringFromArray(
-        charArrayRef: UConcreteHeapRef,
+        charArray: UAllocatedArray<ArrayType, UCharSort, USizeSort>,
         arrayType: ArrayType,
         length: UExpr<USizeSort>
     ): UStringFromArrayExpr<ArrayType, USizeSort> =
         stringFromArrayExprCache.createIfContextActive {
-            UStringFromArrayExpr(charArrayRef, arrayType, length)
+            UStringFromArrayExpr(charArray, arrayType, length)
         }.cast()
 
     private val stringConcatExprCache = mkAstInterner<UStringConcatExpr>()

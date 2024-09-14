@@ -17,6 +17,7 @@ import org.usvm.USort
 import org.usvm.UTransformer
 import org.usvm.asSizeTypedTransformer
 import org.usvm.asTypedTransformer
+import org.usvm.collection.array.UAllocatedArray
 import org.usvm.sizeSort
 import org.usvm.uctx
 
@@ -59,10 +60,10 @@ class UStringLiteralExpr internal constructor(
 }
 
 class UStringFromArrayExpr<ArrayType, USizeSort: USort> internal constructor(
-    val allocatedCharArrayRef: UConcreteHeapRef,
+    val content: UAllocatedArray<ArrayType, UCharSort, USizeSort>,
     val charArrayType: ArrayType,
     val length: UExpr<USizeSort>
-): UStringExpr(allocatedCharArrayRef.ctx) {
+): UStringExpr(length.ctx) {
     override val sort = uctx.stringSort
 
     override fun accept(transformer: KTransformerBase): KExpr<UStringSort> {
@@ -70,13 +71,13 @@ class UStringFromArrayExpr<ArrayType, USizeSort: USort> internal constructor(
         return transformer.asTypedTransformer<ArrayType, USizeSort>().transform(this)
     }
 
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other, {allocatedCharArrayRef}, {charArrayType}, {length})
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other, {content}, {charArrayType}, {length})
 
-    override fun internHashCode(): Int = hash(allocatedCharArrayRef, charArrayType, length)
+    override fun internHashCode(): Int = hash(content, charArrayType, length)
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("(string-of-array-at ")
-        printer.append(allocatedCharArrayRef)
+        printer.append("(string-of-array ")
+        printer.append(content.toString())
         printer.append(")")
     }
 }
@@ -195,32 +196,6 @@ class UStringHashCodeExpr<USizeSort: USort> internal constructor(
         printer.append(")")
     }
 }
-
-
-
-//class UStringEqExpr internal constructor(
-//    val left: UStringExpr,
-//    val right: UStringExpr,
-//) : UBoolExpr(left.ctx) {
-//    override val sort: UBoolSort = ctx.boolSort
-//
-//    override fun accept(transformer: KTransformerBase): UBoolExpr {
-//        require(transformer is UTransformer<*, *>) { "Expected a UTransformer, but got: $transformer" }
-//        return transformer.transform(this)
-//    }
-//
-//    override fun internEquals(other: Any): Boolean = structurallyEqual(other, {left}, {right})
-//
-//    override fun internHashCode(): Int = hash(left, right)
-//
-//    override fun print(printer: ExpressionPrinter) {
-//        printer.append("(= ")
-//        printer.append(left)
-//        printer.append(" ")
-//        printer.append(right)
-//        printer.append(")")
-//    }
-//}
 
 class UStringLtExpr internal constructor(
     val left: UStringExpr,
