@@ -59,6 +59,12 @@ interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegi
         content: Map<UExpr<USizeSort>, UExpr<Sort>>,
         operationGuard: UBoolExpr
     ): UArrayRegion<ArrayType, Sort, USizeSort>
+
+    fun getAllocatedArray(
+        arrayType: ArrayType,
+        sort: Sort,
+        address: UConcreteHeapAddress
+    ): UAllocatedArray<ArrayType, Sort, USizeSort>
 }
 
 internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
@@ -66,7 +72,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
     private var inputArray: UInputArray<ArrayType, Sort, USizeSort>? = null
 ) : UArrayRegion<ArrayType, Sort, USizeSort> {
 
-    private fun getAllocatedArray(
+    override fun getAllocatedArray(
         arrayType: ArrayType,
         sort: Sort,
         address: UConcreteHeapAddress

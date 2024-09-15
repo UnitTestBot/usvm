@@ -1,7 +1,9 @@
 package org.usvm.collection.string
 
 import io.ksmt.utils.cast
+import org.usvm.UCharSort
 import org.usvm.UConcreteChar
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -14,7 +16,9 @@ import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayIndex
 import org.usvm.character
-import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.UAllocatedArray
+import org.usvm.collection.array.UArrayRegion
+import org.usvm.collection.array.UArrayRegionId
 import org.usvm.getIntValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
@@ -49,6 +53,7 @@ private fun <Type, USizeSort : USort> UReadOnlyMemory<*>.getConcreteCharArray(
     arrayType: Type
 ): CharArray? {
     val concreteLength = ctx.getIntValue(length) ?: return null
+    // TODO: use UConcreteStringBuilder?
     val result = CharArray(concreteLength)
     for (i in 0 until concreteLength) {
         val charExpr = this.readArrayIndex(refToCharArray, ctx.mkSizeExpr(i), arrayType, ctx.charSort)
@@ -58,9 +63,22 @@ private fun <Type, USizeSort : USort> UReadOnlyMemory<*>.getConcreteCharArray(
     return result
 }
 
+private fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.getAllocatedCharArray(
+    charArrayType: Type,
+    address: UConcreteHeapAddress
+): UAllocatedArray<Type, UCharSort, USizeSort> {
+    val arrayRegion = getRegion(
+        UArrayRegionId<Type, UCharSort, USizeSort>(
+            charArrayType,
+            ctx.charSort
+        )
+    ) as UArrayRegion<Type, UCharSort, USizeSort>
+    return arrayRegion.getAllocatedArray(charArrayType, ctx.charSort, address)
+}
+
 internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCharArray(
     charArrayType: Type,
-    refToCharArray: UHeapRef,
+    refToCharArray: UHeapRef
 ): UStringExpr {
     val ctx = ctx.withSizeSort<USizeSort>()
     val length = this.readArrayLength(refToCharArray, charArrayType, ctx.sizeSort)
@@ -71,10 +89,18 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.mkStringExprFromCha
 
     require(this is UWritableMemory<*>) { "String from non-concrete collections should not be allocated in read-only memory!" }
     this as UWritableMemory<Type>
-    val charArray = this.allocateArray(charArrayType, ctx.sizeSort, length)
-    val zero = ctx.mkSizeExpr(0)
-    memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, zero, zero, length)
-    return ctx.mkStringFromArray(charArray, charArrayType, length)
+
+    val stringContentArrayRef: UConcreteHeapRef = when (refToCharArray) {
+        is UConcreteHeapRef -> refToCharArray
+        else -> {
+            val charArray = this.allocateArray(charArrayType, ctx.sizeSort, length)
+            val zero = ctx.mkSizeExpr(0)
+            memcpy(refToCharArray, charArray, charArrayType, ctx.charSort, zero, zero, length)
+            charArray
+        }
+    }
+    val stringContentArray = getAllocatedCharArray<Type, USizeSort>(charArrayType, stringContentArrayRef.address)
+    return ctx.mkStringFromArray(stringContentArray, charArrayType, length)
 }
 
 internal fun UReadOnlyMemory<*>.getString(ref: UHeapRef): UStringExpr =
@@ -183,7 +209,9 @@ internal fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(
 ): UCharExpr {
     when (string) {
         is UStringFromArrayExpr<*, *> -> {
-            return read(UArrayIndexLValue(ctx.charSort, string.allocatedCharArrayRef, index, string.charArrayType))
+            @Suppress("UNCHECKED_CAST")
+            string as UStringFromArrayExpr<*, USizeSort>
+            return string.content.read(index)
         }
 
         is UStringSliceExpr<*> -> {
@@ -248,11 +276,11 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
             require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should not be done in read-only memory!" }
             this as UWritableMemory<Type>
             val resultLength = ctx.mkSizeAddExpr(left.length, right.length)
-            val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
+            val resultCharArrayRef = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
 
             this.memcpy(
-                srcRef = left.allocatedCharArrayRef,
-                dstRef = resultCharArray,
+                srcRef = left.contentRef,
+                dstRef = resultCharArrayRef,
                 type = left.charArrayType,
                 elementSort = ctx.charSort,
                 fromSrc = ctx.mkSizeExpr(0),
@@ -260,8 +288,8 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                 length = left.length
             )
             this.memcpy(
-                srcRef = right.allocatedCharArrayRef,
-                dstRef = resultCharArray,
+                srcRef = right.contentRef,
+                dstRef = resultCharArrayRef,
                 type = right.charArrayType,
                 elementSort = ctx.charSort,
                 fromSrc = ctx.mkSizeExpr(0),
@@ -269,6 +297,7 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                 length = right.length
             )
 
+            val resultCharArray = getAllocatedCharArray<Type, USizeSort>(left.charArrayType, resultCharArrayRef.address)
             ctx.mkStringFromArray(resultCharArray, left.charArrayType, resultLength)
         }
 
@@ -295,11 +324,11 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                     val resultLength = ctx.mkSizeAddExpr(left.length, ctx.mkSizeExpr(1))
                     require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should not be done in read-only memory!" }
                     this as UWritableMemory<Type>
-                    val resultCharArray = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
+                    val resultCharArrayRef = this.allocateArray(left.charArrayType, ctx.sizeSort, resultLength)
 
                     this.memcpy(
-                        srcRef = left.allocatedCharArrayRef,
-                        dstRef = resultCharArray,
+                        srcRef = left.contentRef,
+                        dstRef = resultCharArrayRef,
                         type = left.charArrayType,
                         elementSort = ctx.charSort,
                         fromSrc = ctx.mkSizeExpr(0),
@@ -307,13 +336,14 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                         length = left.length
                     )
                     this.writeArrayIndex(
-                        resultCharArray,
+                        resultCharArrayRef,
                         left.length,
                         left.charArrayType,
                         ctx.charSort,
                         rightChar,
                         ctx.trueExpr
                     )
+                    val resultCharArray = getAllocatedCharArray<Type, USizeSort>(left.charArrayType, resultCharArrayRef.address)
                     ctx.mkStringFromArray(resultCharArray, left.charArrayType, resultLength)
                 }
 
@@ -341,10 +371,10 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                     val resultLength = ctx.mkSizeAddExpr(right.length, ctx.mkSizeExpr(1))
                     require(this is UWritableMemory<*>) { "Concatenation of collection-based strings should be done on a UWritableMemory" }
                     this as UWritableMemory<Type>
-                    val resultCharArray = this.allocateArray(right.charArrayType, ctx.sizeSort, resultLength)
+                    val resultCharArrayRef = this.allocateArray(right.charArrayType, ctx.sizeSort, resultLength)
 
                     this.writeArrayIndex(
-                        resultCharArray,
+                        resultCharArrayRef,
                         ctx.mkSizeExpr(0),
                         right.charArrayType,
                         ctx.charSort,
@@ -352,14 +382,15 @@ internal fun <Type, USizeSort : USort> UReadOnlyMemory<Type>.concatStrings(
                         ctx.trueExpr
                     )
                     this.memcpy(
-                        srcRef = right.allocatedCharArrayRef,
-                        dstRef = resultCharArray,
+                        srcRef = right.contentRef,
+                        dstRef = resultCharArrayRef,
                         type = right.charArrayType,
                         elementSort = ctx.charSort,
                         fromSrc = ctx.mkSizeExpr(0),
                         fromDst = ctx.mkSizeExpr(1),
                         length = right.length
                     )
+                    val resultCharArray = getAllocatedCharArray<Type, USizeSort>(right.charArrayType, resultCharArrayRef.address)
                     ctx.mkStringFromArray(resultCharArray, right.charArrayType, resultLength)
                 }
 

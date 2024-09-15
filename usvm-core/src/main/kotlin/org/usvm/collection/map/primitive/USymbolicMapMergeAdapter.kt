@@ -62,7 +62,7 @@ class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<KeySort>,
+        srcKey: UExpr<KeySort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -113,7 +113,7 @@ class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         srcCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
-        srcKey: UExpr<KeySort>,
+        srcKey: UExpr<KeySort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is UAllocatedMapId<*, KeySort, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -165,7 +165,7 @@ class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         dstCollectionId: USymbolicCollectionId<UExpr<KeySort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicMapKey<KeySort>,
+        srcKey: USymbolicMapKey<KeySort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }
@@ -218,7 +218,7 @@ class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
         srcCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         dstCollectionId: USymbolicCollectionId<USymbolicMapKey<KeySort>, *, *>,
         guard: UBoolExpr,
-        srcKey: USymbolicMapKey<KeySort>,
+        srcKey: USymbolicMapKey<KeySort>?,
         composer: UComposer<*, *>,
     ) {
         check(srcCollectionId is USymbolicMapId<*, *, *, *, *, *, *>) { "Unexpected collection: $srcCollectionId" }

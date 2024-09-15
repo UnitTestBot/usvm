@@ -2,6 +2,8 @@ package org.usvm
 
 import org.usvm.api.readString
 import org.usvm.collection.array.UAllocatedArrayReading
+import org.usvm.collection.array.UArrayMemoryRegion
+import org.usvm.collection.array.UArrayRegionId
 import org.usvm.collection.array.UInputArrayReading
 import org.usvm.collection.array.length.UInputArrayLengthReading
 import org.usvm.collection.field.UInputFieldReading
@@ -20,6 +22,7 @@ import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UConcreteStringBuilder
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexMatchesExpr
@@ -160,7 +163,33 @@ open class UComposer<Type, USizeSort : USort>(
         }
 
     override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr =
-        TODO()
+        transformExprAfterTransformed(expr, expr.length) { length ->
+            val concreteLength = ctx.getIntValue(expr.length)
+            val arrayRegionId = UArrayRegionId<Type, UCharSort, USizeSort>(expr.charArrayType, ctx.charSort)
+            val memory =
+                if (concreteLength != null) {
+                    val concreteStringBuilder = UConcreteStringBuilder(
+                        ctx,
+                        arrayRegionId,
+                        concreteLength,
+                        expr.contentAddress,
+                        this
+                    )
+                    expr.content.applyTo(concreteStringBuilder, null, this)
+                    val resultingArray = concreteStringBuilder.charArray
+                    if (resultingArray != null) {
+                        return ctx.mkStringLiteral(String(resultingArray))
+                    }
+                    concreteStringBuilder
+                } else {
+                    val memory = this.memory.toWritableMemory()
+                    expr.content.applyTo(memory, null, this)
+                    memory
+                }
+            val arrayRegion = memory.getRegion(arrayRegionId) as UArrayMemoryRegion<Type, UCharSort, USizeSort>
+            val content = arrayRegion.getAllocatedArray(expr.charArrayType, ctx.charSort, expr.contentAddress)
+            return ctx.mkStringFromArray(content, expr.charArrayType, length)
+        }
 
 
     override fun transform(expr: UStringConcatExpr): UStringExpr =
