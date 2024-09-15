@@ -14,6 +14,7 @@ dependencies {
     api(Libs.jacodb_api_common)
     api(Libs.jacodb_ets)
     implementation(Libs.jacodb_taint_configuration)
+    implementation(Libs.kotlinx_collections)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)

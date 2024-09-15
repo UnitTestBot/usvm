@@ -16,6 +16,9 @@
 
 package org.usvm.dataflow.ts.infer
 
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.mutate
+import kotlinx.collections.immutable.persistentHashMapOf
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallExpr
 import org.jacodb.ets.base.EtsCastExpr
@@ -48,16 +51,16 @@ sealed interface Allocation {
 
 class AliasInfo(
     // B: Base -> Object
-    val B: Map<AccessPathBase, Allocation>,
-    // val B: PersistentMap<AccessPathBase, Allocation>,
+    val B: PersistentMap<AccessPathBase, Allocation>,
     // F: Object x Field -> Object
-    val F: Map<Allocation, Map<String, Allocation>>,
-    // val F: PersistentMap<Allocation, PersistentMap<String, Allocation>>,
+    val F: PersistentMap<Allocation, PersistentMap<String, Allocation>>,
 ) {
     // A: Base x Field* -> Object
     fun find(path: AccessPath): Allocation? {
         val b = B[path.base] ?: return null
         if (path.accesses.isEmpty()) return b
+        // TODO: handle multiple accesses
+        check(path.accesses.size == 1)
         return when (val a = path.accesses.single()) {
             is FieldAccessor -> {
                 val f = F[b] ?: return null
@@ -70,40 +73,29 @@ class AliasInfo(
 
     fun merge(other: AliasInfo): AliasInfo {
         // Intersect B:
-        val newB = this.B.filter { (base, obj) -> other.B[base] == obj }.toMap()
-        // val newB = this.B.mutate { newB ->
-        //     for ((base, obj) in this.B) {
-        //         if (other.B[base] != obj) {
-        //             newB.remove(base)
-        //         }
-        //     }
-        // }
-
-        // Intersect F:
-        val newF = mutableMapOf<Allocation, Map<String, Allocation>>()
-        for ((obj, fields) in this.F) {
-            val otherFields = other.F[obj]
-            if (otherFields != null) {
-                newF[obj] = fields.filter { (field, alloc) -> otherFields[field] == alloc }.toMap()
+        val newB = persistentHashMapOf<AccessPathBase, Allocation>().mutate { newB ->
+            for ((base, obj) in this.B) {
+                if (other.B[base] == obj) {
+                    newB[base] = obj
+                }
             }
         }
-        // val newF = this.F.mutate { newF ->
-        //     for ((obj, fields) in this.F) {
-        //         val otherFields = other.F[obj]
-        //         if (otherFields != null) {
-        //             // newF[obj] = fields.filter { (field, alloc) -> otherFields[field] == alloc }.toPersistentMap()
-        //             newF[obj] = fields.mutate { newFields ->
-        //                 for ((field, alloc) in fields) {
-        //                     if (otherFields[field] != alloc) {
-        //                         newFields.remove(field)
-        //                     }
-        //                 }
-        //             }
-        //         } else {
-        //             newF.remove(obj)
-        //         }
-        //     }
-        // }
+
+        // Intersect F:
+        val newF = persistentHashMapOf<Allocation, PersistentMap<String, Allocation>>().mutate { newF ->
+            for ((obj, fields) in this.F) {
+                newF[obj] = persistentHashMapOf<String, Allocation>().mutate { newFields ->
+                    val otherFields = other.F[obj]
+                    if (otherFields != null) {
+                        for ((field, alloc) in fields) {
+                            if (otherFields[field] == alloc) {
+                                newFields[field] = alloc
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         return AliasInfo(newB, newF)
     }
@@ -119,16 +111,17 @@ class AliasInfo(
     private fun getAliases(obj: Allocation): Set<AccessPath> {
         val paths = mutableSetOf<AccessPath>()
 
-        val invF = mutableMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
+        val invF = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
         for ((obj1, fields) in F) {
             for ((field, obj2) in fields) {
-                invF.computeIfAbsent(obj2) { mutableMapOf() }
+                invF.computeIfAbsent(obj2) { hashMapOf() }
+                invF.computeIfAbsent(obj2) { hashMapOf() }
                     .computeIfAbsent(field) { mutableListOf() }
                     .add(obj1)
             }
         }
 
-        val invB = mutableMapOf<Allocation, MutableList<AccessPathBase>>()
+        val invB = hashMapOf<Allocation, MutableList<AccessPathBase>>()
         for ((base, alloc) in B) {
             invB.computeIfAbsent(alloc) { mutableListOf() }
                 .add(base)
@@ -164,9 +157,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
 
     val root = method.cfg.stmts[0]
     val queue = ArrayDeque(listOf(root))
-    val preds = mutableMapOf<EtsStmt, MutableList<EtsStmt>>()
-    val order = mutableListOf<EtsStmt>()
-    val visited = mutableSetOf<EtsStmt>()
+    val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
+    val order: MutableList<EtsStmt> = mutableListOf()
+    val visited: MutableSet<EtsStmt> = hashSetOf()
 
     while (queue.isNotEmpty()) {
         val cur = queue.first()
@@ -187,9 +180,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
         if (stmt in postAliases) return postAliases[stmt]!!
 
         val pre = preAliases[stmt]!!
-        val newB = pre.B.toMap(HashMap())
-        val newF = pre.F.mapValuesTo(HashMap()) { it.value.toMutableMap() }
-
+        var newF = pre.F
+        val newB = pre.B.mutate { newB ->
+            newF = newF.mutate { newF ->
         if (stmt is EtsAssignStmt) {
             val lhv = stmt.lhv
             val rhv = stmt.rhv
@@ -211,8 +204,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                             is FieldAccessor -> {
                                 // x := y.f
                                 val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
-                                val f: MutableMap<String, Allocation> = newF.computeIfAbsent(b) { hashMapOf() }
-                                newB[lhs.base] = f.computeIfAbsent(a.name) { Allocation.Imm() }
+                                newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                    newB[lhs.base] = f.computeIfAbsent(a.name) { Allocation.Imm() }
+                                }
                             }
 
                             is ElementAccessor -> {
@@ -226,8 +220,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                             is FieldAccessor -> {
                                 // x.f := y
                                 val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
-                                val f: MutableMap<String, Allocation> = newF.computeIfAbsent(b) { hashMapOf() }
-                                f[a.name] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                                newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                    f[a.name] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                                }
                             }
 
                             is ElementAccessor -> {
@@ -251,8 +246,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                         is FieldAccessor -> {
                             // x.f := const
                             val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
-                            val f = newF.computeIfAbsent(b) { hashMapOf() }
-                            f.remove(a.name)
+                            newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                f.remove(a.name)
+                            }
                         }
 
                         is ElementAccessor -> {
@@ -273,8 +269,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                         is FieldAccessor -> {
                             // x.f := new()
                             val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
-                            val f = newF.computeIfAbsent(b) { hashMapOf() }
-                            f[a.name] = Allocation.New()
+                            newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                f[a.name] = Allocation.New()
+                            }
                         }
 
                         is ElementAccessor -> {
@@ -296,6 +293,8 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                 newB[lhs.base] = Allocation.CallResult()
             }
         }
+            }
+        }
 
         val newInfo = AliasInfo(newB, newF)
         postAliases[stmt] = newInfo
@@ -305,11 +304,10 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
     fun computePreAliases(stmt: EtsStmt): AliasInfo {
         if (stmt in preAliases) return preAliases[stmt]!!
 
-        val merged = preds[stmt].orEmpty()
-            // .map { computePostAliases(it) }
-            .map { postAliases[it]!! }
-            .reduceOrNull { a, b -> a.merge(b) }
-            ?: AliasInfo(emptyMap(), emptyMap())
+        val merged = preds[stmt]
+            ?.map { postAliases[it]!! }
+            ?.reduceOrNull { a, b -> a.merge(b) }
+            ?: AliasInfo(persistentHashMapOf(), persistentHashMapOf())
 
         preAliases[stmt] = merged
         return merged
