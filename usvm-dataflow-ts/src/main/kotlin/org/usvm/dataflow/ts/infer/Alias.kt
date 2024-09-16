@@ -155,26 +155,46 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
     val preAliases = mutableMapOf<EtsStmt, AliasInfo>()
     val postAliases = mutableMapOf<EtsStmt, AliasInfo>()
 
-    val root = method.cfg.stmts[0]
-    val queue = ArrayDeque(listOf(root))
-    val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
-    val order: MutableList<EtsStmt> = mutableListOf()
+    // val root = method.cfg.stmts[0]
+    // val queue = ArrayDeque(listOf(root))
+    // val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
+    // val order: MutableList<EtsStmt> = mutableListOf()
+    // val visited: MutableSet<EtsStmt> = hashSetOf()
+    //
+    // while (queue.isNotEmpty()) {
+    //     val cur = queue.first()
+    //
+    //     if (visited.add(cur)) {
+    //         for (next in method.cfg.successors(cur)) {
+    //             if (next !in visited) {
+    //                 queue.addFirst(next)
+    //             }
+    //         }
+    //     } else {
+    //         order.add(cur)
+    //         queue.removeFirst()
+    //     }
+    // }
+
     val visited: MutableSet<EtsStmt> = hashSetOf()
+    val order: MutableList<EtsStmt> = mutableListOf()
+    val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
 
-    while (queue.isNotEmpty()) {
-        val cur = queue.first()
-
-        if (visited.add(cur)) {
-            for (next in method.cfg.successors(cur)) {
+    fun postOrderDfs(node: EtsStmt) {
+        if (visited.add(node)) {
+            for (next in method.cfg.successors(node)) {
                 if (next !in visited) {
-                    queue.addFirst(next)
+                    preds.computeIfAbsent(next) { mutableListOf() } += node
                 }
+                postOrderDfs(next)
             }
-        } else {
-            order.add(cur)
-            queue.removeFirst()
+            order += node
         }
     }
+
+    val root = method.cfg.stmts[0]
+    postOrderDfs(root)
+    order.reverse()
 
     fun computePostAliases(stmt: EtsStmt): AliasInfo {
         if (stmt in postAliases) return postAliases[stmt]!!

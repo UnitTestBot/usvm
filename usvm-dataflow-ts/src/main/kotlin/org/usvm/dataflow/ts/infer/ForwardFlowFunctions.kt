@@ -31,10 +31,10 @@ class ForwardFlowFunctions(
     val typeInfo: Map<EtsType, EtsTypeFact>,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
-    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = mutableMapOf()
+    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
 
     private fun getAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
-        return aliasesCache.getOrPut(method) { computeAliases(method) }
+        return aliasesCache.computeIfAbsent(method) { computeAliases(method) }
     }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
@@ -205,85 +205,233 @@ class ForwardFlowFunctions(
             }
         }
 
-        // todo: use alias info here
-        // Pass-through completely unrelated facts:
-        if (fact.variable.base != lhv.base && fact.variable.base != rhv?.base) {
-            return listOf(fact)
-        }
+        val (preAliases, _) = getAliases(current.method)[current]!!
 
-        // Override LHS:
+        // // Pass-through completely unrelated facts:
+        // if (fact.variable.base != lhv.base
+        //     && fact.variable.base != rhv?.base
+        //     && fact.variable.base !in preAliases.getAliases(lhv).map { it.base }
+        //     && (rhv == null || fact.variable.base !in preAliases.getAliases(rhv).map { it.base })
+        // ) {
+        //     return listOf(fact)
+        // }
+
+        // Override LHS when RHS is const-like:
         if (rhv == null) {
-            check(fact.variable.base == lhv.base)
-
             if (lhv.accesses.isEmpty()) {
-                return emptyList()
-            }
+                // x := const
 
-            val accessor = lhv.accesses.single()
-            if (fact.variable.accesses.firstOrNull() == accessor){
-                return emptyList()
-            }
+                // x.*:T |= drop
+                if (fact.variable.startsWith(lhv)) {
+                    return emptyList()
+                }
 
-            return listOf(fact)
-        }
-
-        // Case `x := y [as T]`
-        // (if no cast):
-        //   `fact == y...:U` |= new fact `x...:U`
-        // (if cast):
-        //   `fact == y...:U` |= new fact `x...:W`, where W = U intersect T
-        if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
-            if (lhv.base == fact.variable.base) return emptyList()
-            check(fact.variable.base == rhv.base)
-
-            val path = AccessPath(lhv.base, fact.variable.accesses)
-
-            val newFact = if (current.rhv is EtsCastExpr && fact.variable.accesses.isEmpty()) {
-                TypedVariable(path, EtsTypeFact.from(current.rhv.type).intersect(fact.type) ?: fact.type)
             } else {
-                TypedVariable(path, fact.type)
-            }
-            return listOf(fact, newFact)
-        }
+                // x.f := const
 
-        check(current.rhv !is EtsCastExpr)
+                check(lhv.accesses.size == 1)
+                when (val a = lhv.accesses.single()) {
+                    is FieldAccessor -> {
+                        val base = AccessPath(lhv.base, emptyList())
 
-        // Case `x := y.f`
-        if (lhv.accesses.isEmpty()) {
-            if (lhv.base == fact.variable.base) return emptyList()
-            check(fact.variable.base == rhv.base)
+                        // x.f.*:T |= drop
+                        if (fact.variable.startsWith(lhv)) {
+                            return emptyList()
+                        }
+                        // z in G(x), z.f.*:T |= drop
+                        if (preAliases.getAliases(base).any { fact.variable.startsWith(it + a) }) {
+                            return emptyList()
+                        }
+                    }
 
-            val accessor = rhv.accesses.single()
-            if (fact.variable.accesses.firstOrNull() != accessor) {
-                return listOf(fact)
-            }
-
-            val path = AccessPath(lhv.base, fact.variable.accesses.drop(1))
-            return listOf(fact, TypedVariable(path, fact.type))
-        }
-
-        // Case `x.f := y`
-        // `fact == x.f` |= drop `fact`
-        // `fact == x[i]` |= keep the fact
-        // `fact.base != x` |= continue
-        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
-        val accessor = lhv.accesses.single()
-        if (fact.variable.base == lhv.base) {
-            if (fact.variable.accesses.firstOrNull() == accessor) {
-                return when (accessor) {
-                    is FieldAccessor -> emptyList()
-
-                    // Can't erase array type
-                    ElementAccessor -> listOf(fact)
+                    is ElementAccessor -> {
+                        // do nothing, pass-through
+                    }
                 }
             }
 
             return listOf(fact)
         }
 
-        check(fact.variable.base == rhv.base)
-        val path = lhv + fact.variable.accesses
-        return listOf(fact, TypedVariable(path, fact.type))
+        if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
+            // x := y
+
+            // TODO: x := x
+            // Note: handled outside
+
+            // x...:T |= drop
+            if (fact.variable.startsWith(lhv)) {
+                return emptyList()
+            }
+
+            // y...:T |= y...:T (keep) + x...:T (same tail)
+            if (fact.variable.startsWith(rhv)) {
+                val path = AccessPath(lhv.base, fact.variable.accesses)
+                return listOf(fact, TypedVariable(path, fact.type))
+            }
+
+        } else if (lhv.accesses.isEmpty()) {
+            // x := y.f
+
+            check(rhv.accesses.size == 1)
+            when (val a = rhv.accesses.single()) {
+                is FieldAccessor -> {
+                    // TODO: x := x.f
+                    // ??????? x.f:T |= drop
+
+                    // x...:T |= drop
+                    if (fact.variable.startsWith(lhv)) {
+                        return emptyList()
+                    }
+
+                    // y.f.*:T |= y.f.*:T (keep) + x.*:T (same tail after .f)
+                    if (fact.variable.startsWith(rhv)) {
+                        val path = lhv + fact.variable.accesses.drop(1)
+                        return listOf(fact, TypedVariable(path, fact.type))
+                    }
+                    // Note: the following is unnecessary due to `z := y`
+                    // // z in G(y), z.f.*:T |= z.f.*:T (keep) + x.*:T (same tail after .f)
+                    // val y = AccessPath(rhv.base, emptyList())
+                    // for (z in preAliases.getAliases(y)) {
+                    //     if (fact.variable.startsWith(z + a)) {
+                    //         val path = lhv + fact.variable.accesses.drop(z.accesses.size + 1)
+                    //         return listOf(fact, TypedVariable(path, fact.type))
+                    //     }
+                    // }
+                }
+
+                is ElementAccessor -> {
+                    // do nothing, pass-through
+                    // TODO: ???
+                }
+            }
+
+        } else if (rhv.accesses.isEmpty()) {
+            // x.f := y
+
+            check(lhv.accesses.size == 1)
+            when (val a = lhv.accesses.single()) {
+                is FieldAccessor -> {
+
+                    // TODO: x.f := x
+
+                    // x.f.*:T |= drop
+                    if (fact.variable.startsWith(lhv)) {
+                        return emptyList()
+                    }
+                    // z in G(x), z.f.*:T |= drop
+                    val x = AccessPath(lhv.base, emptyList())
+                    if (preAliases.getAliases(x).any { z -> fact.variable.startsWith(z + a) }) {
+                        return emptyList()
+                    }
+
+                    // x.*:T |= x.*:T (keep)
+                    if (fact.variable.base == lhv.base) {
+                        return listOf(fact)
+                    }
+
+                    // y.*:T |= y.*:T (keep) + x.f.*:T (same tail) + aliases
+                    // aliases: z in G(x), z.f.*:T |= x.f.*:T (same tail)
+                    if (fact.variable.startsWith(rhv)) {
+                        val result = mutableListOf(fact)
+                        result += TypedVariable(lhv + fact.variable.accesses, fact.type)
+                        for (z in preAliases.getAliases(x)) {
+                            val path = z + a + fact.variable.accesses
+                            result += TypedVariable(path, fact.type)
+                        }
+                        return result
+                    }
+                    // Note: the following is unnecessary due to `z := y`
+                    // // z in G(y), z.*:T |= x.f.*:T (same tail)
+                    // for (z in preAliases.getAliases(rhv)) {
+                    //     if (fact.variable.startsWith(z)) {
+                    //         val path = lhv + fact.variable.accesses
+                    //         return listOf(fact, TypedVariable(path, fact.type))
+                    //     }
+                    // }
+                }
+
+                is ElementAccessor -> {
+                    // do nothing, pass-through
+                    // TODO: ???
+                }
+            }
+
+        } else {
+            error("Incorrect 3AC: $current")
+        }
+
+        return listOf(fact)
+
+        // // Case `x := y [as T]`
+        // // (if no cast):
+        // //   `fact == y...:U` |= new fact `x...:U`
+        // // (if cast):
+        // //   `fact == y...:U` |= new fact `x...:W`, where W = U intersect T
+        // if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
+        //     if (lhv.base == fact.variable.base) return emptyList()
+        //     check(fact.variable.base == rhv.base)
+        //
+        //     val path = AccessPath(lhv.base, fact.variable.accesses)
+        //
+        //     val newFact = if (current.rhv is EtsCastExpr && fact.variable.accesses.isEmpty()) {
+        //         TypedVariable(path, EtsTypeFact.from(current.rhv.type).intersect(fact.type) ?: fact.type)
+        //     } else {
+        //         TypedVariable(path, fact.type)
+        //     }
+        //     return listOf(fact, newFact)
+        // }
+        //
+        // check(current.rhv !is EtsCastExpr)
+
+        // // Case `x := y.f`
+        // if (lhv.accesses.isEmpty()) {
+        //     if (lhv.base == fact.variable.base) return emptyList()
+        //     check(fact.variable.base == rhv.base)
+        //
+        //     val accessor = rhv.accesses.single()
+        //     if (fact.variable.accesses.firstOrNull() != accessor) {
+        //         return listOf(fact)
+        //     }
+        //
+        //     val path = AccessPath(lhv.base, fact.variable.accesses.drop(1))
+        //     return listOf(fact, TypedVariable(path, fact.type))
+        // }
+        //
+        // // Case `x.f := y`
+        // // `fact == x.f` |= drop `fact`
+        // // `fact == x[i]` |= keep the fact
+        // // `fact.base != x` |= continue
+        // check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty())
+        // val accessor = lhv.accesses.single()
+        // if (fact.variable.base == lhv.base) {
+        //     if (fact.variable.accesses.firstOrNull() == accessor) {
+        //         return when (accessor) {
+        //             is FieldAccessor -> emptyList()
+        //
+        //             // Can't erase array type
+        //             ElementAccessor -> listOf(fact)
+        //         }
+        //     }
+        //
+        //     return listOf(fact)
+        // } else {
+        //     if (fact.variable.accesses.isNotEmpty()) {
+        //         check(fact.variable.accesses.size == 1)
+        //         if (fact.variable.accesses.single() is FieldAccessor) {
+        //             if (
+        //                 AccessPath(fact.variable.base, emptyList()) in
+        //                 preAliases.getAliases(AccessPath(lhv.base, emptyList()))
+        //             ) {
+        //                 return emptyList()
+        //             }
+        //         }
+        //     }
+        // }
+        //
+        // // check(fact.variable.base == rhv.base)
+        // val path = lhv + fact.variable.accesses
+        // return listOf(fact, TypedVariable(path, fact.type))
     }
 
     override fun obtainCallToReturnSiteFlowFunction(

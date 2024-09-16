@@ -794,3 +794,16 @@ class CaseAssignNumberToNestedField {
         const EXPECTED_ARG_0 = "Object { f: Object { g: number } }";
     }
 }
+
+// Case `x.f := (y: number)`
+class CaseAssignLocalNumberToNestedField {
+    entrypoint(x: any) {
+        let y = 98; // y: number
+        x.f.g = y; // x: { f: { g: number } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Object { g: number } }";
+    }
+}
