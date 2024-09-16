@@ -203,116 +203,116 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
         var newF = pre.F
         val newB = pre.B.mutate { newB ->
             newF = newF.mutate { newF ->
-        if (stmt is EtsAssignStmt) {
-            val lhv = stmt.lhv
-            val rhv = stmt.rhv
+                if (stmt is EtsAssignStmt) {
+                    val lhv = stmt.lhv
+                    val rhv = stmt.rhv
 
-            if (rhv is EtsLocal || rhv is EtsRef || (rhv is EtsCastExpr && rhv.arg is EtsRef)) {
-                val lhs = lhv.toPath()
-                val rhs = rhv.toPath()
+                    if (rhv is EtsLocal || rhv is EtsRef || (rhv is EtsCastExpr && rhv.arg is EtsRef)) {
+                        val lhs = lhv.toPath()
+                        val rhs = rhv.toPath()
 
-                if (rhv is EtsParameterRef) {
-                    check(lhs.accesses.isEmpty())
-                    newB[lhs.base] = Allocation.Arg(rhv.index)
-                } else {
-                    if (lhs.accesses.isEmpty() && rhs.accesses.isEmpty()) {
-                        // x := y
-                        newB[lhs.base] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
-                    } else if (lhs.accesses.isEmpty()) {
-                        // x := y.f  OR  x := y[i]
-                        when (val a = rhs.accesses.single()) {
-                            is FieldAccessor -> {
-                                // x := y.f
-                                val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
-                                newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
-                                    newB[lhs.base] = f.computeIfAbsent(a.name) { Allocation.Imm() }
+                        if (rhv is EtsParameterRef) {
+                            check(lhs.accesses.isEmpty())
+                            newB[lhs.base] = Allocation.Arg(rhv.index)
+                        } else {
+                            if (lhs.accesses.isEmpty() && rhs.accesses.isEmpty()) {
+                                // x := y
+                                newB[lhs.base] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                            } else if (lhs.accesses.isEmpty()) {
+                                // x := y.f  OR  x := y[i]
+                                when (val a = rhs.accesses.single()) {
+                                    is FieldAccessor -> {
+                                        // x := y.f
+                                        val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                                        newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                            newB[lhs.base] = f.computeIfAbsent(a.name) { Allocation.Imm() }
+                                        }
+                                    }
+
+                                    is ElementAccessor -> {
+                                        // x := y[i]
+                                        newB.remove(lhs.base)
+                                    }
+                                }
+                            } else if (rhs.accesses.isEmpty()) {
+                                // x.f := y  OR  x[i] := y
+                                when (val a = lhs.accesses.single()) {
+                                    is FieldAccessor -> {
+                                        // x.f := y
+                                        val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                                        newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                            f[a.name] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                                        }
+                                    }
+
+                                    is ElementAccessor -> {
+                                        // x[i] := y
+                                        // do nothing
+                                    }
+                                }
+                            } else {
+                                error("Incorrect 3AC: $stmt")
+                            }
+                        }
+                    }
+
+                    if (rhv is EtsConstant || (rhv is EtsCastExpr && rhv.arg is EtsConstant)) {
+                        val lhs = lhv.toPath()
+                        if (lhs.accesses.isEmpty()) {
+                            // x := const
+                            newB.remove(lhs.base)
+                        } else {
+                            when (val a = lhs.accesses.single()) {
+                                is FieldAccessor -> {
+                                    // x.f := const
+                                    val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
+                                    newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                        f.remove(a.name)
+                                    }
+                                }
+
+                                is ElementAccessor -> {
+                                    // x[i] := const
+                                    // do nothing
                                 }
                             }
-
-                            is ElementAccessor -> {
-                                // x := y[i]
-                                newB.remove(lhs.base)
-                            }
                         }
-                    } else if (rhs.accesses.isEmpty()) {
-                        // x.f := y  OR  x[i] := y
-                        when (val a = lhs.accesses.single()) {
-                            is FieldAccessor -> {
-                                // x.f := y
-                                val b: Allocation = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
-                                newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
-                                    f[a.name] = newB.computeIfAbsent(rhs.base) { Allocation.Imm() }
+                    }
+
+                    if (rhv is EtsNewExpr || rhv is EtsNewArrayExpr) {
+                        val lhs = lhv.toPath()
+                        if (lhs.accesses.isEmpty()) {
+                            // x := new()
+                            newB.computeIfAbsent(lhs.base) { Allocation.New() }
+                        } else {
+                            when (val a = lhs.accesses.single()) {
+                                is FieldAccessor -> {
+                                    // x.f := new()
+                                    val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
+                                    newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
+                                        f[a.name] = Allocation.New()
+                                    }
+                                }
+
+                                is ElementAccessor -> {
+                                    // x[i] := new()
+                                    // do nothing
                                 }
                             }
-
-                            is ElementAccessor -> {
-                                // x[i] := y
-                                // do nothing
-                            }
-                        }
-                    } else {
-                        error("Incorrect 3AC: $stmt")
-                    }
-                }
-            }
-
-            if (rhv is EtsConstant || (rhv is EtsCastExpr && rhv.arg is EtsConstant)) {
-                val lhs = lhv.toPath()
-                if (lhs.accesses.isEmpty()) {
-                    // x := const
-                    newB.remove(lhs.base)
-                } else {
-                    when (val a = lhs.accesses.single()) {
-                        is FieldAccessor -> {
-                            // x.f := const
-                            val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
-                            newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
-                                f.remove(a.name)
-                            }
-                        }
-
-                        is ElementAccessor -> {
-                            // x[i] := const
-                            // do nothing
                         }
                     }
-                }
-            }
 
-            if (rhv is EtsNewExpr || rhv is EtsNewArrayExpr) {
-                val lhs = lhv.toPath()
-                if (lhs.accesses.isEmpty()) {
-                    // x := new()
-                    newB.computeIfAbsent(lhs.base) { Allocation.New() }
-                } else {
-                    when (val a = lhs.accesses.single()) {
-                        is FieldAccessor -> {
-                            // x.f := new()
-                            val b = newB.computeIfAbsent(lhs.base) { Allocation.Imm() }
-                            newF[b] = newF.getOrElse(b) { persistentHashMapOf() }.mutate { f ->
-                                f[a.name] = Allocation.New()
-                            }
-                        }
+                    if (rhv is EtsCastExpr) {
+                        check(rhv.arg !is EtsCallExpr)
+                        check(rhv.arg is EtsLocal || rhv.arg is EtsRef || rhv.arg is EtsConstant)
+                    }
 
-                        is ElementAccessor -> {
-                            // x[i] := new()
-                            // do nothing
-                        }
+                    if (rhv is EtsCallExpr) {
+                        val lhs = lhv.toPath()
+                        check(lhs.accesses.isEmpty())
+                        newB[lhs.base] = Allocation.CallResult()
                     }
                 }
-            }
-
-            if (rhv is EtsCastExpr) {
-                check(rhv.arg !is EtsCallExpr)
-                check(rhv.arg is EtsLocal || rhv.arg is EtsRef || rhv.arg is EtsConstant)
-            }
-
-            if (rhv is EtsCallExpr) {
-                val lhs = lhv.toPath()
-                check(lhs.accesses.isEmpty())
-                newB[lhs.base] = Allocation.CallResult()
-            }
-        }
             }
         }
 
