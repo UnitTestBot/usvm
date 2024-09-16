@@ -28,8 +28,10 @@ class ExpectedTypesExtractor(private val applicationGraph: EtsApplicationGraph) 
         } else {
             val clazz = applicationGraph.cp
                 .classes
-                .singleOrNull { it.signature == method.enclosingClass }
-                ?: error("TODO")
+                .filterNot { it.name.startsWith("AnonymousClass-") }
+//                .singleOrNull { it.name == method.enclosingClass.name } // TODO different representation in abc and ast, replace with signatures
+//                ?: error("TODO")
+                .firstOrNull { it.name == method.enclosingClass.name } ?: error("TODO")
 
             EtsClassType(clazz.signature)
         }
@@ -44,7 +46,7 @@ class ClassMatcherStatistics {
     private val matched: Long
         get() = exactlyMatchedThisTypes + exactlyMatchedArgsTypes + exactlyMatchedReturnTypes
     private val someFactsFound: Long
-        get() = someFactsAboutThisTypes + someFactsAboutArgsTypes + someFactsAboutReturnTypes
+        get() = someFactsAboutThisTypes + someFactsAboutArgsTypes + someFactsAboutReturnTypes + returnIsAnyType
 
     private var overallThisTypes: Long = 0L
     private var exactlyMatchedThisTypes: Long = 0L
@@ -57,6 +59,7 @@ class ClassMatcherStatistics {
     private var overallReturnTypes: Long = 0L
     private var exactlyMatchedReturnTypes: Long = 0L
     private var someFactsAboutReturnTypes: Long = 0L
+    private var returnIsAnyType: Long = 0L
 
     fun verify(facts: MethodTypesFacts, types: MethodTypes, scene: EtsScene) {
         // 'this' type
@@ -86,6 +89,11 @@ class ClassMatcherStatistics {
         // return type
         overallReturnTypes++
 
+        if (facts.returnFact is EtsTypeFact.AnyEtsTypeFact) {
+            returnIsAnyType++
+            return
+        }
+
         if (facts.returnFact.matchesWith(types.returnType, scene)) {
             exactlyMatchedReturnTypes++
         } else if (facts.returnFact.partialMatchedBy(types.returnType)) {
@@ -114,7 +122,8 @@ class ClassMatcherStatistics {
         Return types total: $overallReturnTypes
         Exactly matched return types: $exactlyMatchedReturnTypes
         Partially matched return types: $someFactsAboutReturnTypes
-        Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes}
+        Any type is returned: $returnIsAnyType
+        Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes - returnIsAnyType}
     """.trimIndent()
 }
 
@@ -146,11 +155,11 @@ data class MethodTypesFacts(
     val returnFact: EtsTypeFact
 ) {
     companion object {
-        fun fromEtsMethodTypeFacts(fact: EtsMethodTypeFacts): MethodTypesFacts {
+        fun fromEtsMethodTypeFacts(fact: EtsMethodTypeFacts, method: EtsMethod): MethodTypesFacts {
             val types = fact.types
 
             val thisType = types[AccessPathBase.This]
-            val arguments = fact.method
+            val arguments = method
                 .parameters
                 .indices
                 .map { types[AccessPathBase.Arg(it)] ?: EtsTypeFact.AnyEtsTypeFact }

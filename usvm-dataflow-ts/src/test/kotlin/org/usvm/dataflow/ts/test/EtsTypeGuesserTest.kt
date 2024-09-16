@@ -27,12 +27,14 @@ class EtsTypeResolverTest {
         }
     }
 
+    private val yourPrefixForTestFolders = "YOUR_PREFIX"
+
     @Test
-    fun testLoadProject() {
-        val projectAbc = "YOUR_PATH"
+    fun testLoadProject1() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/callui-default-signed"
         val abcScene = loadProjectFromJsons(projectAbc)
 
-        val projectAst = "YOUR_PATH"
+        val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
         val astScene = loadProjectFromAst(projectAst)
 
         val graphAbc = EtsApplicationGraphImpl(abcScene)
@@ -51,14 +53,288 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach {
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(it)
-            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(it))
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
+    @Test
+    fun testLoadProject2() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/CertificateManager_240801_843398b"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/13_SecurityPrivacyCenter/security_privacy_center"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
+
+    @Test
+    fun testLoadProject3() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/mobiledatasettings-callui-default-signed"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
+
+    @Test
+    fun testLoadProject4() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/Music_Demo_240727_98a3500"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/12_Music_Demo/ArkTSDistributedMusicPlayer"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        check(graphAst.cp.classes.any { it.methods.any { it.parameters.isNotEmpty() && it.name in entrypoint.map { it.name }} })
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
             classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
         }
 
         println(classMatcherStatistics)
     }
+
+    @Test
+    fun testLoadProject5() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/phone_photos-default-signed_20240905_151755"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/15_Photos/applications_photos_240905_ea8d1"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
+    @Test
+    fun testLoadProject6() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/phone-default-signed_20240409_144519"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/17_Camera/applications_camera_240409_1da805f8"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
+    @Test
+    fun testLoadProject7() {
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects/SecurityPrivacyCenter_240801_843998b"
+        val abcScene = loadProjectFromJsons(projectAbc)
+
+        val projectAst = "$yourPrefixForTestFolders/AST/13_SecurityPrivacyCenter/security_privacy_center"
+        val astScene = loadProjectFromAst(projectAst)
+
+        val graphAbc = EtsApplicationGraphImpl(abcScene)
+        val graphWithExplicitEntryPointAbc = EtsApplicationGraphWithExplicitEntryPoint(graphAbc)
+
+        val graphAst = EtsApplicationGraphImpl(astScene)
+
+        val entrypoint = abcScene.classes
+            .flatMap { it.methods }
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphWithExplicitEntryPointAbc)
+        }
+
+        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        entrypoint.forEach { m ->
+            val suitableClasses = graphAst.cp.classes
+                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
+
+            var method = suitableClasses
+                ?.methods
+                ?.singleOrNull { m.name == it.name }
+
+            if (method == null) {
+                method = m
+            }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
+            val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+        }
+        println(classMatcherStatistics)
+    }
+
 
     @Test
     fun `use non unique fields`() {
@@ -83,7 +359,7 @@ class EtsTypeResolverTest {
         }
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
@@ -111,7 +387,7 @@ class EtsTypeResolverTest {
         }
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
 
@@ -144,7 +420,7 @@ class EtsTypeResolverTest {
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
         }
 
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
@@ -172,7 +448,7 @@ class EtsTypeResolverTest {
         }
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
@@ -200,7 +476,7 @@ class EtsTypeResolverTest {
         }
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
@@ -228,14 +504,14 @@ class EtsTypeResolverTest {
         }
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
-        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single())
+        val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.values.single(), entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
     }
 
     private inline fun <reified T : EtsTypeFact> checkAnObjectTypeOfSingleArgument(
         facts: Map<EtsMethod, EtsMethodTypeFacts>,
-        predicate: (T) -> Boolean
+        predicate: (T) -> Boolean,
     ) {
         val fact = facts.values.single()
         val type = fact.types.filterNot { it.key is AccessPathBase.Return }.values.single() as T
