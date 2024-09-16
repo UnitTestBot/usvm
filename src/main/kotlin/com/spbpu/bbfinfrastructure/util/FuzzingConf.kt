@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.util
 
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import java.io.File
 import java.util.*
 
@@ -32,6 +33,7 @@ object FuzzingConf {
     val pathToTmpFile = getPropValueWithoutQuotes("TMPFILE")
     val pathToTmpDir = pathToTmpFile.substringBeforeLast("/")
     val pathToTmpJava = "tmpJava"
+    val pathToTmpGo = "tmpGo"
     val tmpPath = "tmp/projects/"
     val pathToTemplates = getPropValueWithoutQuotes("DIR_TO_TEMPLATES")
     val pathToReportsDir = getPropValueWithoutQuotes("PATH_TO_REPORTS_DIR")
@@ -40,6 +42,7 @@ object FuzzingConf {
 
     val pathToOwaspJar = "lib/owaspBenchmarkClasspath.jar"
     val pathToJulietSupportJar = "lib/juliet-support.jar"
+    var language = LANGUAGE.UNKNOWN
 
 
     var numberOfMutationsPerFile = getPropAsInt("MUTATIONS_PER_FILE")

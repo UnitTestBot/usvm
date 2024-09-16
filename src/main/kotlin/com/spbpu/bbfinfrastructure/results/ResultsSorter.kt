@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.results
 
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.util.CweUtil
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
 import name.fraser.neil.plaintext.Diff_match_patch
@@ -17,10 +18,11 @@ object ResultsSorter {
         "Semgrep" to 0.75,
         "Insider" to 0.25,
         "ApplicationInspector" to 0.0,
-        "Snyk" to 1.0
+        "Snyk" to 1.0,
+        "Bandit" to 0.25
     )
 
-    fun sortResults(dirToResultsDirectory: String) {
+    fun sortResults(dirToResultsDirectory: String, language: LANGUAGE) {
         val dirs = File(dirToResultsDirectory).listFiles().filter { it.isDirectory && it.name != "duplicates" }
         val headerToFile = mutableMapOf<ResultHeader, File>()
         for (dir in dirs) {
@@ -28,7 +30,7 @@ object ResultsSorter {
             val sorted = dir.listFiles()
                 .mapNotNull { f ->
                     val fileText = f.readText()
-                    ResultHeader.convertFromString(fileText)?.also {
+                    ResultHeader.convertFromString(fileText, language)?.also {
                         headerToFile[it] = f
                     }
                 }

@@ -1,12 +1,21 @@
 package com.spbpu.bbfinfrastructure.psicreator
 
+import com.goide.GoElementTypeFactorySupplierImpl
+import com.goide.GoFileType
+import com.goide.GoLanguage
+import com.goide.psi.impl.GoCaching
 import com.intellij.core.*
+import com.intellij.go.backend.GoBackendParserDefinition
+import com.intellij.go.frontback.api.GoElementTypeFactorySupplier
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.ExtensionPoint
 import com.intellij.openapi.fileTypes.FileTypeRegistry
+import com.intellij.openapi.module.EmptyModuleManager
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.pom.PomModel
 import com.intellij.pom.PomTransaction
 import com.intellij.pom.core.impl.PomModelImpl
@@ -14,7 +23,11 @@ import com.intellij.pom.tree.TreeAspect
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.augment.PsiAugmentProvider
+import com.intellij.psi.impl.smartPointers.SmartPointerAnchorProvider
 import com.intellij.psi.impl.source.tree.TreeCopyHandler
+import com.intellij.psi.stubs.StubIndex
+import com.intellij.psi.stubs.StubIndexExtension
+import com.intellij.psi.stubs.StubIndexImpl
 import com.jetbrains.python.*
 import com.jetbrains.python.documentation.doctest.PyDocstringTokenSetContributor
 import com.jetbrains.python.psi.PyAstElementGenerator
@@ -77,6 +90,55 @@ object PSICreator {
         }
         val project = env.project
         return PsiFileFactory.getInstance(project).createFileFromText(PythonLanguage.INSTANCE, text)
+    }
+
+    fun getPsiForGo(text: String): PsiFile? {
+        if (!::env.isInitialized) {
+            setEnvForGo()
+        }
+        val project = env.project
+        return PsiFileFactory.getInstance(project).createFileFromText(GoLanguage.INSTANCE, text)
+    }
+
+    @Suppress("INACCESSIBLE_TYPE")
+    private fun setEnvForGo() {
+        val disposable = Disposable {  }
+        System.setProperty("idea.home.path", "lib/bin")
+        val coreApplicationEnvironment = CoreApplicationEnvironment(disposable, false)
+        env = CoreProjectEnvironment(disposable, coreApplicationEnvironment)
+        (FileTypeRegistry.getInstance() as CoreFileTypeRegistry).registerFileType(GoFileType.INSTANCE, "go")
+        coreApplicationEnvironment.registerParserDefinition(GoLanguage.INSTANCE, GoBackendParserDefinition())
+        val registryKeyDescriptorClass = Class.forName("com.intellij.openapi.util.registry.RegistryKeyDescriptor")
+        val rkd = registryKeyDescriptorClass.declaredConstructors.first().let {
+            it.isAccessible = true
+            it.newInstance("go.light.ast.stubs.enabled", "true", "When enabled, uses the Light AST API for creating stubs (restart is required after changing the flag)", false, false, null)
+        }
+        val m = mutableMapOf("go.light.ast.stubs.enabled" to rkd)
+        Registry::class.java.declaredMethods.find { it.name == "setKeys" }!!.invoke(null, m)
+        coreApplicationEnvironment.registerApplicationService(GoElementTypeFactorySupplier::class.java, GoElementTypeFactorySupplierImpl())
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(
+            SmartPointerAnchorProvider.EP_NAME.name,
+            SmartPointerAnchorProvider::class.java.name,
+            ExtensionPoint.Kind.INTERFACE,
+            true
+        )
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(
+            StubIndexExtension.EP_NAME.name,
+            StubIndexExtension::class.java.name,
+            ExtensionPoint.Kind.INTERFACE,
+            true
+        )
+        coreApplicationEnvironment.registerApplicationService(StubIndex::class.java, StubIndexImpl())
+        GoCaching.setEnabled(false)
+        env.project.registerService(TreeAspect::class.java, TreeAspect())
+        class MyPomModelImpl(env: CoreProjectEnvironment) : PomModelImpl(env.project) {
+            override fun runTransaction(pt: PomTransaction) = pt.run()
+        }
+        val pomModel = MyPomModelImpl(env)
+        env.project.registerService(PomModel::class.java, pomModel)
+        env.project.registerService(ModuleManager::class.java, EmptyModuleManager(env.project))
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(PsiAugmentProvider.EP_NAME.name, PsiAugmentProvider::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
+        ApplicationManager.getApplication().extensionArea.registerExtensionPoint(TreeCopyHandler.EP_NAME.name, TreeCopyHandler::class.java.name, ExtensionPoint.Kind.INTERFACE, true)
     }
 
     private fun setEnvForPython() {

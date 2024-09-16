@@ -22,7 +22,7 @@ class SarifBuilder {
                             name = driverName
                         )
                     ),
-                    results = suiteProjects.map { buildResult(it.first) }
+                    results = suiteProjects.map { buildFakeResult(it.first) }
                 )
             )
         )
@@ -30,7 +30,26 @@ class SarifBuilder {
         return json.encodeToString(sarif)
     }
 
-    private fun buildResult(project: Project): Result {
+    fun serializeRealResults(files: List<Triple<String, String, Int>>, prefix: String, driverName: String): String {
+        val sarif = Sarif(
+            `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            version = "2.1.0",
+            runs = listOf(
+                Run(
+                    tool = Tool(
+                        driver = Driver(
+                            name = driverName
+                        )
+                    ),
+                    results = files.map { buildRealResult(it.first, it.third, it.second) }
+                )
+            )
+        )
+
+        return json.encodeToString(sarif)
+    }
+
+    private fun buildFakeResult(project: Project): Result {
         val relativePath = project.configuration.mutatedUri ?: project.configuration.sourceFileName
         val resultRegion = project.configuration.mutatedRegion
         return Result(
@@ -46,6 +65,27 @@ class SarifBuilder {
                             uri = relativePath
                         ),
                         region = resultRegion
+                    )
+                )
+            )
+        )
+    }
+
+
+    private fun buildRealResult(uri: String, cwe: Int, kind: String): Result {
+        return Result(
+            kind = kind,
+            message = Message(
+                text = "message"
+            ),
+            ruleId = "CWE-$cwe",
+            locations = listOf(
+                Location(
+                    physicalLocation = PhysicalLocation(
+                        artifactLocation = ArtifactLocation(
+                            uri = uri
+                        ),
+                        region = null
                     )
                 )
             )

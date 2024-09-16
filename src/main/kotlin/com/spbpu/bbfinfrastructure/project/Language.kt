@@ -5,5 +5,7 @@ enum class LANGUAGE {
     KJAVA,
     JAVA,
     PYTHON,
+    CSHARP,
+    GO,
     UNKNOWN
 }

@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.mutator
 
+import com.spbpu.bbfinfrastructure.mutator.mutations.go.GoTemplatesInserter
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.*
 import com.spbpu.bbfinfrastructure.mutator.mutations.kotlin.*
 import com.spbpu.bbfinfrastructure.mutator.mutations.python.PythonTemplatesInserter
@@ -25,8 +26,10 @@ class Mutator(val project: Project) {
                 LANGUAGE.JAVA -> startJavaMutations()
                 LANGUAGE.KOTLIN -> startKotlinMutations()
                 LANGUAGE.PYTHON -> startPythonMutations()
+                LANGUAGE.GO -> startGoMutations()
                 LANGUAGE.KJAVA -> TODO()
                 LANGUAGE.UNKNOWN -> TODO()
+                LANGUAGE.CSHARP -> TODO()
             }
 //            log.debug("End")
         }
@@ -56,6 +59,13 @@ class Mutator(val project: Project) {
         executeMutation(PythonTemplatesInserter(), 100)
         println("END PYTHON MUTATIONS")
     }
+
+    private fun startGoMutations() {
+        println("STARTING PYTHON MUTATIONS")
+        executeMutation(GoTemplatesInserter(), 100)
+        println("END PYTHON MUTATIONS")
+    }
+
 
     private fun startKotlinMutations() {
         executeMutation(AddLoop(), 100)

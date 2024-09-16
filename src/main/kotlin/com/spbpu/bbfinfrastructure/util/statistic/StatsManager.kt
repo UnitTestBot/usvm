@@ -1,6 +1,7 @@
 package com.spbpu.bbfinfrastructure.util.statistic
 
 import com.spbpu.bbfinfrastructure.mutator.mutations.java.templates.TemplatesParser
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.results.ResultHeader
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
@@ -63,15 +64,25 @@ object StatsManager {
         printInfo: Boolean = false,
         forFeatures: Collection<String>? = null
     ): TemplatesResults {
+        val language = FuzzingConf.language
         val templatesWithoutResults = mutableListOf<String>()
         val successFullTemplates = mutableMapOf<String, Int>()
+        val extension =
+            when (language) {
+                LANGUAGE.KOTLIN -> "kt"
+                LANGUAGE.JAVA -> "java"
+                LANGUAGE.PYTHON -> "py"
+                LANGUAGE.CSHARP -> TODO()
+                LANGUAGE.GO -> "go"
+                else -> error("Not supported language")
+            }
         val results =
             Files.walk(Paths.get(pathToResults))
                 .toList()
                 .map { it.toFile() }
                 .filter { it.isFile }
-                .filter { it.path.endsWith("java") }
-                .map { it to ResultHeader.convertFromString(it.readText())!! }
+                .filter { it.path.endsWith(extension) }
+                .map { it to ResultHeader.convertFromString(it.readText(), language)!! }
         templates.forEach { templateName ->
             val resultsForFeature =
                 results.filter { it.second.mutationDescriptionChain.any { it.contains("with name $templateName") } }

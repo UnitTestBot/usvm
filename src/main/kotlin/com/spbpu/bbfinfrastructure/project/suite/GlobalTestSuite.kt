@@ -4,4 +4,5 @@ object GlobalTestSuite {
 
     val javaTestSuite = JavaTestSuite()
     val pythonTestSuite = PythonTestSuite()
+    val goTestSuite = GoTestSuite()
 }

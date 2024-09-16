@@ -1,5 +1,7 @@
 package com.spbpu.bbfinfrastructure.util.results
 
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
+
 class ResultHeader(
     val analysisResults: MutableList<Pair<String, Set<Int>>>,
     val originalResults: List<Pair<String, Set<Int>>>,
@@ -11,19 +13,26 @@ class ResultHeader(
 ) {
 
 
-    fun convertToString(): String =
-"""//${originalResults.joinToString(separator = "\n//") { "${it.first} original results: ${it.second}" }}
-//-------------
-//${analysisResults.joinToString(separator = "\n//") { "${it.first} analysis results: ${it.second}" }}
-//Original file name: $originalFileName
-//Original file CWE's: $originalFileCWE  
-//Original file kind: ${kind ?: "no info"}
-//Mutation info: ${mutationDescriptionChain.joinToString(" -> ") { it }} 
-//Used extensions: ${usedExtensions.joinToString(" | ") {it}}
+    fun convertToString(language: LANGUAGE): String =
+        run {
+            val commentKey =
+                when (language) {
+                    LANGUAGE.PYTHON -> "#"
+                    else -> "//"
+                }
+"""$commentKey${originalResults.joinToString(separator = "\n${commentKey}") { "${it.first} original results: ${it.second}" }}
+$commentKey-------------
+$commentKey${analysisResults.joinToString(separator = "\n${commentKey}") { "${it.first} analysis results: ${it.second}" }}
+${commentKey}Original file name: $originalFileName
+${commentKey}Original file CWE's: $originalFileCWE  
+${commentKey}Original file kind: ${kind ?: "no info"}
+${commentKey}Mutation info: ${mutationDescriptionChain.joinToString(" -> ") { it }} 
+${commentKey}Used extensions: ${usedExtensions.joinToString(" | ") { it }}
     """.trimIndent()
+        }
 
     companion object {
-        fun convertFromString(str: String): ResultHeader? = try {
+        fun convertFromString(str: String, language: LANGUAGE): ResultHeader? = try {
             val lines = str.lines()
             val originalResults = mutableListOf<Pair<String, Set<Int>>>()
             val results = mutableListOf<Pair<String, Set<Int>>>()
@@ -32,41 +41,45 @@ class ResultHeader(
             var kind: String? = null
             val mutationChain = mutableListOf<String>()
             val usedExtensions = mutableListOf<String>()
-
+            val commentKey =
+                when (language) {
+                    LANGUAGE.PYTHON -> "#"
+                    else -> "//"
+                }
             for (line in lines) {
                 val parts = line.split(":")
                 if (parts.size == 2) {
                     val key = parts[0].trim()
                     val value = parts.subList(1, parts.size).joinToString(":").trim()
-                    if (key.startsWith("//")) {
+                    if (key.startsWith(commentKey)) {
                         when {
                             key.contains("original results") -> {
-                                val toolName = key.substringBefore(" ").substringAfter("//")
+                                val toolName = key.substringBefore(" ").substringAfter(commentKey)
                                 val toolResults = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
                                     ?.split(",")?.filterNot { it.isEmpty() }?.map { it.trim().toInt() }?.toSet() ?: emptySet()
                                 originalResults.add(Pair(toolName, toolResults))
                             }
                             key.contains("analysis results") -> {
-                                val toolName = key.substringBefore(" ").substringAfter("//")
+                                val toolName = key.substringBefore(" ").substringAfter(commentKey)
                                 val toolResults = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
                                     ?.split(",")?.filterNot { it.isEmpty() }?.map { it.trim().toInt() }?.toSet() ?: emptySet()
                                 results.add(Pair(toolName, toolResults))
                             }
 
-                            key == "//Original file name" -> originalFileName = value
-                            key == "//Original file CWE's" -> {
+                            key == "${commentKey}Original file name" -> originalFileName = value
+                            key == "${commentKey}Original file CWE's" -> {
                                 originalFileCWE = Regex("\\[(.*?)\\]").find(value)?.groupValues?.get(1)
                                     ?.split(",")?.map { it.trim().toInt() }?.toSet() ?: emptySet()
                             }
-                            key == "//Original file kind" -> kind = value
+                            key == "${commentKey}Original file kind" -> kind = value
 
-                            key == "//Mutation info" || key == "// Mutation info" -> {
+                            key == "${commentKey}Mutation info" || key == "$commentKey Mutation info" -> {
                                 val mutationDescriptions = value.split(" -> ")
                                 mutationDescriptions.forEach {
                                     mutationChain.add(it.trim())
                                 }
                             }
-                            key == "//Used extensions" || key == "// Used extensions" -> {
+                            key == "${commentKey}Used extensions" || key == "$commentKey Used extensions" -> {
                                 val usedExt = value.split(" | ")
                                 usedExt.forEach {
                                     usedExtensions.add(it.trim())

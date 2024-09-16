@@ -61,7 +61,7 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3'
 
     //Intellij core
-    implementation 'com.android.tools.external.com-intellij:intellij-core:31.6.0-alpha04'
+    implementation 'com.android.tools.external.com-intellij:intellij-core:31.8.0-alpha01'
 
     //Python
     implementation('com.jetbrains.intellij.python:python-community-impl:241.17011.127') {
@@ -93,6 +93,9 @@ dependencies {
     implementation('com.jetbrains.intellij.platform:analysis:241.17011.127') {
         transitive = false
     }
+
+    implementation(files('lib/go-plugin.jar'))
+    implementation(files('lib/go-frontback.jar'))
 
 //    implementation 'com.jetbrains.intellij.python:python-psi:241.17011.127'
 //    implementation 'com.jetbrains.intellij.python:python-ast:241.17011.127'
@@ -138,6 +141,7 @@ dependencies {
     //Antlr
     implementation("org.antlr:antlr4-runtime:4.13.1")
 
+    implementation(files('lib/app-client.jar'))
 }
 
 sourceSets {

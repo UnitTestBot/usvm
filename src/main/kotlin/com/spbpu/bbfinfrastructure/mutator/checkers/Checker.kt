@@ -43,6 +43,7 @@ open class Checker(private val compilers: List<CommonCompiler>, private val with
         when (language) {
             LANGUAGE.JAVA -> PSICreator.getPsiForJava(text)
             LANGUAGE.PYTHON -> PSICreator.getPsiForPython(text)
+            LANGUAGE.GO -> PSICreator.getPsiForGo(text)
             else -> Factory.psiFactory.createFile(text)
         }?.let { tree ->
             tree.getAllPSIChildrenOfType<PsiErrorElement>().isEmpty() && additionalConditions.all { it.invoke(tree) }

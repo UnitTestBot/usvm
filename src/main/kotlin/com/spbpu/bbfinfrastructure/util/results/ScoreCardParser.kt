@@ -1,5 +1,6 @@
 package com.spbpu.bbfinfrastructure.util.results
 
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.project.suite.GlobalTestSuite
 import com.spbpu.bbfinfrastructure.sarif.MarkupSarif
 import com.spbpu.bbfinfrastructure.sarif.ToolsResultsSarifBuilder
@@ -102,7 +103,8 @@ object ScoreCardParser {
                     ),
                     originalUri = originalUri,
                     pathToSources = pathToSources,
-                    mutatedUri = mutatedUri
+                    mutatedUri = mutatedUri,
+                    language = suiteProjects.first().first.language
                 )
             }
         }
@@ -113,18 +115,19 @@ object ScoreCardParser {
         resultHeader: ResultHeader,
         originalUri: String,
         pathToSources: String,
-        mutatedUri: String
+        mutatedUri: String,
+        language: LANGUAGE
     ) {
         val dirToSave =
             "results/CWE-${originalCwes.first()}"
-                .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader) } ?: "results/duplicates"
+                .takeIf { !DuplicatesDetector.hasDuplicates(it, resultHeader, language) } ?: "results/duplicates"
         File(dirToSave).let { resultsDirectory ->
             resultsDirectory.exists().ifFalse { resultsDirectory.mkdirs() }
         }
         val originalName = originalUri.substringAfterLast("/").substringBeforeLast('.')
         val extension = originalUri.substringAfterLast('.')
         val text =
-            """${resultHeader.convertToString()}
+            """${resultHeader.convertToString(language)}
 //Program:
 ${File("$pathToSources/${mutatedUri.substringAfterLast('/')}").readText()}
 """.trimIndent()

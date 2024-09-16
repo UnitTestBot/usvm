@@ -1,3 +1,6 @@
 [submodule "templates-db"]
 	path = templates-db
 	url = https://github.com/flawgarden/templates-db
+[submodule "RoslynFuzz"]
+	path = RoslynFuzz
+	url = git@github.com:flawgarden/RoslynFuzz.git

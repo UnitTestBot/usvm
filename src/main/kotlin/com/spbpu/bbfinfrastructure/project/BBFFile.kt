@@ -14,6 +14,7 @@ data class BBFFile(var name: String, var psiFile: PsiFile) {
             name.endsWith(".java") -> LANGUAGE.JAVA
             name.endsWith(".kt") -> LANGUAGE.KOTLIN
             name.endsWith(".py") -> LANGUAGE.PYTHON
+            name.endsWith(".go") -> LANGUAGE.GO
             else -> LANGUAGE.UNKNOWN
         }
     }

@@ -93,6 +93,7 @@ fun main(args: Array<String>) {
                         "-pathToVuln $pathToVulnomicon " +
                         "-b " +
                         "-n $numOfFilesToCheck " +
+                        "-l $language " +
                         "-nm $numberOfMutationsPerFile " +
                         "-nf $numberOfMutantsPerFile\""
                 else ->
@@ -101,6 +102,7 @@ fun main(args: Array<String>) {
                             "-pathToScript $pathToScript " +
                             "-pathToVuln $pathToVulnomicon " +
                             "-n $numOfFilesToCheck " +
+                            "-l $language " +
                             "-nm $numberOfMutationsPerFile " +
                             "-nf $numberOfMutantsPerFile\""
             }

@@ -1,7 +1,10 @@
 package com.spbpu.bbfinfrastructure
 
+import com.spbpu.bbfinfrastructure.mutator.CSharpMutationManager
+import com.spbpu.bbfinfrastructure.mutator.GoMutationManager
 import com.spbpu.bbfinfrastructure.mutator.JavaMutationManager
 import com.spbpu.bbfinfrastructure.mutator.PythonMutationManager
+import com.spbpu.bbfinfrastructure.project.LANGUAGE
 import com.spbpu.bbfinfrastructure.results.ResultsSorter
 import com.spbpu.bbfinfrastructure.util.FuzzingConf
 import com.spbpu.bbfinfrastructure.util.statistic.StatsManager
@@ -82,8 +85,17 @@ fun main(args: Array<String>) {
         parser.parse(args)
     }
 
+    val targetLanguage =
+        when (language) {
+            "java" -> LANGUAGE.JAVA
+            "python" -> LANGUAGE.PYTHON
+            "csharp" -> LANGUAGE.CSHARP
+            "go" -> LANGUAGE.GO
+            else -> error("Not supported language")
+        }
+
     if (sortResults) {
-        ResultsSorter.sortResults("./results/")
+        ResultsSorter.sortResults("./results/", targetLanguage)
         exitProcess(0)
     }
 
@@ -92,6 +104,7 @@ fun main(args: Array<String>) {
     FuzzingConf.badTemplatesOnlyMode = badTemplatesOnlyMode
     FuzzingConf.pathToBenchmarkToFuzz = pathToBenchmarkFuzz
     FuzzingConf.pathToOriginalBenchmark = pathToBenchmark
+    FuzzingConf.language = targetLanguage
 
     if (badTemplatesOnlyMode) {
         StatsManager.updateBadTemplatesList()
@@ -101,6 +114,8 @@ fun main(args: Array<String>) {
         when (language) {
             "java" -> JavaMutationManager()
             "python" -> PythonMutationManager()
+            "csharp" -> CSharpMutationManager()
+            "go" -> GoMutationManager()
             else -> error("Not supported language")
         }
 

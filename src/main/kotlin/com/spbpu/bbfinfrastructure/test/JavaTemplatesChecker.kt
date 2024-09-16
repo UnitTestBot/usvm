@@ -85,7 +85,7 @@ fun main(args: Array<String>) {
     FuzzingConf.testMode = true
     System.setProperty("idea.home.path", "lib/bin")
     JavaTemplatesChecker().testTemplates(
-        templateName = args.firstOrNull() ?: "sensitivity/collections",
+        templateName = args.firstOrNull() ?: "sensitivity/",
         templateBodyIndex = args.lastOrNull()?.toIntOrNull() ?: -1
     )
     if (ErrorCollector.errorMap.isEmpty()) {

@@ -42,6 +42,16 @@ class Project(
         ): Project =
             createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri, LANGUAGE.PYTHON) { PSICreator.getPsiForPython(it)!! }
 
+        fun createGoProjectFromFiles(
+            files: List<File>,
+            originalFileName: String = "",
+            originalCWEs: List<Int> = listOf(),
+            region: ToolsResultsSarifBuilder.ResultRegion? = null,
+            uri: String? = null,
+            originalUri: String? = null
+        ): Project =
+            createProjectFromFiles(files, originalFileName, originalCWEs, region, uri, originalUri, LANGUAGE.GO) { PSICreator.getPsiForGo(it)!! }
+
         private fun createProjectFromFiles(
             files: List<File>,
             originalFileName: String = "",
@@ -107,23 +117,24 @@ class Project(
         return resPaths
     }
 
-    fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean): String {
+    fun saveOrRemoveToTmp(trueSaveFalseDelete: Boolean, pathToTmp: String = FuzzingConf.pathToTmpJava): String {
         files.forEach {
             if (trueSaveFalseDelete) {
-                val name = "${FuzzingConf.pathToTmpJava}/${it.name}"
+                val name = "$pathToTmp/${it.name}"
                 File(name.substringBeforeLast("/")).mkdirs()
                 File(name).writeText(it.psiFile.text)
             } else {
-                val createdDirectories = it.name.substringAfter(FuzzingConf.pathToTmpJava).substringBeforeLast('/')
+                val createdDirectories = it.name.substringAfter(pathToTmp).substringBeforeLast('/')
                 if (createdDirectories.trim().isNotEmpty()) {
-                    File("${FuzzingConf.pathToTmpJava}$createdDirectories").deleteRecursively()
+                    File("$pathToTmp$createdDirectories").deleteRecursively()
                 } else {
                     File(it.name).delete()
                 }
             }
         }
-        return files.joinToString(" ") { "${FuzzingConf.pathToTmpJava}/${it.name}" }
+        return files.joinToString(" ") { "$pathToTmp/${it.name}" }
     }
+
 
 
     fun addMain(): Project {
