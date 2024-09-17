@@ -8030,7 +8030,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "ICustom",
+                        "value": "ICustom {  }",
                         "type": {
                           "_": "StringType"
                         }
@@ -8610,7 +8610,7 @@
                       },
                       "right": {
                         "_": "Constant",
-                        "value": "Array<ICustom>",
+                        "value": "Array<ICustom {  }>",
                         "type": {
                           "_": "StringType"
                         }

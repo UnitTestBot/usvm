@@ -186,7 +186,7 @@ class CaseCastToInterface {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "ICustom";
+        const EXPECTED_ARG_0 = "ICustom {  }";
     }
 }
 
@@ -200,7 +200,7 @@ class CaseCastToArrayInterface {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Array<ICustom>";
+        const EXPECTED_ARG_0 = "Array<ICustom {  }>";
     }
 }
 

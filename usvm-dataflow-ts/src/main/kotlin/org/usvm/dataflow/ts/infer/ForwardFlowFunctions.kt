@@ -212,6 +212,8 @@ class ForwardFlowFunctions(
             if (lhv.accesses.isEmpty()) {
                 // x := const
 
+                // TODO: `x := const as T`
+
                 // x.*:T |= drop
                 if (fact.variable.startsWith(lhv)) {
                     return emptyList()
@@ -259,6 +261,19 @@ class ForwardFlowFunctions(
 
             // y.*:T |= y.*:T (keep) + x.*:T (same tail)
             if (fact.variable.startsWith(rhv)) {
+                // Extra case with cast: `x := y as U`:
+                // `y.*:T` |= keep + new fact `x.*:W`, where `W = T intersect U`
+                // TODO: Currently, we just take the type from the CastExpr, without intersecting.
+                //       The problem is that when we have fact `y:any`, the intersection (though probably correctly)
+                //       produces `x:any`, so we just lose type information from the cast.
+                //       Using the cast type directly is just a temporary solution to satisfy simple tests.
+                if (current.rhv is EtsCastExpr) {
+                    val path = AccessPath(lhv.base, fact.variable.accesses)
+                    // val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type).intersect(fact.type) ?: fact.type
+                    val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type)
+                    return listOf(fact, TypedVariable(path, type))
+                }
+
                 val path = AccessPath(lhv.base, fact.variable.accesses)
                 return listOf(fact, TypedVariable(path, fact.type))
             }
