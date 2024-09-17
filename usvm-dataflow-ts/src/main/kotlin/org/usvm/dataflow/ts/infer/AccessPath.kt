@@ -17,6 +17,10 @@ import org.usvm.dataflow.ifds.FieldAccessor
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)
     operator fun plus(accessors: List<Accessor>) = AccessPath(base, accesses + accessors)
+
+    override fun toString(): String {
+        return base.toString() + accesses.joinToString("") { it.toSuffix() }
+    }
 }
 
 fun List<Accessor>.startsWith(other: List<Accessor>): Boolean {
