@@ -1,7 +1,5 @@
 package org.usvm.collection.set.ref
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -10,6 +8,10 @@ import org.usvm.UHeapRef
 import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
+import org.usvm.collections.immutable.getOrPut
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -76,19 +78,23 @@ interface URefSetRegion<SetType> :
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): URefSetRegion<SetType>
 }
 
 internal class URefSetMemoryRegion<SetType>(
     private val setType: SetType,
     private val sort: UBoolSort,
-    private var allocatedSetWithAllocatedElements: PersistentMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr> = persistentHashMapOf(),
-    private var allocatedSetWithInputElements: PersistentMap<UAllocatedRefSetWithInputElementsId<SetType>, UAllocatedRefSetWithInputElements<SetType>> = persistentHashMapOf(),
-    private var inputSetWithAllocatedElements: PersistentMap<UInputRefSetWithAllocatedElementsId<SetType>, UInputRefSetWithAllocatedElements<SetType>> = persistentHashMapOf(),
+    private var allocatedSetWithAllocatedElements: UPersistentHashMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr> = persistentHashMapOf(),
+    private var allocatedSetWithInputElements: UPersistentHashMap<UAllocatedRefSetWithInputElementsId<SetType>, UAllocatedRefSetWithInputElements<SetType>> = persistentHashMapOf(),
+    private var inputSetWithAllocatedElements: UPersistentHashMap<UInputRefSetWithAllocatedElementsId<SetType>, UInputRefSetWithAllocatedElements<SetType>> = persistentHashMapOf(),
     private var inputSetWithInputElements: UInputRefSetWithInputElements<SetType>? = null
 ) : URefSetRegion<SetType> {
+
+    private val defaultOwnership = sort.uctx.defaultOwnership
+
     private fun updateAllocatedSetWithAllocatedElements(
-        updated: PersistentMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr>
+        updated: UPersistentHashMap<UAllocatedRefSetWithAllocatedElementId, UBoolExpr>
     ) = URefSetMemoryRegion(
         setType, sort,
         updated,
@@ -101,13 +107,10 @@ internal class URefSetMemoryRegion<SetType>(
         UAllocatedRefSetWithInputElementsId(setAddress, setType, sort)
 
     private fun getAllocatedSetWithInputElements(
-        id: UAllocatedRefSetWithInputElementsId<SetType>
+        id: UAllocatedRefSetWithInputElementsId<SetType>,
     ): UAllocatedRefSetWithInputElements<SetType> {
-        var collection = allocatedSetWithInputElements[id]
-        if (collection == null) {
-            collection = id.emptyRegion()
-            allocatedSetWithInputElements = allocatedSetWithInputElements.put(id, collection)
-        }
+        val (updatedSet, collection) = allocatedSetWithInputElements.getOrPut(id, defaultOwnership) { id.emptyRegion() }
+        allocatedSetWithInputElements = updatedSet
         return collection
     }
 
@@ -116,11 +119,12 @@ internal class URefSetMemoryRegion<SetType>(
 
     private fun updateAllocatedSetWithInputElements(
         id: UAllocatedRefSetWithInputElementsId<SetType>,
-        updatedSet: UAllocatedRefSetWithInputElements<SetType>
+        updatedSet: UAllocatedRefSetWithInputElements<SetType>,
+        ownership: MutabilityOwnership,
     ) = URefSetMemoryRegion(
         setType, sort,
         allocatedSetWithAllocatedElements,
-        allocatedSetWithInputElements.put(id, updatedSet),
+        allocatedSetWithInputElements.put(id, updatedSet, ownership),
         inputSetWithAllocatedElements,
         inputSetWithInputElements
     )
@@ -131,22 +135,20 @@ internal class URefSetMemoryRegion<SetType>(
     private fun getInputSetWithAllocatedElements(
         id: UInputRefSetWithAllocatedElementsId<SetType>
     ): UInputRefSetWithAllocatedElements<SetType> {
-        var collection = inputSetWithAllocatedElements[id]
-        if (collection == null) {
-            collection = id.emptyRegion()
-            inputSetWithAllocatedElements = inputSetWithAllocatedElements.put(id, collection)
-        }
+        val (updatedMap, collection) = inputSetWithAllocatedElements.getOrPut(id, defaultOwnership) { id.emptyRegion() }
+        inputSetWithAllocatedElements = updatedMap
         return collection
     }
 
     private fun updateInputSetWithAllocatedElements(
         id: UInputRefSetWithAllocatedElementsId<SetType>,
-        updatedSet: UInputRefSetWithAllocatedElements<SetType>
+        updatedSet: UInputRefSetWithAllocatedElements<SetType>,
+        ownership: MutabilityOwnership,
     ) = URefSetMemoryRegion(
         setType, sort,
         allocatedSetWithAllocatedElements,
         allocatedSetWithInputElements,
-        inputSetWithAllocatedElements.put(id, updatedSet),
+        inputSetWithAllocatedElements.put(id, updatedSet, ownership),
         inputSetWithInputElements
     )
 
@@ -195,7 +197,8 @@ internal class URefSetMemoryRegion<SetType>(
     override fun write(
         key: URefSetEntryLValue<SetType>,
         value: UBoolExpr,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         ref = key.setRef,
         initial = this,
@@ -207,7 +210,7 @@ internal class URefSetMemoryRegion<SetType>(
                 initialGuard = setGuard,
                 blockOnConcrete = { region, (concreteElemRef, guard) ->
                     val id = UAllocatedRefSetWithAllocatedElementId(concreteSetRef.address, concreteElemRef.address)
-                    val newMap = region.allocatedSetWithAllocatedElements.guardedWrite(id, value, guard) {
+                    val newMap = region.allocatedSetWithAllocatedElements.guardedWrite(id, value, guard, ownership) {
                         sort.uctx.falseExpr
                     }
                     region.updateAllocatedSetWithAllocatedElements(newMap)
@@ -215,8 +218,8 @@ internal class URefSetMemoryRegion<SetType>(
                 blockOnSymbolic = { region, (symbolicElemRef, guard) ->
                     val id = allocatedSetWithInputElementsId(concreteSetRef.address)
                     val newMap = region.getAllocatedSetWithInputElements(id)
-                        .write(symbolicElemRef, value, guard)
-                    region.updateAllocatedSetWithInputElements(id, newMap)
+                        .write(symbolicElemRef, value, guard, ownership)
+                    region.updateAllocatedSetWithInputElements(id, newMap, ownership)
                 }
             )
         },
@@ -228,12 +231,12 @@ internal class URefSetMemoryRegion<SetType>(
                 blockOnConcrete = { region, (concreteElemRef, guard) ->
                     val id = inputSetWithAllocatedElementsId(concreteElemRef.address)
                     val newMap = region.getInputSetWithAllocatedElements(id)
-                        .write(symbolicSetRef, value, guard)
-                    region.updateInputSetWithAllocatedElements(id, newMap)
+                        .write(symbolicSetRef, value, guard, ownership)
+                    region.updateInputSetWithAllocatedElements(id, newMap, ownership)
                 },
                 blockOnSymbolic = { region, (symbolicElemRef, guard) ->
                     val newMap = region.inputSetWithInputElements()
-                        .write(symbolicSetRef to symbolicElemRef, value, guard)
+                        .write(symbolicSetRef to symbolicElemRef, value, guard, ownership)
                     region.updateInputSetWithInputElements(newMap)
                 }
             )
@@ -243,7 +246,8 @@ internal class URefSetMemoryRegion<SetType>(
     override fun union(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
-        operationGuard: UBoolExpr
+        operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
@@ -258,7 +262,7 @@ internal class URefSetMemoryRegion<SetType>(
                 read = { initialAllocatedSetState[it] ?: sort.uctx.falseExpr },
                 mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
                 write = { result, dstKeyId, value, g ->
-                    result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
+                    result.guardedWrite(dstKeyId, value, g, ownership) { sort.uctx.falseExpr }
                 }
             )
             val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
@@ -271,7 +275,7 @@ internal class URefSetMemoryRegion<SetType>(
 
             val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter(srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, ownership)
         },
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val initialAllocatedSetState = region.allocatedSetWithAllocatedElements
@@ -281,8 +285,8 @@ internal class URefSetMemoryRegion<SetType>(
                 mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
                 write = { result, dstKeyId, value, g ->
                     val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                        .write(dstSymbolic, value, g)
-                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
+                        .write(dstSymbolic, value, g, ownership)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, ownership)
                 }
             )
 
@@ -302,7 +306,7 @@ internal class URefSetMemoryRegion<SetType>(
                 read = { region.getInputSetWithAllocatedElements(it).read(srcSymbolic) },
                 mkDstKeyId = { UAllocatedRefSetWithAllocatedElementId(dstConcrete.address, it) },
                 write = { result, dstKeyId, value, g ->
-                    result.guardedWrite(dstKeyId, value, g) { sort.uctx.falseExpr }
+                    result.guardedWrite(dstKeyId, value, g, ownership) { sort.uctx.falseExpr }
                 }
             )
             val updatedRegion = region.updateAllocatedSetWithAllocatedElements(updatedAllocatedSet)
@@ -314,7 +318,7 @@ internal class URefSetMemoryRegion<SetType>(
 
             val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter(srcSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
-            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
+            updatedRegion.updateAllocatedSetWithInputElements(dstId, updated, ownership)
         },
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val updatedRegion = region.unionInputSetAllocatedElements(
@@ -323,8 +327,8 @@ internal class URefSetMemoryRegion<SetType>(
                 mkDstKeyId = { inputSetWithAllocatedElementsId(it) },
                 write = { result, dstKeyId, value, g ->
                     val newMap = result.getInputSetWithAllocatedElements(dstKeyId)
-                        .write(dstSymbolic, value, g)
-                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap)
+                        .write(dstSymbolic, value, g, ownership)
+                    result.updateInputSetWithAllocatedElements(dstKeyId, newMap, ownership)
                 }
             )
             val srcCollection = updatedRegion.inputSetWithInputElements()
@@ -344,7 +348,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        inputSetWithAllocatedElements.keys,
+        inputSetWithAllocatedElements.keys.toList(),
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -360,7 +364,7 @@ internal class URefSetMemoryRegion<SetType>(
         write: (R, DstKeyId, UBoolExpr, UBoolExpr) -> R
     ) = unionAllocatedElements(
         initial,
-        allocatedSetWithAllocatedElements.keys.filter { it.setAddress == srcAddress },
+        allocatedSetWithAllocatedElements.keys.filterTo(mutableListOf()) { it.setAddress == srcAddress },
         guard,
         read,
         { mkDstKeyId(it.elementAddress) },
@@ -369,7 +373,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     private inline fun <R, SrcKeyId, DstKeyId> unionAllocatedElements(
         initial: R,
-        keys: Iterable<SrcKeyId>,
+        keys: List<SrcKeyId>,
         guard: UBoolExpr,
         read: (SrcKeyId) -> UBoolExpr,
         mkDstKeyId: (SrcKeyId) -> DstKeyId,

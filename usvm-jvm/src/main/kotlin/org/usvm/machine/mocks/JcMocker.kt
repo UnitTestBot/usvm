@@ -34,7 +34,7 @@ fun mockMethod(scope: JcStepScope, methodCall: JcMethodCall, returnType: JcType)
 
     val mockSort = ctx.typeToSort(returnType)
     val mockValue = scope.calcOnState {
-        memory.mocker.call(method, arguments.asSequence(), mockSort)
+        memory.mocker.call(method, arguments.asSequence(), mockSort, memory.ownership)
     }
 
     if (mockSort == ctx.addressSort) {

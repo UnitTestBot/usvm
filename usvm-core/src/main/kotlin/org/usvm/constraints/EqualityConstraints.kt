@@ -1,20 +1,27 @@
 package org.usvm.constraints
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentHashMapOf
-import kotlinx.collections.immutable.persistentHashSetOf
+import org.usvm.collections.immutable.persistentHashMapOf
+import org.usvm.collections.immutable.persistentHashSetOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
+import org.usvm.algorithms.addToSet
+import org.usvm.algorithms.addAll
 import org.usvm.algorithms.DisjointSets
-import org.usvm.algorithms.PersistentMultiMap
-import org.usvm.algorithms.PersistentMultiMapBuilder
+import org.usvm.algorithms.UPersistentMultiMap
+import org.usvm.algorithms.containsValue
+import org.usvm.algorithms.removeValue
+import org.usvm.algorithms.removeAllValues
+import org.usvm.algorithms.multiMapIterator
+import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import org.usvm.isStaticHeapRef
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
+import org.usvm.merging.UOwnedMergeable
 import org.usvm.solver.UExprTranslator
 
 /**
@@ -33,28 +40,24 @@ import org.usvm.solver.UExprTranslator
  */
 class UEqualityConstraints private constructor(
     internal val ctx: UContext<*>,
+    private var ownership: MutabilityOwnership,
     private val equalReferences: DisjointSets<UHeapRef>,
-    persistentDistinctReferences: PersistentSet<UHeapRef>,
-    persistentReferenceDisequalities: PersistentMultiMap<UHeapRef, UHeapRef>,
-    persistentNullableDisequalities:  PersistentMultiMap<UHeapRef, UHeapRef>,
-) : UMergeable<UEqualityConstraints, MutableMergeGuard> {
-    constructor(ctx: UContext<*>) : this(
+    var distinctReferences: UPersistentHashSet<UHeapRef>,
+    var referenceDisequalities: UPersistentMultiMap<UHeapRef, UHeapRef>,
+    var nullableDisequalities:  UPersistentMultiMap<UHeapRef, UHeapRef>,
+) : UOwnedMergeable<UEqualityConstraints, MutableMergeGuard> {
+    constructor(ctx: UContext<*>, ownership: MutabilityOwnership) : this(
         ctx,
+        ownership,
         DisjointSets(representativeSelector = RefsRepresentativeSelector),
-        persistentHashSetOf(ctx.nullRef),
+        persistentHashSetOf<UHeapRef>().add(ctx.nullRef, ownership),
         persistentHashMapOf(),
         persistentHashMapOf(),
     )
 
-    private val mutableDistinctReferences = persistentDistinctReferences.builder()
-    private val mutableReferenceDisequalities = PersistentMultiMapBuilder(persistentReferenceDisequalities)
-    private val mutableNullableDisequalities = PersistentMultiMapBuilder(persistentNullableDisequalities)
-
-    internal val distinctReferences: Set<UHeapRef> get() = mutableDistinctReferences.build()
-
-    internal val referenceDisequalities: Map<UHeapRef, Set<UHeapRef>> get() = mutableReferenceDisequalities.build()
-
-    internal val nullableDisequalities: Map<UHeapRef, Set<UHeapRef>> get() = mutableNullableDisequalities.build()
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     /**
      * Determines whether a static ref could be assigned to a symbolic, according to additional information.
@@ -71,16 +74,16 @@ class UEqualityConstraints private constructor(
     private fun contradiction() {
         isContradicting = true
         equalReferences.clear()
-        mutableDistinctReferences.clear()
-        mutableReferenceDisequalities.clear()
-        mutableNullableDisequalities.clear()
+        distinctReferences = distinctReferences.clear()
+        referenceDisequalities = referenceDisequalities.clear()
+        nullableDisequalities = nullableDisequalities.clear()
     }
 
     private fun containsReferenceDisequality(ref1: UHeapRef, ref2: UHeapRef): Boolean =
-        mutableReferenceDisequalities.containsValue(ref1, ref2)
+        referenceDisequalities.containsValue(ref1, ref2)
 
     private fun containsNullableDisequality(ref1: UHeapRef, ref2: UHeapRef) =
-        mutableNullableDisequalities.containsValue(ref1, ref2)
+        nullableDisequalities.containsValue(ref1, ref2)
 
     /**
      * Returns if [ref1] is identical to [ref2] in *all* models.
@@ -95,7 +98,7 @@ class UEqualityConstraints private constructor(
             return false
         }
 
-        val distinctByClique = mutableDistinctReferences.contains(repr1) && mutableDistinctReferences.contains(repr2)
+        val distinctByClique = distinctReferences.contains(repr1) && distinctReferences.contains(repr2)
         return distinctByClique || containsReferenceDisequality(repr1, repr2)
     }
 
@@ -141,16 +144,15 @@ class UEqualityConstraints private constructor(
      * [from] and merging its disequality constraints into [to].
      */
     private fun rename(to: UHeapRef, from: UHeapRef) {
-        if (mutableDistinctReferences.contains(from)) {
-            if (mutableDistinctReferences.contains(to)) {
+        if (distinctReferences.contains(from)) {
+            if (distinctReferences.contains(to)) {
                 contradiction()
                 return
             }
-            mutableDistinctReferences.remove(from)
-            mutableDistinctReferences.add(to)
+            distinctReferences = distinctReferences.remove(from, ownership).add(to, ownership)
         }
 
-        val fromDiseqs = mutableReferenceDisequalities[from]
+        val fromDiseqs = referenceDisequalities[from]
 
         if (fromDiseqs != null) {
             if (fromDiseqs.contains(to)) {
@@ -158,9 +160,9 @@ class UEqualityConstraints private constructor(
                 return
             }
 
-            mutableReferenceDisequalities.remove(from)
-            fromDiseqs.forEach {
-                mutableReferenceDisequalities.removeValue(it, from)
+            referenceDisequalities = referenceDisequalities.remove(from, ownership)
+            fromDiseqs.toList().forEach {
+                referenceDisequalities = referenceDisequalities.removeValue(it, from, ownership)
                 makeRefNonEqual(to, it)
             }
         }
@@ -168,51 +170,53 @@ class UEqualityConstraints private constructor(
         val nullRepr = findRepresentative(ctx.nullRef)
         if (to == nullRepr) {
             // x == null satisfies nullable disequality (x !== y || (x == null && y == null))
-            val removedFrom = mutableNullableDisequalities.remove(from)
-            val removedTo = mutableNullableDisequalities.remove(to)
+            val (mapWithRemovedFrom, removedFrom) = nullableDisequalities.removeAndGetValue(from, ownership)
+            val (mapWithRemovedTo, removedTo) = mapWithRemovedFrom.removeAndGetValue(to, ownership)
+            nullableDisequalities = mapWithRemovedTo
             removedFrom?.forEach {
-                mutableNullableDisequalities.removeValue(it, from)
+                nullableDisequalities = nullableDisequalities.removeValue(it, from, ownership)
             }
             removedTo?.forEach {
-                mutableNullableDisequalities.removeValue(it, to)
+                nullableDisequalities = nullableDisequalities.removeValue(it, to, ownership)
             }
         } else if (containsNullableDisequality(from, to)) {
             // If x === y, nullable disequality can hold only if both references are null
             makeRefEqual(to, nullRepr)
         } else {
-            val removedFrom = mutableNullableDisequalities.remove(from)
+            val (mapWithRemovedFrom, removedFrom) = nullableDisequalities.removeAndGetValue(from, ownership)
+            nullableDisequalities = mapWithRemovedFrom
             removedFrom?.forEach {
-                mutableNullableDisequalities.removeValue(it, from)
+                nullableDisequalities = nullableDisequalities.removeValue(it, from, ownership)
                 makeRefNonEqualOrBothNull(to, it)
             }
         }
     }
 
     private fun addDisequalityUnguarded(repr1: UHeapRef, repr2: UHeapRef) {
-        when (mutableDistinctReferences.size) {
+        when (distinctReferences.calculateSize()) {
             0 -> {
-                require(mutableReferenceDisequalities.isEmpty())
+                require(referenceDisequalities.isEmpty())
                 // Init clique with {repr1, repr2}
-                mutableDistinctReferences.add(repr1)
-                mutableDistinctReferences.add(repr2)
+                distinctReferences = distinctReferences.add(repr1, ownership)
+                distinctReferences = distinctReferences.add(repr2, ownership)
                 return
             }
 
             1 -> {
-                val onlyRef = mutableDistinctReferences.single()
+                val onlyRef = distinctReferences.single()
                 if (repr1 == onlyRef) {
-                    mutableDistinctReferences.add(repr2)
+                    distinctReferences = distinctReferences.add(repr2, ownership)
                     return
                 }
                 if (repr2 == onlyRef) {
-                    mutableDistinctReferences.add(repr1)
+                    distinctReferences = distinctReferences.add(repr1, ownership)
                     return
                 }
             }
         }
 
-        val ref1InClique = mutableDistinctReferences.contains(repr1)
-        val ref2InClique = mutableDistinctReferences.contains(repr2)
+        val ref1InClique = distinctReferences.contains(repr1)
+        val ref2InClique = distinctReferences.contains(repr2)
 
         if (ref1InClique && ref2InClique) {
             return
@@ -226,21 +230,22 @@ class UEqualityConstraints private constructor(
             val refInClique = if (ref1InClique) repr1 else repr2
             val refNotInClique = if (ref1InClique) repr2 else repr1
 
-            if (mutableDistinctReferences.all { it == refInClique || containsReferenceDisequality(refNotInClique, it) }) {
+            if (distinctReferences.all { it == refInClique || containsReferenceDisequality(refNotInClique, it) }) {
                 // Ref is not in clique and disjoint from all refs in clique. Thus, we can join it to clique...
-                mutableReferenceDisequalities.removeAllValues(refNotInClique, mutableDistinctReferences)
+                referenceDisequalities =
+                    referenceDisequalities.removeAllValues(refNotInClique, distinctReferences, ownership)
 
-                for (ref in mutableDistinctReferences) {
-                    mutableReferenceDisequalities.removeValue(ref, refNotInClique)
+                for (ref in distinctReferences) {
+                    referenceDisequalities = referenceDisequalities.removeValue(ref, refNotInClique, ownership)
                 }
 
-                mutableDistinctReferences.add(refNotInClique)
+                distinctReferences = distinctReferences.add(refNotInClique, ownership)
                 return
             }
         }
 
-        mutableReferenceDisequalities.add(repr1, repr2)
-        mutableReferenceDisequalities.add(repr2, repr1)
+        referenceDisequalities = referenceDisequalities.addToSet(repr1, repr2, ownership)
+        referenceDisequalities = referenceDisequalities.addToSet(repr2, repr1, ownership)
     }
 
     /**
@@ -321,14 +326,14 @@ class UEqualityConstraints private constructor(
             return
         }
 
-        mutableNullableDisequalities.add(repr1, repr2)
-        mutableNullableDisequalities.add(repr2, repr1)
+        nullableDisequalities = nullableDisequalities.addToSet(repr1, repr2, ownership)
+        nullableDisequalities = nullableDisequalities.addToSet(repr2, repr1, ownership)
     }
 
     private fun removeNullableDisequality(repr1: UHeapRef, repr2: UHeapRef) {
         if (containsNullableDisequality(repr1, repr2)) {
-            mutableNullableDisequalities.removeValue(repr1, repr2)
-            mutableNullableDisequalities.removeValue(repr2, repr1)
+            nullableDisequalities = nullableDisequalities.removeValue(repr1, repr2, ownership)
+            nullableDisequalities = nullableDisequalities.removeValue(repr2, repr1, ownership)
         }
     }
 
@@ -351,46 +356,47 @@ class UEqualityConstraints private constructor(
 
     /**
      * Given a newly allocated static ref [allocatedStaticRef], updates [distinctReferences] and
-     * [mutableReferenceDisequalities] in the following way - removes all symbolic refs that may be equal to the
+     * [referenceDisequalities] in the following way - removes all symbolic refs that may be equal to the
      * [allocatedStaticRef] (according to the [isStaticRefAssignableToSymbolic]) from the [distinctReferences] and
-     * moves the information about disequality for these refs to the [mutableReferenceDisequalities].
-     * After that, adds the [allocatedStaticRef] to the [mutableDistinctReferences].
+     * moves the information about disequality for these refs to the [referenceDisequalities].
+     * After that, adds the [allocatedStaticRef] to the [distinctReferences].
      */
     internal fun updateDisequality(allocatedStaticRef: UConcreteHeapRef) {
         if (!isStaticHeapRef(allocatedStaticRef)) {
             return
         }
 
-        // Move from the clique to the [mutableDistinctReferences]
+        // Move from the clique to the [distinctReferences]
         // all symbolic refs that are typely compatible with this static ref
-        val referencesToRemove = mutableDistinctReferences.filter {
+        val referencesToRemove = distinctReferences.filter {
             it is USymbolicHeapRef && it !is UNullRef && isStaticRefAssignableToSymbolic(allocatedStaticRef, it)
         }
 
         // Here we need to save a copy of distinct refs to use all of them except the single ref from removed references
-        val oldDistinctRefs = mutableDistinctReferences.toSet()
+        val oldDistinctRefs = distinctReferences.toSet()
 
-        for (ref in referencesToRemove) {
+        for (ref in referencesToRemove.toList()) {
             val otherDistinctRefs = oldDistinctRefs - ref
-            mutableDistinctReferences.remove(ref)
+            distinctReferences = distinctReferences.remove(ref, ownership)
 
-            mutableReferenceDisequalities.addAll(ref, otherDistinctRefs)
+            referenceDisequalities = referenceDisequalities.addAll(ref, otherDistinctRefs, ownership)
             otherDistinctRefs.forEach {
-                mutableReferenceDisequalities.add(it, ref)
+                referenceDisequalities = referenceDisequalities.addToSet(it, ref, ownership)
             }
         }
 
-        mutableDistinctReferences += allocatedStaticRef
+        distinctReferences = distinctReferences.add(allocatedStaticRef, ownership)
     }
 
     /**
      * Creates a mutable copy of this structure.
      * Note that current subscribers get unsubscribed!
      */
-    fun clone(): UEqualityConstraints {
+    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UEqualityConstraints {
+        this.ownership = thisOwnership
         if (isContradicting) {
             val result = UEqualityConstraints(
-                ctx, DisjointSets(),
+                ctx, cloneOwnership, DisjointSets(),
                 persistentHashSetOf(),
                 persistentHashMapOf(),
                 persistentHashMapOf()
@@ -401,10 +407,11 @@ class UEqualityConstraints private constructor(
 
         return UEqualityConstraints(
             ctx,
+            cloneOwnership,
             equalReferences.clone(),
-            mutableDistinctReferences.build(),
-            mutableReferenceDisequalities.build(),
-            mutableNullableDisequalities.build(),
+            distinctReferences,
+            referenceDisequalities,
+            nullableDisequalities,
         )
     }
 
@@ -421,23 +428,30 @@ class UEqualityConstraints private constructor(
      *
      * @return the merged equality constraints.
      */
-    override fun mergeWith(other: UEqualityConstraints, by: MutableMergeGuard): UEqualityConstraints? {
+    override fun mergeWith(
+        other: UEqualityConstraints,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UEqualityConstraints? {
         // TODO: refactor it
-        if (mutableDistinctReferences != other.mutableDistinctReferences) {
+        if (distinctReferences != other.distinctReferences) {
             return null
         }
-        if (mutableReferenceDisequalities != other.mutableReferenceDisequalities) {
+        if (referenceDisequalities != other.referenceDisequalities) {
             return null
         }
-        if (mutableNullableDisequalities != other.mutableNullableDisequalities) {
+        if (nullableDisequalities != other.nullableDisequalities) {
             return null
         }
         if (equalReferences != other.equalReferences) {
             return null
         }
 
+        other.ownership = otherOwnership
         // Clone because of mutable [isStaticRefAssignableToSymbolic]
-        return clone()
+        return clone(thisOwnership, mergedOwnership)
     }
 
     fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> {
@@ -446,7 +460,7 @@ class UEqualityConstraints private constructor(
         val result = mutableListOf<UBoolExpr>()
 
         val nullRepr = findRepresentative(ctx.nullRef)
-        for (ref in mutableDistinctReferences) {
+        for (ref in distinctReferences) {
             // Static refs are already translated as a values of an uninterpreted sort
             if (isStaticHeapRef(ref)) {
                 continue
@@ -466,7 +480,7 @@ class UEqualityConstraints private constructor(
 
         val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
 
-        for ((ref1, ref2) in mutableReferenceDisequalities) {
+        for ((ref1, ref2) in referenceDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
                 val translatedRef1 = translator.translate(ref1)
@@ -477,7 +491,7 @@ class UEqualityConstraints private constructor(
 
         processedConstraints.clear()
         val translatedNull = translator.transform(ctx.nullRef)
-        for ((ref1, ref2) in mutableNullableDisequalities) {
+        for ((ref1, ref2) in nullableDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
                 val translatedRef1 = translator.translate(ref1)

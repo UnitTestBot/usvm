@@ -52,7 +52,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
             return key.uctx.withSizeSort<USizeSort>().mkAllocatedArrayReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -129,7 +129,7 @@ class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constru
             return sort.uctx.withSizeSort<USizeSort>().mkInputArrayReading(collection, key.first, key.second)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

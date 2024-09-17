@@ -10,18 +10,21 @@ import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
 import org.usvm.api.allocateConcreteRef
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import kotlin.test.assertSame
 
 class HeapRefEqTest {
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
+    private lateinit var ownership: MutabilityOwnership
 
     @BeforeEach
     fun initializeContext() {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        heap = UMemory(ctx, mockk())
+        ownership = MutabilityOwnership()
+        heap = UMemory(ctx, ownership, mockk())
     }
 
     @Test

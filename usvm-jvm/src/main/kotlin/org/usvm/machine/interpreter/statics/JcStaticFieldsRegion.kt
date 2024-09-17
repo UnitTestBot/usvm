@@ -1,8 +1,6 @@
 package org.usvm.machine.interpreter.statics
 
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentListOf
 import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcField
@@ -16,6 +14,10 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collections.immutable.getOrDefault
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.isTrue
 import org.usvm.machine.JcContext
 import org.usvm.machine.jctx
@@ -46,7 +48,9 @@ data class JcStaticFieldRegionId<Sort : USort>(
 
 internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     private val sort: Sort,
-    private var fieldValuesByClass: PersistentMap<JcClassOrInterface, PersistentMap<JcField, UExpr<Sort>>> = persistentHashMapOf(),
+    // TODO multimap
+    private var fieldValuesByClass: UPersistentHashMap<JcClassOrInterface, UPersistentHashMap<JcField, UExpr<Sort>>> =
+        persistentHashMapOf(),
     private var initialStatics: PersistentList<JcField> = persistentListOf()
 ) : UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     val mutableStaticFields: List<JcField>
@@ -62,36 +66,30 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
         key: JcStaticFieldLValue<Sort>,
         value: UExpr<Sort>,
         guard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
         val field = key.field
-
         val enclosingClass = field.enclosingClass
-        if (enclosingClass !in fieldValuesByClass) {
-            fieldValuesByClass = fieldValuesByClass.put(enclosingClass, persistentHashMapOf())
-        }
+        val classFields = fieldValuesByClass.getOrDefault(enclosingClass, persistentHashMapOf())
 
-        val newFieldValues = fieldValuesByClass
-            .getValue(enclosingClass)
-            .guardedWrite(key.field, value, guard) { key.sort.sampleUValue() }
-        val newFieldsByClass = fieldValuesByClass.put(enclosingClass, newFieldValues)
+        val newFieldValues = classFields.guardedWrite(key.field, value, guard, ownership) { key.sort.sampleUValue() }
+        val newFieldsByClass = fieldValuesByClass.put(enclosingClass, newFieldValues, ownership)
 
         return JcStaticFieldsMemoryRegion(sort, newFieldsByClass, initialStatics)
     }
 
-    fun mutatePrimitiveStaticFieldValuesToSymbolic(enclosingClass: JcClassOrInterface) {
-        val staticFields = fieldValuesByClass[enclosingClass] ?: return
+    fun mutatePrimitiveStaticFieldValuesToSymbolic(enclosingClass: JcClassOrInterface, ownership: MutabilityOwnership) {
+        var staticFields = fieldValuesByClass[enclosingClass] ?: return
 
-        val staticsToRemove = staticFields
-            .keys
-            .filter { fieldShouldBeSymbolic(it) }
+        val staticsToRemove = staticFields.keys.filterTo(mutableListOf()) { fieldShouldBeSymbolic(it) }
 
-        initialStatics = initialStatics.addAll(staticsToRemove)
-
-        // Remove concrete fields from the region
-        val updatedStaticFields = staticsToRemove.fold(staticFields) { acc, field ->
-            acc.remove(field)
+        for (static in staticsToRemove) {
+            initialStatics = initialStatics.add(static)
+            // Remove concrete fields from the region
+            staticFields = staticFields.remove(static, ownership)
         }
-        fieldValuesByClass = fieldValuesByClass.put(enclosingClass, updatedStaticFields)
+
+        fieldValuesByClass = fieldValuesByClass.put(enclosingClass, staticFields, ownership)
     }
 
     companion object {

@@ -15,6 +15,7 @@ import org.usvm.collection.set.primitive.UInputSetReading
 import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
@@ -22,7 +23,8 @@ import org.usvm.regions.Region
 @Suppress("MemberVisibilityCanBePrivate")
 open class UComposer<Type, USizeSort : USort>(
     ctx: UContext<USizeSort>,
-    val memory: UReadOnlyMemory<Type>
+    val memory: UReadOnlyMemory<Type>,
+    val ownership: MutabilityOwnership
 ) : UExprTransformer<Type, USizeSort>(ctx) {
     open fun <Sort : USort> compose(expr: UExpr<Sort>): UExpr<Sort> = apply(expr)
 

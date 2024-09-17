@@ -18,6 +18,7 @@ import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeField
 import org.usvm.collection.array.UInputArrayId
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -60,6 +61,7 @@ class TypeSolverTest {
     private val typeSystem = testTypeSystem
     private val components = mockk<UComponents<TestType, USizeSort>>()
     private val ctx = UContext(components)
+    private val ownership = MutabilityOwnership()
     private val solver: USolverBase<TestType>
     private val typeSolver: UTypeSolver<TestType>
 
@@ -73,12 +75,11 @@ class TypeSolverTest {
         every { components.mkSolver(ctx) } returns solver
         every { components.mkTypeSystem(ctx) } returns typeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<TestType>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
     }
 
-    private val pc = UPathConstraints<TestType>(ctx)
-    private val memory = UMemory<TestType, Method>(ctx, pc.typeConstraints)
-
+    private val pc = UPathConstraints<TestType>(ctx, ownership)
+    private val memory = UMemory<TestType, Method>(ctx, ownership, pc.typeConstraints)
     @Test
     fun `Test concrete ref -- open type inheritance`() {
         val ref = memory.allocConcrete(base1)
@@ -235,7 +236,7 @@ class TypeSolverTest {
 
         pc += mkHeapRefEq(b1, b2)
 
-        with(pc.clone()) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             val result = solver.check(this)
             assertIs<USatResult<UModelBase<TestType>>>(result)
 
@@ -248,7 +249,7 @@ class TypeSolverTest {
             assertTrue(concreteA != concreteB1 || concreteB1 != concreteC || concreteC != concreteA)
         }
 
-        with(pc.clone()) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             val model = mockk<UModelBase<TestType>> {
                 every { eval(a) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
                 every { eval(b1) } returns mkConcreteHeapRef(INITIAL_INPUT_ADDRESS)
@@ -267,7 +268,7 @@ class TypeSolverTest {
         }
 
 
-        with(pc.clone()) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkHeapRefEq(a, c) and mkHeapRefEq(b1, c)
             val result = solver.check(this)
             assertIs<UUnsatResult<UModelBase<TestType>>>(result)
@@ -344,15 +345,15 @@ class TypeSolverTest {
         val idx2 = 0.toBv()
 
         val field = mockk<Field>()
-        val heap = UMemory<TestType, Any>(ctx, mockk())
+        val heap = UMemory<TestType, Any>(ctx, ownership, mockk())
 
         heap.writeField(val1, field, bv32Sort, 1.toBv(), trueExpr)
         heap.writeField(val2, field, bv32Sort, 2.toBv(), trueExpr)
 
         val inputRegion = UInputArrayId<_, _, USizeSort>(mockk<TestType>(), addressSort)
             .emptyRegion()
-            .write(arr1 to idx1, val1, trueExpr)
-            .write(arr2 to idx2, val2, trueExpr)
+            .write(arr1 to idx1, val1, trueExpr, ownership)
+            .write(arr2 to idx2, val2, trueExpr, ownership)
 
         val firstReading = inputRegion.read(arr1 to idx1)
         val secondReading = inputRegion.read(arr2 to idx2)
@@ -503,12 +504,12 @@ class TypeSolverTest {
         val ref = mkConcreteHeapRef(1)
         pc.typeConstraints.allocate(ref.address, base1)
 
-        with(pc.clone()) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkIsSubtypeExpr(ref, top).not()
             assertTrue(isFalse)
         }
 
-        with(pc.clone()) {
+        with(pc.clone(MutabilityOwnership(), MutabilityOwnership())) {
             this += mkIsSupertypeExpr(ref, derived1A).not()
             assertTrue(isFalse)
         }
