@@ -19,6 +19,21 @@ data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessors: List<Accessor>) = AccessPath(base, accesses + accessors)
 }
 
+fun List<Accessor>.startsWith(other: List<Accessor>): Boolean {
+    return this.take(other.size) == other
+}
+
+fun AccessPath?.startsWith(other: AccessPath?): Boolean {
+    if (this == null || other == null) {
+        return false
+    }
+    if (this.base != other.base) {
+        return false
+    }
+    return this.accesses.startsWith(other.accesses)
+}
+
+
 sealed interface AccessPathBase {
     object This : AccessPathBase {
         override fun toString(): String = "<this>"
