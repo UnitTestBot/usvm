@@ -116,14 +116,14 @@ class ForwardFlowFunctions(
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
-        val (preAliases, postAliases) = getAliases(current.method)[current]!!
+        val (preAliases, _) = getAliases(current.method)[current]!!
 
         fun addTypeFactWithAliases(path: AccessPath, type: EtsTypeFact) {
             result += TypedVariable(path, type)
             if (path.accesses.isNotEmpty()) {
                 check(path.accesses.size == 1)
                 val base = AccessPath(path.base, emptyList())
-                for (alias in postAliases.getAliases(base)) {
+                for (alias in preAliases.getAliases(base)) {
                     val newPath = alias + path.accesses.single()
                     result += TypedVariable(newPath, type)
                 }
