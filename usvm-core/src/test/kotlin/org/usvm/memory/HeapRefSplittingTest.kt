@@ -26,6 +26,7 @@ import org.usvm.sizeSort
 import org.usvm.mkSizeExpr
 import org.usvm.api.memcpy
 import org.usvm.api.allocateArray
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
 import kotlin.test.assertEquals
@@ -36,6 +37,7 @@ import kotlin.test.assertSame
 class HeapRefSplittingTest {
     private lateinit var ctx: UContext<USizeSort>
     private lateinit var heap: UMemory<Type, Any>
+    private lateinit var ownership: MutabilityOwnership
 
     private lateinit var valueFieldDescr: Pair<Field, UBv32Sort>
     private lateinit var addressFieldDescr: Pair<Field, UAddressSort>
@@ -46,10 +48,11 @@ class HeapRefSplittingTest {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        val eqConstraints = UEqualityConstraints(ctx)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
-        heap = UMemory(ctx, typeConstraints)
+        val eqConstraints = UEqualityConstraints(ctx, ownership)
+        val typeConstraints = UTypeConstraints(ownership, components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, ownership, typeConstraints)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
         addressFieldDescr = mockk<Field>() to ctx.addressSort

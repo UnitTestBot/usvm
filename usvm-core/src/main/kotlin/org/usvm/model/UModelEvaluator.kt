@@ -27,7 +27,7 @@ import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.uncheckedCast
-import kotlinx.collections.immutable.persistentHashMapOf
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.NULL_ADDRESS
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -114,20 +114,20 @@ open class UModelEvaluator<SizeSort : USort>(
     ): UMemory1DArray<Idx, Value> {
         val interpretation = model.interpretation(translated)
 
-        val stores = persistentHashMapOf<UExpr<Idx>, UExpr<Value>>().builder()
+        var stores = persistentHashMapOf<UExpr<Idx>, UExpr<Value>>()
         val defaultValue = interpretation?.let {
             traverse1DArrayEntries(interpretation) { idx, value ->
-                stores[idx.mapAddress(addressesMapping)] = value.mapAddress(addressesMapping)
+                stores = stores.put(idx.mapAddress(addressesMapping), value.mapAddress(addressesMapping), ctx.defaultOwnership)
             }
         }
 
         if (defaultValue != null) {
-            return UMemory1DArray(stores.build(), defaultValue.mapAddress(addressesMapping))
+            return UMemory1DArray(stores, defaultValue.mapAddress(addressesMapping))
         }
 
         return completed1DArrays.getOrPut(translated) {
             val completedDefault = translated.sort.range.accept(this)
-            UMemory1DArray(stores.build(), completedDefault.uncheckedCast())
+            UMemory1DArray(stores, completedDefault.uncheckedCast())
         }.uncheckedCast()
     }
 
@@ -136,26 +136,26 @@ open class UModelEvaluator<SizeSort : USort>(
      * Complete model according to the array range (value) sort if array is free in the model.
      * */
     open fun <Idx1 : USort, Idx2 : USort, Value : USort> evalAndCompleteArray2DMemoryRegion(
-        translated: KDecl<KArray2Sort<Idx1, Idx2, Value>>,
+        translated: KDecl<KArray2Sort<Idx1, Idx2, Value>>
     ): UMemory2DArray<Idx1, Idx2, Value> {
         val interpretation = model.interpretation(translated)
 
-        val stores = persistentHashMapOf<Pair<UExpr<Idx1>, UExpr<Idx2>>, UExpr<Value>>().builder()
+        var stores = persistentHashMapOf<Pair<UExpr<Idx1>, UExpr<Idx2>>, UExpr<Value>>()
         val defaultValue = interpretation?.let {
             traverse2DArrayEntries(interpretation) { idx1, idx2, value ->
                 val mappedIdx1 = idx1.mapAddress(addressesMapping)
                 val mappedIdx2 = idx2.mapAddress(addressesMapping)
-                stores[mappedIdx1 to mappedIdx2] = value.mapAddress(addressesMapping)
+                stores = stores.put(mappedIdx1 to mappedIdx2, value.mapAddress(addressesMapping), ctx.defaultOwnership)
             }
         }
 
         if (defaultValue != null) {
-            return UMemory2DArray(stores.build(), defaultValue.mapAddress(addressesMapping))
+            return UMemory2DArray(stores, defaultValue.mapAddress(addressesMapping))
         }
 
         return completed2DArrays.getOrPut(translated) {
             val completedDefault = translated.sort.range.accept(this)
-            UMemory2DArray(stores.build(), completedDefault.uncheckedCast())
+            UMemory2DArray(stores, completedDefault.uncheckedCast())
         }.uncheckedCast()
     }
 

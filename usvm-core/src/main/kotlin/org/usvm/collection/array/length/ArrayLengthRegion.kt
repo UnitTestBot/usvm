@@ -1,12 +1,13 @@
 package org.usvm.collection.array.length
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -42,11 +43,11 @@ interface UArrayLengthsRegion<ArrayType, USizeSort : USort> : UMemoryRegion<UArr
 internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
     private val sort: USizeSort,
     private val arrayType: ArrayType,
-    private val allocatedLengths: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>> = persistentHashMapOf(),
+    private val allocatedLengths: UPersistentHashMap<UConcreteHeapAddress, UExpr<USizeSort>> = persistentHashMapOf(),
     private var inputLengths: UInputArrayLengths<ArrayType, USizeSort>? = null
 ) : UArrayLengthsRegion<ArrayType, USizeSort> {
 
-    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, UExpr<USizeSort>>) =
+    private fun updateAllocated(updated: UPersistentHashMap<UConcreteHeapAddress, UExpr<USizeSort>>) =
         UArrayLengthsMemoryRegion(sort, arrayType, updated, inputLengths)
 
     private fun getInputLength(ref: UArrayLengthLValue<ArrayType, USizeSort>): UInputArrayLengths<ArrayType, USizeSort> {
@@ -66,20 +67,21 @@ internal class UArrayLengthsMemoryRegion<ArrayType, USizeSort : USort>(
     override fun write(
         key: UArrayLengthLValue<ArrayType, USizeSort>,
         value: UExpr<USizeSort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ) = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, innerGuard) ->
-            val newRegion = region.allocatedLengths.guardedWrite(concreteRef.address, value, innerGuard) {
+            val newRegion = region.allocatedLengths.guardedWrite(concreteRef.address, value, innerGuard, ownership) {
                 sort.sampleUValue()
             }
             region.updateAllocated(newRegion)
         },
         blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
             val oldRegion = region.getInputLength(key)
-            val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
+            val newRegion = oldRegion.write(symbolicRef, value, innerGuard, ownership)
             region.updatedInput(newRegion)
         }
     )

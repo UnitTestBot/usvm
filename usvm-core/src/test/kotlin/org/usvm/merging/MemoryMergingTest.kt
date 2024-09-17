@@ -17,6 +17,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.readField
 import org.usvm.api.writeField
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
@@ -29,6 +30,7 @@ import kotlin.test.assertFails
 
 class MemoryMergingTest {
     private lateinit var ctx: UContext<UBv32Sort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var translator: UExprTranslator<SingleType, *>
     private lateinit var smtSolver: KZ3Solver
 
@@ -38,6 +40,7 @@ class MemoryMergingTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)
     }
@@ -45,9 +48,9 @@ class MemoryMergingTest {
     @Test
     fun `Empty memory`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
-        val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
-        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints)
+        val pathConstraints = UPathConstraints<SingleType>(this, ownership)
+        val memoryLeft = UMemory<SingleType, Method>(this, ownership, pathConstraints.typeConstraints)
+        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
 
         checkMergedEqualsToOriginal(
             memoryLeft,
@@ -62,14 +65,14 @@ class MemoryMergingTest {
     @Test
     fun `Distinct stack`() = with(ctx) {
         val byCondition = mkConst("cond", boolSort)
-        val pathConstraints = UPathConstraints<SingleType>(this)
+        val pathConstraints = UPathConstraints<SingleType>(this, ownership)
 
-        val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
+        val memoryLeft = UMemory<SingleType, Method>(this, ownership, pathConstraints.typeConstraints)
         memoryLeft.stack.push(3)
         memoryLeft.stack.writeRegister(0, mkBv(42))
         memoryLeft.stack.writeRegister(1, mkBv(1337))
 
-        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints)
+        val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
         memoryRight.stack.writeRegister(0, mkBv(13))
         memoryRight.stack.writeRegister(2, mkBv(9))
 
@@ -87,9 +90,10 @@ class MemoryMergingTest {
     fun `Distinct regions`(): Unit = with(ctx) {
         assertFails { // TODO: improve memory regions constraints merging
             val byCondition = mkConst("cond", boolSort)
-            val pathConstraints = UPathConstraints<SingleType>(this)
+            val pathConstraints = UPathConstraints<SingleType>(this, ownership)
 
-            val memoryLeft = UMemory<SingleType, Method>(this, pathConstraints.typeConstraints)
+            val leftOwnership = ownership
+            val memoryLeft = UMemory<SingleType, Method>(this, leftOwnership, pathConstraints.typeConstraints)
 
             val ref1 = allocateConcreteRef()
             val ref2 = allocateConcreteRef()
@@ -99,7 +103,7 @@ class MemoryMergingTest {
             memoryLeft.writeField(ref2, Unit, addressSort, mkRegisterReading(2, addressSort), trueExpr)
             memoryLeft.writeField(ref3, Unit, addressSort, mkRegisterReading(3, addressSort), trueExpr)
 
-            val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints)
+            val memoryRight = memoryLeft.clone(pathConstraints.typeConstraints, MutabilityOwnership(), MutabilityOwnership())
             memoryRight.writeField(ref1, Unit, addressSort, mkRegisterReading(-1, addressSort), trueExpr)
             memoryRight.writeField(ref2, Unit, addressSort, mkRegisterReading(-2, addressSort), trueExpr)
             memoryRight.writeField(ref3, Unit, addressSort, mkRegisterReading(-3, addressSort), trueExpr)
@@ -122,7 +126,9 @@ class MemoryMergingTest {
         vararg getters: (UMemory<SingleType, Method>) -> UExpr<out USort>,
     ) = with(ctx) {
         val mergeGuard = MutableMergeGuard(this).apply { appendThis(sequenceOf(byCondition)) }
-        val mergedMemory = checkNotNull(memoryLeft.mergeWith(memoryRight, mergeGuard))
+        val mergedMemory = checkNotNull(memoryLeft.mergeWith(
+            memoryRight, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership()
+        ))
 
         for (getter in getters) {
             val leftExpr: UExpr<USort> = getter(memoryLeft).uncheckedCast()

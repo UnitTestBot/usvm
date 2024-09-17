@@ -17,6 +17,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UNotExpr
 import org.usvm.USizeSort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.isFalse
 import org.usvm.logger
 import org.usvm.regions.IntIntervalsRegion
@@ -26,6 +27,7 @@ import kotlin.test.assertTrue
 
 class NumericConstraintsTests {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var bvSort: UBvSort
     private lateinit var constraints: UNumericConstraints<UBvSort>
     private var previousConstraints: UNumericConstraints<UBvSort>? = null
@@ -36,13 +38,14 @@ class NumericConstraintsTests {
         val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         bvSort = ctx.mkBvSort(sizeBits = 8u)
 
         resetConstraints()
     }
 
     private fun resetConstraints() {
-        constraints = UNumericConstraints(ctx, bvSort)
+        constraints = UNumericConstraints(ctx, bvSort, ownership)
         previousConstraints = null
 
         unsimplifiedConstraints = mutableListOf()
@@ -80,7 +83,7 @@ class NumericConstraintsTests {
     @Test
     fun testLinearPatternConstraintPropagation(): Unit = KZ3Solver(ctx).use { solver ->
         bvSort = ctx.mkBvSort(sizeBits = 32u)
-        constraints = UNumericConstraints(ctx, bvSort)
+        constraints = UNumericConstraints(ctx, bvSort, ownership)
 
         val bound = ctx.mkConst("bound", bvSort)
         var x: UExpr<UBvSort> = ctx.mkConst("x", bvSort)
@@ -102,7 +105,7 @@ class NumericConstraintsTests {
     fun testConcreteBoundsSimplification(): Unit = with(ctx) {
         KZ3Solver(ctx).use { solver ->
             bvSort = ctx.mkBvSort(sizeBits = 4u)
-            constraints = UNumericConstraints(ctx, bvSort)
+            constraints = UNumericConstraints(ctx, bvSort, ownership)
             val x by bvSort
 
             val zero = mkBv(0, bvSort)
@@ -118,9 +121,43 @@ class NumericConstraintsTests {
     }
 
     @Test
+    fun test() = with(ctx) {
+        val a = ctx.mkConst("a", bvSort)
+        val b = ctx.mkConst("b", bvSort)
+        val c = ctx.mkConst("c", bvSort)
+
+        val constraintsArray = arrayOf(
+            mkNotNoSimplify(mkBvSignedLessOrEqualExprNoSimplify(
+                mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(c), mkBvNegationExprNoSimplify(b)),
+                mkBvAddExprNoSimplify(c, mkBv(0xEE, bvSort)))),
+            mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(mkBvAddExprNoSimplify(b, a), mkBv(0x3E, bvSort))),
+            mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(
+                mkBvAddExprNoSimplify(c, mkBv(0xF8, bvSort)),
+                mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(b), mkBvNegationExprNoSimplify(a)))),
+            mkBvSignedGreaterOrEqualExprNoSimplify(mkBv(0x79, bvSort),
+                mkBvAddExprNoSimplify(mkBvNegationExprNoSimplify(b), mkBv(0x48, bvSort))),
+            mkEqNoSimplify(mkBv(0x05, bvSort), mkBvAddExprNoSimplify(
+                mkBvNegationExprNoSimplify(b), mkBvNegationExprNoSimplify(a))),
+            mkNotNoSimplify(mkBvSignedGreaterOrEqualExprNoSimplify(
+                mkBvAddExprNoSimplify(mkBv(0xAD, bvSort), a), mkBv(0x65, bvSort))),
+            mkNotNoSimplify(mkBvSignedLessOrEqualExprNoSimplify(
+                mkBvAddExprNoSimplify(mkBv(0x6E, bvSort), mkBvNegationExprNoSimplify(c)),
+                mkBvAddExprNoSimplify(mkBv(0xE0, bvSort), mkBvNegationExprNoSimplify(b)))
+            )
+        )
+
+        KYicesSolver(ctx).use { solver ->
+            for (constraint in constraintsArray) {
+                addConstraint(constraint)
+                solver.checkConstraints(0)
+            }
+        }
+    }
+
+    @Test
     fun testEvalInterval(): Unit = with(ctx) {
         bvSort = ctx.mkBvSort(sizeBits = 32u)
-        constraints = UNumericConstraints(ctx, bvSort)
+        constraints = UNumericConstraints(ctx, bvSort, ownership)
         val x by bvSort
 
         // x in [-5, -1] U [1, 5]
@@ -199,7 +236,7 @@ class NumericConstraintsTests {
     }
 
     private fun addConstraint(expr: UBoolExpr) {
-        previousConstraints = constraints.clone()
+        previousConstraints = constraints.clone(ownership, MutabilityOwnership())
         constraints.addConstraint(expr)
         unsimplifiedConstraints.add(expr)
     }
@@ -245,8 +282,8 @@ class NumericConstraintsTests {
         }
         val lastExpr = unsimplifiedConstraints.last()
 
-        logger.debug { "Incorrect state after add: $lastExpr" }
-        logger.debug { "Unsatisfied statements: $failedStatements" }
+        logger.error { "Incorrect state after add: $lastExpr" }
+        logger.error { "Unsatisfied statements: $failedStatements" }
 
         previousConstraints?.addConstraint(lastExpr)
     }

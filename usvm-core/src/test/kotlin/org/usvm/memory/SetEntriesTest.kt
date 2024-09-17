@@ -18,6 +18,7 @@ import org.usvm.collection.set.primitive.setEntries
 import org.usvm.collection.set.primitive.setUnion
 import org.usvm.collection.set.ref.refSetEntries
 import org.usvm.collection.set.ref.refSetUnion
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.isTrue
@@ -28,6 +29,7 @@ import kotlin.test.assertTrue
 
 class SetEntriesTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var heap: UMemory<Type, Any>
     private lateinit var setType: Type
 
@@ -36,10 +38,11 @@ class SetEntriesTest {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        val eqConstraints = UEqualityConstraints(ctx)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
-        heap = UMemory(ctx, typeConstraints)
+        val eqConstraints = UEqualityConstraints(ctx, ownership)
+        val typeConstraints = UTypeConstraints(ownership, components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, ownership, typeConstraints)
         setType = mockk<Type>()
     }
 

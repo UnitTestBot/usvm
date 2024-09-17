@@ -431,7 +431,7 @@ class JcExprResolver(
 
     private fun UWritableMemory<JcType>.writeCallSite(callSite: JcLambdaCallSite) {
         val callSiteRegion = getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
-        val updatedRegion = callSiteRegion.writeCallSite(callSite)
+        val updatedRegion = callSiteRegion.writeCallSite(callSite, ownership)
         setRegion(ctx.lambdaCallSiteRegionId, updatedRegion)
     }
 
@@ -1015,7 +1015,10 @@ class JcExprResolver(
                     if (sort === voidSort) return@forEach
 
                     val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
-                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass)
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(
+                        staticInitializer.enclosingClass,
+                        memory.ownership
+                    )
                 }
             }
         }
