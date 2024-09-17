@@ -266,18 +266,18 @@ class ForwardFlowFunctions(
         } else if (lhv.accesses.isEmpty()) {
             // x := y.f  OR  x := y[i]
 
+            // TODO: x := x.f
+            // ??????? x.f:T |= drop
+
+            // x.*:T |= drop
+            if (fact.variable.startsWith(lhv)) {
+                return emptyList()
+            }
+
             check(rhv.accesses.size == 1)
             when (val a = rhv.accesses.single()) {
                 // x := y.f
                 is FieldAccessor -> {
-                    // TODO: x := x.f
-                    // ??????? x.f:T |= drop
-
-                    // x.*:T |= drop
-                    if (fact.variable.startsWith(lhv)) {
-                        return emptyList()
-                    }
-
                     // y.f.*:T |= y.f.*:T (keep) + x.*:T (same tail after .f)
                     if (fact.variable.startsWith(rhv)) {
                         val path = lhv + fact.variable.accesses.drop(1)
@@ -298,6 +298,13 @@ class ForwardFlowFunctions(
                 is ElementAccessor -> {
                     // do nothing, pass-through
                     // TODO: ???
+
+                    // TODO: do we need to add type fact `x.*:T` here?
+                    // y[i].*:T |= y[i].*:T (keep) + x.*:T (same tail after [i])
+                    if (fact.variable.startsWith(rhv)) {
+                        val path = lhv + fact.variable.accesses.drop(1)
+                        return listOf(fact, TypedVariable(path, fact.type))
+                    }
                 }
             }
 
@@ -321,6 +328,7 @@ class ForwardFlowFunctions(
                     }
 
                     // x.*:T |= x.*:T (keep)
+                    // Note: .* does NOT start with .f, which is handled above
                     if (fact.variable.base == lhv.base) {
                         return listOf(fact)
                     }
@@ -350,6 +358,13 @@ class ForwardFlowFunctions(
                 is ElementAccessor -> {
                     // do nothing, pass-through
                     // TODO: ???
+
+                    // TODO: do we really want to add type fact `x[i]:T` here?
+                    // y.*:T |= y.*:T (keep) + x[i].*:T (same tail)
+                    if (fact.variable.startsWith(rhv)) {
+                        val path = lhv + fact.variable.accesses
+                        return listOf(fact, TypedVariable(path, fact.type))
+                    }
                 }
             }
 
