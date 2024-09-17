@@ -18,6 +18,7 @@ import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
+import java.io.File
 
 class ExpectedTypesExtractor(private val applicationGraph: EtsApplicationGraph) {
     fun extractTypes(method: EtsMethod): MethodTypes {
@@ -61,10 +62,22 @@ class ClassMatcherStatistics {
     private var someFactsAboutReturnTypes: Long = 0L
     private var returnIsAnyType: Long = 0L
 
-    fun verify(facts: MethodTypesFacts, types: MethodTypes, scene: EtsScene) {
+    private val methodToTypes: MutableMap<EtsMethod, MutableMap<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> =
+        hashMapOf()
+
+    private fun EtsMethod.saveComparisonInfo(position: AccessPathBase, type: EtsType, fact: EtsTypeFact?) {
+        val methodTypes = methodToTypes.getOrPut(this) { hashMapOf() }
+        check(position !in methodTypes)
+
+        methodTypes[position] = type to fact
+    }
+
+    fun verify(facts: MethodTypesFacts, types: MethodTypes, scene: EtsScene, method: EtsMethod) {
         // 'this' type
         types.thisType?.let {
             overallThisTypes++
+
+            method.saveComparisonInfo(AccessPathBase.This, it, facts.thisFact)
 
             val thisFact = facts.thisFact ?: return@let
             if (thisFact.matchesWith(it, scene)) {
@@ -78,7 +91,12 @@ class ClassMatcherStatistics {
         types.argumentsTypes.forEachIndexed { index, type ->
             overallArgsTypes++
 
-            val fact = facts.argumentsFacts.getOrNull(index) ?: return@forEachIndexed
+            val fact = facts.argumentsFacts.getOrNull(index)
+
+            method.saveComparisonInfo(AccessPathBase.Arg(index), type, fact)
+
+            if (fact == null) return@forEachIndexed
+
             if (fact.matchesWith(type, scene)) {
                 exactlyMatchedArgsTypes++
             } else {
@@ -88,6 +106,7 @@ class ClassMatcherStatistics {
 
         // return type
         overallReturnTypes++
+        method.saveComparisonInfo(AccessPathBase.Return, method.returnType, facts.returnFact)
 
         if (facts.returnFact is EtsTypeFact.AnyEtsTypeFact) {
             returnIsAnyType++
@@ -125,12 +144,65 @@ class ClassMatcherStatistics {
         Any type is returned: $returnIsAnyType
         Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes - returnIsAnyType}
     """.trimIndent()
+
+    fun dumpStatistics(outputFilePath: String? = null) {
+        val data = buildString {
+            appendLine(this@ClassMatcherStatistics.toString())
+            appendLine()
+
+            appendLine("Specifically: ${"=".repeat(42)}")
+
+            val comparator =
+                Comparator<MutableMap.MutableEntry<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> { fst, snd ->
+                    when (fst.key) {
+                        is AccessPathBase.This -> when {
+                            snd.key is AccessPathBase.This -> 0
+                            else -> -1
+                        }
+
+                        is AccessPathBase.Arg -> when (snd.key) {
+                            is AccessPathBase.This -> 1
+                            is AccessPathBase.Arg -> {
+                                (fst.key as AccessPathBase.Arg).index.compareTo((snd.key as AccessPathBase.Arg).index)
+                            }
+                            else -> -1
+                        }
+
+                        else -> when (snd.key) {
+                            is AccessPathBase.This, is AccessPathBase.Arg -> 1
+                            else -> 0
+                        }
+                    }
+                }
+
+            methodToTypes.forEach { (method, types) ->
+                appendLine("${method.signature}:")
+
+                types
+                    .entries
+                    .sortedWith(comparator)
+                    .forEach { (path, typeInfo) ->
+                        appendLine("${path}: ${typeInfo.first} -> ${typeInfo.second}")
+                    }
+                appendLine()
+            }
+        }
+
+        if (outputFilePath == null) {
+            println(data)
+            return
+        }
+
+        val file = File(outputFilePath)
+        println("File with statistics is located: ${file.absolutePath}")
+        file.writeText(data)
+    }
 }
 
 data class MethodTypes(
     val thisType: EtsType?,
     val argumentsTypes: List<EtsType>,
-    val returnType: EtsType
+    val returnType: EtsType,
 ) {
     fun matchesWithTypeFacts(other: MethodTypesFacts, ignoreReturnType: Boolean, scene: EtsScene): Boolean {
         if (thisType == null && other.thisFact != null) return false
@@ -152,7 +224,7 @@ data class MethodTypes(
 data class MethodTypesFacts(
     val thisFact: EtsTypeFact?,
     val argumentsFacts: List<EtsTypeFact>,
-    val returnFact: EtsTypeFact
+    val returnFact: EtsTypeFact,
 ) {
     companion object {
         fun fromEtsMethodTypeFacts(fact: EtsMethodTypeFacts, method: EtsMethod): MethodTypesFacts {
@@ -179,6 +251,7 @@ private fun EtsTypeFact.matchesWith(type: EtsType, scene: EtsScene): Boolean = w
     EtsTypeFact.AnyEtsTypeFact -> {
         type is EtsAnyType || type is EtsUnknownType // TODO any other combination?
     }
+
     is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
         is EtsArrayType -> this.elementType.matchesWith(type.elementType, scene)
 
@@ -198,7 +271,9 @@ private fun EtsTypeFact.matchesWith(type: EtsType, scene: EtsScene): Boolean = w
         // TODO intersections checks are not supported yet
         false
     }
-    is EtsTypeFact.UnionEtsTypeFact -> types.any { it.matchesWith(type, scene)
+
+    is EtsTypeFact.UnionEtsTypeFact -> types.any {
+        it.matchesWith(type, scene)
     }
 }
 

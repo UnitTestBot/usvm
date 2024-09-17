@@ -67,9 +67,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project1.txt")
     }
 
     @Test
@@ -110,9 +110,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project2.txt")
     }
 
 
@@ -154,9 +154,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project3.txt")
     }
 
 
@@ -200,10 +200,10 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
 
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("fourthProject.txt")
     }
 
     @Test
@@ -244,9 +244,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project5.txt")
     }
 
     @Test
@@ -287,9 +287,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project6.txt")
     }
 
     @Test
@@ -330,9 +330,9 @@ class EtsTypeResolverTest {
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
             val actualTypes = MethodTypesFacts.fromEtsMethodTypeFacts(facts.getValue(m), method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene)
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
         }
-        println(classMatcherStatistics)
+        classMatcherStatistics.dumpStatistics("project7.txt")
     }
 
 
@@ -392,7 +392,7 @@ class EtsTypeResolverTest {
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
 
         val classMatcherStatistics = ClassMatcherStatistics()
-        classMatcherStatistics.verify(actualTypes, expectedTypes, project)
+        classMatcherStatistics.verify(actualTypes, expectedTypes, project, entrypoint)
         println(classMatcherStatistics)
     }
 

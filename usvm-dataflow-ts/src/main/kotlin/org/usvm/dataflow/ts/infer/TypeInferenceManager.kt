@@ -372,7 +372,8 @@ class TypeInferenceManager(
                     // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
                         cls = EtsClassType(EtsClassSignature(it.name)),
-                        properties = properties.mapValues { it.value.resolveType() } // TODO it is correct? Mb we should save the properties?
+                        properties = emptyMap() // TODO it is correct? Mb we should save the properties?
+//                        properties = properties.mapValues { it.value.resolveType() } // TODO it is correct? Mb we should save the properties?
                     )
                 } ?: this
         }
