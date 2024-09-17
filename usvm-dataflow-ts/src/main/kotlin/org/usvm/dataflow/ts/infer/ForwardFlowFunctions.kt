@@ -218,10 +218,11 @@ class ForwardFlowFunctions(
                 }
 
             } else {
-                // x.f := const
+                // x.f := const  OR  x[i] := const
 
                 check(lhv.accesses.size == 1)
                 when (val a = lhv.accesses.single()) {
+                    // x.f := const
                     is FieldAccessor -> {
                         val base = AccessPath(lhv.base, emptyList())
 
@@ -235,6 +236,7 @@ class ForwardFlowFunctions(
                         }
                     }
 
+                    // x[i] := const
                     is ElementAccessor -> {
                         // do nothing, pass-through
                     }
@@ -250,12 +252,12 @@ class ForwardFlowFunctions(
             // TODO: x := x
             // Note: handled outside
 
-            // x...:T |= drop
+            // x.*:T |= drop
             if (fact.variable.startsWith(lhv)) {
                 return emptyList()
             }
 
-            // y...:T |= y...:T (keep) + x...:T (same tail)
+            // y.*:T |= y.*:T (keep) + x.*:T (same tail)
             if (fact.variable.startsWith(rhv)) {
                 val path = AccessPath(lhv.base, fact.variable.accesses)
                 return listOf(fact, TypedVariable(path, fact.type))
@@ -271,7 +273,7 @@ class ForwardFlowFunctions(
                     // TODO: x := x.f
                     // ??????? x.f:T |= drop
 
-                    // x...:T |= drop
+                    // x.*:T |= drop
                     if (fact.variable.startsWith(lhv)) {
                         return emptyList()
                     }
@@ -281,7 +283,7 @@ class ForwardFlowFunctions(
                         val path = lhv + fact.variable.accesses.drop(1)
                         return listOf(fact, TypedVariable(path, fact.type))
                     }
-                    // Note: the following is unnecessary due to `z := y`
+                    // Note: the following is unnecessary due to `z := y` alias
                     // // z in G(y), z.f.*:T |= z.f.*:T (keep) + x.*:T (same tail after .f)
                     // val y = AccessPath(rhv.base, emptyList())
                     // for (z in preAliases.getAliases(y)) {
@@ -292,6 +294,7 @@ class ForwardFlowFunctions(
                     // }
                 }
 
+                // x := y[i]
                 is ElementAccessor -> {
                     // do nothing, pass-through
                     // TODO: ???
@@ -333,7 +336,7 @@ class ForwardFlowFunctions(
                         }
                         return result
                     }
-                    // Note: the following is unnecessary due to `z := y`
+                    // Note: the following is unnecessary due to `z := y` alias
                     // // z in G(y), z.*:T |= x.f.*:T (same tail)
                     // for (z in preAliases.getAliases(rhv)) {
                     //     if (fact.variable.startsWith(z)) {
