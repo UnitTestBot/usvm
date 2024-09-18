@@ -56,6 +56,34 @@ class CaseAssignFieldToLocal3 {
 
 // ----------------------------------------
 
+// Case `x := x.f`
+class CaseAssignFieldToSelf {
+    entrypoint(a: any) {
+        let x = { f: a };
+        x = x.f; // x: any
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: any }"
+    }
+}
+
+// Case `x.f := x`
+class CaseAssignSelfToField {
+    entrypoint(a: any) {
+        let x = { f: a }; // x: { f: any }
+        x.f = x; // x: { f: any }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: any }"
+    }
+}
+
+// ----------------------------------------
+
 // Case `x.f := y`
 class CaseAssignLocalNumberToField {
     entrypoint(x: any) {
@@ -81,6 +109,20 @@ class CaseAssignLocalObjectToField {
 
     infer(a: any) {
         const EXPECTED_ARG_0 = "Object { f: Object { t: number } }";
+    }
+}
+
+// ----------------------------------------
+
+// Case `x.f.f := const`
+class CaseNestedDuplicateFields {
+    entrypoint(x: any) {
+        x.f.f = 2; // x: { f: { f: number } }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Object { f: Object { f: number } }";
     }
 }
 
@@ -808,6 +850,37 @@ class CaseArgumentUnion3 {
     }
 }
 
+// Case `x := "string", x := number`
+class CaseUnion4 {
+    entrypoint() {
+        let x: string | number = "str";
+        if (Math.random() > 0.5) {
+            x = 42;
+        }
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "number | string";
+    }
+}
+
+// Case `x := "string", x := number`
+// class CaseUnion5 {
+//     entrypoint() {
+//         let x: string | number;
+//         if (Math.random() > 0.5) {
+//             x = 42;
+//         }
+//         infer(x);
+//     }
+//
+//     infer(a: any): any {
+//         // Currently, `number | undefined` is inferred due to the lack of DeclareStmt
+//         const EXPECTED_ARG_0 = "number | string";
+//     }
+// }
+
 // ----------------------------------------
 
 // Case `y := x.f.g`
@@ -845,5 +918,23 @@ class CaseAssignLocalNumberToNestedField {
 
     infer(a: any) {
         const EXPECTED_ARG_0 = "Object { f: Object { g: number } }";
+    }
+}
+
+// ----------------------------------------
+
+class CaseLoop {
+    entrypoint() {
+        let x: any = {};
+        let a: any = 42;
+        for (let i = 0; i < 10; i++) {
+            x.f = a;
+            a = x;
+        }
+        infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "any";
     }
 }

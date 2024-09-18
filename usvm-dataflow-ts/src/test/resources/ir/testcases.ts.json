@@ -2472,6 +2472,1444 @@
     },
     {
       "signature": {
+        "name": "CaseAssignFieldToSelf",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignFieldToSelf",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignFieldToSelf",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignFieldToSelf",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseAssignFieldToSelf",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "infer",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignFieldToSelf",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseAssignFieldToSelf",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "Object { f: any }",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignFieldToSelf",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseAssignFieldToSelf",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "CaseAssignSelfToField",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignSelfToField",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignSelfToField",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignSelfToField",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseAssignSelfToField",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "infer",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignSelfToField",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseAssignSelfToField",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "Object { f: any }",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseAssignSelfToField",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseAssignSelfToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
         "name": "CaseAssignLocalNumberToField",
         "declaringFile": {
           "projectName": "ts",
@@ -3260,7 +4698,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -3274,7 +4712,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -3353,7 +4791,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3367,7 +4805,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3387,7 +4825,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -3398,7 +4836,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3422,7 +4860,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3437,7 +4875,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3479,7 +4917,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3735,6 +5173,611 @@
                         "method": {
                           "declaringClass": {
                             "name": "CaseAssignLocalObjectToField",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "CaseNestedDuplicateFields",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseNestedDuplicateFields",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseNestedDuplicateFields",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseNestedDuplicateFields",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseNestedDuplicateFields",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "infer",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "2",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseNestedDuplicateFields",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseNestedDuplicateFields",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "Object { f: Object { f: number } }",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseNestedDuplicateFields",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseNestedDuplicateFields",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseNestedDuplicateFields",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10047,7 +12090,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnObject-infer-2",
+                    "name": "AnonymousClass-CaseReturnObject-infer-4",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -10061,7 +12104,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnObject-infer-2",
+                    "name": "AnonymousClass-CaseReturnObject-infer-4",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -10134,7 +12177,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10148,7 +12191,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10168,7 +12211,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnObject-infer-2",
+                              "name": "AnonymousClass-CaseReturnObject-infer-4",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -10179,7 +12222,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10203,7 +12246,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10218,7 +12261,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10236,7 +12279,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10537,7 +12580,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -10551,7 +12594,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -10613,7 +12656,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10627,7 +12670,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10647,7 +12690,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -10658,7 +12701,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10682,7 +12725,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10697,7 +12740,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -10733,7 +12776,7 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                                "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "testcases.ts"
@@ -15730,6 +17773,667 @@
     },
     {
       "signature": {
+        "name": "CaseUnion4",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseUnion4",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseUnion4",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseUnion4",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseUnion4",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "StringType"
+                    },
+                    {
+                      "_": "NumberType"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "Math",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "infer",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1,
+                    2
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "StringType"
+                            },
+                            {
+                              "_": "NumberType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "str",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "Math",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "random",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": ">",
+                        "left": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "0.5",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "StringType"
+                                },
+                                {
+                                  "_": "NumberType"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [
+                    1
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "StringType"
+                            },
+                            {
+                              "_": "NumberType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseUnion4",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "AnyType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseUnion4",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "number | string",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseUnion4",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseUnion4",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
         "name": "CaseAliasChain1",
         "declaringFile": {
           "projectName": "ts",
@@ -17568,6 +20272,794 @@
     },
     {
       "signature": {
+        "name": "CaseLoop",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseLoop",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseLoop",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseLoop",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseLoop",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "i",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "infer",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "42",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "i",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "0",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [
+                    2,
+                    3
+                  ],
+                  "stmts": [
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "<",
+                        "left": {
+                          "_": "Local",
+                          "name": "i",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "10",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "x",
+                            "type": {
+                              "_": "AnyType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                },
+                {
+                  "id": 3,
+                  "successors": [
+                    1
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "AnyType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "i",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "BinopExpr",
+                        "op": "+",
+                        "left": {
+                          "_": "Local",
+                          "name": "i",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "1",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseLoop",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseLoop",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "any",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseLoop",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
         "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
         "declaringFile": {
           "projectName": "ts",
@@ -17810,7 +21302,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+        "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -17825,14 +21317,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "t",
+            "name": "f",
             "type": {
               "_": "UnknownType"
             }
@@ -17847,7 +21339,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -17878,7 +21370,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -17892,7 +21384,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -17912,7 +21404,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -17923,7 +21415,491 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "f",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "f",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "t",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -17956,7 +21932,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18000,7 +21976,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18023,7 +21999,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-1",
+                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18052,7 +22028,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseReturnObject-infer-2",
+        "name": "AnonymousClass-CaseReturnObject-infer-4",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -18067,7 +22043,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-2",
+              "name": "AnonymousClass-CaseReturnObject-infer-4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18089,7 +22065,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-2",
+              "name": "AnonymousClass-CaseReturnObject-infer-4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18120,7 +22096,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18134,7 +22110,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18154,7 +22130,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnObject-infer-2",
+                              "name": "AnonymousClass-CaseReturnObject-infer-4",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -18165,7 +22141,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18198,7 +22174,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-2",
+              "name": "AnonymousClass-CaseReturnObject-infer-4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18242,7 +22218,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18265,7 +22241,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-2",
+                            "name": "AnonymousClass-CaseReturnObject-infer-4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18294,7 +22270,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+        "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -18309,7 +22285,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18331,7 +22307,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18362,7 +22338,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18376,7 +22352,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18396,7 +22372,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -18407,7 +22383,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18440,7 +22416,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -18484,7 +22460,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -18507,7 +22483,186 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-3",
+                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "AnonymousClass-CaseLoop-entrypoint-6",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
