@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
@@ -22,6 +23,8 @@ import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
+
+private val logger = KotlinLogging.logger {}
 
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
@@ -105,7 +108,17 @@ class ForwardFlowFunctions(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequentFact(current, fact)
+            is TypedVariable -> sequentFact(current, fact).filter {
+                // if (it.variable.accesses.size > 10) {
+                //     logger.warn { "Dropping long fact: $it" }
+                //     return@filter false
+                // }
+                // if (it.variable.accesses.hasDuplicateFields()) {
+                //     logger.warn { "Dropping fact with duplicate fields: $it" }
+                //     return@filter false
+                // }
+                true
+            }
         }
     }
 
