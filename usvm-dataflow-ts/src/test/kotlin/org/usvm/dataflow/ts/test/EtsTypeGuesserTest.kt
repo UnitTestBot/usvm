@@ -173,20 +173,24 @@ class EtsTypeResolverTest {
 
         val graphAst = EtsApplicationGraphImpl(astScene)
 
-        val entrypoint = abcScene.classes
+        val entrypoints = abcScene.classes
             .flatMap { it.methods }
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphWithExplicitEntryPointAbc)
         }
 
-        val facts = manager.analyze(entrypoint, guessUniqueTypes = true)
+        val facts = manager.analyze(entrypoints, guessUniqueTypes = true)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        check(graphAst.cp.classes.any { it.methods.any { it.parameters.isNotEmpty() && it.name in entrypoint.map { it.name }} })
+        check(graphAst.cp.classes.any { cls ->
+            cls.methods.any { method ->
+                method.parameters.isNotEmpty() && method.name in entrypoints.map { it.name }
+            }
+        })
 
-        entrypoint.forEach { m ->
+        entrypoints.forEach { m ->
             val suitableClasses = graphAst.cp.classes
                 .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
 
