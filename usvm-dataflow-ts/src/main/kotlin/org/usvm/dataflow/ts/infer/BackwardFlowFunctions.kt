@@ -276,7 +276,7 @@ class BackwardFlowFunctions(
     private fun sequent(
         current: EtsStmt,
         fact: TypedVariable,
-    ): List<BackwardTypeDomainFact> {
+    ): List<TypedVariable> {
         // println("sequentFact(current = $current, fact = $fact)")
 
         if (current !is EtsAssignStmt) {
@@ -422,8 +422,8 @@ class BackwardFlowFunctions(
     private fun call(
         callStatement: EtsStmt,
         fact: TypedVariable,
-    ): List<BackwardTypeDomainFact> {
-        val result = mutableListOf<BackwardTypeDomainFact>()
+    ): List<TypedVariable> {
+        val result = mutableListOf<TypedVariable>()
 
         val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase()
         if (callResult != null) {
@@ -449,7 +449,7 @@ class BackwardFlowFunctions(
         callStatement: EtsStmt,
         calleeStart: EtsStmt,
         fact: TypedVariable,
-    ): List<BackwardTypeDomainFact> {
+    ): List<TypedVariable> {
         val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase() ?: return emptyList()
 
         if (fact.variable != callResult) return emptyList()
@@ -468,16 +468,14 @@ class BackwardFlowFunctions(
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
-            is TypedVariable -> exit(callStatement, returnSite, exitStatement, fact)
+            is TypedVariable -> exit(callStatement, fact)
         }
     }
 
     private fun exit(
         callStatement: EtsStmt,
-        returnSite: EtsStmt,
-        exitStatement: EtsStmt,
         fact: TypedVariable,
-    ): List<BackwardTypeDomainFact> {
+    ): List<TypedVariable> {
         val callExpr = callStatement.callExpr ?: error("No call")
 
         when (fact.variable) {

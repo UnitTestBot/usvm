@@ -190,7 +190,7 @@ class ForwardFlowFunctions(
         return result
     }
 
-    private fun sequentFact(current: EtsStmt, fact: TypedVariable): List<ForwardTypeDomainFact> {
+    private fun sequentFact(current: EtsStmt, fact: TypedVariable): List<TypedVariable> {
         if (current !is EtsAssignStmt) return listOf(fact)
 
         val lhv = current.lhv.toPath()
@@ -403,7 +403,7 @@ class ForwardFlowFunctions(
     private fun call(
         callStatement: EtsStmt,
         fact: TypedVariable,
-    ): List<ForwardTypeDomainFact> {
+    ): List<TypedVariable> {
         val callResultValue = (callStatement as? EtsAssignStmt)?.lhv?.toPath()
         if (callResultValue != null) {
             // Drop fact on LHS as it will be overwritten by the call result
@@ -443,8 +443,8 @@ class ForwardFlowFunctions(
     private fun start(
         callStatement: EtsStmt,
         fact: TypedVariable,
-    ): List<ForwardTypeDomainFact> {
-        val result = mutableListOf<ForwardTypeDomainFact>()
+    ): List<TypedVariable> {
+        val result = mutableListOf<TypedVariable>()
 
         val callExpr = callStatement.callExpr ?: error("No call")
 
@@ -482,7 +482,7 @@ class ForwardFlowFunctions(
         callStatement: EtsStmt,
         exitStatement: EtsStmt,
         fact: TypedVariable,
-    ): List<ForwardTypeDomainFact> {
+    ): List<TypedVariable> {
         val factVariableBase = fact.variable.base
         val callExpr = callStatement.callExpr ?: error("No call")
 
