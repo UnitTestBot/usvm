@@ -115,7 +115,6 @@ class EtsTypeResolverTest {
         classMatcherStatistics.dumpStatistics("project2.txt")
     }
 
-
     @Test
     fun testLoadProject3() {
         val projectAbc = "$yourPrefixForTestFolders/TestProjects/mobiledatasettings-callui-default-signed"
@@ -158,7 +157,6 @@ class EtsTypeResolverTest {
         }
         classMatcherStatistics.dumpStatistics("project3.txt")
     }
-
 
     @Test
     fun testLoadProject4() {
@@ -338,7 +336,6 @@ class EtsTypeResolverTest {
         }
         classMatcherStatistics.dumpStatistics("project7.txt")
     }
-
 
     @Test
     fun `use non unique fields`() {
