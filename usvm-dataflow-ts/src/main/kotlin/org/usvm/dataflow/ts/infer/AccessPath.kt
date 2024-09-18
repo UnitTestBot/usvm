@@ -34,9 +34,9 @@ fun AccessPath?.startsWith(other: AccessPath?): Boolean {
     return this.accesses.startsWith(other.accesses)
 }
 
-fun List<Accessor>.hasDuplicateFields(): Boolean {
-    val fields = this.filterIsInstance<FieldAccessor>()
-    return fields.toSet().size != fields.size
+fun List<Accessor>.hasDuplicateFields(limit: Int = 2): Boolean {
+    val counts = this.groupingBy { it }.eachCount()
+    return counts.any { it.value >= limit }
 }
 
 sealed interface AccessPathBase {
