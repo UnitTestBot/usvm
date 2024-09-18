@@ -775,6 +775,39 @@ class CaseArgumentUnion2 {
     }
 }
 
+// Case `x := "string" | number`
+class CaseUnion3 {
+    entrypoint() {
+        let x: string | number;
+        if (Math.random() > 0.5) {
+            x = "str";
+        } else {
+            x = 42;
+        }
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "number | string";
+    }
+}
+
+// Case `x := "string" | number`
+class CaseArgumentUnion3 {
+    entrypoint(x: string | number) {
+        if (Math.random() > 0.5) {
+            x = "str";
+        } else {
+            x = 42;
+        }
+        infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "number | string";
+    }
+}
+
 // ----------------------------------------
 
 // Case `y := x.f.g`
