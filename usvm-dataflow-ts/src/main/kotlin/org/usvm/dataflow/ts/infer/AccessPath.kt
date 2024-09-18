@@ -10,9 +10,6 @@ import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsValue
-import org.usvm.dataflow.ifds.Accessor
-import org.usvm.dataflow.ifds.ElementAccessor
-import org.usvm.dataflow.ifds.FieldAccessor
 
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)
@@ -94,7 +91,7 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
     }
 
     is EtsStaticFieldRef -> {
-        AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name, isStatic = true)))
+        AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name)))
     }
 
     is EtsCastExpr -> arg.toPathOrNull()

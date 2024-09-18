@@ -21,8 +21,6 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.usvm.dataflow.ifds.ElementAccessor
-import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.Maybe

@@ -30,8 +30,6 @@ import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
-import org.usvm.dataflow.ifds.ElementAccessor
-import org.usvm.dataflow.ifds.FieldAccessor
 
 sealed interface Allocation {
     class New : Allocation

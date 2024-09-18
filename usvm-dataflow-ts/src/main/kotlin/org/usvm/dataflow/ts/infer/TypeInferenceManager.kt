@@ -18,11 +18,8 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.reversed
-import org.usvm.dataflow.ifds.Accessor
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
-import org.usvm.dataflow.ifds.ElementAccessor
-import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.SingletonUnit
