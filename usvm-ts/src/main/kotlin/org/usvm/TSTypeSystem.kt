@@ -1,6 +1,5 @@
 package org.usvm
 
-import kotlin.time.Duration
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsPrimitiveType
@@ -13,6 +12,7 @@ import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
+import kotlin.time.Duration
 
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,

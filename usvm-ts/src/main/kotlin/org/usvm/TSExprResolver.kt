@@ -80,8 +80,10 @@ class TSExprResolver(
         localToSort
     )
 
+    fun resolveTSExprNoUnwrap(expr: EtsEntity): UExpr<out USort>? = expr.accept(this)
+
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
-        return expr.accept(this)
+        return resolveTSExprNoUnwrap(expr)?.unwrapJoinedExpr(ctx)
     }
 
     fun resolveLValue(value: EtsValue): ULValue<*, *>? =

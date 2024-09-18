@@ -33,7 +33,7 @@ import org.usvm.state.TSState
 import org.usvm.types.first
 
 class TSTestResolver(
-    val state: TSState
+    private val state: TSState
 ) {
 
     fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
@@ -76,7 +76,7 @@ class TSTestResolver(
 
     private fun approximateParam(expr: UConcreteHeapRef, idx: Int, model: UModelBase<EtsType>): TSObject =
         with(expr.ctx as TSContext) {
-            val suggestedType = state.getSuggestedType(expr)
+            val suggestedType = state.getSuggestedType(idx)
             return suggestedType?.let { newType ->
                 val newLValue = URegisterStackLValue(typeToSort(newType), idx)
                 val transformed = model.read(newLValue).extractOrThis()

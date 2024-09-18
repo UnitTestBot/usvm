@@ -1,9 +1,9 @@
 package org.usvm.samples
 
-import kotlin.test.Test
 import org.usvm.TSObject
 import org.usvm.util.MethodDescriptor
 import org.usvm.util.TSMethodTestRunner
+import kotlin.test.Test
 
 class StaticMethods : TSMethodTestRunner() {
     @Test

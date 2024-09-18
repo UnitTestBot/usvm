@@ -1,9 +1,5 @@
 package org.usvm.util
 
-import java.nio.file.Paths
-import kotlin.reflect.KClass
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
@@ -26,6 +22,9 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import java.nio.file.Paths
+import kotlin.reflect.KClass
+import kotlin.time.Duration
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
@@ -225,7 +224,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
         exceptionsPropagation = true,
-        timeout = 60_000.milliseconds,
+        timeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests

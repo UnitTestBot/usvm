@@ -18,7 +18,6 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
@@ -77,7 +76,7 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val boolExpr = exprResolver
-            .resolveTSExpr(stmt.condition)
+            .resolveTSExprNoUnwrap(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: return
 
@@ -175,17 +174,6 @@ class TSInterpreter(
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
         val state = TSState(ctx, method, targets = UTargetsSet.from(targets))
-
-        with(ctx) {
-            val params = List(method.parameters.size) { idx ->
-                URegisterStackLValue(addressSort, idx)
-            }
-            val refs = params.map { state.memory.read(it) }
-
-            // TODO check correctness of constraints and process this instance
-            state.pathConstraints += mkAnd(refs.map { mkEq(it.asExpr(addressSort), nullRef).not() })
-        }
-
         val solver = ctx.solver<EtsType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)

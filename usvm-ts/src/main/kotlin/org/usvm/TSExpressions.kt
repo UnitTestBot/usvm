@@ -36,6 +36,32 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
+class UJoinedBoolExpr(
+    ctx: TSContext,
+    val exprs: List<UBoolExpr>
+) : UBoolExpr(ctx) {
+    override val sort: UBoolSort
+        get() = ctx.boolSort
+
+    private val joinedExprs = ctx.mkAnd(exprs)
+
+    override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
+        return transformer.apply(joinedExprs)
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
+
+    override fun internHashCode(): Int = hash()
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("joined(")
+        joinedExprs.print(printer)
+        printer.append(")")
+    }
+
+    fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
+}
+
 class TSWrappedValue(
     ctx: TSContext,
     val value: UExpr<out USort>,
@@ -56,9 +82,11 @@ class TSWrappedValue(
             val otherTransformer = TSExprTransformer(other, scope)
             transformer.intersectWithTypeCoercion(otherTransformer, action)
         }
+
         other is TSWrappedValue -> {
             transformer.intersectWithTypeCoercion(other.transformer, action)
         }
+
         else -> TODO()
     }
 
@@ -68,7 +96,7 @@ class TSWrappedValue(
         sort: USort,
     ): UExpr<out USort> {
         transformer.transform(sort)
-        return coerce(other , action)
+        return coerce(other, action)
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
@@ -80,7 +108,9 @@ class TSWrappedValue(
     override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {
-       printer.append("Wrapped[${value.print(printer)}]")
+        printer.append("wrapped(")
+        value.print(printer)
+        printer.append(")")
     }
 
 }

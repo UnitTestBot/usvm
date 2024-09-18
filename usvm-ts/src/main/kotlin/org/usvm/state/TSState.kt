@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.TSContext
 import org.usvm.TSTarget
+import org.usvm.TSTypeStorage
 import org.usvm.UAddressSort
 import org.usvm.UCallStack
 import org.usvm.UExpr
@@ -26,7 +27,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
-    private val refToSuggestedTypes: MutableMap<UExpr<UAddressSort>, MutableSet<EtsType>> = mutableMapOf()
+    private val typeStorage: TSTypeStorage = TSTypeStorage(ctx)
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     callStack,
@@ -51,16 +52,14 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
-            refToSuggestedTypes.toMutableMap()
+            typeStorage.clone()
         )
     }
 
     override val isExceptional: Boolean
         get() = methodResult is TSMethodResult.TSException
 
-    fun storeSuggestedType(ref: UExpr<UAddressSort>, type: EtsType) {
-        refToSuggestedTypes.getOrPut(ref) { mutableSetOf() }.add(type)
-    }
+    fun storeSuggestedType(ref: UExpr<UAddressSort>, type: EtsType) = typeStorage.storeSuggestedType(ref, type)
 
-    fun getSuggestedType(ref: UExpr<UAddressSort>): EtsType? = refToSuggestedTypes[ref]?.first()
+    fun getSuggestedType(key: Any): EtsType? = typeStorage.getSuggestedType(key)
 }

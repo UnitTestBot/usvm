@@ -1,10 +1,10 @@
 package org.usvm.samples
 
-import kotlin.test.Test
 import org.junit.jupiter.api.Disabled
 import org.usvm.TSObject
 import org.usvm.util.MethodDescriptor
 import org.usvm.util.TSMethodTestRunner
+import kotlin.test.Test
 
 class Arguments : TSMethodTestRunner() {
     @Test
