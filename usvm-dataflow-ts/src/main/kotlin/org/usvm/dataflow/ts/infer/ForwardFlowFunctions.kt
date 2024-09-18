@@ -363,10 +363,18 @@ class ForwardFlowFunctions(
                     // aliases: z in G(x), z.f.*:T |= x.f.*:T (same tail)
                     if (fact.variable.startsWith(rhv)) {
                         val result = mutableListOf(fact)
-                        result += TypedVariable(lhv + fact.variable.accesses, fact.type)
+                        // skip duplicate fields
+                        // if (fact.variable.accesses.firstOrNull() != a) {
+                            val path1 = lhv + fact.variable.accesses
+                            result += TypedVariable(path1, fact.type)
+                        // }
                         for (z in preAliases.getAliases(x)) {
-                            val path = z + a + fact.variable.accesses
-                            result += TypedVariable(path, fact.type)
+                            // skip duplicate fields
+                            // if (z.accesses.firstOrNull() != a) {
+                                // TODO: what about z.accesses.last == a ?
+                                val path2 = z + a + fact.variable.accesses
+                                result += TypedVariable(path2, fact.type)
+                            // }
                         }
                         return result
                     }
