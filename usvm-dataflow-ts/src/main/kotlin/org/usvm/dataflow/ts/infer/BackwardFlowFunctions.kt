@@ -35,6 +35,12 @@ class BackwardFlowFunctions(
     val savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
 
+    // private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
+    //
+    // private fun getAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
+    //     return aliasesCache.computeIfAbsent(method) { computeAliases(method) }
+    // }
+
     override fun obtainPossibleStartFacts(method: EtsMethod) = listOf(Zero)
 
     override fun obtainSequentFlowFunction(
@@ -185,6 +191,8 @@ class BackwardFlowFunctions(
     private fun sequentZero(current: EtsStmt): List<BackwardTypeDomainFact> {
         val result = mutableListOf<BackwardTypeDomainFact>(Zero)
 
+        // Case `return x`
+        // ∅ |= x:unknown
         if (current is EtsReturnStmt) {
             val variable = current.returnValue?.toBase()
             if (variable != null) {
@@ -194,36 +202,39 @@ class BackwardFlowFunctions(
 
         if (current is EtsAssignStmt) {
             val rhv = when (val r = current.rhv) {
-                is EtsRef -> r.toPath()
-                is EtsLValue -> r.toPath()
+                is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
+                is EtsLValue -> r.toPath() // Local
                 else -> {
                     // logger.info { "TODO backward assign zero: $current" }
                     null
                 }
             }
 
+            // When RHS is not const-like, handle possible new facts for RHV:
             if (rhv != null) {
+                val y = rhv.base
+
                 if (rhv.accesses.isEmpty()) {
-                    // Case `x := y`
-                    // Zero |= (y:unknown)
-                    result += TypedVariable(rhv.base, EtsTypeFact.UnknownEtsTypeFact)
+                    // Case `x... := y`
+                    // ∅ |= y:unknown
+                    result += TypedVariable(y, EtsTypeFact.UnknownEtsTypeFact)
                 } else {
                     // Case `x := y.f`  OR  `x := y[i]`
 
                     check(rhv.accesses.size == 1)
                     when (val accessor = rhv.accesses.single()) {
                         // Case `x := y.f`
-                        // Zero |= y:{f:unknown}
+                        // ∅ |= y:{f:unknown}
                         is FieldAccessor -> {
                             val type = EtsTypeFact.ObjectEtsTypeFact(
                                 cls = null,
                                 properties = mapOf(accessor.name to EtsTypeFact.UnknownEtsTypeFact)
                             )
-                            result += TypedVariable(rhv.base, type).withTypeGuards(current)
+                            result += TypedVariable(y, type).withTypeGuards(current)
                         }
 
                         // Case `x := y[i]`
-                        // Zero |= y:Array<unknown>
+                        // ∅ |= y:Array<unknown>
                         is ElementAccessor -> {
                             // Note: ElementAccessor guarantees that `y` is an array,
                             //       since `y[i]` for property access (i.e. access property
@@ -231,42 +242,39 @@ class BackwardFlowFunctions(
                             val type = EtsTypeFact.ArrayEtsTypeFact(
                                 elementType = EtsTypeFact.UnknownEtsTypeFact
                             )
-                            result += TypedVariable(rhv.base, type).withTypeGuards(current)
+                            result += TypedVariable(y, type).withTypeGuards(current)
                         }
                     }
-
                 }
             }
 
             val lhv = when (val r = current.lhv) {
-                is EtsRef -> r.toPath()
-                is EtsLValue -> r.toPath()
+                is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
+                is EtsLValue -> r.toPath() // Local
                 else -> {
                     logger.info { "TODO backward assign zero: $current" }
                     error("Unexpected LHV in assignment: $current")
                 }
             }
 
-            if (lhv.accesses.isEmpty()) {
-                // Case `x := y`
-                // Not necessary?
-                // result += TypedVariable(lhv.base, EtsTypeFact.UnknownEtsTypeFact)
-            } else {
+            // Handle new possible facts for LHS:
+            if (lhv.accesses.isNotEmpty()) {
                 // Case `x.f := y`  OR  `x[i] := y`
+                val x = lhv.base
 
                 when (val a = lhv.accesses.single()) {
                     // Case `x.f := y`
-                    // Zero |= x:{f:unknown}
+                    // ∅ |= x:{f:unknown}
                     is FieldAccessor -> {
                         val type = EtsTypeFact.ObjectEtsTypeFact(
                             cls = null,
                             properties = mapOf(a.name to EtsTypeFact.UnknownEtsTypeFact)
                         )
-                        result += TypedVariable(lhv.base, type).withTypeGuards(current)
+                        result += TypedVariable(x, type).withTypeGuards(current)
                     }
 
                     // Case `x[i] := y`
-                    // Zero |= x:Array<unknown>
+                    // ∅ |= x:Array<unknown>
                     is ElementAccessor -> {
                         // Note: ElementAccessor guarantees that `y` is an array,
                         //       since `y[i]` for property access (i.e. access property
@@ -274,13 +282,26 @@ class BackwardFlowFunctions(
                         val type = EtsTypeFact.ArrayEtsTypeFact(
                             elementType = EtsTypeFact.UnknownEtsTypeFact
                         )
-                        result += TypedVariable(lhv.base, type)
+                        result += TypedVariable(x, type)
                     }
                 }
             }
         }
 
         return result
+    }
+
+    private fun unrollAccessorsToTypeFact(accesses: List<Accessor>, type: EtsTypeFact): EtsTypeFact {
+        var t = type
+        for (a in accesses.reversed()) {
+            // Note: getAliases can only return access path with FieldAccessor.
+            check(a is FieldAccessor) { "Unexpected accessor: $a" }
+            t = EtsTypeFact.ObjectEtsTypeFact(
+                cls = null,
+                properties = mapOf(a.name to t)
+            )
+        }
+        return t
     }
 
     private fun sequent(
@@ -296,10 +317,12 @@ class BackwardFlowFunctions(
         val lhv = current.lhv.toPath()
 
         val rhv = when (val r = current.rhv) {
-            is EtsRef -> r.toPath()
-            is EtsLValue -> r.toPath()
-            is EtsCastExpr -> r.toPath()
+            is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
+            is EtsLValue -> r.toPath() // Local
+            is EtsCastExpr -> r.toPath() // Cast
             is EtsNewExpr -> {
+                // TODO: what about `x.f := new T()` ?
+                // `x := new T()` with fact `x:U` => `saved[T] += U`
                 if (fact.variable == lhv.base) {
                     savedTypes.getOrPut(r.type) { mutableListOf() }.add(fact.type)
                 }
@@ -312,83 +335,119 @@ class BackwardFlowFunctions(
             }
         }
 
-        // Pass-through completely unrelated facts
+        // Pass-through completely unrelated facts:
         if (fact.variable != lhv.base) return listOf(fact)
 
-        // Case `x := y`
-        if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
-            return listOf(TypedVariable(rhv.base, fact.type).withTypeGuards(current))
-        }
+        // val (preAliases, _) = getAliases(current.method)[current]!!
 
-        if (lhv.accesses.isEmpty()) {
-            when (val rhvAccessor = rhv.accesses.single()) {
+        if (lhv.accesses.isEmpty() && rhv.accesses.isEmpty()) {
+            // Case `x := y`
+
+            // x:T |= x:T (keep) + y:T
+            val y = rhv.base
+            val newFact = TypedVariable(y, fact.type).withTypeGuards(current)
+            return listOf(fact, newFact)
+
+        } else if (lhv.accesses.isEmpty()) {
+            // Case `x := y.f`  OR  `x := y[i]`
+
+            check(rhv.accesses.size == 1)
+            when (val a = rhv.accesses.single()) {
                 // Case `x := y.f`
                 is FieldAccessor -> {
-                    // Drop facts that contains duplicate fields
-                    if (fact.type is EtsTypeFact.ObjectEtsTypeFact && rhvAccessor.name in fact.type.properties) {
-                        // can just drop?
-                        return listOf(fact)
-                    }
+                    // // Drop facts containing duplicate fields
+                    // if (fact.type is EtsTypeFact.ObjectEtsTypeFact && a.name in fact.type.properties) {
+                    //     // can just drop?
+                    //     return listOf(fact)
+                    // }
 
-                    val rhvType = EtsTypeFact.ObjectEtsTypeFact(
+                    // x:T |= x:T (keep) + y:{f:T} + aliases
+                    val result = mutableListOf(fact)
+                    val y = rhv.base
+                    val type = EtsTypeFact.ObjectEtsTypeFact(
                         cls = null,
-                        properties = mapOf(rhvAccessor.name to fact.type)
+                        properties = mapOf(a.name to fact.type)
                     )
-                    return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
+                    result += TypedVariable(y, type).withTypeGuards(current)
+                    // aliases: +|= z:{f:T}
+                    // for (z in preAliases.getAliases(AccessPath(y, emptyList()))) {
+                    //     val type2 = unrollAccessorsToTypeFact(z.accesses + a, fact.type)
+                    //     result += TypedVariable(z.base, type2).withTypeGuards(current)
+                    // }
+                    return result
                 }
 
                 // Case `x := y[i]`
                 is ElementAccessor -> {
-                    val rhvType = EtsTypeFact.ArrayEtsTypeFact(elementType = fact.type)
-                    return listOf(TypedVariable(rhv.base, rhvType).withTypeGuards(current))
+                    // x:T |= x:T (keep) + y:Array<T>
+                    val y = rhv.base
+                    val type = EtsTypeFact.ArrayEtsTypeFact(elementType = fact.type)
+                    val newFact = TypedVariable(y, type).withTypeGuards(current)
+                    return listOf(fact, newFact)
                 }
             }
-        }
 
-        check(lhv.accesses.isNotEmpty() && rhv.accesses.isEmpty()) {
-            "Unexpected non-three address code: $current"
-        }
+        } else if (rhv.accesses.isEmpty()) {
+            // Case `x.f := y`  OR  `x[i] := y`
 
-        when (val lhvAccessor = lhv.accesses.single()) {
-            // Case `x.f := y`
-            is FieldAccessor -> {
-                if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                    TODO("Support union type here")
+            check(lhv.accesses.size == 1)
+            when (val a = lhv.accesses.single()) {
+                // Case `x.f := y`
+                is FieldAccessor -> {
+                    if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+                        TODO("Support union type for x.f := y in BW-sequent")
+                    }
+
+                    if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
+                        TODO("Support intersection type for x.f := y in BW-sequent")
+                    }
+
+                    // x:primitive |= x:primitive (pass)
+                    if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
+                        return listOf(fact)
+                    }
+
+                    // x:{no f} |= only keep x:{..}
+
+                    // x:{f:T} |= x:{f:T} (keep) + y:T
+                    val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(a.name)
+                    // val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
+                    val updatedFact = fact
+                    val y = rhv.base
+                    val newType = removedPropertyType?.let { type -> TypedVariable(y, type).withTypeGuards(current) }
+                    return listOfNotNull(updatedFact, newType)
                 }
 
-                if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                    TODO("Support intersection type here")
-                }
+                // Case `x[i] := y`
+                is ElementAccessor -> {
+                    if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+                        TODO("Support union type for x[i] := y in BW-sequent")
+                    }
 
-                if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
-                    return listOf(fact)
-                }
+                    if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
+                        TODO("Support intersection type for x[i] := y in BW-sequent")
+                    }
 
-                val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(lhvAccessor.name)
-                // val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
-                val updatedFact = fact
-                val rhvType = removedPropertyType?.let { TypedVariable(rhv.base, it).withTypeGuards(current) }
-                return listOfNotNull(updatedFact, rhvType)
+                    // x:Array<T> |= x:Array<T> (pass)
+                    if (fact.type !is EtsTypeFact.ArrayEtsTypeFact) {
+                        return listOf(fact)
+                    }
+
+                    // x:Array<T> |= x:Array<T> (keep) + y:T
+                    val y = rhv.base
+                    val type = fact.type.elementType
+                    val newFact = TypedVariable(y, type).withTypeGuards(current)
+                    return listOf(fact, newFact)
+                }
             }
-
-            // Case `x[i] := y`
-            is ElementAccessor -> {
-                if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                    TODO("Support union type here")
-                }
-
-                if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                    TODO("Support intersection type here")
-                }
-
-                if (fact.type !is EtsTypeFact.ArrayEtsTypeFact) {
-                    return listOf(fact)
-                }
-
-                val newFact = TypedVariable(rhv.base, fact.type.elementType).withTypeGuards(current)
-                return listOf(fact, newFact)
-            }
+        } else {
+            error("Incorrect 3AC: $current")
         }
+
+        error("unreachable")
+
+        // Pass-through unrelated facts:
+        return listOf(fact)
     }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.removePropertyType(propertyName: String): Pair<EtsTypeFact, EtsTypeFact?> {
