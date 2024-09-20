@@ -298,12 +298,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -381,7 +375,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignLocalToLocal",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -852,12 +861,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -952,7 +955,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignFieldToLocal1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -1437,12 +1455,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -1630,7 +1642,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignFieldToLocal2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -2095,12 +2122,6 @@
                 "type": {
                   "_": "AnyType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -2161,7 +2182,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignFieldToLocal3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -2694,12 +2730,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -2912,7 +2942,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignFieldToSelf",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -3413,12 +3458,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -3631,7 +3670,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignSelfToField",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -4110,12 +4164,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -4227,7 +4275,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignLocalNumberToField",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -4720,12 +4783,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -4930,7 +4987,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignLocalObjectToField",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -5401,12 +5473,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -5535,7 +5601,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseNestedDuplicateFields",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -6006,12 +6087,6 @@
                   },
                   "dimensions": 1
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -6209,7 +6284,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignArrayToLocal",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -6690,12 +6780,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -6859,7 +6943,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignArrayElementToLocal1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -7340,12 +7439,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -7509,7 +7602,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignArrayElementToLocal2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -7988,12 +8096,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -8096,7 +8198,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignArgumentArrayElementToLocal1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -8579,12 +8696,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -8687,7 +8798,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignArgumentArrayElementToLocal2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -9166,12 +9292,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -9291,7 +9411,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignLocalToArrayElementNumber",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -9824,12 +9959,6 @@
                   "_": "UnclearReferenceType",
                   "name": "ICustom"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -9915,7 +10044,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseCastToInterface",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -10392,12 +10536,6 @@
                   },
                   "dimensions": 1
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -10491,7 +10629,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseCastToArrayInterface",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -10947,12 +11100,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -10996,7 +11143,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseReturnNumber",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -11444,12 +11606,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -11510,7 +11666,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseReturnArgumentNumber",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -12602,12 +12773,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -12753,7 +12918,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseReturnArgumentObject",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -13556,12 +13736,6 @@
                     "declaringNamespace": null
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -13707,7 +13881,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseNew",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -14180,12 +14369,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -14279,7 +14462,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseUnion",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -14768,12 +14966,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -14900,7 +15092,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseArgumentUnion",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -15379,12 +15586,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -15495,7 +15696,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseUnion2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -15974,12 +16190,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -16090,7 +16300,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseArgumentUnion2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -16567,12 +16792,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -16743,7 +16962,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseUnion3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -17277,12 +17511,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -17461,7 +17689,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseArgumentUnion3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -17979,12 +18222,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -18122,7 +18359,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseUnion4",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -18634,12 +18886,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -18768,7 +19014,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAliasChain1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -19239,12 +19500,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -19373,7 +19628,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignNumberToNestedField",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -19850,12 +20120,6 @@
                 "type": {
                   "_": "UnknownType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -20001,7 +20265,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseAssignLocalNumberToNestedField",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
@@ -20484,12 +20763,6 @@
                 "type": {
                   "_": "NumberType"
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -20702,7 +20975,22 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseLoop",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",

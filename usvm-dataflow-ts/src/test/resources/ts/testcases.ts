@@ -3,7 +3,7 @@ class CaseAssignLocalToLocal {
     entrypoint() {
         let x = 52; // x: number
         let y = x; // y: number
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -17,7 +17,7 @@ class CaseAssignLocalToLocal {
 class CaseAssignFieldToLocal1 {
     entrypoint(y: any) {
         let x = y.f; // y: { f: any }
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -32,7 +32,7 @@ class CaseAssignFieldToLocal2 {
     entrypoint() {
         let y = {f: 42}; // y: { f: number }
         let x = y.f; // x: number
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -45,7 +45,7 @@ class CaseAssignFieldToLocal2 {
 // Case `x := a.f`
 class CaseAssignFieldToLocal3 {
     entrypoint(y: any) {
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -61,7 +61,7 @@ class CaseAssignFieldToSelf {
     entrypoint(a: any) {
         let x = { f: a };
         x = x.f; // x: any
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -74,7 +74,7 @@ class CaseAssignSelfToField {
     entrypoint(a: any) {
         let x = { f: a }; // x: { f: any }
         x.f = x; // x: { f: any }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -89,7 +89,7 @@ class CaseAssignLocalNumberToField {
     entrypoint(x: any) {
         let y = 100; // y: number
         x.f = y; // x: { f: number }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -104,7 +104,7 @@ class CaseAssignLocalObjectToField {
     entrypoint(x: any) {
         let y = { t: 32 }; // y: { t: number }
         x.f = y; // x: { f: { t: number } }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -118,7 +118,7 @@ class CaseAssignLocalObjectToField {
 class CaseNestedDuplicateFields {
     entrypoint(x: any) {
         x.f.f = 2; // x: { f: { f: number } }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -132,7 +132,7 @@ class CaseNestedDuplicateFields {
 class CaseAssignArrayToLocal {
     entrypoint() {
         let y = [1, 2, 3]; // y: Array<number>
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -147,7 +147,7 @@ class CaseAssignArrayElementToLocal1 {
     entrypoint() {
         let y = [33]; // y: Array<number>
         let x = y[0]; // y: Array<any>
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -162,7 +162,7 @@ class CaseAssignArrayElementToLocal2 {
     entrypoint() {
         let y = [22]; // y: Array<number>
         let x = y[0]; // x: number
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -176,7 +176,7 @@ class CaseAssignArrayElementToLocal2 {
 class CaseAssignArgumentArrayElementToLocal1 {
     entrypoint(y: number[]) {
         let x = y[0]; // y: Array<any>
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any) {
@@ -190,7 +190,7 @@ class CaseAssignArgumentArrayElementToLocal1 {
 class CaseAssignArgumentArrayElementToLocal2 {
     entrypoint(y: number[]) {
         let x = y[0]; // x: any
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -205,7 +205,7 @@ class CaseAssignLocalToArrayElementNumber {
     entrypoint(x: any[]) {
         let y = 100; // y: number
         x[0] = y; // x: Array<number>
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -224,7 +224,7 @@ interface ICustom {
 class CaseCastToInterface {
     entrypoint(y: any) {
         let x = y as ICustom; // x: ICustom
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -238,7 +238,7 @@ class CaseCastToInterface {
 class CaseCastToArrayInterface {
     entrypoint(y: any) {
         let x = y as ICustom[]; // x: Array<ICustom>
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -254,7 +254,7 @@ class CaseCastToArrayInterface {
 //         let y = 5; // y: number
 //         let z = 10; // z: number
 //         let x = y + z; // x: number
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -270,7 +270,7 @@ class CaseCastToArrayInterface {
 //         let y = true; // y: boolean
 //         let z = false; // z: boolean
 //         let x = y && z; // x: boolean
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -286,7 +286,7 @@ class CaseCastToArrayInterface {
 //         let y = false; // y: boolean
 //         let z = "default"; // z: string
 //         let x = y || z; // x: string
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -302,7 +302,7 @@ class CaseCastToArrayInterface {
 //         let y = "Hello, "; // y: string
 //         let z = "World!"; // z: string
 //         let x = y + z; // x: string
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -318,7 +318,7 @@ class CaseCastToArrayInterface {
 //         let y = 12; // y: number
 //         let z = " is the answer"; // z: string
 //         let x = y + z; // x: string
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -334,7 +334,7 @@ class CaseCastToArrayInterface {
 //         let y = "The answer is "; // y: string
 //         let z = 13; // z: number
 //         let x = y + z; // x: string
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -350,7 +350,7 @@ class CaseCastToArrayInterface {
 //         let y = "73"; // y: string
 //         let z = 10; // z: number
 //         let x = y - z; // x: number (63)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -366,7 +366,7 @@ class CaseCastToArrayInterface {
 //         let y = 96; // y: number
 //         let z = "51"; // z: string
 //         let x = y - z; // x: number (45)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -382,7 +382,7 @@ class CaseCastToArrayInterface {
 //         let y = "100"; // y: string
 //         let z = 30; // z: number
 //         let x = y * z; // x: number (3000)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -398,7 +398,7 @@ class CaseCastToArrayInterface {
 //         let y = 40; // y: number
 //         let z = "500"; // z: string
 //         let x = y * z; // x: number (20000)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -414,7 +414,7 @@ class CaseCastToArrayInterface {
 //         let y = true; // y: boolean
 //         let z = 1; // z: number
 //         let x = y + z; // x: number (2, as true is coerced to 1)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -430,7 +430,7 @@ class CaseCastToArrayInterface {
 //         let y = 1; // y: number
 //         let z = false; // z: boolean
 //         let x = y + z; // x: number (1, as false is coerced to 0)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -446,7 +446,7 @@ class CaseCastToArrayInterface {
 //         let y = null; // y: null
 //         let z = 105; // z: number
 //         let x = y + z; // x: number (10, as null is coerced to 0)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -462,7 +462,7 @@ class CaseCastToArrayInterface {
 //         let y = 115; // y: number
 //         let z = null; // z: null
 //         let x = y + z; // x: number (10, as null is coerced to 0)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -478,7 +478,7 @@ class CaseCastToArrayInterface {
 //         let y = undefined; // y: undefined
 //         let z = 125; // z: number
 //         let x = y + z; // x: number (NaN)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -494,7 +494,7 @@ class CaseCastToArrayInterface {
 //         let y = 135; // y: number
 //         let z = undefined; // z: undefined
 //         let x = y + z; // x: number (NaN)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -510,7 +510,7 @@ class CaseCastToArrayInterface {
 //         let y = "185"; // y: string
 //         let z = 5; // z: number
 //         let x = y / z; // x: number (37)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -526,7 +526,7 @@ class CaseCastToArrayInterface {
 //         let y = 195; // y: number
 //         let z = "5"; // z: string
 //         let x = y / z; // x: number (39)
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -539,7 +539,7 @@ class CaseCastToArrayInterface {
 // Case `return x`
 class CaseReturnNumber {
     entrypoint() {
-        infer();
+        this.infer();
     }
 
     infer(): any {
@@ -555,7 +555,7 @@ class CaseReturnNumber {
  class CaseReturnArgumentNumber {
      entrypoint() {
          let x = 94; // x: number
-         infer(x);
+         this.infer(x);
      }
 
      infer(a: any): any {
@@ -585,7 +585,7 @@ class CaseReturnObject {
 class CaseReturnArgumentObject {
     entrypoint() {
         let x = { f: 96 }; // x: Object { f: number }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -601,7 +601,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = 134; // y: number
 //         x.f[0].g = y; // x: { f: Array<{ g: number }> }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -616,7 +616,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = "abc"; // y: string
 //         x.f.g.h = y; // x: { f: { g: { h: string } } }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -631,7 +631,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = false; // y: boolean
 //         x.f[2].g.h = y; // x: { f: Array<{ g: { h: boolean } }> }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -646,7 +646,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = 219; // y: number
 //         x[0].f.g = y; // x: Array<{ f: { g: number } }>
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -661,7 +661,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = "data"; // y: string
 //         x.f[1][2] = y; // x: { f: Array<Array<string>> }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -676,7 +676,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = true; // y: boolean
 //         x.f[0].g[1].h = y; // x: { f: Array<{ g: Array<{ h: boolean }> }> }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -691,7 +691,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = 3.14; // y: number
 //         x.f.g.h[2] = y; // x: { f: { g: { h: Array<number> } } }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -706,7 +706,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = null; // y: null
 //         x.f[0].g.h[3] = y; // x: { f: Array<{ g: { h: Array<null> } }> }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -721,7 +721,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = "nested"; // y: string
 //         x.f.g[1].h.j = y; // x: { f: { g: Array<{ h: { j: string } }> } }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -736,7 +736,7 @@ class CaseReturnArgumentObject {
 //     entrypoint(x: any) {
 //         let y = 99; // y: number
 //         x.f.g.h[0][1] = y; // x: { f: { g: { h: Array<Array<number>> } } }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any) {
@@ -754,7 +754,7 @@ class MyType {
 class CaseNew {
     entrypoint() {
         let y = new MyType(); // y: { f: number }
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any): any {
@@ -769,7 +769,7 @@ class CaseUnion {
     entrypoint() {
         let x: string | number = "str"; // x: string
         x = 42; // x: number
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -782,7 +782,7 @@ class CaseArgumentUnion {
     entrypoint(x: string | number) {
         x = "kek";
         x = 42;
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -796,7 +796,7 @@ class CaseUnion2 {
         let y = "str";
         let x: string | number = y;
         x = 42;
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any): any {
@@ -809,7 +809,7 @@ class CaseArgumentUnion2 {
     entrypoint(y: string) {
         let x: string | number = y;
         x = 42;
-        infer(y);
+        this.infer(y);
     }
 
     infer(a: any): any {
@@ -826,7 +826,7 @@ class CaseUnion3 {
         } else {
             x = 42;
         }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -842,7 +842,7 @@ class CaseArgumentUnion3 {
         } else {
             x = 42;
         }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -857,7 +857,7 @@ class CaseUnion4 {
         if (Math.random() > 0.5) {
             x = 42;
         }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -872,7 +872,7 @@ class CaseUnion4 {
 //         if (Math.random() > 0.5) {
 //             x = 42;
 //         }
-//         infer(x);
+//         this.infer(x);
 //     }
 //
 //     infer(a: any): any {
@@ -888,7 +888,7 @@ class CaseAliasChain1 {
     entrypoint(x: any) {
         let y = x.f; // x: { f: any }
         y.g = 42; // x: { f: { g: number } }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any): any {
@@ -900,7 +900,7 @@ class CaseAliasChain1 {
 class CaseAssignNumberToNestedField {
     entrypoint(x: any) {
         x.f.g = 100; // x: { f: { g: number } }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -913,7 +913,7 @@ class CaseAssignLocalNumberToNestedField {
     entrypoint(x: any) {
         let y = 98; // y: number
         x.f.g = y; // x: { f: { g: number } }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
@@ -931,7 +931,7 @@ class CaseLoop {
             x.f = a;
             a = x;
         }
-        infer(x);
+        this.infer(x);
     }
 
     infer(a: any) {
