@@ -753,7 +753,14 @@ class MyType {
 // Case `x := new T()`
 class CaseNew {
     entrypoint() {
-        let y = new MyType(); // y: { f: number }
+        let y = new MyType(); // y: MyType
+        // hidden:
+        //   y := new MyType()
+        //   -> y.constructor()
+        //   -> this.<init>()
+        //   -> this.f := 15
+        //   -> this: { f: number }
+        //   -> y: { f.number }
         this.infer(y);
     }
 
