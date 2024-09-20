@@ -363,17 +363,6 @@ class TypeInferenceManager(
         return EtsMethodTypeFacts(method, types)
     }
 
-    // a = z.g       z:{g:T} |= a:T, z:{g:T}
-    //               z.g:T |= z.g:T, a:T
-    // a.f = "huy"   a:T={f:?} |= a:{f:string}, but no z:{g:{f:string}}
-    //                         |= a.f: string =?=> z.g:string
-    //
-    // z: {f: T1, g: T2}
-    // x = "x"
-    // y = "y"
-    // z.f = x // z: {f: any, g: T2}, z: {f: string}
-    // z.g = y
-
     private fun refineMethodTypes(
         facts: EtsMethodTypeFacts,
         summaries: Iterable<ForwardSummaryAnalyzerEvent>,
