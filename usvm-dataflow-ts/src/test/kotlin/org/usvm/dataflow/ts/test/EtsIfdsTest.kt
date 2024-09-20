@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.taint.TaintManager
 import org.usvm.dataflow.ts.ifds.SingletonUnitResolver
+import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.time.Duration.Companion.seconds
@@ -55,7 +55,7 @@ class EtsIfdsTest {
     fun `test taint analysis`() {
         val file = load("taint")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
+        val graph = createApplicationGraph(project)
         val unitResolver = SingletonUnitResolver
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
             { method ->
