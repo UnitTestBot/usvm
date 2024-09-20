@@ -7,14 +7,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.findDominators
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.reversed
@@ -46,10 +44,7 @@ class TypeInferenceManager(
 
     private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
-    fun analyze(
-        startMethods: List<EtsMethod>,
-        guessUniqueTypes: Boolean = false
-    ): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
+    fun analyze(startMethods: List<EtsMethod>): TypeInferenceResult = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing forward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators)
@@ -170,13 +165,13 @@ class TypeInferenceManager(
         }
 
         // Infer types for 'this' in each class
-        run {
+        val inferredCombinedThisTypes = run {
             val allClasses = methodTypeScheme.keys
                 .map { it.enclosingClass }
                 .distinct()
                 .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.signature == sig }!! }
                 .filter { !it.name.startsWith("AnonymousClass-") }
-            val combinedThis = allClasses.associateWith { cls ->
+            allClasses.mapNotNull { cls ->
                 val combinedBackwardType = methodTypeScheme
                     .asSequence()
                     .filter { (method, _) -> method in (cls.methods + cls.ctor) }
@@ -197,7 +192,7 @@ class TypeInferenceManager(
                 }
 
                 if (combinedBackwardType == null) {
-                    return@associateWith null
+                    return@mapNotNull null
                 }
 
                 val typeFactsOnThisMethods = forwardSummaries
@@ -251,21 +246,21 @@ class TypeInferenceManager(
                 propertyRefinements.let {}
                 cls.let {}
 
-                refined
-            }
-            logger.info {
-                buildString {
-                    appendLine("Combined and refined types for This:")
-                    for ((cls, type) in combinedThis) {
-                        appendLine("Combined This in class '${cls.signature}': ${type?.toPrettyString()}")
-                    }
+                cls to refined
+            }.toMap()
+        }
+        logger.info {
+            buildString {
+                appendLine("Combined and refined types for This:")
+                for ((cls, type) in inferredCombinedThisTypes) {
+                    appendLine("Combined This in class '${cls.signature}': ${type.toPrettyString()}")
                 }
             }
         }
 
         // Infer return types for each method
-        run {
-            val returnTypes = forwardSummaries
+        val inferredReturnTypes = run {
+            forwardSummaries
                 .asSequence()
                 .mapNotNull { (method, summaries) ->
                     val typeFacts = summaries
@@ -300,21 +295,12 @@ class TypeInferenceManager(
                     }
                 }
                 .toMap()
-
-            // Augment 'refinedTypes' with inferred return types
-            for ((method, returnType) in returnTypes) {
-                val facts = refinedTypes[method]!!
-                refinedTypes[method] = facts.copy(
-                    types = facts.types + (AccessPathBase.Return to returnType)
-                )
-            }
-
-            logger.info {
-                buildString {
-                    appendLine("Return types:")
-                    for ((method, type) in returnTypes) {
-                        appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
-                    }
+        }
+        logger.info {
+            buildString {
+                appendLine("Return types:")
+                for ((method, type) in inferredReturnTypes) {
+                    appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
                 }
             }
         }
@@ -322,68 +308,25 @@ class TypeInferenceManager(
         backwardRunner.let {}
         forwardRunner.let {}
 
-        if (!guessUniqueTypes) return@runBlocking refinedTypes
-
-        val possibleMatchedTypes = refinedTypes.mapValues { (method, facts) ->
-            val types = facts.types
-
-            if (types.isNotEmpty() && types.entries.singleOrNull()?.value != EtsTypeFact.UnknownEtsTypeFact) {
-                val updatedTypes = types.mapValues { (_, fact) ->
-                    fact.resolveType()
-                }
-
-                return@mapValues facts.copy(types = updatedTypes)
+        val inferredTypes = refinedTypes
+            // Extract 'types':
+            .mapValues { (_, facts) -> facts.types }
+            // Sort by 'base':
+            .mapValues { (_, types) ->
+                types.entries.sortedBy {
+                    when (val key = it.key) {
+                        is AccessPathBase.This -> 0
+                        is AccessPathBase.Arg -> key.index + 1
+                        else -> 1_000_000
+                    }
+                }.associate { it.key to it.value }
             }
 
-            facts
-        }
-
-        possibleMatchedTypes
-    }
-
-    private fun EtsTypeFact.resolveType(): EtsTypeFact = when (this) {
-        is EtsTypeFact.ArrayEtsTypeFact -> {
-            val elementType = this.elementType
-            if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
-                this
-            } else {
-                this.copy(elementType = elementType.resolveType())
-            }
-        }
-
-        is EtsTypeFact.ObjectEtsTypeFact -> {
-            val touchedPropertiesNames = this.properties.keys
-            val classesInSystem = graph.cp
-                .classes
-                .filter { cls ->
-                    val methodNames = cls.methods.map { it.name }
-                    val fieldNames = cls.fields.map { it.name }
-                    val propertiesNames = (methodNames + fieldNames).distinct()
-                    touchedPropertiesNames.all { name -> name in propertiesNames }
-                }
-
-            classesInSystem.singleOrNull()
-                ?.takeUnless { it.name.startsWith("AnonymousClass-") } // TODO make it an impossible unique prefix
-                ?.let {
-                    println("UPDATED TYPE FOR ${it.name}")
-                    // TODO how to do it properly?
-                    EtsTypeFact.ObjectEtsTypeFact(
-                        cls = EtsClassType(EtsClassSignature(it.name)),
-                        properties = emptyMap() // TODO it is correct? Mb we should save the properties?
-//                        properties = properties.mapValues { it.value.resolveType() } // TODO it is correct? Mb we should save the properties?
-                    )
-                } ?: this
-        }
-        is EtsTypeFact.FunctionEtsTypeFact -> this
-        is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
-        is EtsTypeFact.IntersectionEtsTypeFact -> {
-            val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType() }
-            EtsTypeFact.IntersectionEtsTypeFact(updatedTypes)
-        }
-        is EtsTypeFact.UnionEtsTypeFact -> {
-            this.copy(types.mapTo(mutableSetOf()) { it.resolveType() })
-        }
-        else -> this
+        TypeInferenceResult(
+            inferredTypes = inferredTypes,
+            inferredReturnType = inferredReturnTypes,
+            inferredCombinedThisType = inferredCombinedThisTypes,
+        )
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =

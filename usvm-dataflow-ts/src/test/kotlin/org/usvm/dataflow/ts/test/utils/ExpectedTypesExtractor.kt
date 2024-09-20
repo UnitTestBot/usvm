@@ -16,22 +16,23 @@ import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
-import org.usvm.dataflow.ts.infer.EtsMethodTypeFacts
 import org.usvm.dataflow.ts.infer.EtsTypeFact
+import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import java.io.File
 
-class ExpectedTypesExtractor(private val applicationGraph: EtsApplicationGraph) {
+class ExpectedTypesExtractor(private val graph: EtsApplicationGraph) {
     fun extractTypes(method: EtsMethod): MethodTypes {
         val returnType = method.returnType
         val argumentsTypes = method.parameters.map { it.type }
         val thisType = if (method.enclosingClass.name == "_DEFAULT_ARK_CLASS") {
             null
         } else {
-            val clazz = applicationGraph.cp
+            val clazz = graph.cp
                 .classes
                 .filterNot { it.name.startsWith("AnonymousClass-") }
-//                .singleOrNull { it.name == method.enclosingClass.name } // TODO different representation in abc and ast, replace with signatures
-//                ?: error("TODO")
+                // TODO different representation in abc and ast, replace with signatures
+                // .singleOrNull { it.name == method.enclosingClass.name }
+                // ?: error("TODO")
                 .firstOrNull { it.name == method.enclosingClass.name } ?: error("TODO")
 
             EtsClassType(clazz.signature)
@@ -65,14 +66,22 @@ class ClassMatcherStatistics {
     private val methodToTypes: MutableMap<EtsMethod, MutableMap<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> =
         hashMapOf()
 
-    private fun EtsMethod.saveComparisonInfo(position: AccessPathBase, type: EtsType, fact: EtsTypeFact?) {
+    private fun EtsMethod.saveComparisonInfo(
+        position: AccessPathBase,
+        type: EtsType,
+        fact: EtsTypeFact?,
+    ) {
         val methodTypes = methodToTypes.getOrPut(this) { hashMapOf() }
         check(position !in methodTypes)
-
         methodTypes[position] = type to fact
     }
 
-    fun verify(facts: MethodTypesFacts, types: MethodTypes, scene: EtsScene, method: EtsMethod) {
+    fun verify(
+        facts: MethodTypesFacts,
+        types: MethodTypes,
+        scene: EtsScene,
+        method: EtsMethod,
+    ) {
         // 'this' type
         types.thisType?.let {
             overallThisTypes++
@@ -105,17 +114,19 @@ class ClassMatcherStatistics {
         }
 
         // return type
-        overallReturnTypes++
-        method.saveComparisonInfo(AccessPathBase.Return, method.returnType, facts.returnFact)
+        val inferredReturnType = facts.returnFact ?: EtsTypeFact.AnyEtsTypeFact
 
-        if (facts.returnFact is EtsTypeFact.AnyEtsTypeFact) {
+        overallReturnTypes++
+        method.saveComparisonInfo(AccessPathBase.Return, method.returnType, inferredReturnType)
+
+        if (inferredReturnType is EtsTypeFact.AnyEtsTypeFact) {
             returnIsAnyType++
             return
         }
 
-        if (facts.returnFact.matchesWith(types.returnType, scene)) {
+        if (inferredReturnType.matchesWith(types.returnType, scene)) {
             exactlyMatchedReturnTypes++
-        } else if (facts.returnFact.partialMatchedBy(types.returnType)) {
+        } else if (inferredReturnType.partialMatchedBy(types.returnType)) {
             someFactsAboutReturnTypes++
         }
     }
@@ -223,33 +234,35 @@ data class MethodTypes(
 
 data class MethodTypesFacts(
     val thisFact: EtsTypeFact?,
-    val argumentsFacts: List<EtsTypeFact>,
-    val returnFact: EtsTypeFact,
+    val argumentsFacts: List<EtsTypeFact?>,
+    val returnFact: EtsTypeFact?,
 ) {
     companion object {
-        fun fromEtsMethodTypeFacts(fact: EtsMethodTypeFacts, method: EtsMethod): MethodTypesFacts {
-            val types = fact.types
+        fun from(
+            result: TypeInferenceResult,
+            method: EtsMethod,
+        ): MethodTypesFacts {
+            val inferredTypes = result.inferredTypes.getValue(method)
 
-            val thisType = types[AccessPathBase.This]
-            val arguments = method
-                .parameters
-                .indices
-                .map { types[AccessPathBase.Arg(it)] ?: EtsTypeFact.AnyEtsTypeFact }
+            val thisType = inferredTypes[AccessPathBase.This]
+            val arguments = method.parameters.indices.map { inferredTypes[AccessPathBase.Arg(it)] }
+            val returnType = result.inferredReturnType[method]
 
-            return MethodTypesFacts(thisType, arguments, EtsTypeFact.AnyEtsTypeFact /* TODO replace it */)
+            return MethodTypesFacts(thisType, arguments, returnType)
         }
     }
 }
 
-private fun EtsTypeFact.matchesWith(type: EtsType, scene: EtsScene): Boolean = when (this) {
+private fun EtsTypeFact?.matchesWith(type: EtsType, scene: EtsScene): Boolean = when (this) {
+    null, EtsTypeFact.AnyEtsTypeFact -> {
+        // TODO any other combination?
+        type is EtsAnyType || type is EtsUnknownType
+    }
+
     is EtsTypeFact.ObjectEtsTypeFact -> {
         // TODO it should be replaced with signatures
         val typeName = this.cls?.typeName
         (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
-    }
-
-    EtsTypeFact.AnyEtsTypeFact -> {
-        type is EtsAnyType || type is EtsUnknownType // TODO any other combination?
     }
 
     is EtsTypeFact.ArrayEtsTypeFact -> when (type) {

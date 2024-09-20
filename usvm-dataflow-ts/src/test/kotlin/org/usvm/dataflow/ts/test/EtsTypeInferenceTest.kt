@@ -10,7 +10,6 @@ import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -18,9 +17,9 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.infer.AccessPathBase
-import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
@@ -53,8 +52,7 @@ class EtsTypeInferenceTest {
         val file = load("ir/$name.ts.json")
         // val file = load("abcir/$name.abc.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -65,15 +63,16 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
-        val types = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints)
+        val types = result.inferredTypes
 
         run {
             val m = types.keys.first { it.name == "getMicrophoneUuid" }
 
             // arg0 = 'devices'
-            val devices = types[m]!!.types[AccessPathBase.Arg(0)]!!
+            val devices = types[m]!![AccessPathBase.Arg(0)]!!
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(devices)
 
             val devicesCls = devices.cls
@@ -94,8 +93,7 @@ class EtsTypeInferenceTest {
         val name = "types"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -106,7 +104,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
     }
@@ -116,8 +114,7 @@ class EtsTypeInferenceTest {
         val name = "data"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -128,7 +125,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
     }
@@ -138,8 +135,7 @@ class EtsTypeInferenceTest {
         val name = "call"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -150,7 +146,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
     }
@@ -160,8 +156,7 @@ class EtsTypeInferenceTest {
         val name = "nested_init"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -172,7 +167,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
     }
@@ -183,8 +178,7 @@ class EtsTypeInferenceTest {
         val name = "cast"
         val file = load("abcir/$name.abc.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -195,7 +189,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
     }
@@ -212,8 +206,7 @@ class EtsTypeInferenceTest {
             .map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
             .toList()
         val project = EtsScene(files)
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .asSequence()
@@ -226,14 +219,15 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
-        val inferred = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints)
+        val inferred = result.inferredTypes
 
         run {
             val m = inferred.keys.first { it.name == "loadTableData" }
 
-            val arg0 = inferred[m]!!.types[AccessPathBase.Arg(0)]!!
+            val arg0 = inferred[m]!![AccessPathBase.Arg(0)]!!
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(arg0)
 
             assertContains(arg0.properties, "user")
@@ -303,9 +297,7 @@ class EtsTypeInferenceTest {
         println("Processing ${files.size} files...")
         val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
         val project = EtsScene(etsFiles)
-
-        val graphOrig = EtsApplicationGraphImpl(project)
-        val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods + it.ctor }
@@ -320,7 +312,7 @@ class EtsTypeInferenceTest {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
-        val inferred = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints)
     }
 
     private fun resourceAvailable(dirName: String) =
@@ -430,9 +422,7 @@ class EtsTypeInferenceTest {
         println("Processing ${files.size} files...")
         val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
         val project = EtsScene(etsFiles)
-
-        val graphOrig = EtsApplicationGraphImpl(project)
-        val graph = EtsApplicationGraphWithExplicitEntryPoint(graphOrig)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods + it.ctor }
@@ -447,7 +437,7 @@ class EtsTypeInferenceTest {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
-        val inferred = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints)
     }
 
     @Test
@@ -455,8 +445,7 @@ class EtsTypeInferenceTest {
         val name = "testcases"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -467,23 +456,23 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
-        val inferredTypesWithoutGuessed = manager.analyze(entrypoints, guessUniqueTypes = false)
-        val inferredTypesWithGuessed = manager.analyze(entrypoints, guessUniqueTypes = true)
+        val resultWithoutGuessed = manager.analyze(entrypoints)
+        val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(graph)
 
-        assertNotEquals(inferredTypesWithoutGuessed, inferredTypesWithGuessed)
+        assertNotEquals(resultWithoutGuessed.inferredTypes, resultWithGuessed.inferredTypes)
 
         println("=".repeat(42))
         println("Inferred types WITHOUT guesser: ")
-        for (m in inferredTypesWithoutGuessed) {
-            println(m.key.enclosingClass.name to m.value.types)
+        for ((method, types) in resultWithoutGuessed.inferredTypes) {
+            println(method.enclosingClass.name to types)
         }
 
         println("=".repeat(42))
         println("Inferred types with guesser: ")
-        for (m in inferredTypesWithGuessed) {
-            println(m.key.enclosingClass.name to m.value.types)
+        for ((method, types) in resultWithGuessed.inferredTypes) {
+            println(method.enclosingClass.name to types)
         }
     }
 
@@ -492,8 +481,7 @@ class EtsTypeInferenceTest {
         val name = "testcases"
         val file = load("ir/$name.ts.json")
         val project = EtsScene(listOf(file))
-        val graph = EtsApplicationGraphImpl(project)
-        val graphWithExplicitEntryPoint = EtsApplicationGraphWithExplicitEntryPoint(graph)
+        val graph = createApplicationGraph(project)
 
         val entrypoints = project.classes
             .flatMap { it.methods }
@@ -504,9 +492,9 @@ class EtsTypeInferenceTest {
         }
 
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphWithExplicitEntryPoint)
+            TypeInferenceManager(graph)
         }
-        val inferredTypes = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints)
 
         val inferMethods = project.classes
             .asSequence()
@@ -547,14 +535,13 @@ class EtsTypeInferenceTest {
         val testResults = mutableListOf<Triple<String, Boolean, Pair<String, String>>>()
 
         for (m in inferMethods) {
-            for (position in listOf(AccessPathBase.Arg(0), AccessPathBase.Arg(1), AccessPathBase.Return)) {
+            // Compare inferred types for arguments:
+            for (position in listOf(AccessPathBase.Arg(0), AccessPathBase.Arg(1), AccessPathBase.Arg(2))) {
                 val expected = (expectedTypeString[m]
                     ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[position]
                     ?: continue
-                val inferred = (inferredTypes[m]
-                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))
-                    .types[position]
-                // ?: error("No inferred type for position $position")
+                val inferred = (result.inferredTypes[m]
+                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[position]
 
                 val passed = inferred.toString() == expected
                 testResults.add(Triple("${m.enclosingClass.name}::${m.name}", passed, inferred.toString() to expected))
@@ -567,6 +554,25 @@ class EtsTypeInferenceTest {
                     println("Incorrectly inferred type for $position in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
                 }
             }
+            // Compare inferred return types:
+            run {
+                val expected = (expectedTypeString[m]
+                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[AccessPathBase.Return]
+                    ?: return@run
+                val inferred = result.inferredReturnType[m]
+                    ?: error("No inferred return type for method ${m.enclosingClass.name}::${m.name}")
+
+                val passed = inferred.toString() == expected
+                testResults.add(Triple("${m.enclosingClass.name}::${m.name}", passed, inferred.toString() to expected))
+
+                if (passed) {
+                    numOk++
+                    println("Correctly inferred return type in '${m.enclosingClass.name}::${m.name}': ${inferred.toPrettyString()}")
+                } else {
+                    numBad++
+                    println("Incorrectly inferred return type in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
+                }
+            }
         }
 
         println("numOk = $numOk")
@@ -576,7 +582,10 @@ class EtsTypeInferenceTest {
         exportResultsToCSV(testResults, "test_results.csv")
     }
 
-    private fun exportResultsToCSV(testResults: List<Triple<String, Boolean, Pair<String, String>>>, filePath: String) {
+    private fun exportResultsToCSV(
+        testResults: List<Triple<String, Boolean, Pair<String, String>>>,
+        filePath: String,
+    ) {
         val file = File(filePath)
         val writer = BufferedWriter(FileWriter(file, false))
 
