@@ -256,6 +256,7 @@ class ForwardFlowFunctions(
                 }
             }
 
+            // Pass-through unrelated facts:
             return listOf(fact)
         }
 
