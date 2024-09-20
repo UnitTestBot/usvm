@@ -63,6 +63,8 @@ import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UConcreteStringHashCodeBv32Expr
+import org.usvm.collection.string.UConcreteStringHashCodeIntExpr
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexMatchesExpr
@@ -354,6 +356,14 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }
 
     override fun transform(expr: UStringConcatExpr): UStringExpr {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> {
         TODO("Not yet implemented")
     }
 

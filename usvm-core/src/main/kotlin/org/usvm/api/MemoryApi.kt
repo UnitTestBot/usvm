@@ -24,9 +24,14 @@ import org.usvm.collection.string.allocateStringExpr
 import org.usvm.collection.string.charAt
 import org.usvm.collection.string.concatStrings
 import org.usvm.collection.string.getString
+import org.usvm.collection.string.getSubstring
 import org.usvm.collection.string.isStringEmpty
 import org.usvm.collection.string.mapString
 import org.usvm.collection.string.mkStringExprFromCharArray
+import org.usvm.collection.string.repeat
+import org.usvm.collection.string.reverse
+import org.usvm.collection.string.stringCmp
+import org.usvm.getIntValue
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
@@ -191,18 +196,22 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromArray(
 }
 
 fun <USizeSort : USort> UReadOnlyMemory<*>.charAt(ref: UHeapRef, index: UExpr<USizeSort>): UCharExpr =
-    mapString(ref) { this.charAt(ctx.withSizeSort(), it, index) }
+    mapString(ref) { charAt(ctx.withSizeSort(), it, index) }
 
 fun <USizeSort : USort> UReadOnlyMemory<*>.stringLength(ref: UHeapRef): UExpr<USizeSort> =
     mapString(ref) { org.usvm.collection.string.getLength(ctx.withSizeSort(), it) }
 
-fun <USizeSort: USort> UReadOnlyMemory<*>.getHashCode(ref: UHeapRef): UExpr<USizeSort> =
+fun <USizeSort : USort> UReadOnlyMemory<*>.getHashCode(ref: UHeapRef): UExpr<USizeSort> =
     mapString(ref) { org.usvm.collection.string.getHashCode(ctx.withSizeSort(), it) }
 
 /**
  * Allocates new string, which is the result of concatenation of [left] and [right].
  */
-fun <Type, USizeSort: USort> UWritableMemory<Type>.concat(stringType: Type, left: UHeapRef, right: UHeapRef): UHeapRef {
+fun <Type, USizeSort : USort> UWritableMemory<Type>.concat(
+    stringType: Type,
+    left: UHeapRef,
+    right: UHeapRef
+): UHeapRef {
     val leftString = getString(left)
     if (isStringEmpty(ctx, leftString))
         return right
@@ -213,27 +222,40 @@ fun <Type, USizeSort: USort> UWritableMemory<Type>.concat(stringType: Type, left
     return this.allocateStringExpr(stringType, concatenation)
 }
 
-fun <USizeSort: USort> UReadOnlyMemory<*>.stringHashCode(ref: UHeapRef): UExpr<USizeSort> =
-    TODO()
-
-fun UReadOnlyMemory<*>.stringEq(string1: UHeapRef, string2: UHeapRef): UBoolExpr =
-    TODO()
+fun <USizeSort : USort> UReadOnlyMemory<*>.stringHashCode(ref: UHeapRef): UExpr<USizeSort> =
+    org.usvm.collection.string.getHashCode(ctx.withSizeSort(), getString(ref))
 
 fun UReadOnlyMemory<*>.stringLt(left: UHeapRef, right: UHeapRef): UBoolExpr =
-    TODO()
+    mapString(left) { leftStr ->
+        mapString(right) { rightStr ->
+            stringCmp(leftStr, rightStr, true)
+        }
+    }
 
 fun UReadOnlyMemory<*>.stringLe(left: UHeapRef, right: UHeapRef): UBoolExpr =
-    TODO()
+    mapString(left) { leftStr ->
+        mapString(right) { rightStr ->
+            stringCmp(leftStr, rightStr, false)
+        }
+    }
 
 /**
- * Allocates new string, which is the substring of [string], starting at index [startIndex] and having length [length].
+ * Allocates new string, which is the substring of [stringRef], starting at index [startIndex] and having length [length].
  */
-fun <USizeSort : USort> UReadOnlyMemory<*>.substring(
-    string: UHeapRef,
+fun <Type, USizeSort : USort> UWritableMemory<Type>.substring(
+    stringRef: UHeapRef,
+    stringType: Type,
     startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>
-): UConcreteHeapRef =
-    TODO()
+): UHeapRef {
+    var stringDidNotChange = true
+    val substring = mapString(stringRef) { string ->
+        getSubstring(string, startIndex, length)
+            .also { if (string != it) stringDidNotChange = false }
+    }
+    return if (stringDidNotChange) stringRef else allocateStringExpr(stringType, substring)
+}
+
 
 /**
  * Allocates new string, which is the string representation of integer [value].
@@ -267,8 +289,19 @@ fun <UFloatSort : USort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRe
  * Returns heap reference to new string obtained from string in heap location [ref]
  * by repeating it [times] amount of times. If [times] = 1, returns [ref].
  */
-fun <USizeSort : USort> UReadOnlyMemory<*>.repeat(ref: UHeapRef, times: UExpr<USizeSort>): UHeapRef =
-    TODO()
+fun <Type, USizeSort : USort> UWritableMemory<Type>.repeat(
+    ref: UHeapRef,
+    stringType: Type,
+    times: UExpr<USizeSort>
+): UHeapRef {
+    val ctx = ref.uctx.withSizeSort<USizeSort>()
+    val concreteTimes = ctx.getIntValue(times)
+    if (concreteTimes == 0)
+        return allocateInternedStringLiteral(ctx, stringType, "")
+    if (concreteTimes == 1)
+        return ref
+    return allocateStringExpr(stringType, mapString(ref) { repeat(it, times) })
+}
 
 /**
  * Allocates new string, which is the upper-case variant of string referenced by [ref].
@@ -305,8 +338,8 @@ fun charToUpper(char: UCharExpr): UCharExpr =
 /**
  * Allocates new string, which is the reverse of string referenced by [ref].
  */
-fun UReadOnlyMemory<*>.reverse(ref: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.reverse(ref: UHeapRef, stringType: Type): UHeapRef =
+    allocateStringExpr(stringType, mapString(ref) { reverse(it) })
 
 /**
  * Returns index of the first occurrence of string referenced by [patternRef] into the string referenced by [stringRef].

@@ -46,6 +46,7 @@ import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
+import org.usvm.collection.string.UConcreteStringHashCodeBv32Expr
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexExpr
@@ -155,6 +156,10 @@ open class UContext<USizeSort : USort>(
     override fun <T : KSort> mkEq(lhs: KExpr<T>, rhs: KExpr<T>, order: Boolean): KExpr<KBoolSort> =
         if (lhs.sort == addressSort) {
             mkHeapRefEq(lhs.asExpr(addressSort), rhs.asExpr(addressSort))
+        } else if (lhs is UHashCodeExpr<*> && rhs is UHashCodeExpr<*>) {
+            // TODO: Ite's! Maybe introduce hash code sort, which is a subtype of USizeSort?
+            // TODO: We might also consider an option for hash analysis with collisions. Then, we should not do this.
+            lhs.mkEq(this, rhs)
         } else {
             super.mkEq(lhs, rhs, order)
         }
@@ -503,7 +508,13 @@ open class UContext<USizeSort : USort>(
     private val stringHashCodeExprCache = mkAstInterner<UStringHashCodeExpr<USizeSort>>()
     fun mkStringHashCodeExpr(string: UStringExpr): UStringHashCodeExpr<USizeSort> =
         stringHashCodeExprCache.createIfContextActive {
-            UStringHashCodeExpr(sizeSort, string)
+            UStringHashCodeExpr(this, sizeSort, string)
+        }
+
+    private val concreteStringHashCodeExprCache = mkAstInterner<UExpr<USizeSort>>()
+    fun mkConcreteStringHashCodeExpr(value: Int, string: UStringExpr): UExpr<USizeSort> =
+        concreteStringHashCodeExprCache.createIfContextActive {
+            sizeExprs.mkConcreteStringHashExpr(value, string)
         }
 
     private val stringLtExprCache = mkAstInterner<UStringLtExpr>()

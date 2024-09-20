@@ -1,5 +1,6 @@
 package org.usvm.collection.string
 
+import io.ksmt.utils.cast
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UBoolExpr
 import org.usvm.UCharSort
@@ -39,7 +40,7 @@ class UConcreteStringBuilder<Type, USizeSort : USort>(
     UArrayRegion<Type, UCharSort, USizeSort> {
 
     var charArray: CharArray? = CharArray(length)
-        private set;
+        private set
     private val otherArrays: MutableMap<UConcreteHeapAddress, MutableMap<Int, Char>> = hashMapOf()
     private var baseMemory: UWritableMemory<Type>? = null
 
@@ -104,7 +105,13 @@ class UConcreteStringBuilder<Type, USizeSort : USort>(
         val index = ctx.getIntValue(key.index)
         val ref = key.ref
         if (index == null || value !is UConcreteChar || !guard.isTrue || ref !is UConcreteHeapRef) {
-            notConcrete { return it.getRegion(key.memoryRegionId).write(key, value, guard) }
+            notConcrete {
+                return (it.getRegion(key.memoryRegionId) as UMemoryRegion<UArrayIndexLValue<Type, UCharSort, USizeSort>, UCharSort>).write(
+                    key,
+                    value,
+                    guard
+                )
+            }
         }
         write(ref.address, index, value.character)
         return this
@@ -161,7 +168,7 @@ class UConcreteStringBuilder<Type, USizeSort : USort>(
 
     override fun <Key, Sort : USort> getRegion(regionId: UMemoryRegionId<Key, Sort>): UMemoryRegion<Key, Sort> {
         if (baseMemory != null) {
-            return baseMemory!!.getRegion(regionId)
+            return baseMemory!!.getRegion(regionId).cast()
         }
         if (regionId != this.regionId) {
             error("Unexpected operation on fake memory for concrete string building")

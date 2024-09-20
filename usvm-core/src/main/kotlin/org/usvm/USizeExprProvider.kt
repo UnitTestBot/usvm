@@ -3,6 +3,9 @@ package org.usvm
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KInt32NumExpr
 import io.ksmt.sort.KIntSort
+import org.usvm.collection.string.UConcreteStringHashCodeBv32Expr
+import org.usvm.collection.string.UConcreteStringHashCodeIntExpr
+import org.usvm.collection.string.UStringExpr
 
 /**
  * Provides operations with a configurable size sort.
@@ -22,14 +25,17 @@ interface USizeExprProvider<USizeSort : USort> {
     fun mkSizeGeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
     fun mkSizeLtExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
     fun mkSizeLeExpr(lhs: UExpr<USizeSort>, rhs: UExpr<USizeSort>): UBoolExpr
+
+    fun mkConcreteStringHashExpr(hashCode: Int, string: UStringExpr): UExpr<USizeSort>
 }
 
 class UBv32SizeExprProvider(
-    override val ctx: UContext<*>
+    override val ctx: UContext<UBv32Sort>
 ) : USizeExprProvider<UBv32Sort> {
     override val sizeSort: UBv32Sort = ctx.bv32Sort
 
     override fun mkSizeExpr(size: Int): UExpr<UBv32Sort> = ctx.mkBv(size)
+
     override fun getIntValue(expr: UExpr<UBv32Sort>): Int? = (expr as? KBitVec32Value)?.numberValue
 
     override fun mkSizeSubExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UExpr<UBv32Sort> = ctx.mkBvSubExpr(lhs, rhs)
@@ -40,14 +46,19 @@ class UBv32SizeExprProvider(
     override fun mkSizeGeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedGreaterOrEqualExpr(lhs, rhs)
     override fun mkSizeLtExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedLessExpr(lhs, rhs)
     override fun mkSizeLeExpr(lhs: UExpr<UBv32Sort>, rhs: UExpr<UBv32Sort>): UBoolExpr = ctx.mkBvSignedLessOrEqualExpr(lhs, rhs)
+
+    override fun mkConcreteStringHashExpr(hashCode: Int, string: UStringExpr): UExpr<UBv32Sort> =
+        UConcreteStringHashCodeBv32Expr(ctx, hashCode, string)
+
 }
 
 class UInt32SizeExprProvider(
-    override val ctx: UContext<*>
+    override val ctx: UContext<KIntSort>
 ) : USizeExprProvider<KIntSort> {
     override val sizeSort: KIntSort = ctx.intSort
 
     override fun mkSizeExpr(size: Int): UExpr<KIntSort> = ctx.mkIntNum(size)
+
     override fun getIntValue(expr: UExpr<KIntSort>): Int? = (expr as? KInt32NumExpr)?.value
 
     override fun mkSizeSubExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UExpr<KIntSort> = ctx.mkArithSub(lhs, rhs)
@@ -58,4 +69,8 @@ class UInt32SizeExprProvider(
     override fun mkSizeGeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithGe(lhs, rhs)
     override fun mkSizeLtExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithLt(lhs, rhs)
     override fun mkSizeLeExpr(lhs: UExpr<KIntSort>, rhs: UExpr<KIntSort>): UBoolExpr = ctx.mkArithLe(lhs, rhs)
+
+    override fun mkConcreteStringHashExpr(hashCode: Int, string: UStringExpr): UExpr<KIntSort> =
+        UConcreteStringHashCodeIntExpr(ctx, hashCode, string)
+
 }

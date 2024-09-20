@@ -13,6 +13,7 @@ import io.ksmt.expr.KBitVecNumberValue
 import io.ksmt.expr.KEqExpr
 import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFalse
+import io.ksmt.expr.KIntNumExpr
 import io.ksmt.expr.KInterpretedValue
 import io.ksmt.expr.KIteExpr
 import io.ksmt.expr.KNotExpr
@@ -25,6 +26,7 @@ import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KBv32Sort
 import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
+import io.ksmt.sort.KIntSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KUninterpretedSort
 import org.usvm.memory.USymbolicCollection
@@ -325,30 +327,30 @@ class UIsSupertypeExpr<Type> internal constructor(
 
 //region Hash Code Expressions
 
-interface UHashCodeExpression<Object> {
-    fun mkEq(ctx: UContext<*>, other: UHashCodeExpression<Object>): UBoolExpr
+interface UHashCodeExpression {
+    fun mkEq(ctx: UContext<*>, other: UHashCodeExpression): UBoolExpr
 
     fun printHashedObject(expressionPrinter: ExpressionPrinter)
 }
 
-abstract class UConcreteBv32HashCodeExpr<Object> internal constructor(
+abstract class UConcreteHashCodeBv32Expr internal constructor(
     ctx: UContext<UBv32Sort>,
     override val numberValue: Int
-): KBitVecNumberValue<UBv32Sort, Int>(ctx), UHashCodeExpression<Object> {
+): KBitVecNumberValue<UBv32Sort, Int>(ctx), UHashCodeExpression {
     override val sort = ctx.bv32Sort
 }
 
-abstract class UConcreteIntHashCodeExpr<Object> internal constructor(
+abstract class UConcreteHashCodeIntExpr internal constructor(
     ctx: UContext<KIntSort>,
-    override val numberValue: Int
-): KBitVecNumberValue<UBv32Sort, Int>(ctx), UHashCodeExpression<Object> {
-    override val sort = ctx.bv32Sort
+    val value: Int
+): KIntNumExpr(ctx, value), UHashCodeExpression {
+    override val sort = ctx.intSort
 }
 
-abstract class UHashCodeExpr<USizeSort: USort, Object> internal constructor(
+abstract class UHashCodeExpr<USizeSort: USort> internal constructor(
     ctx: UContext<USizeSort>,
     override val sort: USizeSort
-): UExpr<USizeSort>(ctx), UHashCodeExpression<Object> {
+): UExpr<USizeSort>(ctx), UHashCodeExpression {
     override fun print(printer: ExpressionPrinter) {
         printer.append("(hash ")
         printHashedObject(printer)
