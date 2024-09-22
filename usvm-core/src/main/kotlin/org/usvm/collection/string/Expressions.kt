@@ -29,6 +29,8 @@ import org.usvm.UTransformer
 import org.usvm.asSizeTypedTransformer
 import org.usvm.asTypedTransformer
 import org.usvm.collection.array.UAllocatedArray
+import org.usvm.language.UFormalLanguage
+import org.usvm.language.URegularLanguage
 import org.usvm.sizeSort
 import org.usvm.uctx
 
@@ -99,7 +101,8 @@ class UStringFromArrayExpr<ArrayType, USizeSort: USort> internal constructor(
 class UStringFromLanguageExpr internal constructor(
     ctx: UContext<*>,
     // TODO: add formal language (automaton-based?) representing possible content of this string
-    val ref: UHeapRef
+    val ref: UHeapRef,
+    val language: UFormalLanguage = URegularLanguage.anyString()
 ): UStringExpr(ctx) {
     override val sort = ctx.stringSort
 
