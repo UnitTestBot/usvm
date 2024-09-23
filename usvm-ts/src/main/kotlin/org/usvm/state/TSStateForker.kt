@@ -18,6 +18,7 @@ private typealias StateToCheck = Boolean
 private const val ForkedState = true
 private const val OriginalState = false
 
+// TODO: No copy-paste implementation with USVM API rework.
 object TSStateForker : StateForker {
     override fun <T : UState<Type, *, *, Context, *, T>, Type, Context : UContext<*>> fork(
         state: T,
@@ -76,19 +77,20 @@ object TSStateForker : StateForker {
         var curState = state
         val result = mutableListOf<T?>()
         for (condition in conditions) {
-            val (trueModels, _, _) = splitModelsByCondition(curState.models, condition)
+            val unwrappedCondition: UBoolExpr = condition.unwrapJoinedExpr(state.ctx).cast()
+            val (trueModels, _, _) = splitModelsByCondition(curState.models, unwrappedCondition)
 
             val nextRoot = if (trueModels.isNotEmpty()) {
                 val root = curState.clone()
                 curState.models = trueModels
-                curState.pathConstraints += condition
+                curState.pathConstraints += unwrappedCondition
 
                 root
             } else {
                 val root = forkIfSat(
                     curState,
-                    newConstraintToOriginalState = condition,
-                    newConstraintToForkedState = condition.ctx.trueExpr,
+                    newConstraintToOriginalState = unwrappedCondition,
+                    newConstraintToForkedState = unwrappedCondition.ctx.trueExpr,
                     stateToCheck = OriginalState
                 )
 

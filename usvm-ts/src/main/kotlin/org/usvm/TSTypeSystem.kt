@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsPrimitiveType
@@ -20,12 +21,13 @@ class TSTypeSystem(
 ) : UTypeSystem<EtsType> {
 
     companion object {
+        // TODO: add more primitive types (string, etc.) once supported
         val primitiveTypes = sequenceOf(EtsNumberType, EtsBooleanType)
     }
 
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean = when {
         supertype == type -> true
-        supertype == EtsUnknownType -> true
+        supertype == EtsUnknownType || supertype == EtsAnyType -> true
         else -> false
     }
 
@@ -37,18 +39,21 @@ class TSTypeSystem(
     override fun isFinal(type: EtsType): Boolean = when (type) {
         is EtsPrimitiveType -> true
         is EtsUnknownType -> false
+        is EtsAnyType -> false
         else -> false
     }
 
     override fun isInstantiable(type: EtsType): Boolean = when (type) {
         is EtsPrimitiveType -> true
         is EtsUnknownType -> true
+        is EtsAnyType -> true
         else -> false
     }
 
     override fun findSubtypes(type: EtsType): Sequence<EtsType> = when (type) {
         is EtsPrimitiveType -> emptySequence()
         is EtsUnknownType -> primitiveTypes
+        is EtsAnyType -> primitiveTypes
         else -> emptySequence()
     }
 
@@ -60,6 +65,11 @@ class TSTypeSystem(
 class TSTopTypeStream(
     private val typeSystem: TSTypeSystem,
     private val primitiveTypes: List<EtsType> = TSTypeSystem.primitiveTypes.toList(),
+    /* Currently only EtsUnknownType was encountered and viewed as any type.
+       However, there is EtsAnyType that represents any type.
+
+       TODO: replace EtsUnknownType with further TSTypeSystem implementation.
+    */
     private val anyTypeStream: UTypeStream<EtsType> = USupportTypeStream.from(typeSystem, EtsUnknownType),
 ) : UTypeStream<EtsType> {
 

@@ -69,11 +69,11 @@ import org.usvm.memory.URegisterStackLValue
 class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
-    private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
+    localToIdx: (EtsMethod, EtsValue) -> Int,
+    localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
+    private val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
         ctx,
         scope,
         localToIdx,

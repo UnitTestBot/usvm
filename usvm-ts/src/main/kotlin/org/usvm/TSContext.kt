@@ -22,11 +22,5 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         else -> TODO("Support all JacoDB types")
     }
 
-    fun nonRefSortToType(sort: USort): EtsType = when (sort) {
-        boolSort -> EtsBooleanType
-        fp64Sort -> EtsNumberType
-        else -> TODO("Support all non-ref JacoDB types")
-    }
-
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
 }

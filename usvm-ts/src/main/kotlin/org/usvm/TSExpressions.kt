@@ -36,6 +36,11 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
+/**
+ * Utility class for merging expressions with [UBoolSort] sort.
+ *
+ * Mainly created for [not] function used in TSStateForker.
+ */
 class UJoinedBoolExpr(
     ctx: TSContext,
     val exprs: List<UBoolExpr>
@@ -44,6 +49,8 @@ class UJoinedBoolExpr(
         get() = ctx.boolSort
 
     private val joinedExprs = ctx.mkAnd(exprs)
+
+    fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         return transformer.apply(joinedExprs)
@@ -58,10 +65,13 @@ class UJoinedBoolExpr(
         joinedExprs.print(printer)
         printer.append(")")
     }
-
-    fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
 }
 
+/**
+ * [UExpr] wrapper that handles type coercion.
+ *
+ * @param value wrapped expression.
+ */
 class TSWrappedValue(
     ctx: TSContext,
     val value: UExpr<out USort>,
@@ -74,25 +84,25 @@ class TSWrappedValue(
 
     fun asSort(sort: USort): UExpr<out USort>? = transformer.transform(sort)
 
-    fun coerce(
+    private fun coerce(
         other: UExpr<out USort>,
-        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
-    ): UExpr<out USort> = when {
-        other is UIntepretedValue -> {
+        action: CoerceAction
+    ): UExpr<out USort> = when (other) {
+        is UIntepretedValue -> {
             val otherTransformer = TSExprTransformer(other, scope)
             transformer.intersectWithTypeCoercion(otherTransformer, action)
         }
 
-        other is TSWrappedValue -> {
+        is TSWrappedValue -> {
             transformer.intersectWithTypeCoercion(other.transformer, action)
         }
 
-        else -> TODO()
+        else -> error("Unexpected $other in type coercion")
     }
 
     fun coerceWithSort(
         other: UExpr<out USort>,
-        action: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?,
+        action: CoerceAction,
         sort: USort,
     ): UExpr<out USort> {
         transformer.transform(sort)

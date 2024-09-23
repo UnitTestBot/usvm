@@ -7,7 +7,7 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsType
 
-private typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
+typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 
 class TSExprTransformer(
     private val baseExpr: UExpr<out USort>,
@@ -69,6 +69,13 @@ class TSExprTransformer(
 
     private val addedExprCache: MutableSet<UExpr<out USort>> = mutableSetOf()
 
+    /**
+     * Generates and caches additional constraints for coercion expression list.
+     *
+     * For now used to save link between fp and bool sorts of [baseExpr].
+     *
+     * @return List of additional [UExpr].
+     */
     private fun generateAdditionalExprs(): List<UExpr<out USort>> = with(ctx) {
         val newExpr = when (baseExpr.sort) {
             addressSort -> addedExprCache.putOrNull(mkEq(asFp64(), boolToFpSort(asBool())))
@@ -96,11 +103,6 @@ class TSExprTransformer(
             ctx.boolSort -> baseExpr
             ctx.fp64Sort -> with(ctx) { mkIte(mkFpEqualExpr(baseExpr.cast(), mkFp64(1.0)), mkTrue(), mkFalse()) }
             ctx.addressSort -> with(ctx) {
-//                mkIte(
-//                    condition = mkFpEqualExpr(asFp64(), mkFp64(1.0)),
-//                    trueBranch = mkTrue(),
-//                    falseBranch = mkFalse()
-//                )
                 TSRefTransformer(ctx, boolSort).apply(baseExpr.cast()).cast()
             }
 
@@ -111,7 +113,9 @@ class TSExprTransformer(
     fun asRef(): UExpr<UAddressSort>? = exprCache.getOrPut(ctx.addressSort) {
         when (baseExpr.sort) {
             ctx.addressSort -> baseExpr
-            else -> ctx.mkTrackedSymbol(ctx.addressSort)
+            /* ctx.mkTrackedSymbol(ctx.addressSort) is possible here, but
+               no constraint-wise benefits of using it instead of null were currently found. */
+            else -> null
         }
     }.cast()
 
@@ -121,6 +125,13 @@ class TSExprTransformer(
     }
 }
 
+/**
+ * Transforms [UExpr] with [UAddressSort]:
+ *
+ * UExpr(address sort) -> UExpr'(sort).
+ *
+ * TODO: Implement other expressions with address sort.
+ */
 class TSRefTransformer(
     private val ctx: TSContext,
     private val sort: USort,
@@ -131,5 +142,5 @@ class TSRefTransformer(
         else -> error("Not yet implemented: $expr")
     }
 
-    fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> = ctx.mkRegisterReading(expr.idx, sort)
+    private fun transform(expr: URegisterReading<UAddressSort>): UExpr<USort> = ctx.mkRegisterReading(expr.idx, sort)
 }
