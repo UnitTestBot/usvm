@@ -1,4 +1,4 @@
-package org.usvm.machine.interpreter
+package org.usvm.machine.interpreter.transformers
 
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClasspath
@@ -19,7 +19,7 @@ import org.jacodb.api.jvm.cfg.JcNewArrayExpr
 import org.jacodb.api.jvm.cfg.JcValue
 import org.jacodb.api.jvm.ext.boolean
 import org.jacodb.api.jvm.ext.int
-import org.usvm.machine.interpreter.JcSingleInstructionTransformer.BlockGenerationContext
+import org.usvm.machine.interpreter.transformers.JcSingleInstructionTransformer.BlockGenerationContext
 
 object JcMultiDimArrayAllocationTransformer : JcInstExtFeature {
     override fun transformInstList(method: JcMethod, list: JcInstList<JcInst>): JcInstList<JcInst> {

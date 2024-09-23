@@ -1,4 +1,4 @@
-package org.usvm.machine.interpreter
+package org.usvm.machine.interpreter.transformers
 
 import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.cfg.JcCatchInst

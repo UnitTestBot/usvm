@@ -1,4 +1,4 @@
-package org.usvm.machine.interpreter
+package org.usvm.machine.interpreter.transformers
 
 import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcInstExtFeature
@@ -27,7 +27,7 @@ import org.jacodb.api.jvm.cfg.JcVirtualCallExpr
 import org.jacodb.api.jvm.ext.objectType
 import org.jacodb.impl.cfg.TypedStaticMethodRefImpl
 import org.jacodb.impl.cfg.VirtualMethodRefImpl
-import org.usvm.machine.interpreter.JcSingleInstructionTransformer.BlockGenerationContext
+import org.usvm.machine.interpreter.transformers.JcSingleInstructionTransformer.BlockGenerationContext
 
 object JcStringConcatTransformer : JcInstExtFeature {
     private const val JAVA_STRING = "java.lang.String"
