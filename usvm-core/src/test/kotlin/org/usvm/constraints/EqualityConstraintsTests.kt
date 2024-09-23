@@ -8,11 +8,14 @@ import org.junit.jupiter.api.Test
 import org.usvm.UComponents
 import org.usvm.UContext
 import org.usvm.USizeSort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class EqualityConstraintsTests {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var constraints: UEqualityConstraints
 
     @BeforeEach
@@ -20,7 +23,8 @@ class EqualityConstraintsTests {
         val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
-        constraints = UEqualityConstraints(ctx)
+        ownership = MutabilityOwnership()
+        constraints = UEqualityConstraints(ctx, ownership)
     }
 
     @Test
@@ -41,13 +45,13 @@ class EqualityConstraintsTests {
         // Add ref2 != ref3
         constraints.makeNonEqual(ref2, ref3)
         // ref1 still can be equal to ref3
-        assertSame(3, constraints.distinctReferences.size)
+        assertSame(3, constraints.distinctReferences.calculateSize())
         assertTrue(constraints.referenceDisequalities[ref2]!!.contains(ref3))
         assertTrue(constraints.referenceDisequalities[ref3]!!.contains(ref2))
 
         constraints.makeNonEqual(ref1, ref3)
         // Now ref1, ref2 and ref3 are guaranteed to be distinct
-        assertSame(4, constraints.distinctReferences.size)
+        assertSame(4, constraints.distinctReferences.calculateSize())
         assertTrue(constraints.referenceDisequalities.all { it.value.isEmpty() })
 
         // Adding some entry into referenceDisequalities
@@ -107,10 +111,10 @@ class EqualityConstraintsTests {
         // (3) ref4 != null
         // (4) ref3 != ref4 || (ref3 == ref4 == null)
         // These two should be automatically simplified to ref3 != ref4.
-        assertSame(2, constraints.distinctReferences.size)
+        assertSame(2, constraints.distinctReferences.calculateSize())
         constraints.makeNonEqual(ref3, ctx.nullRef)
         // Now we have obtained that null, ref3 and ref4 are 3 distinct references. This should be represented as clique
         // constraint...
-        assertSame(3, constraints.distinctReferences.size)
+        assertSame(3, constraints.distinctReferences.calculateSize())
     }
 }

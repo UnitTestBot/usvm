@@ -2,7 +2,7 @@ package org.usvm.runner
 
 import mu.KLogging
 
-private val logger =  object : KLogging() {}.logger
+private val logger = object : KLogging() {}.logger
 
 class PrintingResultReceiver : USVMPythonAnalysisResultReceiver {
     var cnt: Int = 0

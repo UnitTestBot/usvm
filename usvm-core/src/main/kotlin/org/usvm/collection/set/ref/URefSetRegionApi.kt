@@ -19,7 +19,7 @@ internal fun <SetType> UWritableMemory<*>.refSetUnion(
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, guard)
+    val newRegion = region.union(srcRef, dstRef, guard, ownership)
     setRegion(regionId, newRegion)
 }
 

@@ -8,6 +8,7 @@ import org.usvm.TestInstruction
 import org.usvm.TestState
 import org.usvm.UCallStack
 import org.usvm.UContext
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.ps.ExecutionTreeTracker
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -164,7 +165,9 @@ class CloseStatesSearcherTest {
             val ctxMock = mockk<UContext<*>>()
             every { ctxMock.getNextStateId() } returns 0u
             val callStack = UCallStack<String, TestInstruction>("")
-            val spyk = spyk(TestState(ctxMock, callStack, mockk(), mockk(), emptyList(), pathNode, mockk()))
+            val spyk = spyk(
+                TestState(ctxMock, MutabilityOwnership(), callStack, mockk(), mockk(), emptyList(), pathNode, mockk())
+            )
             spyk
         }
         val executionTreeTracker = ExecutionTreeTracker<TestState, TestInstruction>(rootNode).apply { add(states) }

@@ -9,6 +9,7 @@ import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
 import org.usvm.UContext
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.sizeSort
 import org.usvm.solver.UExprTranslator
@@ -21,6 +22,7 @@ import kotlin.test.assertNotNull
 
 class PathConstraintsMergingTest {
     private lateinit var ctx: UContext<UBv32Sort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var translator: UExprTranslator<SingleType, *>
     private lateinit var smtSolver: KZ3Solver
 
@@ -30,14 +32,15 @@ class PathConstraintsMergingTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         translator = UExprTranslator(ctx)
         smtSolver = KZ3Solver(ctx)
     }
 
     @Test
     fun `Empty path constraints`() = with(ctx) {
-        val pcLeft = UPathConstraints<SingleType>(this)
-        val pcRight = pcLeft.clone()
+        val pcLeft = UPathConstraints<SingleType>(this, ownership)
+        val pcRight = pcLeft.clone(MutabilityOwnership(), MutabilityOwnership())
         checkMergedEqualsOriginals(pcLeft, pcRight)
     }
 
@@ -84,7 +87,7 @@ class PathConstraintsMergingTest {
     }
 
     private fun buildCommonPrefix(): Pair<UPathConstraints<SingleType>, UPathConstraints<SingleType>> = with(ctx) {
-        val pcLeft = UPathConstraints<SingleType>(this)
+        val pcLeft = UPathConstraints<SingleType>(this, ownership)
 
         // logical constraints
         pcLeft += (mkRegisterReading(0, sizeSort) eq mkRegisterReading(1, sizeSort)) or
@@ -98,14 +101,16 @@ class PathConstraintsMergingTest {
         pcLeft += mkRegisterReading(4, addressSort) eq mkRegisterReading(5, addressSort)
         pcLeft += mkRegisterReading(6, addressSort) neq mkRegisterReading(7, addressSort)
 
-        val pcRight = pcLeft.clone()
+        val pcRight = pcLeft.clone(MutabilityOwnership(), MutabilityOwnership())
         return pcLeft to pcRight
     }
 
     private fun checkMergedEqualsOriginals(left: UPathConstraints<SingleType>, right: UPathConstraints<SingleType>) =
         with(ctx) {
             val mergeGuard = MutableMergeGuard(this)
-            val result = left.mergeWith(right, mergeGuard)
+            val result = left.mergeWith(
+                right, mergeGuard, MutabilityOwnership(), MutabilityOwnership(), MutabilityOwnership()
+            )
             assertNotNull(result)
             result +=ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
             val constraintsAreNotEqual = run {

@@ -5,7 +5,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFunctionApp
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.uncheckedCast
-import kotlinx.collections.immutable.persistentHashMapOf
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -41,7 +41,7 @@ abstract class USetCollectionDecoder<ElementSort : USort> {
         val usedSetKeys = hashSetOf<KFunctionApp<KBoolSort>>()
         assertions.flatMapTo(usedSetKeys) { appCollector.applyVisitor(it) }
 
-        val entries = persistentHashMapOf<USymbolicSetElement<ElementSort>, UBoolExpr>().builder()
+        var entries = persistentHashMapOf<USymbolicSetElement<ElementSort>, UBoolExpr>()
         for (key in usedSetKeys) {
             val keyInSet = model.eval(key, isComplete = false)
             if (!keyInSet.isTrue) continue
@@ -49,13 +49,14 @@ abstract class USetCollectionDecoder<ElementSort : USort> {
             val (rawSetRef, rawElement) = key.args
             val setRef: UHeapRef = rawSetRef.uncheckedCast()
             val element: UExpr<ElementSort> = rawElement.uncheckedCast()
-
             val setRefModel = model.eval(setRef, isComplete = true).mapAddress(mapping)
             val elementModel = model.eval(element, isComplete = true).mapAddress(mapping)
 
-            entries[setRefModel to elementModel] = inputFunction.ctx.trueExpr
+            entries = entries.put(
+                setRefModel to elementModel, inputFunction.ctx.trueExpr, evaluator.ctx.defaultOwnership
+            )
         }
 
-        return UMemory2DArray(entries.build(), constValue = inputFunction.ctx.falseExpr)
+        return UMemory2DArray(entries, constValue = inputFunction.ctx.falseExpr)
     }
 }

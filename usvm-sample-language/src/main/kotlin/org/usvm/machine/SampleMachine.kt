@@ -5,6 +5,7 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UContext
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.language.Method
 import org.usvm.language.Program
 import org.usvm.language.SampleType
@@ -123,7 +124,7 @@ class SampleMachine(
         method: Method<*>,
         targets: List<SampleTarget>
     ): SampleState =
-        SampleState(ctx, method, targets = UTargetsSet.from(targets)).apply {
+        SampleState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets)).apply {
             addEntryMethodCall(applicationGraph, method)
             val model = solver.emptyModel()
             models = persistentListOf(model)

@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.usvm.StateForker.Companion.splitModelsByCondition
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
@@ -188,7 +188,11 @@ object WithSolverStateForker : StateForker {
         val satResult = solver.check(constraintsToCheck)
 
         return when (satResult) {
-            is UUnsatResult -> null
+            is UUnsatResult -> {
+                // rollback previous ownership
+                state.pathConstraints.changeOwnership(state.ownership)
+                null
+            }
 
             is USatResult -> {
                 // Note that we cannot extract common code here due to
@@ -210,6 +214,8 @@ object WithSolverStateForker : StateForker {
             }
 
             is UUnknownResult -> {
+                // rollback previous ownership
+                state.pathConstraints.changeOwnership(state.ownership)
                 state.pathConstraints += if (stateToCheck) newConstraintToOriginalState else newConstraintToForkedState
 
                 null
@@ -225,11 +231,11 @@ object NoSolverStateForker : StateForker {
     ): ForkResult<T> {
         val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
         val notCondition = state.ctx.mkNot(condition)
-
         val clonedPathConstraints = state.pathConstraints.clone()
         clonedPathConstraints += condition
 
         val (posState, negState) = if (clonedPathConstraints.isFalse) {
+            // changing ownership is unnecessary
             state.pathConstraints += notCondition
             state.models = falseModels
 
@@ -258,8 +264,7 @@ object NoSolverStateForker : StateForker {
         val result = mutableListOf<T?>()
         for (condition in conditions) {
             val (trueModels, _) = splitModelsByCondition(curState.models, condition)
-
-            val clonedConstraints = curState.pathConstraints.clone()
+            val clonedConstraints = curState.pathConstraints.clone(MutabilityOwnership(), MutabilityOwnership())
             clonedConstraints += condition
 
             if (clonedConstraints.isFalse) {

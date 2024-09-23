@@ -19,6 +19,7 @@ import org.usvm.UExpr
 import org.usvm.USizeSort
 import org.usvm.UState
 import org.usvm.WithSolverStateForker
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
@@ -35,6 +36,7 @@ import kotlin.time.Duration.Companion.INFINITE
 
 abstract class SymbolicCollectionTestBase {
     lateinit var ctx: UContext<USizeSort>
+    lateinit var ownership: MutabilityOwnership
     lateinit var pathConstraints: UPathConstraints<SingleTypeSystem.SingleType>
     lateinit var memory: UMemory<SingleTypeSystem.SingleType, Any?>
     lateinit var scope: StepScope<StateStub, SingleTypeSystem.SingleType, *, UContext<USizeSort>>
@@ -47,9 +49,10 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkTypeSystem(any()) } returns mockk()
         every { components.mkSolver(any()) } answers { uSolver.uncheckedCast() }
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
 
         every { components.mkComposer(ctx) } answers {
-            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType> -> UComposer(ctx, memory) }
+            { memory: UReadOnlyMemory<SingleTypeSystem.SingleType>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) }
         }
 
         val translator = UExprTranslator<SingleTypeSystem.SingleType, USizeSort>(ctx)
@@ -61,24 +64,32 @@ abstract class SymbolicCollectionTestBase {
         every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 
 
-        pathConstraints = UPathConstraints(ctx)
-        memory = UMemory(ctx, pathConstraints.typeConstraints)
-        scope = StepScope(StateStub(ctx, pathConstraints, memory), UForkBlackList.createDefault())
+        pathConstraints = UPathConstraints(ctx, ownership)
+        memory = UMemory(ctx, ownership, pathConstraints.typeConstraints)
+        scope = StepScope(StateStub(ctx, ownership, pathConstraints, memory), UForkBlackList.createDefault())
     }
 
     class TargetStub : UTarget<Any?, TargetStub>()
 
     class StateStub(
         ctx: UContext<USizeSort>,
+        ownership: MutabilityOwnership,
         pathConstraints: UPathConstraints<SingleTypeSystem.SingleType>,
         memory: UMemory<SingleTypeSystem.SingleType, Any?>,
     ) : UState<SingleTypeSystem.SingleType, Any?, Any?, UContext<USizeSort>, TargetStub, StateStub>(
-        ctx, UCallStack(),
+        ctx, ownership, UCallStack(),
         pathConstraints, memory, emptyList(), PathNode.root(), PathNode.root(), UTargetsSet.empty()
     ) {
         override fun clone(newConstraints: UPathConstraints<SingleTypeSystem.SingleType>?): StateStub {
-            val clonedConstraints = newConstraints ?: pathConstraints.clone()
-            return StateStub(ctx, clonedConstraints, memory.clone(clonedConstraints.typeConstraints))
+            val thisOwnership = MutabilityOwnership()
+            val cloneOwnership = MutabilityOwnership()
+            val clonedConstraints = newConstraints ?: pathConstraints.clone(thisOwnership, cloneOwnership)
+            return StateStub(
+                ctx,
+                cloneOwnership,
+                clonedConstraints,
+                memory.clone(clonedConstraints.typeConstraints, thisOwnership, cloneOwnership)
+            )
         }
 
         override val isExceptional: Boolean

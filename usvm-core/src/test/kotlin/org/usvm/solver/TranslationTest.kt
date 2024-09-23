@@ -32,6 +32,7 @@ import org.usvm.collection.array.USymbolicArrayInputToInputCopyAdapter
 import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UInputFieldId
 import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UMemory
 import org.usvm.mkSizeExpr
 import org.usvm.memory.key.USizeExprKeyInfo
@@ -41,6 +42,7 @@ import kotlin.test.assertSame
 
 class TranslationTest {
     private lateinit var ctx: RecordingCtx
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var heap: UMemory<Type, Any>
     private lateinit var translator: UExprTranslator<Type, *>
 
@@ -69,8 +71,9 @@ class TranslationTest {
         every { components.mkTypeSystem(any()) } returns mockk()
 
         ctx = RecordingCtx(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        heap = UMemory(ctx, mockk())
+        heap = UMemory(ctx, ownership, mockk())
         translator = UExprTranslator(ctx)
 
         valueFieldDescr = mockk<Field>() to ctx.bv32Sort
@@ -144,8 +147,8 @@ class TranslationTest {
 
         val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
-            .write(ref1 to idx1, val1, trueExpr)
-            .write(ref2 to idx2, val2, trueExpr)
+            .write(ref1 to idx1, val1, trueExpr, ownership)
+            .write(ref2 to idx2, val2, trueExpr, ownership)
 
         val ref3 = mkRegisterReading(4, addressSort)
         val idx3 = mkRegisterReading(5, sizeSort)
@@ -175,8 +178,8 @@ class TranslationTest {
 
         val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
-            .write(ref1 to idx1, val1, trueExpr)
-            .write(ref2 to idx2, val2, trueExpr)
+            .write(ref1 to idx1, val1, trueExpr, ownership)
+            .write(ref2 to idx2, val2, trueExpr, ownership)
 
         val concreteRef = allocateConcreteRef()
 
@@ -227,9 +230,9 @@ class TranslationTest {
 
         val region = UInputFieldId(mockk<Field>(), bv32Sort)
             .emptyRegion()
-            .write(ref1, mkBv(1), g1)
-            .write(ref2, mkBv(2), g2)
-            .write(ref3, mkBv(3), g3)
+            .write(ref1, mkBv(1), g1, ownership)
+            .write(ref2, mkBv(2), g2, ownership)
+            .write(ref3, mkBv(3), g3, ownership)
 
         val ref0 = mkRegisterReading(0, addressSort)
         val reading = region.read(ref0)
@@ -253,9 +256,9 @@ class TranslationTest {
 
         val region = UInputArrayLengthId(mockk<Field>(), bv32Sort)
             .emptyRegion()
-            .write(ref1, mkBv(1), trueExpr)
-            .write(ref2, mkBv(2), trueExpr)
-            .write(ref3, mkBv(3), trueExpr)
+            .write(ref1, mkBv(1), trueExpr, ownership)
+            .write(ref2, mkBv(2), trueExpr, ownership)
+            .write(ref3, mkBv(3), trueExpr, ownership)
 
         val ref0 = mkRegisterReading(0, addressSort)
         val reading = region.read(ref0)
@@ -283,8 +286,8 @@ class TranslationTest {
 
         val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
             .emptyRegion()
-            .write(ref1 to idx1, val1, trueExpr)
-            .write(ref2 to idx2, val2, trueExpr)
+            .write(ref1 to idx1, val1, trueExpr, ownership)
+            .write(ref2 to idx2, val2, trueExpr, ownership)
 
 
         val adapter = USymbolicArrayInputToInputCopyAdapter(
@@ -383,8 +386,8 @@ class TranslationTest {
 
         val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort)
             .emptyRegion()
-            .write(ref1 to idx1, val1, trueExpr)
-            .write(ref2 to idx2, val2, trueExpr)
+            .write(ref1 to idx1, val1, trueExpr, ownership)
+            .write(ref2 to idx2, val2, trueExpr, ownership)
 
         val adapter = USymbolicArrayInputToInputCopyAdapter(
             ref1 to mkSizeExpr(0),
@@ -424,8 +427,8 @@ class TranslationTest {
 
         val allocatedRegion1 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 1)
             .emptyRegion()
-            .write(idx1, val1, trueExpr)
-            .write(idx2, val2, trueExpr)
+            .write(idx1, val1, trueExpr, ownership)
+            .write(idx2, val2, trueExpr, ownership)
 
         val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
             mkSizeExpr(0), mkSizeExpr(0), mkSizeExpr(5), USizeExprKeyInfo()
@@ -458,12 +461,12 @@ class TranslationTest {
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
         val allocatedRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, sizeSort, 0)
             .emptyRegion()
-            .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
-            .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)
+            .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr, ownership)
+            .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr, ownership)
 
         val allocatedRegionExtended = allocatedRegion
-            .write(mkRegisterReading(2, sizeSort), mkBv(2), trueExpr)
-            .write(mkRegisterReading(3, sizeSort), mkBv(3), trueExpr)
+            .write(mkRegisterReading(2, sizeSort), mkBv(2), trueExpr, ownership)
+            .write(mkRegisterReading(3, sizeSort), mkBv(3), trueExpr, ownership)
 
         val reading = allocatedRegion.read(mkRegisterReading(4, sizeSort))
         val readingExtended = allocatedRegionExtended.read(mkRegisterReading(5, sizeSort))

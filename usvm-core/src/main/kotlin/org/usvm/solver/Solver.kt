@@ -149,7 +149,7 @@ open class USolverBase<Type>(
     }
 
     fun emptyModel(): UModelBase<Type> =
-        (check(UPathConstraints(ctx)) as USatResult<UModelBase<Type>>).model
+        (check(UPathConstraints(ctx, ctx.defaultOwnership)) as USatResult<UModelBase<Type>>).model
 
     override fun close() {
         smtSolver.close()

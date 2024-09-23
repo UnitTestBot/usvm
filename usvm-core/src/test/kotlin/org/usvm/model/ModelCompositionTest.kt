@@ -2,7 +2,7 @@ package org.usvm.model
 
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.collections.immutable.persistentMapOf
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -27,6 +27,7 @@ import org.usvm.collection.array.length.UInputArrayLengthId
 import org.usvm.collection.field.UFieldsEagerModelRegion
 import org.usvm.collection.field.UFieldsRegionId
 import org.usvm.collection.field.UInputFieldId
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
@@ -36,6 +37,7 @@ import kotlin.test.assertSame
 
 class ModelCompositionTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var concreteNull: UConcreteHeapRef
 
     @BeforeEach
@@ -43,8 +45,9 @@ class ModelCompositionTest {
         val components: UComponents<*, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
 
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         concreteNull = ctx.mkConcreteHeapRef(NULL_ADDRESS)
     }
@@ -57,14 +60,14 @@ class ModelCompositionTest {
         )
 
         val model = UModelBase<Type>(ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull)
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1)
             .emptyRegion()
-            .write(0.toBv(), 0.toBv(), trueExpr)
-            .write(1.toBv(), 1.toBv(), trueExpr)
-            .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr)
-            .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr)
+            .write(0.toBv(), 0.toBv(), trueExpr, ownership)
+            .write(1.toBv(), 1.toBv(), trueExpr, ownership)
+            .write(mkRegisterReading(1, sizeSort), 2.toBv(), trueExpr, ownership)
+            .write(mkRegisterReading(2, sizeSort), 3.toBv(), trueExpr, ownership)
         val reading = region.read(mkRegisterReading(0, sizeSort))
 
         val expr = composer.compose(reading)
@@ -78,8 +81,9 @@ class ModelCompositionTest {
 
         val composedSymbolicHeapRef = ctx.mkConcreteHeapRef(-1)
         val inputArray = UMemory2DArray(
-            persistentMapOf((composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0)
+            persistentHashMapOf(ownership, (composedSymbolicHeapRef to mkBv(0)) to mkBv(1)), mkBv(0)
         )
+
         val arrayModel = UArrayEagerModelRegion(arrayMemoryId, inputArray)
 
         val stackModel = URegistersStackEagerModel(
@@ -89,7 +93,7 @@ class ModelCompositionTest {
         val model = UModelBase<Type>(
             ctx, stackModel, mockk(), mockk(), mapOf(arrayMemoryId to arrayModel), concreteNull
         )
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val symbolicRef = mkRegisterReading(0, addressSort) as UHeapRef
 
@@ -131,7 +135,7 @@ class ModelCompositionTest {
         val arrayType = mockk<Type>()
 
         val arrayLengthMemoryId = UArrayLengthsRegionId(sizeSort, arrayType)
-        val inputLength = UMemory1DArray(persistentMapOf(composedRef0 to mkBv(42)), mkBv(0))
+        val inputLength = UMemory1DArray(persistentHashMapOf(ownership, composedRef0 to mkBv(42)), mkBv(0))
         val arrayLengthModel = UArrayLengthEagerModelRegion(arrayLengthMemoryId, inputLength)
 
         val stackModel = URegistersStackEagerModel(
@@ -148,13 +152,13 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), mapOf(arrayLengthMemoryId to arrayLengthModel), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UInputArrayLengthId(arrayType, bv32Sort)
             .emptyRegion()
-            .write(symbolicRef1, 0.toBv(), trueExpr)
-            .write(symbolicRef2, 1.toBv(), trueExpr)
-            .write(symbolicRef3, 2.toBv(), trueExpr)
+            .write(symbolicRef1, 0.toBv(), trueExpr, ownership)
+            .write(symbolicRef2, 1.toBv(), trueExpr, ownership)
+            .write(symbolicRef3, 2.toBv(), trueExpr, ownership)
         val reading = region.read(symbolicRef0)
 
         val expr = composer.compose(reading)
@@ -176,7 +180,7 @@ class ModelCompositionTest {
         val field = mockk<Field>()
         val fieldMemoryId = UFieldsRegionId(field, addressSort)
 
-        val inputField = UMemory1DArray(persistentMapOf(composedRef0 to composedRef0), concreteNull)
+        val inputField = UMemory1DArray(persistentHashMapOf(ownership, composedRef0 to composedRef0), concreteNull)
         val fieldModel = UFieldsEagerModelRegion(fieldMemoryId, inputField)
 
         val stackModel = URegistersStackEagerModel(
@@ -193,13 +197,13 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), mapOf(fieldMemoryId to fieldModel), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val region = UInputFieldId(field, addressSort)
             .emptyRegion()
-            .write(symbolicRef1, symbolicRef1, trueExpr)
-            .write(symbolicRef2, symbolicRef2, trueExpr)
-            .write(symbolicRef3, symbolicRef3, trueExpr)
+            .write(symbolicRef1, symbolicRef1, trueExpr, ownership)
+            .write(symbolicRef2, symbolicRef2, trueExpr, ownership)
+            .write(symbolicRef3, symbolicRef3, trueExpr, ownership)
         val reading = region.read(symbolicRef0)
 
         val expr = composer.compose(reading)
@@ -223,14 +227,14 @@ class ModelCompositionTest {
             ctx, stackModel, mockk(), mockk(), emptyMap(), concreteNull
         )
 
-        val composer = UComposer(this, model)
+        val composer = UComposer(this, model, defaultOwnership)
 
         val emptyRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), bv32Sort, 1).emptyRegion()
 
         run {
             val region = emptyRegion
-                .write(index0, nonDefaultValue0, trueGuard)
-                .write(index0, nonDefaultValue1, falseGuard)
+                .write(index0, nonDefaultValue0, trueGuard, ownership)
+                .write(index0, nonDefaultValue1, falseGuard, ownership)
             val reading = region.read(index0)
 
             val expr = composer.compose(reading)
@@ -239,8 +243,8 @@ class ModelCompositionTest {
 
         run {
             val region = emptyRegion
-                .write(index1, nonDefaultValue0, trueGuard)
-                .write(index0, nonDefaultValue1, falseGuard)
+                .write(index1, nonDefaultValue0, trueGuard, ownership)
+                .write(index0, nonDefaultValue1, falseGuard, ownership)
             val reading = region.read(index0)
 
             val expr = composer.compose(reading)

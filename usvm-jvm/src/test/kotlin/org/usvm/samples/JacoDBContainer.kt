@@ -7,6 +7,7 @@ import org.jacodb.approximation.Approximations
 import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
+import org.usvm.machine.interpreter.JcMultiDimArrayAllocationTransformer
 import org.usvm.util.classpathWithApproximations
 import java.io.File
 
@@ -31,9 +32,9 @@ class JacoDBContainer(
             }
 
             val cp = if (samplesWithApproximationsKey == key) {
-                db.classpathWithApproximations(classpath)
+                db.classpathWithApproximations(classpath, listOf(JcMultiDimArrayAllocationTransformer))
             } else {
-                db.classpath(classpath)
+                db.classpath(classpath, listOf(JcMultiDimArrayAllocationTransformer))
             }
             db to cp
         }
