@@ -1,5 +1,6 @@
 package org.usvm.api
 
+import io.ksmt.sort.KFpSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
@@ -31,13 +32,14 @@ import org.usvm.collection.string.mkStringExprFromCharArray
 import org.usvm.collection.string.repeat
 import org.usvm.collection.string.reverse
 import org.usvm.collection.string.stringCmp
+import org.usvm.collection.string.stringToLower
+import org.usvm.collection.string.stringToUpper
 import org.usvm.getIntValue
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.regions.Region
-import org.usvm.sizeSort
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
@@ -239,6 +241,18 @@ fun UReadOnlyMemory<*>.stringLe(left: UHeapRef, right: UHeapRef): UBoolExpr =
         }
     }
 
+private inline fun <Type> UWritableMemory<Type>.mapAndAllocString(
+    stringRef: UHeapRef,
+    stringType: Type,
+    crossinline mapper: (UStringExpr) -> UStringExpr
+): UHeapRef {
+    var stringDidNotChange = true
+    val substring = mapString(stringRef) { string ->
+        mapper(string).also { if (string != it) stringDidNotChange = false }
+    }
+    return if (stringDidNotChange) stringRef else allocateStringExpr(stringType, substring)
+}
+
 /**
  * Allocates new string, which is the substring of [stringRef], starting at index [startIndex] and having length [length].
  */
@@ -247,42 +261,37 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.substring(
     stringType: Type,
     startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>
-): UHeapRef {
-    var stringDidNotChange = true
-    val substring = mapString(stringRef) { string ->
-        getSubstring(string, startIndex, length)
-            .also { if (string != it) stringDidNotChange = false }
-    }
-    return if (stringDidNotChange) stringRef else allocateStringExpr(stringType, substring)
-}
+) =
+    mapAndAllocString(stringRef, stringType) { getSubstring(it, startIndex, length) }
 
 
 /**
- * Allocates new string, which is the string representation of integer [value].
+ * Allocates new string, which is the string representation of integer [value] in the specified [radix].
  */
-fun <USizeSort : USort> UReadOnlyMemory<*>.stringFromInt(value: UExpr<USizeSort>): UConcreteHeapRef =
-    TODO()
+fun <Type, USizeSort : USort> UWritableMemory<Type>.stringFromInt(stringType: Type, value: UExpr<USizeSort>, radix: Int): UConcreteHeapRef =
+    allocateStringExpr(stringType, org.usvm.collection.string.stringFromInt(ctx.withSizeSort(), value, radix))
 
 /**
  * Allocates new string, which is the string representation of float [value].
  */
-fun <UFloatSort : USort> UReadOnlyMemory<*>.stringFromFloat(value: UExpr<UFloatSort>): UConcreteHeapRef =
-    TODO()
+fun <Type, UFloatSort : KFpSort> UWritableMemory<Type>.stringFromFloat(stringType: Type, value: UExpr<UFloatSort>): UConcreteHeapRef =
+    allocateStringExpr(stringType, org.usvm.collection.string.stringFromFloat(ctx, value))
 
 /**
  * Parses string in heap location [ref]. Returns a list of pairs (success, value), where success is true iff string
  * represents some integer value. In those models, where success is true, value represents the integer
- * number encoded into the string. String is non-deterministic, the engine might return a list of such variants.
+ * number encoded into the string in the specified [radix].
+ * If string is non-deterministic, the engine might return a list of such variants.
  */
-fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<USizeSort>?>> =
+fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef, radix: Int): List<Pair<UBoolExpr, UExpr<USizeSort>?>> =
     TODO()
 
 /**
  * Parses string in heap location [ref]. Returns a list of pairs (success, value), where success is true iff string
  * represents some floating-point value. In those models, where success is true, value represents the floating-point
- * number encoded into the string. String is non-deterministic, the engine might return a list of such variants.
+ * number encoded into the string. If string is non-deterministic, the engine might return a list of such variants.
  */
-fun <UFloatSort : USort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<UFloatSort>?>> =
+fun <UFloatSort : KFpSort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<UFloatSort>?>> =
     TODO()
 
 /**
@@ -306,14 +315,15 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.repeat(
 /**
  * Allocates new string, which is the upper-case variant of string referenced by [ref].
  */
-fun UReadOnlyMemory<*>.toUpper(ref: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.toUpper(stringType: Type, ref: UHeapRef): UHeapRef =
+    mapAndAllocString(ref, stringType, ::stringToUpper)
 
 /**
  * Allocates new string, which is the lower-case variant of string referenced by [ref].
  */
-fun UReadOnlyMemory<*>.toLower(ref: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.toLower(stringType: Type, ref: UHeapRef): UHeapRef =
+    mapAndAllocString(ref, stringType, ::stringToLower)
+
 
 /**
  * Returns lower-case version of [char].
@@ -345,36 +355,80 @@ fun <Type> UWritableMemory<Type>.reverse(ref: UHeapRef, stringType: Type): UHeap
  * Returns index of the first occurrence of string referenced by [patternRef] into the string referenced by [stringRef].
  */
 fun <USizeSort : USort> UReadOnlyMemory<*>.indexOf(stringRef: UHeapRef, patternRef: UHeapRef): UExpr<USizeSort> =
-    TODO()
+    mapString(stringRef) { string ->
+        mapString(patternRef) { pattern ->
+            org.usvm.collection.string.indexOf(ctx.withSizeSort(), string, pattern)
+        }
+    }
 
 /**
  * Returns if string referenced by [stringRef] is matched by a regular expression [regex].
  */
 fun UReadOnlyMemory<*>.matches(stringRef: UHeapRef, regex: URegexExpr): UBoolExpr =
-    TODO()
+    mapString(stringRef) { string -> org.usvm.collection.string.matches(ctx, string, regex) }
 
 /**
- * Returns a new string obtained by replacing in [where] the first occurrence of string [what] by [with].
+ * Returns a new string obtained by replacing in [whereRef] the first occurrence of string [whatRef] by [withRef].
  */
-fun UReadOnlyMemory<*>.replaceFirst(where: UHeapRef, what: UHeapRef, with: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.replaceFirst(
+    stringType: Type,
+    whereRef: UHeapRef,
+    whatRef: UHeapRef,
+    withRef: UHeapRef
+): UHeapRef =
+    mapAndAllocString(whereRef, stringType) { where ->
+        mapString(whatRef) { what ->
+            mapString(withRef) { with ->
+                org.usvm.collection.string.replaceFirst(where, what, with)
+            }
+        }
+    }
 
 /**
- * Returns a new string obtained by replacing in [where] all occurrences of string [what] by [with].
+ * Returns a new string obtained by replacing in [whereRef] all occurrences of string [whatRef] by [withRef].
  */
-fun UReadOnlyMemory<*>.replaceAll(where: UHeapRef, what: UHeapRef, with: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.replaceAll(
+    stringType: Type,
+    whereRef: UHeapRef,
+    whatRef: UHeapRef,
+    withRef: UHeapRef
+): UHeapRef =
+    mapAndAllocString(whereRef, stringType) { where ->
+        mapString(whatRef) { what ->
+            mapString(withRef) { with ->
+                org.usvm.collection.string.replaceAll(where, what, with)
+            }
+        }
+    }
 
 /**
- * Returns new string obtained by replacing in [where] the first occurrence of regular expression [what] by [with].
+ * Returns new string obtained by replacing in [whereRef] the first occurrence of regular expression [what] by [withRef].
  */
-fun UReadOnlyMemory<*>.replaceFirstRegex(where: UHeapRef, what: URegexExpr, with: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.replaceFirstRegex(
+    stringType: Type,
+    whereRef: UHeapRef,
+    what: URegexExpr,
+    withRef: UHeapRef
+): UHeapRef =
+    mapAndAllocString(whereRef, stringType) { where ->
+        mapString(withRef) { with ->
+            org.usvm.collection.string.replaceFirstRegex(where, what, with)
+        }
+    }
 
 /**
- * Returns new string obtained by replacing in [where] all occurrences of regular expression [what] by [with].
+ * Returns new string obtained by replacing in [whereRef] all occurrences of regular expression [what] by [withRef].
  */
-fun UReadOnlyMemory<*>.replaceAllRegex(where: UHeapRef, what: URegexExpr, with: UHeapRef): UHeapRef =
-    TODO()
+fun <Type> UWritableMemory<Type>.replaceAllRegex(
+    stringType: Type,
+    whereRef: UHeapRef,
+    what: URegexExpr,
+    withRef: UHeapRef
+): UHeapRef =
+    mapAndAllocString(whereRef, stringType) { where ->
+        mapString(withRef) { with ->
+            org.usvm.collection.string.replaceAllRegex(where, what, with)
+        }
+    }
 
 //endregion
