@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.StateForker.Companion.splitModelsByCondition
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
