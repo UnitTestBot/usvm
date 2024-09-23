@@ -45,6 +45,7 @@ import org.jacodb.ets.base.EtsPostDecExpr
 import org.jacodb.ets.base.EtsPostIncExpr
 import org.jacodb.ets.base.EtsPreDecExpr
 import org.jacodb.ets.base.EtsPreIncExpr
+import org.jacodb.ets.base.EtsPtrCallExpr
 import org.jacodb.ets.base.EtsRemExpr
 import org.jacodb.ets.base.EtsRightShiftExpr
 import org.jacodb.ets.base.EtsStaticCallExpr
@@ -291,6 +292,10 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 
