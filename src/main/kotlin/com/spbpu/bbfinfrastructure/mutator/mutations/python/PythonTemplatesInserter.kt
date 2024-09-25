@@ -358,7 +358,13 @@ class PythonTemplatesInserter : BaseTemplatesInserter() {
     private fun insertImports(parsedTemplate: TemplatesParser.Template) {
         if (parsedTemplate.imports.isEmpty()) return
         val importsFromTemplate =
-            parsedTemplate.imports.joinToString("\n", postfix = "\n") { "import $it" }
+            parsedTemplate.imports.joinToString("\n", postfix = "\n") {
+                if (it.startsWith("from")) {
+                    it
+                } else {
+                    "import $it"
+                }
+            }
         val newPyFile = importsFromTemplate + file.text
         project.files.first().changePsiFile(PSICreator.getPsiForPython(newPyFile)!!)
     }

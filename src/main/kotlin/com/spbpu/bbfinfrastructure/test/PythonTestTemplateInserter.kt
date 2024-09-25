@@ -141,7 +141,13 @@ class PythonTestTemplatesInserter : Transformation() {
                 it.nameWithoutExtension
             }
         val importsFromTemplate =
-            parsedTemplate.imports.joinToString("\n", postfix = "\n") { "import $it" }
+            parsedTemplate.imports.joinToString("\n", postfix = "\n") {
+                if (it.startsWith("from")) {
+                    it
+                } else {
+                    "import $it"
+                }
+            }
         addedImports += importsFromHelpersToAdd.size
         addedImports += parsedTemplate.imports.size
         val importBlockFromHelpers =

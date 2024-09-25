@@ -30,7 +30,7 @@ class SarifBuilder {
         return json.encodeToString(sarif)
     }
 
-    fun serializeRealResults(files: List<Triple<String, String, Int>>, prefix: String, driverName: String): String {
+    fun serializeRealResults(realResults: List<RealResult>, prefix: String, driverName: String): String {
         val sarif = Sarif(
             `$schema` = "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
             version = "2.1.0",
@@ -41,7 +41,7 @@ class SarifBuilder {
                             name = driverName
                         )
                     ),
-                    results = files.map { buildRealResult(it.first, it.third, it.second) }
+                    results = realResults.map { buildRealResult(it) }
                 )
             )
         )
@@ -72,25 +72,34 @@ class SarifBuilder {
     }
 
 
-    private fun buildRealResult(uri: String, cwe: Int, kind: String): Result {
-        return Result(
-            kind = kind,
-            message = Message(
-                text = "message"
-            ),
-            ruleId = "CWE-$cwe",
-            locations = listOf(
-                Location(
-                    physicalLocation = PhysicalLocation(
-                        artifactLocation = ArtifactLocation(
-                            uri = uri
-                        ),
-                        region = null
+    private fun buildRealResult(realResult: RealResult): Result {
+        with(realResult) {
+            return Result(
+                kind = kind,
+                message = Message(
+                    text = "message"
+                ),
+                ruleId = "CWE-$cwe",
+                locations = listOf(
+                    Location(
+                        physicalLocation = PhysicalLocation(
+                            artifactLocation = ArtifactLocation(
+                                uri = uri
+                            ),
+                            region = region
+                        )
                     )
                 )
             )
-        )
+        }
     }
+
+    data class RealResult(
+        val uri: String,
+        val cwe: Int,
+        val kind: String,
+        val region: ResultRegion?
+    )
 
     @Serializable
     data class Sarif(

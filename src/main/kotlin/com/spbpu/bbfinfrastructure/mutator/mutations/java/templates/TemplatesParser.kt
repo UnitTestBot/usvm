@@ -37,7 +37,13 @@ object TemplatesParser {
                     ?.split("\n")
                     ?.map { it.trim() }
                     ?.filter { it.isNotEmpty() }
-                    ?.map { it.substringAfter("import ") } ?: listOf()
+                    ?.map {
+                        if (it.trim().startsWith("import")) {
+                            it.substringAfter("import ")
+                        } else {
+                            it
+                        }
+                    } ?: listOf()
             val bodies = template().map { templateBody ->
                 TemplateBody(
                     templateBody.templateStart().IDENTIFIER().text,
