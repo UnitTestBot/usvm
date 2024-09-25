@@ -5,6 +5,7 @@ import java.nio.file.attribute.FileTime
 
 plugins {
     id("usvm.kotlin-conventions")
+    kotlin("plugin.serialization") version Versions.kotlin
 }
 
 dependencies {
@@ -15,6 +16,7 @@ dependencies {
     api(Libs.jacodb_ets)
     implementation(Libs.jacodb_taint_configuration)
     implementation(Libs.kotlinx_collections)
+    implementation(Libs.kotlinx_serialization_json)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
