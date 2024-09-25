@@ -140,7 +140,27 @@ final public class BasicAutomata {
 			s.addTransition(new Transition('0', '9', anyOfRightLength(x, n + 1)));
 		return s;
 	}
-	
+
+	/**
+	 * Constructs sub-automaton corresponding to decimal numbers of
+	 * length x.substring(n).length().
+	 */
+	public static Automaton makeAnyStringOfLength(int n) {
+		if (n == 0) {
+			return BasicAutomata.makeString("");
+		}
+		Automaton a = new Automaton();
+		State s = new State();
+		a.initial = s;
+		a.deterministic = true;
+		for (int i = 0; i < n; ++i) {
+			State t = new State();
+			s.transitions.add(new Transition(Character.MIN_VALUE, Character.MAX_VALUE, t));
+			s = t;
+		}
+		s.accept = true;
+		return a;
+	}
 	/**
 	 * Constructs sub-automaton corresponding to decimal numbers of value 
 	 * at least x.substring(n) and length x.substring(n).length().

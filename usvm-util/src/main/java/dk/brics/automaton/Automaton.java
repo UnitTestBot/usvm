@@ -127,7 +127,12 @@ public class Automaton implements Serializable, Cloneable {
 	
 	/** Caches the <code>isDebug</code> state. */
 	static Boolean is_debug = null;
-	
+
+	/**
+	 * If at some point automaton under construction has more states than this value, replaces it with sigma*
+	 */
+	static int states_limit = -1;
+
 	/** 
 	 * Constructs a new automaton that accepts the empty language.
 	 * Using this constructor, automata can be constructed manually from
@@ -191,7 +196,15 @@ public class Automaton implements Serializable, Cloneable {
 	static boolean getAllowMutate() {
 		return allow_mutation;
 	}
-	
+
+	/**
+	 * Resets states limit. If at some point we construct an automaton with the amount of states exceeding this limit,
+	 * this automaton immediately gets mutated to any string automaton.
+	 */
+	static public void setStatesLimit(int limit) {
+		states_limit = limit;
+	}
+
 	void checkMinimizeAlways() {
 		if (minimize_always)
 			minimize();
@@ -264,6 +277,25 @@ public class Automaton implements Serializable, Cloneable {
 	public Object getInfo()	{
 		return info;
 	}
+
+	/**
+	 * Adds state <code>s</code> into <code>states</code> if after this s
+	 */
+	private boolean addIfNotExceedsStatesLimit(State s, Set<State> states) {
+		states.add(s);
+		if (states_limit > 0 && states_limit < states.size()) {
+			// Fallback this automaton to sigma*
+			State newInit = new State();
+			initial = newInit;
+			newInit.accept = true;
+			newInit.transitions.add(new Transition(Character.MIN_VALUE, Character.MAX_VALUE, newInit));
+			deterministic = true;
+			states.clear();
+			states.add(newInit);
+			return false;
+		}
+		return true;
+	}
 	
 	/** 
 	 * Returns the set of states that are reachable from the initial state.
@@ -288,7 +320,9 @@ public class Automaton implements Serializable, Cloneable {
 				tr = s.transitions;
 			for (Transition t : tr)
 				if (!visited.contains(t.to)) {
-					visited.add(t.to);
+					if (!addIfNotExceedsStatesLimit(t.to, visited)) {
+						return visited;
+					}
 					worklist.add(t.to);
 				}
 		}

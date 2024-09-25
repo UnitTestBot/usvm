@@ -178,7 +178,7 @@ open class USolverBase<Type>(
             logger
         }
 
-        val stringSolverQuery = UStringSolverQuery()
+        val stringSolverQuery = UStringSolverQuery(uModel)
 
         // [stringSolverQuery] uses [uModel] to evaluate constraints. It is crucial for uModel to have
         // [UStringRegion] in non-completing state (see docs of [UStringRegion]) to allow partial evaluation

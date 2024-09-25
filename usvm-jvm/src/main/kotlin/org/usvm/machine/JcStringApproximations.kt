@@ -662,6 +662,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("repeat(I)Ljava/lang/String;") {
+                // TODO: assert times >= 1
                 TODO()
             }
             dispatchMethod("replace(CC)Ljava/lang/String;") {
