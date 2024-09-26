@@ -61,6 +61,7 @@ import kotlin.test.assertTrue
 
 private val logger = KotlinLogging.logger {}
 
+@Suppress("UnnecessaryVariable")
 @OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
 
@@ -508,7 +509,11 @@ class EtsTypeInferenceTest {
 
         for (cls in allCases) {
             test(name = cls.name) {
+                logger.info { "Analyzing testcase: ${cls.name}" }
+
                 val inferMethod = cls.methods.single { it.name == "infer" }
+                logger.info { "Found infer: ${inferMethod.signature}" }
+
                 val expectedTypeString = mutableMapOf<AccessPathBase, String>()
                 var expectedReturnTypeString = ""
                 for (inst in inferMethod.cfg.stmts) {
@@ -534,7 +539,8 @@ class EtsTypeInferenceTest {
                 }
 
                 val entrypoint = cls.methods.single { it.name == "entrypoint" }
-                logger.info { "Analyzing entrypoint: ${entrypoint.signature}" }
+                logger.info { "Found entrypoint: ${entrypoint.signature}" }
+
                 val manager = with(EtsTraits) {
                     TypeInferenceManager(graph)
                 }
@@ -543,9 +549,14 @@ class EtsTypeInferenceTest {
                 val inferredTypes = result.inferredTypes[inferMethod]
                     ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
 
-                for (position in listOf(0, 1, 2).map { AccessPathBase.Arg(it) }) {
-                    val expected = expectedTypeString[position]
-                        ?: continue
+                for (position in expectedTypeString.keys.sortedBy {
+                    when (it) {
+                        is AccessPathBase.This -> -1
+                        is AccessPathBase.Arg -> it.index
+                        else -> 1_000_000
+                    }
+                }) {
+                    val expected = expectedTypeString[position]!!
                     val inferred = inferredTypes[position]
                     logger.info { "Inferred type for $position: $inferred" }
                     val passed = inferred.toString() == expected
@@ -557,7 +568,6 @@ class EtsTypeInferenceTest {
                 if (expectedReturnTypeString.isNotBlank()) {
                     val expected = expectedReturnTypeString
                     val inferred = result.inferredReturnType[inferMethod]
-                        ?: error("No inferred return type for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
                     logger.info { "Inferred return type: $inferred" }
                     val passed = inferred.toString() == expected
                     assertTrue(
