@@ -21,13 +21,22 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
+import mu.KotlinLogging
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.test.utils.getResourcePath
+import org.jacodb.ets.test.utils.getResourcePathOrNull
 import org.jacodb.ets.test.utils.loadEtsFileFromResource
+import org.jacodb.ets.test.utils.loadEtsProjectFromResources
+import org.jacodb.ets.test.utils.testFactory
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -37,6 +46,8 @@ import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.File
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.div
+import kotlin.io.path.exists
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.relativeTo
@@ -46,6 +57,9 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+
+private val logger = KotlinLogging.logger {}
 
 @OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
@@ -483,6 +497,141 @@ class EtsTypeInferenceTest {
         println("Inferred types with guesser: ")
         for ((method, types) in resultWithGuessed.inferredTypes) {
             println(method.enclosingClass.name to types)
+        }
+    }
+
+    @TestFactory
+    fun `type inference on testcases`() = testFactory {
+        val file = load("ir/testcases.ts.json")
+        val project = EtsScene(listOf(file))
+        val graph = createApplicationGraph(project)
+
+        val allCases = project.classes.filter { it.name.startsWith("Case") }
+
+        for (cls in allCases) {
+            test(name = cls.name) {
+                val entrypoint = cls.methods.single { it.name == "entrypoint" }
+                logger.info { "Analyzing entrypoint: ${entrypoint.signature}" }
+
+                val inferMethod = cls.methods.single { it.name == "infer" }
+                val expectedTypeString = mutableMapOf<AccessPathBase, String>()
+                var expectedReturnTypeString = ""
+                for (inst in inferMethod.cfg.stmts) {
+                    if (inst is EtsAssignStmt) {
+                        val lhv = inst.lhv
+                        if (lhv is EtsLocal) {
+                            val rhv = inst.rhv
+                            if (lhv.name == "EXPECTED_ARG_0") {
+                                check(rhv is EtsStringConstant)
+                                expectedTypeString[AccessPathBase.Arg(0)] = rhv.value
+                                logger.info { "Expected type for arg 0: ${rhv.value}" }
+                            }
+                            if (lhv.name == "EXPECTED_ARG_1") {
+                                check(rhv is EtsStringConstant)
+                                expectedTypeString[AccessPathBase.Arg(1)] = rhv.value
+                                logger.info { "Expected type for arg 1: ${rhv.value}" }
+                            }
+                            if (lhv.name == "EXPECTED_RETURN") {
+                                check(rhv is EtsStringConstant)
+                                expectedReturnTypeString = rhv.value
+                                logger.info { "Expected return type: ${rhv.value}" }
+                            }
+                        }
+                    }
+                }
+                val manager = with(EtsTraits) {
+                    TypeInferenceManager(graph)
+                }
+                val result = manager.analyze(listOf(entrypoint))
+                for (position in listOf(0, 1, 2).map { AccessPathBase.Arg(it) }) {
+                    val expected = (expectedTypeString)[position]
+                        ?: continue
+                    val inferred = (result.inferredTypes[inferMethod]
+                        ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}"))[position]
+                    logger.info { "Inferred type for $position: $inferred" }
+                    val passed = inferred.toString() == expected
+                    assertTrue(
+                        passed,
+                        "Inferred type for $position does not match: inferred = $inferred, expected = $expected"
+                    )
+                }
+                if (expectedReturnTypeString.isNotBlank()) {
+                    val expected = expectedReturnTypeString
+                    val inferred = result.inferredReturnType[inferMethod]
+                        ?: error("No inferred return type for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
+                    logger.info { "Inferred return type: $inferred" }
+                    val passed = inferred.toString() == expected
+                    assertTrue(
+                        passed,
+                        "Inferred return type does not match: inferred = $inferred, expected = $expected"
+                    )
+                }
+            }
+        }
+    }
+
+    @TestFactory
+    fun `test type inference on projects`() = testFactory {
+        val p = getResourcePathOrNull("/projects") ?: run {
+            logger.warn { "No projects directory found in resources" }
+            return@testFactory
+        }
+        val availableProjectNames = p.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }
+        logger.info {
+            buildString {
+                appendLine("Found projects: ${availableProjectNames.size}")
+                for (name in availableProjectNames) {
+                    appendLine("  - $name")
+                }
+            }
+        }
+        if (availableProjectNames.isEmpty()) {
+            logger.warn { "No projects found" }
+            return@testFactory
+        }
+        for (projectName in availableProjectNames) {
+            test("load $projectName") {
+                logger.info { "Loading project: $projectName" }
+                val projectPath = getResourcePath("/projects/$projectName")
+                val etsirPath = projectPath / "etsir"
+                if (!etsirPath.exists()) {
+                    logger.warn { "No etsir directory found for project $projectName" }
+                    return@test
+                }
+                val modules = etsirPath.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }
+                logger.info { "Found ${modules.size} modules: $modules" }
+                if (modules.isEmpty()) {
+                    logger.warn { "No modules found for project $projectName" }
+                    return@test
+                }
+                val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
+                logger.info {
+                    buildString {
+                        appendLine("Loaded project with ${project.classes.size} classes and ${project.classes.sumOf { it.methods.size }} methods")
+                        for (cls in project.classes) {
+                            appendLine("= ${cls.signature} with ${cls.methods.size} methods:")
+                            for (method in cls.methods) {
+                                appendLine("  - ${method.signature}")
+                            }
+                        }
+                    }
+                }
+                val graph = createApplicationGraph(project)
+
+                val entrypoints = project.classes
+                    .flatMap { it.methods }
+                    .filter { it.name == "entrypoint" }
+                logger.info { "Found ${entrypoints.size} entrypoints" }
+
+                val manager = with(EtsTraits) {
+                    TypeInferenceManager(graph)
+                }
+                val result = manager.analyze(entrypoints)
+
+                logger.info { "Inferred types: ${result.inferredTypes}" }
+                logger.info { "Inferred return types: ${result.inferredReturnType}" }
+                logger.info { "Inferred combined this types: ${result.inferredCombinedThisType}" }
+            }
         }
     }
 }
