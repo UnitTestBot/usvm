@@ -65,6 +65,7 @@ class ClassMatcherStatistics {
 
     private val methodToTypes: MutableMap<EtsMethod, MutableMap<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> =
         hashMapOf()
+    private val methodToReturnTypes: MutableMap<EtsMethod, Pair<EtsType, EtsTypeFact?>> = hashMapOf()
 
     private fun EtsMethod.saveComparisonInfo(
         position: AccessPathBase,
@@ -117,7 +118,7 @@ class ClassMatcherStatistics {
         val inferredReturnType = facts.returnFact ?: EtsTypeFact.AnyEtsTypeFact
 
         overallReturnTypes++
-        method.saveComparisonInfo(AccessPathBase.Return, method.returnType, inferredReturnType)
+        methodToReturnTypes[method] = method.returnType to inferredReturnType
 
         if (inferredReturnType is EtsTypeFact.AnyEtsTypeFact) {
             returnIsAnyType++

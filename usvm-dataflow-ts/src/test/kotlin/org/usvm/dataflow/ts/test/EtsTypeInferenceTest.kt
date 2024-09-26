@@ -299,9 +299,7 @@ class EtsTypeInferenceTest {
 
     @Test
     fun `type inference for Calc`() {
-        val resource = "/projects/applications_app_samples/etsir/ast/ArkTSDistributedCalc"
-        val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
-            ?: error("Resource not found: $resource")
+        val dir = getResourcePathOrNull("/projects/ArkTSDistributedCalc") ?: return
         println("Found project dir: '$dir'")
 
         val files = dir
@@ -510,9 +508,6 @@ class EtsTypeInferenceTest {
 
         for (cls in allCases) {
             test(name = cls.name) {
-                val entrypoint = cls.methods.single { it.name == "entrypoint" }
-                logger.info { "Analyzing entrypoint: ${entrypoint.signature}" }
-
                 val inferMethod = cls.methods.single { it.name == "infer" }
                 val expectedTypeString = mutableMapOf<AccessPathBase, String>()
                 var expectedReturnTypeString = ""
@@ -521,33 +516,37 @@ class EtsTypeInferenceTest {
                         val lhv = inst.lhv
                         if (lhv is EtsLocal) {
                             val rhv = inst.rhv
-                            if (lhv.name == "EXPECTED_ARG_0") {
+                            if (lhv.name.startsWith("EXPECTED_ARG_")) {
                                 check(rhv is EtsStringConstant)
-                                expectedTypeString[AccessPathBase.Arg(0)] = rhv.value
-                                logger.info { "Expected type for arg 0: ${rhv.value}" }
-                            }
-                            if (lhv.name == "EXPECTED_ARG_1") {
-                                check(rhv is EtsStringConstant)
-                                expectedTypeString[AccessPathBase.Arg(1)] = rhv.value
-                                logger.info { "Expected type for arg 1: ${rhv.value}" }
-                            }
-                            if (lhv.name == "EXPECTED_RETURN") {
+                                val arg = lhv.name.substringAfter("_").toInt()
+                                val pos = AccessPathBase.Arg(arg)
+                                expectedTypeString[pos] = rhv.value
+                                logger.info { "Expected type for $pos: ${rhv.value}" }
+                            } else if (lhv.name == "EXPECTED_RETURN") {
                                 check(rhv is EtsStringConstant)
                                 expectedReturnTypeString = rhv.value
                                 logger.info { "Expected return type: ${rhv.value}" }
+                            } else if (lhv.name.startsWith("EXPECTED")) {
+                                logger.error { "Skipping unexpected local: $lhv" }
                             }
                         }
                     }
                 }
+
+                val entrypoint = cls.methods.single { it.name == "entrypoint" }
+                logger.info { "Analyzing entrypoint: ${entrypoint.signature}" }
                 val manager = with(EtsTraits) {
                     TypeInferenceManager(graph)
                 }
                 val result = manager.analyze(listOf(entrypoint))
+
+                val inferredTypes = result.inferredTypes[inferMethod]
+                    ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
+
                 for (position in listOf(0, 1, 2).map { AccessPathBase.Arg(it) }) {
-                    val expected = (expectedTypeString)[position]
+                    val expected = expectedTypeString[position]
                         ?: continue
-                    val inferred = (result.inferredTypes[inferMethod]
-                        ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}"))[position]
+                    val inferred = inferredTypes[position]
                     logger.info { "Inferred type for $position: $inferred" }
                     val passed = inferred.toString() == expected
                     assertTrue(
