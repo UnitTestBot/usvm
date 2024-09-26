@@ -518,7 +518,7 @@ class EtsTypeInferenceTest {
                             val rhv = inst.rhv
                             if (lhv.name.startsWith("EXPECTED_ARG_")) {
                                 check(rhv is EtsStringConstant)
-                                val arg = lhv.name.substringAfter("_").toInt()
+                                val arg = lhv.name.removePrefix("EXPECTED_ARG_").toInt()
                                 val pos = AccessPathBase.Arg(arg)
                                 expectedTypeString[pos] = rhv.value
                                 logger.info { "Expected type for $pos: ${rhv.value}" }
