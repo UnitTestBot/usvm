@@ -1,3 +1,19 @@
+/*
+ * Copyright 2022 UnitTestBot contributors (utbot.org)
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.usvm.dataflow.ts.test
 
 import kotlinx.coroutines.TimeoutCancellationException
@@ -5,13 +21,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -23,9 +35,7 @@ import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
-import java.io.BufferedWriter
 import java.io.File
-import java.io.FileWriter
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
@@ -474,130 +484,5 @@ class EtsTypeInferenceTest {
         for ((method, types) in resultWithGuessed.inferredTypes) {
             println(method.enclosingClass.name to types)
         }
-    }
-
-    @Test
-    fun `type inference for testcases`() {
-        val name = "testcases"
-        val file = load("ir/$name.ts.json")
-        val project = EtsScene(listOf(file))
-        val graph = createApplicationGraph(project)
-
-        val entrypoints = project.classes
-            .flatMap { it.methods }
-            .filter { it.name == "entrypoint" }
-        println("entrypoints: (${entrypoints.size})")
-        entrypoints.forEach {
-            println("  ${it.signature.enclosingClass.name}::${it.name}")
-        }
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graph)
-        }
-        val result = manager.analyze(entrypoints)
-
-        val inferMethods = project.classes
-            .asSequence()
-            .filter { it.name.startsWith("Case") }
-            .flatMap { it.methods.asSequence() }
-            .filter { it.name == "infer" }
-            .toList()
-
-        val expectedTypeString: Map<EtsMethod, Map<AccessPathBase, String>> = inferMethods
-            .associateWith {
-                val accessPathToValue = mutableMapOf<AccessPathBase, String>()
-                for (inst in it.cfg.stmts) {
-                    if (inst is EtsAssignStmt) {
-                        val lhv = inst.lhv
-                        if (lhv is EtsLocal) {
-                            val rhv = inst.rhv
-                            if (lhv.name == "EXPECTED_ARG_0") {
-                                check(rhv is EtsStringConstant)
-                                accessPathToValue[AccessPathBase.Arg(0)] = rhv.value
-                            }
-                            if (lhv.name == "EXPECTED_ARG_1") {
-                                check(rhv is EtsStringConstant)
-                                accessPathToValue[AccessPathBase.Arg(1)] = rhv.value
-                            }
-                            if (lhv.name == "EXPECTED_RETURN") {
-                                check(rhv is EtsStringConstant)
-                                accessPathToValue[AccessPathBase.Return] = rhv.value
-                            }
-                        }
-                    }
-                }
-                return@associateWith accessPathToValue
-            }
-
-        println("=".repeat(42))
-        var numOk = 0
-        var numBad = 0
-        val testResults = mutableListOf<Triple<String, Boolean, Pair<String, String>>>()
-
-        for (m in inferMethods) {
-            // Compare inferred types for arguments:
-            for (position in listOf(AccessPathBase.Arg(0), AccessPathBase.Arg(1), AccessPathBase.Arg(2))) {
-                val expected = (expectedTypeString[m]
-                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[position]
-                    ?: continue
-                val inferred = (result.inferredTypes[m]
-                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[position]
-
-                val passed = inferred.toString() == expected
-                testResults.add(Triple("${m.enclosingClass.name}::${m.name}", passed, inferred.toString() to expected))
-
-                if (passed) {
-                    numOk++
-                    println("Correctly inferred type for $position in '${m.enclosingClass.name}::${m.name}': ${inferred?.toPrettyString()}")
-                } else {
-                    numBad++
-                    println("Incorrectly inferred type for $position in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
-                }
-            }
-            // Compare inferred return types:
-            run {
-                val expected = (expectedTypeString[m]
-                    ?: error("No inferred types for method ${m.enclosingClass.name}::${m.name}"))[AccessPathBase.Return]
-                    ?: return@run
-                val inferred = result.inferredReturnType[m]
-                    ?: error("No inferred return type for method ${m.enclosingClass.name}::${m.name}")
-
-                val passed = inferred.toString() == expected
-                testResults.add(Triple("${m.enclosingClass.name}::${m.name}", passed, inferred.toString() to expected))
-
-                if (passed) {
-                    numOk++
-                    println("Correctly inferred return type in '${m.enclosingClass.name}::${m.name}': ${inferred.toPrettyString()}")
-                } else {
-                    numBad++
-                    println("Incorrectly inferred return type in '${m.enclosingClass.name}::${m.name}':\n  inferred: $inferred\n  expected: $expected")
-                }
-            }
-        }
-
-        println("numOk = $numOk")
-        println("numBad = $numBad")
-        println("Success rate: %.1f%%".format(numOk / (numOk + numBad).toDouble() * 100.0))
-
-        exportResultsToCSV(testResults, "test_results.csv")
-    }
-
-    private fun exportResultsToCSV(
-        testResults: List<Triple<String, Boolean, Pair<String, String>>>,
-        filePath: String,
-    ) {
-        val file = File(filePath)
-        val writer = BufferedWriter(FileWriter(file, false))
-
-        if (file.length() == 0L) {
-            writer.write("Name,Status,Inferred,Expected\n")
-        }
-
-        testResults.forEach { (testName, passed, inferredExpected) ->
-            val (inferred, expected) = inferredExpected
-            writer.write("$testName,${if (passed) "Passed" else "Failed"},$inferred,$expected\n")
-        }
-
-        writer.close()
     }
 }
