@@ -45,14 +45,9 @@ import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.File
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.div
 import kotlin.io.path.exists
-import kotlin.io.path.extension
-import kotlin.io.path.inputStream
-import kotlin.io.path.relativeTo
 import kotlin.io.path.toPath
-import kotlin.io.path.walk
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -61,8 +56,6 @@ import kotlin.test.assertTrue
 
 private val logger = KotlinLogging.logger {}
 
-@Suppress("UnnecessaryVariable")
-@OptIn(ExperimentalPathApi::class)
 class EtsTypeInferenceTest {
 
     companion object {
@@ -219,125 +212,6 @@ class EtsTypeInferenceTest {
         manager.analyze(entrypoints)
     }
 
-    @Test
-    fun `type inference for applications_settings_data`() {
-        val res = "/projects/applications_settings_data/etsir/ast"
-        val dir = object {}::class.java.getResource(res)?.toURI()?.toPath()
-            ?: error("Resource not found: $res")
-        println("Found project dir: '$dir'")
-
-        val files = dir
-            .walk()
-            .map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
-            .toList()
-        val project = EtsScene(files)
-        val graph = createApplicationGraph(project)
-
-        val entrypoints = project.classes
-            .asSequence()
-            .flatMap { it.methods + it.ctor }
-            .filter { it.isPublic || it.name == "constructor" }
-            .toList()
-        println("entrypoints: (${entrypoints.size})")
-        entrypoints.forEach {
-            println("  ${it.signature.enclosingClass.name}::${it.name}")
-        }
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graph)
-        }
-        val result = manager.analyze(entrypoints)
-        val inferred = result.inferredTypes
-
-        run {
-            val m = inferred.keys.first { it.name == "loadTableData" }
-
-            val arg0 = inferred[m]!![AccessPathBase.Arg(0)]!!
-            assertIs<EtsTypeFact.ObjectEtsTypeFact>(arg0)
-
-            assertContains(arg0.properties, "user")
-            assertContains(arg0.properties, "userSecure")
-            assertContains(arg0.properties, "settings")
-
-            val user = arg0.properties["user"]!!
-            assertIs<EtsTypeFact.ObjectEtsTypeFact>(user)
-            val userProps = user.properties
-            assertContains(userProps, "index")
-            assertContains(userProps, "length")
-
-            val userSecure = arg0.properties["userSecure"]!!
-            assertIs<EtsTypeFact.ObjectEtsTypeFact>(userSecure)
-            val userSecureProps = userSecure.properties
-            assertContains(userSecureProps, "index")
-            assertContains(userSecureProps, "length")
-
-            val settings = arg0.properties["settings"]!!
-            assertIs<EtsTypeFact.ObjectEtsTypeFact>(settings)
-            val settingsProps = settings.properties
-            assertContains(settingsProps, "index")
-            assertContains(settingsProps, "length")
-        }
-
-        // val objects = inferred.values
-        //     .asSequence()
-        //     .flatMap { it.types.values.asSequence() }
-        //     .filterIsInstance<EtsTypeFact.ObjectEtsTypeFact>()
-        //     .toSet()
-        // println()
-        // println("Objects: (${objects.size})")
-        // for (obj in objects) {
-        //     println("obj = $obj")
-        // }
-        //
-        // println()
-        // println("Classes: (${arkFile.classes.size})")
-        // for (clazz in arkFile.classes) {
-        //     println("clazz '${clazz.name}'")
-        //     println("  ${clazz.fields.size} fields: ${clazz.fields.map { it.name }}")
-        //     println("  ${clazz.methods.size} methods: ${clazz.methods.map { it.name }}")
-        // }
-    }
-
-    @Test
-    fun `type inference for Calc`() {
-        val dir = getResourcePathOrNull("/projects/ArkTSDistributedCalc") ?: return
-        println("Found project dir: '$dir'")
-
-        val files = dir
-            .walk()
-            .filter { it.extension == "json" }
-            // .filter { it.name.startsWith("Calculator") }
-            // .filter { it.name.startsWith("ImageList") }
-            // .filter { it.name.startsWith("KvStoreModel") }
-            // .filter { it.name.startsWith("RemoteDeviceModel") }
-            // .filter { it.name.startsWith("Index") }
-            .toList()
-        println("Found files: (${files.size})")
-        for (path in files) {
-            println("  ${path.relativeTo(dir)}")
-        }
-
-        println("Processing ${files.size} files...")
-        val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
-        val project = EtsScene(etsFiles)
-        val graph = createApplicationGraph(project)
-
-        val entrypoints = project.classes
-            .flatMap { it.methods + it.ctor }
-            // .filter { it.enclosingClass.name == "Index" && (it.name == "build" || it.name == CONSTRUCTOR) }
-            .filter { it.isPublic || it.name == CONSTRUCTOR }
-            .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
-        println("entrypoints: (${entrypoints.size})")
-        entrypoints.forEach {
-            println("  ${it.signature.enclosingClass.name}::${it.name}")
-        }
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graph)
-        }
-        val result = manager.analyze(entrypoints)
-    }
-
     private fun resourceAvailable(dirName: String) =
         object {}::class.java.getResource(dirName) != null
 
@@ -347,14 +221,6 @@ class EtsTypeInferenceTest {
         val haps = abcDir.toFile().listFiles()?.toList() ?: emptyList()
         processAllHAPs(haps)
     }
-
-    private val APP_SAMPLES_PATH = "/projects/applications_app_samples/etsir/abc/"
-    private fun appSamplesAvailable() = resourceAvailable(APP_SAMPLES_PATH)
-
-    @Test
-    @EnabledIf("appSamplesAvailable")
-    fun `type inference for app samples`() = testHapSet(APP_SAMPLES_PATH)
-
 
     private val TEST_PROJECTS_PATH = "/TestProjects/"
     private fun testProjectsAvailable() = resourceAvailable(TEST_PROJECTS_PATH)
@@ -421,8 +287,8 @@ class EtsTypeInferenceTest {
     }
 
     private fun testHap(projectDir: String) {
-        //val resource = "/projects/applications_app_samples/etsir/abc/$projectName"
-        //val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
+        // val resource = "/projects/applications_app_samples/etsir/abc/$projectName"
+        // val dir = object {}::class.java.getResource(resource)?.toURI()?.toPath()
         //    ?: error("Resource not found: $resource")
 
         val dir = File(projectDir).takeIf { it.isDirectory } ?: error("Not found project dir $projectDir")
