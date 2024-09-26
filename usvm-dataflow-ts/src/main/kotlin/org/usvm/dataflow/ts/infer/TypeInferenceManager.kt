@@ -246,7 +246,7 @@ class TypeInferenceManager(
                 propertyRefinements.let {}
                 cls.let {}
 
-                cls to refined
+                cls.signature to refined
             }.toMap()
         }
         logger.info {
