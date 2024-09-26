@@ -6,6 +6,7 @@ import java.nio.file.attribute.FileTime
 plugins {
     id("usvm.kotlin-conventions")
     kotlin("plugin.serialization") version Versions.kotlin
+    application
 }
 
 dependencies {
@@ -17,6 +18,7 @@ dependencies {
     implementation(Libs.jacodb_taint_configuration)
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.clikt)
 
     testImplementation(testFixtures(Libs.jacodb_ets))
     testImplementation(Libs.mockk)
@@ -107,3 +109,12 @@ val generateTestResources by tasks.registering {
 // tasks.test {
 //     dependsOn(generateTestResources)
 // }
+
+application {
+    mainClass = "org.usvm.dataflow.ts.infer.cli.InferTypesKt"
+    applicationDefaultJvmArgs = listOf("-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8")
+}
+
+tasks.startScripts {
+    applicationName = "usvm-type-infer"
+}

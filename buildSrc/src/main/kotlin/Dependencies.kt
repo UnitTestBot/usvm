@@ -3,6 +3,7 @@
 import org.gradle.plugin.use.PluginDependenciesSpec
 
 object Versions {
+    const val clikt = "5.0.0"
     const val detekt = "1.18.1"
     const val ini4j = "0.5.4"
     const val jacodb = "ae2716b3f8"
@@ -230,6 +231,13 @@ object Libs {
         group = "com.github.UnitTestBot",
         name = "PythonTypesAPI",
         version = Versions.pythonTypesAPI
+    )
+
+    // https://github.com/ajalt/clikt
+    val clikt = dep(
+        group = "com.github.ajalt.clikt",
+        name = "clikt",
+        version = Versions.clikt
     )
 }
 
