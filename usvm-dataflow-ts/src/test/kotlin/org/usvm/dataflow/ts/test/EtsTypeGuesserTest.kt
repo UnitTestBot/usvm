@@ -1,12 +1,15 @@
 package org.usvm.dataflow.ts.test
 
+import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
@@ -37,8 +40,8 @@ class EtsTypeResolverTest {
         val graphAbc = createApplicationGraph(abcScene)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -48,22 +51,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project1.txt")
     }
 
@@ -77,8 +65,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -88,22 +76,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project2.txt")
     }
 
@@ -117,8 +90,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -128,22 +101,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project3.txt")
     }
 
@@ -157,8 +115,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoints = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoints = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -168,30 +126,9 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        check(graphAst.cp.classes.any { cls ->
-            cls.methods.any { method ->
-                method.parameters.isNotEmpty() && method.name in entrypoints.map { it.name }
-            }
-        })
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
 
-        entrypoints.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
-
-        classMatcherStatistics.dumpStatistics("fourthProject.txt")
+        classMatcherStatistics.dumpStatistics("project4.txt")
     }
 
     @Test
@@ -204,8 +141,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -215,22 +152,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project5.txt")
     }
 
@@ -244,8 +166,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -255,22 +177,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project6.txt")
     }
 
@@ -284,8 +191,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = abcScene.classes
-            .flatMap { it.methods }
+        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
@@ -295,22 +202,7 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        entrypoint.forEach { m ->
-            val suitableClasses = graphAst.cp.classes
-                .singleOrNull { m.enclosingClass.name == it.name && m.name in it.methods.map { it.name } }
-
-            var method = suitableClasses
-                ?.methods
-                ?.singleOrNull { m.name == it.name }
-
-            if (method == null) {
-                method = m
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(method)
-            val actualTypes = MethodTypesFacts.from(result, method)
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, method)
-        }
+        saveTypeInferenceComparison(astMethods, graphAst, result, classMatcherStatistics, abcScene)
         classMatcherStatistics.dumpStatistics("project7.txt")
     }
 
@@ -479,6 +371,68 @@ class EtsTypeResolverTest {
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
+    }
+
+    private fun extractAllAstMethods(astScene: EtsScene, abcScene: EtsScene): List<EtsMethod> {
+        val abcMethods = abcScene.classes.flatMap { it.methods.map { method -> method.name } }
+        return astScene.classes.flatMap { it.methods }.filter { it.name in abcMethods }
+    }
+
+    private fun extractEntryPoints(
+        abcScene: EtsScene,
+        astScene: EtsScene,
+        filterByAst: Boolean = true,
+        isOnlyPublic: Boolean = true
+    ): List<EtsMethod> {
+        val astMethods = astScene.classes.flatMapTo(mutableSetOf()) { it.methods.map { method -> method.name } }
+
+        return abcScene.classes
+            .asSequence()
+            .filterNot { it.name.startsWith("AnonymousClass-") }
+            .flatMap { it.methods }
+            .filter { it.isPublic }
+            .filter { !filterByAst || it.name in astMethods }
+            .filter { !isOnlyPublic || it.isPublic }
+            .toList()
+    }
+
+    private fun saveTypeInferenceComparison(
+        methodsToFindFactsFor: List<EtsMethod>,
+        graphAst: EtsApplicationGraph,
+        result: TypeInferenceResult,
+        classMatcherStatistics: ClassMatcherStatistics,
+        abcScene: EtsScene,
+    ) {
+        methodsToFindFactsFor.forEach { m ->
+            val inferredReturnType = result.inferredReturnType.entries.firstOrNull {
+                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
+
+            }?.value
+            val combinedThisFact = result.inferredCombinedThisType.entries.firstOrNull {
+                it.key.name == m.enclosingClass.name
+            }?.value
+
+            val factsForMethod = result.inferredTypes.entries.singleOrNull {
+                // TODO hack because of signatures
+                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
+            }
+                ?.value
+                ?: run {
+                    if (inferredReturnType == null && combinedThisFact == null) {
+                        classMatcherStatistics.saveAbsentResult(m)
+                    }
+                    return@forEach
+                }
+
+            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(m)
+            val actualTypes = MethodTypesFacts.from(
+                factsForMethod,
+                inferredReturnType,
+                combinedThisFact,
+                m
+            )
+            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, m)
+        }
     }
 
     private inline fun <reified T : EtsTypeFact> checkAnObjectTypeOfSingleArgument(

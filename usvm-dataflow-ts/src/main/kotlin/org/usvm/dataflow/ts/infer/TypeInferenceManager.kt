@@ -253,7 +253,7 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Combined and refined types for This:")
                 for ((cls, type) in inferredCombinedThisTypes) {
-                    appendLine("Combined This in class '${cls.signature}': ${type.toPrettyString()}")
+                    appendLine("Combined This in class '${cls}': ${type.toPrettyString()}")
                 }
             }
         }
@@ -320,6 +320,10 @@ class TypeInferenceManager(
                         else -> 1_000_000
                     }
                 }.associate { it.key to it.value }
+            }.mapValues { (_, methodFacts) ->
+                methodFacts.mapValues { (_, fact) ->
+                    fact.simplify()
+                }
             }
 
         TypeInferenceResult(
@@ -475,7 +479,7 @@ class TypeInferenceManager(
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.NullEtsTypeFact,
             EtsTypeFact.UndefinedEtsTypeFact,
-                -> return if (property.isNotEmpty()) this else intersect(type)
+            -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
                 check(property.size == 1)

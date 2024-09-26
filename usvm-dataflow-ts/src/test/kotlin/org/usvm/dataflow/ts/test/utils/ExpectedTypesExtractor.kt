@@ -20,20 +20,23 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import java.io.File
 
+private val logger = mu.KotlinLogging.logger {}
+
 class ExpectedTypesExtractor(private val graph: EtsApplicationGraph) {
     fun extractTypes(method: EtsMethod): MethodTypes {
         val returnType = method.returnType
         val argumentsTypes = method.parameters.map { it.type }
-        val thisType = if (method.enclosingClass.name == "_DEFAULT_ARK_CLASS") {
+        val thisType = if (method.enclosingClass.name == "_DEFAULT_ARK_CLASS" || method.enclosingClass.name.isBlank()) {
             null
         } else {
             val clazz = graph.cp
                 .classes
-                .filterNot { it.name.startsWith("AnonymousClass-") }
+                // .filterNot { it.name.startsWith("AnonymousClass-") }
                 // TODO different representation in abc and ast, replace with signatures
                 // .singleOrNull { it.name == method.enclosingClass.name }
                 // ?: error("TODO")
-                .firstOrNull { it.name == method.enclosingClass.name } ?: error("TODO")
+                .firstOrNull { it.name == method.enclosingClass.name }
+                ?: error("") /*return MethodTypes(null, argumentsTypes, returnType)*/
 
             EtsClassType(clazz.signature)
         }
@@ -48,7 +51,9 @@ class ClassMatcherStatistics {
     private val matched: Long
         get() = exactlyMatchedThisTypes + exactlyMatchedArgsTypes + exactlyMatchedReturnTypes
     private val someFactsFound: Long
-        get() = someFactsAboutThisTypes + someFactsAboutArgsTypes + someFactsAboutReturnTypes + returnIsAnyType
+        get() = someFactsAboutThisTypes + someFactsAboutArgsTypes + someFactsAboutReturnTypes + returnIsAnyType + argIsAnyType
+
+    private var failedMethods: MutableList<EtsMethod> = mutableListOf()
 
     private var overallThisTypes: Long = 0L
     private var exactlyMatchedThisTypes: Long = 0L
@@ -57,6 +62,7 @@ class ClassMatcherStatistics {
     private var overallArgsTypes: Long = 0L
     private var exactlyMatchedArgsTypes: Long = 0L
     private var someFactsAboutArgsTypes: Long = 0L
+    private var argIsAnyType: Long = 0L
 
     private var overallReturnTypes: Long = 0L
     private var exactlyMatchedReturnTypes: Long = 0L
@@ -87,9 +93,9 @@ class ClassMatcherStatistics {
         types.thisType?.let {
             overallThisTypes++
 
-            method.saveComparisonInfo(AccessPathBase.This, it, facts.thisFact)
+            method.saveComparisonInfo(AccessPathBase.This, it, facts.combinedThisFact)
 
-            val thisFact = facts.thisFact ?: return@let
+            val thisFact = facts.combinedThisFact ?: return@let
             if (thisFact.matchesWith(it, scene)) {
                 exactlyMatchedThisTypes++
             } else {
@@ -103,7 +109,13 @@ class ClassMatcherStatistics {
 
             val fact = facts.argumentsFacts.getOrNull(index)
 
+
             method.saveComparisonInfo(AccessPathBase.Arg(index), type, fact)
+
+            if (fact is EtsTypeFact.AnyEtsTypeFact) {
+                argIsAnyType++
+                return@forEachIndexed
+            }
 
             if (fact == null) return@forEachIndexed
 
@@ -132,6 +144,10 @@ class ClassMatcherStatistics {
         }
     }
 
+    fun saveAbsentResult(method: EtsMethod) {
+        failedMethods += method
+    }
+
     override fun toString(): String = """
         Total types number: $overallTypes
         Exactly matched: $matched
@@ -148,13 +164,16 @@ class ClassMatcherStatistics {
         Args types total: $overallArgsTypes
         Exactly matched args types: $exactlyMatchedArgsTypes
         Partially matched args types: $someFactsAboutArgsTypes
-        Not found: ${overallArgsTypes - exactlyMatchedArgsTypes - someFactsAboutArgsTypes}
+        Any type as arg: $argIsAnyType
+        Not found: ${overallArgsTypes - exactlyMatchedArgsTypes - someFactsAboutArgsTypes - argIsAnyType}
         
         Return types total: $overallReturnTypes
         Exactly matched return types: $exactlyMatchedReturnTypes
         Partially matched return types: $someFactsAboutReturnTypes
         Any type is returned: $returnIsAnyType
         Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes - returnIsAnyType}
+        
+        Didn't find any types for ${failedMethods.size} methods
     """.trimIndent()
 
     fun dumpStatistics(outputFilePath: String? = null) {
@@ -198,6 +217,13 @@ class ClassMatcherStatistics {
                     }
                 appendLine()
             }
+
+            appendLine()
+            appendLine("=".repeat(42))
+            appendLine("Failed methods:")
+            failedMethods.forEach {
+                appendLine(it)
+            }
         }
 
         if (outputFilePath == null) {
@@ -217,10 +243,10 @@ data class MethodTypes(
     val returnType: EtsType,
 ) {
     fun matchesWithTypeFacts(other: MethodTypesFacts, ignoreReturnType: Boolean, scene: EtsScene): Boolean {
-        if (thisType == null && other.thisFact != null) return false
+        if (thisType == null && other.combinedThisFact != null) return false
 
-        if (thisType != null && other.thisFact != null) {
-            if (!other.thisFact.matchesWith(thisType, scene)) return false
+        if (thisType != null && other.combinedThisFact != null) {
+            if (!other.combinedThisFact.matchesWith(thisType, scene)) return false
         }
 
         for ((i, fact) in other.argumentsFacts.withIndex()) {
@@ -234,7 +260,7 @@ data class MethodTypes(
 }
 
 data class MethodTypesFacts(
-    val thisFact: EtsTypeFact?,
+    val combinedThisFact: EtsTypeFact?,
     val argumentsFacts: List<EtsTypeFact?>,
     val returnFact: EtsTypeFact?,
 ) {
@@ -245,11 +271,22 @@ data class MethodTypesFacts(
         ): MethodTypesFacts {
             val inferredTypes = result.inferredTypes.getValue(method)
 
-            val thisType = inferredTypes[AccessPathBase.This]
+            val thisType = result.inferredCombinedThisType[method.enclosingClass]
             val arguments = method.parameters.indices.map { inferredTypes[AccessPathBase.Arg(it)] }
             val returnType = result.inferredReturnType[method]
 
             return MethodTypesFacts(thisType, arguments, returnType)
+        }
+
+        fun from(
+            inferredTypes:  Map<AccessPathBase, EtsTypeFact>,
+            inferredReturnType: EtsTypeFact?,
+            combinedThisFact: EtsTypeFact?,
+            method: EtsMethod
+        ): MethodTypesFacts {
+            val arguments = method.parameters.indices.map { inferredTypes[AccessPathBase.Arg(it)] }
+
+            return MethodTypesFacts(combinedThisFact, arguments, inferredReturnType)
         }
     }
 }
@@ -263,7 +300,11 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, scene: EtsScene): Boolean = 
     is EtsTypeFact.ObjectEtsTypeFact -> {
         // TODO it should be replaced with signatures
         val typeName = this.cls?.typeName
-        (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+        if (type is EtsUnknownType || type is EtsAnyType) {
+            this.cls != null
+        } else {
+            (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+        }
     }
 
     is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
@@ -293,5 +334,6 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, scene: EtsScene): Boolean = 
 
 private fun EtsTypeFact.partialMatchedBy(type: EtsType): Boolean {
     if (type is EtsUnknownType) return true
-    TODO()
+    logger.warn { "Not implemented partial match" }
+    return false
 }

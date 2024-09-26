@@ -36,7 +36,7 @@ fun guessUniqueTypes(
     }
 }
 
-private fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (this) {
+fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (this) {
     is EtsTypeFact.ArrayEtsTypeFact -> {
         val elementType = this.elementType
         if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
@@ -81,6 +81,53 @@ private fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = w
 
     is EtsTypeFact.UnionEtsTypeFact -> {
         this.copy(types.mapTo(mutableSetOf()) { it.resolveType(graph) })
+    }
+
+    else -> this
+}
+
+fun EtsTypeFact.simplify(): EtsTypeFact = when (this) {
+    is EtsTypeFact.UnionEtsTypeFact -> {
+        val args = this.types.map { it.simplify() }
+
+        require(args.isNotEmpty())
+
+        val types = args.foldRight(mutableSetOf<EtsTypeFact>()) { current, acc ->
+            if (current is EtsTypeFact.ObjectEtsTypeFact && current.cls == null && current.properties.isEmpty()) {
+                acc
+            } else {
+                acc.add(current)
+                acc
+            }
+        }
+
+        if (types.size == 1) types.single() else EtsTypeFact.UnionEtsTypeFact(types)
+    }
+
+    is EtsTypeFact.IntersectionEtsTypeFact -> {
+        val args = this.types.map { it.simplify() }
+        val splittedArgs = args.partition { it is EtsTypeFact.ObjectEtsTypeFact && it.cls == null }
+        val newArgs = splittedArgs.second + splittedArgs.first.let {
+            val allProperties = it
+                .flatMap { (it as EtsTypeFact.ObjectEtsTypeFact).properties.entries }
+                .map { it.key to it.value}
+            EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = allProperties.toMap())
+        }
+
+        if (newArgs.size == 1) newArgs.single() else EtsTypeFact.IntersectionEtsTypeFact(newArgs.toHashSet())
+    }
+
+    is EtsTypeFact.GuardedTypeFact -> {
+        TODO()
+    }
+
+    is EtsTypeFact.ArrayEtsTypeFact -> {
+        copy(elementType.simplify())
+    }
+
+    is EtsTypeFact.ObjectEtsTypeFact -> {
+        val props = properties.mapValues { it.value.simplify() }
+        copy(properties = props)
     }
 
     else -> this

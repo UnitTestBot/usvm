@@ -56,8 +56,21 @@ class BackwardFlowFunctions(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequent(current, fact)
+            is TypedVariable -> sequent(current, fact).filter {
+                if (it.type.complexity() >= 5) {
+                    // logger.warn { "Dropping too complex fact: $it" }
+                    return@filter false
+                }
+                true
+            }
         }
+    }
+
+    private fun EtsTypeFact.complexity(): Int = when (this) {
+        is EtsTypeFact.ObjectEtsTypeFact -> (properties.values.maxOfOrNull { it.complexity() } ?: 0) + 1
+        is EtsTypeFact.UnionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
+        is EtsTypeFact.IntersectionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
+        else -> 0
     }
 
     private fun TypedVariable.withTypeGuards(current: EtsStmt): TypedVariable {

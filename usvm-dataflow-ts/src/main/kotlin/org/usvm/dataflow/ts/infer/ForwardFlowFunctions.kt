@@ -109,10 +109,10 @@ class ForwardFlowFunctions(
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentFact(current, fact).filter {
-                // if (it.variable.accesses.size > 10) {
-                //     logger.warn { "Dropping long fact: $it" }
-                //     return@filter false
-                // }
+                 if (it.variable.accesses.size > 5) {
+                     logger.warn { "Dropping too long fact: $it" }
+                     return@filter false
+                 }
                 if (it.variable.accesses.hasDuplicateFields(3)) {
                     logger.warn { "Dropping fact with duplicate fields: $it" }
                     return@filter false
