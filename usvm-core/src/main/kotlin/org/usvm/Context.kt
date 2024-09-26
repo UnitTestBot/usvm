@@ -5,6 +5,7 @@ import io.ksmt.KContext
 import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
+import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KSort
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
@@ -548,13 +549,13 @@ open class UContext<USizeSort : USort>(
         }
 
     private val stringFromFloatExprCache = mkAstInterner<UStringFromFloatExpr<*>>()
-    fun <UFloatSort: USort> mkStringFromFloatExpr(value: UExpr<UFloatSort>): UStringFromFloatExpr<UFloatSort> =
+    fun <UFloatSort: KFpSort> mkStringFromFloatExpr(value: UExpr<UFloatSort>): UStringFromFloatExpr<UFloatSort> =
         stringFromFloatExprCache.createIfContextActive {
             UStringFromFloatExpr(value)
         }.cast()
 
     private val floatFromStringExprCache = mkAstInterner<UFloatFromStringExpr<*>>()
-    fun <UFloatSort: USort> mkFloatFromStringExpr(string: UStringExpr, floatSort: UFloatSort): UFloatFromStringExpr<UFloatSort> =
+    fun <UFloatSort: KFpSort> mkFloatFromStringExpr(string: UStringExpr, floatSort: UFloatSort): UFloatFromStringExpr<UFloatSort> =
         floatFromStringExprCache.createIfContextActive {
             UFloatFromStringExpr(floatSort, string)
         }.cast()

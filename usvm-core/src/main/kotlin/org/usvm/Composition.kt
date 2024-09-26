@@ -1,5 +1,9 @@
 package org.usvm
 
+import io.ksmt.sort.KFpSort
+import io.ksmt.utils.uncheckedCast
+import org.usvm.api.charToLower
+import org.usvm.api.charToUpper
 import org.usvm.api.readString
 import org.usvm.collection.array.UAllocatedArrayReading
 import org.usvm.collection.array.UArrayMemoryRegion
@@ -49,8 +53,21 @@ import org.usvm.collection.string.UStringReverseExpr
 import org.usvm.collection.string.UStringSliceExpr
 import org.usvm.collection.string.UStringToLowerExpr
 import org.usvm.collection.string.UStringToUpperExpr
+import org.usvm.collection.string.charAt
 import org.usvm.collection.string.concatStrings
 import org.usvm.collection.string.getHashCode
+import org.usvm.collection.string.getLength
+import org.usvm.collection.string.getSubstring
+import org.usvm.collection.string.indexOf
+import org.usvm.collection.string.matches
+import org.usvm.collection.string.repeat
+import org.usvm.collection.string.replaceFirst
+import org.usvm.collection.string.reverse
+import org.usvm.collection.string.stringCmp
+import org.usvm.collection.string.stringFromFloat
+import org.usvm.collection.string.stringFromInt
+import org.usvm.collection.string.stringToLower
+import org.usvm.collection.string.stringToUpper
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.regions.Region
@@ -199,102 +216,117 @@ open class UComposer<Type, USizeSort : USort>(
             memory.concatStrings<Type, USizeSort>(left, right)
         }
 
-    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> = expr.uncheckedCast()
 
-    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> = expr.uncheckedCast()
 
     override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> =
         transformExprAfterTransformed(expr, expr.string) { string ->
             getHashCode(ctx, string)
         }
 
-    override fun transform(expr: UStringLtExpr): UBoolExpr {
+    override fun transform(expr: UStringLtExpr): UBoolExpr =
+        transformExprAfterTransformed(expr, expr.left, expr.right) { left, right ->
+            stringCmp(left, right, true)
+        }
+
+    override fun transform(expr: UStringLeExpr): UBoolExpr =
+        transformExprAfterTransformed(expr, expr.left, expr.right) { left, right ->
+            stringCmp(left, right, false)
+        }
+
+    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr =
+        transformExprAfterTransformed(expr, expr.value) { value ->
+            stringFromFloat(ctx, value)
+        }
+
+    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
         TODO("Not yet implemented")
     }
 
-    override fun transform(expr: UStringLeExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringToUpperExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.string) { string ->
+            stringToUpper(string)
+        }
 
-    override fun <UFloatSort : USort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringToLowerExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.string) { string ->
+            stringToLower(string)
+        }
 
-    override fun <UFloatSort : USort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharToUpperExpr): UCharExpr =
+        transformExprAfterTransformed(expr, expr.char) { char ->
+            charToUpper(char)
+        }
 
-    override fun transform(expr: UStringToUpperExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharToLowerExpr): UCharExpr =
+        transformExprAfterTransformed(expr, expr.char) { char ->
+            charToLower(char)
+        }
 
-    override fun transform(expr: UStringToLowerExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReverseExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.string) { string ->
+            reverse(string)
+        }
 
-    override fun transform(expr: UCharToUpperExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexMatchesExpr): UBoolExpr =
+        transformExprAfterTransformed(expr, expr.string, expr.pattern) { string, pattern ->
+            matches(ctx, string, pattern)
+        }
 
-    override fun transform(expr: UCharToLowerExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.what, expr.where, expr.with) { what, where, with ->
+            replaceFirst(what, where, with)
+        }
 
-    override fun transform(expr: UStringReverseExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReplaceAllExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.what, expr.where, expr.with) { what, where, with ->
+            replaceFirst(what, where, with)
+        }
 
-    override fun transform(expr: URegexMatchesExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.what, expr.where, expr.with) { what, where, with ->
+            replaceFirst(what, where, with)
+        }
 
-    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexReplaceAllExpr): UStringExpr =
+        transformExprAfterTransformed(expr, expr.what, expr.where, expr.with) { what, where, with ->
+            replaceFirst(what, where, with)
+        }
 
-    override fun transform(expr: UStringReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> =
+        transformExprAfterTransformed(expr, expr.string, expr.pattern) { string, pattern ->
+            indexOf(ctx, string, pattern)
+        }
 
-    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: URegexReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr =
+        transformExprAfterTransformed(expr, expr.string, expr.times) { string, times ->
+            repeat(string, times)
+        }
 
     override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> {
         TODO("Not yet implemented")
     }
 
-    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr =
+        transformExprAfterTransformed(expr, expr.value) { value ->
+            stringFromInt(ctx, value, expr.radix)
+        }
 
-    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr =
+        transformExprAfterTransformed(expr, expr.superString, expr.startIndex, expr.length) { string, start, length ->
+            memory.getSubstring(string, start, length)
+        }
 
-    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr =
+        transformExprAfterTransformed(expr, expr.string, expr.index) { string, index ->
+            charAt(ctx, string, index)
+        }
 
-    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> =
+        transformExprAfterTransformed(expr, expr.string) { string ->
+            getLength(ctx, string)
+        }
 }
 
 @Suppress("NOTHING_TO_INLINE")
