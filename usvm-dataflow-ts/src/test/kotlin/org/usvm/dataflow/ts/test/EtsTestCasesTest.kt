@@ -22,12 +22,12 @@ import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.test.utils.loadEtsFileFromResource
+import org.jacodb.ets.test.utils.testFactory
 import org.junit.jupiter.api.TestFactory
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
-import org.usvm.dataflow.ts.test.utils.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.BufferedWriter
 import java.io.File

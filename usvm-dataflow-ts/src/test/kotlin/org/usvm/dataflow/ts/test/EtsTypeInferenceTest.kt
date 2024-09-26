@@ -25,6 +25,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.test.utils.loadEtsFileFromResource
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIf
@@ -32,7 +33,6 @@ import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.File

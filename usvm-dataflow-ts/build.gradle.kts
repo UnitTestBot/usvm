@@ -18,6 +18,7 @@ dependencies {
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)
 
+    testImplementation(testFixtures(Libs.jacodb_ets))
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)

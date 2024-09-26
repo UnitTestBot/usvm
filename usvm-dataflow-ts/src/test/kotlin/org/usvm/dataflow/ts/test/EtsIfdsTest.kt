@@ -19,6 +19,7 @@ package org.usvm.dataflow.ts.test
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.test.utils.loadEtsFileFromResource
 import org.jacodb.taint.configuration.Argument
 import org.jacodb.taint.configuration.AssignMark
 import org.jacodb.taint.configuration.ConstantTrue
@@ -36,7 +37,6 @@ import org.junit.jupiter.api.Test
 import org.usvm.dataflow.taint.TaintManager
 import org.usvm.dataflow.ts.ifds.SingletonUnitResolver
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.test.utils.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.time.Duration.Companion.seconds
 
