@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
@@ -18,6 +19,8 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
+
+private val logger = KotlinLogging.logger {}
 
 sealed interface EtsTypeFact {
 
@@ -75,7 +78,15 @@ sealed interface EtsTypeFact {
             }
 
             is ArrayEtsTypeFact -> when (other) {
-                is ArrayEtsTypeFact -> ArrayEtsTypeFact(elementType.intersect(other.elementType)!!)
+                is ArrayEtsTypeFact -> {
+                    val t = elementType.intersect(other.elementType)
+                    if (t == null) {
+                        logger.warn{"Empty intersection of array element types: $elementType & ${other.elementType}"}
+                        null
+                    } else {
+                        ArrayEtsTypeFact(t)
+                    }
+                }
                 else -> null
             }
 
