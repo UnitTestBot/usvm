@@ -8,6 +8,7 @@ sealed class TSBinaryOperator(
     val onFp: TSContext.(UExpr<UFpSort>, UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val onRef: TSContext.(UExpr<UAddressSort>, UExpr<UAddressSort>) -> UExpr<out USort> = shouldNotBeCalled,
     val desiredSort: TSContext.(USort, USort) -> USort = { _, _ -> error("Should not be called") },
+    val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = {_, _ -> emptySet() },
 ) {
 
     object Eq : TSBinaryOperator(
@@ -24,6 +25,22 @@ sealed class TSBinaryOperator(
         onFp = { lhs, rhs -> mkFpEqualExpr(lhs, rhs).not() },
         onRef = { lhs, rhs -> lhs.neq(rhs) },
         desiredSort = { lhs, _ -> lhs },
+        banSorts = { lhs, rhs ->
+            when {
+                lhs is TSWrappedValue ->
+                    // rhs.sort == addressSort is a mock not to cause undefined
+                    // behaviour with support of new language features.
+                    if (rhs is TSWrappedValue || rhs.sort == addressSort) emptySet() else TSTypeSystem.primitiveTypes
+                        .map(::typeToSort).toSet()
+                        .minus(rhs.sort)
+                rhs is TSWrappedValue ->
+                    // lhs.sort == addressSort explained as above.
+                    if (lhs.sort == addressSort) emptySet() else TSTypeSystem.primitiveTypes
+                        .map(::typeToSort).toSet()
+                        .minus(lhs.sort)
+                else -> emptySet()
+            }
+        }
     )
 
     object Add : TSBinaryOperator(
@@ -46,13 +63,17 @@ sealed class TSBinaryOperator(
     )
 
     internal operator fun invoke(lhs: UExpr<out USort>, rhs: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> {
-        val lhsSort = lhs.sort
-        val rhsSort = rhs.sort
+        val bannedSorts = lhs.tctx.banSorts(lhs, rhs)
 
         fun apply(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort>? {
             val ctx = lhs.tctx
-            if (ctx.desiredSort(lhs.sort, rhs.sort) != lhs.sort) return null
-            assert(lhs.sort == rhs.sort)
+            val lhsSort = lhs.sort
+            val rhsSort = rhs.sort
+            assert(lhsSort == rhsSort)
+
+            if (lhsSort in bannedSorts) return null
+            if (ctx.desiredSort(lhsSort, rhsSort) != lhsSort) return null
+
             return when (lhs.sort) {
                 is UBoolSort -> ctx.onBool(lhs.cast(), rhs.cast())
                 is UBvSort -> ctx.onBv(lhs.cast(), rhs.cast())
@@ -61,6 +82,9 @@ sealed class TSBinaryOperator(
                 else -> error("Unexpected sorts: $lhsSort, $rhsSort")
             }
         }
+
+        val lhsSort = lhs.sort
+        val rhsSort = rhs.sort
 
         val ctx = lhs.tctx
         val sort = ctx.desiredSort(lhsSort, rhsSort)

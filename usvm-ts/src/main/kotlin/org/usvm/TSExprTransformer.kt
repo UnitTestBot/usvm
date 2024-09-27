@@ -78,7 +78,7 @@ class TSExprTransformer(
      */
     private fun generateAdditionalExprs(): List<UExpr<out USort>> = with(ctx) {
         val newExpr = when (baseExpr.sort) {
-            addressSort -> addedExprCache.putOrNull(mkEq(asFp64(), boolToFpSort(asBool())))
+            addressSort -> addedExprCache.putOrNull(mkEq(fpToBoolSort(asFp64()), asBool()))
             else -> null
         }
 
@@ -101,7 +101,7 @@ class TSExprTransformer(
     fun asBool(): UExpr<KBoolSort> = exprCache.getOrPut(ctx.boolSort) {
         when (baseExpr.sort) {
             ctx.boolSort -> baseExpr
-            ctx.fp64Sort -> with(ctx) { mkIte(mkFpEqualExpr(baseExpr.cast(), mkFp64(1.0)), mkTrue(), mkFalse()) }
+            ctx.fp64Sort -> ctx.fpToBoolSort(baseExpr.cast())
             ctx.addressSort -> with(ctx) {
                 TSRefTransformer(ctx, boolSort).apply(baseExpr.cast()).cast()
             }

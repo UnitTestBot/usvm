@@ -1,5 +1,6 @@
 package org.usvm
 
+import io.ksmt.sort.KFp64Sort
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 
@@ -8,7 +9,12 @@ fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {
     write(ref as ULValue<*, USort>, value as UExpr<USort>, value.uctx.trueExpr)
 }
 
-fun UContext<*>.boolToFpSort(expr: UExpr<UBoolSort>) = mkIte(expr, mkFp64(1.0), mkFp64(0.0))
+// Built-in KContext.bvToBool has identical implementation.
+fun UContext<*>.boolToFpSort(expr: UExpr<UBoolSort>) =
+    mkIte(expr, mkFp64(1.0), mkFp64(0.0))
+
+fun UContext<*>.fpToBoolSort(expr: UExpr<KFp64Sort>) =
+    mkIte(mkFpEqualExpr(expr, mkFp64(0.0)), mkFalse(), mkTrue())
 
 fun UExpr<*>.unwrapJoinedExpr(ctx: UContext<*>): UExpr<out USort> =
     if (this is UJoinedBoolExpr) ctx.mkAnd(exprs) else this
