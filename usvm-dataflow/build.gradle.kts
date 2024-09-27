@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":usvm-util"))
     implementation(Libs.jacodb_api_common)
     implementation(Libs.jacodb_taint_configuration)
     implementation(Libs.sarif4k)

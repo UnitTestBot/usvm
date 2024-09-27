@@ -23,9 +23,9 @@ import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
-import org.usvm.dataflow.ifds.Maybe
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
+import org.usvm.util.Maybe
 
 private val logger = KotlinLogging.logger {}
 

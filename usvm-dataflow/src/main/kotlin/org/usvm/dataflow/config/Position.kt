@@ -30,10 +30,10 @@ import org.jacodb.taint.configuration.ResultAnyElement
 import org.jacodb.taint.configuration.This
 import org.usvm.dataflow.ifds.AccessPath
 import org.usvm.dataflow.ifds.ElementAccessor
-import org.usvm.dataflow.ifds.Maybe
-import org.usvm.dataflow.ifds.fmap
-import org.usvm.dataflow.ifds.toMaybe
 import org.usvm.dataflow.util.Traits
+import org.usvm.util.Maybe
+import org.usvm.util.fmap
+import org.usvm.util.toMaybe
 
 context(Traits<CommonMethod, CommonInst>)
 class CallPositionToAccessPathResolver(
