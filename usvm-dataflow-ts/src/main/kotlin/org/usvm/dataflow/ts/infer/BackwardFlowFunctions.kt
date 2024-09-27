@@ -151,7 +151,9 @@ class BackwardFlowFunctions(
             return
         }
 
-        val predecessors = graph.successors(stmt) // graph is reversed
+        // val predecessors = graph.successors(stmt) // graph is reversed
+        // val predecessors = dominators(stmt.method).dominators(stmt) - stmt
+        val predecessors = dominators(stmt.method).dominators(stmt).toSet().intersect(graph.successors(stmt).toSet())
         predecessors.forEach { findAssignment(value, it, cache) }
 
         val predecessorValues = predecessors.map { cache.getValue(it) }
