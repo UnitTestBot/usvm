@@ -64,12 +64,12 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.isOnHeap
 import org.usvm.dataflow.ifds.isStatic
 import org.usvm.dataflow.ifds.minus
-import org.usvm.dataflow.ifds.onSome
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.TaintDomainFact
 import org.usvm.dataflow.taint.TaintZeroFact
 import org.usvm.dataflow.taint.Tainted
 import org.usvm.dataflow.util.startsWith
+import org.usvm.util.onSome
 
 private val logger = mu.KotlinLogging.logger {}
 

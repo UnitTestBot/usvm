@@ -53,10 +53,10 @@ import org.jacodb.taint.configuration.TypeMatches
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.config.BasicConditionEvaluator
 import org.usvm.dataflow.config.FactAwareConditionEvaluator
-import org.usvm.dataflow.ifds.Maybe
-import org.usvm.dataflow.ifds.toMaybe
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.Tainted
+import org.usvm.util.Maybe
+import org.usvm.util.toMaybe
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
