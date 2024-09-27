@@ -11,8 +11,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -27,8 +26,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -49,8 +47,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -73,8 +70,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -87,8 +83,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -109,8 +104,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "getMicrophoneUuid",
             "parameters": [
@@ -140,8 +134,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -202,8 +195,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -216,8 +208,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -247,8 +238,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "microphone",
                           "type": {
@@ -281,8 +271,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "uuid",
                           "type": {
@@ -314,8 +303,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "entrypoint",
             "parameters": [],
@@ -336,8 +324,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -350,8 +337,7 @@
                     "declaringFile": {
                       "projectName": "_UnknownProjectName",
                       "fileName": "_UnknownFileName"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -364,8 +350,7 @@
                     "declaringFile": {
                       "projectName": "_UnknownProjectName",
                       "fileName": "_UnknownFileName"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -406,8 +391,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -420,8 +404,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -438,8 +421,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -452,8 +434,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -472,8 +453,7 @@
                               "declaringFile": {
                                 "projectName": "_UnknownProjectName",
                                 "fileName": "_UnknownFileName"
-                              },
-                              "declaringNamespace": null
+                              }
                             }
                           }
                         },
@@ -483,8 +463,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -507,8 +486,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -522,8 +500,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -545,8 +522,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "getMicrophoneUuid",
                           "parameters": [],
@@ -565,8 +541,7 @@
                                 "declaringFile": {
                                   "projectName": "_UnknownProjectName",
                                   "fileName": "_UnknownFileName"
-                                },
-                                "declaringNamespace": null
+                                }
                               }
                             }
                           }
@@ -590,8 +565,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "log",
                           "parameters": [],
@@ -627,8 +601,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -642,8 +615,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "uuid",
             "type": {
@@ -651,7 +623,6 @@
             }
           },
           "modifiers": [],
-          "typeParameters": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -664,8 +635,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -681,8 +651,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "uuid",
             "type": {
@@ -690,7 +659,6 @@
             }
           },
           "modifiers": [],
-          "typeParameters": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -703,8 +671,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "@instance_init",
             "parameters": [],
@@ -734,8 +701,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -748,8 +714,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -768,8 +733,7 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone.ts"
-                              },
-                              "declaringNamespace": null
+                              }
                             }
                           }
                         },
@@ -779,8 +743,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "uuid",
                           "type": {
@@ -812,8 +775,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "@static_init",
             "parameters": [],
@@ -843,8 +805,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -857,8 +818,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -879,8 +839,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "constructor",
             "parameters": [],
@@ -923,8 +882,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -946,8 +904,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -975,8 +932,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -990,8 +946,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "microphone",
             "type": {
@@ -1000,7 +955,6 @@
             }
           },
           "modifiers": [],
-          "typeParameters": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -1013,8 +967,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -1030,8 +983,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "microphone",
             "type": {
@@ -1040,7 +992,6 @@
             }
           },
           "modifiers": [],
-          "typeParameters": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -1053,8 +1004,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "@instance_init",
             "parameters": [],
@@ -1075,8 +1025,7 @@
                     "declaringFile": {
                       "projectName": "_UnknownProjectName",
                       "fileName": "_UnknownFileName"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -1099,8 +1048,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -1113,8 +1061,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1131,8 +1078,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -1145,8 +1091,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1165,8 +1110,7 @@
                               "declaringFile": {
                                 "projectName": "_UnknownProjectName",
                                 "fileName": "_UnknownFileName"
-                              },
-                              "declaringNamespace": null
+                              }
                             }
                           }
                         },
@@ -1176,8 +1120,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -1202,8 +1145,7 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone.ts"
-                              },
-                              "declaringNamespace": null
+                              }
                             }
                           }
                         },
@@ -1213,8 +1155,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "microphone",
                           "type": {
@@ -1233,8 +1174,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1255,8 +1195,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "@static_init",
             "parameters": [],
@@ -1286,8 +1225,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -1300,8 +1238,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1322,8 +1259,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "constructor",
             "parameters": [],
@@ -1366,8 +1302,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1389,8 +1324,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "@instance_init",
                           "parameters": [],

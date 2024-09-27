@@ -11,8 +11,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "taint.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -27,8 +26,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -49,8 +47,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -73,8 +70,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -87,8 +83,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -109,8 +104,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "source",
             "parameters": [],
@@ -139,8 +133,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -163,8 +156,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -177,8 +169,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -206,8 +197,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "pass",
             "parameters": [
@@ -252,8 +242,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -323,8 +312,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -337,8 +325,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -374,8 +361,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "validate",
             "parameters": [
@@ -412,8 +398,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -486,8 +471,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -500,8 +484,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -591,8 +574,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "sink",
             "parameters": [
@@ -629,8 +611,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -657,8 +638,7 @@
                     "declaringFile": {
                       "projectName": "_UnknownProjectName",
                       "fileName": "_UnknownFileName"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -717,8 +697,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -731,8 +710,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -798,8 +776,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -812,8 +789,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -832,8 +808,7 @@
                               "declaringFile": {
                                 "projectName": "_UnknownProjectName",
                                 "fileName": "_UnknownFileName"
-                              },
-                              "declaringNamespace": null
+                              }
                             }
                           }
                         },
@@ -843,8 +818,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -875,8 +849,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -894,8 +867,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "bad",
             "parameters": [],
@@ -916,8 +888,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -964,8 +935,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -978,8 +948,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1001,8 +970,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "source",
                           "parameters": [],
@@ -1030,8 +998,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "pass",
                           "parameters": [],
@@ -1060,8 +1027,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "sink",
                           "parameters": [],
@@ -1096,8 +1062,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "taint.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "good",
             "parameters": [],
@@ -1118,8 +1083,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "taint.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -1166,8 +1130,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -1180,8 +1143,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "taint.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -1203,8 +1165,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "source",
                           "parameters": [],
@@ -1232,8 +1193,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "validate",
                           "parameters": [],
@@ -1262,8 +1222,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "sink",
                           "parameters": [],

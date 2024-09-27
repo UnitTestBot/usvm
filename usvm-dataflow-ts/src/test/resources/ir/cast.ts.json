@@ -11,8 +11,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "cast.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
@@ -27,8 +26,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "cast.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -49,8 +47,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "cast.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               }
@@ -73,8 +70,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -87,8 +83,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -109,8 +104,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "cast.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "getData",
             "parameters": [],
@@ -121,8 +115,7 @@
           "modifiers": [
             "DeclareKeyword"
           ],
-          "typeParameters": [],
-          "body": null
+          "typeParameters": []
         },
         {
           "signature": {
@@ -131,8 +124,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "cast.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "entrypoint",
             "parameters": [],
@@ -153,8 +145,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "cast.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -202,8 +193,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -216,8 +206,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -239,8 +228,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "getData",
                           "parameters": [],
@@ -286,8 +274,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "infer",
                           "parameters": [],
@@ -323,8 +310,7 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "cast.ts"
-              },
-              "declaringNamespace": null
+              }
             },
             "name": "infer",
             "parameters": [
@@ -353,8 +339,7 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "cast.ts"
-                    },
-                    "declaringNamespace": null
+                    }
                   }
                 }
               },
@@ -406,8 +391,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -420,8 +404,7 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "cast.ts"
-                            },
-                            "declaringNamespace": null
+                            }
                           }
                         }
                       }
@@ -443,8 +426,7 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            },
-                            "declaringNamespace": null
+                            }
                           },
                           "name": "log",
                           "parameters": [],
@@ -480,8 +462,7 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "cast.ts"
-        },
-        "declaringNamespace": null
+        }
       },
       "modifiers": [],
       "typeParameters": [],
