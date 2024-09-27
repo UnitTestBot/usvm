@@ -279,10 +279,10 @@ data class MethodTypesFacts(
         }
 
         fun from(
-            inferredTypes:  Map<AccessPathBase, EtsTypeFact>,
+            inferredTypes: Map<AccessPathBase, EtsTypeFact>,
             inferredReturnType: EtsTypeFact?,
             combinedThisFact: EtsTypeFact?,
-            method: EtsMethod
+            method: EtsMethod,
         ): MethodTypesFacts {
             val arguments = method.parameters.indices.map { inferredTypes[AccessPathBase.Arg(it)] }
 
@@ -291,49 +291,83 @@ data class MethodTypesFacts(
     }
 }
 
-private fun EtsTypeFact?.matchesWith(type: EtsType, scene: EtsScene): Boolean = when (this) {
-    null, EtsTypeFact.AnyEtsTypeFact -> {
-        // TODO any other combination?
-        type is EtsAnyType || type is EtsUnknownType
-    }
+private fun EtsTypeFact?.matchesWith(type: EtsType, scene: EtsScene): Boolean {
+    val result = when (this) {
+        null, EtsTypeFact.AnyEtsTypeFact -> {
+            // TODO any other combination?
+            type is EtsAnyType || type is EtsUnknownType
+        }
 
-    is EtsTypeFact.ObjectEtsTypeFact -> {
-        // TODO it should be replaced with signatures
-        val typeName = this.cls?.typeName
-        if (type is EtsUnknownType || type is EtsAnyType) {
-            this.cls != null
-        } else {
-            (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+        is EtsTypeFact.ObjectEtsTypeFact -> {
+            // TODO it should be replaced with signatures
+            val typeName = this.cls?.typeName
+
+            if (type is EtsUnknownType || type is EtsAnyType) {
+                this.cls != null
+            } else {
+                (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+            }
+        }
+
+        is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
+            is EtsArrayType -> this.elementType.matchesWith(type.elementType, scene)
+
+            is EtsUnclearRefType -> {
+                val elementType = this.elementType as? EtsTypeFact.ObjectEtsTypeFact
+                elementType?.cls?.typeName == type.typeName
+            }
+
+            else -> false
+        }
+
+        EtsTypeFact.BooleanEtsTypeFact -> {
+            type is EtsBooleanType
+                || type is EtsUnknownType
+                || (type as? EtsClassType)?.typeName == "Boolean"
+                || (type as? EtsUnclearRefType)?.typeName == "Boolean"
+        }
+        EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType || type is EtsUnknownType
+        EtsTypeFact.NullEtsTypeFact -> type is EtsNullType || type is EtsUnknownType
+        EtsTypeFact.NumberEtsTypeFact -> {
+            type is EtsNumberType
+                || type is EtsUnknownType
+                || (type as? EtsClassType)?.typeName == "Number"
+                || (type as? EtsUnclearRefType)?.typeName == "Number"
+        }
+        EtsTypeFact.StringEtsTypeFact -> {
+            type is EtsStringType
+                || type is EtsUnknownType
+                || (type as? EtsClassType)?.typeName == "String"
+                || (type as? EtsUnclearRefType)?.typeName == "String"
+        }
+        EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType
+        EtsTypeFact.UnknownEtsTypeFact -> type is EtsUnknownType
+        is EtsTypeFact.GuardedTypeFact -> TODO()
+        is EtsTypeFact.IntersectionEtsTypeFact -> {
+            // TODO intersections checks are not supported yet
+            false
+        }
+
+        is EtsTypeFact.UnionEtsTypeFact -> types.any {
+            it.matchesWith(type, scene)
         }
     }
 
-    is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
-        is EtsArrayType -> this.elementType.matchesWith(type.elementType, scene)
-
-        is EtsUnclearRefType -> TODO()
-        else -> false
+    if (!result) {
+        logger.warn {
+            """
+                Fact: $this
+                Type: $type
+                
+            """.trimIndent()
+        }
     }
 
-    EtsTypeFact.BooleanEtsTypeFact -> type is EtsBooleanType
-    EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType
-    EtsTypeFact.NullEtsTypeFact -> type is EtsNullType
-    EtsTypeFact.NumberEtsTypeFact -> type is EtsNumberType
-    EtsTypeFact.StringEtsTypeFact -> type is EtsStringType
-    EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType
-    EtsTypeFact.UnknownEtsTypeFact -> type is EtsUnknownType
-    is EtsTypeFact.GuardedTypeFact -> TODO()
-    is EtsTypeFact.IntersectionEtsTypeFact -> {
-        // TODO intersections checks are not supported yet
-        false
-    }
-
-    is EtsTypeFact.UnionEtsTypeFact -> types.any {
-        it.matchesWith(type, scene)
-    }
+    return result
 }
 
 private fun EtsTypeFact.partialMatchedBy(type: EtsType): Boolean {
     if (type is EtsUnknownType) return true
-    logger.warn { "Not implemented partial match" }
+    logger.warn { "Not implemented partial match for fact $this and type $type" }
     return false
 }
