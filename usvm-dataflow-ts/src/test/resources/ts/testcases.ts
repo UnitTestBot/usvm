@@ -945,3 +945,22 @@ class CaseLoop {
         const EXPECTED_ARG_0 = "any";
     }
 }
+
+class CaseFindAssignmentAfterLoop {
+    entrypoint(y: number) {
+        let x = [];
+        for (let i = 0; i < y; i++) {
+            x.push(i);
+        }
+        if (x.length == 0) {
+            x.push(42);
+        }
+        this.f = x;
+
+        this.infer(x)
+    }
+
+    infer(a: any) {
+        //
+    }
+}
