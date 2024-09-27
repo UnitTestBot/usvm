@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringType
@@ -25,6 +26,7 @@ import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration.Companion.seconds
 
 context(EtsTraits)
 class TypeInferenceManager(
@@ -129,7 +131,9 @@ class TypeInferenceManager(
         logger.info { "Running forward analysis" }
         runnerFinished = CompletableDeferred()
         forwardJob.start()
-        runnerFinished.await()
+        withTimeout(3600.seconds) {
+            runnerFinished.await()
+        }
         forwardJob.cancelAndJoin()
         logger.info { "Forward analysis finished" }
 
