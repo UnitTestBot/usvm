@@ -27,11 +27,11 @@ class EtsTypeResolverTest {
         }
     }
 
-    private val yourPrefixForTestFolders = "YOUR_PREFIX"
+    private val yourPrefixForTestFolders = "C:/work/TestProjects"
 
     @Test
     fun testLoadProject1() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/callui-default-signed"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/callui-default-signed"
         val abcScene = loadProjectFromJsons(projectAbc)
 
         val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
@@ -57,7 +57,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject2() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/CertificateManager_240801_843398b"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/CertificateManager_240801_843398b"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -82,7 +82,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject3() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/mobiledatasettings-callui-default-signed"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/mobiledatasettings-callui-default-signed"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -107,7 +107,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject4() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/Music_Demo_240727_98a3500"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/Music_Demo_240727_98a3500"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -133,7 +133,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject5() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/phone_photos-default-signed_20240905_151755"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/phone_photos-default-signed_20240905_151755"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -158,7 +158,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject6() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/phone-default-signed_20240409_144519"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/phone-default-signed_20240409_144519"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -183,7 +183,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject7() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects/SecurityPrivacyCenter_240801_843998b"
+        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/SecurityPrivacyCenter_240801_843998b"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -384,14 +384,20 @@ class EtsTypeResolverTest {
         filterByAst: Boolean = true,
         isOnlyPublic: Boolean = true
     ): List<EtsMethod> {
-        val astMethods = astScene.classes.flatMapTo(mutableSetOf()) { it.methods.map { method -> method.name } }
+        val astMethods = astScene.classes.flatMapTo(mutableSetOf()) {
+            it.methods.map { method -> method.name to method.enclosingClass.name }
+        }
 
         return abcScene.classes
             .asSequence()
             .filterNot { it.name.startsWith("AnonymousClass-") }
             .flatMap { it.methods }
             .filter { it.isPublic }
-            .filter { !filterByAst || it.name in astMethods }
+            .filter {
+                !filterByAst || astMethods.any {
+                    method -> it.name == method.first && it.enclosingClass.name == method.second
+                }
+            }
             .filter { !isOnlyPublic || it.isPublic }
             .toList()
     }
@@ -415,18 +421,16 @@ class EtsTypeResolverTest {
             val factsForMethod = result.inferredTypes.entries.singleOrNull {
                 // TODO hack because of signatures
                 it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
+            }?.value
+
+            if (factsForMethod == null && inferredReturnType == null && combinedThisFact == null) {
+                classMatcherStatistics.saveAbsentResult(m)
+                return@forEach
             }
-                ?.value
-                ?: run {
-                    if (inferredReturnType == null && combinedThisFact == null) {
-                        classMatcherStatistics.saveAbsentResult(m)
-                    }
-                    return@forEach
-                }
 
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(m)
             val actualTypes = MethodTypesFacts.from(
-                factsForMethod,
+                factsForMethod.orEmpty(),
                 inferredReturnType,
                 combinedThisFact,
                 m

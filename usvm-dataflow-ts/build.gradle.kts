@@ -32,6 +32,10 @@ tasks.withType<KotlinCompile> {
     }
 }
 
+tasks.named<Test>("test") {
+    maxHeapSize = "4G"
+}
+
 val generateTestResources by tasks.registering {
     group = "build"
     description = "Generates JSON resources from TypeScript files using ArkAnalyzer."

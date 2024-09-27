@@ -75,7 +75,9 @@ sealed interface EtsTypeFact {
             }
 
             is ArrayEtsTypeFact -> when (other) {
-                is ArrayEtsTypeFact -> ArrayEtsTypeFact(elementType.intersect(other.elementType)!!)
+                is ArrayEtsTypeFact -> runCatching {
+                    ArrayEtsTypeFact(elementType.intersect(other.elementType)!!)
+                }.getOrNull()
                 else -> null
             }
 

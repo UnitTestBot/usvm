@@ -72,9 +72,12 @@ class ForwardFlowFunctions(
             }
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
-                check(type.elementType !is EtsTypeFact.ArrayEtsTypeFact)
-                facts += TypedVariable(path, type)
-                addTypes(path + ElementAccessor, type.elementType, facts)
+                if (type.elementType !is EtsTypeFact.ArrayEtsTypeFact) {
+                    facts += TypedVariable(path, type)
+                    addTypes(path + ElementAccessor, type.elementType, facts)
+                } else {
+                    return
+                }
             }
 
             is EtsTypeFact.GuardedTypeFact -> {

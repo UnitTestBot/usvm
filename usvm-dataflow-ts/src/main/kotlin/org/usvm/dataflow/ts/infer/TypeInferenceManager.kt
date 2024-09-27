@@ -246,7 +246,7 @@ class TypeInferenceManager(
                 propertyRefinements.let {}
                 cls.let {}
 
-                cls to refined
+                cls.signature to refined
             }.toMap()
         }
         logger.info {
@@ -282,7 +282,7 @@ class TypeInferenceManager(
                             .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
                         val rootType = propertyRefinements[emptyList()]
-                            ?: error("Missing root type")
+                            ?: return@mapValues EtsTypeFact.AnyEtsTypeFact
 
                         val refined = rootType.refineProperties(emptyList(), propertyRefinements)
 
@@ -482,9 +482,12 @@ class TypeInferenceManager(
             -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
-                check(property.size == 1)
+                if (property.size != 1) return this
+
                 val p = property.single()
-                check(p is ElementAccessor)
+//                check(p is ElementAccessor)
+                if (p !is ElementAccessor) return this
+
                 val t = elementType.intersect(type)
                     ?: error("Empty intersection")
                 return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
