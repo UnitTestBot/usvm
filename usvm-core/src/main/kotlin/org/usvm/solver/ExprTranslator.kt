@@ -9,6 +9,7 @@ import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UCharSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
@@ -132,7 +133,16 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }
 
     private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
+    // TODO: use weak references here?
+    private val _declToBoolStringExpr = mutableMapOf<KDecl<UBoolSort>, UBoolExpr>()
+    private val _declToCharStringExpr = mutableMapOf<KDecl<UCharSort>, UCharExpr>()
+    private val _declToIntStringExpr = mutableMapOf<KDecl<USizeSort>, UExpr<USizeSort>>()
+    private val _declToFloatStringExpr = mutableMapOf<KDecl<KFpSort>, UExpr<KFpSort>>()
     val declToIsExpr: Map<KDecl<UBoolSort>, UIsExpr<Type>> get() = _declToIsExpr
+    val declToBoolStringExpr: Map<KDecl<UBoolSort>, UBoolExpr> get() = _declToBoolStringExpr
+    val declToCharStringExpr: Map<KDecl<UCharSort>, UCharExpr> get() = _declToCharStringExpr
+    val declToIntStringExpr: Map<KDecl<USizeSort>, UExpr<USizeSort>> get() = _declToIntStringExpr
+    val declToFloatStringExpr: Map<KDecl<KFpSort>, UExpr<KFpSort>> get() = _declToFloatStringExpr
 
     override fun transform(expr: UIsSubtypeExpr<Type>): KExpr<KBoolSort> {
         require(expr.ref is USymbolicHeapRef) { "Unexpected ref: ${expr.ref}" }
@@ -348,119 +358,94 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }.uncheckedCast()
 
 
-    override fun transform(expr: UStringLiteralExpr): UStringExpr {
-        TODO("Not yet implemented")
+    private fun <Sort: USort> abstractExpression(expr: UExpr<Sort>, name: String, cache: MutableMap<KDecl<Sort>, UExpr<Sort>>): UExpr<Sort> {
+        val const = expr.sort.mkConst("$name#${cache.size}")
+        cache[const.decl] = expr
+        return const
     }
 
-    override fun transform(expr: UStringFromLanguageExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLiteralExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UStringConcatExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringFromLanguageExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringConcatExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UConcreteStringHashCodeBv32Expr): UExpr<USizeSort> =
+        error("This should not be called")
 
-    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UConcreteStringHashCodeIntExpr): UExpr<USizeSort> =
+        error("This should not be called")
 
-//    override fun transform(expr: UStringEqExpr): UBoolExpr {
-//        TODO("Not yet implemented")
-//    }
+    override fun transform(expr: UStringHashCodeExpr<USizeSort>): UExpr<USizeSort> =
+        error("This should not be called")
 
-    override fun transform(expr: UStringLtExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLtExpr): UBoolExpr =
+        abstractExpression(expr, "stringLt", _declToBoolStringExpr)
 
-    override fun transform(expr: UStringLeExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLeExpr): UBoolExpr =
+        abstractExpression(expr, "stringLe", _declToBoolStringExpr)
 
-    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr =
+        error("This should not be called")
 
-    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> {
-        TODO("Not yet implemented")
-    }
+    override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> =
+        abstractExpression(expr, "floatFromString", _declToFloatStringExpr.uncheckedCast())
 
-    override fun transform(expr: UStringToUpperExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringToUpperExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UStringToLowerExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringToLowerExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UCharToUpperExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharToUpperExpr): UCharExpr =
+        abstractExpression(expr, "charToUpper", _declToCharStringExpr)
 
-    override fun transform(expr: UCharToLowerExpr): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharToLowerExpr): UCharExpr =
+        abstractExpression(expr, "charToLower", _declToCharStringExpr)
 
-    override fun transform(expr: UStringReverseExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReverseExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: URegexMatchesExpr): UBoolExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexMatchesExpr): UBoolExpr =
+        abstractExpression(expr, "regexMatches", _declToBoolStringExpr)
 
-    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReplaceFirstExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UStringReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringReplaceAllExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexReplaceFirstExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: URegexReplaceAllExpr): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: URegexReplaceAllExpr): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> =
+        abstractExpression(expr, "indexOf", _declToIntStringExpr)
 
-    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> =
+        abstractExpression(expr, "intFromString", _declToIntStringExpr)
 
-    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringSliceExpr<USizeSort>): UStringExpr =
+        error("This should not be called")
 
-    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr =
+        abstractExpression(expr, "charAt", _declToCharStringExpr)
 
-    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> =
+        // TODO: at least, this should be non-negative. Should interpreter be responsible for this?
+        abstractExpression(expr, "length", _declToIntStringExpr)
 
-    override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr {
-        TODO("Not yet implemented")
-    }
+    override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr =
+        error("This should not be called")
 }

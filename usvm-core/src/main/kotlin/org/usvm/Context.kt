@@ -47,7 +47,6 @@ import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
-import org.usvm.collection.string.UConcreteStringHashCodeBv32Expr
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexExpr

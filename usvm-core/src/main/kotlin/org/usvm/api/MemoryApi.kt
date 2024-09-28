@@ -283,14 +283,17 @@ fun <Type, UFloatSort : KFpSort> UWritableMemory<Type>.stringFromFloat(stringTyp
  * number encoded into the string in the specified [radix].
  * If string is non-deterministic, the engine might return a list of such variants.
  */
-fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef, radix: Int): List<Pair<UBoolExpr, UExpr<USizeSort>?>> =
+@Suppress("UNUSED_PARAMETER")
+fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef, radix: Int): List<Pair<UBoolExpr, UExpr<USizeSort>?>> {
     TODO()
+}
 
 /**
  * Parses string in heap location [ref]. Returns a list of pairs (success, value), where success is true iff string
  * represents some floating-point value. In those models, where success is true, value represents the floating-point
  * number encoded into the string. If string is non-deterministic, the engine might return a list of such variants.
  */
+@Suppress("UNUSED_PARAMETER")
 fun <UFloatSort : KFpSort> UReadOnlyMemory<*>.tryParseFloatFromString(ref: UHeapRef): List<Pair<UBoolExpr, UExpr<UFloatSort>?>> =
     TODO()
 
