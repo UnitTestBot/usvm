@@ -13,34 +13,13 @@ import org.usvm.UContext
 import org.usvm.UEqExpr
 import org.usvm.UExpr
 import org.usvm.UExprVisitor
-import org.usvm.UIndexedMethodReturnValue
-import org.usvm.UIsSubtypeExpr
-import org.usvm.UIsSupertypeExpr
-import org.usvm.UNullRef
-import org.usvm.URegisterReading
+import org.usvm.UFpSort
 import org.usvm.USort
-import org.usvm.UTrackedSymbol
-import org.usvm.collection.array.UAllocatedArrayReading
-import org.usvm.collection.array.UInputArrayReading
-import org.usvm.collection.array.length.UInputArrayLengthReading
-import org.usvm.collection.field.UInputFieldReading
-import org.usvm.collection.map.length.UInputMapLengthReading
-import org.usvm.collection.map.primitive.UAllocatedMapReading
-import org.usvm.collection.map.primitive.UInputMapReading
-import org.usvm.collection.map.ref.UAllocatedRefMapWithInputKeysReading
-import org.usvm.collection.map.ref.UInputRefMapWithAllocatedKeysReading
-import org.usvm.collection.map.ref.UInputRefMapWithInputKeysReading
-import org.usvm.collection.set.primitive.UAllocatedSetReading
-import org.usvm.collection.set.primitive.UInputSetReading
-import org.usvm.collection.set.ref.UAllocatedRefSetWithInputElementsReading
-import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
-import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.algorithms.mapCartesianProduct
 import org.usvm.collection.string.UCharAtExpr
 import org.usvm.collection.string.UCharExpr
 import org.usvm.collection.string.UCharToLowerExpr
 import org.usvm.collection.string.UCharToUpperExpr
-import org.usvm.collection.string.UConcreteStringHashCodeBv32Expr
-import org.usvm.collection.string.UConcreteStringHashCodeIntExpr
 import org.usvm.collection.string.UFloatFromStringExpr
 import org.usvm.collection.string.UIntFromStringExpr
 import org.usvm.collection.string.URegexExpr
@@ -53,12 +32,13 @@ import org.usvm.collection.string.UStringFromArrayExpr
 import org.usvm.collection.string.UStringFromFloatExpr
 import org.usvm.collection.string.UStringFromIntExpr
 import org.usvm.collection.string.UStringFromLanguageExpr
-import org.usvm.collection.string.UStringHashCodeExpr
 import org.usvm.collection.string.UStringIndexOfExpr
 import org.usvm.collection.string.UStringLeExpr
 import org.usvm.collection.string.UStringLengthExpr
 import org.usvm.collection.string.UStringLiteralExpr
 import org.usvm.collection.string.UStringLtExpr
+import org.usvm.collection.string.UStringModelRegion
+import org.usvm.collection.string.UStringRegionId
 import org.usvm.collection.string.UStringRepeatExpr
 import org.usvm.collection.string.UStringReplaceAllExpr
 import org.usvm.collection.string.UStringReplaceFirstExpr
@@ -69,16 +49,18 @@ import org.usvm.collection.string.UStringToLowerExpr
 import org.usvm.collection.string.UStringToUpperExpr
 import org.usvm.collection.string.getLength
 import org.usvm.getIntValue
+import org.usvm.isTrue
 import org.usvm.language.UFormalLanguage
 import org.usvm.language.URegularLanguage
 import org.usvm.logger
-import org.usvm.model.UModel
-import org.usvm.regions.Region
+import org.usvm.mkSizeExpr
+import org.usvm.model.UModelBase
+import org.usvm.solver.URegularStringSolver.ObservableTakeSequence
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
 data class UStringSolverQuery(
-    val model: UModel,
+    val model: UModelBase<*>,
     val charAtConstraints: MutableMap<Pair<UStringExpr, Int>, Char> = mutableMapOf(),
     val lengthConstraints: MutableMap<UStringExpr, Int> = mutableMapOf(),
     val stringEqConstraints: MutableMap<Pair<UStringExpr, UStringExpr>, Boolean> = mutableMapOf(),
@@ -93,6 +75,8 @@ data class UStringSolverQuery(
     private val charToLowerConstraint: MutableMap<UCharExpr, Char> = mutableMapOf(),
 ) {
     private var conflictDetected = false
+    private val _constraints = mutableListOf<UBoolExpr>()
+    val constraints: List<UBoolExpr> = _constraints
     fun isConflicting() = conflictDetected
 
     private fun <Key, Value> put(map: MutableMap<Key, Value>, key: Key, value: Value) {
@@ -107,37 +91,39 @@ data class UStringSolverQuery(
         }
     }
 
-    fun addBooleanConstraint(model: UModel, constraint: UBoolExpr, result: Boolean) {
+    fun addBooleanConstraint(constraint: UBoolExpr, result: Boolean) {
         if (conflictDetected) return
-        when (constraint) {
+        val evaledConstraint = model.eval(constraint)
+        _constraints.add(evaledConstraint)
+        when (evaledConstraint) {
             is UEqExpr<*> -> {
-                check(constraint.lhs.sort == constraint.uctx.stringSort)
+                check(evaledConstraint.lhs.sort == evaledConstraint.uctx.stringSort)
                 { "Non-string equality came to string solver" }
                 @Suppress("UNCHECKED_CAST")
-                constraint as UEqExpr<UStringSort>
-                val lhs = model.eval(constraint.lhs)
-                val rhs = model.eval(constraint.rhs)
+                evaledConstraint as UEqExpr<UStringSort>
+                val lhs = evaledConstraint.lhs
+                val rhs = evaledConstraint.rhs
                 logger.debug { "In fact, adding: $lhs ${if (result) "" else "!"}== $rhs" }
                 put(stringEqConstraints, lhs to rhs, result)
             }
 
             is UStringLeExpr -> {
-                val lhs = model.eval(constraint.left)
-                val rhs = model.eval(constraint.right)
+                val lhs = evaledConstraint.left
+                val rhs = evaledConstraint.right
                 logger.debug { "In fact, adding: $lhs ${if (result) "" else "!"}<= $rhs" }
                 put(stringLeConstraints, lhs to rhs, result)
             }
 
             is UStringLtExpr -> {
-                val lhs = model.eval(constraint.left)
-                val rhs = model.eval(constraint.right)
+                val lhs = evaledConstraint.left
+                val rhs = evaledConstraint.right
                 logger.debug { "In fact, adding: $lhs ${if (result) "" else "!"}< $rhs" }
                 put(stringLtConstraints, lhs to rhs, result)
             }
 
             is URegexMatchesExpr -> {
-                val string = model.eval(constraint.string)
-                val pattern = model.eval(constraint.pattern)
+                val string = evaledConstraint.string
+                val pattern = evaledConstraint.pattern
                 logger.debug { "In fact, adding: ${if (result) "" else "!"}$pattern.matches($string)" }
                 put(regexMatchesConstraint, string to pattern, result)
             }
@@ -146,25 +132,27 @@ data class UStringSolverQuery(
         }
     }
 
-    fun addCharConstraint(model: UModel, constraint: UCharExpr, result: Char) {
+    fun addCharConstraint(constraint: UCharExpr, result: Char) {
         if (conflictDetected) return
-        when (constraint) {
+        val evaledConstraint = model.eval(constraint)
+        _constraints.add(model.ctx.mkEq(evaledConstraint, model.ctx.mkChar(result)))
+        when (evaledConstraint) {
             is UCharAtExpr<*> -> {
-                val string = model.eval(constraint.string)
-                val index = string.uctx.withSizeSort<USort>().getIntValue(model.eval(constraint.index).uncheckedCast())
-                    ?: error("Unexpected index ${constraint.index}")
+                val string = evaledConstraint.string
+                val index = string.uctx.withSizeSort<USort>().getIntValue(evaledConstraint.index.uncheckedCast())
+                    ?: error("Unexpected index ${evaledConstraint.index}")
                 logger.debug { "In fact, adding: $string.charAt($index) == $result" }
                 put(charAtConstraints, string to index, result)
             }
 
             is UCharToUpperExpr -> {
-                val char = model.eval(constraint.char)
+                val char = evaledConstraint.char
                 logger.debug { "In fact, adding: charToUpper($char) == $result" }
                 put(charToUpperConstraint, char, result)
             }
 
             is UCharToLowerExpr -> {
-                val char = model.eval(constraint.char)
+                val char = evaledConstraint.char
                 logger.debug { "In fact, adding: charToLower($char) == $result" }
                 put(charToLowerConstraint, char, result)
             }
@@ -173,24 +161,26 @@ data class UStringSolverQuery(
         }
     }
 
-    fun <USizeSort : USort> addIntConstraint(model: UModel, constraint: UExpr<USizeSort>, result: Int) {
+    fun <USizeSort : USort> addIntConstraint(constraint: UExpr<USizeSort>, result: Int) {
         if (conflictDetected) return
-        when (constraint) {
+        val evaledConstraint = model.eval(constraint)
+        _constraints.add(model.ctx.mkEq(evaledConstraint, model.ctx.withSizeSort<USizeSort>().mkSizeExpr(result)))
+        when (evaledConstraint) {
             is UStringLengthExpr<*> -> {
-                val string = model.eval(constraint.string)
+                val string = evaledConstraint.string
                 logger.debug { "In fact, adding: length($string) == $result" }
                 put(lengthConstraints, string, result)
             }
 
             is UStringIndexOfExpr<*> -> {
-                val string = model.eval(constraint.string)
-                val pattern = model.eval(constraint.pattern)
+                val string = evaledConstraint.string
+                val pattern = evaledConstraint.pattern
                 logger.debug { "In fact, adding: indexOf($string, $pattern) == $result" }
                 put(indexOfConstraint, string to pattern, result)
             }
 
             is UIntFromStringExpr<*> -> {
-                val string = model.eval(constraint.string)
+                val string = evaledConstraint.string
                 logger.debug { "In fact, adding: stringToInt($string) == $result" }
                 put(intFromStringConstraints, string, result)
             }
@@ -199,11 +189,13 @@ data class UStringSolverQuery(
         }
     }
 
-    fun <UFloatSort : USort> addFloatConstraint(model: UModel, constraint: UExpr<UFloatSort>, result: Number) {
+    fun <UFloatSort : UFpSort> addFloatConstraint(constraint: UExpr<UFloatSort>, result: Number) {
         if (conflictDetected) return
-        when (constraint) {
+        val evaledConstraint = model.eval(constraint)
+        _constraints.add(model.ctx.mkEq(evaledConstraint, model.ctx.mkFp(result.toDouble(), evaledConstraint.sort)))
+        when (evaledConstraint) {
             is UFloatFromStringExpr<*> -> {
-                val string = model.eval(constraint.string)
+                val string = evaledConstraint.string
                 logger.debug { "In fact, adding: stringToFloat($string) == $result" }
                 put(floatFromStringConstraints, string, result)
             }
@@ -225,6 +217,27 @@ data class UStringSolverQuery(
                     floatFromStringConstraints.isEmpty() &&
                     charToUpperConstraint.isEmpty() &&
                     charToLowerConstraint.isEmpty()
+
+    /**
+     * Checks if all constraints in this query are satisfied by the assignment [mapping].
+     * @returns null, if all constraints are satisfied; unsatisfied constraint otherwise.
+     */
+    fun eval(mapping: Map<UConcreteHeapAddress, UStringLiteralExpr>): UExpr<*>? {
+        val stringRegion = model.getRegion(UStringRegionId(model.ctx)) as UStringModelRegion
+        val oldMapping = stringRegion.strings.toMutableMap()
+        stringRegion.add(mapping)
+
+        for (constraint in _constraints) {
+            if (!model.eval(constraint).isTrue) {
+                stringRegion.strings = oldMapping
+                return constraint
+            }
+        }
+
+        stringRegion.strings = oldMapping
+        return null
+    }
+
 }
 
 typealias UStringModel = Map<UConcreteHeapAddress, UStringLiteralExpr>
@@ -249,86 +262,20 @@ class UDumbStringSolver(private val ctx: UContext<*>) : UStringSolver {
 
 /**
  * Caching converter of string expressions to over-approximating regular languages.
- */
-abstract class UStringExprVisitor<Result: Any, ArrayType, USizeSort : USort>(
-    override val ctx: UContext<USizeSort>,
-): UExprVisitor<Result, ArrayType, USizeSort>(ctx) {
-    override fun visit(expr: UStringExpr): KExprVisitResult<Result> =
-        error("Visitor for $expr is not implemented")
-
-    abstract override fun visit(expr: UStringLiteralExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringFromArrayExpr<ArrayType, USizeSort>): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringFromLanguageExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringConcatExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringSliceExpr<USizeSort>): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringFromIntExpr<USizeSort>): KExprVisitResult<Result>
-    abstract override fun <UFloatSort : KFpSort> visit(expr: UStringFromFloatExpr<UFloatSort>): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringRepeatExpr<USizeSort>): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringToUpperExpr): KExprVisitResult<Result>
-
-    abstract override fun visit(expr: UStringToLowerExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringReverseExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringReplaceFirstExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: UStringReplaceAllExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: URegexReplaceFirstExpr): KExprVisitResult<Result>
-    abstract override fun visit(expr: URegexReplaceAllExpr): KExprVisitResult<Result>
-
-    override fun <Sort : USort> visit(expr: URegisterReading<Sort>) = err()
-    override fun <Field, Sort : USort> visit(expr: UInputFieldReading<Field, Sort>) = err()
-    override fun <Method, Sort : USort> visit(expr: UIndexedMethodReturnValue<Method, Sort>) = err()
-    override fun <Sort : USort> visit(expr: UTrackedSymbol<Sort>) = err()
-    override fun visit(expr: UConcreteHeapRef) = err()
-    override fun visit(expr: UNullRef) = err()
-    override fun visit(expr: UConcreteStringHashCodeBv32Expr) = err()
-    override fun visit(expr: UConcreteStringHashCodeIntExpr) = err()
-    override fun visit(expr: UStringLtExpr) = err()
-    override fun visit(expr: UStringLeExpr) = err()
-    override fun <UFloatSort : KFpSort> visit(expr: UFloatFromStringExpr<UFloatSort>) = err()
-    override fun visit(expr: UCharToUpperExpr) = err()
-    override fun visit(expr: UCharToLowerExpr) = err()
-    override fun visit(expr: URegexMatchesExpr) = err()
-    override fun visit(expr: UStringIndexOfExpr<USizeSort>) = err()
-    override fun visit(expr: UIntFromStringExpr<USizeSort>) = err()
-    override fun visit(expr: UStringHashCodeExpr<USizeSort>) = err()
-    override fun visit(expr: UCharAtExpr<USizeSort>) = err()
-    override fun visit(expr: UStringLengthExpr<USizeSort>) = err()
-    override fun visit(expr: UIsSupertypeExpr<ArrayType>) = err()
-    override fun visit(expr: UIsSubtypeExpr<ArrayType>) = err()
-    override fun visit(expr: UInputRefSetWithInputElementsReading<ArrayType>) = err()
-    override fun visit(expr: UInputRefSetWithAllocatedElementsReading<ArrayType>) = err()
-    override fun visit(expr: UAllocatedRefSetWithInputElementsReading<ArrayType>) = err()
-    override fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UInputSetReading<ArrayType, ElemSort, Reg>) = err()
-    override fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UAllocatedSetReading<ArrayType, ElemSort, Reg>) = err()
-    override fun visit(expr: UInputMapLengthReading<ArrayType, USizeSort>) = err()
-    override fun <Sort : USort> visit(expr: UInputRefMapWithInputKeysReading<ArrayType, Sort>) = err()
-    override fun <Sort : USort> visit(expr: UInputRefMapWithAllocatedKeysReading<ArrayType, Sort>) = err()
-    override fun <Sort : USort> visit(expr: UAllocatedRefMapWithInputKeysReading<ArrayType, Sort>) = err()
-    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(expr: UInputMapReading<ArrayType, KeySort, Sort, Reg>) = err()
-    override fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(expr: UAllocatedMapReading<ArrayType, KeySort, Sort, Reg>) = err()
-    override fun visit(expr: UInputArrayLengthReading<ArrayType, USizeSort>) = err()
-    override fun <Sort : USort> visit(expr: UInputArrayReading<ArrayType, Sort, USizeSort>) = err()
-    override fun <Sort : USort> visit(expr: UAllocatedArrayReading<ArrayType, Sort, USizeSort>) = err()
-    override fun <T : KSort> defaultValue(expr: KExpr<T>) = err()
-    override fun mergeResults(left: Result, right: Result) = err()
-    protected fun err(): Nothing = error("This should not be called")
-}
-
-
-/**
- * Caching converter of string expressions to over-approximating regular languages.
  * For example, given UStringToUpper(UStringFromLanguage(ab*)) will compute the automaton accepting AB*.
  */
 private class UForwardApproximator<ArrayType, USizeSort : USort>(
     override val ctx: UContext<USizeSort>,
     val length: (UStringExpr) -> Int
-): UStringExprVisitor<UFormalLanguage, ArrayType, USizeSort>(ctx) {
+) : UExprVisitor<UFormalLanguage, ArrayType, USizeSort>(ctx) {
     override fun visit(expr: UStringExpr): KExprVisitResult<UFormalLanguage> =
         error("Visitor for $expr is not implemented")
 
     override fun visit(expr: UStringLiteralExpr): KExprVisitResult<UFormalLanguage> =
         saveVisitResult(expr, URegularLanguage.singleton(expr.s))
 
-    override fun visit(expr: UStringFromArrayExpr<ArrayType, USizeSort>) = err()
+    override fun visit(expr: UStringFromArrayExpr<ArrayType, USizeSort>) =
+        error("This should not be called!")
 
     override fun visit(expr: UStringFromLanguageExpr) =
         saveVisitResult(expr, URegularLanguage.anyString())
@@ -388,6 +335,12 @@ private class UForwardApproximator<ArrayType, USizeSort : USort>(
         TODO("Not yet implemented")
     }
 
+    override fun <T : KSort> defaultValue(expr: KExpr<T>): UFormalLanguage =
+        error("This should not be called!")
+
+    override fun mergeResults(left: UFormalLanguage, right: UFormalLanguage): UFormalLanguage =
+        error("This should not be called!")
+
     fun computeApproximation(expr: UStringExpr): UFormalLanguage =
         visit(expr).result
 }
@@ -396,7 +349,7 @@ private class UForwardApproximator<ArrayType, USizeSort : USort>(
  * Inverts constraints on string expressions, propagating languages towards leafs.
  * For example,
  */
-private class UBackwardApproximator<USizeSort: USort>(
+private class UBackwardApproximator<USizeSort : USort>(
     private val forward: UForwardApproximator<*, USizeSort>
 ) {
     private val queue = arrayListOf<Pair<UStringExpr, UFormalLanguage>>()
@@ -440,11 +393,13 @@ private class UBackwardApproximator<USizeSort: USort>(
                     val rightLang = URegularLanguage.singleton(left.s).complement()
                     queue.add(right to rightLang)
                 }
+
                 right is UStringLiteralExpr -> {
                     val leftLang = URegularLanguage.singleton(right.s).complement()
                     queue.add(left to leftLang)
                 }
-                else -> { } // skipping this constraint
+
+                else -> {} // skipping this constraint
             }
         }
     }
@@ -486,6 +441,7 @@ private class UBackwardApproximator<USizeSort: USort>(
             val lang = if (matches) regexLang else regexLang.complement()
             queue.add(string to lang).let {}
         }
+
         else -> {} // skipping this constraint...
     }
 
@@ -519,7 +475,7 @@ private class UBackwardApproximator<USizeSort: USort>(
                         ?: error("Invalid slice length after model eval")
                     val superStringLength = forward.length(expr.superString)
                     val rightLength = superStringLength - sliceLength - leftLength
-                    check(leftLength >= 0 &&  rightLength >= 0) { "Invalid string slice length value!" }
+                    check(leftLength >= 0 && rightLength >= 0) { "Invalid string slice length value!" }
                     val leftConcatLang = URegularLanguage.anyStringOfLength(leftLength)
                     val rightConcatLang = URegularLanguage.anyStringOfLength(rightLength)
                     val superStringLang = leftConcatLang.concat(lang).concat(rightConcatLang)
@@ -527,35 +483,43 @@ private class UBackwardApproximator<USizeSort: USort>(
                 }
 
                 is UStringRepeatExpr<*> -> {
-                    val times = forward.ctx.getIntValue(expr.times.uncheckedCast()) ?:
-                        error("Invalid times value after model eval!")
+                    val times = forward.ctx.getIntValue(expr.times.uncheckedCast())
+                        ?: error("Invalid times value after model eval!")
                     check(times >= 1) { "Invalid times value after model eval!" }
                     val oneTimeLength = forward.length(expr.string)
                     val oneTimeLang = lang.trimCount(0, (times - 1) * oneTimeLength)
                     queue.add(expr.string to oneTimeLang)
                 }
+
                 is UStringToUpperExpr -> {
                     queue.add(expr.string to lang.deUpperCase())
                 }
+
                 is UStringToLowerExpr -> {
                     queue.add(expr.string to lang.deLowerCase())
                 }
+
                 is UStringReverseExpr -> {
                     val reversedLang = lang.reverse()
                     queue.add(expr.string to reversedLang)
                 }
+
                 is UStringReplaceFirstExpr -> {
                     TODO()
                 }
+
                 is UStringReplaceAllExpr -> {
                     TODO()
                 }
+
                 is URegexReplaceFirstExpr -> {
                     TODO()
                 }
+
                 is URegexReplaceAllExpr -> {
                     TODO()
                 }
+
                 else -> error("Unexpected string expression $expr")
             }
         }
@@ -584,7 +548,7 @@ class URegularStringSolver<USizeSort : USort>(
      * Maximal amount of automata sampling attempts (per [check] call).
      */
     private val samplesLimit: Int = 100
-): UStringSolver {
+) : UStringSolver {
 
     init {
         Automaton.setStatesLimit(statesLimit)
@@ -615,11 +579,148 @@ class URegularStringSolver<USizeSort : USort>(
             backwardApproximator.propagateRegexMatchesConstraint(c.key.first, c.key.second, c.value)
         backwardApproximator.compute()
         val modelApproximation = backwardApproximator.getResult() ?: return UUnsatResult() // TODO: return unknown?
-        return sample(modelApproximation)
+        val candidates: MutableMap<UConcreteHeapAddress, Sequence<UStringLiteralExpr>> = mutableMapOf()
+        for (entry in modelApproximation) {
+            val length = lengthGetter(ctx.mkStringFromLanguage(ctx.mkConcreteHeapRef(entry.key)))
+            val sequence = entry.value.getStrings(length).asSequence().map { ctx.mkStringLiteral(it) }
+            candidates[entry.key] = sequence
+        }
+        return sample(query, candidates)
     }
 
-    private fun sample(approx: Map<UConcreteHeapAddress, UFormalLanguage>): USolverResult<UStringModel> {
-        TODO(approx.toString())
+    private fun sample(
+        query: UStringSolverQuery,
+        candidates: Map<UConcreteHeapAddress, Sequence<UStringLiteralExpr>>,
+    ): USolverResult<UStringModel> {
+        val constraints = query.constraints.map { StringConstraint(query.model, it) }
+        return satisfyConstraints(constraints, candidates, samplesLimit)
     }
 
+
+    /**
+     * Abstract entity depending on set of [keys]. Some mappings from keys to values satisfy constraint
+     * (in this case [eval] will return true), some are not (then we get false).
+     */
+    internal interface Constraint<Key, Value> {
+        val keys: Set<Key>
+        fun eval(mapping: Map<Key, Value>): Boolean
+    }
+
+    companion object {
+        /**
+         * Tries to find an assignment of [Value]s to [Key]s, satisfying all constraints in [constraints].
+         * If such assignment is found, returns it. If not, returns null
+         */
+        internal fun <Key, Value> satisfyConstraints(
+            constraints: List<Constraint<Key, Value>>,
+            candidates: Map<Key, Sequence<Value>>,
+            stepsLimit: Int
+        ): USolverResult<Map<Key, Value>> {
+            val bannedCandidates = mutableSetOf<Map<Key, Value>>()
+            var exhaused = false
+            // Interleaved search in (potentially infinite) space of candidates...
+            val assignment = mapCartesianProduct(candidates)
+                .filterNot { candidate -> bannedCandidates.any { banned -> banned.all { candidate[it.key] === it.value } } }
+                .observedTake(stepsLimit) { exhaused = true }
+                .find { candidate ->
+                    var allSatisfied = true
+                    for (constraint in constraints) {
+                        if (!constraint.eval(candidate)) {
+                            allSatisfied = false
+                            if (constraint.keys.size < candidates.size) {
+                                bannedCandidates.add(candidate.filterKeys { constraint.keys.contains(it) })
+                            } else {
+                                break
+                            }
+                        }
+                    }
+                    allSatisfied
+                }
+
+            // Steps limit exceeded, unknown
+            return when {
+                assignment != null -> USatResult(assignment)
+                exhaused -> UUnknownResult()
+                else -> UUnsatResult()
+            }
+        }
+    }
+
+    internal class ObservableTakeSequence<T>(
+        private val sequence: Sequence<T>,
+        private val count: Int,
+        private val exhaustAction: () -> Unit
+    ) : Sequence<T> {
+
+        init {
+            require(count >= 0) { "count must be non-negative, but was $count." }
+        }
+
+        override fun iterator(): Iterator<T> = object : Iterator<T> {
+            var left = count
+            val iterator = sequence.iterator()
+
+            override fun next(): T {
+                if (left == 0)
+                    throw NoSuchElementException()
+                left--
+                return iterator.next()
+            }
+
+            override fun hasNext(): Boolean {
+                if (left == 0) {
+                    exhaustAction()
+                }
+                return left > 0 && iterator.hasNext()
+            }
+        }
+    }
+
+
+
+    private class StringConstraint(val model: UModelBase<*>, val expr: UBoolExpr) :
+        Constraint<UConcreteHeapAddress, UStringLiteralExpr> {
+        override val keys: Set<UConcreteHeapAddress> =
+            USymbolicStringAddressCollector(model.ctx).getAddresses(expr)
+
+        override fun eval(mapping: Map<UConcreteHeapAddress, UStringLiteralExpr>): Boolean {
+            val stringRegion = model.getRegion(UStringRegionId(model.ctx)) as UStringModelRegion
+            val oldMapping = stringRegion.strings.toMutableMap()
+            stringRegion.add(mapping)
+
+            val result = model.eval(expr).isTrue
+            stringRegion.strings = oldMapping
+            return result
+        }
+    }
+
+    private class USymbolicStringAddressCollector<USizeSort : USort>(
+        ctx: UContext<USizeSort>,
+    ) : UExprVisitor<Unit, Any, USizeSort>(ctx) {
+        private val mutableAddresses: MutableSet<UConcreteHeapAddress> = mutableSetOf()
+
+        override fun visit(expr: UStringFromLanguageExpr): KExprVisitResult<Unit> {
+            val address = (expr.ref as UConcreteHeapRef).address
+            mutableAddresses.add(address)
+            return KExprVisitResult.EMPTY
+        }
+
+        override fun <T : USort> defaultValue(expr: KExpr<T>) {}
+        override fun mergeResults(left: Unit, right: Unit) {}
+
+        fun getAddresses(expr: UExpr<*>): Set<UConcreteHeapAddress> {
+            mutableAddresses.clear()
+            expr.accept(this)
+            return mutableAddresses
+        }
+    }
+}
+
+
+private fun <T> Sequence<T>.observedTake(n: Int, exhaustAction: () -> Unit): Sequence<T> {
+    require(n >= 0) { "Requested element count $n is less than zero." }
+    return when {
+        n == 0 -> { exhaustAction(); emptySequence() }
+        else -> ObservableTakeSequence(this, n, exhaustAction)
+    }
 }

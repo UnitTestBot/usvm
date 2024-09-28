@@ -163,7 +163,7 @@ internal fun <ArrayType, ArrayElementSort : USort, USizeSort : USort> UWritableM
  *   in pending state will give UStringRepeatExpr(s, x), without completing s to empty string.
  */
 class UStringModelRegion(val regionId: UStringRegionId) : UReadOnlyMemoryRegion<UStringLValue, UStringSort> {
-    private var strings: MutableMap<UConcreteHeapAddress, UStringLiteralExpr> = mutableMapOf()
+    var strings: MutableMap<UConcreteHeapAddress, UStringLiteralExpr> = mutableMapOf()
     private var isCompleting = true
 
     internal fun setCompletion(complete: Boolean) {
