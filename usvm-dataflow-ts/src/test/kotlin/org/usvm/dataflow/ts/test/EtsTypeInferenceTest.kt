@@ -495,7 +495,7 @@ class EtsTypeInferenceTest {
 
                 val entrypoints = project.classes
                     .flatMap { it.methods }
-                    .filter { it.name == "entrypoint" }
+                    .filter { it.isPublic }
                 logger.info { "Found ${entrypoints.size} entrypoints" }
 
                 val manager = with(EtsTraits) {
