@@ -486,12 +486,17 @@ class TypeInferenceManager(
             -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
-                check(property.size == 1)
-                val p = property.single()
-                check(p is ElementAccessor)
-                val t = elementType.intersect(type)
-                    ?: error("Empty intersection")
-                return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
+                // TODO: the following check(property.size == 1) fails on multiple projects
+                // check(property.size == 1)
+                if (property.size == 1) {
+                    val p = property.single()
+                    check(p is ElementAccessor)
+                    val t = elementType.intersect(type)
+                        ?: error("Empty intersection")
+                    return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
+                } else {
+                    return EtsTypeFact.AnyEtsTypeFact
+                }
             }
 
             is EtsTypeFact.UnknownEtsTypeFact -> {
