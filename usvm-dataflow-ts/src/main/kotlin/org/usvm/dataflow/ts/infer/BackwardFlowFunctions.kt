@@ -56,18 +56,24 @@ class BackwardFlowFunctions(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequent(current, fact).filter {
-                if (it.type.complexity() >= 5) {
-                    // logger.warn { "Dropping too complex fact: $it" }
-                    return@filter false
-                }
-                true
-            }
+            is TypedVariable -> sequent(current, fact).myFilter()
         }
     }
 
+    private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
+        if (it.type.complexity() >= 5) {
+            logger.warn { "Dropping too complex fact: $it" }
+            return@filter false
+        }
+        true
+    }
+
+    /**
+     * Complexity of a type fact is the maximum depth of nested types.
+     */
     private fun EtsTypeFact.complexity(): Int = when (this) {
         is EtsTypeFact.ObjectEtsTypeFact -> (properties.values.maxOfOrNull { it.complexity() } ?: 0) + 1
+        is EtsTypeFact.ArrayEtsTypeFact -> elementType.complexity() + 1
         is EtsTypeFact.UnionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
         is EtsTypeFact.IntersectionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
         else -> 0
