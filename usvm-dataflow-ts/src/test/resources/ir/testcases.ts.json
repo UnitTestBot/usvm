@@ -21026,50 +21026,6 @@
                   "successors": [],
                   "stmts": [
                     {
-                      "_": "AssignStmt",
-                      "left": {
-                        "_": "InstanceFieldRef",
-                        "instance": {
-                          "_": "Local",
-                          "name": "this",
-                          "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "CaseFindAssignmentAfterLoop",
-                              "declaringFile": {
-                                "projectName": "ts",
-                                "fileName": "testcases.ts"
-                              }
-                            }
-                          }
-                        },
-                        "field": {
-                          "declaringClass": {
-                            "name": "",
-                            "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
-                            }
-                          },
-                          "name": "f",
-                          "type": {
-                            "_": "UnknownType"
-                          }
-                        }
-                      },
-                      "right": {
-                        "_": "Local",
-                        "name": "x",
-                        "type": {
-                          "_": "ArrayType",
-                          "elementType": {
-                            "_": "AnyType"
-                          },
-                          "dimensions": 1
-                        }
-                      }
-                    },
-                    {
                       "_": "CallStmt",
                       "expr": {
                         "_": "InstanceCallExpr",
@@ -21427,6 +21383,1556 @@
                         "method": {
                           "declaringClass": {
                             "name": "CaseFindAssignmentAfterLoop",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "Tree",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        }
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Tree",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "children",
+            "type": {
+              "_": "ArrayType",
+              "elementType": {
+                "_": "UnclearReferenceType",
+                "name": "Tree"
+              },
+              "dimensions": 1
+            }
+          },
+          "modifiers": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Tree",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "AnyType"
+                  },
+                  "dimensions": 1
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "AnyType"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "NewArrayExpr",
+                        "elementType": {
+                          "_": "AnyType"
+                        },
+                        "size": {
+                          "_": "Constant",
+                          "value": "0",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          },
+                          "name": "children",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            },
+                            "dimensions": 1
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "AnyType"
+                          },
+                          "dimensions": 1
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Tree",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Tree",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "getChildren",
+            "parameters": [],
+            "returnType": {
+              "_": "ArrayType",
+              "elementType": {
+                "_": "UnclearReferenceType",
+                "name": "Tree"
+              },
+              "dimensions": 1
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Tree",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "children",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Tree",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          },
+                          "name": "@instance_init",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "CaseRecursion",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "testcases.ts"
+        }
+      },
+      "modifiers": [],
+      "typeParameters": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "@instance_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "@static_init",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "entrypoint",
+            "parameters": [
+              {
+                "name": "root",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "Tree"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseRecursion",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "root",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "Tree"
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "UnclearReferenceType",
+                    "name": "Tree"
+                  },
+                  "dimensions": 1
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "root",
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "NewArrayExpr",
+                        "elementType": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        },
+                        "size": {
+                          "_": "Constant",
+                          "value": "1",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "ArrayRef",
+                        "array": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            },
+                            "dimensions": 1
+                          }
+                        },
+                        "index": {
+                          "_": "Constant",
+                          "value": "0",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      },
+                      "right": {
+                        "_": "Local",
+                        "name": "root",
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseRecursion",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "traverse",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "$temp0",
+                            "type": {
+                              "_": "ArrayType",
+                              "elementType": {
+                                "_": "UnclearReferenceType",
+                                "name": "Tree"
+                              },
+                              "dimensions": 1
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseRecursion",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "infer",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "root",
+                            "type": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "traverse",
+            "parameters": [
+              {
+                "name": "xs",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "UnclearReferenceType",
+                    "name": "Tree"
+                  },
+                  "dimensions": 1
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseRecursion",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "xs",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "UnclearReferenceType",
+                    "name": "Tree"
+                  },
+                  "dimensions": 1
+                }
+              },
+              {
+                "name": "i",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "$temp0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "child",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "Tree"
+                }
+              },
+              {
+                "name": "children",
+                "type": {
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "UnclearReferenceType",
+                    "name": "Tree"
+                  },
+                  "dimensions": 1
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "xs",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
+                          },
+                          "dimensions": 1
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "i",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "0",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [
+                    2,
+                    3
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "$temp0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "xs",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            },
+                            "dimensions": 1
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "length",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "<",
+                        "left": {
+                          "_": "Local",
+                          "name": "i",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "right": {
+                          "_": "Local",
+                          "name": "$temp0",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                },
+                {
+                  "id": 3,
+                  "successors": [
+                    1
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "child",
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      },
+                      "right": {
+                        "_": "ArrayRef",
+                        "array": {
+                          "_": "Local",
+                          "name": "xs",
+                          "type": {
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            },
+                            "dimensions": 1
+                          }
+                        },
+                        "index": {
+                          "_": "Local",
+                          "name": "i",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "Tree"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "children",
+                        "type": {
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
+                          },
+                          "dimensions": 1
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "child",
+                          "type": {
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "getChildren",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseRecursion",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            }
+                          },
+                          "name": "traverse",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "children",
+                            "type": {
+                              "_": "ArrayType",
+                              "elementType": {
+                                "_": "UnclearReferenceType",
+                                "name": "Tree"
+                              },
+                              "dimensions": 1
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "i",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "BinopExpr",
+                        "op": "+",
+                        "left": {
+                          "_": "Local",
+                          "name": "i",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "1",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "infer",
+            "parameters": [
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "CaseRecursion",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "a",
+                "type": {
+                  "_": "AnyType"
+                }
+              },
+              {
+                "name": "EXPECTED_ARG_0",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "a",
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "AnyType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "EXPECTED_ARG_0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "Constant",
+                        "value": "Tree { children: Array<Tree> }",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "CaseRecursion",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "testcases.ts"
+              }
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": [],
+          "typeParameters": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "CaseRecursion",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "CaseRecursion",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"

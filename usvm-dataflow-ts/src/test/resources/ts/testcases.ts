@@ -963,3 +963,32 @@ class CaseFindAssignmentAfterLoop {
         //
     }
 }
+
+// ----------------------------------------
+
+class Tree {
+    children: Tree[] = [];
+
+    getChildren(): Tree[] {
+        return this.children;
+    }
+}
+
+class CaseRecursion {
+    entrypoint(root: Tree) {
+        this.traverse([root]);
+        this.infer(root);
+    }
+
+    traverse(xs: Tree[]) {
+        for (let i = 0; i < xs.length; i++) {
+            let child: Tree = xs[i];
+            let children: Tree[] = child.getChildren();
+            this.traverse(children);
+        }
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Tree { children: Array<Tree> }";
+    }
+}
