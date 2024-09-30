@@ -955,7 +955,6 @@ class CaseFindAssignmentAfterLoop {
         if (x.length == 0) {
             x.push(42);
         }
-        this.f = x;
 
         this.infer(x)
     }
