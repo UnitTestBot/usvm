@@ -451,7 +451,7 @@ class EtsTypeInferenceTest {
             logger.warn { "No projects directory found in resources" }
             return@testFactory
         }
-        val availableProjectNames = p.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }
+        val availableProjectNames = p.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }.sorted()
         logger.info {
             buildString {
                 appendLine("Found projects: ${availableProjectNames.size}")
