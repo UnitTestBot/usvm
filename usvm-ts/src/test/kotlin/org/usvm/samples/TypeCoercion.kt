@@ -67,13 +67,14 @@ class TypeCoercion : TSMethodTestRunner() {
 
     @Test
     fun testTransitiveCoercionNoTypes() {
-        discoverProperties<TSObject.Object, TSObject.Object, TSObject.Object, TSObject.TSNumber>(
+        discoverProperties<TSObject, TSObject, TSObject, TSObject.TSNumber>(
             methodIdentifier = MethodDescriptor(
                 fileName = "TypeCoercion.ts",
                 className = "TypeCoercion",
                 methodName = "transitiveCoercionNoTypes",
                 argumentsNumber = 3
             ),
+            // Too complicated to write property matchers, examine run log to verify the test.
         )
     }
 }

@@ -174,6 +174,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.TSNumber.Integer::class -> EtsNumberType
                 TSObject.UndefinedObject::class -> EtsUndefinedType
                 TSObject.Object::class -> EtsUnknownType
+                TSObject::class -> EtsUnknownType
                 else -> error("Should not be called")
             }
         }

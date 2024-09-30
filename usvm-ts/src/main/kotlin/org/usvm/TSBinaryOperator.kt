@@ -19,6 +19,13 @@ sealed class TSBinaryOperator(
         desiredSort = { lhs, _ -> lhs }
     )
 
+    // Neq must not be applied to a pair of expressions generated while initial Neq application.
+    // For example,
+    // "a (untyped arg) != 1.0 (fp64 number)"
+    // can't yield
+    // "a (bool reg reading) != true", since "1.0.toBool() = true" is a new value for 1.0.
+    //
+    // So, that's the reason why banSorts in Neq throws out all primitive types except one of the expressions' one.
     object Neq : TSBinaryOperator(
         onBool = { lhs, rhs -> lhs.neq(rhs) },
         onBv = { lhs, rhs -> lhs.neq(rhs) },
@@ -30,12 +37,14 @@ sealed class TSBinaryOperator(
                 lhs is TSWrappedValue ->
                     // rhs.sort == addressSort is a mock not to cause undefined
                     // behaviour with support of new language features.
-                    if (rhs is TSWrappedValue || rhs.sort == addressSort) emptySet() else TSTypeSystem.primitiveTypes
+                    if (rhs is TSWrappedValue || rhs.sort == addressSort) emptySet() else
+                        TSTypeSystem.primitiveTypes
                         .map(::typeToSort).toSet()
                         .minus(rhs.sort)
                 rhs is TSWrappedValue ->
                     // lhs.sort == addressSort explained as above.
-                    if (lhs.sort == addressSort) emptySet() else TSTypeSystem.primitiveTypes
+                    if (lhs.sort == addressSort) emptySet() else
+                        TSTypeSystem.primitiveTypes
                         .map(::typeToSort).toSet()
                         .minus(lhs.sort)
                 else -> emptySet()
@@ -44,13 +53,6 @@ sealed class TSBinaryOperator(
     )
 
     object Add : TSBinaryOperator(
-        onBool = { lhs, rhs ->
-            mkFpAddExpr(
-                fpRoundingModeSortDefaultValue(),
-                boolToFpSort(lhs),
-                boolToFpSort(rhs)
-            )
-        },
         onFp = { lhs, rhs -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs) },
         onBv = UContext<TSSizeSort>::mkBvAddExpr,
         desiredSort = { _, _ -> fp64Sort },
@@ -58,7 +60,6 @@ sealed class TSBinaryOperator(
 
     object And : TSBinaryOperator(
         onBool = UContext<TSSizeSort>::mkAnd,
-        onBv = UContext<TSSizeSort>::mkBvAndExpr,
         desiredSort = { _, _ -> boolSort },
     )
 
