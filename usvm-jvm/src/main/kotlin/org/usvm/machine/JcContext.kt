@@ -166,4 +166,7 @@ class JcContext(
     val arrayStoreExceptionType by lazy {
         extractJcRefType(ArrayStoreException::class)
     }
+
+    val useStringsApproximation =
+        components.useStringsApproximation
 }

@@ -49,6 +49,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.JcApplicationGraph
+import org.usvm.machine.JcApproximatedReturnSiteInst
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcDynamicMethodCallInst
@@ -174,6 +175,7 @@ class JcInterpreter(
             is JcCallInst -> visitCallStmt(scope, stmt)
             is JcEnterMonitorInst -> visitMonitorEnterStmt(scope, stmt)
             is JcExitMonitorInst -> visitMonitorExitStmt(scope, stmt)
+            is JcApproximatedReturnSiteInst -> visitApproximatedReturnStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
 
@@ -626,6 +628,11 @@ class JcInterpreter(
         scope.doWithState {
             newStmt(stmt.nextStmt)
         }
+    }
+
+    private fun visitApproximatedReturnStmt(scope: JcStepScope, stmt: JcApproximatedReturnSiteInst) {
+        val exprResolver = exprResolverWithScope(scope)
+        stmt.action(scope, exprResolver)
     }
 
     private fun exprResolverWithScope(scope: JcStepScope) =
