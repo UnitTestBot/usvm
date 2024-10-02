@@ -35,7 +35,7 @@ tasks.withType<KotlinCompile> {
 }
 
 tasks.withType<Test> {
-    maxHeapSize = "2G"
+    maxHeapSize = "4G"
 }
 
 val generateTestResources by tasks.registering {
