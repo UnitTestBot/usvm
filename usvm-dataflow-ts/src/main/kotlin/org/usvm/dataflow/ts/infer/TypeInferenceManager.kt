@@ -415,7 +415,7 @@ class TypeInferenceManager(
         is EtsTypeFact.NullEtsTypeFact -> this
         is EtsTypeFact.UndefinedEtsTypeFact -> this
         is EtsTypeFact.UnknownEtsTypeFact -> {
-            logger.warn { "Unknown type after forward analysis" }
+            // logger.warn { "Unknown type after forward analysis" }
             EtsTypeFact.AnyEtsTypeFact
         }
 
