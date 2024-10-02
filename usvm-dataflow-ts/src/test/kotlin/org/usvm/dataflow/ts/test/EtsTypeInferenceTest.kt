@@ -503,9 +503,25 @@ class EtsTypeInferenceTest {
                 }
                 val result = manager.analyze(entrypoints)
 
-                logger.info { "Inferred types: ${result.inferredTypes}" }
-                logger.info { "Inferred return types: ${result.inferredReturnType}" }
-                logger.info { "Inferred combined this types: ${result.inferredCombinedThisType}" }
+                logger.info { "Inferred types: ${result.inferredTypes.size}" }
+                for ((method, types) in result.inferredTypes) {
+                    logger.info {
+                        buildString {
+                            appendLine("Inferred types for ${method.signature}: ${types.size}")
+                            for ((pos, type) in types) {
+                                appendLine("  - $pos: $type")
+                            }
+                        }
+                    }
+                }
+                logger.info { "Inferred return types: ${result.inferredReturnType.size}" }
+                for ((method, returnType) in result.inferredReturnType) {
+                    logger.info { "Inferred return type for ${method.enclosingClass.name}::${method.name}: $returnType" }
+                }
+                logger.info { "Inferred combined this types: ${result.inferredCombinedThisType.size}" }
+                for ((clazz, thisType) in result.inferredCombinedThisType) {
+                    logger.info { "Inferred this type for ${clazz.name} in ${clazz.enclosingFile}: $thisType" }
+                }
             }
         }
     }

@@ -286,7 +286,8 @@ class TypeInferenceManager(
                             .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
                         val rootType = propertyRefinements[emptyList()]
-                            ?: error("Missing root type")
+                            // ?: error("Missing root type")
+                            ?: return@mapValues EtsTypeFact.AnyEtsTypeFact
 
                         val refined = rootType.refineProperties(emptyList(), propertyRefinements)
 
@@ -414,8 +415,8 @@ class TypeInferenceManager(
         is EtsTypeFact.NullEtsTypeFact -> this
         is EtsTypeFact.UndefinedEtsTypeFact -> this
         is EtsTypeFact.UnknownEtsTypeFact -> {
-            logger.error { "Unknown type after forward analysis" }
-            this
+            logger.warn { "Unknown type after forward analysis" }
+            EtsTypeFact.AnyEtsTypeFact
         }
 
         is EtsTypeFact.ArrayEtsTypeFact -> {

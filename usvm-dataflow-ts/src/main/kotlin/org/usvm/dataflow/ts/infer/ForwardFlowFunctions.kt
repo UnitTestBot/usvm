@@ -1,9 +1,11 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
+import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
 import org.jacodb.ets.base.EtsNewArrayExpr
@@ -16,6 +18,7 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedConstant
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
@@ -49,6 +52,17 @@ class ForwardFlowFunctions(
             }
         }
 
+        for (local in method.locals) {
+            if (local.type != EtsUnknownType && local.type != EtsAnyType) {
+                val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
+                val type = EtsTypeFact.from(local.type)
+                if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
+                    logger.info { "Adding known type for $path: $type" }
+                    addTypes(path, type, result)
+                }
+            }
+        }
+
         return result
     }
 
@@ -72,7 +86,7 @@ class ForwardFlowFunctions(
             }
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
-                check(type.elementType !is EtsTypeFact.ArrayEtsTypeFact)
+                // check(type.elementType !is EtsTypeFact.ArrayEtsTypeFact)
                 facts += TypedVariable(path, type)
                 addTypes(path + ElementAccessor, type.elementType, facts)
             }
@@ -192,6 +206,14 @@ class ForwardFlowFunctions(
             // is EtsCastExpr -> {
             //     result += TypedVariable(lhv, EtsTypeFact.from(rhv.type))
             // }
+
+            is EtsFieldRef -> {
+                if (rhv.type != EtsUnknownType && rhv.type != EtsAnyType) {
+                    val type = EtsTypeFact.from(rhv.type)
+                    logger.info { "Adding known type for $lhv from $rhv: $type" }
+                    addTypeFactWithAliases(lhv, type)
+                }
+            }
 
             else -> {
                 // logger.info { "TODO: forward assign $current" }

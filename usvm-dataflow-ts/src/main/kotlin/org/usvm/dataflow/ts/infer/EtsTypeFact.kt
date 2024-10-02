@@ -2,23 +2,18 @@ package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsLiteralType
-import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsTupleType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.EtsVoidType
 
 private val logger = KotlinLogging.logger {}
 
@@ -469,15 +464,11 @@ sealed interface EtsTypeFact {
                 is EtsAnyType -> AnyEtsTypeFact
                 is EtsUnknownType -> UnknownEtsTypeFact
                 is EtsUnionType -> UnionEtsTypeFact(type.types.map { from(it) }.toSet())
-                is EtsTupleType -> TODO()
                 is EtsBooleanType -> BooleanEtsTypeFact
                 is EtsNumberType -> NumberEtsTypeFact
                 is EtsStringType -> StringEtsTypeFact
                 is EtsNullType -> NullEtsTypeFact
                 is EtsUndefinedType -> UndefinedEtsTypeFact
-                is EtsVoidType -> TODO()
-                is EtsNeverType -> TODO()
-                is EtsLiteralType -> TODO()
                 is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
                 is EtsFunctionType -> FunctionEtsTypeFact
                 // is EtsArrayType -> ObjectEtsTypeFact(
@@ -494,9 +485,11 @@ sealed interface EtsTypeFact {
                 //     )
                 // )
                 is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
-                is EtsArrayObjectType -> TODO()
                 is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
-                else -> TODO()
+                else -> {
+                    logger.error { "Unsupported type: $type" }
+                    UnknownEtsTypeFact
+                }
             }
         }
     }
