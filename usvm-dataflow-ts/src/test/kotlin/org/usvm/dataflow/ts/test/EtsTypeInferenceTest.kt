@@ -522,6 +522,8 @@ class EtsTypeInferenceTest {
                 for ((clazz, thisType) in result.inferredCombinedThisType) {
                     logger.info { "Inferred this type for ${clazz.name} in ${clazz.enclosingFile}: $thisType" }
                 }
+
+                logger.info {"Done analyzing project: $projectName"}
             }
         }
     }
