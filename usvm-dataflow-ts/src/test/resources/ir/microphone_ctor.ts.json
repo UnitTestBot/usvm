@@ -141,20 +141,33 @@
               {
                 "name": "devices",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Devices"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Devices",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone_ctor.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Microphone",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone_ctor.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp1",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "StringType"
                 }
               }
             ],
@@ -170,16 +183,28 @@
                         "_": "Local",
                         "name": "devices",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Devices"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Devices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Devices"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Devices",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -219,7 +244,14 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Microphone",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
@@ -228,21 +260,34 @@
                           "_": "Local",
                           "name": "devices",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "Devices"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Devices",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Devices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "microphone",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Microphone",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         }
                       }
@@ -253,7 +298,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       },
                       "right": {
@@ -262,20 +307,27 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Microphone",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Microphone",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "uuid",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         }
                       }
@@ -286,7 +338,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       }
                     }
@@ -335,8 +387,8 @@
                   "signature": {
                     "name": "VirtualDevices",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "microphone_ctor.ts"
                     }
                   }
                 }
@@ -348,8 +400,8 @@
                   "signature": {
                     "name": "VirtualDevices",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "microphone_ctor.ts"
                     }
                   }
                 }
@@ -357,7 +409,7 @@
               {
                 "name": "uuid",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "StringType"
                 }
               },
               {
@@ -419,8 +471,8 @@
                           "signature": {
                             "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -432,8 +484,8 @@
                           "signature": {
                             "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -451,8 +503,8 @@
                             "signature": {
                               "name": "VirtualDevices",
                               "declaringFile": {
-                                "projectName": "_UnknownProjectName",
-                                "fileName": "_UnknownFileName"
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
                               }
                             }
                           }
@@ -461,14 +513,21 @@
                           "declaringClass": {
                             "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "VirtualDevices",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -484,8 +543,8 @@
                           "signature": {
                             "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -498,8 +557,8 @@
                           "signature": {
                             "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -511,23 +570,32 @@
                         "_": "Local",
                         "name": "uuid",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "getMicrophoneUuid",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "devices",
+                              "type": {
+                                "_": "UnclearReferenceType",
+                                "name": "Devices"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         },
                         "args": [
@@ -539,8 +607,8 @@
                               "signature": {
                                 "name": "VirtualDevices",
                                 "declaringFile": {
-                                  "projectName": "_UnknownProjectName",
-                                  "fileName": "_UnknownFileName"
+                                  "projectName": "ts",
+                                  "fileName": "microphone_ctor.ts"
                                 }
                               }
                             }
@@ -578,7 +646,7 @@
                             "_": "Local",
                             "name": "uuid",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "StringType"
                             }
                           }
                         ]
@@ -804,7 +872,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "VirtualMicro",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "microphone_ctor.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -916,15 +991,15 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "VirtualMicro",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "uuid",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         }
                       },
@@ -971,8 +1046,14 @@
             },
             "name": "microphone",
             "type": {
-              "_": "UnclearReferenceType",
-              "name": "Microphone"
+              "_": "ClassType",
+              "signature": {
+                "name": "Microphone",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "microphone_ctor.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -1008,8 +1089,14 @@
             },
             "name": "microphone",
             "type": {
-              "_": "UnclearReferenceType",
-              "name": "Microphone"
+              "_": "ClassType",
+              "signature": {
+                "name": "Microphone",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "microphone_ctor.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -1158,7 +1245,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "VirtualDevices",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "microphone_ctor.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -1185,8 +1279,8 @@
                   "signature": {
                     "name": "VirtualMicro",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "microphone_ctor.ts"
                     }
                   }
                 }
@@ -1273,8 +1367,8 @@
                           "signature": {
                             "name": "VirtualMicro",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -1286,8 +1380,8 @@
                           "signature": {
                             "name": "VirtualMicro",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }
@@ -1305,8 +1399,8 @@
                             "signature": {
                               "name": "VirtualMicro",
                               "declaringFile": {
-                                "projectName": "_UnknownProjectName",
-                                "fileName": "_UnknownFileName"
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
                               }
                             }
                           }
@@ -1315,14 +1409,21 @@
                           "declaringClass": {
                             "name": "VirtualMicro",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "VirtualMicro",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -1348,15 +1449,22 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "VirtualDevices",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           },
                           "name": "microphone",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Microphone",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone_ctor.ts"
+                              }
+                            }
                           }
                         }
                       },
@@ -1368,8 +1476,8 @@
                           "signature": {
                             "name": "VirtualMicro",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone_ctor.ts"
                             }
                           }
                         }

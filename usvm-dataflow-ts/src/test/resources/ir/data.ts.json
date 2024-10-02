@@ -136,8 +136,8 @@
                   "signature": {
                     "name": "Data",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "data.ts"
                     }
                   }
                 }
@@ -149,8 +149,8 @@
                   "signature": {
                     "name": "Data",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "data.ts"
                     }
                   }
                 }
@@ -208,8 +208,8 @@
                           "signature": {
                             "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           }
                         }
@@ -221,8 +221,8 @@
                           "signature": {
                             "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           }
                         }
@@ -240,8 +240,8 @@
                             "signature": {
                               "name": "Data",
                               "declaringFile": {
-                                "projectName": "_UnknownProjectName",
-                                "fileName": "_UnknownFileName"
+                                "projectName": "ts",
+                                "fileName": "data.ts"
                               }
                             }
                           }
@@ -250,14 +250,36 @@
                           "declaringClass": {
                             "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           },
                           "name": "constructor",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            },
+                            {
+                              "name": "b",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Data",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "data.ts"
+                              }
+                            }
                           }
                         },
                         "args": [
@@ -288,8 +310,8 @@
                           "signature": {
                             "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           }
                         }
@@ -302,8 +324,8 @@
                           "signature": {
                             "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           }
                         }
@@ -315,14 +337,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           },
                           "name": "process",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -336,8 +366,8 @@
                               "signature": {
                                 "name": "Data",
                                 "declaringFile": {
-                                  "projectName": "_UnknownProjectName",
-                                  "fileName": "_UnknownFileName"
+                                  "projectName": "ts",
+                                  "fileName": "data.ts"
                                 }
                               }
                             }
@@ -713,7 +743,14 @@
               }
             ],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "Data",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "data.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -871,15 +908,15 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           },
                           "name": "a",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -911,15 +948,15 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Data",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "data.ts"
                             }
                           },
                           "name": "b",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },

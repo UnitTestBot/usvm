@@ -376,14 +376,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignLocalToLocal",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -935,14 +943,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignFieldToLocal1",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1396,7 +1412,7 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -1495,7 +1511,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -1538,7 +1561,7 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -1559,15 +1582,15 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -1592,14 +1615,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignFieldToLocal2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1609,7 +1640,7 @@
                             "_": "Local",
                             "name": "x",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "NumberType"
                             }
                           }
                         ]
@@ -2112,14 +2143,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignFieldToLocal3",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -2736,7 +2775,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -2807,10 +2853,10 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "f",
@@ -2840,14 +2886,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignFieldToSelf",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -3432,7 +3486,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -3489,10 +3550,10 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "f",
@@ -3536,14 +3597,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignSelfToField",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -4119,14 +4188,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignLocalNumberToField",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -4704,7 +4781,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -4801,14 +4885,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignLocalObjectToField",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -5393,14 +5485,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseNestedDuplicateFields",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -6056,14 +6156,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignArrayToLocal",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -6695,14 +6803,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignArrayElementToLocal1",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -7334,14 +7450,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignArrayElementToLocal2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -7910,14 +8034,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignArgumentArrayElementToLocal1",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -8490,14 +8622,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignArgumentArrayElementToLocal2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -9083,14 +9223,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignLocalToArrayElementNumber",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -9588,8 +9736,14 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "ICustom"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "ICustom",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
                 }
               }
             ],
@@ -9652,8 +9806,14 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "ICustom"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "ICustom",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
@@ -9666,8 +9826,7 @@
                           }
                         },
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "ICustom"
+                          "_": "AnyType"
                         }
                       }
                     },
@@ -9691,14 +9850,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseCastToInterface",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -9708,8 +9875,14 @@
                             "_": "Local",
                             "name": "x",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "ICustom"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "ICustom",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             }
                           }
                         ]
@@ -10143,8 +10316,14 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "UnclearReferenceType",
-                    "name": "ICustom"
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "ICustom",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
                   },
                   "dimensions": 1
                 }
@@ -10211,8 +10390,14 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "ICustom"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "ICustom",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           },
                           "dimensions": 1
                         }
@@ -10227,12 +10412,7 @@
                           }
                         },
                         "type": {
-                          "_": "ArrayType",
-                          "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "ICustom"
-                          },
-                          "dimensions": 1
+                          "_": "AnyType"
                         }
                       }
                     },
@@ -10256,14 +10436,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseCastToArrayInterface",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -10275,8 +10463,14 @@
                             "type": {
                               "_": "ArrayType",
                               "elementType": {
-                                "_": "UnclearReferenceType",
-                                "name": "ICustom"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "ICustom",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "testcases.ts"
+                                  }
+                                }
                               },
                               "dimensions": 1
                             }
@@ -10750,16 +10944,16 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseReturnNumber",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": []
@@ -11253,16 +11447,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseReturnArgumentNumber",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -11749,16 +11951,16 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseReturnObject",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": []
@@ -11950,7 +12152,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseReturnObject-infer-4",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -12400,7 +12609,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -12457,16 +12673,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseReturnArgumentObject",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -12942,7 +13166,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "MyType",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -13205,8 +13436,8 @@
                   "signature": {
                     "name": "MyType",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
                     }
                   }
                 }
@@ -13218,8 +13449,8 @@
                   "signature": {
                     "name": "MyType",
                     "declaringFile": {
-                      "projectName": "_UnknownProjectName",
-                      "fileName": "_UnknownFileName"
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
                     }
                   }
                 }
@@ -13271,8 +13502,8 @@
                           "signature": {
                             "name": "MyType",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           }
                         }
@@ -13284,8 +13515,8 @@
                           "signature": {
                             "name": "MyType",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           }
                         }
@@ -13303,8 +13534,8 @@
                             "signature": {
                               "name": "MyType",
                               "declaringFile": {
-                                "projectName": "_UnknownProjectName",
-                                "fileName": "_UnknownFileName"
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
                               }
                             }
                           }
@@ -13313,14 +13544,21 @@
                           "declaringClass": {
                             "name": "MyType",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "MyType",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -13336,8 +13574,8 @@
                           "signature": {
                             "name": "MyType",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           }
                         }
@@ -13350,8 +13588,8 @@
                           "signature": {
                             "name": "MyType",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           }
                         }
@@ -13377,16 +13615,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseNew",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -13398,8 +13644,8 @@
                               "signature": {
                                 "name": "MyType",
                                 "declaringFile": {
-                                  "projectName": "_UnknownProjectName",
-                                  "fileName": "_UnknownFileName"
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
                                 }
                               }
                             }
@@ -13937,16 +14183,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseUnion",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -14547,16 +14801,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseArgumentUnion",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -15131,16 +15393,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseUnion2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -15715,16 +15985,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseArgumentUnion2",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -16356,16 +16634,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseUnion3",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -17062,16 +17348,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseArgumentUnion3",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -17711,16 +18005,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseUnion4",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -18344,16 +18646,24 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAliasChain1",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": [
@@ -18936,14 +19246,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignNumberToNestedField",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -19551,14 +19869,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseAssignLocalNumberToNestedField",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -20112,7 +20438,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -20235,14 +20568,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseLoop",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -21053,14 +21394,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseFindAssignmentAfterLoop",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -21442,8 +21791,14 @@
             "type": {
               "_": "ArrayType",
               "elementType": {
-                "_": "UnclearReferenceType",
-                "name": "Tree"
+                "_": "ClassType",
+                "signature": {
+                  "name": "Tree",
+                  "declaringFile": {
+                    "projectName": "ts",
+                    "fileName": "testcases.ts"
+                  }
+                }
               },
               "dimensions": 1
             }
@@ -21577,8 +21932,14 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "UnclearReferenceType",
-                              "name": "Tree"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             },
                             "dimensions": 1
                           }
@@ -21709,7 +22070,18 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "ArrayType",
+                  "elementType": {
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "Tree",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
+                  },
+                  "dimensions": 1
                 }
               }
             ],
@@ -21755,7 +22127,18 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          },
+                          "dimensions": 1
                         }
                       },
                       "right": {
@@ -21776,15 +22159,26 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Tree",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "children",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
+                            },
+                            "dimensions": 1
                           }
                         }
                       }
@@ -21795,7 +22189,18 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ArrayType",
+                          "elementType": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          },
+                          "dimensions": 1
                         }
                       }
                     }
@@ -22085,8 +22490,14 @@
               {
                 "name": "root",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Tree"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Tree",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
                 }
               },
               {
@@ -22094,8 +22505,14 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "UnclearReferenceType",
-                    "name": "Tree"
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "Tree",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
                   },
                   "dimensions": 1
                 }
@@ -22113,16 +22530,28 @@
                         "_": "Local",
                         "name": "root",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -22164,8 +22593,14 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "Tree"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           },
                           "dimensions": 1
                         }
@@ -22173,8 +22608,14 @@
                       "right": {
                         "_": "NewArrayExpr",
                         "elementType": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         },
                         "size": {
                           "_": "Constant",
@@ -22195,8 +22636,14 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "UnclearReferenceType",
-                              "name": "Tree"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             },
                             "dimensions": 1
                           }
@@ -22209,16 +22656,28 @@
                           }
                         },
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "Local",
                         "name": "root",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -22242,14 +22701,33 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseRecursion",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "traverse",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "xs",
+                              "type": {
+                                "_": "ArrayType",
+                                "elementType": {
+                                  "_": "ClassType",
+                                  "signature": {
+                                    "name": "Tree",
+                                    "declaringFile": {
+                                      "projectName": "ts",
+                                      "fileName": "testcases.ts"
+                                    }
+                                  }
+                                },
+                                "dimensions": 1
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -22261,8 +22739,14 @@
                             "type": {
                               "_": "ArrayType",
                               "elementType": {
-                                "_": "UnclearReferenceType",
-                                "name": "Tree"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Tree",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "testcases.ts"
+                                  }
+                                }
                               },
                               "dimensions": 1
                             }
@@ -22290,14 +22774,22 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseRecursion",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "a",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -22307,8 +22799,14 @@
                             "_": "Local",
                             "name": "root",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "Tree"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             }
                           }
                         ]
@@ -22339,8 +22837,14 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "UnclearReferenceType",
-                    "name": "Tree"
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "Tree",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
                   },
                   "dimensions": 1
                 },
@@ -22373,8 +22877,14 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "UnclearReferenceType",
-                    "name": "Tree"
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "Tree",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
                   },
                   "dimensions": 1
                 }
@@ -22394,8 +22904,14 @@
               {
                 "name": "child",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Tree"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Tree",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "testcases.ts"
+                    }
+                  }
                 }
               },
               {
@@ -22403,8 +22919,14 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "UnclearReferenceType",
-                    "name": "Tree"
+                    "_": "ClassType",
+                    "signature": {
+                      "name": "Tree",
+                      "declaringFile": {
+                        "projectName": "ts",
+                        "fileName": "testcases.ts"
+                      }
+                    }
                   },
                   "dimensions": 1
                 }
@@ -22426,8 +22948,14 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "Tree"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           },
                           "dimensions": 1
                         }
@@ -22438,8 +22966,14 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "Tree"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           },
                           "dimensions": 1
                         }
@@ -22518,8 +23052,14 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "UnclearReferenceType",
-                              "name": "Tree"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             },
                             "dimensions": 1
                           }
@@ -22586,8 +23126,14 @@
                         "_": "Local",
                         "name": "child",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
@@ -22598,8 +23144,14 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "UnclearReferenceType",
-                              "name": "Tree"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Tree",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "testcases.ts"
+                                }
+                              }
                             },
                             "dimensions": 1
                           }
@@ -22612,8 +23164,14 @@
                           }
                         },
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Tree"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Tree",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -22625,8 +23183,14 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "UnclearReferenceType",
-                            "name": "Tree"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           },
                           "dimensions": 1
                         }
@@ -22637,22 +23201,33 @@
                           "_": "Local",
                           "name": "child",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "Tree"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Tree",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
                           }
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Tree",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "getChildren",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ArrayType",
+                            "elementType": {
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
+                            },
+                            "dimensions": 1
                           }
                         },
                         "args": []
@@ -22678,14 +23253,33 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "CaseRecursion",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "testcases.ts"
                             }
                           },
                           "name": "traverse",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "xs",
+                              "type": {
+                                "_": "ArrayType",
+                                "elementType": {
+                                  "_": "ClassType",
+                                  "signature": {
+                                    "name": "Tree",
+                                    "declaringFile": {
+                                      "projectName": "ts",
+                                      "fileName": "testcases.ts"
+                                    }
+                                  }
+                                },
+                                "dimensions": 1
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -22697,8 +23291,14 @@
                             "type": {
                               "_": "ArrayType",
                               "elementType": {
-                                "_": "UnclearReferenceType",
-                                "name": "Tree"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Tree",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "testcases.ts"
+                                  }
+                                }
                               },
                               "dimensions": 1
                             }
@@ -22990,7 +23590,7 @@
             },
             "name": "f",
             "type": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
@@ -23082,7 +23682,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -23115,7 +23715,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -23346,7 +23953,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -23577,7 +24191,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -23683,7 +24304,7 @@
             },
             "name": "t",
             "type": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
@@ -23775,7 +24396,7 @@
                           },
                           "name": "t",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -23808,7 +24429,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -23914,7 +24542,7 @@
             },
             "name": "f",
             "type": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
@@ -24006,7 +24634,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -24039,7 +24667,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseReturnObject-infer-4",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -24145,7 +24780,7 @@
             },
             "name": "f",
             "type": {
-              "_": "UnknownType"
+              "_": "NumberType"
             }
           },
           "modifiers": [],
@@ -24237,7 +24872,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -24270,7 +24905,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -24442,7 +25084,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "testcases.ts"
+                }
+              }
             }
           },
           "modifiers": [],

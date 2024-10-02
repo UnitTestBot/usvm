@@ -190,14 +190,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "call.ts"
                             }
                           },
                           "name": "f",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -236,14 +244,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "call.ts"
                             }
                           },
                           "name": "g",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }

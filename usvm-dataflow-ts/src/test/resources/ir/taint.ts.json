@@ -823,7 +823,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Error",
+                              "declaringFile": {
+                                "projectName": "_UnknownProjectName",
+                                "fileName": "_UnknownFileName"
+                              }
+                            }
                           }
                         },
                         "args": [
@@ -895,7 +902,15 @@
               {
                 "name": "data",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
                 }
               },
               {
@@ -959,23 +974,39 @@
                         "_": "Local",
                         "name": "data",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "source",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
                           }
                         },
                         "args": []
@@ -987,23 +1018,55 @@
                         "_": "Local",
                         "name": "data",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "pass",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
                           }
                         },
                         "args": [
@@ -1011,7 +1074,15 @@
                             "_": "Local",
                             "name": "data",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
                             }
                           }
                         ]
@@ -1023,14 +1094,30 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "sink",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1040,7 +1127,15 @@
                             "_": "Local",
                             "name": "data",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
                             }
                           }
                         ]
@@ -1090,7 +1185,15 @@
               {
                 "name": "data",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
                 }
               },
               {
@@ -1154,23 +1257,39 @@
                         "_": "Local",
                         "name": "data",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "source",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
                           }
                         },
                         "args": []
@@ -1182,23 +1301,47 @@
                         "_": "Local",
                         "name": "data",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "validate",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         },
                         "args": [
@@ -1206,7 +1349,15 @@
                             "_": "Local",
                             "name": "data",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
                             }
                           }
                         ]
@@ -1218,14 +1369,30 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
                             }
                           },
                           "name": "sink",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1235,7 +1402,15 @@
                             "_": "Local",
                             "name": "data",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
                             }
                           }
                         ]

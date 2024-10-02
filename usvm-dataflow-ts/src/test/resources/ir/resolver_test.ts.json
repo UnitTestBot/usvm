@@ -141,14 +141,20 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "A"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "A",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -164,16 +170,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -213,7 +231,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -222,21 +240,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "A"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "A",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "A",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "defaultA",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -247,7 +271,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
@@ -301,14 +325,20 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "FieldContainerToInfer"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "FieldContainerToInfer",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -324,16 +354,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -373,7 +415,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -382,21 +424,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "FieldContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "FieldContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "FieldContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "uniqueA",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -407,7 +455,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
@@ -461,26 +509,32 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "FieldContainerToInfer"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "FieldContainerToInfer",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
                 "name": "$temp1",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
                 "name": "$temp2",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -496,16 +550,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -545,7 +611,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -554,21 +620,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "FieldContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "FieldContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "FieldContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "uniqueA",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -579,7 +651,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -588,21 +660,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "FieldContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "FieldContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "FieldContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "defaultA",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -613,7 +691,7 @@
                         "_": "Local",
                         "name": "$temp2",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -623,14 +701,14 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         },
                         "right": {
                           "_": "Local",
                           "name": "$temp1",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -641,7 +719,7 @@
                         "_": "Local",
                         "name": "$temp2",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
@@ -695,8 +773,14 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "MethodsContainerToInfer"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "MethodsContainerToInfer",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               }
             ],
@@ -712,16 +796,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "MethodsContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "MethodsContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "MethodsContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "MethodsContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -763,16 +859,22 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "MethodsContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "MethodsContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "MethodsContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "uniqueFunction",
@@ -837,8 +939,14 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "MethodsContainerToInfer"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "MethodsContainerToInfer",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               }
             ],
@@ -854,16 +962,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "MethodsContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "MethodsContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "MethodsContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "MethodsContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -905,22 +1025,28 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "MethodsContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "MethodsContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "MethodsContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "notUniqueFunction",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         },
                         "args": []
@@ -979,14 +1105,20 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "FieldContainerToInfer"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "FieldContainerToInfer",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "resolver_test.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -1002,16 +1134,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "FieldContainerToInfer"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "FieldContainerToInfer",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -1053,22 +1197,28 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "FieldContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "FieldContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "FieldContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "notUniqueFunction",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         },
                         "args": []
@@ -1080,7 +1230,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -1089,21 +1239,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "FieldContainerToInfer"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "FieldContainerToInfer",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "resolver_test.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "FieldContainerToInfer",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "resolver_test.ts"
                             }
                           },
                           "name": "defaultA",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -1114,7 +1270,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }

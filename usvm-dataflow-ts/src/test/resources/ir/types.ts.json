@@ -148,8 +148,14 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "A"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "A",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    }
+                  }
                 }
               },
               {
@@ -161,7 +167,7 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "StringType"
                 }
               },
               {
@@ -173,13 +179,20 @@
               {
                 "name": "$temp2",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "B",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "$temp3",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -198,16 +211,28 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -272,9 +297,9 @@
                         },
                         "right": {
                           "_": "Constant",
-                          "value": "0",
+                          "value": "false",
                           "type": {
-                            "_": "NumberType"
+                            "_": "BooleanType"
                           }
                         },
                         "type": {
@@ -294,7 +319,14 @@
                         "_": "Local",
                         "name": "$temp2",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "B",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
@@ -303,21 +335,34 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "A"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "A",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "A",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "bObj",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "B",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              }
+                            }
                           }
                         }
                       }
@@ -328,7 +373,7 @@
                         "_": "Local",
                         "name": "$temp3",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -337,20 +382,27 @@
                           "_": "Local",
                           "name": "$temp2",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "B",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "B",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "bNum",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -361,7 +413,7 @@
                         "_": "Local",
                         "name": "$temp3",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
@@ -377,7 +429,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       },
                       "right": {
@@ -386,21 +438,27 @@
                           "_": "Local",
                           "name": "x",
                           "type": {
-                            "_": "UnclearReferenceType",
-                            "name": "A"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "A",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              }
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "A",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "aStr",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         }
                       }
@@ -420,7 +478,7 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         },
                         "field": {
@@ -498,8 +556,14 @@
               {
                 "name": "arg",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "A"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "A",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    }
+                  }
                 }
               },
               {
@@ -511,7 +575,7 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               },
               {
@@ -533,16 +597,28 @@
                         "_": "Local",
                         "name": "arg",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "A"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -582,23 +658,39 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "conditional",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnclearReferenceType",
+                                "name": "A"
+                              },
+                              "isOptional": false
+                            },
+                            {
+                              "name": "cond",
+                              "type": {
+                                "_": "BooleanType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         },
                         "args": [
@@ -606,8 +698,14 @@
                             "_": "Local",
                             "name": "arg",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "A"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "A",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             }
                           },
                           {
@@ -650,7 +748,7 @@
                             "_": "Local",
                             "name": "$temp0",
                             "type": {
-                              "_": "UnknownType"
+                              "_": "NumberType"
                             }
                           }
                         ]
@@ -682,12 +780,24 @@
                   "_": "UnionType",
                   "types": [
                     {
-                      "_": "UnclearReferenceType",
-                      "name": "X"
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "X",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        }
+                      }
                     },
                     {
-                      "_": "UnclearReferenceType",
-                      "name": "Y"
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "Y",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        }
+                      }
                     }
                   ]
                 },
@@ -721,12 +831,24 @@
                   "_": "UnionType",
                   "types": [
                     {
-                      "_": "UnclearReferenceType",
-                      "name": "X"
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "X",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        }
+                      }
                     },
                     {
-                      "_": "UnclearReferenceType",
-                      "name": "Y"
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "Y",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        }
+                      }
                     }
                   ]
                 }
@@ -774,12 +896,24 @@
                           "_": "UnionType",
                           "types": [
                             {
-                              "_": "UnclearReferenceType",
-                              "name": "X"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             },
                             {
-                              "_": "UnclearReferenceType",
-                              "name": "Y"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             }
                           ]
                         }
@@ -791,12 +925,24 @@
                           "_": "UnionType",
                           "types": [
                             {
-                              "_": "UnclearReferenceType",
-                              "name": "X"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             },
                             {
-                              "_": "UnclearReferenceType",
-                              "name": "Y"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             }
                           ]
                         }
@@ -882,12 +1028,24 @@
                             "_": "UnionType",
                             "types": [
                               {
-                                "_": "UnclearReferenceType",
-                                "name": "X"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "X",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  }
+                                }
                               },
                               {
-                                "_": "UnclearReferenceType",
-                                "name": "Y"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Y",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -913,14 +1071,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "numberBar",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -971,12 +1137,24 @@
                             "_": "UnionType",
                             "types": [
                               {
-                                "_": "UnclearReferenceType",
-                                "name": "X"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "X",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  }
+                                }
                               },
                               {
-                                "_": "UnclearReferenceType",
-                                "name": "Y"
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Y",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -1002,14 +1180,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "strBar",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "StringType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1199,14 +1385,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "strBar",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "StringType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1262,14 +1456,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "numberBar",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1564,15 +1766,27 @@
               {
                 "name": "arg0",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "X"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "X",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    }
+                  }
                 }
               },
               {
                 "name": "arg1",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Y"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Y",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    }
+                  }
                 }
               },
               {
@@ -1613,16 +1827,28 @@
                         "_": "Local",
                         "name": "arg0",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "X"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "X",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 0,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "X"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "X",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -1632,16 +1858,28 @@
                         "_": "Local",
                         "name": "arg1",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Y"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Y",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
                         "_": "ParameterRef",
                         "index": 1,
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Y"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Y",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            }
+                          }
                         }
                       }
                     },
@@ -1681,14 +1919,44 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "foo",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "X",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "Y",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1698,8 +1966,14 @@
                             "_": "Local",
                             "name": "arg0",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "X"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             }
                           }
                         ]
@@ -1711,14 +1985,44 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "foo",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "X",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "Y",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1728,8 +2032,14 @@
                             "_": "Local",
                             "name": "arg1",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "Y"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                }
+                              }
                             }
                           }
                         ]
@@ -1794,7 +2104,14 @@
                           "name": "constructor",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              }
+                            }
                           }
                         },
                         "args": []
@@ -1806,14 +2123,23 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             }
                           },
                           "name": "baz",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnclearReferenceType",
+                                "name": "IntersectionType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -1889,8 +2215,14 @@
             },
             "name": "bObj",
             "type": {
-              "_": "UnclearReferenceType",
-              "name": "B"
+              "_": "ClassType",
+              "signature": {
+                "name": "B",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "types.ts"
+                }
+              }
             }
           },
           "modifiers": [],
@@ -2129,7 +2461,14 @@
             "name": "constructor",
             "parameters": [],
             "returnType": {
-              "_": "UnknownType"
+              "_": "ClassType",
+              "signature": {
+                "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "types.ts"
+                }
+              }
             }
           },
           "modifiers": [],

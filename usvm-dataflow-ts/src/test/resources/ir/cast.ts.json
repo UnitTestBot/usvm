@@ -152,8 +152,14 @@
               {
                 "name": "x",
                 "type": {
-                  "_": "UnclearReferenceType",
-                  "name": "Data"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Data",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "cast.ts"
+                    }
+                  }
                 }
               },
               {
@@ -165,7 +171,7 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "AnyType"
                 }
               },
               {
@@ -217,23 +223,23 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "AnyType"
                         }
                       },
                       "right": {
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
                             }
                           },
                           "name": "getData",
                           "parameters": [],
                           "returnType": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "args": []
@@ -245,8 +251,14 @@
                         "_": "Local",
                         "name": "x",
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Data"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Data",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
+                            }
+                          }
                         }
                       },
                       "right": {
@@ -255,12 +267,11 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         },
                         "type": {
-                          "_": "UnclearReferenceType",
-                          "name": "Data"
+                          "_": "AnyType"
                         }
                       }
                     },
@@ -270,14 +281,22 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "_DEFAULT_ARK_CLASS",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "cast.ts"
                             }
                           },
                           "name": "infer",
-                          "parameters": [],
+                          "parameters": [
+                            {
+                              "name": "arg",
+                              "type": {
+                                "_": "AnyType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
                           "returnType": {
                             "_": "UnknownType"
                           }
@@ -287,8 +306,14 @@
                             "_": "Local",
                             "name": "x",
                             "type": {
-                              "_": "UnclearReferenceType",
-                              "name": "Data"
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Data",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "cast.ts"
+                                }
+                              }
                             }
                           }
                         ]
