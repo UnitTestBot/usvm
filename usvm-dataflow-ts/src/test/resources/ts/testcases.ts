@@ -569,7 +569,7 @@ class CaseReturnNumber {
 // Case `return obj`
 class CaseReturnObject {
     entrypoint() {
-         infer();
+         this.infer();
     }
 
     infer(): any {

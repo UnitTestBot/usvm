@@ -11691,12 +11691,6 @@
                     }
                   }
                 }
-              },
-              {
-                "name": "infer",
-                "type": {
-                  "_": "UnknownType"
-                }
               }
             ],
             "cfg": {
@@ -11738,7 +11732,21 @@
                     {
                       "_": "CallStmt",
                       "expr": {
-                        "_": "StaticCallExpr",
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "CaseReturnObject",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              }
+                            }
+                          }
+                        },
                         "method": {
                           "declaringClass": {
                             "name": "",
