@@ -181,7 +181,7 @@ class TSInterpreter(
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(method.parameters.size, method.localsCount)
+        state.memory.stack.push(method.parameters.size, method.locals.size)
         state.pathNode += method.cfg.instructions.first()
 
         return state
