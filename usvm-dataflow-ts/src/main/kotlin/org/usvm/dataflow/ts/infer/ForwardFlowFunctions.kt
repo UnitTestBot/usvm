@@ -396,6 +396,7 @@ class ForwardFlowFunctions(
 
                     // TODO: do we really want to add type fact `x[i]:T` here?
                     // y.*:T |= y.*:T (keep) + x[i].*:T (same tail)
+                    // TODO: what about aliases of x?
                     if (fact.variable.startsWith(rhv)) {
                         val path = lhv + fact.variable.accesses
                         return listOf(fact, TypedVariable(path, fact.type))
