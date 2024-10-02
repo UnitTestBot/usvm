@@ -503,27 +503,36 @@ class EtsTypeInferenceTest {
                 }
                 val result = manager.analyze(entrypoints)
 
-                logger.info { "Inferred types: ${result.inferredTypes.size}" }
-                for ((method, types) in result.inferredTypes) {
-                    logger.info {
-                        buildString {
-                            appendLine("Inferred types for ${method.signature}: ${types.size}")
+                logger.info {
+                    buildString {
+                        appendLine("Inferred types: ${result.inferredTypes.size}")
+                        for ((method, types) in result.inferredTypes) {
+                            appendLine()
+                            appendLine("- $method")
                             for ((pos, type) in types) {
-                                appendLine("  - $pos: $type")
+                                appendLine("$pos: $type")
                             }
                         }
                     }
                 }
-                logger.info { "Inferred return types: ${result.inferredReturnType.size}" }
-                for ((method, returnType) in result.inferredReturnType) {
-                    logger.info { "Inferred return type for ${method.enclosingClass.name}::${method.name}: $returnType" }
+                logger.info {
+                    buildString {
+                        appendLine("Inferred return types: ${result.inferredReturnType.size}")
+                        for ((method, returnType) in result.inferredReturnType) {
+                            appendLine("${method.enclosingClass.name}::${method.name}: $returnType")
+                        }
+                    }
                 }
-                logger.info { "Inferred combined this types: ${result.inferredCombinedThisType.size}" }
-                for ((clazz, thisType) in result.inferredCombinedThisType) {
-                    logger.info { "Inferred this type for ${clazz.name} in ${clazz.enclosingFile}: $thisType" }
+                logger.info {
+                    buildString {
+                        appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
+                        for ((clazz, thisType) in result.inferredCombinedThisType) {
+                            appendLine("${clazz.name} in ${clazz.enclosingFile}: $thisType")
+                        }
+                    }
                 }
 
-                logger.info {"Done analyzing project: $projectName"}
+                logger.info { "Done analyzing project: $projectName" }
             }
         }
     }
