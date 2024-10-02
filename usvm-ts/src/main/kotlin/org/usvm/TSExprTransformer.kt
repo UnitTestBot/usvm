@@ -42,15 +42,17 @@ class TSExprTransformer(
     ): UExpr<out USort> {
         intersect(other)
 
-        val innerCoercionExprs = this.generateAdditionalExprs() + other.generateAdditionalExprs()
-
-        val exprs = exprCache.keys.mapNotNull { sort ->
+        val rawExprs = exprCache.keys.mapNotNull { sort ->
             val lhv = transform(sort)
             val rhv = other.transform(sort)
             if (lhv != null && rhv != null) {
                 action(lhv, rhv)
             } else null
-        } + innerCoercionExprs
+        }
+
+        val innerCoercionExprs = this.generateAdditionalExprs(rawExprs) + other.generateAdditionalExprs(rawExprs)
+
+        val exprs = rawExprs + innerCoercionExprs
 
         return if (exprs.size > 1) {
             assert(exprs.all { it.sort == ctx.boolSort })
@@ -76,7 +78,8 @@ class TSExprTransformer(
      *
      * @return List of additional [UExpr].
      */
-    private fun generateAdditionalExprs(): List<UExpr<out USort>> = with(ctx) {
+    private fun generateAdditionalExprs(rawExprs: List<UExpr<out USort>>): List<UExpr<out USort>> = with(ctx) {
+        if (!rawExprs.all { it.sort == boolSort }) return emptyList()
         val newExpr = when (baseExpr.sort) {
             addressSort -> addedExprCache.putOrNull(mkEq(fpToBoolSort(asFp64()), asBool()))
             else -> null

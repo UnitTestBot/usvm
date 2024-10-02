@@ -19,13 +19,13 @@ import org.usvm.TSContext
 import org.usvm.TSObject
 import org.usvm.TSRefTransformer
 import org.usvm.TSTest
-import org.usvm.TSWrappedValue
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.extractBool
 import org.usvm.extractDouble
 import org.usvm.extractInt
+import org.usvm.extractOrThis
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.state.TSMethodResult
@@ -142,6 +142,4 @@ class TSTestResolver(
 
         else -> error("Unexpected type: $type")
     }
-
-    private fun UExpr<out USort>.extractOrThis(): UExpr<out USort> = if (this is TSWrappedValue) value else this
 }
