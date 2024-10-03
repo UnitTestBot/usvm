@@ -230,6 +230,15 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.concat(
 fun <USizeSort : USort> UReadOnlyMemory<*>.stringHashCode(ref: UHeapRef): UExpr<USizeSort> =
     org.usvm.collection.string.getHashCode(ctx.withSizeSort(), getString(ref))
 
+//fun UReadOnlyMemory<*>.compareStrings(left: UHeapRef, right: UHeapRef) {
+//    mapString(left) { leftStr ->
+//        mapString(right) { rightStr ->
+//            val less = stringCmp(leftStr, rightStr, true)
+//            val eq = ctx.mkEq(left)
+//        }
+//    }
+//}
+
 fun UReadOnlyMemory<*>.stringLt(left: UHeapRef, right: UHeapRef): UBoolExpr =
     mapString(left) { leftStr ->
         mapString(right) { rightStr ->

@@ -142,9 +142,9 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
 ) : U1DUpdatesTranslator<UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, UHeapRef, ValueSort>
+        update: URangedUpdateNode<*, *, UHeapRef, ValueSort, ValueSort>
     ): KExpr<KArraySort<UAddressSort, ValueSort>> {
-        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, UHeapRef, *>) {
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, UHeapRef, *, ValueSort>) {
             "Unexpected adapter: ${update.adapter}"
         }
 
@@ -153,20 +153,20 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
             previous,
             update,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
-            update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *>
+            update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *, ValueSort>
         )
     }
 
     private fun <CollectionId : USymbolicCollectionId<SrcKey, ValueSort, CollectionId>, SrcKey> KContext.translateRefMapMerge(
         previous: KExpr<KArraySort<UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, UHeapRef, ValueSort>,
+        update: URangedUpdateNode<*, *, UHeapRef, ValueSort, ValueSort>,
         sourceCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>,
-        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, UHeapRef, *>
+        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, UHeapRef, *, ValueSort>
     ): KExpr<KArraySort<UAddressSort, ValueSort>> {
         val key = mkFreshConst("k", previous.sort.domain)
 
         val srcKeyInfo = sourceCollection.collectionId.keyInfo()
-        val convertedKey = srcKeyInfo.mapKey(adapter.convert(key, composer = null), exprTranslator)
+        val convertedKey = srcKeyInfo.mapKey(adapter.convertKey(key, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key, composer = null).translated // already includes guard
 
@@ -185,9 +185,9 @@ private class UInputRefMapUpdatesTranslator<ValueSort : USort>(
 ) : U2DUpdatesTranslator<UAddressSort, UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort>
+        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>> {
-        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, USymbolicMapKey<UAddressSort>, *>) {
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, USymbolicMapKey<UAddressSort>, *, ValueSort>) {
             "Unexpected adapter: ${update.adapter}"
         }
 
@@ -196,21 +196,21 @@ private class UInputRefMapUpdatesTranslator<ValueSort : USort>(
             previous,
             update,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
-            update.adapter as USymbolicRefMapMergeAdapter<*, Any, USymbolicMapKey<UAddressSort>, *>
+            update.adapter as USymbolicRefMapMergeAdapter<*, Any, USymbolicMapKey<UAddressSort>, *, ValueSort>
         )
     }
 
     private fun <CollectionId : USymbolicCollectionId<SrcKey, ValueSort, CollectionId>, SrcKey> KContext.translateRefMapMerge(
         previous: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort>,
+        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort, ValueSort>,
         sourceCollection: USymbolicCollection<CollectionId, SrcKey, ValueSort>,
-        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, USymbolicMapKey<UAddressSort>, *>
+        adapter: USymbolicRefMapMergeAdapter<*, SrcKey, USymbolicMapKey<UAddressSort>, *, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>> {
         val key1 = mkFreshConst("k1", previous.sort.domain0)
         val key2 = mkFreshConst("k2", previous.sort.domain1)
 
         val srcKeyInfo = sourceCollection.collectionId.keyInfo()
-        val convertedKey = srcKeyInfo.mapKey(adapter.convert(key1 to key2, composer = null), exprTranslator)
+        val convertedKey = srcKeyInfo.mapKey(adapter.convertKey(key1 to key2, composer = null), exprTranslator)
 
         val isInside = update.includesSymbolically(key1 to key2, composer = null).translated // already includes guard
 

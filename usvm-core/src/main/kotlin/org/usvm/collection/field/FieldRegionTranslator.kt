@@ -72,7 +72,7 @@ private class UInputFieldUpdateTranslator<Sort : USort>(
 ) : U1DUpdatesTranslator<UAddressSort, Sort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<UAddressSort, Sort>>,
-        update: URangedUpdateNode<*, *, UHeapRef, Sort>
+        update: URangedUpdateNode<*, *, UHeapRef, Sort, Sort>
     ): KExpr<KArraySort<UAddressSort, Sort>> {
         error("Fields has no ranged updates")
     }

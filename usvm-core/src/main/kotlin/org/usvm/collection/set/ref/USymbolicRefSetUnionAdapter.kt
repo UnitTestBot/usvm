@@ -4,7 +4,9 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UComposer
+import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
 import org.usvm.collection.set.USymbolicSetKeyInfo
@@ -21,18 +23,20 @@ import org.usvm.regions.Region
 import org.usvm.uctx
 
 sealed class USymbolicRefSetUnionAdapter<SetType, SrcKey, DstKey,
-        out SetId : USymbolicRefSetId<SetType, SrcKey, *, SetId>>(
+        out SetId : USymbolicRefSetId<SetType, SrcKey, *, SetId>, Sort: USort>(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
-) : USymbolicCollectionAdapter<SrcKey, DstKey>,
+) : USymbolicCollectionAdapter<SrcKey, DstKey, Sort, Sort>,
     USymbolicSetUnionElements<DstKey> {
 
-    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
+    abstract override fun convertKey(key: DstKey, composer: UComposer<*, *>?): SrcKey
+
+    override fun convertValue(value: UExpr<Sort>): UExpr<Sort> = value
 
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
     override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
-        val srcKey = convert(key, composer)
+        val srcKey = convertKey(key, composer)
         return setOfKeys.read(srcKey, composer)
     }
 
@@ -47,12 +51,12 @@ sealed class USymbolicRefSetUnionAdapter<SetType, SrcKey, DstKey,
     abstract override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<DstKey>)
 }
 
-class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType>(
+class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType, Sort: USort>(
     setOfKeys: USymbolicCollection<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>
 ) : USymbolicRefSetUnionAdapter<SetType, UHeapRef, UHeapRef,
-    UAllocatedRefSetWithInputElementsId<SetType>>(setOfKeys) {
+    UAllocatedRefSetWithInputElementsId<SetType>, Sort>(setOfKeys) {
 
-    override fun convert(key: UHeapRef, composer: UComposer<*, *>?): UHeapRef = key
+    override fun convertKey(key: UHeapRef, composer: UComposer<*, *>?): UHeapRef = key
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -88,13 +92,13 @@ class UAllocatedToAllocatedSymbolicRefSetUnionAdapter<SetType>(
     }
 }
 
-class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType>(
+class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType, Sort: USort>(
     val dstSetRef: UHeapRef,
     setOfKeys: USymbolicCollection<UAllocatedRefSetWithInputElementsId<SetType>, UHeapRef, UBoolSort>
 ) : USymbolicRefSetUnionAdapter<SetType, UHeapRef, USymbolicSetElement<UAddressSort>,
-    UAllocatedRefSetWithInputElementsId<SetType>>(setOfKeys) {
+    UAllocatedRefSetWithInputElementsId<SetType>, Sort>(setOfKeys) {
 
-    override fun convert(key: USymbolicSetElement<UAddressSort>, composer: UComposer<*, *>?): UHeapRef = key.second
+    override fun convertKey(key: USymbolicSetElement<UAddressSort>, composer: UComposer<*, *>?): UHeapRef = key.second
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg {
@@ -136,13 +140,13 @@ class UAllocatedToInputSymbolicRefSetUnionAdapter<SetType>(
     }
 }
 
-class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
+class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType, Sort: USort>(
     val srcSetRef: UHeapRef,
     setOfKeys: USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>
 ) : USymbolicRefSetUnionAdapter<SetType, USymbolicSetElement<UAddressSort>, UHeapRef,
-    UInputRefSetWithInputElementsId<SetType>>(setOfKeys) {
+    UInputRefSetWithInputElementsId<SetType>, Sort>(setOfKeys) {
 
-    override fun convert(key: UHeapRef, composer: UComposer<*, *>?): USymbolicSetElement<UAddressSort> =
+    override fun convertKey(key: UHeapRef, composer: UComposer<*, *>?): USymbolicSetElement<UAddressSort> =
         composer.compose(srcSetRef) to key
 
     @Suppress("UNCHECKED_CAST")
@@ -185,14 +189,14 @@ class UInputToAllocatedSymbolicRefSetUnionAdapter<SetType>(
     }
 }
 
-class UInputToInputSymbolicRefSetUnionAdapter<SetType>(
+class UInputToInputSymbolicRefSetUnionAdapter<SetType, Sort: USort>(
     val srcSetRef: UHeapRef,
     val dstSetRef: UHeapRef,
     setOfKeys: USymbolicCollection<UInputRefSetWithInputElementsId<SetType>, USymbolicSetElement<UAddressSort>, UBoolSort>
 ) : USymbolicRefSetUnionAdapter<SetType, USymbolicSetElement<UAddressSort>, USymbolicSetElement<UAddressSort>,
-    UInputRefSetWithInputElementsId<SetType>>(setOfKeys) {
+    UInputRefSetWithInputElementsId<SetType>, Sort>(setOfKeys) {
 
-    override fun convert(
+    override fun convertKey(
         key: USymbolicSetElement<UAddressSort>,
         composer: UComposer<*, *>?
     ): USymbolicSetElement<UAddressSort> =

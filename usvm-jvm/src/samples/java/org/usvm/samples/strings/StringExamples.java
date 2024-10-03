@@ -18,6 +18,13 @@ class IntPair {
 }
 
 public class StringExamples {
+    public String newEmptyString() {
+        StringBuilder s = new StringBuilder();
+        s.append("123");
+        s.append("321");
+        return new String(s);
+    }
+
     public String concat(String fst, String snd) {
         return fst + snd;
     }

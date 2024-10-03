@@ -24,17 +24,20 @@ import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 import org.usvm.regions.Region
 
-sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymbolicSetId<MapType, *, SrcKey, *, *, SetId>>(
+sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymbolicSetId<MapType, *, SrcKey, *, *, SetId>, Sort : USort>(
     val setOfKeys: USymbolicCollection<SetId, SrcKey, UBoolSort>,
-) : USymbolicCollectionAdapter<SrcKey, DstKey> {
+) : USymbolicCollectionAdapter<SrcKey, DstKey, Sort, Sort> {
 
-    abstract override fun convert(key: DstKey, composer: UComposer<*, *>?): SrcKey
+    abstract override fun convertKey(key: DstKey, composer: UComposer<*, *>?): SrcKey
+
+    override fun convertValue(value: UExpr<Sort>): UExpr<Sort> =
+        value
 
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
     override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
-        val srcKey = convert(key, composer)
+        val srcKey = convertKey(key, composer)
         return setOfKeys.read(srcKey, composer)
     }
 
@@ -47,11 +50,11 @@ sealed class USymbolicMapMergeAdapter<MapType, SrcKey, DstKey, out SetId : USymb
         "(merge $collection)"
 }
 
-class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
+class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort, ValueSort: USort>(
     setOfKeys: USymbolicCollection<UAllocatedSetId<MapType, KeySort, *>, UExpr<KeySort>, UBoolSort>,
 ) : USymbolicMapMergeAdapter<MapType, UExpr<KeySort>, UExpr<KeySort>,
-    UAllocatedSetId<MapType, KeySort, *>>(setOfKeys) {
-    override fun convert(key: UExpr<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key
+        UAllocatedSetId<MapType, KeySort, *>, ValueSort>(setOfKeys) {
+    override fun convertKey(key: UExpr<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key
 
     @Suppress("UNCHECKED_CAST")
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -85,13 +88,13 @@ class UAllocatedToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
     }
 }
 
-class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
+class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort, ValueSort: USort>(
     val dstMapRef: UHeapRef,
     setOfKeys: USymbolicCollection<UAllocatedSetId<MapType, KeySort, *>, UExpr<KeySort>, UBoolSort>,
 ) : USymbolicMapMergeAdapter<MapType, UExpr<KeySort>, USymbolicMapKey<KeySort>,
-    UAllocatedSetId<MapType, KeySort, *>>(setOfKeys) {
+        UAllocatedSetId<MapType, KeySort, *>, ValueSort>(setOfKeys) {
 
-    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key.second
+    override fun convertKey(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): UExpr<KeySort> = key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg =
         convertRegion(setOfKeys.collectionId.keyInfo())
@@ -136,13 +139,13 @@ class UAllocatedToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
     }
 }
 
-class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
+class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort, ValueSort: USort>(
     val srcMapRef: UHeapRef,
     setOfKeys: USymbolicCollection<UInputSetId<MapType, KeySort, *>, USymbolicMapKey<KeySort>, UBoolSort>,
 ) : USymbolicMapMergeAdapter<MapType, USymbolicMapKey<KeySort>, UExpr<KeySort>,
-    UInputSetId<MapType, KeySort, *>>(setOfKeys) {
+        UInputSetId<MapType, KeySort, *>, ValueSort>(setOfKeys) {
 
-    override fun convert(key: UExpr<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
+    override fun convertKey(key: UExpr<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
         composer.compose(srcMapRef) to key
 
     override fun <DstReg : Region<DstReg>> region(): DstReg =
@@ -188,14 +191,14 @@ class UInputToAllocatedSymbolicMapMergeAdapter<MapType, KeySort : USort>(
     }
 }
 
-class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort>(
+class UInputToInputSymbolicMapMergeAdapter<MapType, KeySort : USort, ValueSort: USort>(
     val srcMapRef: UHeapRef,
     val dstMapRef: UHeapRef,
     setOfKeys: USymbolicCollection<UInputSetId<MapType, KeySort, *>, USymbolicMapKey<KeySort>, UBoolSort>,
 ) : USymbolicMapMergeAdapter<MapType, USymbolicMapKey<KeySort>, USymbolicMapKey<KeySort>,
-    UInputSetId<MapType, KeySort, *>>(setOfKeys) {
+        UInputSetId<MapType, KeySort, *>, ValueSort>(setOfKeys) {
 
-    override fun convert(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
+    override fun convertKey(key: USymbolicMapKey<KeySort>, composer: UComposer<*, *>?): USymbolicMapKey<KeySort> =
         composer.compose(srcMapRef) to key.second
 
     override fun <DstReg : Region<DstReg>> region(): DstReg = convertRegion(setOfKeys.collectionId.elementInfo)

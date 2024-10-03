@@ -197,7 +197,7 @@ class TranslationTest {
 
 
         val keyInfo = region.collectionId.keyInfo()
-        val key = keyInfo.mapKey(adapter.convert(translator.translate(idx), composer = null), translator)
+        val key = keyInfo.mapKey(adapter.convertKey(translator.translate(idx), composer = null), translator)
         val innerReading =
             translator.translate(region.read(key))
         val guard =

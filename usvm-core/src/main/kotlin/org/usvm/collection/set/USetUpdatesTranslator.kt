@@ -43,7 +43,7 @@ internal abstract class USetUpdatesTranslator<Element>(
                 mkIte(condition, value, previous)
             }
 
-            is URangedUpdateNode<*, *, Element, UBoolSort> -> {
+            is URangedUpdateNode<*, *, Element, *, UBoolSort> -> {
                 val otherSetContains = update.includesSymbolically(
                     key = selectKey, composer = null
                 ).translated // already includes guard

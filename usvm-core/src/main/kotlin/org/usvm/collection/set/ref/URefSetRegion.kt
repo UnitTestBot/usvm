@@ -269,7 +269,7 @@ internal class URefSetMemoryRegion<SetType>(
             val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
             val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
 
-            val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter(srcCollection)
+            val adapter = UAllocatedToAllocatedSymbolicRefSetUnionAdapter<_, UBoolSort>(srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
             updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
         },
@@ -291,7 +291,7 @@ internal class URefSetMemoryRegion<SetType>(
 
             val dstCollection = updatedRegion.inputSetWithInputElements()
 
-            val adapter = UAllocatedToInputSymbolicRefSetUnionAdapter(dstSymbolic, srcCollection)
+            val adapter = UAllocatedToInputSymbolicRefSetUnionAdapter<_, UBoolSort>(dstSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
             updatedRegion.updateInputSetWithInputElements(updated)
         },
@@ -312,7 +312,7 @@ internal class URefSetMemoryRegion<SetType>(
             val dstId = allocatedSetWithInputElementsId(dstConcrete.address)
             val dstCollection = updatedRegion.getAllocatedSetWithInputElements(dstId)
 
-            val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter(srcSymbolic, srcCollection)
+            val adapter = UInputToAllocatedSymbolicRefSetUnionAdapter<_, UBoolSort>(srcSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
             updatedRegion.updateAllocatedSetWithInputElements(dstId, updated)
         },
@@ -330,7 +330,7 @@ internal class URefSetMemoryRegion<SetType>(
             val srcCollection = updatedRegion.inputSetWithInputElements()
             val dstCollection = updatedRegion.inputSetWithInputElements()
 
-            val adapter = UInputToInputSymbolicRefSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
+            val adapter = UInputToInputSymbolicRefSetUnionAdapter<_, UBoolSort>(srcSymbolic, dstSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
             updatedRegion.updateInputSetWithInputElements(updated)
         },

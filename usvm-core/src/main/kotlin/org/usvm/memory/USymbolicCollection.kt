@@ -192,7 +192,7 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
                     guard
                 )
 
-                is URangedUpdateNode<*, *, Key, Sort> -> {
+                is URangedUpdateNode<*, *, Key, *, Sort> -> {
                     update.applyTo(memory, collectionId, key, composer)
                 }
             }
@@ -203,9 +203,9 @@ data class USymbolicCollection<out CollectionId : USymbolicCollectionId<Key, Sor
      * @return Symbolic collection which obtained from this one by overwriting the range of addresses
      * with values from collection [fromCollection].
      */
-    fun <OtherCollectionId : USymbolicCollectionId<SrcKey, Sort, OtherCollectionId>, SrcKey> copyRange(
+    fun <OtherCollectionId : USymbolicCollectionId<SrcKey, Sort, OtherCollectionId>, SrcKey, SrcSort: USort> copyRange(
         fromCollection: USymbolicCollection<OtherCollectionId, SrcKey, Sort>,
-        adapter: USymbolicCollectionAdapter<SrcKey, Key>,
+        adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr
     ): USymbolicCollection<CollectionId, Key, Sort> {
         val updatesCopy = updates.copyRange(fromCollection, adapter, guard)

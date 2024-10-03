@@ -139,7 +139,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
-            val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
+            val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, Sort>(
                 fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
@@ -149,7 +149,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getInputArray(type, elementSort)
-            val adapter = USymbolicArrayAllocatedToInputCopyAdapter(
+            val adapter = USymbolicArrayAllocatedToInputCopyAdapter<USizeSort, Sort>(
                 fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
@@ -161,7 +161,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
             val srcCollection = region.getInputArray(type, elementSort)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
-            val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
+            val adapter = USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, Sort>(
                 srcSymbolic to fromSrcIdx,
                 fromDstIdx,
                 toDstIdx,
@@ -173,7 +173,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputArray(type, elementSort)
             val dstCollection = region.getInputArray(type, elementSort)
-            val adapter = USymbolicArrayInputToInputCopyAdapter(
+            val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort, Sort>(
                 srcSymbolic to fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,

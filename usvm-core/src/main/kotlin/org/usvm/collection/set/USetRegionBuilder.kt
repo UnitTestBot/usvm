@@ -35,7 +35,7 @@ internal class USetRegionBuilder<Element, Reg : Region<Reg>>(
             }
         }
 
-        is URangedUpdateNode<*, *, Element, UBoolSort> -> {
+        is URangedUpdateNode<*, *, Element, *, UBoolSort> -> {
             if (update.guard.isFalse) {
                 previous
             } else {

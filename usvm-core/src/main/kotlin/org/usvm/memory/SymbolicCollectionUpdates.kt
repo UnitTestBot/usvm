@@ -55,9 +55,9 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      *
      * @see USymbolicCollection.copyRange
      */
-    fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
-        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicCollectionAdapter<SrcKey, Key>,
+    fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+        adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr,
     ): USymbolicCollectionUpdates<Key, Sort>
 
@@ -137,9 +137,9 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             ), keyInfo
         )
 
-    override fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
-        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicCollectionAdapter<SrcKey, Key>,
+    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+        adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr,
     ): USymbolicCollectionUpdates<Key, Sort> = UFlatUpdates(
         UFlatUpdatesNode(
@@ -267,9 +267,9 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> copyRange(
-        fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicCollectionAdapter<SrcKey, Key>,
+    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+        fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+        adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr
     ): UTreeUpdates<Key, Reg, Sort> {
         val update = URangedUpdateNode(fromCollection, adapter, guard)
@@ -295,7 +295,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         fun applyUpdate(update: UUpdateNode<Key, Sort>) {
             val region = when (update) {
                 is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
-                is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
+                is URangedUpdateNode<*, *, Key, *, Sort> -> update.adapter.region()
             }
             splitRegionTree = splitRegionTree
                 .write(region, update) { !it.isIncludedByUpdateConcretely(update) }
@@ -402,7 +402,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         // to the one stored in the current node.
         val initialRegion = when (update) {
             is UPinpointUpdateNode<Key, Sort> -> keyInfo.keyToRegion(update.key)
-            is URangedUpdateNode<*, *, Key, Sort> -> update.adapter.region()
+            is URangedUpdateNode<*, *, Key, *, Sort> -> update.adapter.region()
         }
         val wasCloned = initialRegion != region
         return wasCloned
