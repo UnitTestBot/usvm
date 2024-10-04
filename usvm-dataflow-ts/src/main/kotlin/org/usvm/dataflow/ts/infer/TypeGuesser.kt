@@ -61,7 +61,6 @@ fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (thi
             // TODO make it an impossible unique prefix
             ?.takeUnless { it.name.startsWith("AnonymousClass-") }
             ?.let {
-                println("UPDATED TYPE FOR ${it.name}")
                 // TODO how to do it properly?
                 EtsTypeFact.ObjectEtsTypeFact(
                     cls = EtsClassType(EtsClassSignature(it.name)),
