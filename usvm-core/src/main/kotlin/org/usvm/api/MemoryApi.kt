@@ -13,6 +13,7 @@ import org.usvm.character
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.convert
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
@@ -36,10 +37,12 @@ import org.usvm.collection.string.stringToLower
 import org.usvm.collection.string.stringToUpper
 import org.usvm.getIntValue
 import org.usvm.memory.USymbolicCollectionKeyInfo
+import org.usvm.mkNarrow
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.regions.Region
+import org.usvm.sizeSort
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
@@ -191,11 +194,34 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateInternedStringLitera
         return freshRef
     }
 
-fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromArray(
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     stringType: Type,
     charArrayType: Type,
     refToCharArray: UHeapRef,
 ): UConcreteHeapRef {
+    val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
+    return this.allocateStringExpr(stringType, string)
+}
+
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromByteArray(
+    stringType: Type,
+    byteArrayType: Type,
+    charArrayType: Type,
+    startIndex: UExpr<USizeSort>,
+    length: UExpr<USizeSort>,
+    refToByteArray: UHeapRef,
+): UConcreteHeapRef {
+    val ctx = ctx.withSizeSort<USizeSort>()
+    val refToCharArray = this.convert(
+        srcType = byteArrayType,
+        dstType = charArrayType,
+        srcRef = refToByteArray,
+        srcSort = ctx.bv8Sort,
+        dstSort = ctx.charSort,
+        sizeSort = ctx.sizeSort,
+        startOffset = startIndex,
+        length = length
+    ) { byte -> byte.mkNarrow(ctx.charSort.sizeBits.toInt(), signed = true) }
     val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
     return this.allocateStringExpr(stringType, string)
 }
@@ -280,13 +306,20 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.substring(
 /**
  * Allocates new string, which is the string representation of integer [value] in the specified [radix].
  */
-fun <Type, USizeSort : USort> UWritableMemory<Type>.stringFromInt(stringType: Type, value: UExpr<USizeSort>, radix: Int): UConcreteHeapRef =
+fun <Type, USizeSort : USort> UWritableMemory<Type>.stringFromInt(
+    stringType: Type,
+    value: UExpr<USizeSort>,
+    radix: Int
+): UConcreteHeapRef =
     allocateStringExpr(stringType, org.usvm.collection.string.stringFromInt(ctx.withSizeSort(), value, radix))
 
 /**
  * Allocates new string, which is the string representation of float [value].
  */
-fun <Type, UFloatSort : KFpSort> UWritableMemory<Type>.stringFromFloat(stringType: Type, value: UExpr<UFloatSort>): UConcreteHeapRef =
+fun <Type, UFloatSort : KFpSort> UWritableMemory<Type>.stringFromFloat(
+    stringType: Type,
+    value: UExpr<UFloatSort>
+): UConcreteHeapRef =
     allocateStringExpr(stringType, org.usvm.collection.string.stringFromFloat(ctx, value))
 
 /**
@@ -296,7 +329,10 @@ fun <Type, UFloatSort : KFpSort> UWritableMemory<Type>.stringFromFloat(stringTyp
  * If string is non-deterministic, the engine might return a list of such variants.
  */
 @Suppress("UNUSED_PARAMETER")
-fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(ref: UHeapRef, radix: Int): List<Pair<UBoolExpr, UExpr<USizeSort>?>> {
+fun <USizeSort : USort> UReadOnlyMemory<*>.tryParseIntFromString(
+    ref: UHeapRef,
+    radix: Int
+): List<Pair<UBoolExpr, UExpr<USizeSort>?>> {
     TODO()
 }
 

@@ -20,6 +20,22 @@ internal class SymbolicStringExamplesTest : ApproximationsTestRunner() {
     }
 
     @Test
+    fun testStringFromStringBuilder() {
+        checkDiscoveredProperties(
+            StringExamples::stringFromStringBuilder,
+            ignoreNumberOfAnalysisResults
+        )
+    }
+
+    @Test
+    fun testStringFromByteArray() {
+        checkDiscoveredProperties(
+            StringExamples::stringFromByteArray,
+            ignoreNumberOfAnalysisResults
+        )
+    }
+
+    @Test
 //    @Disabled("Expected exactly 2 executions, but 4 found")
     fun testByteToString() {
         checkDiscoveredProperties(

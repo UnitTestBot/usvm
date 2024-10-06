@@ -8,6 +8,7 @@ import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
+import org.usvm.mkNarrow
 
 private val intSizeBits = Int.SIZE_BITS.toUInt()
 
@@ -39,25 +40,6 @@ internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out U
             else -> error("Unexpected sort: $sort")
         }
     }
-
-/**
- * Widens or narrows a bit-vec expression to match the [sizeBits] regarding [signed] flag.
- *
- * @return the bit-vec expression of [sizeBits] size.
- */
-internal fun UExpr<UBvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
-    val diff = sizeBits - sort.sizeBits.toInt()
-    val res = if (diff > 0) {
-        if (signed) {
-            ctx.mkBvSignExtensionExpr(diff, this)
-        } else {
-            ctx.mkBvZeroExtensionExpr(diff, this)
-        }
-    } else {
-        ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, this)
-    }
-    return res
-}
 
 /**
  * Performs checked cast of any UExpr to bit-vec expression.

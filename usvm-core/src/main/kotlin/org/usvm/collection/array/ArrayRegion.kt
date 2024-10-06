@@ -16,7 +16,6 @@ import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.mapWithStaticAsSymbolic
-import org.usvm.mkSizeExpr
 
 data class UArrayIndexLValue<ArrayType, Sort : USort, USizeSort : USort>(
     override val sort: Sort,
@@ -211,7 +210,6 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
 }
 
 fun <Type, SrcSort : USort, DstSort : USort, USizeSort : USort> convertArray(
-    ctx: UContext<USizeSort>,
     srcType: Type,
     dstType: Type,
     srcSort: SrcSort,
@@ -220,15 +218,14 @@ fun <Type, SrcSort : USort, DstSort : USort, USizeSort : USort> convertArray(
     dstReg: UArrayRegion<Type, DstSort, USizeSort>,
     srcRef: UHeapRef,
     dstRef: UHeapRef,
-    length: UExpr<USizeSort>,
+    fromSrcIdx: UExpr<USizeSort>,
+    fromDstIdx: UExpr<USizeSort>,
+    toDstIdx: UExpr<USizeSort>,
     operationGuard: UBoolExpr,
     converter: (UExpr<SrcSort>) -> UExpr<DstSort>
 ): UArrayRegion<Type, DstSort, USizeSort> {
     require(srcReg is UArrayMemoryRegion<Type, SrcSort, USizeSort>) { "Array conversion is unsupported for $srcReg" }
     require(dstReg is UArrayMemoryRegion<Type, DstSort, USizeSort>) { "Array conversion is unsupported for $dstReg" }
-    val fromSrcIdx = ctx.mkSizeExpr(0)
-    val fromDstIdx = ctx.mkSizeExpr(0)
-    val toDstIdx = length
     return foldHeapRef2(
         ref0 = srcRef,
         ref1 = dstRef,
