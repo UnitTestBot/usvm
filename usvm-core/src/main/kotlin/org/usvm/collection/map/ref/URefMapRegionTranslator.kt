@@ -142,16 +142,16 @@ private class UAllocatedRefMapUpdatesTranslator<ValueSort : USort>(
 ) : U1DUpdatesTranslator<UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, UHeapRef, ValueSort, ValueSort>
+        update: URangedUpdateNode<*, *, UHeapRef, *, ValueSort>
     ): KExpr<KArraySort<UAddressSort, ValueSort>> {
-        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, UHeapRef, *, ValueSort>) {
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, UHeapRef, *, *>) {
             "Unexpected adapter: ${update.adapter}"
         }
 
         @Suppress("UNCHECKED_CAST")
         return translateRefMapMerge(
             previous,
-            update,
+            update as URangedUpdateNode<*, *, UHeapRef, ValueSort, ValueSort>,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
             update.adapter as USymbolicRefMapMergeAdapter<*, Any, UHeapRef, *, ValueSort>
         )
@@ -185,16 +185,16 @@ private class UInputRefMapUpdatesTranslator<ValueSort : USort>(
 ) : U2DUpdatesTranslator<UAddressSort, UAddressSort, ValueSort>(exprTranslator, initialValue) {
     override fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>>,
-        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort, ValueSort>
+        update: URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, *, ValueSort>
     ): KExpr<KArray2Sort<UAddressSort, UAddressSort, ValueSort>> {
-        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, USymbolicMapKey<UAddressSort>, *, ValueSort>) {
+        check(update.adapter is USymbolicRefMapMergeAdapter<*, *, USymbolicMapKey<UAddressSort>, *, *>) {
             "Unexpected adapter: ${update.adapter}"
         }
 
         @Suppress("UNCHECKED_CAST")
         return translateRefMapMerge(
             previous,
-            update,
+            update as URangedUpdateNode<*, *, USymbolicMapKey<UAddressSort>, ValueSort, ValueSort>,
             update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, ValueSort, *>, Any, ValueSort>,
             update.adapter as USymbolicRefMapMergeAdapter<*, Any, USymbolicMapKey<UAddressSort>, *, ValueSort>
         )

@@ -29,12 +29,13 @@ import org.usvm.withSizeSort
  * Do not be confused: it converts [DstKey] to [SrcKey] (not vice-versa), as we use it when we
  * read from destination buffer index to source memory.
  */
-abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, Sort: USort>(
+abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, SrcSort: USort, DstSort: USort>(
     val srcFrom: SrcKey,
     val dstFrom: DstKey,
     val dstTo: DstKey,
-    private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>
-) : USymbolicCollectionAdapter<SrcKey, DstKey, Sort, Sort> {
+    private val keyInfo: USymbolicCollectionKeyInfo<DstKey, *>,
+    private val valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)?
+) : USymbolicCollectionAdapter<SrcKey, DstKey, SrcSort, DstSort> {
 
     abstract val ctx: UContext<USizeSort>
 
@@ -47,8 +48,12 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, Sort
      */
     abstract override fun convertKey(key: DstKey, composer: UComposer<*, *>?): SrcKey
 
-    override fun convertValue(value: UExpr<Sort>): UExpr<Sort> =
-        value
+    override fun convertValue(value: UExpr<SrcSort>): UExpr<DstSort> {
+        val converter = valueConverter
+        if (converter != null)
+            return converter.invoke(value)
+        return value.uncheckedCast()
+    }
 
     protected fun convertIndex(
         idx: UExpr<USizeSort>,
@@ -117,11 +122,12 @@ abstract class USymbolicArrayCopyAdapter<SrcKey, DstKey, USizeSort : USort, Sort
     }
 }
 
-class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort, Sort: USort>(
+class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort, SrcSort: USort, DstSort: USort>(
     srcFrom: UExpr<USizeSort>, dstFrom: UExpr<USizeSort>, dstTo: UExpr<USizeSort>,
-    keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, UExpr<USizeSort>, USizeSort, Sort>(
-    srcFrom, dstFrom, dstTo, keyInfo
+    keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>,
+    valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)? = null
+) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, UExpr<USizeSort>, USizeSort, SrcSort, DstSort>(
+    srcFrom, dstFrom, dstTo, keyInfo, valueConverter
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.uctx.withSizeSort()
@@ -153,12 +159,13 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort, Sort: USo
     }
 }
 
-class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort, Sort: USort>(
+class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort, SrcSort: USort, DstSort: USort>(
     srcFrom: UExpr<USizeSort>,
     dstFrom: USymbolicArrayIndex<USizeSort>, dstTo: USymbolicArrayIndex<USizeSort>,
-    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, Sort>(
-    srcFrom, dstFrom, dstTo, keyInfo
+    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>,
+    valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)? = null
+) : USymbolicArrayCopyAdapter<UExpr<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, SrcSort, DstSort>(
+    srcFrom, dstFrom, dstTo, keyInfo, valueConverter
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.uctx.withSizeSort()
@@ -190,11 +197,12 @@ class USymbolicArrayAllocatedToInputCopyAdapter<USizeSort : USort, Sort: USort>(
     }
 }
 
-class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort, Sort: USort>(
+class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort, SrcSort: USort, DstSort: USort>(
     srcFrom: USymbolicArrayIndex<USizeSort>, dstFrom: UExpr<USizeSort>, dstTo: UExpr<USizeSort>,
-    keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, UExpr<USizeSort>, USizeSort, Sort>(
-    srcFrom, dstFrom, dstTo, keyInfo
+    keyInfo: USymbolicCollectionKeyInfo<UExpr<USizeSort>, *>,
+    valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)? = null
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, UExpr<USizeSort>, USizeSort, SrcSort, DstSort>(
+    srcFrom, dstFrom, dstTo, keyInfo, valueConverter
 ) {
     override val ctx: UContext<USizeSort>
         get() = dstFrom.uctx.withSizeSort()
@@ -227,12 +235,13 @@ class USymbolicArrayInputToAllocatedCopyAdapter<USizeSort : USort, Sort: USort>(
     }
 }
 
-class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort, Sort: USort>(
+class USymbolicArrayInputToInputCopyAdapter<USizeSort : USort, SrcSort: USort, DstSort: USort>(
     srcFrom: USymbolicArrayIndex<USizeSort>,
     dstFrom: USymbolicArrayIndex<USizeSort>, dstTo: USymbolicArrayIndex<USizeSort>,
-    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>
-) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, Sort>(
-    srcFrom, dstFrom, dstTo, keyInfo
+    keyInfo: USymbolicCollectionKeyInfo<USymbolicArrayIndex<USizeSort>, *>,
+    valueConverter: ((UExpr<SrcSort>) -> UExpr<DstSort>)? = null
+) : USymbolicArrayCopyAdapter<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndex<USizeSort>, USizeSort, SrcSort, DstSort>(
+    srcFrom, dstFrom, dstTo, keyInfo, valueConverter
 ) {
     override val ctx: UContext<USizeSort>
         get() = srcFrom.second.uctx.withSizeSort()

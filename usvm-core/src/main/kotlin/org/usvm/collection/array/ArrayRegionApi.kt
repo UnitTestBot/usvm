@@ -51,7 +51,8 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
         "allocateArrayInitialized is not applicable to $region"
     }
 
-    val newRegion = region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)
+    val newRegion =
+        region.initializeAllocatedArray(address.address, type, elementSort, arrayValues, operationGuard = trueExpr)
 
     setRegion(regionId, newRegion)
 
@@ -93,4 +94,53 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     )
 
     write(UArrayLengthLValue(ref, type, sizeSort), contentLength, guard = trueExpr)
+}
+
+/**
+ * Allocates new array filled with converted elements of array at [srcRef].
+ */
+fun <ArrayType, SrcSort : USort, DstSort : USort, USizeSort : USort> UWritableMemory<ArrayType>.convert(
+    srcType: ArrayType,
+    dstType: ArrayType,
+    srcRef: UHeapRef,
+    srcSort: SrcSort,
+    dstSort: DstSort,
+    sizeSort: USizeSort,
+    converter: (UExpr<SrcSort>) -> UExpr<DstSort>
+): UConcreteHeapRef {
+    val lengthLValue = UArrayLengthLValue(srcRef, srcType, sizeSort)
+    val length = read(lengthLValue)
+    val dstRef = allocateArray(dstType, sizeSort, length)
+    val ctx = this.ctx.withSizeSort<USizeSort>()
+    val srcReg = getRegion(UArrayRegionId<ArrayType, SrcSort, USizeSort>(srcType, srcSort))
+            as UArrayRegion<ArrayType, SrcSort, USizeSort>
+    val dstReg = getRegion(UArrayRegionId<ArrayType, DstSort, USizeSort>(dstType, dstSort))
+            as UArrayRegion<ArrayType, DstSort, USizeSort>
+    val guard = ctx.trueExpr
+    convertArray(ctx, srcType, dstType, srcSort, dstSort, srcReg, dstReg, srcRef, dstRef, length, guard, converter)
+    return dstRef
+}
+
+/**
+ * Allocates new array filled with converted elements of array at [srcRef].
+ */
+fun <ArrayType, SrcSort : USort, DstSort : USort, USizeSort : USort> UWritableMemory<ArrayType>.convert(
+    srcType: ArrayType,
+    dstType: ArrayType,
+    srcRef: UHeapRef,
+    dstRef: UHeapRef,
+    srcSort: SrcSort,
+    dstSort: DstSort,
+    sizeSort: USizeSort,
+    guard: UBoolExpr,
+    converter: (UExpr<SrcSort>) -> UExpr<DstSort>
+) {
+    val srcReg = getRegion(UArrayRegionId<ArrayType, SrcSort, USizeSort>(srcType, srcSort))
+            as UArrayRegion<ArrayType, SrcSort, USizeSort>
+    val dstReg = getRegion(UArrayRegionId<ArrayType, DstSort, USizeSort>(dstType, dstSort))
+            as UArrayRegion<ArrayType, DstSort, USizeSort>
+    val lengthLValue = UArrayLengthLValue(srcRef, srcType, sizeSort)
+    val length = read(lengthLValue)
+    val ctx = this.ctx.withSizeSort<USizeSort>()
+    convertArray(ctx, srcType, dstType, srcSort, dstSort, srcReg, dstReg, srcRef, dstRef, length, guard, converter)
 }

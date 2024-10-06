@@ -72,7 +72,7 @@ abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
 //                previous.store(key, mkIte(guard, value, previous.select(key)))
             }
 
-            is URangedUpdateNode<*, *, UExpr<KeySort>, Sort> -> {
+            is URangedUpdateNode<*, *, UExpr<KeySort>, *, Sort> -> {
                 when (update.guard) {
                     falseExpr -> previous
                     else -> translateRangedUpdate(previous, update)
@@ -83,7 +83,7 @@ abstract class U1DUpdatesTranslator<KeySort : USort, Sort : USort>(
 
     abstract fun KContext.translateRangedUpdate(
         previous: KExpr<KArraySort<KeySort, Sort>>,
-        update: URangedUpdateNode<*, *, UExpr<KeySort>, Sort>
+        update: URangedUpdateNode<*, *, UExpr<KeySort>, *, Sort>
     ): KExpr<KArraySort<KeySort, Sort>>
 
     val <ExprSort : USort> UExpr<ExprSort>.translated get() = exprTranslator.translate(this)
@@ -124,7 +124,7 @@ abstract class U2DUpdatesTranslator<Key1Sort : USort, Key2Sort : USort, Sort : U
                 mkIte(guard, previous.store(key1, key2, value), previous)
             }
 
-            is URangedUpdateNode<*, *, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort> -> {
+            is URangedUpdateNode<*, *, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, *, Sort> -> {
                 when (update.guard) {
                     falseExpr -> previous
                     else -> translateRangedUpdate(previous, update)
@@ -135,7 +135,7 @@ abstract class U2DUpdatesTranslator<Key1Sort : USort, Key2Sort : USort, Sort : U
 
     abstract fun KContext.translateRangedUpdate(
         previous: KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>,
-        update: URangedUpdateNode<*, *, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, Sort>
+        update: URangedUpdateNode<*, *, Pair<UExpr<Key1Sort>, UExpr<Key2Sort>>, *, Sort>
     ): KExpr<KArray2Sort<Key1Sort, Key2Sort, Sort>>
 
     val <ExprSort : USort> UExpr<ExprSort>.translated get() = exprTranslator.translate(this)

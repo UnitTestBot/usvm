@@ -11,5 +11,3 @@ interface Region<T> {
         INCLUDES, INTERSECTS, DISJOINT
     }
 }
-
-

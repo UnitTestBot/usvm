@@ -342,7 +342,7 @@ internal inline fun filter(
         is UIteExpr<UAddressSort> -> {
             /**
              * This code simulates DFS on a binary tree without an explicit recursion. Pair.second represents the first
-             * unprocessed child of the pair.first, or all childs processed if pair.second equals [DONE].
+             * unprocessed child of the pair.first, or all children processed if pair.second equals [DONE].
              */
             val nodeToChild = mutableListOf<Pair<GuardedExpr<UHeapRef>, Int>>()
             val completelyMapped = mutableListOf<GuardedExpr<UHeapRef>?>()

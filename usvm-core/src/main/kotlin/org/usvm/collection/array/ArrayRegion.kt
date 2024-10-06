@@ -4,6 +4,7 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -15,6 +16,7 @@ import org.usvm.memory.foldHeapRef2
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.mapWithStaticAsSymbolic
+import org.usvm.mkSizeExpr
 
 data class UArrayIndexLValue<ArrayType, Sort : USort, USizeSort : USort>(
     override val sort: Sort,
@@ -30,7 +32,10 @@ data class UArrayIndexLValue<ArrayType, Sort : USort, USizeSort : USort>(
         get() = this
 }
 
-data class UArrayRegionId<ArrayType, Sort : USort, USizeSort : USort>(val arrayType: ArrayType, override val sort: Sort) :
+data class UArrayRegionId<ArrayType, Sort : USort, USizeSort : USort>(
+    val arrayType: ArrayType,
+    override val sort: Sort
+) :
     UMemoryRegionId<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
 
     override fun emptyRegion(): UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> =
@@ -40,7 +45,8 @@ data class UArrayRegionId<ArrayType, Sort : USort, USizeSort : USort>(val arrayT
 typealias UAllocatedArray<ArrayType, Sort, USizeSort> = USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort>
 typealias UInputArray<ArrayType, Sort, USizeSort> = USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort>
 
-interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
+interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> :
+    UMemoryRegion<UArrayIndexLValue<ArrayType, Sort, USizeSort>, Sort> {
     fun memcpy(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
@@ -85,22 +91,29 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         return collection
     }
 
-    private fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort, USizeSort>) =
+    internal fun updateAllocatedArray(ref: UConcreteHeapAddress, updated: UAllocatedArray<ArrayType, Sort, USizeSort>) =
         UArrayMemoryRegion(allocatedArrays.put(ref, updated), inputArray)
 
-    private fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort, USizeSort> {
+    internal fun getInputArray(arrayType: ArrayType, sort: Sort): UInputArray<ArrayType, Sort, USizeSort> {
         if (inputArray == null)
             inputArray = UInputArrayId<_, _, USizeSort>(arrayType, sort).emptyRegion()
         return inputArray!!
     }
 
-    private fun updateInput(updated: UInputArray<ArrayType, Sort, USizeSort>) =
+    internal fun updateInput(updated: UInputArray<ArrayType, Sort, USizeSort>) =
         UArrayMemoryRegion(allocatedArrays, updated)
 
-    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>): UExpr<Sort> = key.ref.mapWithStaticAsSymbolic(
-        concreteMapper = { concreteRef -> getAllocatedArray(key.arrayType, key.sort, concreteRef.address).read(key.index) },
-        symbolicMapper = { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
-    )
+    override fun read(key: UArrayIndexLValue<ArrayType, Sort, USizeSort>): UExpr<Sort> =
+        key.ref.mapWithStaticAsSymbolic(
+            concreteMapper = { concreteRef ->
+                getAllocatedArray(
+                    key.arrayType,
+                    key.sort,
+                    concreteRef.address
+                ).read(key.index)
+            },
+            symbolicMapper = { symbolicRef -> getInputArray(key.arrayType, key.sort).read(symbolicRef to key.index) }
+        )
 
     override fun write(
         key: UArrayIndexLValue<ArrayType, Sort, USizeSort>,
@@ -139,7 +152,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
-            val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, Sort>(
+            val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, Sort, Sort>(
                 fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
             )
             val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
@@ -149,7 +162,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
             val srcCollection = region.getAllocatedArray(type, elementSort, srcConcrete.address)
             val dstCollection = region.getInputArray(type, elementSort)
-            val adapter = USymbolicArrayAllocatedToInputCopyAdapter<USizeSort, Sort>(
+            val adapter = USymbolicArrayAllocatedToInputCopyAdapter<USizeSort, Sort, Sort>(
                 fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
@@ -161,7 +174,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
             val srcCollection = region.getInputArray(type, elementSort)
             val dstCollection = region.getAllocatedArray(type, elementSort, dstConcrete.address)
-            val adapter = USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, Sort>(
+            val adapter = USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, Sort, Sort>(
                 srcSymbolic to fromSrcIdx,
                 fromDstIdx,
                 toDstIdx,
@@ -173,7 +186,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
             val srcCollection = region.getInputArray(type, elementSort)
             val dstCollection = region.getInputArray(type, elementSort)
-            val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort, Sort>(
+            val adapter = USymbolicArrayInputToInputCopyAdapter<USizeSort, Sort, Sort>(
                 srcSymbolic to fromSrcIdx,
                 dstSymbolic to fromDstIdx,
                 dstSymbolic to toDstIdx,
@@ -195,4 +208,80 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         val newCollection = arrayId.initializedArray(content, operationGuard)
         return UArrayMemoryRegion(allocatedArrays.put(address, newCollection), inputArray)
     }
+}
+
+fun <Type, SrcSort : USort, DstSort : USort, USizeSort : USort> convertArray(
+    ctx: UContext<USizeSort>,
+    srcType: Type,
+    dstType: Type,
+    srcSort: SrcSort,
+    dstSort: DstSort,
+    srcReg: UArrayRegion<Type, SrcSort, USizeSort>,
+    dstReg: UArrayRegion<Type, DstSort, USizeSort>,
+    srcRef: UHeapRef,
+    dstRef: UHeapRef,
+    length: UExpr<USizeSort>,
+    operationGuard: UBoolExpr,
+    converter: (UExpr<SrcSort>) -> UExpr<DstSort>
+): UArrayRegion<Type, DstSort, USizeSort> {
+    require(srcReg is UArrayMemoryRegion<Type, SrcSort, USizeSort>) { "Array conversion is unsupported for $srcReg" }
+    require(dstReg is UArrayMemoryRegion<Type, DstSort, USizeSort>) { "Array conversion is unsupported for $dstReg" }
+    val fromSrcIdx = ctx.mkSizeExpr(0)
+    val fromDstIdx = ctx.mkSizeExpr(0)
+    val toDstIdx = length
+    return foldHeapRef2(
+        ref0 = srcRef,
+        ref1 = dstRef,
+        initial = dstReg,
+        initialGuard = operationGuard,
+        blockOnConcrete0Concrete1 = { region, srcConcrete, dstConcrete, guard ->
+            val srcCollection = srcReg.getAllocatedArray(srcType, srcSort, srcConcrete.address)
+            val dstCollection = region.getAllocatedArray(dstType, dstSort, dstConcrete.address)
+            val adapter = USymbolicArrayAllocatedToAllocatedCopyAdapter(
+                fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo(), converter
+            )
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedArray(dstConcrete.address, newDstCollection)
+        },
+
+        blockOnConcrete0Symbolic1 = { region, srcConcrete, dstSymbolic, guard ->
+            val srcCollection = srcReg.getAllocatedArray(srcType, srcSort, srcConcrete.address)
+            val dstCollection = region.getInputArray(dstType, dstSort)
+            val adapter = USymbolicArrayAllocatedToInputCopyAdapter(
+                fromSrcIdx,
+                dstSymbolic to fromDstIdx,
+                dstSymbolic to toDstIdx,
+                USymbolicArrayIndexKeyInfo(),
+                converter
+            )
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInput(newDstCollection)
+        },
+        blockOnSymbolic0Concrete1 = { region, srcSymbolic, dstConcrete, guard ->
+            val srcCollection = srcReg.getInputArray(srcType, srcSort)
+            val dstCollection = region.getAllocatedArray(dstType, dstSort, dstConcrete.address)
+            val adapter = USymbolicArrayInputToAllocatedCopyAdapter(
+                srcSymbolic to fromSrcIdx,
+                fromDstIdx,
+                toDstIdx,
+                USizeExprKeyInfo(),
+                converter
+            )
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateAllocatedArray(dstConcrete.address, newDstCollection)
+        },
+        blockOnSymbolic0Symbolic1 = { region, srcSymbolic, dstSymbolic, guard ->
+            val srcCollection = srcReg.getInputArray(srcType, srcSort)
+            val dstCollection = region.getInputArray(dstType, dstSort)
+            val adapter = USymbolicArrayInputToInputCopyAdapter(
+                srcSymbolic to fromSrcIdx,
+                dstSymbolic to fromDstIdx,
+                dstSymbolic to toDstIdx,
+                USymbolicArrayIndexKeyInfo(),
+                converter
+            )
+            val newDstCollection = dstCollection.copyRange(srcCollection, adapter, guard)
+            region.updateInput(newDstCollection)
+        },
+    )
 }

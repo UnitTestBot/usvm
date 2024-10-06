@@ -6,6 +6,7 @@ import io.ksmt.sort.KArray2Sort
 import io.ksmt.sort.KArraySort
 import io.ksmt.sort.KBoolSort
 import io.ksmt.utils.mkConst
+import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
@@ -112,7 +113,7 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         previous: KExpr<KArraySort<USizeSort, Sort>>,
         update: URangedUpdateNode<*, *, UExpr<USizeSort>, *, Sort>
     ): KExpr<KArraySort<USizeSort, Sort>> {
-        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *>) {
+        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *, *>) {
             "Unexpected array ranged operation: ${update.adapter}"
         }
 
@@ -120,16 +121,16 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         return translateArrayCopy(
             previous,
             update,
-            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, Sort, *>, Any, Sort>,
-            update.adapter as USymbolicArrayCopyAdapter<Any, UExpr<USizeSort>, USizeSort, *>
+            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, USort, *>, Any, USort>,
+            update.adapter as USymbolicArrayCopyAdapter<Any, UExpr<USizeSort>, USizeSort, USort, Sort>
         )
     }
 
-    private fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> KContext.translateArrayCopy(
+    private fun <SrcSort: USort, CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey> KContext.translateArrayCopy(
         previous: KExpr<KArraySort<USizeSort, Sort>>,
         update: URangedUpdateNode<*, *, UExpr<USizeSort>, *, Sort>,
-        sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicArrayCopyAdapter<SrcKey, UExpr<USizeSort>, USizeSort, *>
+        sourceCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+        adapter: USymbolicArrayCopyAdapter<SrcKey, UExpr<USizeSort>, USizeSort, SrcSort, Sort>
     ): KExpr<KArraySort<USizeSort, Sort>> {
         val key = mkFreshConst("k", previous.sort.domain)
 
@@ -141,8 +142,9 @@ private class UAllocatedArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         val result = sourceCollection.collectionId.instantiate(
             sourceCollection, convertedKey, composer = null
         ).translated
+        val convertedResult = adapter.convertValue(result.uncheckedCast())
 
-        val ite = mkIte(isInside, result, previous.select(key))
+        val ite = mkIte(isInside, convertedResult, previous.select(key))
         return mkArrayLambda(key.decl, ite)
     }
 }
@@ -155,7 +157,7 @@ private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         previous: KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>,
         update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, *, Sort>
     ): KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
-        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *>) {
+        check(update.adapter is USymbolicArrayCopyAdapter<*, *, *, *, *>) {
             "Unexpected array ranged operation: ${update.adapter}"
         }
 
@@ -163,16 +165,16 @@ private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         return translateArrayCopy(
             previous,
             update,
-            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, Sort, *>, Any, Sort>,
-            update.adapter as USymbolicArrayCopyAdapter<Any, USymbolicArrayIndex<USizeSort>, USizeSort, *>
+            update.sourceCollection as USymbolicCollection<USymbolicCollectionId<Any, USort, *>, Any, USort>,
+            update.adapter as USymbolicArrayCopyAdapter<Any, USymbolicArrayIndex<USizeSort>, USizeSort, USort, Sort>
         )
     }
 
-    private fun <CollectionId : USymbolicCollectionId<SrcKey, Sort, CollectionId>, SrcKey> KContext.translateArrayCopy(
+    private fun <SrcSort: USort, CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey> KContext.translateArrayCopy(
         previous: KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>>,
         update: URangedUpdateNode<*, *, USymbolicArrayIndex<USizeSort>, *, Sort>,
-        sourceCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
-        adapter: USymbolicArrayCopyAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, USizeSort, *>
+        sourceCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
+        adapter: USymbolicArrayCopyAdapter<SrcKey, USymbolicArrayIndex<USizeSort>, USizeSort, SrcSort, Sort>
     ): KExpr<KArray2Sort<UAddressSort, USizeSort, Sort>> {
         val key1 = mkFreshConst("k1", previous.sort.domain0)
         val key2 = mkFreshConst("k2", previous.sort.domain1)
@@ -185,8 +187,9 @@ private class UInputArrayUpdatesTranslator<Sort : USort, USizeSort : USort>(
         val result = sourceCollection.collectionId.instantiate(
             sourceCollection, convertedKey, composer = null
         ).translated
+        val convertedResult = adapter.convertValue(result)
 
-        val ite = mkIte(isInside, result, previous.select(key1, key2))
+        val ite = mkIte(isInside, convertedResult, previous.select(key1, key2))
         return mkArrayLambda(key1.decl, key2.decl, ite)
     }
 }
