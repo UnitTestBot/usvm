@@ -15,7 +15,6 @@ data class ForwardSummaryAnalyzerEvent(
     val exitFact get() = exitVertex.fact
 }
 
-
 data class BackwardSummaryAnalyzerEvent(
     val method: EtsMethod,
     val initialVertex: Vertex<BackwardTypeDomainFact, EtsStmt>,
