@@ -376,7 +376,7 @@ class TypeInferenceManager(
     }
 
     private fun refineMethodTypes(
-        facts: EtsMethodTypeFacts,
+        facts: EtsMethodTypeFacts, // backward types
         summaries: Iterable<ForwardSummaryAnalyzerEvent>,
     ): EtsMethodTypeFacts {
         // Contexts
