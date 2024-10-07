@@ -33,6 +33,7 @@ class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
+    val doAddKnownTypes: Boolean = false,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
     private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
@@ -52,13 +53,15 @@ class ForwardFlowFunctions(
             }
         }
 
-        for (local in method.locals) {
-            if (local.type != EtsUnknownType && local.type != EtsAnyType) {
-                val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
-                val type = EtsTypeFact.from(local.type)
-                if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
-                    logger.info { "Adding known type for $path: $type" }
-                    addTypes(path, type, result)
+        if (doAddKnownTypes) {
+            for (local in method.locals) {
+                if (local.type != EtsUnknownType && local.type != EtsAnyType) {
+                    val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
+                    val type = EtsTypeFact.from(local.type)
+                    if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
+                        logger.info { "Adding known type for $path: $type" }
+                        addTypes(path, type, result)
+                    }
                 }
             }
         }
@@ -123,10 +126,10 @@ class ForwardFlowFunctions(
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentFact(current, fact).filter {
-                 if (it.variable.accesses.size > 5) {
-                     logger.warn { "Dropping too long fact: $it" }
-                     return@filter false
-                 }
+                if (it.variable.accesses.size > 5) {
+                    logger.warn { "Dropping too long fact: $it" }
+                    return@filter false
+                }
                 if (it.variable.accesses.hasDuplicateFields(3)) {
                     logger.warn { "Dropping fact with duplicate fields: $it" }
                     return@filter false
@@ -208,7 +211,7 @@ class ForwardFlowFunctions(
             // }
 
             is EtsFieldRef -> {
-                if (rhv.type != EtsUnknownType && rhv.type != EtsAnyType) {
+                if (doAddKnownTypes && rhv.type != EtsUnknownType && rhv.type != EtsAnyType) {
                     val type = EtsTypeFact.from(rhv.type)
                     logger.info { "Adding known type for $lhv from $rhv: $type" }
                     addTypeFactWithAliases(lhv, type)

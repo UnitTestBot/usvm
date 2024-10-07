@@ -46,8 +46,11 @@ class TypeInferenceManager(
 
     private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
-    fun analyze(startMethods: List<EtsMethod>): TypeInferenceResult = runBlocking(Dispatchers.Default) {
-        logger.info { "Preparing forward analysis" }
+    fun analyze(
+        startMethods: List<EtsMethod>,
+        doAddKnownTypes: Boolean = false,
+    ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
+        logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators)
         val backwardRunner = UniRunner(
@@ -114,7 +117,7 @@ class TypeInferenceManager(
 
         logger.info { "Preparing forward analysis" }
         val forwardGraph = graph
-        val forwardAnalyzer = ForwardAnalyzer(forwardGraph, methodTypeScheme, typeInfo)
+        val forwardAnalyzer = ForwardAnalyzer(forwardGraph, methodTypeScheme, typeInfo, doAddKnownTypes)
         val forwardRunner = UniRunner(
             manager = this@TypeInferenceManager,
             graph = forwardGraph,

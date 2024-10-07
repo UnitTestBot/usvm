@@ -501,7 +501,7 @@ class EtsTypeInferenceTest {
                 val manager = with(EtsTraits) {
                     TypeInferenceManager(graph)
                 }
-                val result = manager.analyze(entrypoints)
+                val result = manager.analyze(entrypoints, doAddKnownTypes = true)
 
                 logger.info {
                     buildString {

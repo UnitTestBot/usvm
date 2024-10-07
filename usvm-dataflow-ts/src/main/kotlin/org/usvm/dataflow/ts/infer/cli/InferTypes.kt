@@ -74,7 +74,7 @@ class InferTypes : CliktCommand() {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
-        val result = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints, doAddKnownTypes = true)
 
         logger.info { "Inferred types for ${result.inferredTypes.size} methods" }
 
