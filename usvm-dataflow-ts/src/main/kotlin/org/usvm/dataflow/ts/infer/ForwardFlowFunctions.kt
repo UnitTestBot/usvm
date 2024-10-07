@@ -33,7 +33,7 @@ class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
-    val doAddKnownTypes: Boolean = false,
+    val doAddKnownTypes: Boolean = true,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
     private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()

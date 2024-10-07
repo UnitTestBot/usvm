@@ -48,7 +48,7 @@ class TypeInferenceManager(
 
     fun analyze(
         startMethods: List<EtsMethod>,
-        doAddKnownTypes: Boolean = false,
+        doAddKnownTypes: Boolean = true,
     ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
