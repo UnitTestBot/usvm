@@ -6,7 +6,6 @@ import io.ksmt.symfpu.solver.KSymFpuSolver
 import org.jacodb.ets.base.EtsType
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
-import org.usvm.state.TSStateForker
 import org.usvm.types.UTypeSystem
 
 class TSComponents(
@@ -40,8 +39,6 @@ class TSComponents(
 
         return USolverBase(ctx, smtSolver, typeSolver, translator, decoder, options.solverTimeout)
     }
-
-    override fun mkStatesForkProvider(): StateForker = TSStateForker
 
     fun close() {
         closeableResources.forEach(AutoCloseable::close)

@@ -16,9 +16,6 @@ fun UContext<*>.boolToFpSort(expr: UExpr<UBoolSort>) =
 fun UContext<*>.fpToBoolSort(expr: UExpr<KFp64Sort>) =
     mkIte(mkFpEqualExpr(expr, mkFp64(0.0)), mkFalse(), mkTrue())
 
-fun UExpr<*>.unwrapJoinedExpr(ctx: UContext<*>): UExpr<out USort> =
-    if (this is UJoinedBoolExpr) ctx.mkAnd(exprs) else this
-
 fun UExpr<out USort>.extractOrThis(): UExpr<out USort> = if (this is TSWrappedValue) value else this
 
 fun <K, V> MutableMap<K, MutableSet<V>>.copy(): MutableMap<K, MutableSet<V>> = this.entries.associate { (k, v) ->

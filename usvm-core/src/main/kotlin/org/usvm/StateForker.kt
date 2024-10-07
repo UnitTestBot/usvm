@@ -1,6 +1,6 @@
 package org.usvm
 
-import org.usvm.StateForker.Companion.splitModelsByCondition
+import io.ksmt.utils.cast
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
@@ -12,39 +12,7 @@ private typealias StateToCheck = Boolean
 private const val ForkedState = true
 private const val OriginalState = false
 
-interface StateForker {
-
-    companion object {
-        /**
-         * Splits the passed [models] with this [condition] to the three categories:
-         * - models that satisfy this [condition];
-         * - models that are in contradiction with this [condition];
-         * - models that can not evaluate this [condition].
-         */
-        fun <Type> splitModelsByCondition(
-            models: List<UModelBase<Type>>,
-            condition: UBoolExpr,
-        ): SplittedModels<Type> {
-            val trueModels = mutableListOf<UModelBase<Type>>()
-            val falseModels = mutableListOf<UModelBase<Type>>()
-            val unknownModels = mutableListOf<UModelBase<Type>>()
-
-            models.forEach { model ->
-                val holdsInModel = model.eval(condition)
-
-                when {
-                    holdsInModel.isTrue -> trueModels += model
-                    holdsInModel.isFalse -> falseModels += model
-                    // Sometimes we cannot evaluate the condition – for example, a result for a division by symbolic expression
-                    // that is evaluated to 0 is unknown
-                    else -> unknownModels += model
-                }
-            }
-
-            return SplittedModels(trueModels, falseModels, unknownModels)
-        }
-    }
-
+sealed interface StateForker {
     /**
      * Implements symbolic branching.
      * Checks if [condition] and ![condition] are satisfiable within [state].
@@ -78,9 +46,10 @@ object WithSolverStateForker : StateForker {
         state: T,
         condition: UBoolExpr,
     ): ForkResult<T> {
-        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
+        val unwrappedCondition: UBoolExpr = condition.unwrapJoinedExpr(state.ctx).cast()
+        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, unwrappedCondition)
 
-        val notCondition = state.ctx.mkNot(condition)
+        val notCondition = if (condition is UJoinedBoolExpr) condition.not() else state.ctx.mkNot(unwrappedCondition)
         val (posState, negState) = when {
 
             trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
@@ -89,7 +58,7 @@ object WithSolverStateForker : StateForker {
 
                 posState.models = trueModels
                 negState.models = falseModels
-                posState.pathConstraints += condition
+                posState.pathConstraints += unwrappedCondition
                 negState.pathConstraints += notCondition
 
                 posState to negState
@@ -97,7 +66,7 @@ object WithSolverStateForker : StateForker {
 
             trueModels.isNotEmpty() -> state to forkIfSat(
                 state,
-                newConstraintToOriginalState = condition,
+                newConstraintToOriginalState = unwrappedCondition,
                 newConstraintToForkedState = notCondition,
                 stateToCheck = ForkedState
             )
@@ -105,7 +74,7 @@ object WithSolverStateForker : StateForker {
             falseModels.isNotEmpty() -> {
                 val forkedState = forkIfSat(
                     state,
-                    newConstraintToOriginalState = condition,
+                    newConstraintToOriginalState = unwrappedCondition,
                     newConstraintToForkedState = notCondition,
                     stateToCheck = OriginalState
                 )
@@ -287,12 +256,41 @@ object NoSolverStateForker : StateForker {
     }
 }
 
+/**
+ * Splits the passed [models] with this [condition] to the three categories:
+ * - models that satisfy this [condition];
+ * - models that are in contradiction with this [condition];
+ * - models that can not evaluate this [condition].
+ */
+private fun <Type> splitModelsByCondition(
+    models: List<UModelBase<Type>>,
+    condition: UBoolExpr,
+): SplittedModels<Type> {
+    val trueModels = mutableListOf<UModelBase<Type>>()
+    val falseModels = mutableListOf<UModelBase<Type>>()
+    val unknownModels = mutableListOf<UModelBase<Type>>()
+
+    models.forEach { model ->
+        val holdsInModel = model.eval(condition)
+
+        when {
+            holdsInModel.isTrue -> trueModels += model
+            holdsInModel.isFalse -> falseModels += model
+            // Sometimes we cannot evaluate the condition – for example, a result for a division by symbolic expression
+            // that is evaluated to 0 is unknown
+            else -> unknownModels += model
+        }
+    }
+
+    return SplittedModels(trueModels, falseModels, unknownModels)
+}
+
 data class ForkResult<T>(
     val positiveState: T?,
     val negativeState: T?,
 )
 
-data class SplittedModels<Type>(
+private data class SplittedModels<Type>(
     val trueModels: List<UModelBase<Type>>,
     val falseModels: List<UModelBase<Type>>,
     val unknownModels: List<UModelBase<Type>>,

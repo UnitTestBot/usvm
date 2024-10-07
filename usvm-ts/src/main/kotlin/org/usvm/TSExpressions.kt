@@ -37,37 +37,6 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 }
 
 /**
- * Utility class for merging expressions with [UBoolSort] sort.
- *
- * Mainly created for [not] function used in TSStateForker.
- */
-class UJoinedBoolExpr(
-    ctx: TSContext,
-    val exprs: List<UBoolExpr>
-) : UBoolExpr(ctx) {
-    override val sort: UBoolSort
-        get() = ctx.boolSort
-
-    private val joinedExprs = ctx.mkAnd(exprs)
-
-    fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
-
-    override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        return transformer.apply(joinedExprs)
-    }
-
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
-
-    override fun internHashCode(): Int = hash()
-
-    override fun print(printer: ExpressionPrinter) {
-        printer.append("joined(")
-        joinedExprs.print(printer)
-        printer.append(")")
-    }
-}
-
-/**
  * [UExpr] wrapper that handles type coercion.
  *
  * @param value wrapped expression.
