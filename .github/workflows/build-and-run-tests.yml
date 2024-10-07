@@ -41,7 +41,7 @@ jobs:
           MAX_RETRIES=10
           RETRY_DELAY=3  # Delay between retries in seconds  
           BRANCH="neo/2024-08-16"
-          
+
           for ((i=1; i<=MAX_RETRIES; i++)); do
               git clone --depth=1 --branch $BRANCH $REPO_URL $DEST_DIR && break
               echo "Clone failed, retrying in $RETRY_DELAY seconds..."
