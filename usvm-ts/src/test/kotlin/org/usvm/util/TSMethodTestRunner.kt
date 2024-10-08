@@ -1,5 +1,8 @@
 package org.usvm.util
 
+import java.nio.file.Paths
+import kotlin.reflect.KClass
+import kotlin.time.Duration
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
@@ -7,8 +10,6 @@ import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -22,9 +23,6 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import java.nio.file.Paths
-import kotlin.reflect.KClass
-import kotlin.time.Duration
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
