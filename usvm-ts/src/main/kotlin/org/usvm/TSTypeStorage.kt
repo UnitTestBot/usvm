@@ -14,10 +14,10 @@ class TSTypeStorage(
 ) {
 
     fun storeSuggestedType(ref: UExpr<UAddressSort>, type: EtsType) {
-        // TODO: finalize implementation and remove this assert
-        assert(ref is URegisterReading)
+        // TODO: finalize implementation and remove this.
+        if (ref !is URegisterReading) error("Unsupported yet!")
 
-        keyToTypes.getOrPut((ref as URegisterReading).idx) {
+        keyToTypes.getOrPut(ref.idx) {
             mutableSetOf()
         }.add(type)
     }

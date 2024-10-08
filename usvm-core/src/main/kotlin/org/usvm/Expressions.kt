@@ -331,14 +331,20 @@ class UJoinedBoolExpr(
 
     private val joinedExprs = ctx.mkAnd(exprs)
 
+    // Size of exprs is not big since it generates from all sorts supported by machine [n]
+    // (small number even when finished)
+    // plus possible additional constraints which are C(n - 1, 2) in size,
+    // so no need to cache this value as its use is also limited.
     fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
 
     override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
         return transformer.apply(joinedExprs)
     }
 
+    // TODO: draft
     override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
+    // TODO: draft
     override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {

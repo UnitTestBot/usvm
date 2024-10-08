@@ -82,8 +82,10 @@ class TSWrappedValue(
         return value.cast()
     }
 
+    // TODO: draft
     override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
+    // TODO: draft
     override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {

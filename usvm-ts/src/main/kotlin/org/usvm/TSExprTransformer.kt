@@ -14,7 +14,7 @@ class TSExprTransformer(
     private val scope: TSStepScope,
 ) {
 
-    private val exprCache: MutableMap<USort, UExpr<out USort>?> = mutableMapOf(baseExpr.sort to baseExpr)
+    private val exprCache: MutableMap<USort, UExpr<out USort>?> = hashMapOf(baseExpr.sort to baseExpr)
     private val ctx = baseExpr.tctx
 
     init {
@@ -27,8 +27,9 @@ class TSExprTransformer(
         val (result, type) = when (sort) {
             fp64Sort -> asFp64() to EtsNumberType
             boolSort -> asBool() to EtsBooleanType
+            // No primitive type can be suggested from ref -- null is returned.
             addressSort -> asRef() to null
-            else -> error("")
+            else -> error("Unknown sort: $sort")
         }
 
         if (modifyConstraints && type != null) suggestType(type)
@@ -47,7 +48,9 @@ class TSExprTransformer(
             val rhv = other.transform(sort)
             if (lhv != null && rhv != null) {
                 action(lhv, rhv)
-            } else null
+            } else {
+                null
+            }
         }
 
         val innerCoercionExprs = this.generateAdditionalExprs(rawExprs) + other.generateAdditionalExprs(rawExprs)
@@ -55,9 +58,11 @@ class TSExprTransformer(
         val exprs = rawExprs + innerCoercionExprs
 
         return if (exprs.size > 1) {
-            assert(exprs.all { it.sort == ctx.boolSort })
+            if (!exprs.all { it.sort == ctx.boolSort }) error("All expressions must be of bool sort.")
             UJoinedBoolExpr(ctx, exprs.cast())
-        } else exprs.single()
+        } else {
+            exprs.single()
+        }
     }
 
     private fun intersect(other: TSExprTransformer) {
@@ -69,7 +74,7 @@ class TSExprTransformer(
         }
     }
 
-    private val addedExprCache: MutableSet<UExpr<out USort>> = mutableSetOf()
+    private val addedExprCache: MutableSet<UExpr<out USort>> = hashSetOf()
 
     /**
      * Generates and caches additional constraints for coercion expression list.
@@ -81,6 +86,7 @@ class TSExprTransformer(
     private fun generateAdditionalExprs(rawExprs: List<UExpr<out USort>>): List<UExpr<out USort>> = with(ctx) {
         if (!rawExprs.all { it.sort == boolSort }) return emptyList()
         val newExpr = when (baseExpr.sort) {
+            // Saves link in constraints between asFp64(ref) and asBool(ref) since they were instantiated separately.
             addressSort -> addedExprCache.putOrNull(mkEq(fpToBoolSort(asFp64()), asBool()))
             else -> null
         }
@@ -96,7 +102,7 @@ class TSExprTransformer(
                 TSRefTransformer(ctx, fp64Sort).apply(baseExpr.cast()).cast()
             }
 
-            else -> ctx.mkFp64(0.0)
+            else -> error("Unsupported sort: ${baseExpr.sort}")
         }
     }.cast()
 
@@ -109,15 +115,15 @@ class TSExprTransformer(
                 TSRefTransformer(ctx, boolSort).apply(baseExpr.cast()).cast()
             }
 
-            else -> ctx.mkFalse()
+            else -> error("Unsupported sort: ${baseExpr.sort}")
         }
     }.cast()
 
     fun asRef(): UExpr<UAddressSort>? = exprCache.getOrPut(ctx.addressSort) {
         when (baseExpr.sort) {
             ctx.addressSort -> baseExpr
-            /* ctx.mkTrackedSymbol(ctx.addressSort) is possible here, but
-               no constraint-wise benefits of using it instead of null were currently found. */
+            // ctx.mkTrackedSymbol(ctx.addressSort) is possible here, but
+            // no constraint-wise benefits of using it instead of null were currently found.
             else -> null
         }
     }.cast()
@@ -131,7 +137,7 @@ class TSExprTransformer(
 /**
  * Transforms [UExpr] with [UAddressSort]:
  *
- * UExpr(address sort) -> UExpr'(sort).
+ * UExpr(address sort) -> UExpr'([sort]).
  *
  * TODO: Implement other expressions with address sort.
  */
