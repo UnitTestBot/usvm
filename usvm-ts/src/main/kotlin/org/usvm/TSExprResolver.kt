@@ -4,6 +4,7 @@ import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsArrayLiteral
+import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsBitAndExpr
 import org.jacodb.ets.base.EtsBitNotExpr
@@ -54,32 +55,35 @@ import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsSubExpr
 import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
+import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
-@Suppress("UNUSED_PARAMETER")
 class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    localToIdx: (EtsMethod, EtsValue) -> Int,
+    localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
+    private val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
         ctx,
         scope,
-        localToIdx
+        localToIdx,
+        localToSort
     )
 
-    fun resolveTSExpr(expr: EtsEntity, type: EtsType = expr.type): UExpr<out USort>? {
-        return expr.accept(this)
+    fun resolveTSExprNoUnwrap(expr: EtsEntity): UExpr<out USort>? = expr.accept(this)
+
+    fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
+        return resolveTSExprNoUnwrap(expr)?.unwrapJoinedExpr(ctx)
     }
 
     fun resolveLValue(value: EtsValue): ULValue<*, *>? =
@@ -99,7 +103,15 @@ class TSExprResolver(
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(lhs, rhs)
+        operator(lhs, rhs, scope)
+    }
+
+    private inline fun <T> resolveAfterResolved(
+        dependency: EtsEntity,
+        block: (UExpr<out USort>) -> T,
+    ): T? {
+        val result = resolveTSExpr(dependency) ?: return null
+        return block(result)
     }
 
     private inline fun <T> resolveAfterResolved(
@@ -111,8 +123,6 @@ class TSExprResolver(
         val result1 = resolveTSExpr(dependency1) ?: return null
         return block(result0, result1)
     }
-
-
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
         return simpleValueResolver.visit(value)
@@ -146,11 +156,15 @@ class TSExprResolver(
         TODO("Not yet implemented")
     }
 
-    override fun visit(expr: EtsAddExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Add, expr)
     }
 
-    override fun visit(expr: EtsAndExpr): UExpr<out USort> {
+    override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.And, expr)
+    }
+
+    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 
@@ -250,8 +264,8 @@ class TSExprResolver(
         return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
     }
 
-    override fun visit(expr: EtsNotExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsNotExpr): UExpr<out USort>? = resolveAfterResolved(expr.arg) { arg ->
+        TSUnaryOperator.Not(arg, scope)
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort> {
@@ -322,6 +336,10 @@ class TSExprResolver(
         TODO("Not yet implemented")
     }
 
+    override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visit(value: EtsArrayAccess): UExpr<out USort> {
         TODO("Not yet implemented")
     }
@@ -347,6 +365,7 @@ class TSSimpleValueResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
@@ -407,7 +426,7 @@ class TSSimpleValueResolver(
     fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
-        val sort = ctx.typeToSort(local.type)
+        val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
         return URegisterStackLValue(sort, localIdx)
     }
 }

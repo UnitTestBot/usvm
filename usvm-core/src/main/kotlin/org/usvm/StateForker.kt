@@ -1,5 +1,6 @@
 package org.usvm
 
+import io.ksmt.utils.cast
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
@@ -45,9 +46,10 @@ object WithSolverStateForker : StateForker {
         state: T,
         condition: UBoolExpr,
     ): ForkResult<T> {
-        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
+        val unwrappedCondition: UBoolExpr = condition.unwrapJoinedExpr(state.ctx).cast()
+        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, unwrappedCondition)
 
-        val notCondition = state.ctx.mkNot(condition)
+        val notCondition = if (condition is UJoinedBoolExpr) condition.not() else state.ctx.mkNot(unwrappedCondition)
         val (posState, negState) = when {
 
             trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
@@ -56,7 +58,7 @@ object WithSolverStateForker : StateForker {
 
                 posState.models = trueModels
                 negState.models = falseModels
-                posState.pathConstraints += condition
+                posState.pathConstraints += unwrappedCondition
                 negState.pathConstraints += notCondition
 
                 posState to negState
@@ -64,7 +66,7 @@ object WithSolverStateForker : StateForker {
 
             trueModels.isNotEmpty() -> state to forkIfSat(
                 state,
-                newConstraintToOriginalState = condition,
+                newConstraintToOriginalState = unwrappedCondition,
                 newConstraintToForkedState = notCondition,
                 stateToCheck = ForkedState
             )
@@ -72,7 +74,7 @@ object WithSolverStateForker : StateForker {
             falseModels.isNotEmpty() -> {
                 val forkedState = forkIfSat(
                     state,
-                    newConstraintToOriginalState = condition,
+                    newConstraintToOriginalState = unwrappedCondition,
                     newConstraintToForkedState = notCondition,
                     stateToCheck = OriginalState
                 )

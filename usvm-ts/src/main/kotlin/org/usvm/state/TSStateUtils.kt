@@ -5,6 +5,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 
 val TSState.lastStmt get() = pathNode.statement
+
 fun TSState.newStmt(stmt: EtsStmt) {
     pathNode += stmt
 }

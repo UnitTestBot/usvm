@@ -6,7 +6,10 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.TSContext
 import org.usvm.TSTarget
+import org.usvm.TSTypeStorage
+import org.usvm.UAddressSort
 import org.usvm.UCallStack
+import org.usvm.UExpr
 import org.usvm.UState
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
@@ -26,6 +29,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
+    private val typeStorage: TSTypeStorage = TSTypeStorage(ctx)
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -58,9 +62,14 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
+            typeStorage.clone()
         )
     }
 
     override val isExceptional: Boolean
         get() = methodResult is TSMethodResult.TSException
+
+    fun storeSuggestedType(ref: UExpr<UAddressSort>, type: EtsType) = typeStorage.storeSuggestedType(ref, type)
+
+    fun getSuggestedType(key: Any): EtsType? = typeStorage.getSuggestedType(key)
 }
