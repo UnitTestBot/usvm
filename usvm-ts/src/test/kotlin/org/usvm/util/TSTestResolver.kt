@@ -33,7 +33,7 @@ import org.usvm.state.TSState
 import org.usvm.types.first
 
 class TSTestResolver(
-    private val state: TSState
+    private val state: TSState,
 ) {
 
     fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
@@ -70,7 +70,9 @@ class TSTestResolver(
             val expr = model.read(lValue).extractOrThis()
             if (type is EtsUnknownType) {
                 approximateParam(expr.cast(), idx, model)
-            } else resolveExpr(expr, type, model)
+            } else {
+                resolveExpr(expr, type, model)
+            }
         }
     }
 

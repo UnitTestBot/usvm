@@ -39,7 +39,7 @@ class TSExprTransformer(
 
     fun intersectWithTypeCoercion(
         other: TSExprTransformer,
-        action: CoerceAction
+        action: CoerceAction,
     ): UExpr<out USort> {
         intersect(other)
 
@@ -91,7 +91,7 @@ class TSExprTransformer(
             else -> null
         }
 
-        return newExpr?.let { listOf(it) } ?: emptyList()
+        return newExpr?.let { listOf(it) }.orEmpty()
     }
 
     fun asFp64(): UExpr<KFp64Sort> = exprCache.getOrPut(ctx.fp64Sort) {

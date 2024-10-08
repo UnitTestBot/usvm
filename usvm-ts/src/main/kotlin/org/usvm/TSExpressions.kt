@@ -44,7 +44,7 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 class TSWrappedValue(
     ctx: TSContext,
     val value: UExpr<out USort>,
-    private val scope: TSStepScope
+    private val scope: TSStepScope,
 ) : USymbol<USort>(ctx) {
     override val sort: USort
         get() = value.sort
@@ -55,7 +55,7 @@ class TSWrappedValue(
 
     private fun coerce(
         other: UExpr<out USort>,
-        action: CoerceAction
+        action: CoerceAction,
     ): UExpr<out USort> = when (other) {
         is UIntepretedValue -> {
             val otherTransformer = TSExprTransformer(other, scope)
@@ -93,7 +93,6 @@ class TSWrappedValue(
         value.print(printer)
         printer.append(")")
     }
-
 }
 
 fun extractBool(expr: UExpr<out USort>): Boolean = when (expr) {

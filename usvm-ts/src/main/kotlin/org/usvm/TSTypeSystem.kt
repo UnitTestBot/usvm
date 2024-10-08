@@ -65,11 +65,9 @@ class TSTypeSystem(
 class TSTopTypeStream(
     private val typeSystem: TSTypeSystem,
     private val primitiveTypes: List<EtsType> = TSTypeSystem.primitiveTypes.toList(),
-    /* Currently only EtsUnknownType was encountered and viewed as any type.
-       However, there is EtsAnyType that represents any type.
-
-       TODO: replace EtsUnknownType with further TSTypeSystem implementation.
-    */
+    // Currently only EtsUnknownType was encountered and viewed as any type.
+    // However, there is EtsAnyType that represents any type.
+    // TODO: replace EtsUnknownType with further TSTypeSystem implementation.
     private val anyTypeStream: UTypeStream<EtsType> = USupportTypeStream.from(typeSystem, EtsUnknownType),
 ) : UTypeStream<EtsType> {
 

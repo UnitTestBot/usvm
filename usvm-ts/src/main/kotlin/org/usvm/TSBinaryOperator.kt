@@ -24,7 +24,7 @@ sealed class TSBinaryOperator(
     // This function specifies a set of banned sorts pre-coercion.
     // Usage of it is limited and was introduced for Neq operation.
     // Generally designed to filter out excess expressions in type coercion.
-    val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = {_, _ -> emptySet() },
+    val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = { _, _ -> emptySet() },
 ) {
 
     object Eq : TSBinaryOperator(
@@ -121,7 +121,8 @@ sealed class TSBinaryOperator(
         val rhsSort = rhs.sort
 
         val ctx = lhs.tctx
-        // Chosen sort is only used to intersect both exprCaches and have at least one sort to apply binary operation to.
+        // Chosen sort is only used to intersect both exprCaches and
+        // have at least one sort to apply binary operation to.
         // All sorts are examined in TSExprTransformer class and not limited by this "chosen one".
         val sort = ctx.desiredSort(lhsSort, rhsSort)
 

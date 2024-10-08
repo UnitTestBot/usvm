@@ -174,20 +174,11 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.TSNumber.Integer::class -> EtsNumberType
                 TSObject.UndefinedObject::class -> EtsUndefinedType
                 TSObject.Object::class -> EtsUnknownType
+                // For untyped tests, not to limit objects serialized from models after type coercion.
                 TSObject::class -> EtsUnknownType
                 else -> error("Should not be called")
             }
         }
-
-    private fun getProject(fileName: String): EtsFile {
-        val jsonWithoutExtension = "/ir/$fileName.json"
-        val sampleFilePath = javaClass.getResourceAsStream(jsonWithoutExtension)
-            ?: error("Resource not found: $jsonWithoutExtension")
-
-        val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
-
-        return convertToEtsFile(etsFileDto)
-    }
 
     private fun EtsFile.getMethodByDescriptor(desc: MethodDescriptor): EtsMethod {
         val cls = classes.find { it.name == desc.className }
@@ -209,6 +200,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             val filePath = Paths.get(fileURL.toURI())
             val scene = EtsScene(listOf(loadEtsFileAutoConvert(filePath)))
 
+            // TODO: draft implementation
             val method = scene.files.single().getMethodByDescriptor(id)
 
             TSMachine(scene, options).use { machine ->

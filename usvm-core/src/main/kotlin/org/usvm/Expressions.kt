@@ -324,7 +324,7 @@ class UIsSupertypeExpr<Type> internal constructor(
  */
 class UJoinedBoolExpr(
     ctx: UContext<*>,
-    val exprs: List<UBoolExpr>
+    val exprs: List<UBoolExpr>,
 ) : UBoolExpr(ctx) {
     override val sort: UBoolSort
         get() = ctx.boolSort

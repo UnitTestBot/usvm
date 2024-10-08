@@ -158,6 +158,7 @@ class TSInterpreter(
 
     // (method, localName) -> idx
     private val localVarToIdx = mutableMapOf<EtsMethod, MutableMap<String, Int>>()
+
     // (method, localIdx) -> sort
     private val localVarToSort = mutableMapOf<EtsMethod, MutableMap<Int, USort>>()
 
