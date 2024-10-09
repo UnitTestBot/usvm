@@ -291,9 +291,9 @@ class TypeInferenceManager(
                         val rootType = propertyRefinements[emptyList()]
                             ?: run {
                                 if (propertyRefinements.keys.any { it.isNotEmpty() }) {
-                                    return@mapValues EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
+                                    EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
                                 } else {
-                                    return@mapValues EtsTypeFact.AnyEtsTypeFact
+                                    EtsTypeFact.AnyEtsTypeFact
                                 }
                             }
 
@@ -401,9 +401,9 @@ class TypeInferenceManager(
             val rootType = propertyRefinements[emptyList()]
                 ?: run {
                     if (propertyRefinements.keys.any { it.isNotEmpty() }) {
-                        return@mapValues EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
+                        EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
                     } else {
-                        return@mapValues EtsTypeFact.AnyEtsTypeFact
+                        EtsTypeFact.AnyEtsTypeFact
                     }
                 }
 
