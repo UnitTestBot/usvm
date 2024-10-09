@@ -49,6 +49,7 @@ class TypeInferenceManager(
     fun analyze(
         startMethods: List<EtsMethod>,
         doAddKnownTypes: Boolean = true,
+        doInferAllLocals: Boolean = false,
     ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
@@ -314,6 +315,56 @@ class TypeInferenceManager(
                 appendLine("Return types:")
                 for ((method, type) in inferredReturnTypes) {
                     appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
+                }
+            }
+        }
+
+        val inferredLocalTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>? = if (doInferAllLocals) {
+            forwardSummaries
+                .asSequence()
+                .map { (method, summaries) ->
+                    val typeFacts = summaries
+                        .asSequence()
+                        .mapNotNull { it.exitVertex.fact as? ForwardTypeDomainFact.TypedVariable }
+                        .filter { it.variable.base is AccessPathBase.Local }
+                        .groupBy { it.variable.base }
+
+                    val localTypes = typeFacts.mapValues { (_, typeFacts) ->
+                        val propertyRefinements = typeFacts
+                            .groupBy({ it.variable.accesses }, { it.type })
+                            .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+
+                        val rootType = propertyRefinements[emptyList()]
+                            ?: run {
+                                if (propertyRefinements.keys.any { it.isNotEmpty() }) {
+                                    EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
+                                } else {
+                                    EtsTypeFact.AnyEtsTypeFact
+                                }
+                            }
+
+                        val refined = rootType.refineProperties(emptyList(), propertyRefinements)
+
+                        refined
+                    }
+
+                    method to localTypes
+                }
+                .toMap()
+        } else {
+            null
+        }
+
+        if (inferredLocalTypes != null) {
+            logger.info {
+                buildString {
+                    appendLine("Local types:")
+                    for ((method, localTypes) in inferredLocalTypes) {
+                        appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.enclosingFile}:")
+                        for ((base, fact) in localTypes.entries.sortedBy { (it.key as AccessPathBase.Local).name }) {
+                            appendLine("$base: ${fact.toPrettyString()}")
+                        }
+                    }
                 }
             }
         }
