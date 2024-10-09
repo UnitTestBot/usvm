@@ -483,9 +483,9 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Loaded project with ${project.classes.size} classes and ${project.classes.sumOf { it.methods.size }} methods")
-                        for (cls in project.classes) {
+                        for (cls in project.classes.sortedBy { it.name }) {
                             appendLine("= ${cls.signature} with ${cls.methods.size} methods:")
-                            for (method in cls.methods) {
+                            for (method in cls.methods.sortedBy { it.name }) {
                                 appendLine("  - ${method.signature}")
                             }
                         }
@@ -506,10 +506,16 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred types: ${result.inferredTypes.size}")
-                        for ((method, types) in result.inferredTypes) {
+                        for ((method, types) in result.inferredTypes.entries.sortedBy { "${it.key.enclosingClass.name}::${it.key.name}" }) {
                             appendLine()
                             appendLine("- $method")
-                            for ((pos, type) in types) {
+                            for ((pos, type) in types.entries.sortedBy {
+                                when (val base = it.key) {
+                                    is AccessPathBase.This -> -1
+                                    is AccessPathBase.Arg -> base.index
+                                    else -> 1_000_000
+                                }
+                            }) {
                                 appendLine("$pos: $type")
                             }
                         }
@@ -518,7 +524,7 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred return types: ${result.inferredReturnType.size}")
-                        for ((method, returnType) in result.inferredReturnType) {
+                        for ((method, returnType) in result.inferredReturnType.entries.sortedBy { it.key.toString() }) {
                             appendLine("${method.enclosingClass.name}::${method.name}: $returnType")
                         }
                     }
@@ -526,7 +532,7 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
-                        for ((clazz, thisType) in result.inferredCombinedThisType) {
+                        for ((clazz, thisType) in result.inferredCombinedThisType.entries.sortedBy { it.key.toString() }) {
                             appendLine("${clazz.name} in ${clazz.enclosingFile}: $thisType")
                         }
                     }
