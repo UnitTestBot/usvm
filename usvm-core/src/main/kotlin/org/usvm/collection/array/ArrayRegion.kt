@@ -4,7 +4,6 @@ import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
-import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort

@@ -2,6 +2,7 @@ package org.usvm.api
 
 import io.ksmt.sort.KFpSort
 import org.usvm.UBoolExpr
+import org.usvm.UBvSort
 import org.usvm.UConcreteChar
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
@@ -203,25 +204,37 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     return this.allocateStringExpr(stringType, string)
 }
 
-fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromByteArray(
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     stringType: Type,
-    byteArrayType: Type,
     charArrayType: Type,
+    refToCharArray: UHeapRef,
+    startIndex: UExpr<USizeSort>,
+    length: UExpr<USizeSort>
+): UConcreteHeapRef {
+    val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray, startIndex, length)
+    return this.allocateStringExpr(stringType, string)
+}
+
+fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromBvArray(
+    stringType: Type,
+    bvArrayType: Type,
+    charArrayType: Type,
+    bvSort: UBvSort,
     startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>,
-    refToByteArray: UHeapRef,
+    refToBvArray: UHeapRef,
 ): UConcreteHeapRef {
     val ctx = ctx.withSizeSort<USizeSort>()
     val refToCharArray = this.convert(
-        srcType = byteArrayType,
+        srcType = bvArrayType,
         dstType = charArrayType,
-        srcRef = refToByteArray,
-        srcSort = ctx.bv8Sort,
+        srcRef = refToBvArray,
+        srcSort = bvSort,
         dstSort = ctx.charSort,
         sizeSort = ctx.sizeSort,
         startOffset = startIndex,
         length = length
-    ) { byte -> byte.mkNarrow(ctx.charSort.sizeBits.toInt(), signed = true) }
+    ) { bvElement -> bvElement.mkNarrow(ctx.charSort.sizeBits.toInt(), signed = true) }
     val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray)
     return this.allocateStringExpr(stringType, string)
 }
