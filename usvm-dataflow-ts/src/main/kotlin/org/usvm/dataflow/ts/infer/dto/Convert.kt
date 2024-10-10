@@ -65,43 +65,22 @@ import org.jacodb.ets.model.EtsNamespaceSignature
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
-fun AccessPathBase.toDto(): AccessPathBaseDto = when (this) {
-    AccessPathBase.This -> AccessPathBaseDto.This
-    AccessPathBase.Static -> AccessPathBaseDto.Static
-    is AccessPathBase.Arg -> AccessPathBaseDto.Arg(this.index)
-    is AccessPathBase.Local -> AccessPathBaseDto.Local(this.name)
-    is AccessPathBase.Const -> AccessPathBaseDto.Const(this.constant.toString())
-    else -> error("Cannot convert to DTO: $this")
-}
+fun EtsTypeFact.getType(): EtsType? = when (this) {
+    is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
+    is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(elementType.getType() ?: EtsUnknownType, 1)
 
-fun EtsTypeFact.toDto(): TypeFactDto = when (this) {
-    EtsTypeFact.AnyEtsTypeFact -> TypeFactDto.AnyTypeFact
-    EtsTypeFact.UnknownEtsTypeFact -> TypeFactDto.UnknownTypeFact
-    EtsTypeFact.NullEtsTypeFact -> TypeFactDto.NullTypeFact
-    EtsTypeFact.UndefinedEtsTypeFact -> TypeFactDto.UndefinedTypeFact
-    EtsTypeFact.BooleanEtsTypeFact -> TypeFactDto.BooleanTypeFact
-    EtsTypeFact.NumberEtsTypeFact -> TypeFactDto.NumberTypeFact
-    EtsTypeFact.StringEtsTypeFact -> TypeFactDto.StringTypeFact
-    EtsTypeFact.FunctionEtsTypeFact -> TypeFactDto.FunctionTypeFact
+    EtsTypeFact.AnyEtsTypeFact -> EtsAnyType
+    EtsTypeFact.BooleanEtsTypeFact -> EtsBooleanType
+    EtsTypeFact.FunctionEtsTypeFact -> null
+    EtsTypeFact.NullEtsTypeFact -> EtsNullType
+    EtsTypeFact.NumberEtsTypeFact -> EtsNumberType
+    EtsTypeFact.StringEtsTypeFact -> EtsStringType
+    EtsTypeFact.UndefinedEtsTypeFact -> EtsUndefinedType
+    EtsTypeFact.UnknownEtsTypeFact -> EtsUnknownType
 
-    is EtsTypeFact.ArrayEtsTypeFact -> TypeFactDto.ArrayTypeFact(
-        elementType = this.elementType.toDto()
-    )
-
-    is EtsTypeFact.ObjectEtsTypeFact -> TypeFactDto.ObjectTypeFact(
-        cls = this.cls?.toDto(),
-        properties = this.properties.mapValues { it.value.toDto() }
-    )
-
-    is EtsTypeFact.IntersectionEtsTypeFact -> TypeFactDto.IntersectionTypeFact(
-        types = this.types.map { it.toDto() }
-    )
-
-    is EtsTypeFact.UnionEtsTypeFact -> TypeFactDto.UnionTypeFact(
-        types = this.types.map { it.toDto() }
-    )
-
-    else -> error("Cannot convert to DTO: $this")
+    is EtsTypeFact.GuardedTypeFact -> null
+    is EtsTypeFact.IntersectionEtsTypeFact -> null
+    is EtsTypeFact.UnionEtsTypeFact -> null
 }
 
 fun EtsType.toDto(): TypeDto = when (this) {
