@@ -211,7 +211,7 @@ fun <Type, USizeSort : USort> UWritableMemory<Type>.allocateStringFromCharArray(
     startIndex: UExpr<USizeSort>,
     length: UExpr<USizeSort>
 ): UConcreteHeapRef {
-    val string = this.mkStringExprFromCharArray<Type, USizeSort>(charArrayType, refToCharArray, startIndex, length)
+    val string = this.mkStringExprFromCharArray(charArrayType, refToCharArray, startIndex, length)
     return this.allocateStringExpr(stringType, string)
 }
 
