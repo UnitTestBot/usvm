@@ -9,20 +9,20 @@ import org.usvm.dataflow.ts.infer.*
 @Serializable
 data class TypeInferenceResultDto(
     val classes: List<ClassTypeResultDto>,
-    val methods: List<MethodTypeResultDto>
+    val methods: List<MethodTypeResultDto>,
 )
 
 @Serializable
 data class ClassTypeResultDto(
     val signature: ClassSignatureDto,
     val fields: List<FieldTypeResultDto>,
-    val methods: List<String>
+    val methods: List<String>,
 )
 
 @Serializable
 data class FieldTypeResultDto(
     val name: String,
-    val type: TypeDto
+    val type: TypeDto,
 )
 
 @Serializable
@@ -30,19 +30,19 @@ data class MethodTypeResultDto(
     val signature: MethodSignatureDto,
     val parameters: List<ParameterTypeResultDto>,
     val locals: List<LocalTypeResultDto>,
-    val returnType: TypeDto? = null
+    val returnType: TypeDto? = null,
 )
 
 @Serializable
 data class ParameterTypeResultDto(
     val index: Int,
-    val type: TypeDto
+    val type: TypeDto,
 )
 
 @Serializable
 data class LocalTypeResultDto(
     val name: String,
-    val type: TypeDto
+    val type: TypeDto,
 )
 
 fun TypeInferenceResult.toDto(): TypeInferenceResultDto {
@@ -56,9 +56,11 @@ fun TypeInferenceResult.toDto(): TypeInferenceResultDto {
 
         val fields = properties
             .filterNot { it.value is EtsTypeFact.FunctionEtsTypeFact }
-            .mapNotNull { (name, fact) -> fact.getType()?.let {
-                FieldTypeResultDto(name, it.toDto())
-            } }
+            .mapNotNull { (name, fact) ->
+                fact.toType()?.let {
+                    FieldTypeResultDto(name, it.toDto())
+                }
+            }
 
         ClassTypeResultDto(signature.toDto(), fields, methods)
     }
@@ -66,21 +68,25 @@ fun TypeInferenceResult.toDto(): TypeInferenceResultDto {
     val methodTypeInferenceResult = inferredTypes.map { (method, facts) ->
         val parameters = facts
             .mapNotNull { (base, fact) ->
-                val type = fact.getType()
-                if (base is AccessPathBase.Arg && type != null)
+                val type = fact.toType()
+                if (base is AccessPathBase.Arg && type != null) {
                     ParameterTypeResultDto(base.index, type.toDto())
-                else null
+                } else {
+                    null
+                }
             }
 
         val locals = facts
             .mapNotNull { (base, fact) ->
-                val type = fact.getType()
-                if (base is AccessPathBase.Local && type != null)
+                val type = fact.toType()
+                if (base is AccessPathBase.Local && type != null) {
                     LocalTypeResultDto(base.name, type.toDto())
-                else null
+                } else {
+                    null
+                }
             }
 
-        val returnType = inferredReturnType[method]?.getType()?.toDto()
+        val returnType = inferredReturnType[method]?.toType()?.toDto()
 
         MethodTypeResultDto(method.signature.toDto(), parameters, locals, returnType)
     }

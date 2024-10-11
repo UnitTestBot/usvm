@@ -62,16 +62,18 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
-import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
-fun EtsTypeFact.getType(): EtsType? = when (this) {
+fun EtsTypeFact.toType(): EtsType? = when (this) {
     is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
-    is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(elementType.getType() ?: EtsUnknownType, 1)
+    is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(
+        elementType = elementType.toType() ?: EtsUnknownType,
+        dimensions = 1,
+    )
 
     EtsTypeFact.AnyEtsTypeFact -> EtsAnyType
     EtsTypeFact.BooleanEtsTypeFact -> EtsBooleanType
-    EtsTypeFact.FunctionEtsTypeFact -> null
+    EtsTypeFact.FunctionEtsTypeFact -> null // TODO: function type
     EtsTypeFact.NullEtsTypeFact -> EtsNullType
     EtsTypeFact.NumberEtsTypeFact -> EtsNumberType
     EtsTypeFact.StringEtsTypeFact -> EtsStringType
