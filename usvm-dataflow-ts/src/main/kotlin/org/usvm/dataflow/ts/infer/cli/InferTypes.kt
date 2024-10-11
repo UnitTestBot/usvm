@@ -33,13 +33,14 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.infer.dto.TypeInferenceResultDto
 import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
+import kotlin.time.measureTimedValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -69,22 +70,19 @@ class InferTypes : CliktCommand() {
 
         val project = loadEtsScene(input)
         val graph = createApplicationGraph(project)
-        val entrypoints = project.classes
-            .asSequence()
-            .flatMap { it.methods }
-            // .filter { it.name == "build" }
-            .filter { it.isPublic }
-            .toList()
+        val entrypoints = project.classes.asSequence().flatMap { it.methods }
+            .filter { it.isPublic }.toList()
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
-        val result = manager.analyze(entrypoints)
+        val (result, timeAnalyze) = measureTimedValue {
+            manager.analyze(entrypoints)
+        }
+        logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
 
-        logger.info { "Inferred types for ${result.inferredTypes.size} methods" }
+        dumpResult(result, output)
 
         logger.info { "All done in %.1s".format((System.currentTimeMillis() - startTime) / 1000.0) }
-
-        dumpEtsTypeInferenceResult(result.toDto(), output)
     }
 }
 
@@ -94,6 +92,7 @@ fun main(args: Array<String>) {
 
 @OptIn(ExperimentalSerializationApi::class)
 private fun loadEtsScene(path: Path): EtsScene {
+    logger.info { "Loading ETS scene from '$path'" }
     return path.inputStream().use { stream ->
         val files = Json.decodeFromStream<List<EtsFile>>(stream)
         EtsScene(files)
@@ -103,8 +102,10 @@ private fun loadEtsScene(path: Path): EtsScene {
 private val json = Json { prettyPrint = true }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun dumpEtsTypeInferenceResult(resultDto: TypeInferenceResultDto, path: Path) {
+private fun dumpResult(result: TypeInferenceResult, path: Path) {
+    logger.info { "Dumping inferred types to '$path'" }
+    val dto = result.toDto()
     path.outputStream().use { stream ->
-        json.encodeToStream(resultDto, stream)
+        json.encodeToStream(dto, stream)
     }
 }
