@@ -22,9 +22,12 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
+import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
@@ -43,6 +46,7 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
+import org.usvm.dataflow.ts.infer.dto.toType
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.File
@@ -529,8 +533,86 @@ class EtsTypeInferenceTest {
                     }
                 }
 
+                var totalNumMatchedNormal = 0
+                var totalNumMatchedUnknown = 0
+                var totalNumMismatchedNormal = 0
+                var totalNumLostNormal = 0
+                var totalNumBetterThanUnknown = 0
+
+                for ((method, inferredTypes) in result.inferredTypes) {
+                    var numMatchedNormal = 0
+                    var numMatchedUnknown = 0
+                    var numMismatchedNormal = 0
+                    var numLostNormal = 0
+                    var numBetterThanUnknown = 0
+
+                    for (local in method.locals) {
+                        val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
+                        if (inferredType != null) {
+                            logger.info {
+                                buildString {
+                                    appendLine("Local ${local.name} in ${method.signature}:")
+                                    appendLine("  Known type: ${local.type}")
+                                    appendLine("  Inferred type: $inferredType")
+                                }
+                            }
+
+                            if (local.type.isUnknown()) {
+                                if (inferredType.isUnknown()) {
+                                    numMatchedUnknown++
+                                } else {
+                                    numBetterThanUnknown++
+                                }
+                            } else {
+                                if (inferredType == local.type) {
+                                    numMatchedNormal++
+                                } else {
+                                    numMismatchedNormal++
+                                }
+                            }
+
+                        } else {
+                            if (local.type.isUnknown()) {
+                                numMatchedUnknown++
+                            } else {
+                                numLostNormal++
+                            }
+                        }
+                    }
+
+                    logger.info {
+                        buildString {
+                            appendLine("Local type matching for ${method.enclosingClass.name}::${method.name}:")
+                            appendLine("  Matched normal: $numMatchedNormal")
+                            appendLine("  Matched unknown: $numMatchedUnknown")
+                            appendLine("  Mismatched normal: $numMismatchedNormal")
+                            appendLine("  Lost normal: $numLostNormal")
+                            appendLine("  Better than unknown: $numBetterThanUnknown")
+                        }
+                    }
+                    totalNumMatchedNormal += numMatchedNormal
+                    totalNumMatchedUnknown += numMatchedUnknown
+                    totalNumMismatchedNormal += numMismatchedNormal
+                    totalNumLostNormal += numLostNormal
+                    totalNumBetterThanUnknown += numBetterThanUnknown
+                }
+
+                logger.info {
+                    buildString {
+                        appendLine("Total local type matching statistics:")
+                        appendLine("  Matched normal: $totalNumMatchedNormal")
+                        appendLine("  Matched unknown: $totalNumMatchedUnknown")
+                        appendLine("  Mismatched normal: $totalNumMismatchedNormal")
+                        appendLine("  Lost normal: $totalNumLostNormal")
+                        appendLine("  Better than unknown: $totalNumBetterThanUnknown")
+                    }
+                }
+
                 logger.info { "Done analyzing project: $projectName" }
             }
         }
     }
 }
+
+private fun EtsType.isUnknown(): Boolean =
+    this == EtsUnknownType || this == EtsAnyType
