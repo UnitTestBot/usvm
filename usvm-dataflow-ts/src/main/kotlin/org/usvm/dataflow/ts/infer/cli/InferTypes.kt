@@ -22,24 +22,24 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.output.MordantHelpFormatter
+import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.path
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.test.utils.loadEtsFile
+import org.jacodb.ets.test.utils.loadMultipleEtsFilesFromDirectory
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
-import kotlin.io.path.inputStream
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.outputStream
 import kotlin.time.measureTimedValue
 
@@ -59,15 +59,15 @@ class InferTypes : CliktCommand() {
         }
     }
 
-    val input by option("-i", "--input", help = "Input file").path().required()
+    val input by option("-i", "--input", help = "Input file").path().multiple(required = true)
     val output by option("-o", "--output", help = "Output file").path().required()
 
     override fun run() {
         logger.info { "Running InferTypes" }
         val startTime = System.currentTimeMillis()
 
-        logger.info { "Input file: $input" }
-        logger.info { "Output file: $output" }
+        logger.info { "Input: $input" }
+        logger.info { "Output: $output" }
 
         val project = loadEtsScene(input)
         val graph = createApplicationGraph(project)
@@ -91,24 +91,29 @@ fun main(args: Array<String>) {
     InferTypes().main(args)
 }
 
-// @OptIn(ExperimentalSerializationApi::class)
-private fun loadEtsScene(path: Path): EtsScene {
-    logger.info { "Loading ETS scene from '$path'" }
-    val file = loadEtsFile(path)
-    return EtsScene(listOf(file))
-    // return path.inputStream().use { stream ->
-    //     val files = Json.decodeFromStream<List<EtsFile>>(stream)
-    //     EtsScene(files)
-    // }
+private fun loadEtsScene(paths: List<Path>): EtsScene {
+    logger.info { "Loading ETS scene from $paths" }
+    val files = paths.flatMap {  path->
+        if (path.isRegularFile()) {
+            logger.info { "Loading single ETS file: $path" }
+            val file = loadEtsFile(path)
+            listOf(file)
+        } else {
+            logger.info { "Loading multiple ETS files: $path/**" }
+            loadMultipleEtsFilesFromDirectory(path).asIterable()
+        }
+    }
+    return EtsScene(files)
 }
-
-private val json = Json { prettyPrint = true }
 
 @OptIn(ExperimentalSerializationApi::class)
 fun dumpTypeInferenceResult(result: TypeInferenceResult, path: Path) {
     logger.info { "Dumping inferred types to '$path'" }
     val dto = result.toDto()
     path.outputStream().use { stream ->
+        val json = Json {
+            prettyPrint = true
+        }
         json.encodeToStream(dto, stream)
     }
 }
