@@ -460,6 +460,8 @@ class EtsTypeInferenceTest {
             return@testFactory
         }
         for (projectName in availableProjectNames) {
+            // if (projectName != "Launcher") continue
+            // if (projectName != "Demo_Calc") continue
             test("load $projectName") {
                 logger.info { "Loading project: $projectName" }
                 val projectPath = getResourcePath("/projects/$projectName")
@@ -548,33 +550,35 @@ class EtsTypeInferenceTest {
 
                     for (local in method.locals) {
                         val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
-                        if (inferredType != null) {
-                            logger.info {
-                                buildString {
-                                    appendLine("Local ${local.name} in ${method.signature}:")
-                                    appendLine("  Known type: ${local.type}")
-                                    appendLine("  Inferred type: $inferredType")
-                                }
-                            }
 
+                        logger.info {
+                            "Local ${local.name} in ${method.enclosingClass.name}::${method.name}, known type: ${local.type}, inferred type: $inferredType"
+                        }
+
+                        if (inferredType != null) {
                             if (local.type.isUnknown()) {
                                 if (inferredType.isUnknown()) {
+                                    logger.info { "Matched unknown" }
                                     numMatchedUnknown++
                                 } else {
+                                    logger.info { "Better than unknown" }
                                     numBetterThanUnknown++
                                 }
                             } else {
                                 if (inferredType == local.type) {
+                                    logger.info { "Matched normal" }
                                     numMatchedNormal++
                                 } else {
+                                    logger.info { "Mismatched normal" }
                                     numMismatchedNormal++
                                 }
                             }
-
                         } else {
                             if (local.type.isUnknown()) {
+                                logger.info { "Matched (lost) unknown" }
                                 numMatchedUnknown++
                             } else {
+                                logger.info { "Lost normal" }
                                 numLostNormal++
                             }
                         }
