@@ -49,7 +49,7 @@ class TypeInferenceManager(
     fun analyze(
         startMethods: List<EtsMethod>,
         doAddKnownTypes: Boolean = true,
-        doInferAllLocals: Boolean = false,
+        doInferAllLocals: Boolean = true,
     ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
@@ -366,6 +366,11 @@ class TypeInferenceManager(
                         }
                     }
                 }
+            }
+
+            for ((method, localFacts) in inferredLocalTypes) {
+                val facts = refinedTypes[method]!!
+                refinedTypes[method] = facts.copy(types = facts.types + localFacts)
             }
         }
 

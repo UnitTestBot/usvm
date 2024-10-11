@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ts.infer.dto
 
-import kotlinx.serialization.json.JsonPrimitive
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
@@ -49,6 +48,7 @@ import org.jacodb.ets.dto.NamespaceSignatureDto
 import org.jacodb.ets.dto.NeverTypeDto
 import org.jacodb.ets.dto.NullTypeDto
 import org.jacodb.ets.dto.NumberTypeDto
+import org.jacodb.ets.dto.PrimitiveLiteralDto
 import org.jacodb.ets.dto.StringTypeDto
 import org.jacodb.ets.dto.TupleTypeDto
 import org.jacodb.ets.dto.TypeDto
@@ -97,16 +97,23 @@ fun EtsType.toDto(): TypeDto = when (this) {
     is EtsUndefinedType -> UndefinedTypeDto
     is EtsVoidType -> VoidTypeDto
     is EtsNeverType -> NeverTypeDto
-    is EtsLiteralType -> LiteralTypeDto(
-        literal = when {
-            this.literalTypeName.equals("true", ignoreCase = true) -> JsonPrimitive(true)
-            this.literalTypeName.equals("false", ignoreCase = true) -> JsonPrimitive(false)
+
+    is EtsLiteralType -> {
+        val literal = when {
+            this.literalTypeName.equals("true", ignoreCase = true) -> PrimitiveLiteralDto.BooleanLiteral(true)
+            this.literalTypeName.equals("false", ignoreCase = true) -> PrimitiveLiteralDto.BooleanLiteral(false)
             else -> {
                 val x = this.literalTypeName.toDoubleOrNull()
-                if (x != null) JsonPrimitive(x) else JsonPrimitive(this.literalTypeName)
+                if (x != null) {
+                    PrimitiveLiteralDto.NumberLiteral(x)
+                } else {
+                    PrimitiveLiteralDto.StringLiteral(this.literalTypeName)
+                }
             }
         }
-    )
+        LiteralTypeDto(literal = literal)
+    }
+
     is EtsClassType -> ClassTypeDto(signature = this.classSignature.toDto())
     is EtsFunctionType -> FunctionTypeDto(signature = this.method.toDto())
     is EtsArrayType -> ArrayTypeDto(elementType = this.elementType.toDto(), dimensions = this.dimensions)

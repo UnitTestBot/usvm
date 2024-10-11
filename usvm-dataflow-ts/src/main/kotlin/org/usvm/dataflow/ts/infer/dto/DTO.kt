@@ -4,10 +4,12 @@ import kotlinx.serialization.Serializable
 import org.jacodb.ets.dto.ClassSignatureDto
 import org.jacodb.ets.dto.MethodSignatureDto
 import org.jacodb.ets.dto.TypeDto
-import org.usvm.dataflow.ts.infer.*
+import org.usvm.dataflow.ts.infer.AccessPathBase
+import org.usvm.dataflow.ts.infer.EtsTypeFact
+import org.usvm.dataflow.ts.infer.TypeInferenceResult
 
 @Serializable
-data class TypeInferenceResultDto(
+data class InferredTypesDto(
     val classes: List<ClassTypeResultDto>,
     val methods: List<MethodTypeResultDto>,
 )
@@ -28,13 +30,13 @@ data class FieldTypeResultDto(
 @Serializable
 data class MethodTypeResultDto(
     val signature: MethodSignatureDto,
-    val parameters: List<ParameterTypeResultDto>,
-    val locals: List<LocalTypeResultDto>,
+    val args: List<ArgumentTypeResultDto>,
     val returnType: TypeDto? = null,
+    val locals: List<LocalTypeResultDto>,
 )
 
 @Serializable
-data class ParameterTypeResultDto(
+data class ArgumentTypeResultDto(
     val index: Int,
     val type: TypeDto,
 )
@@ -45,15 +47,10 @@ data class LocalTypeResultDto(
     val type: TypeDto,
 )
 
-fun TypeInferenceResult.toDto(): TypeInferenceResultDto {
+fun TypeInferenceResult.toDto(): InferredTypesDto {
     val classTypeInferenceResult = inferredCombinedThisType.map { (signature, fact) ->
         val properties = (fact as? EtsTypeFact.ObjectEtsTypeFact)?.properties ?: emptyMap()
-
-        val methods = properties
-            .filter { it.value is EtsTypeFact.FunctionEtsTypeFact }
-            .keys
-            .toList()
-
+        val methods = properties.filter { it.value is EtsTypeFact.FunctionEtsTypeFact }.keys.toList()
         val fields = properties
             .filterNot { it.value is EtsTypeFact.FunctionEtsTypeFact }
             .mapNotNull { (name, fact) ->
@@ -66,30 +63,28 @@ fun TypeInferenceResult.toDto(): TypeInferenceResultDto {
     }
 
     val methodTypeInferenceResult = inferredTypes.map { (method, facts) ->
-        val parameters = facts
-            .mapNotNull { (base, fact) ->
+        val args = facts.mapNotNull { (base, fact) ->
+            if (base is AccessPathBase.Arg) {
                 val type = fact.toType()
-                if (base is AccessPathBase.Arg && type != null) {
-                    ParameterTypeResultDto(base.index, type.toDto())
-                } else {
-                    null
+                if (type != null) {
+                    return@mapNotNull ArgumentTypeResultDto(base.index, type.toDto())
                 }
             }
-
-        val locals = facts
-            .mapNotNull { (base, fact) ->
+            null
+        }
+        val locals = facts.mapNotNull { (base, fact) ->
+            if (base is AccessPathBase.Local) {
                 val type = fact.toType()
-                if (base is AccessPathBase.Local && type != null) {
-                    LocalTypeResultDto(base.name, type.toDto())
-                } else {
-                    null
+                if (type != null) {
+                    return@mapNotNull LocalTypeResultDto(base.name, type.toDto())
                 }
             }
-
+            null
+        }
         val returnType = inferredReturnType[method]?.toType()?.toDto()
 
-        MethodTypeResultDto(method.signature.toDto(), parameters, locals, returnType)
+        MethodTypeResultDto(method.signature.toDto(), args, returnType, locals)
     }
 
-    return TypeInferenceResultDto(classTypeInferenceResult, methodTypeInferenceResult)
+    return InferredTypesDto(classTypeInferenceResult, methodTypeInferenceResult)
 }

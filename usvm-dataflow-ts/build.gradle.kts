@@ -20,6 +20,9 @@ dependencies {
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.clikt)
 
+    // Temporary dependency on jacodb's test fixtures for USVM-type-inference CLI:
+    implementation(testFixtures(Libs.jacodb_ets))
+
     testImplementation(testFixtures(Libs.jacodb_ets))
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
