@@ -7,7 +7,6 @@ import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
 import io.ksmt.sort.KSort
-import io.ksmt.sort.KSortVisitor
 import io.ksmt.sort.KUninterpretedSort
 import io.ksmt.utils.DefaultValueSampler
 import io.ksmt.utils.asExpr
@@ -53,6 +52,7 @@ import org.usvm.collection.string.URegexExpr
 import org.usvm.collection.string.URegexMatchesExpr
 import org.usvm.collection.string.URegexReplaceAllExpr
 import org.usvm.collection.string.URegexReplaceFirstExpr
+import org.usvm.collection.string.USortVisitor
 import org.usvm.collection.string.UStringConcatExpr
 import org.usvm.collection.string.UStringExpr
 import org.usvm.collection.string.UStringFromArrayExpr
@@ -424,19 +424,22 @@ open class UContext<USizeSort : USort>(
 
     override fun <S : KBvSort> bvSortDefaultValue(sort: S): KExpr<S> = mkBv(0, sort)
 
-    fun mkUValueSampler(): KSortVisitor<KExpr<*>> {
+    fun mkUValueSampler(): USortVisitor<KExpr<*>> {
         return UValueSampler(this)
     }
 
-    val uValueSampler: KSortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
+    val uValueSampler: USortVisitor<KExpr<*>> by lazy { mkUValueSampler() }
 
-    class UValueSampler(val uctx: UContext<*>) : DefaultValueSampler(uctx) {
+    class UValueSampler(val uctx: UContext<*>) : DefaultValueSampler(uctx), USortVisitor<UExpr<*>> {
         override fun visit(sort: KUninterpretedSort): KExpr<*> =
             if (sort == uctx.addressSort) {
                 uctx.nullRef
             } else {
-                super.visit(sort)
+                super<DefaultValueSampler>.visit(sort)
             }
+
+        override fun visit(sort: UStringSort): UExpr<*> =
+            uctx.mkEmptyString()
     }
 
     inline fun <T : KSort> mkIte(

@@ -55,7 +55,7 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      *
      * @see USymbolicCollection.copyRange
      */
-    fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+    fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort : USort> copyRange(
         fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
         adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr,
@@ -137,7 +137,7 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
             ), keyInfo
         )
 
-    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort : USort> copyRange(
         fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
         adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr,
@@ -242,7 +242,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
     private val updates: RegionTree<Reg, UUpdateNode<Key, Sort>>,
     private val keyInfo: USymbolicCollectionKeyInfo<Key, Reg>
 ) : USymbolicCollectionUpdates<Key, Sort> {
-    override fun read(key: Key, composer: UComposer<*, *>?): USymbolicCollectionUpdates<Key, Sort> {
+    override fun read(key: Key, composer: UComposer<*, *>?): UTreeUpdates<Key, Reg, Sort> {
         val reg = keyInfo.keyToRegion(key)
         val updates = updates.localize(reg) { !it.includesSymbolically(key, composer).isFalse }
         if (updates === this.updates) {
@@ -267,7 +267,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         return this.copy(updates = newUpdates)
     }
 
-    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort: USort> copyRange(
+    override fun <CollectionId : USymbolicCollectionId<SrcKey, SrcSort, CollectionId>, SrcKey, SrcSort : USort> copyRange(
         fromCollection: USymbolicCollection<CollectionId, SrcKey, SrcSort>,
         adapter: USymbolicCollectionAdapter<SrcKey, Key, SrcSort, Sort>,
         guard: UBoolExpr

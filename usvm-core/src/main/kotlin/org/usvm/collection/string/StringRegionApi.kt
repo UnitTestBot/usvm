@@ -46,11 +46,15 @@ internal val UReadOnlyMemory<*>.stringRegion: UStringMemoryRegion
         return getRegion(regionId).cast()
     }
 
-internal fun <Type> UWritableMemory<Type>.allocateStringExpr(stringType: Type, expr: UStringExpr): UConcreteHeapRef {
-    val freshRef = this.allocConcrete(stringType)
-    val ctx = freshRef.uctx
-    write(UStringLValue(freshRef), expr, ctx.trueExpr)
-    return freshRef
+internal fun <Type> UWritableMemory<Type>.allocateStringExpr(
+    stringType: Type,
+    expr: UStringExpr,
+    ref: UConcreteHeapRef? = null
+): UConcreteHeapRef {
+    val targetRef = ref ?: this.allocConcrete(stringType)
+    val ctx = targetRef.uctx
+    write(UStringLValue(targetRef), expr, ctx.trueExpr)
+    return targetRef
 }
 
 private fun <Type, USizeSort : USort> UReadOnlyMemory<*>.getConcreteCharArray(
