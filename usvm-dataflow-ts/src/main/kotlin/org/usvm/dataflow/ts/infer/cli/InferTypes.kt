@@ -83,7 +83,7 @@ class InferTypes : CliktCommand() {
 
         dumpTypeInferenceResult(result, output)
 
-        logger.info { "All done in %.1s".format((System.currentTimeMillis() - startTime) / 1000.0) }
+        logger.info { "All done in %.1f s".format((System.currentTimeMillis() - startTime) / 1000.0) }
     }
 }
 
