@@ -22,6 +22,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.output.MordantHelpFormatter
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
@@ -62,6 +63,11 @@ class InferTypes : CliktCommand() {
     val input by option("-i", "--input", help = "Input file").path().multiple(required = true)
     val output by option("-o", "--output", help = "Output file").path().required()
 
+    val skipAnonymous by option(
+        "--skip-anonymous",
+        help = "Skip anonymous classes and method"
+    ).flag("--no-skip-anonymous", default = true, defaultForHelp = "skip")
+
     override fun run() {
         logger.info { "Running InferTypes" }
         val startTime = System.currentTimeMillis()
@@ -81,7 +87,7 @@ class InferTypes : CliktCommand() {
         }
         logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
 
-        dumpTypeInferenceResult(result, output)
+        dumpTypeInferenceResult(result, output, skipAnonymous)
 
         logger.info { "All done in %.1f s".format((System.currentTimeMillis() - startTime) / 1000.0) }
     }
@@ -107,9 +113,29 @@ private fun loadEtsScene(paths: List<Path>): EtsScene {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-fun dumpTypeInferenceResult(result: TypeInferenceResult, path: Path) {
+fun dumpTypeInferenceResult(
+    result: TypeInferenceResult,
+    path: Path,
+    skipAnonymous: Boolean = true,
+) {
     logger.info { "Dumping inferred types to '$path'" }
     val dto = result.toDto()
+        // Filter out anonymous classes and methods
+        .let { dto ->
+            if (skipAnonymous) {
+                dto.copy(
+                    classes = dto.classes.filterNot { cls ->
+                        cls.signature.name.startsWith("AnonymousClass-")
+                    },
+                    methods = dto.methods.filterNot { method ->
+                        method.signature.declaringClass.name.startsWith("AnonymousClass-") ||
+                            method.signature.name.startsWith("AnonymousMethod-")
+                    }
+                )
+            } else {
+                dto
+            }
+        }
     path.outputStream().use { stream ->
         val json = Json {
             prettyPrint = true
