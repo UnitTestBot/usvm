@@ -9,6 +9,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.isStaticHeapRef
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -17,7 +18,6 @@ import org.usvm.memory.foldHeapRef
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
 import org.usvm.uctx
-import org.usvm.withSizeSort
 
 data class UStringLValue(val ref: UHeapRef): ULValue<UStringLValue, UStringSort> {
     override val sort: UStringSort = ref.uctx.stringSort
@@ -105,8 +105,16 @@ internal class UStringMemoryRegion(
         key: UStringLValue,
         value: UExpr<UStringSort>,
         guard: UBoolExpr
-    ): UMemoryRegion<UStringLValue, UStringSort> = foldHeapRef(key.ref, this, guard, true, true,
-        {acc, guardedRef -> acc.updateAllocatedString(guardedRef.expr, value, guardedRef.guard)},
-        {acc, guardedRef -> acc.updateInternedString(guardedRef.expr, value, guardedRef.guard)},
-        {acc, guardedRef -> acc.updateInputString(guardedRef.expr, value, guardedRef.guard)})
+    ): UMemoryRegion<UStringLValue, UStringSort> = foldHeapRef(key.ref, initial = this,
+        initialGuard = guard,
+        ignoreNullRefs = true,
+        collapseHeapRefs = true,
+        staticIsConcrete = true,
+        blockOnConcrete = { acc, guardedRef ->
+            if (isStaticHeapRef(guardedRef.expr))
+                acc.updateInternedString(guardedRef.expr, value, guardedRef.guard)
+            else
+                acc.updateAllocatedString(guardedRef.expr, value, guardedRef.guard)
+        },
+        blockOnSymbolic = { acc, guardedRef -> acc.updateInputString(guardedRef.expr, value, guardedRef.guard)})
 }

@@ -1032,11 +1032,10 @@ class JcSimpleValueResolver(
     private val scope: JcStepScope,
     private val localToIdx: (JcMethod, JcLocal) -> Int,
     private val mkTypeRef: (JcType) -> UConcreteHeapRef,
-) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {    override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
-    private val mkStringConstRef: (String) -> UConcreteHeapRef,
 ) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {
+    override fun visitJcArgument(value: JcArgument): UExpr<out USort> {
         val ref = resolveLocal(value)
-        scope.calcOnState { memory.read(ref) }
+        return scope.calcOnState { memory.read(ref) }
     }
 
     override fun visitJcBool(value: JcBool): UExpr<out USort> = with(ctx) {
