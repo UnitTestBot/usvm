@@ -11,7 +11,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "data.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -26,7 +27,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -47,7 +49,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -70,7 +73,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -83,7 +87,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -104,7 +109,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -125,7 +131,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -138,7 +145,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -151,7 +159,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -180,7 +189,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -193,7 +203,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -210,7 +221,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -223,7 +235,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -242,7 +255,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "data.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -252,7 +266,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [
@@ -278,7 +293,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "data.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -312,7 +328,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -326,7 +343,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -341,7 +359,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "process",
                           "parameters": [
@@ -368,7 +387,8 @@
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "data.ts"
-                                }
+                                },
+                                "declaringNamespace": null
                               }
                             }
                           }
@@ -391,7 +411,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "process",
             "parameters": [
@@ -420,7 +441,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -472,7 +494,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -485,7 +508,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -507,7 +531,8 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -543,7 +568,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "data.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -557,7 +583,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "a",
             "type": {
@@ -575,7 +602,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "b",
             "type": {
@@ -595,7 +623,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -625,7 +654,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -638,7 +668,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -659,7 +690,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -689,7 +721,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -702,7 +735,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -723,7 +757,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "data.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [
@@ -749,7 +784,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "data.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -766,7 +802,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "data.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -803,7 +840,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "data.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -813,7 +851,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -870,7 +909,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -883,7 +923,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -902,7 +943,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "data.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -912,7 +954,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "a",
                           "type": {
@@ -942,7 +985,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "data.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -952,7 +996,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "data.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "b",
                           "type": {

@@ -11,7 +11,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone_ctor.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -26,7 +27,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -47,7 +49,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -70,7 +73,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -83,7 +87,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -104,7 +109,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "getMicrophoneUuid",
             "parameters": [
@@ -134,7 +140,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -147,27 +154,21 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "Microphone",
-                    "declaringFile": {
-                      "projectName": "ts",
-                      "fileName": "microphone_ctor.ts"
-                    }
-                  }
+                  "_": "UnknownType"
                 }
               },
               {
                 "name": "$temp1",
                 "type": {
-                  "_": "StringType"
+                  "_": "UnknownType"
                 }
               }
             ],
@@ -189,7 +190,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -203,7 +205,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -220,7 +223,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -233,7 +237,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -244,14 +249,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Microphone",
-                            "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "microphone_ctor.ts"
-                            }
-                          }
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -266,7 +264,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -276,7 +275,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "microphone",
                           "type": {
@@ -286,7 +286,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         }
@@ -298,7 +299,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "StringType"
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -307,27 +308,21 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Microphone",
-                              "declaringFile": {
-                                "projectName": "ts",
-                                "fileName": "microphone_ctor.ts"
-                              }
-                            }
+                            "_": "UnknownType"
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "Microphone",
+                            "name": "",
                             "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "microphone_ctor.ts"
-                            }
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
-                            "_": "StringType"
+                            "_": "UnknownType"
                           }
                         }
                       }
@@ -338,7 +333,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "StringType"
+                          "_": "UnknownType"
                         }
                       }
                     }
@@ -355,7 +350,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -376,7 +372,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -389,7 +386,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -402,7 +400,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -443,7 +442,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -456,7 +456,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -473,7 +474,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -486,7 +488,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -505,7 +508,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -515,7 +519,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -526,7 +531,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -545,7 +551,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -559,7 +566,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -581,7 +589,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "getMicrophoneUuid",
                           "parameters": [
@@ -609,7 +618,8 @@
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "microphone_ctor.ts"
-                                }
+                                },
+                                "declaringNamespace": null
                               }
                             }
                           }
@@ -633,7 +643,8 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -669,7 +680,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone_ctor.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -683,7 +695,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "uuid",
             "type": {
@@ -703,7 +716,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone_ctor.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -719,7 +733,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "uuid",
             "type": {
@@ -739,7 +754,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -769,7 +785,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -782,7 +799,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -803,7 +821,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -833,7 +852,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -846,7 +866,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -867,7 +888,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -878,7 +900,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "microphone_ctor.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -895,7 +918,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -918,7 +942,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -931,7 +956,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -950,7 +976,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -960,7 +987,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -985,7 +1013,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -995,7 +1024,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
@@ -1028,7 +1058,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone_ctor.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -1042,7 +1073,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "microphone",
             "type": {
@@ -1052,7 +1084,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "microphone_ctor.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -1069,7 +1102,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone_ctor.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -1085,7 +1119,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "microphone",
             "type": {
@@ -1095,7 +1130,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "microphone_ctor.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -1112,7 +1148,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -1142,7 +1179,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -1155,7 +1193,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1176,7 +1215,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -1206,7 +1246,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -1219,7 +1260,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1240,7 +1282,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone_ctor.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -1251,7 +1294,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "microphone_ctor.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -1268,7 +1312,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -1281,7 +1326,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone_ctor.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -1304,7 +1350,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -1317,7 +1364,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1336,7 +1384,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -1346,7 +1395,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -1369,7 +1419,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -1382,7 +1433,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1401,7 +1453,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -1411,7 +1464,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -1422,7 +1476,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -1443,7 +1498,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -1453,7 +1509,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "microphone",
                           "type": {
@@ -1463,7 +1520,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "microphone_ctor.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         }
@@ -1478,7 +1536,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone_ctor.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }

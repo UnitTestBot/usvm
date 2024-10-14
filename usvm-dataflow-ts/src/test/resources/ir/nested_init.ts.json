@@ -11,7 +11,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "nested_init.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -26,7 +27,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -47,7 +49,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -70,7 +73,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -83,7 +87,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -104,7 +109,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -125,7 +131,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -138,7 +145,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -151,7 +159,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -180,7 +189,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -193,7 +203,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -210,7 +221,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -223,7 +235,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -242,7 +255,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -252,7 +266,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -263,7 +278,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -282,7 +298,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -296,7 +313,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -311,7 +329,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "infer",
                           "parameters": [
@@ -338,7 +357,8 @@
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "nested_init.ts"
-                                }
+                                },
+                                "declaringNamespace": null
                               }
                             }
                           }
@@ -361,7 +381,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "infer",
             "parameters": [
@@ -390,7 +411,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -442,7 +464,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -455,7 +478,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -477,7 +501,8 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -513,7 +538,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "nested_init.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -528,7 +554,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -558,7 +585,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -571,7 +599,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -592,7 +621,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -622,7 +652,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -635,7 +666,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -656,7 +688,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -667,7 +700,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "nested_init.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -706,7 +740,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -728,7 +763,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "@instance_init",
                           "parameters": [],
@@ -756,7 +792,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "nested_init.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -770,7 +807,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "foo",
             "type": {
@@ -780,7 +818,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "nested_init.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -797,7 +836,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@instance_init",
             "parameters": [],
@@ -818,7 +858,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "nested_init.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -841,7 +882,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -854,7 +896,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -871,7 +914,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -884,7 +928,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -903,7 +948,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -913,7 +959,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "constructor",
                           "parameters": [],
@@ -924,7 +971,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -945,7 +993,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         },
@@ -955,7 +1004,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "foo",
                           "type": {
@@ -965,7 +1015,8 @@
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "nested_init.ts"
-                              }
+                              },
+                              "declaringNamespace": null
                             }
                           }
                         }
@@ -980,7 +1031,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1001,7 +1053,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "@static_init",
             "parameters": [],
@@ -1031,7 +1084,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -1044,7 +1098,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1065,7 +1120,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "nested_init.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "constructor",
             "parameters": [],
@@ -1076,7 +1132,8 @@
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "nested_init.ts"
-                }
+                },
+                "declaringNamespace": null
               }
             }
           },
@@ -1115,7 +1172,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -1137,7 +1195,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "nested_init.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "@instance_init",
                           "parameters": [],

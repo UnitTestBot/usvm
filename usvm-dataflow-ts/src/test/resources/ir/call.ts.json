@@ -11,7 +11,8 @@
         "declaringFile": {
           "projectName": "ts",
           "fileName": "call.ts"
-        }
+        },
+        "declaringNamespace": null
       },
       "modifiers": [],
       "typeParameters": [],
@@ -26,7 +27,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "_DEFAULT_ARK_METHOD",
             "parameters": [],
@@ -47,7 +49,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               }
@@ -70,7 +73,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -83,7 +87,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -104,7 +109,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "entrypoint",
             "parameters": [],
@@ -125,7 +131,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -166,7 +173,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -179,7 +187,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -194,7 +203,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "f",
                           "parameters": [
@@ -248,7 +258,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "g",
                           "parameters": [
@@ -291,7 +302,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "f",
             "parameters": [
@@ -320,7 +332,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -372,7 +385,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -385,7 +399,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -407,7 +422,8 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
@@ -442,7 +458,8 @@
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
-              }
+              },
+              "declaringNamespace": null
             },
             "name": "g",
             "parameters": [
@@ -471,7 +488,8 @@
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
-                    }
+                    },
+                    "declaringNamespace": null
                   }
                 }
               },
@@ -523,7 +541,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       },
@@ -536,7 +555,8 @@
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
-                            }
+                            },
+                            "declaringNamespace": null
                           }
                         }
                       }
@@ -558,7 +578,8 @@
                             "declaringFile": {
                               "projectName": "_UnknownProjectName",
                               "fileName": "_UnknownFileName"
-                            }
+                            },
+                            "declaringNamespace": null
                           },
                           "name": "log",
                           "parameters": [],
