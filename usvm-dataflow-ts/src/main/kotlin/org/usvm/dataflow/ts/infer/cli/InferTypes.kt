@@ -66,7 +66,7 @@ class InferTypes : CliktCommand() {
     val skipAnonymous by option(
         "--skip-anonymous",
         help = "Skip anonymous classes and method"
-    ).flag("--no-skip-anonymous", default = true, defaultForHelp = "skip")
+    ).flag("--no-skip-anonymous", default = false)
 
     override fun run() {
         logger.info { "Running InferTypes" }
