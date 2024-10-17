@@ -6,7 +6,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.TSContext
 import org.usvm.TSTarget
+import org.usvm.UAddressSort
 import org.usvm.UCallStack
+import org.usvm.UExpr
 import org.usvm.UState
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
@@ -57,7 +59,7 @@ class TSState(
             pathNode,
             forkPoints,
             methodResult,
-            targets.clone(),
+            targets.clone()
         )
     }
 

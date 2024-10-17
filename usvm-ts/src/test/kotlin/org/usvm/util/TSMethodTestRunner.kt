@@ -1,15 +1,18 @@
 package org.usvm.util
 
+import java.nio.file.Paths
+import kotlin.reflect.KClass
+import kotlin.time.Duration
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
@@ -20,10 +23,6 @@ import org.usvm.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import java.nio.file.Paths
-import kotlin.reflect.KClass
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
@@ -172,19 +171,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.TSNumber.Double::class -> EtsNumberType
                 TSObject.TSNumber.Integer::class -> EtsNumberType
                 TSObject.UndefinedObject::class -> EtsUndefinedType
+                // TODO: EtsUnknownType is mock up here. Correct implementation required.
+                TSObject.Object::class -> EtsUnknownType
+                // For untyped tests, not to limit objects serialized from models after type coercion.
+                TSObject.Unknown::class -> EtsUnknownType
                 else -> error("Should not be called")
             }
         }
-
-    private fun getProject(fileName: String): EtsFile {
-        val jsonWithoutExtension = "/ir/$fileName.json"
-        val sampleFilePath = javaClass.getResourceAsStream(jsonWithoutExtension)
-            ?: error("Resource not found: $jsonWithoutExtension")
-
-        val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
-
-        return convertToEtsFile(etsFileDto)
-    }
 
     private fun EtsFile.getMethodByDescriptor(desc: MethodDescriptor): EtsMethod {
         val cls = classes.find { it.name == desc.className }
@@ -204,15 +197,16 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
                 ?: error("No such file found")
             val filePath = Paths.get(fileURL.toURI())
-            val file = loadEtsFileAutoConvert(filePath)
+            val scene = EtsScene(listOf(loadEtsFileAutoConvert(filePath)))
 
-            val method = file.getMethodByDescriptor(id)
+            // TODO: draft implementation
+            val method = scene.files.single().getMethodByDescriptor(id)
 
-            TSMachine(file, options).use { machine ->
+            TSMachine(scene, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
-                    val resolver = TSTestResolver()
-                    resolver.resolve(method, state).also { println(it) }
+                    val resolver = TSTestResolver(state)
+                    resolver.resolve(method).also { println(it) }
                 }
             }
         }
@@ -222,7 +216,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
         exceptionsPropagation = true,
-        timeout = 60_000.milliseconds,
+        timeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests

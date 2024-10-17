@@ -1,6 +1,7 @@
 package org.usvm
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
@@ -18,7 +19,6 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
@@ -77,7 +77,8 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val boolExpr = exprResolver
-            .resolveTSExpr(stmt.condition)
+            // Don't want to lose UJoinedBoolExpr here for further fork.
+            .resolveTSExprNoUnwrap(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: return
 
@@ -96,11 +97,8 @@ class TSInterpreter(
     private fun visitReturnStmt(scope: TSStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val method = requireNotNull(scope.calcOnState { callStack.lastMethod() })
-        val returnType = method.returnType
-
         val valueToReturn = stmt.returnValue
-            ?.let { exprResolver.resolveTSExpr(it, returnType) ?: return }
+            ?.let { exprResolver.resolveTSExpr(it) ?: return }
             ?: ctx.mkUndefinedValue()
 
         scope.doWithState {
@@ -111,11 +109,17 @@ class TSInterpreter(
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
+        val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
+        localVarToSort
+            .getOrPut(stmt.method) { mutableMapOf() }
+            .run {
+                getOrPut(mapLocalToIdxMapper(stmt.method, stmt.lhv)) { expr.sort }
+            }
         val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
-        val expr = exprResolver.resolveTSExpr(stmt.rhv, stmt.lhv.type) ?: return
 
+        val wrappedExpr = TSWrappedValue(ctx, expr, scope)
         scope.doWithState {
-            memory.write(lvalue, expr)
+            memory.write(lvalue.cast(), wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
         }
@@ -145,11 +149,18 @@ class TSInterpreter(
         TSExprResolver(
             ctx,
             scope,
-            ::mapLocalToIdxMapper,
-        )
+            ::mapLocalToIdxMapper
+        ) { m, idx ->
+            localVarToSort.getOrPut(m) {
+                mutableMapOf()
+            }.run { get(idx) }
+        }
 
     // (method, localName) -> idx
     private val localVarToIdx = mutableMapOf<EtsMethod, MutableMap<String, Int>>()
+
+    // (method, localIdx) -> sort
+    private val localVarToSort = mutableMapOf<EtsMethod, MutableMap<Int, USort>>()
 
     private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
         when (local) {
@@ -166,17 +177,6 @@ class TSInterpreter(
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
         val state = TSState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets))
-
-        with(ctx) {
-            val params = List(method.parameters.size) { idx ->
-                URegisterStackLValue(addressSort, idx)
-            }
-            val refs = params.map { state.memory.read(it) }
-
-            // TODO check correctness of constraints and process this instance
-            state.pathConstraints += mkAnd(refs.map { mkEq(it.asExpr(addressSort), nullRef).not() })
-        }
-
         val solver = ctx.solver<EtsType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
