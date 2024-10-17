@@ -20,7 +20,7 @@ binary ABC/HAP files.
 First of all, you need to clone the ArkAnalyzer repo. Here, we use the fork of the repo and the specific branch that is consistent with USVM internals. Note that this branch might change in the future.
 ```bash
 cd ~
-git clone -b neo/2024-10-17 https://gitee.com/Lipenx/ArkAnalyzer arkanalyzer-usvm
+git clone -b neo/2024-10-17 https://gitee.com/Lipenx/arkanalyzer arkanalyzer-usvm
 cd arkanalyzer-usvm
 ```
 
