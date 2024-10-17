@@ -19,7 +19,7 @@ object Versions {
     const val mockk = "1.13.4"
     const val rd = "2023.2.0"
     const val sarif4k = "0.5.0"
-    const val shadow = "8.1.1"
+    const val shadow = "8.3.3"
     const val slf4j = "1.6.1"
 
     // versions for jvm samples
@@ -257,9 +257,9 @@ object Plugins {
         version = Versions.rd
     )
 
-    // https://github.com/johnrengelman/shadow
+    // https://github.com/GradleUp/shadow
     object Shadow : ProjectPlugin(
-        id = "com.github.johnrengelman.shadow",
+        id = "com.gradleup.shadow",
         version = Versions.shadow
     )
 }

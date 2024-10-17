@@ -7,6 +7,7 @@ plugins {
     id("usvm.kotlin-conventions")
     kotlin("plugin.serialization") version Versions.kotlin
     application
+    id(Plugins.Shadow.id)
 }
 
 dependencies {
@@ -124,4 +125,16 @@ application {
 
 tasks.startScripts {
     applicationName = "usvm-type-infer"
+}
+
+tasks.shadowJar {
+    minimize {
+        // Note: keep 'mordant' dependency inside shadowJar, or else the following error occurs:
+        // ```
+        // Exception in thread "main" java.util.ServiceConfigurationError:
+        // com.github.ajalt.mordant.terminal.TerminalInterfaceProvider:
+        // Provider com.github.ajalt.mordant.terminal.terminalinterface.jna.TerminalInterfaceProviderJna not found
+        // ```
+        exclude(dependency("com.github.ajalt.mordant:.*:.*"))
+    }
 }
