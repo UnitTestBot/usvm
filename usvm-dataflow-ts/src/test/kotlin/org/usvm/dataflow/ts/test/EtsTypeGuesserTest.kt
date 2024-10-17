@@ -27,7 +27,7 @@ class EtsTypeResolverTest {
         }
     }
 
-    private val yourPrefixForTestFolders = "YOUR_PREFIX"
+    private val yourPrefixForTestFolders: String = error("Put your path here")
 
     @Test
     fun testLoadProject1() {
