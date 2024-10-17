@@ -77,8 +77,10 @@ class InferTypes : CliktCommand() {
 
         val project = loadEtsScene(input)
         val graph = createApplicationGraph(project)
-        val entrypoints = project.classes.asSequence().flatMap { it.methods }
-            .filter { it.isPublic }.toList()
+        val entrypoints = project.classes.asSequence()
+            .flatMap { it.methods }
+            .filter { it.isPublic }
+            .toList()
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
@@ -109,6 +111,7 @@ private fun loadEtsScene(paths: List<Path>): EtsScene {
             loadMultipleEtsFilesFromDirectory(path).asIterable()
         }
     }
+    logger.info { "Loaded ${files.size} files" }
     return EtsScene(files)
 }
 
