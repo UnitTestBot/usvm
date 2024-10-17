@@ -124,7 +124,7 @@ application {
 }
 
 tasks.startScripts {
-    applicationName = "usvm-type-infer"
+    applicationName = "usvm-type-inference"
 }
 
 tasks.shadowJar {
