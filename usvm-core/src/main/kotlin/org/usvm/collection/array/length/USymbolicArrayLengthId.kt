@@ -48,7 +48,7 @@ class UInputArrayLengthId<ArrayType, USizeSort : USort> internal constructor(
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort> =
+    override fun emptyCollection(): USymbolicCollection<UInputArrayLengthId<ArrayType, USizeSort>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun toString(): String = "length<$arrayType>()"

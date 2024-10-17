@@ -18,6 +18,7 @@ import org.usvm.api.allocateStringFromCharArray
 import org.usvm.api.allocateStringLiteral
 import org.usvm.api.charAt
 import org.usvm.api.concat
+import org.usvm.api.contentOfString
 import org.usvm.api.copyString
 import org.usvm.api.readString
 import org.usvm.api.stringLength
@@ -657,7 +658,8 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("toCharArray()[C") {
-                TODO()
+                val stringRef = it.arguments.single().asExpr(ctx.addressSort)
+                scope.calcOnState { memory.contentOfString(stringRef, charArrayType, ctx.sizeSort, ctx.charSort) }
             }
             dispatchMethod("toLowerCase()Ljava/lang/String;") {
                 val stringRef = it.arguments.single().asExpr(ctx.addressSort)

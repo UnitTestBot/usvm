@@ -74,7 +74,7 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private fun mkLValue(key: UExpr<ElementSort>): ULValue<*, UBoolSort> =
         USetEntryLValue(elementSort, sort.uctx.mkConcreteHeapRef(setAddress), key, setType, elementInfo)
 
-    override fun emptyRegion(): UAllocatedSet<SetType, ElementSort, Reg> {
+    override fun emptyCollection(): UAllocatedSet<SetType, ElementSort, Reg> {
         val updates = UTreeUpdates<UExpr<ElementSort>, Reg, UBoolSort>(
             updates = emptyRegionTree(),
             keyInfo()
@@ -150,7 +150,7 @@ class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private fun mkLValue(key: USymbolicSetElement<ElementSort>): ULValue<*, UBoolSort> =
         USetEntryLValue(elementSort, key.first, key.second, setType, elementInfo)
 
-    override fun emptyRegion(): UInputSet<SetType, ElementSort, Reg> {
+    override fun emptyCollection(): UInputSet<SetType, ElementSort, Reg> {
         val updates = UTreeUpdates<USymbolicSetElement<ElementSort>, USymbolicSetElementRegion<Reg>, UBoolSort>(
             updates = emptyRegionTree(),
             keyInfo()

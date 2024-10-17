@@ -45,7 +45,7 @@ class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> =
+    override fun emptyCollection(): USymbolicCollection<UInputMapLengthId<MapType, USizeSort>, UHeapRef, USizeSort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun toString(): String = "length<$mapType>()"

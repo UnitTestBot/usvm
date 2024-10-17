@@ -48,7 +48,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
 
     override fun keyInfo() = UHeapRefKeyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort> =
+    override fun emptyCollection(): USymbolicCollection<UInputFieldId<Field, Sort>, UHeapRef, Sort> =
         USymbolicCollection(this, UFlatUpdates(keyInfo()))
 
     override fun equals(other: Any?): Boolean {

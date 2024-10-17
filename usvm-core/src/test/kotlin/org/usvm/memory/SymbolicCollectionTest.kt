@@ -24,7 +24,7 @@ import kotlin.random.Random
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class MemoryRegionTest {
+class SymbolicCollectionTest {
     private lateinit var ctx: UContext<USizeSort>
 
     @BeforeEach
@@ -97,7 +97,7 @@ class MemoryRegionTest {
         val idx2 = mkRegisterReading(1, sizeSort)
 
         val memoryRegion = UAllocatedArrayId<_, _, USizeSort>(mockk<Type>(), sizeSort, 0)
-            .emptyRegion()
+            .emptyCollection()
             .write(idx1, mkBv(0), trueExpr)
             .write(idx2, mkBv(1), trueExpr)
 
@@ -132,8 +132,8 @@ class MemoryRegionTest {
 
         val testsCount = 100
         repeat(testsCount) {
-            var memoryRegion = UInputArrayId<_, _, USizeSort>(mockk<Type>(), addressSort)
-                .emptyRegion()
+            var collection = UInputArrayId<_, _, USizeSort>(mockk<Type>(), addressSort)
+                .emptyCollection()
 
             val writesCount = 20
             repeat(writesCount) {
@@ -141,13 +141,13 @@ class MemoryRegionTest {
                 val idx = indices.random(random)
                 val value = refs.random(random)
 
-                memoryRegion = memoryRegion.write(ref to idx, value, trueExpr)
+                collection = collection.write(ref to idx, value, trueExpr)
             }
 
             val readRef = symbolicRefs.random(random)
             val readIdx = indices.random(random)
 
-            memoryRegion.read(readRef to readIdx)
+            collection.read(readRef to readIdx)
         }
     }
 }

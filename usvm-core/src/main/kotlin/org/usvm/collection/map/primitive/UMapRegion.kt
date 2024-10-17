@@ -81,7 +81,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
     ): UAllocatedMap<MapType, KeySort, ValueSort, Reg> {
         var collection = allocatedMaps[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             allocatedMaps = allocatedMaps.put(id, collection)
         }
         return collection
@@ -101,7 +101,7 @@ internal class UMapMemoryRegion<MapType, KeySort : USort, ValueSort : USort, Reg
 
     private fun getInputMap(): UInputMap<MapType, KeySort, ValueSort, Reg> {
         if (inputMap == null)
-            inputMap = UInputMapId(keySort, valueSort, mapType, keyInfo).emptyRegion()
+            inputMap = UInputMapId(keySort, valueSort, mapType, keyInfo).emptyCollection()
         return inputMap!!
     }
 

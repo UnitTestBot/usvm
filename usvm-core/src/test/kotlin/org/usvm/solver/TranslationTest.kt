@@ -143,7 +143,7 @@ class TranslationTest {
 
 
         val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -174,7 +174,7 @@ class TranslationTest {
         val val2 = mkBv(2)
 
         val region = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -189,7 +189,7 @@ class TranslationTest {
         )
 
         val concreteRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort, concreteRef.address)
-            .emptyRegion()
+            .emptyCollection()
             .copyRange(region, adapter, trueExpr)
 
         val idx = mkRegisterReading(4, sizeSort)
@@ -226,7 +226,7 @@ class TranslationTest {
         val g3 = mkRegisterReading(-3, boolSort)
 
         val region = UInputFieldId(mockk<Field>(), bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1, mkBv(1), g1)
             .write(ref2, mkBv(2), g2)
             .write(ref3, mkBv(3), g3)
@@ -252,7 +252,7 @@ class TranslationTest {
         val ref3 = mkRegisterReading(3, addressSort)
 
         val region = UInputArrayLengthId(mockk<Field>(), bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1, mkBv(1), trueExpr)
             .write(ref2, mkBv(2), trueExpr)
             .write(ref3, mkBv(3), trueExpr)
@@ -282,7 +282,7 @@ class TranslationTest {
         val val2 = mkBv(2)
 
         val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -294,7 +294,7 @@ class TranslationTest {
             USymbolicArrayIndexKeyInfo()
         )
 
-        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort).emptyRegion()
+        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, bv32Sort).emptyCollection()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
@@ -382,7 +382,7 @@ class TranslationTest {
         val val2 = mkRegisterReading(5, addressSort)
 
         val inputRegion1 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort)
-            .emptyRegion()
+            .emptyCollection()
             .write(ref1 to idx1, val1, trueExpr)
             .write(ref2 to idx2, val2, trueExpr)
 
@@ -393,7 +393,7 @@ class TranslationTest {
             USymbolicArrayIndexKeyInfo()
         )
 
-        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort).emptyRegion()
+        var inputRegion2 = UInputArrayId<_, _, USizeSort>(valueArrayDescr, addressSort).emptyCollection()
 
         val idx = mkRegisterReading(4, sizeSort)
         val reading1 = inputRegion2.read(ref2 to idx)
@@ -423,7 +423,7 @@ class TranslationTest {
         val val2 = mkRegisterReading(5, addressSort)
 
         val allocatedRegion1 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 1)
-            .emptyRegion()
+            .emptyCollection()
             .write(idx1, val1, trueExpr)
             .write(idx2, val2, trueExpr)
 
@@ -432,7 +432,7 @@ class TranslationTest {
         )
 
         var allocatedRegion2 = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, addressSort, 2)
-            .emptyRegion()
+            .emptyCollection()
 
         val idx = mkRegisterReading(4, sizeSort)
         val readingBeforeCopy = allocatedRegion2.read(idx)
@@ -457,7 +457,7 @@ class TranslationTest {
     @Test
     fun testCachingOfTranslatedMemoryUpdates() = with(ctx) {
         val allocatedRegion = UAllocatedArrayId<_, _, USizeSort>(valueArrayDescr, sizeSort, 0)
-            .emptyRegion()
+            .emptyCollection()
             .write(mkRegisterReading(0, sizeSort), mkBv(0), trueExpr)
             .write(mkRegisterReading(1, sizeSort), mkBv(1), trueExpr)
 

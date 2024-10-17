@@ -66,7 +66,7 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
 
     override fun keyInfo(): USizeExprKeyInfo<USizeSort> = USizeExprKeyInfo()
 
-    override fun emptyRegion(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
+    override fun emptyCollection(): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
         val updates = UTreeUpdates<UExpr<USizeSort>, USizeRegion, Sort>(
             updates = emptyRegionTree(),
             keyInfo()
@@ -146,7 +146,7 @@ class UInputArrayId<ArrayType, Sort : USort, USizeSort : USort> internal constru
     private fun mkLValue(key: USymbolicArrayIndex<USizeSort>) =
         UArrayIndexLValue(sort, key.first, key.second, arrayType)
 
-    override fun emptyRegion(): USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort> {
+    override fun emptyCollection(): USymbolicCollection<UInputArrayId<ArrayType, Sort, USizeSort>, USymbolicArrayIndex<USizeSort>, Sort> {
         val updates = UTreeUpdates<USymbolicArrayIndex<USizeSort>, USymbolicArrayIndexRegion, Sort>(
             updates = emptyRegionTree(),
             keyInfo()

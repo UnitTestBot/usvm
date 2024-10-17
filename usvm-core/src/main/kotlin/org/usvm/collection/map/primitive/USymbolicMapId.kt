@@ -85,7 +85,7 @@ class UAllocatedMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<
 
     override fun keyInfo(): USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg> = keyInfo
 
-    override fun emptyRegion(): USymbolicCollection<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> {
+    override fun emptyCollection(): USymbolicCollection<UAllocatedMapId<MapType, KeySort, ValueSort, Reg>, UExpr<KeySort>, ValueSort> {
         val updates = UTreeUpdates<UExpr<KeySort>, Reg, ValueSort>(
             updates = emptyRegionTree(),
             keyInfo()
@@ -150,7 +150,7 @@ class UInputMapId<MapType, KeySort : USort, ValueSort : USort, Reg : Region<Reg>
     private fun mkLValue(key: USymbolicMapKey<KeySort>) =
         UMapEntryLValue(keySort, sort, key.first, key.second, mapType, keyInfo)
 
-    override fun emptyRegion(): USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort> {
+    override fun emptyCollection(): USymbolicCollection<UInputMapId<MapType, KeySort, ValueSort, Reg>, USymbolicMapKey<KeySort>, ValueSort> {
         val updates = UTreeUpdates<USymbolicMapKey<KeySort>, USymbolicMapKeyRegion<Reg>, ValueSort>(
             updates = emptyRegionTree(),
             keyInfo()

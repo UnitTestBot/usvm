@@ -3,21 +3,26 @@ package org.usvm.collection.string
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
+import org.usvm.UCharSort
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.array.UArrayRegion
+import org.usvm.collection.array.UArrayRegionId
 import org.usvm.isStaticHeapRef
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.USymbolicCollection
+import org.usvm.memory.UWritableMemory
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
 import org.usvm.uctx
+import org.usvm.withSizeSort
 
 data class UStringLValue(val ref: UHeapRef): ULValue<UStringLValue, UStringSort> {
     override val sort: UStringSort = ref.uctx.stringSort
@@ -73,7 +78,7 @@ internal class UStringMemoryRegion(
 
     private fun getInputString(ref: UHeapRef): UStringExpr {
         if (inputStrings == null)
-            inputStrings = UInputStringId(ref.uctx).emptyRegion()
+            inputStrings = UInputStringId(ref.uctx).emptyCollection()
         return inputStrings!!.read(ref)
     }
 
@@ -88,7 +93,7 @@ internal class UStringMemoryRegion(
     }
 
     private fun updateInputString(ref: UHeapRef, updated: UStringExpr, guard: UBoolExpr): UStringMemoryRegion {
-        val input = inputStrings ?: UInputStringId(ref.uctx).emptyRegion()
+        val input = inputStrings ?: UInputStringId(ref.uctx).emptyCollection()
         return UStringMemoryRegion(internedStrings, allocatedStrings, input.write(ref, updated, guard))
     }
 
@@ -117,4 +122,27 @@ internal class UStringMemoryRegion(
                 acc.updateAllocatedString(guardedRef.expr, value, guardedRef.guard)
         },
         blockOnSymbolic = { acc, guardedRef -> acc.updateInputString(guardedRef.expr, value, guardedRef.guard)})
+}
+
+internal fun <ArrayType, ArrayElementSort : USort, USizeSort : USort> UWritableMemory<*>.copyStringContentToArray(
+    srcString: UStringExpr,
+    dstRef: UHeapRef,
+    arrayType: ArrayType,
+    elementSort: ArrayElementSort,
+    guard: UBoolExpr,
+    converter: ((UExpr<UCharSort>) -> UExpr<ArrayElementSort>)? = null
+) {
+    val arrayRegionId = UArrayRegionId<_, _, USizeSort>(arrayType, elementSort)
+    val arrayRegion = getRegion(arrayRegionId)
+
+    check(arrayRegion is UArrayRegion<ArrayType, ArrayElementSort, USizeSort>) {
+        "Can't copy string content to $arrayRegion"
+    }
+
+    val srcCollectionId = UStringCollectionId<USizeSort>(ctx.withSizeSort(), srcString)
+    val srcCollection = srcCollectionId.emptyCollection()
+    val newArrayRegion = arrayRegion.memcpy(srcCollection, dstRef, arrayType, elementSort, guard,
+        allocatedDstAdapter = { ref -> UStringToAllocatedArrayAdapter(ref, converter) },
+        inputDstAdapter = { ref -> UStringToInputArrayAdapter(ref, converter) })
+    setRegion(arrayRegionId, newArrayRegion)
 }

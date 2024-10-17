@@ -105,7 +105,7 @@ internal class URefSetMemoryRegion<SetType>(
     ): UAllocatedRefSetWithInputElements<SetType> {
         var collection = allocatedSetWithInputElements[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             allocatedSetWithInputElements = allocatedSetWithInputElements.put(id, collection)
         }
         return collection
@@ -133,7 +133,7 @@ internal class URefSetMemoryRegion<SetType>(
     ): UInputRefSetWithAllocatedElements<SetType> {
         var collection = inputSetWithAllocatedElements[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             inputSetWithAllocatedElements = inputSetWithAllocatedElements.put(id, collection)
         }
         return collection
@@ -152,7 +152,7 @@ internal class URefSetMemoryRegion<SetType>(
 
     override fun inputSetWithInputElements(): UInputRefSetWithInputElements<SetType> {
         if (inputSetWithInputElements == null)
-            inputSetWithInputElements = UInputRefSetWithInputElementsId(setType, sort).emptyRegion()
+            inputSetWithInputElements = UInputRefSetWithInputElementsId(setType, sort).emptyCollection()
         return inputSetWithInputElements!!
     }
 

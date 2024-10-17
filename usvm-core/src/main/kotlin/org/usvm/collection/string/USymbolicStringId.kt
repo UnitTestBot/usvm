@@ -5,16 +5,12 @@ import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.USort
 import org.usvm.memory.UFlatUpdates
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.UTreeUpdates
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.regions.emptyRegionTree
 import org.usvm.uctx
-import org.usvm.withSizeSort
 
 /**
  * A collection id for a collection storing non-deterministic strings.
@@ -50,7 +46,7 @@ class UInputStringId internal constructor(ctx: UContext<*>)
     private fun mkLValue(key: UHeapRef) =
         UStringLValue(key)
 
-    override fun emptyRegion(): USymbolicCollection<UInputStringId, UHeapRef, UStringSort> {
+    override fun emptyCollection(): USymbolicCollection<UInputStringId, UHeapRef, UStringSort> {
         val updates = UFlatUpdates<UHeapRef, UStringSort>(keyInfo())
         return USymbolicCollection(this, updates)
     }

@@ -145,17 +145,38 @@ class USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort : USort, SrcSort: 
     ) = with(ctx) {
         check(dstCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $dstCollectionId" }
         check(srcCollectionId is UAllocatedArrayId<*, *, *>) { "Unexpected collection: $srcCollectionId" }
+        @Suppress("UNCHECKED_CAST")
+        srcCollectionId as USymbolicArrayId<Type, *, SrcSort, *>
+        @Suppress("UNCHECKED_CAST")
+        dstCollectionId as USymbolicArrayId<Type, *, DstSort, *>
 
-        memory.memcpy(
-            srcRef = mkConcreteHeapRef(srcCollectionId.address),
-            dstRef = mkConcreteHeapRef(dstCollectionId.address),
-            type = dstCollectionId.arrayType,
-            elementSort = dstCollectionId.sort,
-            fromSrcIdx = composer.compose(srcFrom),
-            fromDstIdx = composer.compose(dstFrom),
-            toDstIdx = composer.compose(dstTo),
-            guard = guard
-        )
+        val converter = valueConverter
+        if (converter == null) {
+            memory.memcpy(
+                srcRef = mkConcreteHeapRef(srcCollectionId.address),
+                dstRef = mkConcreteHeapRef(dstCollectionId.address),
+                type = dstCollectionId.arrayType,
+                elementSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom),
+                fromDstIdx = composer.compose(dstFrom),
+                toDstIdx = composer.compose(dstTo),
+                guard = guard
+            )
+        } else {
+            memory.convert(
+                srcType = srcCollectionId.arrayType,
+                dstType = dstCollectionId.arrayType,
+                srcRef = mkConcreteHeapRef(srcCollectionId.address),
+                dstRef = mkConcreteHeapRef(dstCollectionId.address),
+                srcSort = srcCollectionId.sort,
+                dstSort = dstCollectionId.sort,
+                fromSrcIdx = composer.compose(srcFrom),
+                fromDstIdx = composer.compose(dstFrom),
+                toDstIdx = composer.compose(dstTo),
+                guard = guard,
+                converter = converter
+            )
+        }
     }
 }
 

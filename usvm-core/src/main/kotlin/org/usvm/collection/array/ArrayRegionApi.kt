@@ -7,6 +7,8 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.memory.foldHeapRef
+import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.mkSizeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.uctx
@@ -25,11 +27,52 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.mem
     val regionId = UArrayRegionId<_, _, USizeSort>(type, elementSort)
     val region = getRegion(regionId)
 
-    check(region is UArrayRegion<ArrayType, Sort, USizeSort>) {
+    check(region is UArrayMemoryRegion<ArrayType, Sort, USizeSort>) {
         "memcpy is not applicable to $region"
     }
 
-    val newRegion = region.memcpy(srcRef, dstRef, type, elementSort, fromSrcIdx, fromDstIdx, toDstIdx, guard)
+    val newRegion = foldHeapRef(
+        ref = srcRef,
+        initial = region as UArrayRegion<ArrayType, Sort, USizeSort>,
+        initialGuard = guard,
+        blockOnConcrete = { dstReg, guardedSrcRef ->
+            val srcCollection = region.getAllocatedArray(type, elementSort, guardedSrcRef.expr.address)
+            dstReg.memcpy(srcCollection, dstRef, type, elementSort, guardedSrcRef.guard,
+                allocatedDstAdapter = {
+                    USymbolicArrayAllocatedToAllocatedCopyAdapter<USizeSort, Sort, Sort>(
+                        fromSrcIdx, fromDstIdx, toDstIdx, USizeExprKeyInfo()
+                    )
+                },
+                inputDstAdapter = { dstSymbolic ->
+                    USymbolicArrayAllocatedToInputCopyAdapter<USizeSort, Sort, Sort>(
+                        fromSrcIdx,
+                        dstSymbolic to fromDstIdx,
+                        dstSymbolic to toDstIdx,
+                        USymbolicArrayIndexKeyInfo()
+                    )
+                })
+        },
+        blockOnSymbolic = { dstReg, guardedSrcRef ->
+            val srcCollection = region.getInputArray(type, elementSort)
+            dstReg.memcpy(srcCollection, dstRef, type, elementSort, guardedSrcRef.guard,
+                allocatedDstAdapter = {
+                    USymbolicArrayInputToAllocatedCopyAdapter<USizeSort, Sort, Sort>(
+                        guardedSrcRef.expr to fromSrcIdx,
+                        fromDstIdx,
+                        toDstIdx,
+                        USizeExprKeyInfo()
+                    )
+                },
+                inputDstAdapter = { dstSymbolic ->
+                    USymbolicArrayInputToInputCopyAdapter<USizeSort, Sort, Sort>(
+                        guardedSrcRef.expr to fromSrcIdx,
+                        dstSymbolic to fromDstIdx,
+                        dstSymbolic to toDstIdx,
+                        USymbolicArrayIndexKeyInfo()
+                    )
+                })
+        },
+    )
     setRegion(regionId, newRegion)
 }
 

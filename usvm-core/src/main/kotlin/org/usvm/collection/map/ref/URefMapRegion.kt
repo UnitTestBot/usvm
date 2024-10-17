@@ -98,7 +98,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     ): UInputRefMapWithAllocatedKeys<MapType, ValueSort> {
         var collection = inputMapWithAllocatedKeys[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             inputMapWithAllocatedKeys = inputMapWithAllocatedKeys.put(id, collection)
         }
         return collection
@@ -124,7 +124,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
     ): UAllocatedRefMapWithInputKeys<MapType, ValueSort> {
         var collection = allocatedMapWithInputKeys[id]
         if (collection == null) {
-            collection = id.emptyRegion()
+            collection = id.emptyCollection()
             allocatedMapWithInputKeys = allocatedMapWithInputKeys.put(id, collection)
         }
         return collection
@@ -146,7 +146,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
         if (inputMapWithInputKeys == null)
             inputMapWithInputKeys = UInputRefMapWithInputKeysId(
                 valueSort, mapType
-            ).emptyRegion()
+            ).emptyCollection()
         return inputMapWithInputKeys!!
     }
 

@@ -1,15 +1,13 @@
 package org.usvm.samples.strings11
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.samples.approximations.ApproximationsTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import org.usvm.util.isException
 
-class SymbolicStringConcatTest : JavaMethodTestRunner() {
+class SymbolicStringConcatTest : ApproximationsTestRunner() {
     @Test
-    @Disabled("Expected exactly 1 executions, but 130 found")
     fun testConcatArguments() {
         checkDiscoveredProperties(
             StringConcat::concatArguments,
@@ -19,7 +17,6 @@ class SymbolicStringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Expected exactly 4 executions, but 26 found")
     fun testConcatWithConstants() {
         checkDiscoveredProperties(
             StringConcat::concatWithConstants,
@@ -31,7 +28,6 @@ class SymbolicStringConcatTest : JavaMethodTestRunner() {
         )
     }
 
-    @Disabled("Flickers too much with JVM 17")
     @Test
     fun testConcatWithPrimitives() {
         checkDiscoveredProperties(
@@ -42,7 +38,6 @@ class SymbolicStringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Some properties were not discovered at positions (from 0): [1]")
     fun testExceptionInToString() {
         checkDiscoveredPropertiesWithExceptions(
             StringConcat::exceptionInToString,
@@ -52,18 +47,16 @@ class SymbolicStringConcatTest : JavaMethodTestRunner() {
         )
     }
 
-    // TODO unsupported
-//    @Test
-//    fun testConcatWithField() {
-//        checkWithThis(
-//            StringConcat::concatWithField,
-//            eq(1),
-//            { _, o, a, r -> "$a${o.str}#" == r }
-//        )
-//    }
+    @Test
+    fun testConcatWithField() {
+        checkDiscoveredProperties(
+            StringConcat::concatWithField,
+            eq(1),
+            { o, a, r -> "$a${o.str}#" == r },
+        )
+    }
 
     @Test
-    @Disabled("No analysis results received")
     fun testConcatWithPrimitiveWrappers() {
         checkDiscoveredProperties(
             StringConcat::concatWithPrimitiveWrappers,
@@ -74,7 +67,6 @@ class SymbolicStringConcatTest : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("A fatal error has been detected by the Java Runtime Environment: EXCEPTION_ACCESS_VIOLATION")
     fun testSameConcat() {
         checkDiscoveredProperties(
             StringConcat::sameConcat,
