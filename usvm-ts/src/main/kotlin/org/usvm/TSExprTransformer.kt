@@ -3,9 +3,6 @@ package org.usvm
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.cast
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsType
 
 typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 
@@ -19,22 +16,17 @@ class TSExprTransformer(
 
     init {
         if (baseExpr.sort == ctx.addressSort) {
-            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it), modifyConstraints = false) }
+            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
         }
     }
 
-    fun transform(sort: USort, modifyConstraints: Boolean = true): UExpr<out USort>? = with(ctx) {
-        val (result, type) = when (sort) {
-            fp64Sort -> asFp64() to EtsNumberType
-            boolSort -> asBool() to EtsBooleanType
-            // No primitive type can be suggested from ref -- null is returned.
-            addressSort -> asRef() to null
+    fun transform(sort: USort): UExpr<out USort>? = with(ctx) {
+        return when (sort) {
+            fp64Sort -> asFp64()
+            boolSort -> asBool()
+            addressSort -> asRef()
             else -> error("Unknown sort: $sort")
         }
-
-        if (modifyConstraints && type != null) suggestType(type)
-
-        return result
     }
 
     fun intersectWithTypeCoercion(
@@ -43,7 +35,7 @@ class TSExprTransformer(
     ): UExpr<out USort> {
         intersect(other)
 
-        val rawExprs = exprCache.keys.mapNotNull { sort ->
+        val exprs = exprCache.keys.mapNotNull { sort ->
             val lhv = transform(sort)
             val rhv = other.transform(sort)
             if (lhv != null && rhv != null) {
@@ -53,9 +45,7 @@ class TSExprTransformer(
             }
         }
 
-        val innerCoercionExprs = this.generateAdditionalExprs(rawExprs) + other.generateAdditionalExprs(rawExprs)
-
-        val exprs = rawExprs + innerCoercionExprs
+        ctx.generateAdditionalExprs(exprs)
 
         return if (exprs.size > 1) {
             if (!exprs.all { it.sort == ctx.boolSort }) error("All expressions must be of bool sort.")
@@ -83,15 +73,20 @@ class TSExprTransformer(
      *
      * @return List of additional [UExpr].
      */
-    private fun generateAdditionalExprs(rawExprs: List<UExpr<out USort>>): List<UExpr<out USort>> = with(ctx) {
-        if (!rawExprs.all { it.sort == boolSort }) return emptyList()
-        val newExpr = when (baseExpr.sort) {
+    @Suppress("UNCHECKED_CAST")
+    private fun TSContext.generateAdditionalExprs(rawExprs: List<UExpr<out USort>>) {
+        if (!rawExprs.all { it.sort == boolSort }) return
+        when (baseExpr.sort) {
             // Saves link in constraints between asFp64(ref) and asBool(ref) since they were instantiated separately.
-            addressSort -> addedExprCache.putOrNull(mkEq(fpToBoolSort(asFp64()), asBool()))
-            else -> null
+            // No need to add link between ref and fp64/bool representations since refs can only be compared with refs.
+            // (primitives can't be cast to ref in TypeScript type coercion)
+            addressSort -> {
+                val fpToBoolLink = mkEq(fpToBoolSort(asFp64()), asBool())
+                val boolToRefLink =  mkEq(asBool(), (baseExpr as UExpr<UAddressSort>).neq(mkNullRef()))
+                if (addedExprCache.add(fpToBoolLink)) scope.calcOnState { pathConstraints.plusAssign(fpToBoolLink) }
+                if (addedExprCache.add(boolToRefLink)) scope.calcOnState { pathConstraints.plusAssign(boolToRefLink) }
+            }
         }
-
-        return newExpr?.let { listOf(it) }.orEmpty()
     }
 
     fun asFp64(): UExpr<KFp64Sort> = exprCache.getOrPut(ctx.fp64Sort) {
@@ -127,11 +122,6 @@ class TSExprTransformer(
             else -> null
         }
     }.cast()
-
-    private fun suggestType(type: EtsType) {
-        if (baseExpr.sort !is UAddressSort) return
-        scope.calcOnState { storeSuggestedType(baseExpr.cast(), type) }
-    }
 }
 
 /**

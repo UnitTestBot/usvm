@@ -171,9 +171,10 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.TSNumber.Double::class -> EtsNumberType
                 TSObject.TSNumber.Integer::class -> EtsNumberType
                 TSObject.UndefinedObject::class -> EtsUndefinedType
+                // TODO: EtsUnknownType is mock up here. Correct implementation required.
                 TSObject.Object::class -> EtsUnknownType
                 // For untyped tests, not to limit objects serialized from models after type coercion.
-                TSObject::class -> EtsUnknownType
+                TSObject.Unknown::class -> EtsUnknownType
                 else -> error("Should not be called")
             }
         }

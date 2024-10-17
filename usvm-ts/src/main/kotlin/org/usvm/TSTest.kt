@@ -45,4 +45,6 @@ sealed interface TSObject {
     data class Array(val values: List<TSObject>) : TSObject
 
     data class Object(val addr: Int) : TSObject
+
+    data object Unknown : TSObject
 }

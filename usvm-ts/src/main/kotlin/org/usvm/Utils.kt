@@ -21,10 +21,3 @@ fun UExpr<out USort>.extractOrThis(): UExpr<out USort> = if (this is TSWrappedVa
 fun <K, V> MutableMap<K, MutableSet<V>>.copy(): MutableMap<K, MutableSet<V>> = this.entries.associate { (k, v) ->
     k to v.toMutableSet()
 }.toMutableMap()
-
-/**
- * Puts an element in a [MutableSet].
- *
- * @return [element] if collection was modified, null otherwise.
- */
-fun <T> MutableSet<T>.putOrNull(element: T): T? = if (add(element)) element else null

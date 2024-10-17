@@ -22,6 +22,7 @@ import org.usvm.TSTest
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.extractBool
 import org.usvm.extractDouble
 import org.usvm.extractInt
@@ -30,6 +31,8 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
+import org.usvm.tctx
+import org.usvm.types.TypesResult
 import org.usvm.types.first
 
 class TSTestResolver(
@@ -77,13 +80,15 @@ class TSTestResolver(
     }
 
     private fun approximateParam(expr: UConcreteHeapRef, idx: Int, model: UModelBase<EtsType>): TSObject =
-        with(expr.ctx as TSContext) {
-            val suggestedType = state.getSuggestedType(idx)
-            return suggestedType?.let { newType ->
+        when (val tr = model.typeStreamOf(expr).take(1)) {
+            is TypesResult.SuccessfulTypesResult -> with (expr.tctx) {
+                val newType = tr.types.first()
                 val newLValue = URegisterStackLValue(typeToSort(newType), idx)
                 val transformed = model.read(newLValue).extractOrThis()
                 resolveExpr(transformed, newType, model)
-            } ?: TSObject.Object(expr.address)
+            }
+
+            else -> TSObject.Object(expr.address)
         }
 
     private fun resolveExpr(expr: UExpr<out USort>, type: EtsType, model: UModelBase<*>): TSObject {
