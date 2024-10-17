@@ -36,7 +36,7 @@ Note that after building the ArkAnalyzer project, the script for serializing Ark
 
 Now, you can run the `serializeArkIR` script on your TS project in order to construct its ArkIR representation and dump it into JSON files, which can later be used by USVM.
 ```bash
-node ~/arkanalyzer-usvm/out/save/serializeArkIR.js --help 
+node ~/arkanalyzer-usvm/out/src/save/serializeArkIR.js --help 
 ```
 ```text
 Usage: serializeArkIR [options] <input> <output>
