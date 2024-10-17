@@ -84,6 +84,7 @@ In order to run type inference on the dumped ArkIR, you need to use the USVM typ
 In order to build the binary, you need to clone the USVM repo and build the project.
 ```bash
 cd ~
+git clone -b lipen/usvm-type-inference https://github.com/UnitTestBot/jacodb
 git clone -b lipen/type-inference https://github.com/UnitTestBot/usvm
 cd usvm
 ./gradlew :usvm-dataflow-ts:installDist
