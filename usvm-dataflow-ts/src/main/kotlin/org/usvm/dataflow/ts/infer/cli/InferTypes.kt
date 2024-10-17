@@ -60,8 +60,8 @@ class InferTypes : CliktCommand() {
         }
     }
 
-    val input by option("-i", "--input", help = "Input file").path().multiple(required = true)
-    val output by option("-o", "--output", help = "Output file").path().required()
+    val input by option("-i", "--input", help = "Input file or directory with IR").path().multiple(required = true)
+    val output by option("-o", "--output", help = "Output file with inferred types in JSON format").path().required()
 
     val skipAnonymous by option(
         "--skip-anonymous",
