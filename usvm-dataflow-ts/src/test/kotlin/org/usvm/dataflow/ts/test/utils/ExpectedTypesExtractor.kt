@@ -73,10 +73,10 @@ class ClassMatcherStatistics {
     private var someFactsAboutReturnTypes: Long = 0L
     private var returnIsAnyType: Long = 0L
 
-
     // Comparison with scene before type inference
     private var exactTypeInferredPreviouslyUnknown = 0L
     private var exactTypeInferredCorrectlyPreviouslyKnown = 0L
+    private var exactTypeInferredPreviouslyWasAny = 0L
     private var exactTypeInferredIncorrectlyPreviouslyKnown = 0L
 
     private var typeInfoInferredPreviouslyUnknown = 0L
@@ -85,6 +85,7 @@ class ClassMatcherStatistics {
     private var noInfoInferredPreviouslyKnown = 0L
     private var noInfoInferredPreviouslyUnknown = 0L
 
+    private var undefinedUnknownCombination = 0L
 
     private val methodToTypes: MutableMap<EtsMethod, MutableMap<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> =
         hashMapOf()
@@ -104,12 +105,14 @@ class ClassMatcherStatistics {
         methodResults: MethodTypesFacts,
         types: MethodTypes?,
         scene: EtsScene,
-        method: EtsMethod,
-        graph: EtsApplicationGraph
+        astMethod: EtsMethod,
+        abcMethod: EtsMethod,
+        astGraph: EtsApplicationGraph,
+        abcGraph: EtsApplicationGraph,
     ) {
         methodResults.apply {
             if (combinedThisFact == null && argumentsFacts.all { it == null } && returnFact == null && localFacts.isEmpty()) {
-                saveAbsentResult(method)
+                saveAbsentResult(astMethod)
                 return
             }
         }
@@ -118,19 +121,18 @@ class ClassMatcherStatistics {
             methodResults,
             requireNotNull(types),
             scene,
-            method
+            astMethod
         )
 
-        compareWithPreviouslyContained(methodResults, method, graph)
+        compareWithPreviouslyContained(methodResults, abcMethod, abcGraph)
     }
 
     private fun compareWithPreviouslyContained(
         facts: MethodTypesFacts,
         method: EtsMethod,
-        graph: EtsApplicationGraph
+        graph: EtsApplicationGraph,
     ) {
         val thisType = getEtsClassType(method, graph)
-        val returnType = method.returnType
         val argTypes = method.parameters.map { it.type }
         val locals = method.locals
 
@@ -145,9 +147,11 @@ class ClassMatcherStatistics {
                 }
             } else {
                 when {
-                    fact.matchesWith(it) -> exactTypeInferredCorrectlyPreviouslyKnown
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> exactTypeInferredIncorrectlyPreviouslyKnown // TODO check how unknown is represented
-                    else -> typeInfoInferredPreviouslyKnownExactly
+                    fact.matchesWith(it, strictMode = true) -> exactTypeInferredCorrectlyPreviouslyKnown++
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
+                        exactTypeInferredIncorrectlyPreviouslyKnown++
+                    } // TODO check how unknown is represented
+                    else -> typeInfoInferredPreviouslyKnownExactly++
                 }
             }
         }
@@ -165,12 +169,26 @@ class ClassMatcherStatistics {
                 }
             } else {
                 when {
-                    fact.matchesWith(type) -> exactTypeInferredCorrectlyPreviouslyKnown
-                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> exactTypeInferredIncorrectlyPreviouslyKnown
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> exactTypeInferredPreviouslyUnknown
-                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown
-                    else -> typeInfoInferredPreviouslyKnownExactly
+                    fact.matchesWith(type, strictMode = true) -> {
+                        exactTypeInferredCorrectlyPreviouslyKnown++
+                    }
+
+                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
+                        exactTypeInferredPreviouslyWasAny++
+                    }
+
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> {
+                        exactTypeInferredIncorrectlyPreviouslyKnown++
+                    }
+
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
+                        exactTypeInferredPreviouslyUnknown++
+                    }
+
+                    type is EtsUnknownType && fact is EtsTypeFact.UndefinedEtsTypeFact -> undefinedUnknownCombination++
+                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown++
+                    else -> typeInfoInferredPreviouslyKnownExactly++
                 }
             }
         }
@@ -187,12 +205,26 @@ class ClassMatcherStatistics {
                 }
             } else {
                 when {
-                    fact.matchesWith(type) -> exactTypeInferredCorrectlyPreviouslyKnown
-                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> exactTypeInferredIncorrectlyPreviouslyKnown
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> exactTypeInferredPreviouslyUnknown
-                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown
-                    else -> typeInfoInferredPreviouslyKnownExactly
+                    fact.matchesWith(type, strictMode = true) -> {
+                        exactTypeInferredCorrectlyPreviouslyKnown++
+                    }
+
+                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
+                        exactTypeInferredPreviouslyWasAny++
+                    }
+
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> {
+                        exactTypeInferredIncorrectlyPreviouslyKnown++
+                    }
+
+                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
+                        exactTypeInferredPreviouslyUnknown++
+                    }
+
+                    type is EtsUnknownType && fact is EtsTypeFact.UndefinedEtsTypeFact -> undefinedUnknownCombination++
+                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown++
+                    else -> typeInfoInferredPreviouslyKnownExactly++
                 }
             }
         }
@@ -211,7 +243,7 @@ class ClassMatcherStatistics {
             method.saveComparisonInfo(AccessPathBase.This, it, facts.combinedThisFact)
 
             val thisFact = facts.combinedThisFact ?: return@let
-            if (thisFact.matchesWith(it)) {
+            if (thisFact.matchesWith(it, strictMode = false)) {
                 exactlyMatchedThisTypes++
             } else {
                 someFactsAboutThisTypes++
@@ -234,7 +266,7 @@ class ClassMatcherStatistics {
 
             if (fact == null) return@forEachIndexed
 
-            if (fact.matchesWith(type)) {
+            if (fact.matchesWith(type, strictMode = false)) {
                 exactlyMatchedArgsTypes++
             } else {
                 someFactsAboutArgsTypes++
@@ -252,7 +284,7 @@ class ClassMatcherStatistics {
             return
         }
 
-        if (inferredReturnType.matchesWith(types.returnType)) {
+        if (inferredReturnType.matchesWith(types.returnType, strictMode = false)) {
             exactlyMatchedReturnTypes++
         } else if (inferredReturnType.partialMatchedBy(types.returnType)) {
             someFactsAboutReturnTypes++
@@ -291,17 +323,20 @@ class ClassMatcherStatistics {
         Didn't find any types for ${failedMethods.size} methods
         
         
-        Compared to the first state of the state:
+        Compared to the first state of the Scene:
         
         Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown
         Inferred types that were already inferred: $exactTypeInferredCorrectlyPreviouslyKnown
-        Mistakenly inferred types: $exactTypeInferredIncorrectlyPreviouslyKnown
+        Inferred types that were previously inferred as any: $exactTypeInferredPreviouslyWasAny
+        Inferred types are different from the ones in the Scene: $exactTypeInferredIncorrectlyPreviouslyKnown
 
         Some facts found about unknown type: $typeInfoInferredPreviouslyUnknown 
         Some facts found about already inferred type: $typeInfoInferredPreviouslyKnownExactly
 
         Lost info about type: $noInfoInferredPreviouslyKnown
         Nothing inferred, but it was unknown previously as well: $noInfoInferredPreviouslyUnknown 
+        
+        Was unknown, became undefined: $undefinedUnknownCombination
     
     """.trimIndent()
 
@@ -396,16 +431,16 @@ data class MethodTypes(
         if (thisType == null && other.combinedThisFact != null) return false
 
         if (thisType != null && other.combinedThisFact != null) {
-            if (!other.combinedThisFact.matchesWith(thisType)) return false
+            if (!other.combinedThisFact.matchesWith(thisType, strictMode = false)) return false
         }
 
         for ((i, fact) in other.argumentsFacts.withIndex()) {
-            if (!fact.matchesWith(argumentsTypes[i])) return false
+            if (!fact.matchesWith(argumentsTypes[i], strictMode = false)) return false
         }
 
         if (ignoreReturnType) return true
 
-        return other.returnFact.matchesWith(returnType)
+        return other.returnFact.matchesWith(returnType, strictMode = false)
     }
 }
 
@@ -443,7 +478,7 @@ data class MethodTypesFacts(
     }
 }
 
-private fun EtsTypeFact?.matchesWith(type: EtsType): Boolean {
+private fun EtsTypeFact?.matchesWith(type: EtsType, strictMode: Boolean): Boolean {
     val result = when (this) {
         null, EtsTypeFact.AnyEtsTypeFact -> {
             // TODO any other combination?
@@ -454,7 +489,7 @@ private fun EtsTypeFact?.matchesWith(type: EtsType): Boolean {
             // TODO it should be replaced with signatures
             val typeName = this.cls?.typeName
 
-            if (type is EtsUnknownType || type is EtsAnyType) {
+            if ((type is EtsUnknownType || type is EtsAnyType) && !strictMode) {
                 this.cls != null
             } else {
                 (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
@@ -462,7 +497,7 @@ private fun EtsTypeFact?.matchesWith(type: EtsType): Boolean {
         }
 
         is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
-            is EtsArrayType -> this.elementType.matchesWith(type.elementType)
+            is EtsArrayType -> this.elementType.matchesWith(type.elementType, strictMode)
 
             is EtsUnclearRefType -> {
                 val elementType = this.elementType as? EtsTypeFact.ObjectEtsTypeFact
@@ -474,25 +509,25 @@ private fun EtsTypeFact?.matchesWith(type: EtsType): Boolean {
 
         EtsTypeFact.BooleanEtsTypeFact -> {
             type is EtsBooleanType
-                    || type is EtsUnknownType
-                    || (type as? EtsClassType)?.typeName == "Boolean"
-                    || (type as? EtsUnclearRefType)?.typeName == "Boolean"
+                || (type is EtsUnknownType && !strictMode)
+                || (type as? EtsClassType)?.typeName == "Boolean"
+                || (type as? EtsUnclearRefType)?.typeName == "Boolean"
         }
 
-        EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType || type is EtsUnknownType
-        EtsTypeFact.NullEtsTypeFact -> type is EtsNullType || type is EtsUnknownType
+        EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType || (type is EtsUnknownType && !strictMode)
+        EtsTypeFact.NullEtsTypeFact -> type is EtsNullType || (type is EtsUnknownType && !strictMode)
         EtsTypeFact.NumberEtsTypeFact -> {
             type is EtsNumberType
-                    || type is EtsUnknownType
-                    || (type as? EtsClassType)?.typeName == "Number"
-                    || (type as? EtsUnclearRefType)?.typeName == "Number"
+                || (type is EtsUnknownType && !strictMode)
+                || (type as? EtsClassType)?.typeName == "Number"
+                || (type as? EtsUnclearRefType)?.typeName == "Number"
         }
 
         EtsTypeFact.StringEtsTypeFact -> {
             type is EtsStringType
-                    || type is EtsUnknownType
-                    || (type as? EtsClassType)?.typeName == "String"
-                    || (type as? EtsUnclearRefType)?.typeName == "String"
+                || (type is EtsUnknownType && !strictMode)
+                || (type as? EtsClassType)?.typeName == "String"
+                || (type as? EtsUnclearRefType)?.typeName == "String"
         }
 
         EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType
@@ -503,8 +538,10 @@ private fun EtsTypeFact?.matchesWith(type: EtsType): Boolean {
             false
         }
 
-        is EtsTypeFact.UnionEtsTypeFact -> types.any {
-            it.matchesWith(type)
+        is EtsTypeFact.UnionEtsTypeFact -> if (strictMode) {
+            types.all { it.matchesWith(type, strictMode) }
+        } else {
+            types.any { it.matchesWith(type, strictMode) }
         }
     }
 
