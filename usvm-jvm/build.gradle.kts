@@ -116,7 +116,6 @@ tasks.withType<Test> {
     environment("usvm.jvm.test.samples.approximations", testSamplesWithApproximations.asPath)
 }
 
-
 tasks {
     register<Jar>("testJar") {
         group = "jar"
