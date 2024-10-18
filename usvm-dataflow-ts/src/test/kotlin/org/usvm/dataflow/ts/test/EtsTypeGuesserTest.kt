@@ -258,10 +258,6 @@ class EtsTypeResolverTest {
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-        classMatcherStatistics.verify(actualTypes, expectedTypes, project, entrypoint)
-        println(classMatcherStatistics)
     }
 
     @Test
@@ -404,38 +400,15 @@ class EtsTypeResolverTest {
 
     private fun saveTypeInferenceComparison(
         methodsToFindFactsFor: List<EtsMethod>,
-        graphAst: EtsApplicationGraph,
+        graph: EtsApplicationGraph,
         result: TypeInferenceResult,
         classMatcherStatistics: ClassMatcherStatistics,
-        abcScene: EtsScene,
+        scene: EtsScene,
     ) {
         methodsToFindFactsFor.forEach { m ->
-            val inferredReturnType = result.inferredReturnType.entries.firstOrNull {
-                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
-
-            }?.value
-            val combinedThisFact = result.inferredCombinedThisType.entries.firstOrNull {
-                it.key.name == m.enclosingClass.name
-            }?.value
-
-            val factsForMethod = result.inferredTypes.entries.singleOrNull {
-                // TODO hack because of signatures
-                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
-            }?.value
-
-            if (factsForMethod == null && inferredReturnType == null && combinedThisFact == null) {
-                classMatcherStatistics.saveAbsentResult(m)
-                return@forEach
-            }
-
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(m)
-            val actualTypes = MethodTypesFacts.from(
-                factsForMethod.orEmpty(),
-                inferredReturnType,
-                combinedThisFact,
-                m
-            )
-            classMatcherStatistics.verify(actualTypes, expectedTypes, abcScene, m)
+            val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(m)
+            val actualTypes = MethodTypesFacts.from(result, m)
+            classMatcherStatistics.calculateStats(actualTypes, expectedTypes, scene, m, graph)
         }
     }
 
