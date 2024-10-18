@@ -171,7 +171,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     symbolicMapper = { symbolicKey ->
                         val id = allocatedMapWithInputKeyId(concreteRef.address)
                         getAllocatedMapWithInputKeys(id).read(symbolicKey)
-                    }
+                    }, ignoreNullRefs = false
                 )
             },
             symbolicMapper = { symbolicRef ->
@@ -182,7 +182,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     },
                     symbolicMapper = { symbolicKey ->
                         getInputMapWithInputKeys().read(symbolicRef to symbolicKey)
-                    }
+                    }, ignoreNullRefs = false
                 )
             }
         )
@@ -212,7 +212,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     val newMap = region.getAllocatedMapWithInputKeys(id)
                         .write(symbolicKeyRef, value, guard)
                     region.updateAllocatedMapWithInputKeys(id, newMap)
-                }
+                }, ignoreNullRefs = false
             )
         },
         blockOnSymbolic = { mapRegion, (symbolicMapRef, mapGuard) ->
@@ -230,9 +230,9 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     val newMap = region.getInputMapWithInputKeys()
                         .write(symbolicMapRef to symbolicKeyRef, value, guard)
                     region.updateInputMapWithInputKeys(newMap)
-                }
+                }, ignoreNullRefs = false
             )
-        }
+        }, ignoreNullRefs = false
     )
 
     /**
@@ -351,7 +351,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
             val adapter = UInputToInputSymbolicRefMapMergeAdapter(srcSymbolic, dstSymbolic, srcKeys)
             val updatedDstCollection = dstInputKeysCollection.copyRange(srcInputKeysCollection, adapter, guard)
             updatedRegion.updateInputMapWithInputKeys(updatedDstCollection)
-        },
+        }, ignoreNullRefs = false
     )
 
     private inline fun <R, DstKeyId> mergeInputMapAllocatedKeys(

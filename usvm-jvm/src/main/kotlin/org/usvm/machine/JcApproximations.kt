@@ -2,9 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
-import org.jacodb.api.jvm.JcArrayType
-import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.*
 import org.jacodb.api.jvm.ext.boolean
 import org.jacodb.api.jvm.ext.byte
 import org.jacodb.api.jvm.ext.char
@@ -26,10 +24,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
-import org.usvm.api.Engine
-import org.usvm.api.SymbolicIdentityMap
-import org.usvm.api.SymbolicList
-import org.usvm.api.SymbolicMap
+import org.usvm.api.*
 import org.usvm.api.collection.ListCollectionApi.ensureListSizeCorrect
 import org.usvm.api.collection.ListCollectionApi.mkSymbolicList
 import org.usvm.api.collection.ListCollectionApi.symbolicListCopyRange
@@ -47,12 +42,6 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.makeSymbolicRef
-import org.usvm.api.makeSymbolicRefWithSameType
-import org.usvm.api.mapTypeStream
-import org.usvm.api.memcpy
-import org.usvm.api.objectTypeEquals
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.interpreter.JcExprResolver
@@ -70,7 +59,6 @@ import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.jvm.javaMethod
-import org.usvm.api.makeNullableSymbolicRefWithSameType
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
@@ -88,6 +76,12 @@ class JcMethodApproximationResolver(
     private val usvmApiSymbolicList by lazy { ctx.cp.findClassOrNull<SymbolicList<*>>() }
     private val usvmApiSymbolicMap by lazy { ctx.cp.findClassOrNull<SymbolicMap<*, *>>() }
     private val usvmApiSymbolicIdentityMap by lazy { ctx.cp.findClassOrNull<SymbolicIdentityMap<*, *>>() }
+
+    @Suppress("RecursivePropertyAccessor")
+    private val JcClassType.allFields: List<JcTypedField>
+        get() = declaredFields + (superType?.allFields ?: emptyList())
+    val JcClassType.allInstanceFields: List<JcTypedField>
+        get() = allFields.filter { !it.isStatic }
 
     fun approximate(scope: JcStepScope, exprResolver: JcExprResolver, callJcInst: JcMethodCall): Boolean = try {
         this.currentScope = scope
@@ -142,7 +136,7 @@ class JcMethodApproximationResolver(
         }
 
         if (method.name == "clone" && enclosingClass == ctx.cp.objectClass) {
-            if (approximateArrayClone(methodCall)) return true
+            if (approximateObjectClone(methodCall)) return true
         }
 
         return approximateEmptyNativeMethod(methodCall)
@@ -357,18 +351,41 @@ class JcMethodApproximationResolver(
         scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
     }
 
-    private fun approximateArrayClone(methodCall: JcMethodCall): Boolean {
+    private fun approximateObjectClone(methodCall: JcMethodCall): Boolean {
         val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
-
-        val arrayType = scope.calcOnState {
-            memory.types.getTypeStream(instance).commonSuperType
-        }
-        if (arrayType !is JcArrayType) {
-            return false
+        val type = scope.calcOnState { memory.types.getTypeStream(instance).commonSuperType }
+        if (type is JcArrayType) {
+            exprResolver.resolveArrayClone(methodCall, instance, type)
+            return true
         }
 
-        exprResolver.resolveArrayClone(methodCall, instance, arrayType)
-        return true
+        if (methodCall is JcConcreteMethodCallInst) {
+            type as JcClassType
+            exprResolver.resolveObjectClone(methodCall, instance, type)
+            return true
+        }
+
+        return false
+    }
+
+    private fun JcExprResolver.resolveObjectClone(
+        methodCall: JcMethodCall,
+        instance: UHeapRef,
+        type: JcClassType,
+    ) = with(ctx) {
+        scope.doWithState {
+            checkNullPointer(instance) ?: return@doWithState
+
+            val clonedRef = memory.allocHeapRef(type, useStaticAddress = useStaticAddressForAllocation())
+            for (field in type.allInstanceFields) {
+                val fieldSort = ctx.typeToSort(field.type)
+                val jcField = field.field
+                val fieldValue = memory.readField(instance, jcField, fieldSort)
+                memory.writeField(clonedRef, jcField, fieldSort, fieldValue, ctx.trueExpr)
+            }
+
+            skipMethodInvocationWithValue(methodCall, clonedRef)
+        }
     }
 
     private fun JcExprResolver.resolveArrayClone(
