@@ -14,6 +14,7 @@ import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.memset
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
 import org.usvm.mkSizeExpr
@@ -25,6 +26,7 @@ import kotlin.test.assertTrue
 
 class HeapMemsetTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var heap: UMemory<Type, Any>
     private lateinit var arrayType: Type
     private lateinit var arrayValueSort: UAddressSort
@@ -34,10 +36,11 @@ class HeapMemsetTest {
         val components: UComponents<Type, USizeSort> = mockk()
         every { components.mkTypeSystem(any()) } returns mockk()
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        val eqConstraints = UEqualityConstraints(ctx)
-        val typeConstraints = UTypeConstraints(components.mkTypeSystem(ctx), eqConstraints)
-        heap = UMemory(ctx, typeConstraints)
+        val eqConstraints = UEqualityConstraints(ctx, ownership)
+        val typeConstraints = UTypeConstraints(ownership, components.mkTypeSystem(ctx), eqConstraints)
+        heap = UMemory(ctx, ownership, typeConstraints)
         arrayType = mockk<Type>()
         arrayValueSort = ctx.addressSort
     }

@@ -1,12 +1,12 @@
 # API between patched CPython and USVM
 
-Current CPython patch: https://github.com/tochilinak/cpython/pull/3/files.
+Current CPython patch: https://github.com/tochilinak/cpython/pull/4/files.
 
 ## SymbolicAdapter
 
 All interaction between CPython and USVM is done through structure `SymbolicAdapter`.
 
-Header: [`symbolicadapter.h`](https://github.com/tochilinak/cpython/blob/wrapper-v2/Include/symbolicadapter.h).
+Header: [`symbolicadapter.h`](https://github.com/tochilinak/cpython/blob/wrapper-3.11.9/Include/symbolicadapter.h).
 
 Creation of symbolic adapter:
 ```c

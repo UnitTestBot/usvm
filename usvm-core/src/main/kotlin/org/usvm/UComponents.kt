@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.model.UModelDecoder
@@ -34,8 +35,8 @@ interface UComponents<Type, USizeSort : USort> {
 
     fun <Context : UContext<USizeSort>> mkComposer(
         ctx: Context,
-    ): (UReadOnlyMemory<Type>) -> UComposer<Type, USizeSort> =
-        { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) }
+    ): (UReadOnlyMemory<Type>, MutabilityOwnership) -> UComposer<Type, USizeSort> =
+        { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) }
 
     fun mkStatesForkProvider(): StateForker = if (useSolverForForks) WithSolverStateForker else NoSolverStateForker
 

@@ -10,6 +10,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UMockEvaluator
 import org.usvm.USort
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -37,9 +38,10 @@ open class UModelBase<Type>(
     override val mocker: UMockEvaluator,
     val regions: Map<UMemoryRegionId<*, *>, UReadOnlyMemoryRegion<*, *>>,
     val nullRef: UConcreteHeapRef,
+    override val ownership: MutabilityOwnership = MutabilityOwnership(),
 ) : UModel, UWritableMemory<Type> {
     @Suppress("LeakingThis")
-    protected open val composer = ctx.composer(this)
+    protected open val composer = ctx.composer(this, ownership)
 
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
@@ -61,7 +63,7 @@ open class UModelBase<Type>(
 
     override fun nullRef(): UHeapRef = nullRef
 
-    override fun toWritableMemory(): UWritableMemory<Type> = this
+    override fun toWritableMemory(ownership: MutabilityOwnership): UWritableMemory<Type> = this
 
     override fun <Key, Sort : USort> setRegion(
         regionId: UMemoryRegionId<Key, Sort>,

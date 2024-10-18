@@ -1,25 +1,29 @@
 package org.usvm.constraints
 
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentHashSetOf
-import kotlinx.collections.immutable.persistentSetOf
+import io.ksmt.expr.KExpr
+import org.usvm.collections.immutable.persistentHashSetOf
 import org.usvm.UBoolExpr
+import org.usvm.UBoolSort
 import org.usvm.UContext
 import org.usvm.algorithms.separate
+import org.usvm.collections.immutable.containsAll
+import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
 import org.usvm.isFalse
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
+import org.usvm.merging.UOwnedMergeable
 
 class ULogicalConstraints private constructor(
-    private var constraints: PersistentSet<UBoolExpr>,
-) : Set<UBoolExpr>, UMergeable<ULogicalConstraints, MutableMergeGuard> {
-    operator fun plusAssign(expr: UBoolExpr) {
-        constraints = constraints.add(expr)
+    private var constraints: UPersistentHashSet<UBoolExpr>,
+) : Set<UBoolExpr>, UOwnedMergeable<ULogicalConstraints, MutableMergeGuard> {
+    fun add(expr: UBoolExpr, ownership: MutabilityOwnership) {
+        constraints = constraints.add(expr, ownership)
     }
 
     fun clone(): ULogicalConstraints = ULogicalConstraints(constraints)
     override val size: Int
-        get() = constraints.size
+        get() = constraints.calculateSize()
 
     override fun isEmpty(): Boolean = constraints.isEmpty()
 
@@ -32,8 +36,8 @@ class ULogicalConstraints private constructor(
     val isContradicting: Boolean
         get() = constraints.any(UBoolExpr::isFalse)
 
-    fun contradiction(ctx: UContext<*>) {
-        constraints = persistentHashSetOf(ctx.falseExpr)
+    fun contradiction(ctx: UContext<*>, ownership: MutabilityOwnership) {
+        constraints = persistentHashSetOf<UBoolExpr>().add(ctx.falseExpr, ownership)
     }
 
     /**
@@ -43,8 +47,14 @@ class ULogicalConstraints private constructor(
      *
      * @return the logical constraints.
      */
-    override fun mergeWith(other: ULogicalConstraints, by: MutableMergeGuard): ULogicalConstraints {
-        val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints)
+    override fun mergeWith(
+        other: ULogicalConstraints,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): ULogicalConstraints {
+        val (overlap, uniqueThis, uniqueOther) = constraints.separate(other.constraints, mergedOwnership)
         by.appendThis(uniqueThis.asSequence())
         by.appendOther(uniqueOther.asSequence())
         return ULogicalConstraints(overlap)

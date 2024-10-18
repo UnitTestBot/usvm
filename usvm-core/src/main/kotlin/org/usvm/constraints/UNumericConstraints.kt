@@ -25,17 +25,19 @@ import io.ksmt.utils.BvUtils.signedLess
 import io.ksmt.utils.BvUtils.signedLessOrEqual
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentHashMapOf
-import kotlinx.collections.immutable.persistentHashSetOf
 import org.usvm.UBoolExpr
 import org.usvm.UBvSort
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.algorithms.UPersistentMultiMap
+import org.usvm.algorithms.addToSet
+import org.usvm.algorithms.removeValue
 import org.usvm.algorithms.separate
+import org.usvm.collections.immutable.*
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
+import org.usvm.merging.UOwnedMergeable
 import org.usvm.regions.IntIntervalsRegion
 import org.usvm.solver.UExprTranslator
 
@@ -60,13 +62,21 @@ private typealias ConstraintTerms<Sort> = UExpr<Sort>
 class UNumericConstraints<Sort : UBvSort> private constructor(
     private val ctx: UContext<*>,
     val sort: Sort,
-    persistentNumericConstraints: PersistentMap<ConstraintTerms<Sort>, Constraint<Sort>>,
-    persistentConstraintWatchList: PersistentMap<ConstraintTerms<Sort>, PersistentSet<ConstraintTerms<Sort>>>,
-) : UMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
-    constructor(ctx: UContext<*>, sort: Sort) : this(ctx, sort, persistentHashMapOf(), persistentHashMapOf())
+    private var ownership: MutabilityOwnership,
+    private var numericConstraints: UPersistentHashMap<ConstraintTerms<Sort>, Constraint<Sort>>,
+    private var constraintWatchList: UPersistentMultiMap<ConstraintTerms<Sort>, ConstraintTerms<Sort>>,
+) : UOwnedMergeable<UNumericConstraints<Sort>, MutableMergeGuard> {
+    constructor(ctx: UContext<*>, sort: Sort, ownership: MutabilityOwnership) : this(
+        ctx,
+        sort,
+        ownership,
+        persistentHashMapOf(),
+        persistentHashMapOf()
+    )
 
-    private val numericConstraints = persistentNumericConstraints.builder()
-    private val constraintWatchList = persistentConstraintWatchList.builder()
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     private val constraintPropagationQueue = arrayListOf<ConstraintUpdateEvent<Sort>>()
 
@@ -104,7 +114,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             return sequenceOf(ctx.falseExpr)
         }
 
-        return numericConstraints.entries.asSequence()
+        return numericConstraints.asSequence()
             .flatMap { it.value.mkExpressions() }
     }
 
@@ -269,14 +279,13 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
 
     private val KBitVecValue<Sort>.intValue: Int get() = (this as KBitVec32Value).intValue
 
-    fun clone(): UNumericConstraints<Sort> {
+    fun clone(thisOwnership: MutabilityOwnership, cloneOwnership: MutabilityOwnership): UNumericConstraints<Sort> {
         if (this.isContradicting) {
             return this
         }
 
-        return UNumericConstraints(
-            ctx, sort, numericConstraints.build(), constraintWatchList.build()
-        )
+        this.ownership = thisOwnership
+        return UNumericConstraints(ctx, sort, cloneOwnership, numericConstraints, constraintWatchList)
     }
 
     private fun constraintUpdated(update: ConstraintUpdateEvent<Sort>) {
@@ -352,7 +361,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     )
 
     private fun updateConstraint(constraint: Constraint<Sort>) {
-        numericConstraints[constraint.constrainedTerms] = constraint
+        numericConstraints = numericConstraints.put(constraint.constrainedTerms, constraint, ownership)
     }
 
     private fun constraintAddDependency(terms: ConstraintTerms<Sort>, dependency: ConstraintTerms<Sort>) {
@@ -370,12 +379,12 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         }
 
         val currentWatchList = watchList ?: persistentHashSetOf()
-        val updatedWatchList = currentWatchList.add(terms)
+        val updatedWatchList = currentWatchList.add(terms, ownership)
         if (updatedWatchList === watchList) {
             return
         }
 
-        constraintWatchList[dependency] = updatedWatchList
+        constraintWatchList = constraintWatchList.put(dependency, updatedWatchList, ownership)
     }
 
     private fun propagateConstraints() {
@@ -934,7 +943,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         val current = concreteLowerBounds[bias]
         if (current != null && current.value.signedGreaterOrEqual(bound)) return this
         val isPrimary = current?.isPrimary ?: false
-        return modifyConcreteLowerBounds(bias, ValueConstraint(bound, isPrimary))
+        return modifyConcreteLowerBounds(bias, ValueConstraint(bound, isPrimary), ownership)
     }
 
     private fun BoundsConstraint<Sort>.refineUpperBound(
@@ -944,7 +953,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         val current = concreteUpperBounds[bias]
         if (current != null && current.value.signedLessOrEqual(bound)) return this
         val isPrimary = current?.isPrimary ?: false
-        return modifyConcreteUpperBounds(bias, ValueConstraint(bound, isPrimary))
+        return modifyConcreteUpperBounds(bias, ValueConstraint(bound, isPrimary), ownership)
     }
 
     private fun BoundsConstraint<Sort>.updateConcreteLowerBound(
@@ -967,7 +976,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             // Replace with primary constraint. Constraint value remains unchanged
             if (it.value == value) {
                 return if (isPrimary && !it.isPrimary) {
-                    modifyConcreteLowerBounds(bias, ValueConstraint(value, isPrimary = true))
+                    modifyConcreteLowerBounds(bias, ValueConstraint(value, isPrimary = true), ownership)
                 } else {
                     this
                 }
@@ -997,7 +1006,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             // Replace with primary constraint. Constraint value remains unchanged
             if (it.value == value) {
                 return if (isPrimary && !it.isPrimary) {
-                    modifyConcreteUpperBounds(bias, ValueConstraint(value, isPrimary = true))
+                    modifyConcreteUpperBounds(bias, ValueConstraint(value, isPrimary = true), ownership)
                 } else {
                     this
                 }
@@ -1035,7 +1044,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             return this
         }
 
-        return modifyConcreteDisequalitites(bias, ValueConstraint(value, isPrimary))
+        return modifyConcreteDisequalitites(bias, ValueConstraint(value, isPrimary), ownership)
     }
 
     private fun BoundsConstraint<Sort>.excludedPoints(
@@ -1148,7 +1157,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         }
 
         val constraint = TermsConstraint(rhs.constrainedTerms, rhsBias, isStrict = true)
-        val modifiedDiseq = termDisequalities.addTermConstraint(lhsBias, constraint)
+        val modifiedDiseq = termDisequalities.addTermConstraint(lhsBias, constraint, ownership)
         return modifyTermDisequalities(modifiedDiseq)
     }
 
@@ -1160,17 +1169,17 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         var updatedReplacement = replacement
 
         // this + bias >= bound <=> replacement + (bias - replacementBias) >= bound
-        updatedReplacement = concreteLowerBounds.entries.fold(updatedReplacement) { result, (bias, bound) ->
+        updatedReplacement = concreteLowerBounds.fold(updatedReplacement) { result, (bias, bound) ->
             result.addConcreteLowerBound(sub(bias, replacementBias), bound.value, bound.isPrimary)
         }
 
         // this + bias <= bound <=> replacement + (bias - replacementBias) <= bound
-        updatedReplacement = concreteUpperBounds.entries.fold(updatedReplacement) { result, (bias, bound) ->
+        updatedReplacement = concreteUpperBounds.fold(updatedReplacement) { result, (bias, bound) ->
             result.addConcreteUpperBound(sub(bias, replacementBias), bound.value, bound.isPrimary)
         }
 
         // this + bias != bound <=> replacement + (bias - replacementBias) != bound
-        updatedReplacement = concreteDisequalitites.entries.fold(updatedReplacement) { result, (bias, bound) ->
+        updatedReplacement = concreteDisequalitites.fold(updatedReplacement) { result, (bias, bound) ->
             result.addConcreteDisequality(sub(bias, replacementBias), bound.value, bound.isPrimary)
         }
 
@@ -1195,7 +1204,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         updateConstraint(updatedReplacement)
 
         val dependencies = constraintWatchList[constrainedTerms]
-        dependencies?.forEach { dependentTerms ->
+        // toList fixes [dependencies] because it can be mutated in foreach body
+        dependencies?.toList()?.forEach { dependentTerms ->
             withConstraint(
                 terms = dependentTerms,
                 bounds = { dependencyConstraint, _ ->
@@ -1276,7 +1286,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         )
 
         val dependencies = constraintWatchList[constrainedTerms]
-        dependencies?.forEach { dependentTerms ->
+        // toList fixes [dependencies] because it can be mutated in foreach body
+        dependencies?.toList()?.forEach { dependentTerms ->
             withConstraint(
                 terms = dependentTerms,
                 bounds = { dependencyConstraint, _ ->
@@ -1387,9 +1398,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             Boolean,
         ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
-        var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms))
-
-        val constraints = bounds.termDependency[terms] ?: emptySet()
+        val constraints = bounds.termDependency.getOrDefault(terms, persistentHashSetOf())
+        var result = initialConstraint
         for (constraint in constraints) {
             val biasedConstraint = add(termsValue, constraint.bias)
             val biases = bounds.termConstraints[constraint] ?: continue
@@ -1400,6 +1410,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
+        result = updateBounds(result, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 
@@ -1418,10 +1429,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             Boolean,
         ) -> BoundsConstraint<Sort>,
     ): BoundsConstraint<Sort> {
-        var result = updateBounds(initialConstraint, bounds.dropTermsConstraints(terms))
-
-        val constraints = bounds.termDependency[terms] ?: emptySet()
-        for (constraint in constraints) {
+        val constraints = bounds.termDependency.getOrDefault(terms, persistentHashSetOf())
+        var result = initialConstraint
+        for (constraint in constraints.toList()) {
             val biases = bounds.termConstraints[constraint] ?: continue
             for (bias in biases) {
                 // this + bias (op) terms + constraint.bias && terms = replacement + replacementBias
@@ -1434,6 +1444,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             }
         }
 
+        result = updateBounds(result, bounds.dropTermsConstraints(terms, ownership))
         return result
     }
 
@@ -1451,7 +1462,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ): BoundsConstraint<Sort> {
         var result = target
 
-        for ((constraint, biases) in bounds.termConstraints) {
+        for ((constraint, biases) in bounds.termConstraints.toList()) {
             // this + bias (op) constraint <=> target + (bias - targetBias) (op) constraint
             for (bias in biases) {
                 result = addConstraint(
@@ -1471,7 +1482,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             BoundsConstraint<Sort>, KBitVecValue<Sort>, KBitVecValue<Sort>, Boolean,
         ) -> BoundsConstraint<Sort>,
     ) {
-        for ((constraint, biases) in bounds.termConstraints) {
+        for ((constraint, biases) in bounds.termConstraints.toList()) {
             withConstraint(
                 terms = constraint.terms,
                 bounds = { boundsConstraint, initialConstraintBias ->
@@ -1555,7 +1566,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             boundsConstraint.inferredTermLowerBounds.findBiasesWithConstraint(constraint)
         },
         removeConstraintForBias = { bc, biasToRemove ->
-            val modifiedBounds = bc.inferredTermLowerBounds.removeTermConstraint(biasToRemove, constraint)
+            val modifiedBounds = bc.inferredTermLowerBounds.removeTermConstraint(biasToRemove, constraint, ownership)
             bc.modifyTermLowerBounds(modifiedBounds)
         },
         removeOppositeConstraintForBias = { bc, biasToRemove ->
@@ -1564,7 +1575,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 biasToRemove,
                 constraint.isStrict
             )
-            bc.removeTermUpperBound(constraint.bias, oppositeConstraint)
+            bc.removeTermUpperBound(constraint.bias, oppositeConstraint, ownership)
         },
         cont = { cont(it) }
     )
@@ -1610,7 +1621,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             boundsConstraint.termUpperBounds.findBiasesWithConstraint(constraint)
         },
         removeConstraintForBias = { bc, biasToRemove ->
-            val modifiedBounds = bc.termUpperBounds.removeTermConstraint(biasToRemove, constraint)
+            val modifiedBounds = bc.termUpperBounds.removeTermConstraint(biasToRemove, constraint, ownership)
             bc.modifyTermUpperBounds(modifiedBounds)
         },
         removeOppositeConstraintForBias = { bc, biasToRemove ->
@@ -1619,7 +1630,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 biasToRemove,
                 constraint.isStrict
             )
-            bc.removeTermLowerBound(constraint.bias, oppositeConstraint)
+            bc.removeTermLowerBound(constraint.bias, oppositeConstraint, ownership)
         },
         cont = { cont(it) }
     )
@@ -1640,7 +1651,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 .mapNotNull { (bias, c) -> bias.takeIf { c == constraint } }
         },
         removeConstraintForBias = { bc, biasToRemove ->
-            bc.removeConcreteUpperBound(biasToRemove)
+            bc.removeConcreteUpperBound(biasToRemove, ownership)
         },
         removeOppositeConstraintForBias = { bc, _ -> bc },
         cont = { cont(it) }
@@ -1662,7 +1673,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
                 .mapNotNull { (bias, c) -> bias.takeIf { c == constraint } }
         },
         removeConstraintForBias = { bc, biasToRemove ->
-            bc.removeConcreteLowerBound(biasToRemove)
+            bc.removeConcreteLowerBound(biasToRemove, ownership)
         },
         removeOppositeConstraintForBias = { bc, _ -> bc },
         cont = { cont(it) }
@@ -1757,7 +1768,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ): BoundsConstraint<Sort> =
         eliminateTermLowerBound(this, bias, rhs, constraint, rhsLB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
-            val updatedBounds = boundsConstraint.inferredTermLowerBounds.addTermConstraint(bias, constraint)
+            val updatedBounds = boundsConstraint.inferredTermLowerBounds.addTermConstraint(bias, constraint, ownership)
             val result = boundsConstraint.modifyTermLowerBounds(updatedBounds)
             postProcessConstraint(result)
         }
@@ -1771,7 +1782,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ): BoundsConstraint<Sort> =
         eliminateTermUpperBound(this, bias, rhs, constraint, rhsUB) { boundsConstraint ->
             constraintAddDependency(boundsConstraint.constrainedTerms, constraint.terms)
-            val updatedBounds = boundsConstraint.termUpperBounds.addTermConstraint(bias, constraint)
+            val updatedBounds = boundsConstraint.termUpperBounds.addTermConstraint(bias, constraint, ownership)
             val result = boundsConstraint.modifyTermUpperBounds(updatedBounds)
             postProcessConstraint(result)
         }
@@ -1784,7 +1795,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ) { boundsConstraint ->
         constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.UPPER))
         return boundsConstraint
-            .modifyConcreteUpperBounds(bias, constraint)
+            .modifyConcreteUpperBounds(bias, constraint, ownership)
             .refineGroundConstraint(bias)
     }
 
@@ -1796,7 +1807,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     ) { boundsConstraint ->
         constraintUpdated(ConstraintUpdateEvent(constrainedTerms, bias, BoundsUpdateKind.LOWER))
         return boundsConstraint
-            .modifyConcreteLowerBounds(bias, constraint)
+            .modifyConcreteLowerBounds(bias, constraint, ownership)
             .refineGroundConstraint(bias)
     }
 
@@ -1940,9 +1951,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      * */
     class BoundsConstraint<Sort : UBvSort>(
         constrainedTerms: ConstraintTerms<Sort>,
-        val concreteLowerBounds: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
-        val concreteUpperBounds: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
-        val concreteDisequalitites: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
+        val concreteLowerBounds: UPersistentHashMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
+        val concreteUpperBounds: UPersistentHashMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
+        val concreteDisequalitites: UPersistentHashMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
         val inferredTermLowerBounds: TermConstraintSet<Sort>,
         val termUpperBounds: TermConstraintSet<Sort>,
         val termDisequalities: TermConstraintSet<Sort>,
@@ -1958,9 +1969,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         )
 
         fun size(): Int =
-            inferredTermLowerBounds.termConstraints.size +
-                termUpperBounds.termConstraints.size +
-                termDisequalities.termConstraints.size
+            inferredTermLowerBounds.size +
+                termUpperBounds.size +
+                termDisequalities.size
 
         fun lowerBound(bias: KBitVecValue<Sort>): ValueConstraint<Sort>? =
             concreteLowerBounds[bias]
@@ -1971,8 +1982,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         fun modifyConcreteLowerBounds(
             bias: KBitVecValue<Sort>,
             bound: ValueConstraint<Sort>,
+            ownership: MutabilityOwnership,
         ): BoundsConstraint<Sort> {
-            val modified = concreteLowerBounds.put(bias, bound)
+            val modified = concreteLowerBounds.put(bias, bound, ownership)
             if (modified === this.concreteLowerBounds) {
                 return this
             }
@@ -1986,8 +1998,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         fun modifyConcreteUpperBounds(
             bias: KBitVecValue<Sort>,
             bound: ValueConstraint<Sort>,
+            ownership: MutabilityOwnership,
         ): BoundsConstraint<Sort> {
-            val modified = concreteUpperBounds.put(bias, bound)
+            val modified = concreteUpperBounds.put(bias, bound, ownership)
             if (modified === this.concreteUpperBounds) {
                 return this
             }
@@ -1998,8 +2011,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             )
         }
 
-        fun removeConcreteUpperBound(bias: KBitVecValue<Sort>): BoundsConstraint<Sort> {
-            val modified = concreteUpperBounds.remove(bias)
+        fun removeConcreteUpperBound(bias: KBitVecValue<Sort>, ownership: MutabilityOwnership): BoundsConstraint<Sort> {
+            val modified = concreteUpperBounds.remove(bias, ownership)
             if (modified === this.concreteUpperBounds) {
                 return this
             }
@@ -2010,8 +2023,8 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             )
         }
 
-        fun removeConcreteLowerBound(bias: KBitVecValue<Sort>): BoundsConstraint<Sort> {
-            val modified = concreteLowerBounds.remove(bias)
+        fun removeConcreteLowerBound(bias: KBitVecValue<Sort>, ownership: MutabilityOwnership): BoundsConstraint<Sort> {
+            val modified = concreteLowerBounds.remove(bias, ownership)
             if (modified === this.concreteLowerBounds) {
                 return this
             }
@@ -2025,8 +2038,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         fun modifyConcreteDisequalitites(
             bias: KBitVecValue<Sort>,
             bound: ValueConstraint<Sort>,
+            ownership: MutabilityOwnership,
         ): BoundsConstraint<Sort> {
-            val modified = concreteDisequalitites.put(bias, bound)
+            val modified = concreteDisequalitites.put(bias, bound, ownership)
             if (modified === this.concreteDisequalitites) {
                 return this
             }
@@ -2070,13 +2084,21 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             )
         }
 
-        fun removeTermLowerBound(bias: KBitVecValue<Sort>, constraint: TermsConstraint<Sort>): BoundsConstraint<Sort> {
-            val updatedBounds = inferredTermLowerBounds.removeTermConstraint(bias, constraint)
+        fun removeTermLowerBound(
+            bias: KBitVecValue<Sort>,
+            constraint: TermsConstraint<Sort>,
+            ownership: MutabilityOwnership,
+        ): BoundsConstraint<Sort> {
+            val updatedBounds = inferredTermLowerBounds.removeTermConstraint(bias, constraint, ownership)
             return modifyTermLowerBounds(updatedBounds)
         }
 
-        fun removeTermUpperBound(bias: KBitVecValue<Sort>, constraint: TermsConstraint<Sort>): BoundsConstraint<Sort> {
-            val updatedBounds = termUpperBounds.removeTermConstraint(bias, constraint)
+        fun removeTermUpperBound(
+            bias: KBitVecValue<Sort>,
+            constraint: TermsConstraint<Sort>,
+            ownership: MutabilityOwnership,
+        ): BoundsConstraint<Sort> {
+            val updatedBounds = termUpperBounds.removeTermConstraint(bias, constraint, ownership)
             return modifyTermUpperBounds(updatedBounds)
         }
 
@@ -2117,7 +2139,7 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         }
 
         private inline fun <T> mapPrimaryConcrete(
-            concrete: PersistentMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
+            concrete: UPersistentHashMap<KBitVecValue<Sort>, ValueConstraint<Sort>>,
             crossinline body: (KBitVecValue<Sort>, UExpr<Sort>) -> T,
         ): Sequence<T> =
             concrete.asSequence().mapNotNull { (bias, constraint) ->
@@ -2163,14 +2185,20 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
     }
 
     class TermConstraintSet<Sort : UBvSort>(
-        val termConstraints: PersistentMap<TermsConstraint<Sort>, PersistentSet<KBitVecValue<Sort>>>,
-        val termDependency: PersistentMap<ConstraintTerms<Sort>, PersistentSet<TermsConstraint<Sort>>>,
+        val termConstraints: UPersistentMultiMap<TermsConstraint<Sort>, KBitVecValue<Sort>>,
+        val termDependency: UPersistentMultiMap<ConstraintTerms<Sort>, TermsConstraint<Sort>>,
+        val size: Int
     ) {
-        constructor() : this(persistentHashMapOf(), persistentHashMapOf())
+        constructor() : this(persistentHashMapOf(), persistentHashMapOf(), 0)
 
-        fun addTermConstraint(bias: KBitVecValue<Sort>, constraint: TermsConstraint<Sort>): TermConstraintSet<Sort> {
-            val constraints = termConstraints[constraint] ?: persistentHashSetOf()
-            val updatedConstraints = constraints.add(bias)
+        fun addTermConstraint(
+            bias: KBitVecValue<Sort>,
+            constraint: TermsConstraint<Sort>,
+            ownership: MutabilityOwnership,
+        ): TermConstraintSet<Sort> {
+            var newSize = size
+            val constraints = termConstraints[constraint].also { if (it == null) newSize++ } ?: persistentHashSetOf()
+            val updatedConstraints = constraints.add(bias, ownership)
             if (updatedConstraints === constraints) {
                 return this
             }
@@ -2178,56 +2206,57 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
             val updatedTermDependency = if (constraints.isNotEmpty()) {
                 termDependency
             } else {
-                val dependency = termDependency[constraint.terms] ?: persistentHashSetOf()
-                val updatedDependency = dependency.add(constraint)
-                termDependency.put(constraint.terms, updatedDependency)
+                termDependency.addToSet(constraint.terms, constraint, ownership)
             }
 
             return TermConstraintSet(
-                termConstraints.put(constraint, updatedConstraints),
-                updatedTermDependency
+                termConstraints.put(constraint, updatedConstraints, ownership),
+                updatedTermDependency,
+                newSize
             )
         }
 
-        fun removeTermConstraint(bias: KBitVecValue<Sort>, constraint: TermsConstraint<Sort>): TermConstraintSet<Sort> {
+        fun removeTermConstraint(
+            bias: KBitVecValue<Sort>,
+            constraint: TermsConstraint<Sort>,
+            ownership: MutabilityOwnership,
+        ): TermConstraintSet<Sort> {
             val constraints = termConstraints[constraint] ?: return this
-            val updatedConstraints = constraints.remove(bias)
+            val updatedConstraints = constraints.remove(bias, ownership)
             if (updatedConstraints === constraints) {
                 return this
             }
 
             if (updatedConstraints.isEmpty()) {
-                val dependency = termDependency[constraint.terms] ?: persistentHashSetOf()
-                val updatedDependency = dependency.remove(constraint)
-                val updatedTermDependency = if (updatedDependency.isEmpty()) {
-                    termDependency.remove(constraint.terms)
-                } else {
-                    termDependency.put(constraint.terms, updatedDependency)
-                }
-
                 return TermConstraintSet(
-                    termConstraints.remove(constraint),
-                    updatedTermDependency
+                    termConstraints.remove(constraint, ownership),
+                    termDependency.removeValue(constraint.terms, constraint, ownership),
+                    size - 1
                 )
             }
 
             return TermConstraintSet(
-                termConstraints.put(constraint, updatedConstraints),
-                termDependency
+                termConstraints.put(constraint, updatedConstraints, ownership),
+                termDependency,
+                size
             )
         }
 
-        fun dropTermsConstraints(terms: ConstraintTerms<Sort>): TermConstraintSet<Sort> {
+        fun dropTermsConstraints(terms: ConstraintTerms<Sort>, ownership: MutabilityOwnership): TermConstraintSet<Sort> {
             val constraints = termDependency[terms] ?: return this
 
             var updatedConstraints = termConstraints
+            var updatedSize = size
             for (constraint in constraints) {
-                updatedConstraints = updatedConstraints.remove(constraint)
+                val (newUpdatedConstraints, hasChanged) = updatedConstraints.removeWithChangeInfo(constraint, ownership)
+                updatedConstraints = newUpdatedConstraints
+                if (hasChanged) updatedSize--
             }
 
             return TermConstraintSet(
                 updatedConstraints,
-                termDependency.remove(terms)
+                termDependency.remove(terms, ownership),
+                updatedSize
             )
         }
 
@@ -2414,17 +2443,25 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
      *
      * @return the numeric constraints.
      */
-    override fun mergeWith(other: UNumericConstraints<Sort>, by: MutableMergeGuard): UNumericConstraints<Sort> {
-        val (overlap, thisUnique, otherUnique) = this.numericConstraints.build()
-            .separate(other.numericConstraints.build())
+    override fun mergeWith(
+        other: UNumericConstraints<Sort>,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership,
+    ): UNumericConstraints<Sort> {
+        val (overlap, thisUnique, otherUnique) = this.numericConstraints
+            .separate(other.numericConstraints, mergedOwnership)
 
-        for (constraint in thisUnique.values) {
-            by.appendThis(constraint.mkExpressions())
+        for (entry in thisUnique) {
+            by.appendThis(entry.value.mkExpressions())
         }
-        for (constraint in otherUnique.values) {
-            by.appendOther(constraint.mkExpressions())
+        for (entry in otherUnique) {
+            by.appendOther(entry.value.mkExpressions())
         }
 
-        return UNumericConstraints(ctx, sort, overlap, constraintWatchList.build())
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
+        return UNumericConstraints(ctx, sort, mergedOwnership, overlap, constraintWatchList)
     }
 }

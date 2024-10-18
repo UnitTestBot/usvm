@@ -10,6 +10,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UTransformer
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.machine.interpreter.statics.JcStaticFieldLValue
 import org.usvm.machine.interpreter.statics.JcStaticFieldReading
 import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
@@ -27,7 +28,8 @@ interface JcTransformer : UTransformer<JcType, USizeSort> {
 class JcComposer(
     ctx: UContext<USizeSort>,
     memory: UReadOnlyMemory<JcType>,
-) : UComposer<JcType, USizeSort>(ctx, memory), JcTransformer {
+    ownership: MutabilityOwnership,
+) : UComposer<JcType, USizeSort>(ctx, memory, ownership), JcTransformer {
     override fun <Sort : USort> transform(expr: JcStaticFieldReading<Sort>): UExpr<Sort> =
         memory.read(JcStaticFieldLValue(expr.field, expr.sort))
 }

@@ -162,7 +162,22 @@ object ConcretePythonInterpreter {
     }
 
     fun allocateVirtualObject(virtualObject: VirtualPythonObject): PyObject {
-        val ref = pythonAdapter.allocateVirtualObject(virtualObject)
+        /*
+         * Usage example:
+         * pythonAdapter.allocateRawVirtualObject(virtualObject, mask), where
+         * Mask is a sequence of bits, written in the reverse order and
+         * packed into a ByteArray
+         * (ABCDEFGHIJ -> {000000JI, HGFEDCBA})
+         * So, THE LAST bit in the ByteArray (A) enables THE FIRST slot from the list.
+         *
+         * pythonAdapter.allocateRawVirtualObjectWithAllSlots(object) does exactly the same as
+         * pythonAdapter.allocateRawVirtualObject(virtualObject, List(12) {0b11111111.toByte()}.toByteArray())
+         *
+         * In order to manually enable/disable some slots, use swapSlotBit or setSlotBit:
+         * pythonAdapter.allocateRawVirtualObject(obj, obj.slotMask.swapSlotBit(SlotId.NbAdd))
+         * pythonAdapter.allocateRawVirtualObject(obj, obj.slotMask.setSlotBit(SlotId.NbAdd, false))
+         */
+        val ref = pythonAdapter.allocateRawVirtualObject(virtualObject, virtualObject.slotMask)
         if (ref == 0L) {
             throw CPythonExecutionException()
         }
