@@ -116,8 +116,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
             indexedInvariants.forEach { (invariantIndex, invariant) ->
                 val result = invokeFunction(invariant, params)
-                if (!result)
-                    tmpViolatedInvariants += invariantIndex
+                if (!result) tmpViolatedInvariants += invariantIndex
             }
 
             if (tmpViolatedInvariants.isNotEmpty()) {

@@ -807,7 +807,7 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
         timeout = 60_000.milliseconds,
-        stepsFromLastCovered = 10000L,
+        stepsFromLastCovered = 3500L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
