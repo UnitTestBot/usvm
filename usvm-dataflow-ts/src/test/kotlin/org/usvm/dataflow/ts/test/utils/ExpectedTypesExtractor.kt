@@ -325,7 +325,7 @@ class ClassMatcherStatistics {
         
         Compared to the first state of the Scene:
         
-        Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown
+        Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown (${(exactTypeInferredPreviouslyUnknown.toDouble() / (typeInfoInferredPreviouslyKnownExactly + exactTypeInferredCorrectlyPreviouslyKnown + noInfoInferredPreviouslyKnown)) * 100}% improvement)
         Inferred types that were already inferred: $exactTypeInferredCorrectlyPreviouslyKnown
         Inferred types that were previously inferred as any: $exactTypeInferredPreviouslyWasAny
         Inferred types are different from the ones in the Scene: $exactTypeInferredIncorrectlyPreviouslyKnown
@@ -482,7 +482,7 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, strictMode: Boolean): Boolea
     val result = when (this) {
         null, EtsTypeFact.AnyEtsTypeFact -> {
             // TODO any other combination?
-            type is EtsAnyType || type is EtsUnknownType
+            type is EtsAnyType || (!strictMode && type is EtsUnknownType)
         }
 
         is EtsTypeFact.ObjectEtsTypeFact -> {
