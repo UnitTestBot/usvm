@@ -45,6 +45,7 @@ import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.annotation.EtsTypeAnnotator
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toType
 import org.usvm.dataflow.ts.util.CONSTRUCTOR
@@ -227,7 +228,7 @@ class EtsTypeInferenceTest {
         processAllHAPs(haps)
     }
 
-    private val TEST_PROJECTS_PATH = "/TestProjects/"
+    private val TEST_PROJECTS_PATH = "/projects/abcir/"
     private fun testProjectsAvailable() = resourceAvailable(TEST_PROJECTS_PATH)
 
     @Test
@@ -239,7 +240,8 @@ class EtsTypeInferenceTest {
         val abcDirName = "/TestProjects/CertificateManager_240801_843398b"
         val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
             ?: error("Resource not found: $abcDirName")
-        val result = testHap(projectDir.toString())
+        val (scene, result) = testHap(projectDir.toString())
+        val scene2 = EtsTypeAnnotator(scene, result).run { scene.annotateWithTypes() }
     }
 
     private fun processAllHAPs(haps: Collection<File>) {
@@ -290,7 +292,7 @@ class EtsTypeInferenceTest {
         }
     }
 
-    private fun testHap(projectDir: String): TypeInferenceResult {
+    private fun testHap(projectDir: String): Pair<EtsScene, TypeInferenceResult> {
         val dir = File(projectDir).takeIf { it.isDirectory } ?: error("Not found project dir $projectDir")
         println("Found project dir: '$dir'")
 
@@ -321,7 +323,7 @@ class EtsTypeInferenceTest {
             TypeInferenceManager(graph)
         }
         val result = manager.analyze(entrypoints)
-        return result
+        return Pair(project, result)
     }
 
     @Test
