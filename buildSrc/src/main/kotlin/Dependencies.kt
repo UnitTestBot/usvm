@@ -13,7 +13,7 @@ object Versions {
     const val kotlinx_collections = "0.3.5"
     const val kotlinx_coroutines = "1.6.4"
     const val kotlinx_serialization = "1.4.1"
-    const val ksmt = "0.5.21"
+    const val ksmt = "0.5.26"
     const val logback = "1.4.8"
     const val mockk = "1.13.4"
     const val rd = "2023.2.0"
