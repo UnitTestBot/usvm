@@ -36,6 +36,7 @@ import org.usvm.collection.string.mkStringExprFromCharArray
 import org.usvm.collection.string.repeat
 import org.usvm.collection.string.reverse
 import org.usvm.collection.string.stringCmp
+import org.usvm.collection.string.stringEq
 import org.usvm.collection.string.stringToLower
 import org.usvm.collection.string.stringToUpper
 import org.usvm.getIntValue
@@ -295,6 +296,13 @@ fun <USizeSort : USort> UReadOnlyMemory<*>.stringHashCode(ref: UHeapRef): UExpr<
 //        }
 //    }
 //}
+
+fun UReadOnlyMemory<*>.stringEq(left: UHeapRef, right: UHeapRef): UBoolExpr =
+    mapString(left) { leftStr ->
+        mapString(right) { rightStr ->
+            stringEq(leftStr, rightStr)
+        }
+    }
 
 fun UReadOnlyMemory<*>.stringLt(left: UHeapRef, right: UHeapRef): UBoolExpr =
     mapString(left) { leftStr ->

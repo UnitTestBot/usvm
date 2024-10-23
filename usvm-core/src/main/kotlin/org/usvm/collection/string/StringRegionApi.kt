@@ -468,6 +468,9 @@ private fun mkSymbolicStringCmp(left: UStringExpr, right: UStringExpr, isStrict:
     else
         left.uctx.mkStringLeExpr(left, right)
 
+internal fun stringEq(left: UStringExpr, right: UStringExpr) =
+    left.uctx.mkEq(left, right)
+
 /**
  * Returns "[left] lexicographically less than [right]". If [isStrict] is false, then "less or equal".
  */
