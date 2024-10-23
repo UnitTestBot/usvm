@@ -178,7 +178,8 @@ internal class URefSetMemoryRegion<SetType>(
                     { symbolicElem ->
                         val id = allocatedSetWithInputElementsId(concreteRef.address)
                         getAllocatedSetWithInputElements(id).read(symbolicElem)
-                    }
+                    },
+                    ignoreNullRefs = false
                 )
             },
             { symbolicRef ->
@@ -189,7 +190,8 @@ internal class URefSetMemoryRegion<SetType>(
                     },
                     { symbolicElem ->
                         inputSetWithInputElements().read(symbolicRef to symbolicElem)
-                    }
+                    },
+                    ignoreNullRefs = false
                 )
             }
         )
@@ -220,8 +222,7 @@ internal class URefSetMemoryRegion<SetType>(
                     val newMap = region.getAllocatedSetWithInputElements(id)
                         .write(symbolicElemRef, value, guard, ownership)
                     region.updateAllocatedSetWithInputElements(id, newMap, ownership)
-                }
-            )
+                }, ignoreNullRefs = false)
         },
         blockOnSymbolic = { setRegion, (symbolicSetRef, setGuard) ->
             foldHeapRefWithStaticAsSymbolic(
@@ -238,9 +239,9 @@ internal class URefSetMemoryRegion<SetType>(
                     val newMap = region.inputSetWithInputElements()
                         .write(symbolicSetRef to symbolicElemRef, value, guard, ownership)
                     region.updateInputSetWithInputElements(newMap)
-                }
+                }, ignoreNullRefs = false
             )
-        }
+        }, ignoreNullRefs = false
     )
 
     override fun union(
@@ -337,7 +338,7 @@ internal class URefSetMemoryRegion<SetType>(
             val adapter = UInputToInputSymbolicRefSetUnionAdapter(srcSymbolic, dstSymbolic, srcCollection)
             val updated = dstCollection.copyRange(srcCollection, adapter, guard)
             updatedRegion.updateInputSetWithInputElements(updated)
-        },
+        }, ignoreNullRefs = false
     )
 
     private inline fun <R, DstKeyId> unionInputSetAllocatedElements(
@@ -427,6 +428,6 @@ internal class URefSetMemoryRegion<SetType>(
                 entries.markAsInput()
 
                 entries
-            }
+            }, ignoreNullRefs = false
         )
 }
