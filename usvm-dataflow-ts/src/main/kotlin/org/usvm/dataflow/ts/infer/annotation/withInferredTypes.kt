@@ -28,36 +28,45 @@ data class EtsTypeAnnotator(
 
     private fun combinedThisFor(method: EtsMethod) = typeInferenceResult.inferredCombinedThisType[method.enclosingClass]
     
-    fun EtsScene.annotateWithTypes() = EtsScene(
-        files = files.map { it.annotateWithTypes() }
-    )
+    fun annotateWithTypes(etsScene: EtsScene) = with(etsScene) {
+        EtsScene(
+            files = files.map { annotateWithTypes(it) }
+        )
+    }
 
-    fun EtsFile.annotateWithTypes() = EtsFile(
-        signature = signature,
-        classes = classes.map { it.annotateWithTypes() },
-        namespaces = namespaces
-    )
+    fun annotateWithTypes(etsFile: EtsFile) = with(etsFile) {
+        EtsFile(
+            signature = signature,
+            classes = classes.map { annotateWithTypes(it) },
+            namespaces = namespaces
+        )
+    }
 
-    fun EtsClass.annotateWithTypes() = EtsClassImpl(
-        signature = signature,
-        fields = fields,
-        methods = methods.map { it.annotateWithTypes() },
-        ctor = ctor.annotateWithTypes(),
-        superClass = superClass // TODO: replace with inferred superclass
-    )
+    fun annotateWithTypes(etsClass: EtsClass) = with(etsClass) {
+        EtsClassImpl(
+            signature = signature,
+            fields = fields,
+            methods = methods.map { annotateWithTypes(it) },
+            ctor = annotateWithTypes(ctor),
+            superClass = superClass // TODO: replace with inferred superclass
+        )
+    }
 
-    fun EtsMethod.annotateWithTypes() = EtsModifiedMethod(
-        signature = signature,
-        locals = locals,
-        cfg = cfg.annotateWithTypes(selectTypesFor(this), combinedThisFor(this)),
-        modifiers = modifiers
-    )
+    fun annotateWithTypes(method: EtsMethod) = with(method) {
+        EtsModifiedMethod(
+            signature = signature,
+            locals = locals,
+            cfg = annotateWithTypes(cfg, selectTypesFor(this), combinedThisFor(this)),
+            modifiers = modifiers
+        )
+    }
 
-    fun EtsCfg.annotateWithTypes(types: Map<AccessPathBase, EtsTypeFact>, thisType: EtsTypeFact?) =
+    fun annotateWithTypes(cfg: EtsCfg, types: Map<AccessPathBase, EtsTypeFact>, thisType: EtsTypeFact?) = with(cfg) {
         with(StmtTypeAnnotator(types, thisType, scene)) {
             EtsCfg(
                 stmts = stmts.map { it.accept(this) },
                 successorMap = stmts.associateWith { successors(it).toList() }
             )
         }
+    }
 }
