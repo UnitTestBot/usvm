@@ -152,7 +152,7 @@ class JcInterpreter(
     override fun step(state: JcState): StepResult<JcState> {
         val stmt = state.lastStmt
 
-        logger.debug("Step: {}", stmt)
+        logger.trace("Step: {}", stmt)
 
         val scope = StepScope(state, forkBlackList)
 

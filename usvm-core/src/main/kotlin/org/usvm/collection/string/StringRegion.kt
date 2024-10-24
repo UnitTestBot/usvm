@@ -1,5 +1,7 @@
 package org.usvm.collection.string
 
+import io.ksmt.expr.KExpr
+import io.ksmt.sort.KBoolSort
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
@@ -16,11 +18,15 @@ import org.usvm.isStaticHeapRef
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.foldHeapRef
 import org.usvm.memory.guardedWrite
 import org.usvm.memory.map
+import org.usvm.model.UModelEvaluator
+import org.usvm.model.modelEnsureConcreteInputRef
+import org.usvm.solver.URegionDecoder
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
@@ -145,4 +151,43 @@ internal fun <ArrayType, ArrayElementSort : USort, USizeSort : USort> UWritableM
         allocatedDstAdapter = { ref -> UStringToAllocatedArrayAdapter(ref, converter) },
         inputDstAdapter = { ref -> UStringToInputArrayAdapter(ref, converter) })
     setRegion(arrayRegionId, newArrayRegion)
+}
+
+/**
+ * Works in two states: completing and non-completing. State can be switched by [setCompletion] method.
+ * - In completing state, refs without explicit interpretation are mapped to empty string.
+ *   For example, if region does not give an explicit interpretation for s, then
+ *   UStringRepeatExpr(s, x) will be evaluated to empty string.
+ * - In non-completing state, returns symbolic strings. This is done to obtain partial string evaluation in model.
+ *   For example, if we have UStringRepeatExpr(s, x) and x = 5 in model, then evaluation in this model
+ *   in pending state will give UStringRepeatExpr(s, x), without completing s to empty string.
+ */
+class UStringModelRegion(val regionId: UStringRegionId) : UReadOnlyMemoryRegion<UStringLValue, UStringSort> {
+    private var strings: MutableMap<UConcreteHeapAddress, UStringLiteralExpr> = mutableMapOf()
+    private var isCompleting = false
+
+
+    internal fun setCompletion(complete: Boolean) {
+        isCompleting = complete
+    }
+
+    internal fun add(mapping: Map<UConcreteHeapAddress, UStringLiteralExpr>) {
+        strings.putAll(mapping)
+    }
+
+    override fun read(key: UStringLValue): UExpr<UStringSort> {
+        val strings = this.strings
+        val ref = modelEnsureConcreteInputRef(key.ref)
+        return strings[ref.address] ?:
+            if (isCompleting) regionId.ctx.mkEmptyString()
+            else regionId.ctx.mkStringFromLanguage(key.ref)
+    }
+
+    val isEmpty: Boolean
+        get() = strings.isEmpty()
+}
+
+class UStringModelRegionDecoder(val regionId: UStringRegionId): URegionDecoder<UStringLValue, UStringSort> {
+    override fun decodeLazyRegion(model: UModelEvaluator<*>, assertions: List<KExpr<KBoolSort>>) =
+        UStringModelRegion(regionId)
 }

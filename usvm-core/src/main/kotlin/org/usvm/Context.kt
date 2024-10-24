@@ -3,6 +3,8 @@ package org.usvm
 import io.ksmt.KAst
 import io.ksmt.KContext
 import io.ksmt.expr.KExpr
+import io.ksmt.expr.KFp32Value
+import io.ksmt.expr.KFp64Value
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBvSort
 import io.ksmt.sort.KFpSort
@@ -709,3 +711,10 @@ fun <BvSort: UBvSort> UExpr<BvSort>.mkNarrow(sizeBits: Int, signed: Boolean): UE
         ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, this)
     }
 }
+
+fun <UFloatSort: UFpSort> getFloatValue(value: UExpr<UFloatSort>): Number? =
+    when (value) {
+        is KFp32Value -> value.value
+        is KFp64Value -> value.value
+        else -> null
+    }

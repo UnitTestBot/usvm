@@ -5,6 +5,7 @@ import io.ksmt.expr.KExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFpSort
 import io.ksmt.utils.mkConst
+import io.ksmt.utils.mkFreshConst
 import io.ksmt.utils.uncheckedCast
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
@@ -12,6 +13,7 @@ import org.usvm.UBoolSort
 import org.usvm.UCharSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UEqExpr
 import org.usvm.UExpr
 import org.usvm.UExprTransformer
 import org.usvm.UHeapRef
@@ -84,6 +86,8 @@ import org.usvm.collection.string.UStringLeExpr
 import org.usvm.collection.string.UStringLengthExpr
 import org.usvm.collection.string.UStringLiteralExpr
 import org.usvm.collection.string.UStringLtExpr
+import org.usvm.collection.string.UStringModelRegionDecoder
+import org.usvm.collection.string.UStringRegionId
 import org.usvm.collection.string.UStringRepeatExpr
 import org.usvm.collection.string.UStringReplaceAllExpr
 import org.usvm.collection.string.UStringReplaceFirstExpr
@@ -133,6 +137,7 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }
 
     private val _declToIsExpr = mutableMapOf<KDecl<UBoolSort>, UIsExpr<Type>>()
+
     // TODO: use weak references here?
     private val _declToBoolStringExpr = mutableMapOf<KDecl<UBoolSort>, UBoolExpr>()
     private val _declToCharStringExpr = mutableMapOf<KDecl<UCharSort>, UCharExpr>()
@@ -160,6 +165,13 @@ open class UExprTranslator<Type, USizeSort : USort>(
         // we need to track declarations to pass them to the type solver in the DPLL(T) procedure
         _declToIsExpr[const.decl] = expr
         return const
+    }
+
+    override fun <Sort: USort> transform(expr: UEqExpr<Sort>): UBoolExpr {
+        if (expr.lhs.sort == ctx.stringSort) {
+            return abstractStringExpression(expr, "stringEq", _declToBoolStringExpr)
+        }
+        return super.transform(expr)
     }
 
     override fun transform(expr: UInputArrayLengthReading<Type, USizeSort>): KExpr<USizeSort> =
@@ -358,8 +370,14 @@ open class UExprTranslator<Type, USizeSort : USort>(
     }.uncheckedCast()
 
 
-    private fun <Sort: USort> abstractExpression(expr: UExpr<Sort>, name: String, cache: MutableMap<KDecl<Sort>, UExpr<Sort>>): UExpr<Sort> {
-        val const = expr.sort.mkConst("$name#${cache.size}")
+    private fun <Sort : USort> abstractStringExpression(
+        expr: UExpr<Sort>,
+        name: String,
+        cache: MutableMap<KDecl<Sort>, UExpr<Sort>>
+    ): UExpr<Sort> {
+        val regionId = UStringRegionId(ctx)
+        regionIdToDecoder.getOrPut(regionId) { UStringModelRegionDecoder(regionId) }
+        val const = expr.sort.mkFreshConst(name)
         cache[const.decl] = expr
         return const
     }
@@ -383,16 +401,16 @@ open class UExprTranslator<Type, USizeSort : USort>(
         error("This should not be called")
 
     override fun transform(expr: UStringLtExpr): UBoolExpr =
-        abstractExpression(expr, "stringLt", _declToBoolStringExpr)
+        abstractStringExpression(expr, "stringLt", _declToBoolStringExpr)
 
     override fun transform(expr: UStringLeExpr): UBoolExpr =
-        abstractExpression(expr, "stringLe", _declToBoolStringExpr)
+        abstractStringExpression(expr, "stringLe", _declToBoolStringExpr)
 
     override fun <UFloatSort : KFpSort> transform(expr: UStringFromFloatExpr<UFloatSort>): UStringExpr =
         error("This should not be called")
 
     override fun <UFloatSort : KFpSort> transform(expr: UFloatFromStringExpr<UFloatSort>): UExpr<UFloatSort> =
-        abstractExpression(expr, "floatFromString", _declToFloatStringExpr.uncheckedCast())
+        abstractStringExpression(expr, "floatFromString", _declToFloatStringExpr.uncheckedCast())
 
     override fun transform(expr: UStringToUpperExpr): UStringExpr =
         error("This should not be called")
@@ -401,16 +419,16 @@ open class UExprTranslator<Type, USizeSort : USort>(
         error("This should not be called")
 
     override fun transform(expr: UCharToUpperExpr): UCharExpr =
-        abstractExpression(expr, "charToUpper", _declToCharStringExpr)
+        abstractStringExpression(expr, "charToUpper", _declToCharStringExpr)
 
     override fun transform(expr: UCharToLowerExpr): UCharExpr =
-        abstractExpression(expr, "charToLower", _declToCharStringExpr)
+        abstractStringExpression(expr, "charToLower", _declToCharStringExpr)
 
     override fun transform(expr: UStringReverseExpr): UStringExpr =
         error("This should not be called")
 
     override fun transform(expr: URegexMatchesExpr): UBoolExpr =
-        abstractExpression(expr, "regexMatches", _declToBoolStringExpr)
+        abstractStringExpression(expr, "regexMatches", _declToBoolStringExpr)
 
     override fun transform(expr: UStringReplaceFirstExpr): UStringExpr =
         error("This should not be called")
@@ -425,13 +443,13 @@ open class UExprTranslator<Type, USizeSort : USort>(
         error("This should not be called")
 
     override fun transform(expr: UStringIndexOfExpr<USizeSort>): UExpr<USizeSort> =
-        abstractExpression(expr, "indexOf", _declToIntStringExpr)
+        abstractStringExpression(expr, "indexOf", _declToIntStringExpr)
 
     override fun transform(expr: UStringRepeatExpr<USizeSort>): UStringExpr =
         error("This should not be called")
 
     override fun transform(expr: UIntFromStringExpr<USizeSort>): UExpr<USizeSort> =
-        abstractExpression(expr, "intFromString", _declToIntStringExpr)
+        abstractStringExpression(expr, "intFromString", _declToIntStringExpr)
 
     override fun transform(expr: UStringFromIntExpr<USizeSort>): UStringExpr =
         error("This should not be called")
@@ -440,11 +458,11 @@ open class UExprTranslator<Type, USizeSort : USort>(
         error("This should not be called")
 
     override fun transform(expr: UCharAtExpr<USizeSort>): UCharExpr =
-        abstractExpression(expr, "charAt", _declToCharStringExpr)
+        abstractStringExpression(expr, "charAt", _declToCharStringExpr)
 
     override fun transform(expr: UStringLengthExpr<USizeSort>): UExpr<USizeSort> =
         // TODO: at least, this should be non-negative. Should interpreter be responsible for this?
-        abstractExpression(expr, "length", _declToIntStringExpr)
+        abstractStringExpression(expr, "length", _declToIntStringExpr)
 
     override fun transform(expr: UStringFromArrayExpr<Type, USizeSort>): UStringExpr =
         error("This should not be called")
