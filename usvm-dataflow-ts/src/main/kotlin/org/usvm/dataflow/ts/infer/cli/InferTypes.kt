@@ -34,6 +34,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.test.utils.loadEtsFile
 import org.jacodb.ets.test.utils.loadMultipleEtsFilesFromDirectory
+import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
@@ -78,10 +79,9 @@ class InferTypes : CliktCommand() {
         val project = loadEtsScene(input)
         val graph = createApplicationGraph(project)
 
-        val entrypoints = project.classes.asSequence()
-            .flatMap { it.methods }
-            .filter { it.isPublic }
-            .toList()
+        val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
+        val publicMethods = allMethods.filter { it.isPublic }
+
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
@@ -89,7 +89,7 @@ class InferTypes : CliktCommand() {
         // TODO write statistics
 
         val (result, timeAnalyze) = measureTimedValue {
-            manager.analyze(entrypoints).withGuessedTypes(graph)
+            manager.analyze(dummyMains, publicMethods).withGuessedTypes(graph)
         }
         logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
 
