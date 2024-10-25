@@ -32,4 +32,46 @@ data class TypeInferenceResult(
             inferredCombinedThisType = inferredCombinedThisType.mapValues { (_, fact) -> fact.resolveType(graph) },
         )
     }
+
+    // TODO combination should be made on another level, combining facts
+    fun merge(other: TypeInferenceResult) : TypeInferenceResult {
+        val inferredTypes = inferredTypes.toMutableMap()
+        other.inferredTypes.forEach {
+            if (inferredTypes.containsKey(it.key)) {
+                val values = inferredTypes.getValue(it.key).toMutableMap()
+
+                it.value.forEach {
+                    if (values.containsKey(it.key)) {
+                        TODO()
+                    } else {
+                        values[it.key] = it.value
+                    }
+                }
+
+                inferredTypes[it.key] = values
+            } else {
+                inferredTypes[it.key] = it.value
+            }
+        }
+
+        val inferredReturnType = inferredReturnType.toMutableMap()
+        other.inferredReturnType.forEach {
+            if (inferredReturnType.containsKey(it.key)) {
+                TODO()
+            } else {
+                inferredReturnType[it.key] = it.value
+            }
+        }
+
+        val inferredCombinedThisType = inferredCombinedThisType.toMutableMap()
+        other.inferredCombinedThisType.forEach {
+            if (inferredCombinedThisType.containsKey(it.key)) {
+                TODO()
+            } else {
+                inferredCombinedThisType[it.key] = it.value
+            }
+        }
+
+        return TypeInferenceResult(inferredTypes, inferredReturnType, inferredCombinedThisType)
+    }
 }

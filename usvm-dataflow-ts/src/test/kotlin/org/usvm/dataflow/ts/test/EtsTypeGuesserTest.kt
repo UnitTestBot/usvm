@@ -11,6 +11,7 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
+import org.usvm.dataflow.ts.infer.runWithEntryPointsInformation
 import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
@@ -43,11 +44,15 @@ class EtsTypeResolverTest {
         val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
+
+        val result = runWithEntryPointsInformation(astScene) {
+            val manager = with(EtsTraits) {
+                TypeInferenceManager(graphAst) // TODO replace with abc
+            }
+
+            manager.analyze(it.toList()).withGuessedTypes(graphAst) // TODO replace with abc
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 

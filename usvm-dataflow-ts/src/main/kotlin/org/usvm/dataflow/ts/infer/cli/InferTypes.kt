@@ -77,6 +77,7 @@ class InferTypes : CliktCommand() {
 
         val project = loadEtsScene(input)
         val graph = createApplicationGraph(project)
+
         val entrypoints = project.classes.asSequence()
             .flatMap { it.methods }
             .filter { it.isPublic }
@@ -84,6 +85,9 @@ class InferTypes : CliktCommand() {
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
         }
+
+        // TODO write statistics
+
         val (result, timeAnalyze) = measureTimedValue {
             manager.analyze(entrypoints).withGuessedTypes(graph)
         }
@@ -101,7 +105,7 @@ fun main(args: Array<String>) {
 
 private fun loadEtsScene(paths: List<Path>): EtsScene {
     logger.info { "Loading ETS scene from $paths" }
-    val files = paths.flatMap {  path->
+    val files = paths.flatMap {  path ->
         if (path.isRegularFile()) {
             logger.info { "Loading single ETS file: $path" }
             val file = loadEtsFile(path)
