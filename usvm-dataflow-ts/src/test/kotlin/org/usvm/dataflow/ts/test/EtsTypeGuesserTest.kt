@@ -48,11 +48,14 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAst) // TODO replace with abc
         }
 
-        val result = manager.analyze(entrypoint.first, entrypoint.second).withGuessedTypes(graphAst) // TODO replace with abc// TODO fix error with abc and ast methods
+        val result = manager
+            .analyze(entrypoint.mainMethods, entrypoint.allMethods)
+            .withGuessedTypes(graphAst)
+        // TODO replace with abc// TODO fix error with abc and ast methods
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint.second, graphAst, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(astMethods, entrypoint.allMethods, graphAst, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
         classMatcherStatistics.dumpStatistics("project1.txt")
     }
 

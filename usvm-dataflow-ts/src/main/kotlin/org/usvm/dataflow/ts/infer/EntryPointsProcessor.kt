@@ -6,13 +6,15 @@ import org.jacodb.ets.model.EtsScene
 object EntryPointsProcessor {
     fun extractEntryPoints(
         scene: EtsScene,
-    ): Pair<List<EtsMethod>, List<EtsMethod>> { // TODO introduce a type for it
+    ): ArtificialMainWithAllMethods {
         val artificialMainMethods = scene.classes
             .asSequence()
             .flatMap { it.methods }
             .filter { it.name == "@dummyMain" }
             .toList()
 
-        return artificialMainMethods to scene.classes.flatMap { it.methods }
+        return ArtificialMainWithAllMethods(artificialMainMethods, scene.classes.flatMap { it.methods })
     }
 }
+
+data class ArtificialMainWithAllMethods(val mainMethods: List<EtsMethod>, val allMethods: List<EtsMethod>)
