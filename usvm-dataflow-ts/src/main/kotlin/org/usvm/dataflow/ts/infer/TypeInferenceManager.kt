@@ -47,10 +47,32 @@ class TypeInferenceManager(
     private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
     fun analyze(
-        startMethods: List<EtsMethod>,
+        entrypoints: List<EtsMethod>,
+        allMethods: List<EtsMethod> = entrypoints,
         doAddKnownTypes: Boolean = true,
         doInferAllLocals: Boolean = true,
     ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
+        val methodTypeScheme = analyze(entrypoints.toList(), doAddKnownTypes, doInferAllLocals)
+        val remainingMethodsForAnalysis = allMethods.filter { it !in methodTypeScheme.keys }
+
+        val updatedTypeScheme = if (remainingMethodsForAnalysis.isEmpty()) {
+            methodTypeScheme
+        } else {
+            analyze(
+                remainingMethodsForAnalysis,
+                doAddKnownTypes,
+                doInferAllLocals,
+            )
+        }
+
+        createResultsFromSummaries(updatedTypeScheme, doInferAllLocals)
+    }
+
+    private fun analyze(
+        startMethods: List<EtsMethod>,
+        doAddKnownTypes: Boolean = true,
+        doInferAllLocals: Boolean = true,
+    ): Map<EtsMethod, EtsMethodTypeFacts> = runBlocking(Dispatchers.Default) {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators)
@@ -153,6 +175,13 @@ class TypeInferenceManager(
         //     }
         // }
 
+        methodTypeScheme
+    }
+
+    private fun createResultsFromSummaries(
+        methodTypeScheme: Map<EtsMethod, EtsMethodTypeFacts>,
+        doInferAllLocals: Boolean,
+    ): TypeInferenceResult {
         val refinedTypes = refineMethodTypes(methodTypeScheme).toMutableMap()
         logger.info {
             buildString {
@@ -374,9 +403,6 @@ class TypeInferenceManager(
             }
         }
 
-        backwardRunner.let {}
-        forwardRunner.let {}
-
         val inferredTypes = refinedTypes
             // Extract 'types':
             .mapValues { (_, facts) -> facts.types }
@@ -395,7 +421,7 @@ class TypeInferenceManager(
                 }
             }
 
-        TypeInferenceResult(
+        return TypeInferenceResult(
             inferredTypes = inferredTypes,
             inferredReturnType = inferredReturnTypes,
             inferredCombinedThisType = inferredCombinedThisTypes,

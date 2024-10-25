@@ -3,29 +3,16 @@ package org.usvm.dataflow.ts.infer
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 
-fun runWithEntryPointsInformation(
-    scene: EtsScene,
-    runAnalysis: (Collection<EtsMethod>) -> TypeInferenceResult
-): TypeInferenceResult {
-    val allPublicMethods = scene.classes
-        .asSequence()
-        .flatMap { it.methods }
-        .filter { it.isPublic }
-        .toHashSet()
+object EntryPointsProcessor {
+    fun extractEntryPoints(
+        scene: EtsScene,
+    ): Pair<List<EtsMethod>, List<EtsMethod>> { // TODO introduce a type for it
+        val artificialMainMethods = scene.classes
+            .asSequence()
+            .flatMap { it.methods }
+            .filter { it.name == "@dummyMain" }
+            .toList()
 
-    val artificialMainMethods = scene.classes
-        .asSequence()
-        .flatMap { it.methods }
-        .filter { it.name == "@dummyMain" }
-        .toList()
-
-    val analysisForEntryPoints = runAnalysis(artificialMainMethods)
-    val methodsWithFacts = analysisForEntryPoints.inferredTypes.keys
-
-    val remainingMethods = allPublicMethods - methodsWithFacts
-    val remainingAnalysis = runAnalysis(remainingMethods)
-
-    val combinedResults = analysisForEntryPoints.merge(remainingAnalysis)
-
-    return combinedResults
+        return artificialMainMethods to scene.classes.flatMap { it.methods }
+    }
 }
