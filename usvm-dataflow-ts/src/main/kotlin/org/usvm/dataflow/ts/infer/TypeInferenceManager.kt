@@ -205,7 +205,9 @@ class TypeInferenceManager(
 
         // Infer types for 'this' in each class
         val inferredCombinedThisTypes = run {
-            val allClasses = methodTypeScheme.keys.map { it.enclosingClass }.distinct()
+            val allClasses = methodTypeScheme.keys
+                .map { it.enclosingClass }
+                .distinct()
                 .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.signature == sig }!! }
                 .filter { !it.name.startsWith("AnonymousClass-") }
             allClasses.mapNotNull { cls ->
@@ -230,23 +232,28 @@ class TypeInferenceManager(
                     return@mapNotNull null
                 }
 
-                val typeFactsOnThisMethods =
-                    forwardSummaries.asSequence().filter { (method, _) -> method.enclosingClass == cls.signature }
-                        .filter { (method, _) -> method.name != "@instance_init" }
-                        .flatMap { (_, summaries) -> summaries.asSequence() }
-                        .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
-                        .filter { it.variable.base is AccessPathBase.This }.toList().distinct()
+                val typeFactsOnThisMethods = forwardSummaries.asSequence()
+                    .filter { (method, _) -> method.enclosingClass == cls.signature }
+                    .filter { (method, _) -> method.name != "@instance_init" }
+                    .flatMap { (_, summaries) -> summaries.asSequence() }
+                    .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
+                    .filter { it.variable.base is AccessPathBase.This }
+                    .toList()
+                    .distinct()
 
-                val typeFactsOnThisCtor =
-                    forwardSummaries.asSequence().filter { (method, _) -> method.enclosingClass == cls.signature }
-                        .filter { (method, _) -> method.name == "constructor" || method.name == "@instance_init" }
-                        .flatMap { (_, summaries) -> summaries.asSequence() }
-                        .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
-                        .filter { it.variable.base is AccessPathBase.This }.toList().distinct()
+                val typeFactsOnThisCtor = forwardSummaries.asSequence()
+                    .filter { (method, _) -> method.enclosingClass == cls.signature }
+                    .filter { (method, _) -> method.name == "constructor" || method.name == "@instance_init" }
+                    .flatMap { (_, summaries) -> summaries.asSequence() }
+                    .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
+                    .filter { it.variable.base is AccessPathBase.This }
+                    .toList()
+                    .distinct()
 
                 val typeFactsOnThis = (typeFactsOnThisMethods + typeFactsOnThisCtor).distinct()
 
-                val propertyRefinements = typeFactsOnThis.groupBy({ it.variable.accesses }, { it.type })
+                val propertyRefinements = typeFactsOnThis
+                    .groupBy({ it.variable.accesses }, { it.type })
                     .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
 
                 logger.info {
