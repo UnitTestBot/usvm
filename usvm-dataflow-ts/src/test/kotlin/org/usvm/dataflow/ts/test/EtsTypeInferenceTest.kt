@@ -241,7 +241,7 @@ class EtsTypeInferenceTest {
         val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
             ?: error("Resource not found: $abcDirName")
         val (scene, result) = testHap(projectDir.toString())
-        val scene2 = EtsTypeAnnotator(scene, result).run { scene.annotateWithTypes() }
+        val scene2 = EtsTypeAnnotator(scene, result).annotateWithTypes(scene)
     }
 
     private fun processAllHAPs(haps: Collection<File>) {
