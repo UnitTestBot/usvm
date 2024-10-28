@@ -423,7 +423,7 @@ class EtsTypeResolverTest {
         types: Map<AccessPathBase, EtsTypeFact>,
         predicate: (T) -> Boolean,
     ) {
-        val type = types.values.single() as T
+        val type = types.filterKeys { it is AccessPathBase.Arg }.values.single() as T
         assertTrue(predicate(type))
     }
 }
