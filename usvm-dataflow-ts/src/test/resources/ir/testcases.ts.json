@@ -1658,7 +1658,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "NumberType"
+                            "_": "UnknownType"
                           }
                         }
                       }
@@ -3711,7 +3711,15 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -4332,7 +4340,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -5052,7 +5060,15 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "testcases.ts"
+                              },
+                              "declaringNamespace": null
+                            }
                           }
                         }
                       },
@@ -5682,7 +5698,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -19341,7 +19357,7 @@
                           },
                           "name": "g",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -19963,7 +19979,7 @@
                           },
                           "name": "g",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -20608,7 +20624,7 @@
                           },
                           "name": "g",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       },
@@ -21432,7 +21448,7 @@
                           },
                           "name": "f",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "AnyType"
                           }
                         }
                       },
@@ -22624,15 +22640,8 @@
             "type": {
               "_": "ArrayType",
               "elementType": {
-                "_": "ClassType",
-                "signature": {
-                  "name": "Tree",
-                  "declaringFile": {
-                    "projectName": "ts",
-                    "fileName": "testcases.ts"
-                  },
-                  "declaringNamespace": null
-                }
+                "_": "UnclearReferenceType",
+                "name": "Tree"
               },
               "dimensions": 1
             }
@@ -22771,15 +22780,8 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "ClassType",
-                              "signature": {
-                                "name": "Tree",
-                                "declaringFile": {
-                                  "projectName": "ts",
-                                  "fileName": "testcases.ts"
-                                },
-                                "declaringNamespace": null
-                              }
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
                             },
                             "dimensions": 1
                           }
@@ -22917,15 +22919,8 @@
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
-                    "_": "ClassType",
-                    "signature": {
-                      "name": "Tree",
-                      "declaringFile": {
-                        "projectName": "ts",
-                        "fileName": "testcases.ts"
-                      },
-                      "declaringNamespace": null
-                    }
+                    "_": "UnclearReferenceType",
+                    "name": "Tree"
                   },
                   "dimensions": 1
                 }
@@ -22977,15 +22972,8 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Tree",
-                              "declaringFile": {
-                                "projectName": "ts",
-                                "fileName": "testcases.ts"
-                              },
-                              "declaringNamespace": null
-                            }
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
                           },
                           "dimensions": 1
                         }
@@ -23020,15 +23008,8 @@
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
-                              "_": "ClassType",
-                              "signature": {
-                                "name": "Tree",
-                                "declaringFile": {
-                                  "projectName": "ts",
-                                  "fileName": "testcases.ts"
-                                },
-                                "declaringNamespace": null
-                              }
+                              "_": "UnclearReferenceType",
+                              "name": "Tree"
                             },
                             "dimensions": 1
                           }
@@ -23043,15 +23024,8 @@
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Tree",
-                              "declaringFile": {
-                                "projectName": "ts",
-                                "fileName": "testcases.ts"
-                              },
-                              "declaringNamespace": null
-                            }
+                            "_": "UnclearReferenceType",
+                            "name": "Tree"
                           },
                           "dimensions": 1
                         }

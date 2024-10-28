@@ -162,13 +162,21 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Microphone",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "microphone.ts"
+                    },
+                    "declaringNamespace": null
+                  }
                 }
               },
               {
                 "name": "$temp1",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "StringType"
                 }
               }
             ],
@@ -249,7 +257,15 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Microphone",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -299,7 +315,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       },
                       "right": {
@@ -308,21 +324,29 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Microphone",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "microphone.ts"
+                              },
+                              "declaringNamespace": null
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "Microphone",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "microphone.ts"
                             },
                             "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "StringType"
                           }
                         }
                       }
@@ -333,7 +357,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "StringType"
                         }
                       }
                     }

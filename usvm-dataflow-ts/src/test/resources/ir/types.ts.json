@@ -187,13 +187,21 @@
               {
                 "name": "$temp2",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "B",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
                 }
               },
               {
                 "name": "$temp3",
                 "type": {
-                  "_": "UnknownType"
+                  "_": "NumberType"
                 }
               }
             ],
@@ -324,7 +332,15 @@
                         "_": "Local",
                         "name": "$temp2",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "B",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
                         }
                       },
                       "right": {
@@ -374,7 +390,7 @@
                         "_": "Local",
                         "name": "$temp3",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       },
                       "right": {
@@ -383,21 +399,29 @@
                           "_": "Local",
                           "name": "$temp2",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "B",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "",
+                            "name": "B",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "ts",
+                              "fileName": "types.ts"
                             },
                             "declaringNamespace": null
                           },
                           "name": "bNum",
                           "type": {
-                            "_": "UnknownType"
+                            "_": "NumberType"
                           }
                         }
                       }
@@ -408,7 +432,7 @@
                         "_": "Local",
                         "name": "$temp3",
                         "type": {
-                          "_": "UnknownType"
+                          "_": "NumberType"
                         }
                       }
                     }
