@@ -52,16 +52,20 @@ class TypeInferenceManager(
         doAddKnownTypes: Boolean = true,
         doInferAllLocals: Boolean = true,
     ): TypeInferenceResult = runBlocking(Dispatchers.Default) {
-        val methodTypeScheme = analyze(entrypoints.toList(), doAddKnownTypes, doInferAllLocals)
+        val methodTypeScheme = analyze(
+            startMethods = entrypoints,
+            doAddKnownTypes = doAddKnownTypes,
+            doInferAllLocals = doInferAllLocals,
+        )
         val remainingMethodsForAnalysis = allMethods.filter { it !in methodTypeScheme.keys }
 
         val updatedTypeScheme = if (remainingMethodsForAnalysis.isEmpty()) {
             methodTypeScheme
         } else {
             analyze(
-                remainingMethodsForAnalysis,
-                doAddKnownTypes,
-                doInferAllLocals,
+                startMethods = remainingMethodsForAnalysis,
+                doAddKnownTypes = doAddKnownTypes,
+                doInferAllLocals = doInferAllLocals,
             )
         }
 
@@ -580,7 +584,7 @@ class TypeInferenceManager(
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.NullEtsTypeFact,
             EtsTypeFact.UndefinedEtsTypeFact,
-            -> return if (property.isNotEmpty()) this else intersect(type)
+                -> return if (property.isNotEmpty()) this else intersect(type)
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
                 // TODO: the following check(property.size == 1) fails on multiple projects
