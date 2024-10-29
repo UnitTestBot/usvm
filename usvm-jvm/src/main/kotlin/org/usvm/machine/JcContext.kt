@@ -170,8 +170,4 @@ class JcContext(
     val stringIndexOutOfBoundsExceptionType by lazy {
         extractJcRefType(StringIndexOutOfBoundsException::class)
     }
-
-    val useStringsApproximation by lazy {
-        components.useStringsApproximation
-    }
 }

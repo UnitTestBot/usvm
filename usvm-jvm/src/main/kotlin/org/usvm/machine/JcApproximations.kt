@@ -131,7 +131,7 @@ class JcMethodApproximationResolver(
             if (approximateObjectVirtualMethod(methodCall)) return true
         }
 
-        if (method.enclosingClass == ctx.stringType.jcClass && ctx.useStringsApproximation) {
+        if (method.enclosingClass == ctx.stringType.jcClass && exprResolver.options.useStringsApproximation) {
             if (approximateStringMethod(methodCall)) return true
         }
 

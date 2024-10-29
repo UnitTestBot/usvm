@@ -133,7 +133,7 @@ import org.usvm.utils.logAssertFailure
 class JcExprResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
-    private val options: JcMachineOptions,
+    val options: JcMachineOptions,
     localToIdx: (JcMethod, JcLocal) -> Int,
     mkTypeRef: (JcType) -> UConcreteHeapRef,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
@@ -544,7 +544,7 @@ class JcExprResolver(
                 if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
 
                 val sort = ctx.typeToSort(field.type)
-                if (ctx.useStringsApproximation && field == ctx.stringValueField) {
+                if (options.useStringsApproximation && field == ctx.stringValueField) {
                     TODO("string value field modeling")
                 }
                 return UFieldLValue(sort, instanceRef, field.field)

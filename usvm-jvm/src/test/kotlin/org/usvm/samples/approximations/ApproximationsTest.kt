@@ -16,7 +16,7 @@ import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KFunction1
 import kotlin.reflect.full.declaredFunctions
 
-class ApproximationsTest : ApproximationsTestRunner() {
+class ApproximationsTest : ApproximationsTestRunner(false) {
     init {
         options = options.copy(stepsFromLastCovered = null)
     }

@@ -19,4 +19,10 @@ data class JcMachineOptions(
      * Hard constraint for maximal array size.
      * */
     val arrayMaxSize: Int = 1_500,
+
+    /**
+     * If false, invokes code of String class as-is; this is precise but might be inefficient.
+     * If true, models string operations; this is efficient, but might cause loss of precision.
+     */
+    val useStringsApproximation: Boolean = false,
 )

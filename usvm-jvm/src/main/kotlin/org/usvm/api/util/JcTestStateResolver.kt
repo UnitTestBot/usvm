@@ -85,6 +85,7 @@ abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
     private val model: UModelBase<JcType>,
     private val finalStateMemory: UReadOnlyMemory<JcType>,
+    private val stringsAreApproximated: Boolean,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
@@ -267,7 +268,7 @@ abstract class JcTestStateResolver<T>(
         }
 
         if (type.jcClass == ctx.stringType.jcClass) {
-            if (ctx.useStringsApproximation)
+            if (stringsAreApproximated)
                 return resolveApproximatedString(ref)
             if (ref.address <= INITIAL_STATIC_ADDRESS) {
                 // Note that non-negative addresses are possible only for the result value.

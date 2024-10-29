@@ -24,6 +24,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
+import org.usvm.solver.UDumbStringSolver
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
@@ -56,7 +57,8 @@ abstract class SymbolicCollectionTestBase {
         val decoder = ULazyModelDecoder(translator)
         this.translator = translator
         val typeSolver = UTypeSolver(SingleTypeSystem)
-        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
+        val stringSolver = UDumbStringSolver(ctx)
+        uSolver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, stringSolver, translator, decoder, timeout = INFINITE)
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
         every { components.mkStatesForkProvider() } answers { WithSolverStateForker }
 

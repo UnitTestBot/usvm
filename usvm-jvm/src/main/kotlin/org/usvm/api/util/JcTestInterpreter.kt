@@ -25,6 +25,7 @@ import org.usvm.model.UModelBase
  * @param classLoader a class loader to load target classes.
  */
 class JcTestInterpreter(
+    private val stringsAreApproximated: Boolean,
     private val classLoader: ClassLoader = JcClassLoader,
 ) : JcTestResolver {
     /**
@@ -37,8 +38,8 @@ class JcTestInterpreter(
         val ctx = state.ctx
 
         // Note that we cannot use the same MemoryScope due to their caches
-        val beforeMemoryScope = MemoryScope(ctx, model, memory, method, classLoader)
-        val afterMemoryScope = MemoryScope(ctx, model, memory, method, classLoader)
+        val beforeMemoryScope = MemoryScope(ctx, model, memory, method, stringsAreApproximated, classLoader)
+        val afterMemoryScope = MemoryScope(ctx, model, memory, method, stringsAreApproximated, classLoader)
 
         val before = beforeMemoryScope.withMode(MODEL) { (this as MemoryScope).resolveState() }
         val after = afterMemoryScope.withMode(CURRENT) { (this as MemoryScope).resolveState() }
@@ -82,8 +83,9 @@ class JcTestInterpreter(
         model: UModelBase<JcType>,
         finalStateMemory: UReadOnlyMemory<JcType>,
         method: JcTypedMethod,
+        stringsAreApproximated: Boolean,
         private val classLoader: ClassLoader = JcClassLoader,
-    ) : JcTestStateResolver<Any?>(ctx, model, finalStateMemory, method) {
+    ) : JcTestStateResolver<Any?>(ctx, model, finalStateMemory, stringsAreApproximated, method) {
         override val decoderApi: JcTestInterpreterDecoderApi = JcTestInterpreterDecoderApi(ctx, classLoader)
 
         fun resolveState(): JcParametersState {
