@@ -125,7 +125,7 @@ fun EtsType.toDto(): TypeDto = when (this) {
 fun EtsClassSignature.toDto(): ClassSignatureDto =
     ClassSignatureDto(
         name = this.name,
-        declaringFile = this.file?.toDto(),
+        declaringFile = this.file.toDto(),
         declaringNamespace = this.namespace?.toDto(),
     )
 
@@ -138,7 +138,7 @@ fun EtsFileSignature.toDto(): FileSignatureDto =
 fun EtsNamespaceSignature.toDto(): NamespaceSignatureDto =
     NamespaceSignatureDto(
         name = this.name,
-        declaringFile = this.file?.toDto(),
+        declaringFile = this.file.toDto(),
         declaringNamespace = this.namespace?.toDto(),
     )
 

@@ -23,6 +23,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jacodb.ets.dto.ClassSignatureDto
 import org.jacodb.ets.dto.ClassTypeDto
+import org.jacodb.ets.dto.FileSignatureDto
 import org.usvm.dataflow.ts.infer.dto.TypeFactDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -142,4 +143,5 @@ class TypeFactDtoTest {
     }
 }
 
-private fun mkClassType(className: String) = ClassTypeDto(ClassSignatureDto(className))
+// TODO: empty file signature
+private fun mkClassType(className: String) = ClassTypeDto(ClassSignatureDto(className, FileSignatureDto("", "")))

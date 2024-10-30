@@ -19,6 +19,7 @@ package org.usvm.dataflow.ts.infer
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 
 fun guessUniqueTypes(
@@ -63,7 +64,12 @@ fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (thi
             ?.let {
                 // TODO how to do it properly?
                 EtsTypeFact.ObjectEtsTypeFact(
-                    cls = EtsClassType(EtsClassSignature(it.name)),
+                    cls = EtsClassType(
+                        EtsClassSignature(
+                            name = it.name,
+                            file = EtsFileSignature.EMPTY,
+                        )
+                    ),
                     properties = emptyMap(),
                     // TODO it is correct? Mb we should save the properties?
                     // properties = properties.mapValues { it.value.resolveType() }

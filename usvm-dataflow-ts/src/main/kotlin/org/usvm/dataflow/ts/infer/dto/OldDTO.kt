@@ -27,6 +27,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.jacodb.ets.dto.ClassSignatureDto
 import org.jacodb.ets.dto.ClassTypeDto
+import org.jacodb.ets.dto.FileSignatureDto
 import org.jacodb.ets.dto.TypeDto
 
 @Serializable
@@ -198,7 +199,8 @@ fun main() {
     }
 
     val o1: TypeFactDto = TypeFactDto.ObjectTypeFact(
-        ClassTypeDto(ClassSignatureDto("T")), mapOf(
+        // TODO: empty file signature
+        ClassTypeDto(ClassSignatureDto("T", FileSignatureDto("", ""))), mapOf(
             "x" to TypeFactDto.NumberTypeFact,
             "y" to TypeFactDto.StringTypeFact,
         )
