@@ -23,7 +23,7 @@ import org.usvm.dataflow.ts.infer.*
 class StmtTypeAnnotator(
     types: Map<AccessPathBase, EtsTypeFact>,
     thisType: EtsTypeFact?,
-    scene: EtsScene
+    scene: EtsScene,
 ) : EtsStmt.Visitor<EtsStmt> {
     private val valueAnnotator = ValueTypeAnnotator(types, thisType, scene)
     private val exprAnnotator = ExprTypeAnnotator(valueAnnotator, scene)

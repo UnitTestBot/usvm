@@ -27,15 +27,18 @@ import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsThis
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsDecorator
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsModifiers
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -58,7 +61,7 @@ internal class EtsTypeAnnotationTest {
                     AccessPathBase.Arg(2) to EtsTypeFact.NumberEtsTypeFact,
                     AccessPathBase.Local("v1") to EtsTypeFact.StringEtsTypeFact,
                     AccessPathBase.Local("v2") to EtsTypeFact.NumberEtsTypeFact,
-                    AccessPathBase.Local("v3") to EtsTypeFact.StringEtsTypeFact
+                    AccessPathBase.Local("v3") to EtsTypeFact.StringEtsTypeFact,
                 )
             ),
             inferredReturnType = mapOf(
@@ -67,7 +70,7 @@ internal class EtsTypeAnnotationTest {
             inferredCombinedThisType = mapOf(
                 mainClassSignature to EtsTypeFact.ObjectEtsTypeFact(
                     cls = EtsClassType(mainClassSignature),
-                    properties = mapOf()
+                    properties = mapOf(),
                 )
             )
         )
@@ -93,20 +96,20 @@ internal class EtsTypeAnnotationTest {
 
     private val mainTs = EtsFileSignature(
         projectName = "sampleProject",
-        fileName = "main.ts"
+        fileName = "main.ts",
     )
 
     private val mainClassSignature = EtsClassSignature(
         name = "MainClass",
         file = mainTs,
-        namespace = null
+        namespace = null,
     )
 
     private val mainMethodSignature = EtsMethodSignature(
         enclosingClass = mainClassSignature,
         name = "mainMethod",
         parameters = parameters(2),
-        returnType = EtsUnknownType
+        returnType = EtsUnknownType,
     )
 
     private val mainMethod = buildMethod(mainMethodSignature) {
@@ -126,7 +129,7 @@ internal class EtsTypeAnnotationTest {
         enclosingClass = mainClassSignature,
         name = "constructor",
         parameters = parameters(1),
-        returnType = EtsUnknownType
+        returnType = EtsUnknownType,
     )
 
     private val mainClassCtor = buildMethod(mainClassCtorSignature) {
@@ -139,13 +142,13 @@ internal class EtsTypeAnnotationTest {
         fields = listOf(),
         methods = listOf(mainMethod),
         ctor = mainClassCtor,
-        superClass = null
+        superClass = null,
     )
 
     private val mainFile = EtsFile(
         signature = mainTs,
         classes = listOf(mainClass),
-        namespaces = listOf()
+        namespaces = listOf(),
     )
 
     private val sampleScene = EtsScene(listOf(mainFile))
@@ -174,19 +177,14 @@ internal class EtsTypeAnnotationTest {
 
     private fun buildMethod(
         signature: EtsMethodSignature,
-        cfgBuilder: CfgBuilderContext.() -> Unit
+        cfgBuilder: CfgBuilderContext.() -> Unit,
     ) = object : EtsMethod {
         override val signature = signature
-
-        override val cfg = CfgBuilderContext(this).apply {
-            cfgBuilder()
-        }.build()
-
-        override val modifiers: List<String>
-            get() = emptyList()
-
-        override val locals: List<EtsLocal>
-            get() = emptyList()
+        override val typeParameters: List<EtsType> = emptyList()
+        override val modifiers: EtsModifiers = EtsModifiers.EMPTY
+        override val decorators: List<EtsDecorator> = emptyList()
+        override val locals: List<EtsLocal> = emptyList()
+        override val cfg = CfgBuilderContext(this).apply(cfgBuilder).build()
     }
 
     private fun parameters(n: Int) =

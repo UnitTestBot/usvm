@@ -41,21 +41,31 @@ class EtsTypeResolverTest {
         val graphAbc = createApplicationGraph(abcScene)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(astScene) // TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = EntryPointsProcessor.extractEntryPoints(astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAst) // TODO replace with abc
         }
 
+        // TODO replace graphAst with graphAbc ?
         val result = manager
             .analyze(entrypoint.mainMethods, entrypoint.allMethods)
             .withGuessedTypes(graphAst)
-        // TODO replace with abc// TODO fix error with abc and ast methods
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint.allMethods, graphAst, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint.allMethods,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project1.txt")
     }
 
@@ -69,7 +79,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene) // TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -80,7 +91,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project2.txt")
     }
 
@@ -94,7 +114,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -105,7 +126,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project3.txt")
     }
 
@@ -119,7 +149,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -130,8 +161,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene)// TODO fix error with abc and ast methods
-
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project4.txt")
     }
 
@@ -145,7 +184,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -156,7 +196,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project5.txt")
     }
 
@@ -170,7 +219,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -181,7 +231,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project6.txt")
     }
 
@@ -195,7 +254,8 @@ class EtsTypeResolverTest {
         val astScene = loadProjectFromAst(projectAst)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = extractEntryPoints(abcScene, astScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        val entrypoint = extractEntryPoints(abcScene, astScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
@@ -206,7 +266,16 @@ class EtsTypeResolverTest {
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
-        saveTypeInferenceComparison(astMethods, entrypoint, graphAst, graphAbc, result, classMatcherStatistics, abcScene)// TODO fix error with abc and ast methods
+        // TODO fix error with abc and ast methods
+        saveTypeInferenceComparison(
+            astMethods,
+            entrypoint,
+            graphAst,
+            graphAbc,
+            result,
+            classMatcherStatistics,
+            abcScene
+        )
         classMatcherStatistics.dumpStatistics("project7.txt")
     }
 
@@ -382,7 +451,7 @@ class EtsTypeResolverTest {
         abcScene: EtsScene,
         astScene: EtsScene,
         filterByAst: Boolean = true,
-        isOnlyPublic: Boolean = true
+        isOnlyPublic: Boolean = true,
     ): List<EtsMethod> {
         val astMethods = astScene.classes.flatMapTo(mutableSetOf()) {
             it.methods.map { method -> method.name to method.enclosingClass.name }
@@ -394,8 +463,8 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .filter { it.isPublic }
             .filter {
-                !filterByAst || astMethods.any {
-                    method -> it.name == method.first && it.enclosingClass.name == method.second
+                !filterByAst || astMethods.any { method ->
+                    it.name == method.first && it.enclosingClass.name == method.second
                 }
             }
             .filter { !isOnlyPublic || it.isPublic }
@@ -413,9 +482,19 @@ class EtsTypeResolverTest {
     ) {
         astMethods.forEach { m ->
             val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(m)
-            val abcMethod = abcMethods.singleOrNull { it.name == m.name && it.enclosingClass.name == m.enclosingClass.name } ?: return@forEach
+            val abcMethod = abcMethods.singleOrNull {
+                it.name == m.name && it.enclosingClass.name == m.enclosingClass.name
+            } ?: return@forEach
             val actualTypes = MethodTypesFacts.from(result, m)
-            classMatcherStatistics.calculateStats(actualTypes, expectedTypes, abcScene, m, abcMethod, graphAst, graphAbc)
+            classMatcherStatistics.calculateStats(
+                actualTypes,
+                expectedTypes,
+                abcScene,
+                m,
+                abcMethod,
+                graphAst,
+                graphAbc
+            )
         }
     }
 
