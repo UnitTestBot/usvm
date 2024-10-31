@@ -14,7 +14,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
@@ -36,7 +37,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -126,7 +128,8 @@
               ]
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -239,7 +242,8 @@
               ]
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -399,7 +403,8 @@
               "_": "NumberType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -616,7 +621,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -911,7 +917,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -1201,7 +1208,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [

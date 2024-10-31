@@ -14,7 +14,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
@@ -36,7 +37,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -127,7 +129,8 @@
               "_": "StringType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -162,21 +165,13 @@
               {
                 "name": "$temp0",
                 "type": {
-                  "_": "ClassType",
-                  "signature": {
-                    "name": "Microphone",
-                    "declaringFile": {
-                      "projectName": "ts",
-                      "fileName": "microphone_ctor.ts"
-                    },
-                    "declaringNamespace": null
-                  }
+                  "_": "UnknownType"
                 }
               },
               {
                 "name": "$temp1",
                 "type": {
-                  "_": "StringType"
+                  "_": "UnknownType"
                 }
               }
             ],
@@ -257,15 +252,7 @@
                         "_": "Local",
                         "name": "$temp0",
                         "type": {
-                          "_": "ClassType",
-                          "signature": {
-                            "name": "Microphone",
-                            "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "microphone_ctor.ts"
-                            },
-                            "declaringNamespace": null
-                          }
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -315,7 +302,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "StringType"
+                          "_": "UnknownType"
                         }
                       },
                       "right": {
@@ -324,29 +311,21 @@
                           "_": "Local",
                           "name": "$temp0",
                           "type": {
-                            "_": "ClassType",
-                            "signature": {
-                              "name": "Microphone",
-                              "declaringFile": {
-                                "projectName": "ts",
-                                "fileName": "microphone_ctor.ts"
-                              },
-                              "declaringNamespace": null
-                            }
+                            "_": "UnknownType"
                           }
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "Microphone",
+                            "name": "",
                             "declaringFile": {
-                              "projectName": "ts",
-                              "fileName": "microphone_ctor.ts"
+                              "projectName": "_UnknownProjectName",
+                              "fileName": "_UnknownFileName"
                             },
                             "declaringNamespace": null
                           },
                           "name": "uuid",
                           "type": {
-                            "_": "StringType"
+                            "_": "UnknownType"
                           }
                         }
                       }
@@ -357,7 +336,7 @@
                         "_": "Local",
                         "name": "$temp1",
                         "type": {
-                          "_": "StringType"
+                          "_": "UnknownType"
                         }
                       }
                     }
@@ -383,7 +362,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -707,7 +687,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
@@ -727,7 +708,8 @@
               "_": "StringType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -743,7 +725,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [
@@ -765,7 +748,8 @@
               "_": "StringType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -787,7 +771,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [],
@@ -854,7 +839,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [],
@@ -929,7 +915,8 @@
               }
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
@@ -1085,7 +1072,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
@@ -1113,7 +1101,8 @@
               }
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -1129,7 +1118,8 @@
         },
         "declaringNamespace": null
       },
-      "modifiers": [],
+      "modifiers": 0,
+      "decorators": [],
       "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [
@@ -1159,7 +1149,8 @@
               }
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "questionToken": false,
           "exclamationToken": false
         }
@@ -1181,7 +1172,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [],
@@ -1248,7 +1240,8 @@
               "_": "UnknownType"
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [],
@@ -1323,7 +1316,8 @@
               }
             }
           },
-          "modifiers": [],
+          "modifiers": 0,
+          "decorators": [],
           "typeParameters": [],
           "body": {
             "locals": [
