@@ -31,6 +31,30 @@ class EtsTypeResolverTest {
     private val yourPrefixForTestFolders = "C:/work/TestProjects"
 
     @Test
+    fun testTestHap() {
+        val projectAbc = "$yourPrefixForTestFolders/Launcher.hap"
+        val abcScene = loadProjectFromJsons(projectAbc)
+        val graphAbc = createApplicationGraph(abcScene)
+
+        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene) // TODO fix error with abc and ast methods
+
+        val manager = with(EtsTraits) {
+            TypeInferenceManager(graphAbc) // TODO replace with abc
+        }
+
+        val result = manager
+            .analyze(entrypoint.mainMethods, entrypoint.allMethods)
+            .withGuessedTypes(graphAbc)
+        // TODO replace with abc// TODO fix error with abc and ast methods
+
+        val classMatcherStatistics = ClassMatcherStatistics()
+
+        saveTypeInferenceComparison(entrypoint.allMethods, entrypoint.allMethods, graphAbc, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
+        classMatcherStatistics.dumpStatistics("project1.txt")
+    }
+
+
+    @Test
     fun testLoadProject1() {
         val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/callui-default-signed"
         val abcScene = loadProjectFromJsons(projectAbc)
@@ -107,7 +131,7 @@ class EtsTypeResolverTest {
     @Test
     fun testLoadProject3() {
         val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/mobiledatasettings-callui-default-signed"
-        val abcScene = loadProjectFromJsons(projectAbc)
+        val abcScene = loadProjectFromJsons(projectAbc) 
         val graphAbc = createApplicationGraph(abcScene)
 
         val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
