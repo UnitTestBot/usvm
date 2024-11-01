@@ -5,7 +5,7 @@
 In  order to run type inference on an arbitrary TypeScript project, you need the following:
 1. IR dumped into JSON files: either from TS sources or from 
 binary ABC/HAP files.
-2. USVM type inference CLI: either `usvm-type-inference` binary or `usvm-dataflow-ts-all.jar` "fat" JAR.
+2. USVM with type inference CLI: `usvm-dataflow-ts-all.jar` "fat" JAR.
 
 **NOTE:** the instructions below are given for Linux. If you are using Windows, you need to adjust the paths and commands accordingly, or use WSL. Overall, the process should be similar, and USVM should work on any platform that supports Java.
 
@@ -13,14 +13,14 @@ binary ABC/HAP files.
 
 - Below, we use the term "ArkIR" to refer to the representation of ArkTS inside ArkAnalyzer in a form of TypeScript classes and interfaces, such as `ArkMethod`, `ArkAssignStmt`, `ArkInstanceInvokeExpr`.
 
-- In USVM, we also have a similar model of representing ArkTS in a form of Java/Kotlin classes. In order to differentiate between the two, we use the prefix "Ets" for the classes in USVM, such as `EtsMethod`, `EtsAssignStmt`, `EtsInstanceCallExpr`.
+- In USVM, we also have a similar model of representing ArkTS, but in the form of Java/Kotlin classes. In order to differentiate between the two models, we use the prefix "Ets" for the classes in USVM, such as `EtsMethod`, `EtsAssignStmt`, `EtsInstanceCallExpr`.
 
 ### Setup ArkAnalyzer
 
-First of all, you need to clone the ArkAnalyzer repo. Here, we use the fork of the repo and the specific branch that is consistent with USVM internals. Note that this branch might change in the future.
+First of all, you need to clone the ArkAnalyzer repo. Here, we use the fork of the repo and the specific branch (named `neo/<DATE>`) that is consistent with USVM internals. Note that this branch might change in the future.
 ```bash
 cd ~
-git clone -b neo/2024-10-17 https://gitee.com/Lipenx/arkanalyzer arkanalyzer-usvm
+git clone -b neo/2024-10-31 https://gitee.com/Lipenx/arkanalyzer arkanalyzer-usvm
 cd arkanalyzer-usvm
 ```
 
@@ -30,7 +30,9 @@ npm install
 npm run build
 ```
 
-Note that after building the ArkAnalyzer project, the script for serializing ArkIR will be located at `out/save/serializeArkIR.js` and can be run with Node.js.
+**Note:** after building the ArkAnalyzer project, the script for serializing ArkIR will be located at `out/save/serializeArkIR.js` and can be run with Node.js.
+
+**Note:** you can also use TS script directly using `npx ts-node src/save/serializeArkIR.ts` instead of building the whole project.
 
 ### Serialize ArkIR to JSON
 
@@ -77,11 +79,11 @@ node .../serializeArkIR.js -p project/feature etsir/feature
 
 ### Type Inference with USVM
 
-In order to run type inference on the dumped ArkIR, you need to use the USVM type inference CLI. You can either use the `usvm-type-inference` binary or the `usvm-dataflow-ts-all.jar` "fat" JAR.
+In order to run USVM type inference, you need to obtain `usvm-dataflow-ts-all.jar` "fat" JAR (download or build it yourself) and either use it directly or use a wrapper script `src/usvm/inferTypes.ts` in ArkAnalyzer repo.
 
 #### Build `usvm-type-inference` binary
 
-In order to build the binary, you need to clone the USVM repo and build the project.
+In order to build the USVM binary, you need to clone the USVM repo (and also its dependency `jacodb` in the _sibling directory_) and build the project using Gradle.
 ```bash
 cd ~
 git clone -b lipen/usvm-type-inference https://github.com/UnitTestBot/jacodb
@@ -89,7 +91,7 @@ git clone -b lipen/type-inference https://github.com/UnitTestBot/usvm
 cd usvm
 ./gradlew :usvm-dataflow-ts:installDist
 ```
-The last command will build the project and create the binary at `usvm-dataflow-ts/build/install/usvm-dataflow-ts/bin/usvm-type-inference`.
+The last command will build the project and create the binary at `usvm-dataflow-ts/build/install/usvm-dataflow-ts/bin/usvm-type-inference` (on Windows, the corresponding "binary" is with `.bat` extension).
 
 #### Build "Fat" JAR
 
@@ -100,7 +102,7 @@ Alternatively, you can build the "fat" JAR (also known as "Uber JAR" or "shadow 
 
 #### Run Type Inference
 
-Now, you can run the type inference:
+You can run the type inference manually using USVM CLI:
 ```bash
 usvm-dataflow-ts/build/install/usvm-dataflow-ts/bin/usvm-type-inference --help
 # OR
@@ -122,43 +124,44 @@ For example, if you have the `project/entry` and `project/common` directories wi
 java -jar usvm-dataflow-ts/build/libs/usvm-dataflow-ts-all.jar -i project/entry -i project/common -o inferred.json
 ```
 
-### Transfer Inferred Types to ArkAnalyzer
+### Type Inference with Wrapper Script
 
-In order to transfer the inferred types back to ArkAnalyzer, you need to run the `deserializeInferredTypes` script from ArkAnalyzer repo.
+You can also use the wrapper script `src/usvm/inferTypes.ts` from the ArkAnalyzer repo. This script will run the serialization of ArkIR and type inference with USVM in a single command.
 
 ```bash
-node ~/arkanalyzer-usvm/out/src/usvm/deserializeInferredTypes.js inferred.json
+node ~/arkanalyzer-usvm/out/src/usvm/inferTypes.js --help
 ```
 ```text
-=== Inferred Types Statistics ===
-Total Classes: 10
-Total Methods: 312
+Usage: inferTypes [options] <input>
 
-<SNIP>
+Arguments:
+  input             input directory with ETS project
 
-Class '@common/InputComponent.ets/entry: InputComponent'
-  Fields: 2
-    Field 'expression': any
-    Field 'result': any
-  Methods: 1
-    Method '@instance_init'
-
-<SNIP>
-
-Method '@pages/Index.ets/entry: Index.AnonymousMethod-@instance_init-2({ _: 'StringType' })'
-  Args: 1
-    Arg0: any
-  Return: unknown
-  Locals: 5
-    Local 'DATA_CHANGE': { _: 'StringType' }
-    Local 'TAG': { _: 'StringType' }
-    Local 'EXIT': { _: 'StringType' }
-    Local 'key': any
-    Local 'this': @pages/Index.ets/entry: Index
-
-<SNIP>
-
-Deserialization successful.
+Options:
+  -v, --verbose     Verbose output (default: false)
+  -t, --aa-types    Run type inference in ArkAnalyzer (default: false)
+  -s, --substitute  Substitute inferred types (default: false)
+  -h, --help        display help for command
 ```
 
-_Note:_ the output format might change in the future. The deserialization script itself is supposed to only demonstrate that the inferred types can be successfully loaded and used in ArkAnalyzer.
+For example:
+```bash
+node .../inferTypes.js myproject/entry
+```
+```text
+Building scene...
+Serializing Scene to '/tmp/2f8aa8b34548b808167a8f6b30121dcc/etsir'...
+...
+USVM command: ~/usvm/usvm-dataflow-ts/build/install/usvm-dataflow-ts/bin/usvm-type-inference --input=/tmp/2f8aa8b34548b808167a8f6b30121dcc/etsir --output=/tmp/2f8aa8b34548b808167a8f6b30121dcc/inference-result --no-skip-anonymous
+...
+=== Inferred Types Statistics ===
+Total Classes: 10
+Total Methods: 305
+...
+Deserialization successful.
+...
+Substituting inferred types...
+...
+Substituting type of local '$temp16' in method '@entry/model/Calculator.ts: _DEFAULT_ARK_CLASS.getFloatNum(unknown, unknown, unknown)' from unknown to number
+...
+```
