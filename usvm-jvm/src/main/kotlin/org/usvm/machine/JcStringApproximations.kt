@@ -28,7 +28,9 @@ import org.usvm.api.substring
 import org.usvm.api.toLower
 import org.usvm.api.toUpper
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.string.UStringFromLanguageExpr
 import org.usvm.collection.string.UStringLValue
+import org.usvm.collection.string.UStringLengthExpr
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.interpreter.JcExprResolver
@@ -42,6 +44,7 @@ import org.usvm.mkSizeGeExpr
 import org.usvm.mkSizeLeExpr
 import org.usvm.mkSizeSubExpr
 import org.usvm.sizeSort
+import org.usvm.utils.logAssertFailure
 
 class JcStringApproximations(private val ctx: JcContext) {
     private var currentScope: JcStepScope? = null
@@ -80,27 +83,22 @@ class JcStringApproximations(private val ctx: JcContext) {
         this[name] = body
     }
 
-//    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchMethod(
-//        method: KFunction<*>,
-//        body: (JcMethodCall) -> UExpr<*>?,
-//    ) {
-//        val methodName = method.javaMethod?.name ?: error("No name for $method")
-//        dispatchMethod(methodName, body)
-//    }
-//
-//    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchProperty(
-//        prop: KProperty<*>,
-//        body: (JcMethodCall) -> UExpr<*>?,
-//    ) {
-//        dispatchMethod(prop.name, body)
-//    }
-//
-//    private fun MutableMap<String, (JcMethodCall) -> UExpr<*>?>.dispatchConstructor(
-//        signature: String,
-//        body: (JcMethodCall) -> UExpr<*>?,
-//    ) {
-//        dispatchMethod(CONSTRUCTOR + signature, body)
-//    }
+
+    private fun assertHardMaxStringLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
+        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(exprResolver.options.arrayMaxSize))
+        scope.assert(lengthLeThanMaxLength)
+            .logAssertFailure { "JcStringApproximations: string length max" }
+    }
+
+    private fun length(state: JcState, ref: UHeapRef): UExpr<USizeSort>? {
+        val length = state.memory.stringLength<USizeSort>(ref)
+        scope.assert(ctx.mkSizeGeExpr(length, ctx.mkSizeExpr(0))) ?: return null
+        // TODO: this is hack, should be rewritten to minimization expression
+        if (length is UStringLengthExpr && length.string is UStringFromLanguageExpr) {
+            assertHardMaxStringLength(length) ?: return null
+        }
+        return length
+    }
 
     /**
      * Forks on 0 <= [from] <= [to] <= length, throws an exception with type [exceptionType] in else branch.
@@ -219,8 +217,8 @@ class JcStringApproximations(private val ctx: JcContext) {
         toffset: UExpr<USizeSort>
     ): UBoolExpr? {
         exprResolver.checkNullPointer(prefixRef) ?: return null
-        val thisLength = state.memory.stringLength<USizeSort>(stringRef)
-        val prefixLength = state.memory.stringLength<USizeSort>(prefixRef)
+        val thisLength = length(state, stringRef) ?: return null
+        val prefixLength = length(state, prefixRef) ?: return null
         // toffset >= 0 && toffset <= length() - prefix.length()
         val offsetIsOk = ctx.mkAnd(
             ctx.mkSizeGeExpr(toffset, ctx.mkSizeExpr(0)),
@@ -428,7 +426,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 val stringRef = it.arguments[0].asExpr(ctx.addressSort)
                 val index = it.arguments[1].asExpr(ctx.sizeSort)
                 scope.calcOnState {
-                    val length = memory.stringLength<USizeSort>(stringRef)
+                    val length = length(this, stringRef) ?: return@calcOnState null
                     exprResolver.checkArrayIndex(index, length, ctx.stringIndexOutOfBoundsExceptionType)
                         ?: return@calcOnState null
                     memory.charAt(stringRef, index)
@@ -638,7 +636,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 TODO()
             }
             dispatchMethod("length()I") {
-                scope.calcOnState { memory.stringLength<USizeSort>(it.arguments.single().asExpr(ctx.addressSort)) }
+                scope.calcOnState { length(this, it.arguments.single().asExpr(ctx.addressSort)) }
             }
             dispatchMethod("lines()Ljava/util/stream/Stream;") {
                 TODO()
@@ -717,7 +715,7 @@ class JcStringApproximations(private val ctx: JcContext) {
                 val thisRef = it.arguments[0].asExpr(ctx.addressSort)
                 val beginIndex = it.arguments[1].asExpr(ctx.sizeSort)
                 val endIndex = it.arguments[2].asExpr(ctx.sizeSort)
-                val length = scope.calcOnState { memory.stringLength<USizeSort>(thisRef) }
+                val length = scope.calcOnState { length(this, thisRef) } ?: return@dispatchMethod null
                 checkFromToIndex(beginIndex, endIndex, length) ?: return@dispatchMethod null
                 val substringLength = ctx.mkSizeSubExpr(endIndex, beginIndex)
                 scope.calcOnState { memory.substring(thisRef, ctx.stringType, beginIndex, substringLength) }
