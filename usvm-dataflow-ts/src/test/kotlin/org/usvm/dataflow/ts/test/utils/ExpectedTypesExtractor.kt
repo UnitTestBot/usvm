@@ -81,6 +81,7 @@ class ClassMatcherStatistics {
 
     private var typeInfoInferredPreviouslyUnknown = 0L
     private var typeInfoInferredPreviouslyKnownExactly = 0L
+    private var arrayInfoPreviouslyUnknown = 0L
 
     private var noInfoInferredPreviouslyKnown = 0L
     private var noInfoInferredPreviouslyUnknown = 0L
@@ -174,6 +175,11 @@ class ClassMatcherStatistics {
                     }
 
                     fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
+
+                    fact is EtsTypeFact.ArrayEtsTypeFact && type is EtsUnknownType -> {
+                        arrayInfoPreviouslyUnknown++
+                    }
+
                     (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
                         exactTypeInferredPreviouslyWasAny++
                     }
@@ -210,6 +216,11 @@ class ClassMatcherStatistics {
                     }
 
                     fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
+
+                    fact is EtsTypeFact.ArrayEtsTypeFact && type is EtsUnknownType -> {
+                        arrayInfoPreviouslyUnknown++
+                    }
+
                     (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
                         exactTypeInferredPreviouslyWasAny++
                     }
@@ -325,10 +336,14 @@ class ClassMatcherStatistics {
         
         Compared to the first state of the Scene:
         
-        Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown (${(exactTypeInferredPreviouslyUnknown.toDouble() / (typeInfoInferredPreviouslyKnownExactly + exactTypeInferredCorrectlyPreviouslyKnown + noInfoInferredPreviouslyKnown)) * 100}% improvement)
+        Improvement: ${((exactTypeInferredPreviouslyUnknown.toDouble() + arrayInfoPreviouslyUnknown) / (typeInfoInferredPreviouslyKnownExactly + exactTypeInferredCorrectlyPreviouslyKnown + noInfoInferredPreviouslyKnown)) * 100}%
+        
+        Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown 
         Inferred types that were already inferred: $exactTypeInferredCorrectlyPreviouslyKnown
         Inferred types that were previously inferred as any: $exactTypeInferredPreviouslyWasAny
         Inferred types are different from the ones in the Scene: $exactTypeInferredIncorrectlyPreviouslyKnown
+
+        Array types instead of unknown: $arrayInfoPreviouslyUnknown
 
         Some facts found about unknown type: $typeInfoInferredPreviouslyUnknown 
         Some facts found about already inferred type: $typeInfoInferredPreviouslyKnownExactly

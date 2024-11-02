@@ -25,7 +25,7 @@ import org.jacodb.ets.model.EtsMethod
 fun guessTypes(
     graph: EtsApplicationGraph,
     facts: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
-    allowResolvedAlternatives: Boolean
+    allowResolvedAlternatives: Boolean,
 ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
     return facts.mapValues { (_, types) ->
         if (types.isNotEmpty() && types.entries.singleOrNull()?.value != EtsTypeFact.UnknownEtsTypeFact) {
@@ -41,20 +41,23 @@ fun guessTypes(
 fun EtsTypeFact.resolveType(
     graph: EtsApplicationGraph,
     allowResolvedAlternatives: Boolean = false,
-): EtsTypeFact = when (this) {
-    is EtsTypeFact.ArrayEtsTypeFact -> {
-        val elementType = this.elementType
-        if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
-            this
-        } else {
-            this.copy(elementType = elementType.resolveType(graph, allowResolvedAlternatives))
+    filterAnonymous: Boolean = false
+): EtsTypeFact {
+    return when (this) {
+        is EtsTypeFact.ArrayEtsTypeFact -> {
+            val elementType = this.elementType
+            if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
+                this
+            } else {
+                this.copy(elementType = elementType.resolveType(graph, allowResolvedAlternatives))
+            }
         }
-    }
 
-    is EtsTypeFact.ObjectEtsTypeFact -> {
-        if (cls != null) {
-            this
-        } else {
+        is EtsTypeFact.ObjectEtsTypeFact -> {
+            if (cls != null) {
+                return this
+            }
+
             val touchedPropertiesNames = this.properties.keys
             val classesInSystem = graph.cp
                 .classes
@@ -65,8 +68,25 @@ fun EtsTypeFact.resolveType(
                     touchedPropertiesNames.all { name -> name in propertiesNames }
                 }
 
+            if (classesInSystem.isEmpty()) {
+                val indicesProperties = this.properties.filter { (k, _) -> k.toIntOrNull() != null }
+                if (indicesProperties.isNotEmpty()) {
+                    val elementTypeFacts = indicesProperties.map {
+                        it.value.resolveType(graph, allowResolvedAlternatives, filterAnonymous).simplify()
+                    }.toSet()
+                    val typeFact = EtsTypeFact.mkUnionType(elementTypeFacts)
+                    return EtsTypeFact.ArrayEtsTypeFact(typeFact)
+                }
+
+                if ("length" in touchedPropertiesNames && "splice" in touchedPropertiesNames) {
+                    return EtsTypeFact.ArrayEtsTypeFact(EtsTypeFact.AnyEtsTypeFact)
+                }
+
+                return this
+            }
+
             val suitableTypes = classesInSystem
-                .filterNot { it.name.startsWith("AnonymousClass-") }
+                .filter { !filterAnonymous || !it.name.startsWith("AnonymousClass-") }
                 .map {
                     // TODO make it an impossible unique prefix
                     // TODO how to do it properly?
@@ -77,38 +97,52 @@ fun EtsTypeFact.resolveType(
                                 file = EtsFileSignature.EMPTY,
                             )
                         ),
-                        properties = emptyMap(),
+                        // properties = emptyMap(),
                         // TODO it is correct? Mb we should save the properties?
-                        // properties = properties.mapValues { it.value.resolveType() }
+                        properties = properties.mapValues {
+                            it.value.resolveType(graph, allowResolvedAlternatives, filterAnonymous)
+                        }
                     )
                 }.toSet()
+
+            val notAnonymousSuitableTypes = suitableTypes.filterNot {
+                it.cls?.typeName?.startsWith("AnonymousClass-") ?: error("Should not occur")
+            }.toSet()
 
             // TODO process arrays here (and strings)
 
             when {
-                suitableTypes.size == 1 -> suitableTypes.single()
-                suitableTypes.size in 2..5 && allowResolvedAlternatives -> EtsTypeFact.mkUnionType(suitableTypes)
+                suitableTypes.isEmpty() && notAnonymousSuitableTypes.isEmpty() -> {
+                    error("Should be processed earlier")
+                }
+                notAnonymousSuitableTypes.isEmpty() -> {
+                    EtsTypeFact.mkUnionType(suitableTypes)
+                }
+                notAnonymousSuitableTypes.size == 1 -> notAnonymousSuitableTypes.single()
+                notAnonymousSuitableTypes.size in 2..5 && allowResolvedAlternatives ->{
+                    EtsTypeFact.mkUnionType(notAnonymousSuitableTypes)
+                }
                 else -> this
             }
         }
-    }
 
-    is EtsTypeFact.FunctionEtsTypeFact -> this
-    is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
-    is EtsTypeFact.IntersectionEtsTypeFact -> {
-        val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
-        EtsTypeFact.IntersectionEtsTypeFact(updatedTypes)
-    }
+        is EtsTypeFact.FunctionEtsTypeFact -> this
+        is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
+        is EtsTypeFact.IntersectionEtsTypeFact -> {
+            val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
+            EtsTypeFact.IntersectionEtsTypeFact(updatedTypes)
+        }
 
-    is EtsTypeFact.UnionEtsTypeFact -> {
-        this.copy(
-            types.mapTo(mutableSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
-                .filterNot { it is EtsTypeFact.AnyEtsTypeFact }
-                .toSet()
-        ).simplify()
-    }
+        is EtsTypeFact.UnionEtsTypeFact -> {
+            this.copy(
+                types.mapTo(mutableSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
+                    .filterNot { it is EtsTypeFact.AnyEtsTypeFact }
+                    .toSet()
+            ).simplify()
+        }
 
-    else -> this
+        else -> this
+    }.simplify()
 }
 
 fun EtsTypeFact.simplify(): EtsTypeFact = when (this) {
@@ -135,7 +169,7 @@ fun EtsTypeFact.simplify(): EtsTypeFact = when (this) {
         val newArgs = splittedArgs.second + splittedArgs.first.let {
             val allProperties = it
                 .flatMap { (it as EtsTypeFact.ObjectEtsTypeFact).properties.entries }
-                .map { it.key to it.value}
+                .map { it.key to it.value }
             EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = allProperties.toMap())
         }
 
