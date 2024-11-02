@@ -38,54 +38,78 @@ fun guessUniqueTypes(
 }
 
 fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (this) {
+fun EtsTypeFact.resolveType(
+    graph: EtsApplicationGraph,
+    allowResolvedAlternatives: Boolean = false,
+): EtsTypeFact = when (this) {
     is EtsTypeFact.ArrayEtsTypeFact -> {
         val elementType = this.elementType
         if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
             this
         } else {
-            this.copy(elementType = elementType.resolveType(graph))
+            this.copy(elementType = elementType.resolveType(graph, allowResolvedAlternatives))
         }
     }
 
     is EtsTypeFact.ObjectEtsTypeFact -> {
-        val touchedPropertiesNames = this.properties.keys
-        val classesInSystem = graph.cp
-            .classes
-            .filter { cls ->
-                val methodNames = cls.methods.map { it.name }
-                val fieldNames = cls.fields.map { it.name }
-                val propertiesNames = (methodNames + fieldNames).distinct()
-                touchedPropertiesNames.all { name -> name in propertiesNames }
+        if (cls != null) {
+            this
+        } else {
+            val touchedPropertiesNames = this.properties.keys
+            val classesInSystem = graph.cp
+                .classes
+                .filter { cls ->
+                    val methodNames = cls.methods.map { it.name }
+                    val fieldNames = cls.fields.map { it.name }
+                    val propertiesNames = (methodNames + fieldNames).distinct()
+                    touchedPropertiesNames.all { name -> name in propertiesNames }
+                }
+
+            val suitableTypes = classesInSystem
+                .filterNot { it.name.startsWith("AnonymousClass-") }
+                .map {
+                    // TODO make it an impossible unique prefix
+                    // TODO how to do it properly?
+                    EtsTypeFact.ObjectEtsTypeFact(
+                        cls = EtsClassType(
+                            EtsClassSignature(
+                                name = it.name,
+                                file = EtsFileSignature.EMPTY,
+                            )
+                        ),
+                        properties = emptyMap(),
+                        // TODO it is correct? Mb we should save the properties?
+                        // properties = properties.mapValues { it.value.resolveType() }
+                    )
+                }.toSet()
+
+            // TODO process arrays here (and strings)
+
+            if (suitableTypes.size > 1) {
+                suitableTypes.let { }
             }
 
-        classesInSystem.singleOrNull()
-            // TODO make it an impossible unique prefix
-            ?.takeUnless { it.name.startsWith("AnonymousClass-") }
-            ?.let {
-                // TODO how to do it properly?
-                EtsTypeFact.ObjectEtsTypeFact(
-                    cls = EtsClassType(
-                        EtsClassSignature(
-                            name = it.name,
-                            file = EtsFileSignature.EMPTY,
-                        )
-                    ),
-                    properties = emptyMap(),
-                    // TODO it is correct? Mb we should save the properties?
-                    // properties = properties.mapValues { it.value.resolveType() }
-                )
-            } ?: this
+            when {
+                suitableTypes.size == 1 -> suitableTypes.single()
+                suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes)
+                else -> this
+            }
+        }
     }
 
     is EtsTypeFact.FunctionEtsTypeFact -> this
     is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
     is EtsTypeFact.IntersectionEtsTypeFact -> {
-        val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType(graph) }
+        val updatedTypes = types.mapTo(hashSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
         EtsTypeFact.IntersectionEtsTypeFact(updatedTypes)
     }
 
     is EtsTypeFact.UnionEtsTypeFact -> {
-        this.copy(types.mapTo(mutableSetOf()) { it.resolveType(graph) })
+        this.copy(
+            types.mapTo(mutableSetOf()) { it.resolveType(graph, allowResolvedAlternatives) }
+                .filterNot { it is EtsTypeFact.AnyEtsTypeFact }
+                .toSet()
+        ).simplify()
     }
 
     else -> this

@@ -29,10 +29,11 @@ class EtsTypeResolverTest {
     }
 
     private val yourPrefixForTestFolders = "C:/work/TestProjects"
+    private val testProjectsVersion = "TestProjects_2024_11_1"
 
     @Test
     fun testTestHap() {
-        val projectAbc = "$yourPrefixForTestFolders/Launcher.hap"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/callkit"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -50,13 +51,13 @@ class EtsTypeResolverTest {
         val classMatcherStatistics = ClassMatcherStatistics()
 
         saveTypeInferenceComparison(entrypoint.allMethods, entrypoint.allMethods, graphAbc, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
-        classMatcherStatistics.dumpStatistics("project1.txt")
+        classMatcherStatistics.dumpStatistics("callkit.txt")
     }
 
 
     @Test
     fun testLoadProject1() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/callui-default-signed"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/callui"
         val abcScene = loadProjectFromJsons(projectAbc)
 
         val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
@@ -95,7 +96,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject2() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/CertificateManager_240801_843398b"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/certManager"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -104,21 +105,21 @@ class EtsTypeResolverTest {
         val graphAst = createApplicationGraph(astScene)
 
         // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
+        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint.mainMethods, entrypoint.allMethods).withGuessedTypes(graphAbc)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
         // TODO fix error with abc and ast methods
         saveTypeInferenceComparison(
             astMethods,
-            entrypoint,
+            entrypoint.allMethods,
             graphAst,
             graphAbc,
             result,
@@ -130,7 +131,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject3() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/mobiledatasettings-callui-default-signed"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/mobileDataSettings"
         val abcScene = loadProjectFromJsons(projectAbc) 
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -165,7 +166,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject4() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/Music_Demo_240727_98a3500"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/Music_Demo"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -200,7 +201,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject5() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/phone_photos-default-signed_20240905_151755"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/phone_photos"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -235,7 +236,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject6() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/phone-default-signed_20240409_144519"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/phone_default-signed"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -270,7 +271,7 @@ class EtsTypeResolverTest {
 
     @Test
     fun testLoadProject7() {
-        val projectAbc = "$yourPrefixForTestFolders/TestProjects_2024_09_26/SecurityPrivacyCenter_240801_843998b"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/security"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
