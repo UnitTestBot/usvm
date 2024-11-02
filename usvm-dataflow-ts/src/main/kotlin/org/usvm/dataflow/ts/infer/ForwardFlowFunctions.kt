@@ -2,6 +2,7 @@ package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArithmeticExpr
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
@@ -13,6 +14,7 @@ import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
+import org.jacodb.ets.base.EtsRelationExpr
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
@@ -216,6 +218,15 @@ class ForwardFlowFunctions(
                     logger.info { "Adding known type for $lhv from $rhv: $type" }
                     addTypeFactWithAliases(lhv, type)
                 }
+            }
+
+            is EtsArithmeticExpr -> {
+                result += TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact)
+                result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
+            }
+
+            is EtsRelationExpr -> {
+                result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
 
             else -> {
