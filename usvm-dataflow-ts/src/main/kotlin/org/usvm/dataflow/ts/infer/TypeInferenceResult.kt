@@ -25,7 +25,7 @@ data class TypeInferenceResult(
     val inferredReturnType: Map<EtsMethod, EtsTypeFact>,
     val inferredCombinedThisType: Map<EtsClassSignature, EtsTypeFact>,
 ) {
-    fun withGuessedTypes(graph: EtsApplicationGraph, allowAlternatives: Boolean): TypeInferenceResult {
+    fun withGuessedTypes(graph: EtsApplicationGraph, allowAlternatives: Boolean = true): TypeInferenceResult {
         return TypeInferenceResult(
             inferredTypes = guessTypes(graph, inferredTypes, allowAlternatives),
             inferredReturnType = inferredReturnType.mapValues { (_, fact) -> fact.resolveType(graph) },
