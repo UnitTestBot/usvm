@@ -199,7 +199,7 @@ class ClassMatcherStatistics {
             }
         }
 
-        locals.forEach {
+        locals.filter { it.name.startsWith("$") } .forEach {
             val type = it.type
             val fact = facts.localFacts[AccessPathBase.Local(it.name)]
 
