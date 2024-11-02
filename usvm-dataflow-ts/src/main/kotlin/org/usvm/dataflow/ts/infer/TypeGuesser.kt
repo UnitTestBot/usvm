@@ -22,14 +22,15 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 
-fun guessUniqueTypes(
+fun guessTypes(
     graph: EtsApplicationGraph,
     facts: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
+    allowResolvedAlternatives: Boolean
 ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
     return facts.mapValues { (_, types) ->
         if (types.isNotEmpty() && types.entries.singleOrNull()?.value != EtsTypeFact.UnknownEtsTypeFact) {
             val updatedTypes = types.mapValues { (_, fact) ->
-                fact.resolveType(graph)
+                fact.resolveType(graph, allowResolvedAlternatives)
             }
             return@mapValues updatedTypes
         }
@@ -37,7 +38,6 @@ fun guessUniqueTypes(
     }
 }
 
-fun EtsTypeFact.resolveType(graph: EtsApplicationGraph): EtsTypeFact = when (this) {
 fun EtsTypeFact.resolveType(
     graph: EtsApplicationGraph,
     allowResolvedAlternatives: Boolean = false,
@@ -85,13 +85,9 @@ fun EtsTypeFact.resolveType(
 
             // TODO process arrays here (and strings)
 
-            if (suitableTypes.size > 1) {
-                suitableTypes.let { }
-            }
-
             when {
                 suitableTypes.size == 1 -> suitableTypes.single()
-                suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes)
+                suitableTypes.size in 2..5 && allowResolvedAlternatives -> EtsTypeFact.mkUnionType(suitableTypes)
                 else -> this
             }
         }
