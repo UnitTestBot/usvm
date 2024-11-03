@@ -1,6 +1,7 @@
 package org.usvm
 
 import io.ksmt.expr.transformer.KNonRecursiveTransformer
+import io.ksmt.expr.transformer.KNonRecursiveVisitor
 import io.ksmt.expr.transformer.KTransformer
 import io.ksmt.sort.KFpSort
 import org.usvm.collection.array.UAllocatedArrayReading
@@ -162,6 +163,10 @@ interface UTransformer<Type, USizeSort : USort> : KTransformer {
 abstract class UExprTransformer<Type, USizeSort : USort>(
     ctx: UContext<USizeSort>
 ) : KNonRecursiveTransformer(ctx), UTransformer<Type, USizeSort>
+
+abstract class UExprVisitor<Type, USizeSort : USort, V: Any>(
+    ctx: UContext<USizeSort>
+) : KNonRecursiveVisitor<V>(ctx), UTransformer<Type, USizeSort>
 
 @Suppress("UNCHECKED_CAST")
 fun <Type, USizeSort : USort> UTransformer<*, *>.asTypedTransformer(): UTransformer<Type, USizeSort> =
