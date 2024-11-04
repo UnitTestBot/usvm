@@ -6,10 +6,10 @@ import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoNullInst
 import org.jacodb.go.api.GoType
+import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoExprVisitor
 import org.usvm.GoInstVisitor
-import org.usvm.GoMethodInfo
 import org.usvm.GoPackage
 import org.usvm.GoTarget
 import org.usvm.StepResult
@@ -41,14 +41,18 @@ class GoInterpreter(
         val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
         val argumentsCount = method.parameters.size
 
-        ctx.setMethodInfo(method, GoMethodInfo(localsCount, argumentsCount))
+        setMethodInfo(method)
         for (global in pkg.globals) {
-            ctx.addGlobal(global, state.mkPointer(global.type))
+            addGlobal(global, state.mkPointer(global.type))
         }
 
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(argumentsCount, localsCount)
-        state.newInst(entrypoint)
+
+        val init = pkg.findMethod("init")
+        setMethodInfo(init)
+
+        state.addCall(GoCall(init, applicationGraph.entryPoints(init).first(), emptyArray()), entrypoint)
         return state
     }
 

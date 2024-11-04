@@ -20,14 +20,21 @@ class GoContext(
 
     fun getMethodInfo(method: GoMethod) = methodInfo[method]!!
 
-    fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
-        methodInfo[method] = info
+    fun setMethodInfo(method: GoMethod) {
+        val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
+        val argumentsCount = method.parameters.size
+
+        setMethodInfo(method, GoMethodInfo(localsCount, argumentsCount))
     }
 
     fun setMethodInfo(method: GoMethod, parameters: Array<UExpr<out USort>>) {
         val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
         val freeVariablesCount = getFreeVariablesCount(method)
         setMethodInfo(method, GoMethodInfo(localsCount + freeVariablesCount, parameters.size))
+    }
+
+    private fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
+        methodInfo[method] = info
     }
 
     fun addGlobal(global: GoGlobal, expr: UExpr<out USort>) {
