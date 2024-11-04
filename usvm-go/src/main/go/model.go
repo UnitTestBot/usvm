@@ -110,7 +110,11 @@ func PackMember(in ssa.Member, _ int) Member {
 		}
 	case *ssa.Global:
 		common.Type = GlobalMember
-		return common
+		return MemberGlobal{
+			CommonMember: common,
+			Index:        int(member.Pos()),
+			GoType:       member.Type().String(),
+		}
 	case *ssa.Type:
 		common.Type = TypeMember
 		return common
@@ -143,6 +147,12 @@ type NamedConst struct {
 type NamedConstValue struct {
 	Type  string `yaml:"type" json:"type"`
 	Value string `yaml:"value" json:"value"`
+}
+
+type MemberGlobal struct {
+	CommonMember `yaml:",inline"`
+	Index        int    `yaml:"index" json:"index"`
+	GoType       string `yaml:"go_type" json:"go_type"`
 }
 
 type Function struct {

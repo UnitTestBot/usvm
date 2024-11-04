@@ -20,6 +20,7 @@ import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoVar
+import org.jacodb.go.api.NullType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
@@ -60,8 +61,14 @@ class GoInstVisitor(
 
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
-            val type = TupleType(inst.returnValues.map { it.type })
-            returnValue(mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()), type)
+            when(inst.returnValues.size) {
+                0 -> returnValue(ctx.voidValue, NullType())
+                1 -> returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+                else -> {
+                    val type = TupleType(inst.returnValues.map { it.type })
+                    returnValue(mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()), type)
+                }
+            }
         }
         return GoNullInst(inst.location.method)
     }

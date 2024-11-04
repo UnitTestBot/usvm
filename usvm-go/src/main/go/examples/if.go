@@ -47,3 +47,12 @@ func inc(a int, f bool) int {
 	}
 	return a
 }
+
+func beforeAndAfter(a int) (int, int) {
+	return a - 1, a + 1
+}
+
+func sumBeforeAndAfter(a int) int {
+	b, c := beforeAndAfter(a)
+	return b + c
+}

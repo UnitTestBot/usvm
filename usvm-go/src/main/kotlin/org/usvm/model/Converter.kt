@@ -75,7 +75,7 @@ import org.usvm.GoPackage
 
 object Converter {
     fun unpackPackage(pkg: Package): GoPackage {
-        return GoPackage(pkg.name, pkg.members.filterIsInstance<Member.Function>().map { function ->
+        val methods = pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
                 BasicType(function.name),
                 function.parameters.mapIndexed(::unpackParameter),
@@ -85,7 +85,9 @@ object Converter {
                 function.freeVars.map { unpackValue(it) as GoFreeVar },
                 function.returnTypes.map(::unpackType),
             ).also { it.blocks = function.basicBlocks.map { block -> unpackBasicBlock(it, block) } }
-        })
+        }
+        val globals = pkg.members.filterIsInstance<Member.Global>().map { global -> GoGlobal(global.index, global.name, unpackType(global.goType)) }
+        return GoPackage(pkg.name, methods, globals)
     }
 
     private fun unpackParameter(index: Int, param: Value): GoParameter {

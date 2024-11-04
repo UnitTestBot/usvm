@@ -24,6 +24,7 @@ import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
+import org.usvm.sampleUValue
 import org.usvm.targets.UTargetsSet
 
 class GoState(
@@ -219,6 +220,13 @@ class GoState(
         appendLine("Instruction: $currentStatement")
         if (isExceptional) appendLine("Exception: $methodResult")
         appendLine(callStack)
+    }
+
+    fun mkPointer(type: GoType): UExpr<out USort> {
+        val ref = memory.allocConcrete(type)
+        val sort = ctx.typeToSort(type)
+        memory.write(GoPointerLValue(ref, sort), sort.sampleUValue(), ctx.trueExpr)
+        return ctx.mkAddressPointer(ref.address)
     }
 
     fun mkTuple(type: GoType, vararg fields: UExpr<out USort>): UHeapRef = with(ctx) {

@@ -56,10 +56,6 @@ class GoMachine(
         return analyze(method).map { testInterpreter.resolve(it, method) }
     }
 
-    private fun analyze(methodName: String): List<GoState> {
-        return analyze(listOf(pkg.findMethod(methodName)))
-    }
-
     private fun analyze(method: GoMethod): List<GoState> {
         return analyze(listOf(method))
     }
