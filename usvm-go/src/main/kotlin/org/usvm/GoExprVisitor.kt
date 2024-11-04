@@ -142,10 +142,7 @@ class GoExprVisitor(
 
     override fun visitGoAllocExpr(expr: GoAllocExpr): UExpr<out USort> {
         return scope.calcOnState {
-            val ref = memory.allocConcrete(expr.type)
-            val sort = ctx.typeToSort(expr.type)
-            memory.write(GoPointerLValue(ref, sort), sort.sampleUValue(), ctx.trueExpr)
-            ctx.mkAddressPointer(ref.address)
+            mkPointer(expr.type)
         }
     }
 
@@ -401,7 +398,9 @@ class GoExprVisitor(
     }
 
     override fun visitGoGlobal(expr: GoGlobal): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return scope.calcOnState {
+            ctx.getGlobal(expr)
+        }
     }
 
     override fun visitGoBuiltin(expr: GoBuiltin): UExpr<out USort> {

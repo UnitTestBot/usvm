@@ -4,11 +4,11 @@ import io.ksmt.utils.asExpr
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoAssignInst
 import org.jacodb.go.api.GoFunction
+import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.PointerType
 import org.usvm.memory.ULValue
-import org.usvm.operator.GoUnaryOperator
 import org.usvm.type.GoVoidSort
 import org.usvm.type.GoVoidValue
 
@@ -16,8 +16,7 @@ class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
-    private val registerStacks: MutableMap<GoMethod, MutableSet<Int>> = hashMapOf()
-    private val closures: MutableMap<String, GoMethod> = hashMapOf()
+    private val globals: MutableMap<GoGlobal, UExpr<out USort>> = hashMapOf()
 
     fun getMethodInfo(method: GoMethod) = methodInfo[method]!!
 
@@ -30,6 +29,12 @@ class GoContext(
         val freeVariablesCount = getFreeVariablesCount(method)
         setMethodInfo(method, GoMethodInfo(localsCount + freeVariablesCount, parameters.size))
     }
+
+    fun addGlobal(global: GoGlobal, expr: UExpr<out USort>) {
+        globals[global] = expr
+    }
+
+    fun getGlobal(global: GoGlobal): UExpr<out USort> = globals[global]!!
 
     fun freeVariableOffset(method: GoMethod) = getArgsCount(method)
 
@@ -53,39 +58,6 @@ class GoContext(
     val voidSort by lazy { GoVoidSort(this) }
 
     val voidValue by lazy { GoVoidValue(this) }
-
-    fun mkPrimitiveCast(expr: UExpr<USort>, to: USort): UExpr<out USort> = when (to) {
-        boolSort -> GoUnaryOperator.CastToBool(expr)
-        bv8Sort -> GoUnaryOperator.CastToInt8(expr)
-        bv16Sort -> GoUnaryOperator.CastToInt16(expr)
-        bv32Sort -> GoUnaryOperator.CastToInt32(expr)
-        bv64Sort -> GoUnaryOperator.CastToInt64(expr)
-        fp32Sort -> GoUnaryOperator.CastToFloat32(expr)
-        fp64Sort -> GoUnaryOperator.CastToFloat64(expr)
-        else -> throw IllegalStateException()
-    }
-
-    fun mkNarrow(expr: UExpr<UBvSort>, sizeBits: Int, signed: Boolean): UExpr<UBvSort> {
-        val diff = sizeBits - expr.sort.sizeBits.toInt()
-        val res = if (diff > 0) {
-            if (signed) {
-                expr.ctx.mkBvSignExtensionExpr(diff, expr)
-            } else {
-                expr.ctx.mkBvZeroExtensionExpr(diff, expr)
-            }
-        } else {
-            expr.ctx.mkBvExtractExpr(high = sizeBits - 1, low = 0, expr)
-        }
-        return res
-    }
-
-    private val arrayTypeToSliceType: MutableMap<GoType, GoType> = hashMapOf()
-
-    fun getSliceType(arrayType: GoType): GoType? = arrayTypeToSliceType[arrayType]
-
-    fun setSliceType(arrayType: GoType, sliceType: GoType) {
-        arrayTypeToSliceType[arrayType] = sliceType
-    }
 
     fun typeToSort(type: GoType): USort = when (type) {
         is BasicType -> basicTypeToSort(type.typeName)
