@@ -42,6 +42,9 @@ class GoInterpreter(
         val argumentsCount = method.parameters.size
 
         ctx.setMethodInfo(method, GoMethodInfo(localsCount, argumentsCount))
+        for (global in pkg.globals) {
+            ctx.addGlobal(global, state.mkPointer(global.type))
+        }
 
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(argumentsCount, localsCount)

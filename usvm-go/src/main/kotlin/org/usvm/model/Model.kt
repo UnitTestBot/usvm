@@ -32,7 +32,11 @@ sealed interface Member {
 
     @Serializable
     @SerialName("Global")
-    data class Global(override val name: String) : Member
+    data class Global(
+        override val name: String,
+        val index: Int,
+        @SerialName("go_type") val goType: String,
+    ) : Member
 
     @Serializable
     @SerialName("Type")

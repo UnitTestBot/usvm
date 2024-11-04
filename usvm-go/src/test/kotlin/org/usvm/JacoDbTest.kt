@@ -39,6 +39,16 @@ class JacoDbTest {
     }
 
     @Test
+    fun testBeforeAndAfter() {
+        test("beforeAndAfter")
+    }
+
+    @Test
+    fun testSumBeforeAndAfter() {
+        test("sumBeforeAndAfter")
+    }
+
+    @Test
     fun testLoopSimple() {
         test("loopSimple")
     }
@@ -136,6 +146,11 @@ class JacoDbTest {
     @Test
     fun testMapUpdate() {
         test("mapUpdate")
+    }
+
+    @Test
+    fun testGlobalSimple() {
+        test("globalSimple")
     }
 
     private val options: UMachineOptions = UMachineOptions(
