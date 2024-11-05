@@ -16,6 +16,7 @@ import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
@@ -543,6 +544,8 @@ class BackwardFlowFunctions(
         val callResult = (callStatement as? EtsAssignStmt)?.lhv?.toBase() ?: return emptyList()
 
         if (fact.variable != callResult) return emptyList()
+
+        if (calleeStart is EtsThrowStmt) return emptyList() // TODO support throwStmt
 
         check(calleeStart is EtsReturnStmt)
 
