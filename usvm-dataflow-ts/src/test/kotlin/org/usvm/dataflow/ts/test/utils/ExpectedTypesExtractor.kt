@@ -1,8 +1,6 @@
 package org.usvm.dataflow.ts.test.utils
 
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
@@ -15,6 +13,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.base.TEMP_LOCAL_PREFIX
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -202,7 +201,7 @@ class ClassMatcherStatistics {
             }
         }
 
-        locals.filter { it.name.startsWith("$") } .forEach {
+        locals.filter { it.name.startsWith(TEMP_LOCAL_PREFIX) }.forEach {
             val type = it.type
             val fact = facts.localFacts[AccessPathBase.Local(it.name)]
 
