@@ -88,8 +88,6 @@ class InferTypes : CliktCommand() {
             TypeInferenceManager(graph)
         }
 
-        // TODO write statistics
-
         val (result, timeAnalyze) = measureTimedValue {
             manager.analyze(dummyMains, publicMethods).withGuessedTypes(graph)
         }
