@@ -522,27 +522,41 @@ final public class SpecialOperations {
 	 * Returns the set of accepted strings of the given length.
 	 */
 	public static Set<String> getStrings(Automaton a, int length) {
+		return getStrings(a, length, Integer.MAX_VALUE);
+	}
+
+
+	/**
+	 * Returns the set of accepted strings of the given length, not more than the given limit.
+	 */
+	public static Set<String> getStrings(Automaton a, int length, int limit) {
 		HashSet<String> strings = new HashSet<String>();
-		if (a.isSingleton() && a.singleton.length() == length)
+		if (a.isSingleton() && a.singleton.length() == length && limit > 0)
 			strings.add(a.singleton);
 		else if (length >= 0)
-			getStrings(a.initial, strings, new StringBuilder(), length);
+			getStrings(a.initial, strings, new StringBuilder(), length, limit);
 		return strings;
 	}
-	
-	private static void getStrings(State s, Set<String> strings, StringBuilder path, int length) {
+
+	// TODO: implement iterator for this
+	private static boolean getStrings(State s, Set<String> strings, StringBuilder path, int length, int limit) {
 		if (length == 0) {
-			if (s.accept)
+			if (s.accept) {
 				strings.add(path.toString());
+				return strings.size() <= limit;
+			}
 		} else 
 			for (Transition t : s.transitions)
 				for (int n = t.min; n <= t.max; n++) {
 					path.append((char)n);
-					getStrings(t.to, strings, path, length - 1);
+					if (!getStrings(t.to, strings, path, length - 1, limit)) {
+						return false;
+					}
 					path.deleteCharAt(path.length() - 1);
 				}
+		return true;
 	}
-	
+
 	/**
 	 * Returns the set of accepted strings, assuming this automaton has a finite
 	 * language. If the language is not finite, null is returned.
@@ -670,5 +684,121 @@ final public class SpecialOperations {
 		ws.add('\r');
 		map.put(' ', ws);
 		return a.subst(map);
+	}
+
+	/**
+	 * Constructs automaton where all characters in all transitions are
+	 * converted to lower case, except that Sigma transitions are left unchanged.
+	 */
+	public static Automaton toLowerCase(Automaton a) {
+		Automaton b = a.cloneIfRequired();
+		for (State s : b.getStates()) {
+			Set<Transition> transitions = s.getTransitions();
+			for (Transition t : new ArrayList<>(transitions)) {
+				char min = t.getMin();
+				char max = t.getMax();
+				State dest = t.getDest();
+				if (min != Character.MIN_VALUE || max != Character.MAX_VALUE) {
+					transitions.remove(t);
+					for (int c = min; c <= max; c++) {
+						transitions.add(new Transition(Character.toLowerCase((char) c), dest));
+					}
+				}
+			}
+		}
+		b.setDeterministic(false);
+		b.reduce();
+		a.removeDeadTransitions();
+		a.checkMinimizeAlways();
+		return b;
+	}
+
+	public static Automaton toUpperCase(Automaton a) {
+		Automaton b = a.cloneIfRequired();
+		for (State s : b.getStates()) {
+			Set<Transition> transitions = s.getTransitions();
+			for (Transition t : new ArrayList<>(transitions)) {
+				char min = t.getMin();
+				char max = t.getMax();
+				State dest = t.getDest();
+				if (min != Character.MIN_VALUE || max != Character.MAX_VALUE) {
+					transitions.remove(t);
+					for (int c = min; c <= max; c++) {
+						String up = String.valueOf((char)c).toUpperCase();
+						if (up.length() == 1) {
+							transitions.add(new Transition(Character.toUpperCase((char) c), dest));
+						} else {
+							// YES some characters translate to more than one character when turned upper case
+							// for example the German character U+1E9E becomes "SS"
+							State lastState = s;
+							for (int i=0; i<up.length()-1; i++) {
+								char ch = up.charAt(i);
+								State state = new State();
+								lastState.addTransition(new Transition(ch, state));
+								lastState = state;
+							}
+							lastState.addTransition(new Transition(up.charAt(up.length()-1), dest));
+						}
+					}
+				}
+			}
+		}
+		b.setDeterministic(false);
+		b.reduce();
+		a.removeDeadTransitions();
+		a.checkMinimizeAlways();
+		return b;
+	}
+
+	public static Automaton deLowerCase(Automaton a) {
+		Automaton b = a.cloneIfRequired();
+		for (State s : b.getStates()) {
+			Set<Transition> transitions = s.getTransitions();
+			for (Transition t : new ArrayList<>(transitions)) {
+				char min = t.getMin();
+				char max = t.getMax();
+				State dest = t.getDest();
+				if (min != Character.MIN_VALUE || max != Character.MAX_VALUE) {
+					for (int c = min; c <= max; c++) {
+						char ch = (char) c;
+						if (Character.isLowerCase(ch)) {
+							char upperCaseChar = Character.toUpperCase(ch);
+							transitions.add(new Transition(upperCaseChar, dest));
+						}
+					}
+				}
+			}
+		}
+		b.setDeterministic(false);
+		b.reduce();
+		a.removeDeadTransitions();
+		a.checkMinimizeAlways();
+		return b;
+	}
+
+	public static Automaton deUpperCase(Automaton a) {
+		Automaton b = a.cloneIfRequired();
+		for (State s : b.getStates()) {
+			Set<Transition> transitions = s.getTransitions();
+			for (Transition t : new ArrayList<>(transitions)) {
+				char min = t.getMin();
+				char max = t.getMax();
+				State dest = t.getDest();
+				if (min != Character.MIN_VALUE || max != Character.MAX_VALUE) {
+					for (int c = min; c <= max; c++) {
+						char ch = (char) c;
+						if (Character.isUpperCase(ch)) {
+							char lowerCaseChar = Character.toLowerCase(ch);
+							transitions.add(new Transition(lowerCaseChar, dest));
+						}
+					}
+				}
+			}
+		}
+		b.setDeterministic(false);
+		b.reduce();
+		a.removeDeadTransitions();
+		a.checkMinimizeAlways();
+		return b;
 	}
 }
