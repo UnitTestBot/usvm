@@ -115,7 +115,14 @@ private fun loadEtsScene(paths: List<Path>): EtsScene {
             loadMultipleEtsFilesFromDirectory(path).asIterable()
         }
     }
-    logger.info { "Loaded ${files.size} files" }
+    logger.info {
+        "Loaded ${files.size} files with ${
+            files.sumOf { it.classes.size }
+        } classes and ${
+            // Note: +1 for constructor
+            files.sumOf { it.classes.sumOf { cls -> cls.methods.size + 1 } }
+        } methods"
+    }
     return EtsScene(files)
 }
 
