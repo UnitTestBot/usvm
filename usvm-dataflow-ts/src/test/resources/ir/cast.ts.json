@@ -53,7 +53,8 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               }
             ],
@@ -77,7 +78,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -91,7 +93,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -156,7 +159,8 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -170,7 +174,8 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -212,7 +217,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -226,7 +232,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -273,7 +280,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -294,7 +302,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -338,7 +347,8 @@
                                   "fileName": "cast.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           }
                         ]
@@ -393,7 +403,8 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -446,7 +457,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -460,7 +472,8 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },

@@ -53,7 +53,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               }
             ],
@@ -77,7 +78,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -91,7 +93,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -136,7 +139,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -150,7 +154,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -164,7 +169,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -194,7 +200,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -208,7 +215,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -226,7 +234,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -240,7 +249,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -260,7 +270,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "method": {
@@ -283,7 +294,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "args": []
@@ -303,7 +315,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -318,7 +331,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -362,7 +376,8 @@
                                   "fileName": "nested_init.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           }
                         ]
@@ -417,7 +432,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -470,7 +486,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -484,7 +501,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -593,7 +611,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -607,7 +626,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -661,7 +681,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -675,7 +696,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -709,7 +731,8 @@
                   "fileName": "nested_init.ts"
                 },
                 "declaringNamespace": null
-              }
+              },
+              "typeParameters": []
             }
           },
           "modifiers": 0,
@@ -750,7 +773,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -829,7 +853,8 @@
                   "fileName": "nested_init.ts"
                 },
                 "declaringNamespace": null
-              }
+              },
+              "typeParameters": []
             }
           },
           "modifiers": 0,
@@ -871,7 +896,8 @@
                       "fileName": "nested_init.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               }
             ],
@@ -895,7 +921,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -909,7 +936,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -927,7 +955,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -941,7 +970,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -961,7 +991,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "method": {
@@ -984,7 +1015,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "args": []
@@ -1006,7 +1038,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "field": {
@@ -1028,7 +1061,8 @@
                                 "fileName": "nested_init.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         }
                       },
@@ -1044,7 +1078,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1098,7 +1133,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1112,7 +1148,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1146,7 +1183,8 @@
                   "fileName": "nested_init.ts"
                 },
                 "declaringNamespace": null
-              }
+              },
+              "typeParameters": []
             }
           },
           "modifiers": 0,
@@ -1187,7 +1225,8 @@
                               "fileName": "nested_init.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },

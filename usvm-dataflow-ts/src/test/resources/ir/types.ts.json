@@ -53,7 +53,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               }
             ],
@@ -77,7 +78,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -91,7 +93,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -120,7 +123,8 @@
                 "name": "x",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "A"
+                  "name": "A",
+                  "typeParameters": []
                 },
                 "isOptional": false
               },
@@ -152,7 +156,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -166,7 +171,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -223,7 +229,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -238,7 +245,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -273,7 +281,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -287,7 +296,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -344,7 +354,8 @@
                                 "fileName": "types.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "field": {
@@ -366,7 +377,8 @@
                                 "fileName": "types.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         }
                       }
@@ -444,7 +456,8 @@
                                 "fileName": "types.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "field": {
@@ -529,7 +542,8 @@
                 "name": "arg",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "A"
+                  "name": "A",
+                  "typeParameters": []
                 },
                 "isOptional": false
               }
@@ -554,7 +568,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -568,7 +583,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -610,7 +626,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -625,7 +642,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -643,7 +661,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -657,7 +676,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -687,7 +707,8 @@
                               "name": "x",
                               "type": {
                                 "_": "UnclearReferenceType",
-                                "name": "A"
+                                "name": "A",
+                                "typeParameters": []
                               },
                               "isOptional": false
                             },
@@ -716,7 +737,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           },
                           {
@@ -801,7 +823,8 @@
                           "fileName": "types.ts"
                         },
                         "declaringNamespace": null
-                      }
+                      },
+                      "typeParameters": []
                     },
                     {
                       "_": "ClassType",
@@ -812,7 +835,8 @@
                           "fileName": "types.ts"
                         },
                         "declaringNamespace": null
-                      }
+                      },
+                      "typeParameters": []
                     }
                   ]
                 },
@@ -839,7 +863,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -856,7 +881,8 @@
                           "fileName": "types.ts"
                         },
                         "declaringNamespace": null
-                      }
+                      },
+                      "typeParameters": []
                     },
                     {
                       "_": "ClassType",
@@ -867,7 +893,8 @@
                           "fileName": "types.ts"
                         },
                         "declaringNamespace": null
-                      }
+                      },
+                      "typeParameters": []
                     }
                   ]
                 }
@@ -923,7 +950,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             },
                             {
                               "_": "ClassType",
@@ -934,7 +962,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           ]
                         }
@@ -954,7 +983,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             },
                             {
                               "_": "ClassType",
@@ -965,7 +995,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           ]
                         }
@@ -985,7 +1016,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -999,7 +1031,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1061,7 +1094,8 @@
                                     "fileName": "types.ts"
                                   },
                                   "declaringNamespace": null
-                                }
+                                },
+                                "typeParameters": []
                               },
                               {
                                 "_": "ClassType",
@@ -1072,7 +1106,8 @@
                                     "fileName": "types.ts"
                                   },
                                   "declaringNamespace": null
-                                }
+                                },
+                                "typeParameters": []
                               }
                             ]
                           }
@@ -1174,7 +1209,8 @@
                                     "fileName": "types.ts"
                                   },
                                   "declaringNamespace": null
-                                }
+                                },
+                                "typeParameters": []
                               },
                               {
                                 "_": "ClassType",
@@ -1185,7 +1221,8 @@
                                     "fileName": "types.ts"
                                   },
                                   "declaringNamespace": null
-                                }
+                                },
+                                "typeParameters": []
                               }
                             ]
                           }
@@ -1266,7 +1303,8 @@
                 "name": "x",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "IntersectionType"
+                  "name": "IntersectionType",
+                  "typeParameters": []
                 },
                 "isOptional": false
               }
@@ -1291,14 +1329,16 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
                 "name": "x",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "IntersectionType"
+                  "name": "IntersectionType",
+                  "typeParameters": []
                 }
               },
               {
@@ -1339,7 +1379,8 @@
                         "name": "x",
                         "type": {
                           "_": "UnclearReferenceType",
-                          "name": "IntersectionType"
+                          "name": "IntersectionType",
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1347,7 +1388,8 @@
                         "index": 0,
                         "type": {
                           "_": "UnclearReferenceType",
-                          "name": "IntersectionType"
+                          "name": "IntersectionType",
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1365,7 +1407,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1379,7 +1422,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1399,7 +1443,8 @@
                           "name": "x",
                           "type": {
                             "_": "UnclearReferenceType",
-                            "name": "IntersectionType"
+                            "name": "IntersectionType",
+                            "typeParameters": []
                           }
                         },
                         "field": {
@@ -1472,7 +1517,8 @@
                           "name": "x",
                           "type": {
                             "_": "UnclearReferenceType",
-                            "name": "IntersectionType"
+                            "name": "IntersectionType",
+                            "typeParameters": []
                           }
                         },
                         "field": {
@@ -1578,7 +1624,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1625,7 +1672,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1639,7 +1687,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1692,7 +1741,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1739,7 +1789,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1753,7 +1804,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1782,7 +1834,8 @@
                 "name": "arg0",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "X"
+                  "name": "X",
+                  "typeParameters": []
                 },
                 "isOptional": false
               },
@@ -1790,7 +1843,8 @@
                 "name": "arg1",
                 "type": {
                   "_": "UnclearReferenceType",
-                  "name": "Y"
+                  "name": "Y",
+                  "typeParameters": []
                 },
                 "isOptional": false
               }
@@ -1815,7 +1869,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1829,7 +1884,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1843,7 +1899,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1863,7 +1920,8 @@
                       "fileName": "types.ts"
                     },
                     "declaringNamespace": null
-                  }
+                  },
+                  "typeParameters": []
                 }
               },
               {
@@ -1893,7 +1951,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1908,7 +1967,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1926,7 +1986,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1941,7 +2002,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -1959,7 +2021,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -1973,7 +2036,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -2006,7 +2070,8 @@
                                         "fileName": "types.ts"
                                       },
                                       "declaringNamespace": null
-                                    }
+                                    },
+                                    "typeParameters": []
                                   },
                                   {
                                     "_": "ClassType",
@@ -2017,7 +2082,8 @@
                                         "fileName": "types.ts"
                                       },
                                       "declaringNamespace": null
-                                    }
+                                    },
+                                    "typeParameters": []
                                   }
                                 ]
                               },
@@ -2041,7 +2107,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           }
                         ]
@@ -2076,7 +2143,8 @@
                                         "fileName": "types.ts"
                                       },
                                       "declaringNamespace": null
-                                    }
+                                    },
+                                    "typeParameters": []
                                   },
                                   {
                                     "_": "ClassType",
@@ -2087,7 +2155,8 @@
                                         "fileName": "types.ts"
                                       },
                                       "declaringNamespace": null
-                                    }
+                                    },
+                                    "typeParameters": []
                                   }
                                 ]
                               },
@@ -2111,7 +2180,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           }
                         ]
@@ -2131,7 +2201,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -2145,7 +2216,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -2165,7 +2237,8 @@
                                 "fileName": "types.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "method": {
@@ -2188,7 +2261,8 @@
                                 "fileName": "types.ts"
                               },
                               "declaringNamespace": null
-                            }
+                            },
+                            "typeParameters": []
                           }
                         },
                         "args": []
@@ -2213,7 +2287,8 @@
                               "name": "x",
                               "type": {
                                 "_": "UnclearReferenceType",
-                                "name": "IntersectionType"
+                                "name": "IntersectionType",
+                                "typeParameters": []
                               },
                               "isOptional": false
                             }
@@ -2235,7 +2310,8 @@
                                   "fileName": "types.ts"
                                 },
                                 "declaringNamespace": null
-                              }
+                              },
+                              "typeParameters": []
                             }
                           }
                         ]
@@ -2307,7 +2383,8 @@
                   "fileName": "types.ts"
                 },
                 "declaringNamespace": null
-              }
+              },
+              "typeParameters": []
             }
           },
           "modifiers": 0,
@@ -2530,7 +2607,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       },
                       "right": {
@@ -2544,7 +2622,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
@@ -2578,7 +2657,8 @@
                   "fileName": "types.ts"
                 },
                 "declaringNamespace": null
-              }
+              },
+              "typeParameters": []
             }
           },
           "modifiers": 0,
@@ -2619,7 +2699,8 @@
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
-                          }
+                          },
+                          "typeParameters": []
                         }
                       }
                     },
