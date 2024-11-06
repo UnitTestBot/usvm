@@ -95,7 +95,7 @@ fun EtsTypeFact.resolveType(
                         cls = EtsClassType(
                             EtsClassSignature(
                                 name = it.name,
-                                file = EtsFileSignature.EMPTY,
+                                file = EtsFileSignature.DEFAULT,
                             )
                         ),
                         // properties = emptyMap(),

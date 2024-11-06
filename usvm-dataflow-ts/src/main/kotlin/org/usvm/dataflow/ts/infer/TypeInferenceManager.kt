@@ -119,7 +119,7 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Backward types:")
                 for ((method, typeFacts) in methodTypeScheme) {
-                    appendLine("Backward types for ${method.enclosingClass.name}::${method.name} in ${method.enclosingClass.enclosingFile}:")
+                    appendLine("Backward types for ${method.enclosingClass.name}::${method.name} in ${method.enclosingClass.file}:")
                     for ((base, fact) in typeFacts.types.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
@@ -192,7 +192,7 @@ class TypeInferenceManager(
             buildString {
                 appendLine("Forward types:")
                 for ((method, typeFacts) in refinedTypes) {
-                    appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.enclosingFile}:")
+                    appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
                     for ((base, fact) in typeFacts.types.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
@@ -376,7 +376,7 @@ class TypeInferenceManager(
                 buildString {
                     appendLine("Local types:")
                     for ((method, localTypes) in inferredLocalTypes) {
-                        appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.enclosingFile}:")
+                        appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
                         for ((base, fact) in localTypes.entries.sortedBy { (it.key as AccessPathBase.Local).name }) {
                             appendLine("$base: ${fact.toPrettyString()}")
                         }

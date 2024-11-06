@@ -532,7 +532,7 @@ class EtsTypeInferenceTest {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
                         for ((clazz, thisType) in result.inferredCombinedThisType.entries.sortedBy { it.key.toString() }) {
-                            appendLine("${clazz.name} in ${clazz.enclosingFile}: $thisType")
+                            appendLine("${clazz.name} in ${clazz.file}: $thisType")
                         }
                     }
                 }
