@@ -16,6 +16,7 @@
 
 package org.usvm.dataflow.ts.test
 
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsClassType
@@ -127,7 +128,7 @@ internal class EtsTypeAnnotationTest {
 
     private val mainClassCtorSignature = EtsMethodSignature(
         enclosingClass = mainClassSignature,
-        name = "constructor",
+        name = CONSTRUCTOR_NAME,
         parameters = parameters(1),
         returnType = EtsUnknownType,
     )

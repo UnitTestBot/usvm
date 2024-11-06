@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.test
 
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
@@ -484,7 +485,7 @@ class EtsTypeResolverTest {
 
         return abcScene.classes
             .asSequence()
-            .filterNot { it.name.startsWith("AnonymousClass-") }
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
             .flatMap { it.methods }
             .filter { it.isPublic }
             .filter {

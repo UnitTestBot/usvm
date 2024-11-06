@@ -21,6 +21,7 @@ import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallExpr
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
@@ -57,8 +58,6 @@ import org.usvm.dataflow.ifds.AccessPath
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FieldAccessor
 import org.usvm.dataflow.util.Traits
-
-const val CONSTRUCTOR = "constructor"
 
 /**
  * ETS-specific extensions for analysis.
@@ -190,7 +189,7 @@ object EtsTraits : Traits<EtsMethod, EtsStmt> {
     }
 
     override fun isConstructor(method: EtsMethod): Boolean {
-        return method.name == CONSTRUCTOR
+        return method.name == CONSTRUCTOR_NAME
     }
 
     override fun isLoopHead(statement: EtsStmt): Boolean {

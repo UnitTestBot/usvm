@@ -1,6 +1,8 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
@@ -14,6 +16,7 @@ import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 
 private val logger = KotlinLogging.logger {}
 
@@ -152,11 +155,11 @@ sealed interface EtsTypeFact {
         val properties: Map<String, EtsTypeFact>,
     ) : BasicType {
         override fun toString(): String {
-            val clsName = cls?.typeName?.takeUnless { it.startsWith("AnonymousClass-") } ?: "Object"
+            val clsName = cls?.typeName?.takeUnless { it.startsWith(ANONYMOUS_CLASS_PREFIX) } ?: "Object"
             val funProps = properties.entries
                 .filter { it.value is FunctionEtsTypeFact }
-                .filterNot { it.key == "constructor" }
-                .filterNot { it.key == "@instance_init" }
+                .filterNot { it.key == CONSTRUCTOR_NAME }
+                .filterNot { it.key == INSTANCE_INIT_METHOD_NAME }
                 .sortedBy { it.key }
             val nonFunProps = properties.entries
                 .filter { it.value !is FunctionEtsTypeFact }

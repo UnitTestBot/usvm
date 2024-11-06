@@ -31,6 +31,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.test.utils.loadEtsFile
 import org.jacodb.ets.test.utils.loadMultipleEtsFilesFromDirectory
@@ -132,11 +134,11 @@ fun dumpTypeInferenceResult(
             if (skipAnonymous) {
                 dto.copy(
                     classes = dto.classes.filterNot { cls ->
-                        cls.signature.name.startsWith("AnonymousClass-")
+                        cls.signature.name.startsWith(ANONYMOUS_CLASS_PREFIX)
                     },
                     methods = dto.methods.filterNot { method ->
-                        method.signature.declaringClass.name.startsWith("AnonymousClass-") ||
-                            method.signature.name.startsWith("AnonymousMethod-")
+                        method.signature.declaringClass.name.startsWith(ANONYMOUS_CLASS_PREFIX) ||
+                            method.signature.name.startsWith(ANONYMOUS_METHOD_PREFIX)
                     }
                 )
             } else {

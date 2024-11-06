@@ -16,6 +16,7 @@
 
 package org.usvm.dataflow.ts.infer
 
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsClassSignature
@@ -86,7 +87,7 @@ fun EtsTypeFact.resolveType(
             }
 
             val suitableTypes = classesInSystem
-                .filter { !filterAnonymous || !it.name.startsWith("AnonymousClass-") }
+                .filter { !filterAnonymous || !it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
                 .map {
                     // TODO make it an impossible unique prefix
                     // TODO how to do it properly?
@@ -106,7 +107,7 @@ fun EtsTypeFact.resolveType(
                 }.toSet()
 
             val notAnonymousSuitableTypes = suitableTypes.filterNot {
-                it.cls?.typeName?.startsWith("AnonymousClass-") ?: error("Should not occur")
+                it.cls?.typeName?.startsWith(ANONYMOUS_CLASS_PREFIX) ?: error("Should not occur")
             }.toSet()
 
             // TODO process arrays here (and strings)

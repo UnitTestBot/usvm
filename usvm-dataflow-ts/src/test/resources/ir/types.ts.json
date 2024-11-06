@@ -7,7 +7,7 @@
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS",
+        "name": "%dflt",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "types.ts"
@@ -24,14 +24,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
               },
               "declaringNamespace": null
             },
-            "name": "_DEFAULT_ARK_METHOD",
+            "name": "%dflt",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -47,7 +47,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -71,7 +71,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -85,7 +85,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -107,7 +107,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -146,7 +146,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -176,25 +176,25 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "StringType"
                 }
               },
               {
-                "name": "$temp1",
+                "name": "%1",
                 "type": {
                   "_": "UnknownType"
                 }
               },
               {
-                "name": "$temp2",
+                "name": "%2",
                 "type": {
                   "_": "UnknownType"
                 }
               },
               {
-                "name": "$temp3",
+                "name": "%3",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -267,7 +267,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -281,7 +281,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -325,7 +325,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp2",
+                        "name": "%2",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -375,7 +375,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp3",
+                        "name": "%3",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -384,7 +384,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp2",
+                          "name": "%2",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -393,8 +393,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -409,7 +409,7 @@
                       "_": "ReturnStmt",
                       "arg": {
                         "_": "Local",
-                        "name": "$temp3",
+                        "name": "%3",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -425,7 +425,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "StringType"
                         }
@@ -467,7 +467,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -476,7 +476,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "StringType"
                           }
@@ -485,8 +485,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -501,7 +501,7 @@
                       "_": "ReturnStmt",
                       "arg": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -516,7 +516,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -548,7 +548,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -578,7 +578,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "NumberType"
                 }
@@ -637,7 +637,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -651,7 +651,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -665,7 +665,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "NumberType"
                         }
@@ -674,7 +674,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -744,8 +744,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -758,7 +758,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp0",
+                            "name": "%0",
                             "type": {
                               "_": "NumberType"
                             }
@@ -778,7 +778,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -833,7 +833,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -873,7 +873,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -885,7 +885,7 @@
                 }
               },
               {
-                "name": "$temp1",
+                "name": "%1",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -979,7 +979,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -993,7 +993,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1039,7 +1039,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1081,8 +1081,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -1099,7 +1099,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1123,7 +1123,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp1",
+                            "name": "%1",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -1152,7 +1152,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1194,8 +1194,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -1212,7 +1212,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1236,7 +1236,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp0",
+                            "name": "%0",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -1253,7 +1253,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -1285,7 +1285,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -1302,7 +1302,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -1314,7 +1314,7 @@
                 }
               },
               {
-                "name": "$temp1",
+                "name": "%1",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -1359,7 +1359,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1373,7 +1373,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1387,7 +1387,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1406,8 +1406,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -1424,7 +1424,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1448,7 +1448,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp0",
+                            "name": "%0",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -1460,7 +1460,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -1479,8 +1479,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -1497,7 +1497,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1521,7 +1521,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp1",
+                            "name": "%1",
                             "type": {
                               "_": "UnknownType"
                             }
@@ -1541,7 +1541,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -1572,7 +1572,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -1619,7 +1619,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1633,7 +1633,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1655,7 +1655,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -1686,7 +1686,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -1733,7 +1733,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1747,7 +1747,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1769,7 +1769,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -1809,7 +1809,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -1853,11 +1853,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                    "name": "%AC$%dflt$entrypoint2$0",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "types.ts"
@@ -1953,7 +1953,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1967,7 +1967,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -1983,7 +1983,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2053,7 +2053,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2121,11 +2121,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2139,7 +2139,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2155,11 +2155,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                              "name": "%AC$%dflt$entrypoint2$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "types.ts"
@@ -2170,7 +2170,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2182,7 +2182,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                              "name": "%AC$%dflt$entrypoint2$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "types.ts"
@@ -2200,7 +2200,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2225,11 +2225,11 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp0",
+                            "name": "%0",
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                                "name": "%AC$%dflt$entrypoint2$0",
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "types.ts"
@@ -2434,7 +2434,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+        "name": "%AC$%dflt$entrypoint2$0",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "types.ts"
@@ -2450,7 +2450,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+              "name": "%AC$%dflt$entrypoint2$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -2470,7 +2470,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+              "name": "%AC$%dflt$entrypoint2$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -2492,14 +2492,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+              "name": "%AC$%dflt$entrypoint2$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -2524,7 +2524,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2538,7 +2538,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2560,7 +2560,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+              "name": "%AC$%dflt$entrypoint2$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "types.ts"
@@ -2572,7 +2572,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                "name": "%AC$%dflt$entrypoint2$0",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "types.ts"
@@ -2613,7 +2613,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
@@ -2636,14 +2636,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-_DEFAULT_ARK_CLASS-entrypoint2-0",
+                            "name": "%AC$%dflt$entrypoint2$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "types.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"

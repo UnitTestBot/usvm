@@ -1,5 +1,8 @@
 package org.usvm.dataflow.ts.test.utils
 
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.base.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
@@ -34,12 +37,12 @@ class ExpectedTypesExtractor(private val graph: EtsApplicationGraph) {
 }
 
 private fun getEtsClassType(method: EtsMethod, graph: EtsApplicationGraph) =
-    if (method.enclosingClass.name == "_DEFAULT_ARK_CLASS" || method.enclosingClass.name.isBlank()) {
+    if (method.enclosingClass.name == DEFAULT_ARK_CLASS_NAME || method.enclosingClass.name.isBlank()) {
         null
     } else {
         val clazz = graph.cp
             .classes
-            // .filterNot { it.name.startsWith("AnonymousClass-") }
+            // .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
             // TODO different representation in abc and ast, replace with signatures
             // .singleOrNull { it.name == method.enclosingClass.name }
             // ?: error("TODO")

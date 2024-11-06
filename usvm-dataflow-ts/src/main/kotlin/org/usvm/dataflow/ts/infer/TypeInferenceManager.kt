@@ -9,10 +9,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.findDominators
 import org.jacodb.ets.model.EtsMethod
@@ -209,7 +212,7 @@ class TypeInferenceManager(
                 .map { it.enclosingClass }
                 .distinct()
                 .map { sig -> graph.cp.classes.firstOrNull { cls -> cls.signature == sig }!! }
-                .filter { !it.name.startsWith("AnonymousClass-") }
+                .filter { !it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
             allClasses.mapNotNull { cls ->
                 val combinedBackwardType =
                     methodTypeScheme.asSequence().filter { (method, _) -> method in (cls.methods + cls.ctor) }
@@ -234,7 +237,7 @@ class TypeInferenceManager(
 
                 val typeFactsOnThisMethods = forwardSummaries.asSequence()
                     .filter { (method, _) -> method.enclosingClass == cls.signature }
-                    .filter { (method, _) -> method.name != "@instance_init" }
+                    .filter { (method, _) -> method.name != INSTANCE_INIT_METHOD_NAME }
                     .flatMap { (_, summaries) -> summaries.asSequence() }
                     .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }
@@ -243,7 +246,7 @@ class TypeInferenceManager(
 
                 val typeFactsOnThisCtor = forwardSummaries.asSequence()
                     .filter { (method, _) -> method.enclosingClass == cls.signature }
-                    .filter { (method, _) -> method.name == "constructor" || method.name == "@instance_init" }
+                    .filter { (method, _) -> method.name == CONSTRUCTOR_NAME || method.name == INSTANCE_INIT_METHOD_NAME }
                     .flatMap { (_, summaries) -> summaries.asSequence() }
                     .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }

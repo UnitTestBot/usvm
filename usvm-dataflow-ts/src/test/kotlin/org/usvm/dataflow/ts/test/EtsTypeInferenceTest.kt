@@ -22,6 +22,7 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsLocal
@@ -48,7 +49,6 @@ import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.annotation.EtsTypeAnnotator
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toType
-import org.usvm.dataflow.ts.util.CONSTRUCTOR
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.io.File
 import kotlin.io.path.div
@@ -312,7 +312,7 @@ class EtsTypeInferenceTest {
 
         val entrypoints = project.classes
             .flatMap { it.methods + it.ctor }
-            .filter { it.isPublic || it.name == CONSTRUCTOR }
+            .filter { it.isPublic || it.name == CONSTRUCTOR_NAME }
             .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {

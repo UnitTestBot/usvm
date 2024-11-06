@@ -7,7 +7,7 @@
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS",
+        "name": "%dflt",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "call.ts"
@@ -24,14 +24,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
               },
               "declaringNamespace": null
             },
-            "name": "_DEFAULT_ARK_METHOD",
+            "name": "%dflt",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -47,7 +47,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
@@ -71,7 +71,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -85,7 +85,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -107,7 +107,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
@@ -130,7 +130,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
@@ -172,7 +172,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -186,7 +186,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -202,7 +202,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -257,7 +257,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -301,7 +301,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
@@ -332,7 +332,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
@@ -385,7 +385,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -399,7 +399,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -424,8 +424,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -458,7 +458,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "call.ts"
@@ -489,7 +489,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "call.ts"
@@ -542,7 +542,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -556,7 +556,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "call.ts"
@@ -581,8 +581,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },

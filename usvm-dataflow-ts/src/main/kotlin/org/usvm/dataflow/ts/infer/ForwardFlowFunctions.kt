@@ -61,7 +61,7 @@ class ForwardFlowFunctions(
                     val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
                     val type = EtsTypeFact.from(local.type)
                     if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
-                        logger.info { "Adding known type for $path: $type" }
+                        logger.debug { "Adding known type for $path: $type" }
                         addTypes(path, type, result)
                     }
                 }
@@ -215,7 +215,7 @@ class ForwardFlowFunctions(
             is EtsFieldRef -> {
                 if (doAddKnownTypes && rhv.type != EtsUnknownType && rhv.type != EtsAnyType) {
                     val type = EtsTypeFact.from(rhv.type)
-                    logger.info { "Adding known type for $lhv from $rhv: $type" }
+                    logger.debug { "Adding known type for $lhv from $rhv: $type" }
                     addTypeFactWithAliases(lhv, type)
                 }
             }

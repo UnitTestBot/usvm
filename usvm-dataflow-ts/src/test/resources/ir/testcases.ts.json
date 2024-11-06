@@ -7,7 +7,7 @@
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS",
+        "name": "%dflt",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -24,14 +24,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "_DEFAULT_ARK_METHOD",
+            "name": "%dflt",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -47,7 +47,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -71,7 +71,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -85,7 +85,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -132,7 +132,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -200,7 +200,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -655,7 +655,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -701,7 +701,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -769,7 +769,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -960,8 +960,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -1249,7 +1249,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -1295,7 +1295,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1363,7 +1363,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1461,7 +1461,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                    "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -1471,11 +1471,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                    "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -1533,11 +1533,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1551,7 +1551,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1567,11 +1567,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -1582,7 +1582,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1594,7 +1594,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -1614,7 +1614,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1625,11 +1625,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1656,7 +1656,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -1667,7 +1667,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -1958,7 +1958,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -2004,7 +2004,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -2072,7 +2072,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -2436,8 +2436,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -2552,7 +2552,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -2598,7 +2598,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -2666,7 +2666,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -2778,7 +2778,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                    "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -2788,11 +2788,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                    "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -2861,11 +2861,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2879,7 +2879,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2895,11 +2895,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -2910,7 +2910,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2922,7 +2922,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -2942,7 +2942,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2953,11 +2953,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2975,7 +2975,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -2992,7 +2992,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -3003,7 +3003,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3066,7 +3066,7 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                                "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "testcases.ts"
@@ -3302,7 +3302,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -3348,7 +3348,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -3416,7 +3416,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -3528,7 +3528,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                    "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -3538,11 +3538,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                    "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -3611,11 +3611,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3629,7 +3629,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3645,11 +3645,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -3660,7 +3660,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3672,7 +3672,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -3692,7 +3692,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3703,11 +3703,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3727,7 +3727,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -3738,7 +3738,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3757,7 +3757,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -3816,7 +3816,7 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                                "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "testcases.ts"
@@ -4052,7 +4052,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -4098,7 +4098,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -4166,7 +4166,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -4367,8 +4367,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -4663,7 +4663,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -4709,7 +4709,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -4777,7 +4777,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -4889,7 +4889,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                    "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -4899,11 +4899,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                    "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -4972,11 +4972,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -4990,7 +4990,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -5006,11 +5006,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -5021,7 +5021,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -5033,7 +5033,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -5053,7 +5053,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -5064,11 +5064,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -5093,8 +5093,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -5110,7 +5110,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -5397,7 +5397,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -5443,7 +5443,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -5511,7 +5511,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -5619,7 +5619,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -5684,7 +5684,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -5702,8 +5702,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -5720,7 +5720,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -5729,8 +5729,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -6025,7 +6025,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -6071,7 +6071,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -6139,7 +6139,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -6243,7 +6243,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -6295,7 +6295,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -6324,7 +6324,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -6358,7 +6358,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -6392,7 +6392,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -6435,7 +6435,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -6726,7 +6726,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -6772,7 +6772,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -6840,7 +6840,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -6944,7 +6944,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -7002,7 +7002,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -7031,7 +7031,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -7074,7 +7074,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -7399,7 +7399,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -7445,7 +7445,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -7513,7 +7513,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -7617,7 +7617,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -7675,7 +7675,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -7704,7 +7704,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -7747,7 +7747,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -8068,7 +8068,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -8114,7 +8114,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -8182,7 +8182,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -8682,7 +8682,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -8728,7 +8728,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -8796,7 +8796,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -9292,7 +9292,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -9338,7 +9338,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -9406,7 +9406,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -9923,7 +9923,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -10027,7 +10027,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -10095,7 +10095,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -10596,7 +10596,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -10642,7 +10642,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -10710,7 +10710,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -11227,7 +11227,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -11273,7 +11273,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -11341,7 +11341,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -11733,7 +11733,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -11779,7 +11779,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -11847,7 +11847,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -12286,7 +12286,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -12332,7 +12332,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -12400,7 +12400,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -12624,7 +12624,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnObject-infer-4",
+                    "name": "%AC$CaseReturnObject$infer$4",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -12634,11 +12634,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnObject-infer-4",
+                    "name": "%AC$CaseReturnObject$infer$4",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -12707,11 +12707,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12725,7 +12725,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12741,11 +12741,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnObject-infer-4",
+                              "name": "%AC$CaseReturnObject$infer$4",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -12756,7 +12756,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12768,7 +12768,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnObject-infer-4",
+                              "name": "%AC$CaseReturnObject$infer$4",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -12788,7 +12788,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12799,11 +12799,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12821,7 +12821,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -12915,7 +12915,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -12961,7 +12961,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -13029,7 +13029,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -13127,7 +13127,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                    "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -13137,11 +13137,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                    "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -13193,11 +13193,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -13211,7 +13211,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -13227,11 +13227,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -13242,7 +13242,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -13254,7 +13254,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -13274,7 +13274,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -13285,11 +13285,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -13348,7 +13348,7 @@
                             "type": {
                               "_": "ClassType",
                               "signature": {
-                                "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                                "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                                 "declaringFile": {
                                   "projectName": "ts",
                                   "fileName": "testcases.ts"
@@ -13591,7 +13591,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -13658,7 +13658,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -13768,7 +13768,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -13912,7 +13912,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -13958,7 +13958,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -14026,7 +14026,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -14134,7 +14134,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
@@ -14190,7 +14190,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -14224,7 +14224,7 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
@@ -14282,7 +14282,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -14581,7 +14581,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -14627,7 +14627,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -14695,7 +14695,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -15176,7 +15176,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -15222,7 +15222,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -15290,7 +15290,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -15820,7 +15820,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -15866,7 +15866,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -15934,7 +15934,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -16430,7 +16430,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -16476,7 +16476,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -16544,7 +16544,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -17048,7 +17048,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -17094,7 +17094,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -17162,7 +17162,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -17276,7 +17276,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -17352,7 +17352,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -17370,8 +17370,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -17391,7 +17391,7 @@
                         "op": ">",
                         "left": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -17765,7 +17765,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -17811,7 +17811,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -17879,7 +17879,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -18009,7 +18009,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -18093,7 +18093,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -18111,8 +18111,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -18132,7 +18132,7 @@
                         "op": ">",
                         "left": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -18506,7 +18506,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -18552,7 +18552,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -18620,7 +18620,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -18734,7 +18734,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -18810,7 +18810,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -18828,8 +18828,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -18849,7 +18849,7 @@
                         "op": ">",
                         "left": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -19190,7 +19190,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -19236,7 +19236,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -19304,7 +19304,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -19495,8 +19495,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -19522,8 +19522,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -19818,7 +19818,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -19864,7 +19864,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -19932,7 +19932,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -20040,7 +20040,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -20105,7 +20105,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -20123,8 +20123,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -20141,7 +20141,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -20150,8 +20150,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -20446,7 +20446,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -20492,7 +20492,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -20560,7 +20560,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -20674,7 +20674,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -20756,7 +20756,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -20774,8 +20774,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -20792,7 +20792,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -20801,8 +20801,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -21097,7 +21097,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -21143,7 +21143,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -21211,7 +21211,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -21311,11 +21311,11 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                    "name": "%AC$CaseLoop$entrypoint$6",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "testcases.ts"
@@ -21381,11 +21381,11 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -21399,7 +21399,7 @@
                         "classType": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -21415,11 +21415,11 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                              "name": "%AC$CaseLoop$entrypoint$6",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -21430,7 +21430,7 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -21442,7 +21442,7 @@
                           "returnType": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                              "name": "%AC$CaseLoop$entrypoint$6",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -21465,11 +21465,11 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -21631,8 +21631,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -21916,7 +21916,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -21962,7 +21962,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -22030,7 +22030,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -22148,7 +22148,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -22164,7 +22164,7 @@
                 }
               },
               {
-                "name": "$temp1",
+                "name": "%1",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -22231,7 +22231,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -22269,7 +22269,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -22342,7 +22342,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -22364,8 +22364,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -22383,7 +22383,7 @@
                         "op": "==",
                         "left": {
                           "_": "Local",
-                          "name": "$temp1",
+                          "name": "%1",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -22493,8 +22493,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -22542,8 +22542,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -22790,7 +22790,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -22869,7 +22869,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -22881,7 +22881,7 @@
           "body": {
             "locals": [
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -22933,7 +22933,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -23004,7 +23004,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -23033,7 +23033,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -23132,7 +23132,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -23192,7 +23192,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -23258,7 +23258,7 @@
                       "_": "ReturnStmt",
                       "arg": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -23360,7 +23360,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -23406,7 +23406,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -23474,7 +23474,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -23591,7 +23591,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ArrayType",
                   "elementType": {
@@ -23684,7 +23684,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ArrayType",
                           "elementType": {
@@ -23729,7 +23729,7 @@
                         "_": "ArrayRef",
                         "array": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ArrayType",
                             "elementType": {
@@ -23838,7 +23838,7 @@
                         "args": [
                           {
                             "_": "Local",
-                            "name": "$temp0",
+                            "name": "%0",
                             "type": {
                               "_": "ArrayType",
                               "elementType": {
@@ -24008,7 +24008,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -24157,7 +24157,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -24187,8 +24187,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -24213,7 +24213,7 @@
                         },
                         "right": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -24685,7 +24685,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -24707,7 +24707,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+        "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -24723,7 +24723,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -24745,14 +24745,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -24777,7 +24777,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -24791,7 +24791,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -24811,7 +24811,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -24822,7 +24822,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -24855,7 +24855,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+              "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -24867,7 +24867,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -24908,7 +24908,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -24931,14 +24931,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToLocal2-entrypoint-0",
+                            "name": "%AC$CaseAssignFieldToLocal2$entrypoint$0",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -24960,7 +24960,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+        "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -24976,7 +24976,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -24998,14 +24998,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -25030,7 +25030,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25044,7 +25044,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25064,7 +25064,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -25075,7 +25075,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25108,7 +25108,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+              "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25120,7 +25120,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -25161,7 +25161,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25184,14 +25184,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignFieldToSelf-entrypoint-1",
+                            "name": "%AC$CaseAssignFieldToSelf$entrypoint$1",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -25213,7 +25213,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+        "name": "%AC$CaseAssignSelfToField$entrypoint$2",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -25229,7 +25229,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25251,14 +25251,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -25283,7 +25283,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25297,7 +25297,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25317,7 +25317,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -25328,7 +25328,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25361,7 +25361,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+              "name": "%AC$CaseAssignSelfToField$entrypoint$2",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25373,7 +25373,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -25414,7 +25414,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25437,14 +25437,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignSelfToField-entrypoint-2",
+                            "name": "%AC$CaseAssignSelfToField$entrypoint$2",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -25466,7 +25466,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+        "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -25482,7 +25482,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25504,14 +25504,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -25536,7 +25536,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25550,7 +25550,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25570,7 +25570,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -25581,7 +25581,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25614,7 +25614,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+              "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25626,7 +25626,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -25667,7 +25667,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25690,14 +25690,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseAssignLocalObjectToField-entrypoint-3",
+                            "name": "%AC$CaseAssignLocalObjectToField$entrypoint$3",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -25719,7 +25719,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseReturnObject-infer-4",
+        "name": "%AC$CaseReturnObject$infer$4",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -25735,7 +25735,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-4",
+              "name": "%AC$CaseReturnObject$infer$4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25757,14 +25757,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-4",
+              "name": "%AC$CaseReturnObject$infer$4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -25789,7 +25789,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25803,7 +25803,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25823,7 +25823,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnObject-infer-4",
+                              "name": "%AC$CaseReturnObject$infer$4",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -25834,7 +25834,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25867,7 +25867,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnObject-infer-4",
+              "name": "%AC$CaseReturnObject$infer$4",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -25879,7 +25879,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseReturnObject-infer-4",
+                "name": "%AC$CaseReturnObject$infer$4",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -25920,7 +25920,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -25943,14 +25943,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnObject-infer-4",
+                            "name": "%AC$CaseReturnObject$infer$4",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -25972,7 +25972,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+        "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -25988,7 +25988,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -26010,14 +26010,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -26042,7 +26042,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26056,7 +26056,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26076,7 +26076,7 @@
                           "type": {
                             "_": "ClassType",
                             "signature": {
-                              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                               "declaringFile": {
                                 "projectName": "ts",
                                 "fileName": "testcases.ts"
@@ -26087,7 +26087,7 @@
                         },
                         "field": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26120,7 +26120,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+              "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -26132,7 +26132,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -26173,7 +26173,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26196,14 +26196,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseReturnArgumentObject-entrypoint-5",
+                            "name": "%AC$CaseReturnArgumentObject$entrypoint$5",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -26225,7 +26225,7 @@
     },
     {
       "signature": {
-        "name": "AnonymousClass-CaseLoop-entrypoint-6",
+        "name": "%AC$CaseLoop$entrypoint$6",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "testcases.ts"
@@ -26242,14 +26242,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+              "name": "%AC$CaseLoop$entrypoint$6",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -26274,7 +26274,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26288,7 +26288,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26310,7 +26310,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "AnonymousClass-CaseLoop-entrypoint-6",
+              "name": "%AC$CaseLoop$entrypoint$6",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "testcases.ts"
@@ -26322,7 +26322,7 @@
             "returnType": {
               "_": "ClassType",
               "signature": {
-                "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                "name": "%AC$CaseLoop$entrypoint$6",
                 "declaringFile": {
                   "projectName": "ts",
                   "fileName": "testcases.ts"
@@ -26363,7 +26363,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
@@ -26386,14 +26386,14 @@
                         },
                         "method": {
                           "declaringClass": {
-                            "name": "AnonymousClass-CaseLoop-entrypoint-6",
+                            "name": "%AC$CaseLoop$entrypoint$6",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "testcases.ts"
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"

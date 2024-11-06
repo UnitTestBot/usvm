@@ -7,7 +7,7 @@
   "classes": [
     {
       "signature": {
-        "name": "_DEFAULT_ARK_CLASS",
+        "name": "%dflt",
         "declaringFile": {
           "projectName": "ts",
           "fileName": "microphone.ts"
@@ -24,14 +24,14 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
               },
               "declaringNamespace": null
             },
-            "name": "_DEFAULT_ARK_METHOD",
+            "name": "%dflt",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -47,7 +47,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
@@ -71,7 +71,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -85,7 +85,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -107,7 +107,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
@@ -139,7 +139,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
@@ -163,13 +163,13 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "UnknownType"
                 }
               },
               {
-                "name": "$temp1",
+                "name": "%1",
                 "type": {
                   "_": "UnknownType"
                 }
@@ -222,7 +222,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -236,7 +236,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -250,7 +250,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -300,7 +300,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -309,7 +309,7 @@
                         "_": "InstanceFieldRef",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "UnknownType"
                           }
@@ -318,8 +318,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -334,7 +334,7 @@
                       "_": "ReturnStmt",
                       "arg": {
                         "_": "Local",
-                        "name": "$temp1",
+                        "name": "%1",
                         "type": {
                           "_": "UnknownType"
                         }
@@ -349,7 +349,7 @@
         {
           "signature": {
             "declaringClass": {
-              "name": "_DEFAULT_ARK_CLASS",
+              "name": "%dflt",
               "declaringFile": {
                 "projectName": "ts",
                 "fileName": "microphone.ts"
@@ -372,7 +372,7 @@
                 "type": {
                   "_": "ClassType",
                   "signature": {
-                    "name": "_DEFAULT_ARK_CLASS",
+                    "name": "%dflt",
                     "declaringFile": {
                       "projectName": "ts",
                       "fileName": "microphone.ts"
@@ -396,7 +396,7 @@
                 }
               },
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
@@ -442,7 +442,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -456,7 +456,7 @@
                         "type": {
                           "_": "ClassType",
                           "signature": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -470,7 +470,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -504,7 +504,7 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
@@ -562,7 +562,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -589,7 +589,7 @@
                         "_": "StaticCallExpr",
                         "method": {
                           "declaringClass": {
-                            "name": "_DEFAULT_ARK_CLASS",
+                            "name": "%dflt",
                             "declaringFile": {
                               "projectName": "ts",
                               "fileName": "microphone.ts"
@@ -645,8 +645,8 @@
                           "declaringClass": {
                             "name": "",
                             "declaringFile": {
-                              "projectName": "_UnknownProjectName",
-                              "fileName": "_UnknownFileName"
+                              "projectName": "%unk",
+                              "fileName": "%unk"
                             },
                             "declaringNamespace": null
                           },
@@ -765,7 +765,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -875,7 +875,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1019,7 +1019,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"
@@ -1142,7 +1142,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@instance_init",
+            "name": "%instInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1154,7 +1154,7 @@
           "body": {
             "locals": [
               {
-                "name": "$temp0",
+                "name": "%0",
                 "type": {
                   "_": "ClassType",
                   "signature": {
@@ -1210,7 +1210,7 @@
                       "_": "AssignStmt",
                       "left": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -1244,7 +1244,7 @@
                         "_": "InstanceCallExpr",
                         "instance": {
                           "_": "Local",
-                          "name": "$temp0",
+                          "name": "%0",
                           "type": {
                             "_": "ClassType",
                             "signature": {
@@ -1327,7 +1327,7 @@
                       },
                       "right": {
                         "_": "Local",
-                        "name": "$temp0",
+                        "name": "%0",
                         "type": {
                           "_": "ClassType",
                           "signature": {
@@ -1360,7 +1360,7 @@
               },
               "declaringNamespace": null
             },
-            "name": "@static_init",
+            "name": "%statInit",
             "parameters": [],
             "returnType": {
               "_": "UnknownType"
@@ -1504,7 +1504,7 @@
                             },
                             "declaringNamespace": null
                           },
-                          "name": "@instance_init",
+                          "name": "%instInit",
                           "parameters": [],
                           "returnType": {
                             "_": "UnknownType"

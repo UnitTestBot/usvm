@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
@@ -30,7 +31,7 @@ typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
 open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
 
-    protected val globalClassName = "_DEFAULT_ARK_CLASS"
+    protected val globalClassName = DEFAULT_ARK_CLASS_NAME
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
