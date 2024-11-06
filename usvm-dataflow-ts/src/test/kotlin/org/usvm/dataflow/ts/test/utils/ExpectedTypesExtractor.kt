@@ -143,7 +143,7 @@ class ClassMatcherStatistics {
             val fact = facts.combinedThisFact
 
             if (fact == null) {
-                if (it.classSignature.name == "Unknown") { // TODO check it
+                if (it.signature.name == "Unknown") { // TODO check it
                     noInfoInferredPreviouslyUnknown++
                 } else {
                     noInfoInferredPreviouslyKnown++

@@ -114,7 +114,7 @@ fun EtsType.toDto(): TypeDto = when (this) {
         LiteralTypeDto(literal = literal)
     }
 
-    is EtsClassType -> ClassTypeDto(signature = this.classSignature.toDto())
+    is EtsClassType -> ClassTypeDto(signature = this.signature.toDto())
     is EtsFunctionType -> FunctionTypeDto(signature = this.method.toDto())
     is EtsArrayType -> ArrayTypeDto(elementType = this.elementType.toDto(), dimensions = this.dimensions)
     is EtsArrayObjectType -> TODO("removed")

@@ -8,6 +8,7 @@ import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
+import org.jacodb.ets.base.EtsGenericType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
@@ -489,6 +490,7 @@ sealed interface EtsTypeFact {
                 // )
                 is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
                 is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
+                // is EtsGenericType -> TODO()
                 else -> {
                     logger.error { "Unsupported type: $type" }
                     UnknownEtsTypeFact

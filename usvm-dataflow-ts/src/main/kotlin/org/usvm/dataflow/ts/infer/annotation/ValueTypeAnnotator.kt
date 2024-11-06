@@ -16,7 +16,16 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.*
+import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsInstanceFieldRef
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsParameterRef
+import org.jacodb.ets.base.EtsStaticFieldRef
+import org.jacodb.ets.base.EtsThis
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
@@ -81,7 +90,7 @@ class ValueTypeAnnotator(
 
         // Find field signature in inferred class fields
         (instanceTypeInfo.cls as? EtsClassType)?.run {
-            val etsField = findInClass(classSignature) ?: return@run
+            val etsField = findInClass(signature) ?: return@run
             // Field was found in the inferred class
             return EtsInstanceFieldRef(instance = instance, field = etsField.signature)
         }

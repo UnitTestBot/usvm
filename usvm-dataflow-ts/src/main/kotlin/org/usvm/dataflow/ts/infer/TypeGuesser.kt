@@ -88,13 +88,13 @@ fun EtsTypeFact.resolveType(
 
             val suitableTypes = classesInSystem
                 .filter { !filterAnonymous || !it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-                .map {
+                .map { cls ->
                     // TODO make it an impossible unique prefix
                     // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
                         cls = EtsClassType(
-                            EtsClassSignature(
-                                name = it.name,
+                            signature = EtsClassSignature(
+                                name = cls.name,
                                 file = EtsFileSignature.DEFAULT,
                             )
                         ),
@@ -167,8 +167,8 @@ fun EtsTypeFact.simplify(): EtsTypeFact = when (this) {
     is EtsTypeFact.IntersectionEtsTypeFact -> {
         val args = this.types.map { it.simplify() }
         val splittedArgs = args.partition { it is EtsTypeFact.ObjectEtsTypeFact && it.cls == null }
-        val newArgs = splittedArgs.second + splittedArgs.first.let {
-            val allProperties = it
+        val newArgs = splittedArgs.second + splittedArgs.first.let { facts ->
+            val allProperties = facts
                 .flatMap { (it as EtsTypeFact.ObjectEtsTypeFact).properties.entries }
                 .map { it.key to it.value }
             EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = allProperties.toMap())

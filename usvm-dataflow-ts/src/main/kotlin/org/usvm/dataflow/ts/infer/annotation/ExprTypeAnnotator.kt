@@ -191,7 +191,7 @@ class ExprTypeAnnotator(
         val argsInferred = expr.args.map(this::inferValue)
         val methodInferred = when (val baseType = baseInferred.type) {
             is EtsClassType -> {
-                val etsClass = scene.classes.find { it.signature == baseType.classSignature }
+                val etsClass = scene.classes.find { it.signature == baseType.signature }
                     ?: return expr.copy(instance = baseInferred, args = argsInferred)
                 val callee = etsClass.methods.find { it.signature == expr.method }
                     ?: return expr.copy(instance = baseInferred, args = argsInferred)
