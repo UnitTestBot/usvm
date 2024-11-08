@@ -178,13 +178,13 @@ open class USolverBase<Type>(
             logger
         }
 
-        val stringSolverQuery = UStringSolverQuery(uModel)
 
         // [stringSolverQuery] uses [uModel] to evaluate constraints. It is crucial for uModel to have
         // [UStringRegion] in non-completing state (see docs of [UStringRegion]) to allow partial evaluation
         // of string expressions.
         // Also, we clone uModel not to spoil its transformation caches.
         val uModelClone = UModelBase(ctx, uModel.stack, uModel.types, uModel.mocker, uModel.regions, uModel.nullRef)
+        val stringSolverQuery = UStringSolverQuery(uModelClone)
         val stringRegion = uModelClone.getRegion(UStringRegionId(ctx)) as? UStringModelRegion
         stringRegion?.setCompletion(false)
 
@@ -194,7 +194,7 @@ open class USolverBase<Type>(
                     translator.declToBoolStringExpr[decl]?.let { boolStringConstraint ->
                         logger.value.debug { "Asserting (boolean) $boolStringConstraint" }
                         val result = kModel.eval<UBoolSort>(decl.apply(listOf()).cast(), isComplete = true).isTrue
-                        stringSolverQuery.addBooleanConstraint(uModelClone, boolStringConstraint, result)
+                        stringSolverQuery.addBooleanConstraint(boolStringConstraint, result)
                     }
                 }
 
@@ -204,7 +204,7 @@ open class USolverBase<Type>(
                         val result = ctx.withSizeSort<USort>()
                             .getIntValue(kModel.eval(decl.apply(listOf()).cast(), isComplete = true))
                             ?: error("Wasn't able to evaluate int value")
-                        stringSolverQuery.addIntConstraint(uModelClone, intStringConstraint, result)
+                        stringSolverQuery.addIntConstraint(intStringConstraint, result)
                     }
                 }
 
@@ -213,7 +213,7 @@ open class USolverBase<Type>(
                         logger.value.debug { "Asserting (char) $charStringConstraint" }
                         val result = (kModel.eval(decl.apply(listOf()), isComplete = true) as? UConcreteChar)?.character
                             ?: error("Wasn't able to evaluate char value")
-                        stringSolverQuery.addCharConstraint(uModelClone, charStringConstraint, result)
+                        stringSolverQuery.addCharConstraint(charStringConstraint, result)
                     }
                 }
 
@@ -222,7 +222,7 @@ open class USolverBase<Type>(
                         logger.value.debug { "Asserting (float) $floatStringConstraint" }
                         val result = getFloatValue(kModel.eval(decl.apply(listOf()).cast(), true))
                             ?: error("Wasn't able to evaluate float value")
-                        stringSolverQuery.addFloatConstraint(uModelClone, floatStringConstraint, result)
+                        stringSolverQuery.addFloatConstraint(floatStringConstraint, result)
                     }
                 }
             }

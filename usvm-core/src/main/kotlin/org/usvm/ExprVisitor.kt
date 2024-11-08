@@ -1,6 +1,5 @@
 package org.usvm
 
-import io.ksmt.expr.transformer.KExprVisitResult
 import io.ksmt.expr.transformer.KNonRecursiveVisitor
 import io.ksmt.expr.transformer.visitExpr
 import io.ksmt.sort.KFpSort
@@ -54,66 +53,107 @@ import org.usvm.regions.Region
 abstract class UExprVisitor<T : Any, Type, USizeSort : USort>(
     ctx: UContext<*>
 ) : KNonRecursiveVisitor<T>(ctx), UTransformer<Type, USizeSort> {
-    abstract fun <Sort : USort> visit(expr: URegisterReading<Sort>): KExprVisitResult<T>
-    abstract fun <Field, Sort : USort> visit(expr: UInputFieldReading<Field, Sort>): KExprVisitResult<T>
-    abstract fun <Sort : USort> visit(expr: UAllocatedArrayReading<Type, Sort, USizeSort>): KExprVisitResult<T>
-    abstract fun <Sort : USort> visit(expr: UInputArrayReading<Type, Sort, USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UInputArrayLengthReading<Type, USizeSort>): KExprVisitResult<T>
-    abstract fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
+    open fun <Sort : USort> visit(expr: URegisterReading<Sort>) = visitExpr(expr)
+    open fun <Field, Sort : USort> visit(expr: UInputFieldReading<Field, Sort>) =
+        visitExprAfterVisitedDefault(expr, expr.address, ::visitExpr)
+    open fun <Sort : USort> visit(expr: UAllocatedArrayReading<Type, Sort, USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.index, ::visitExpr)
+    open fun <Sort : USort> visit(expr: UInputArrayReading<Type, Sort, USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.address, expr.index, ::visitExpr)
+    open fun visit(expr: UInputArrayLengthReading<Type, USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.address, ::visitExpr)
+    open fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
         expr: UAllocatedMapReading<Type, KeySort, Sort, Reg>
-    ): KExprVisitResult<T>
+    ) = visitExprAfterVisitedDefault(expr, expr.key, ::visitExpr)
 
-    abstract fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
+    open fun <KeySort : USort, Sort : USort, Reg : Region<Reg>> visit(
         expr: UInputMapReading<Type, KeySort, Sort, Reg>
-    ): KExprVisitResult<T>
+    ) = visitExprAfterVisitedDefault(expr, expr.address, expr.key, ::visitExpr)
 
-    abstract fun <Sort : USort> visit(expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>): KExprVisitResult<T>
-    abstract fun <Sort : USort> visit(expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>): KExprVisitResult<T>
-    abstract fun <Sort : USort> visit(expr: UInputRefMapWithInputKeysReading<Type, Sort>): KExprVisitResult<T>
-    abstract fun visit(expr: UInputMapLengthReading<Type, USizeSort>): KExprVisitResult<T>
-    abstract fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UAllocatedSetReading<Type, ElemSort, Reg>): KExprVisitResult<T>
+    open fun <Sort : USort> visit(expr: UAllocatedRefMapWithInputKeysReading<Type, Sort>) =
+        visitExprAfterVisitedDefault(expr, expr.keyRef, ::visitExpr)
+    open fun <Sort : USort> visit(expr: UInputRefMapWithAllocatedKeysReading<Type, Sort>) =
+        visitExprAfterVisitedDefault(expr, expr.mapRef, ::visitExpr)
+    open fun <Sort : USort> visit(expr: UInputRefMapWithInputKeysReading<Type, Sort>) =
+        visitExprAfterVisitedDefault(expr, expr.mapRef, expr.keyRef, ::visitExpr)
+    open fun visit(expr: UInputMapLengthReading<Type, USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.address, ::visitExpr)
+    open fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UAllocatedSetReading<Type, ElemSort, Reg>) = visitExpr(expr)
 
-    abstract fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UInputSetReading<Type, ElemSort, Reg>): KExprVisitResult<T>
-    abstract fun visit(expr: UAllocatedRefSetWithInputElementsReading<Type>): KExprVisitResult<T>
-    abstract fun visit(expr: UInputRefSetWithAllocatedElementsReading<Type>): KExprVisitResult<T>
-    abstract fun visit(expr: UInputRefSetWithInputElementsReading<Type>): KExprVisitResult<T>
-    abstract fun <Method, Sort : USort> visit(expr: UIndexedMethodReturnValue<Method, Sort>): KExprVisitResult<T>
-    abstract fun <Sort : USort> visit(expr: UTrackedSymbol<Sort>): KExprVisitResult<T>
-    abstract fun visit(expr: UIsSubtypeExpr<Type>): KExprVisitResult<T>
-    abstract fun visit(expr: UIsSupertypeExpr<Type>): KExprVisitResult<T>
-    abstract fun visit(expr: UConcreteHeapRef): KExprVisitResult<T>
-    abstract fun visit(expr: UNullRef): KExprVisitResult<T>
+    open fun <ElemSort : USort, Reg : Region<Reg>> visit(expr: UInputSetReading<Type, ElemSort, Reg>) =
+        visitExprAfterVisitedDefault(expr, expr.address, expr.element, ::visitExpr)
+    open fun visit(expr: UAllocatedRefSetWithInputElementsReading<Type>) =
+        visitExprAfterVisitedDefault(expr, expr.elementRef, ::visitExpr)
+    open fun visit(expr: UInputRefSetWithAllocatedElementsReading<Type>) =
+        visitExprAfterVisitedDefault(expr, expr.setRef, ::visitExpr)
+    open fun visit(expr: UInputRefSetWithInputElementsReading<Type>) =
+        visitExprAfterVisitedDefault(expr, expr.setRef, expr.elementRef, ::visitExpr)
+    open fun <Method, Sort : USort> visit(expr: UIndexedMethodReturnValue<Method, Sort>) = visitExpr(expr)
+    open fun <Sort : USort> visit(expr: UTrackedSymbol<Sort>) = visitExpr(expr)
+    open fun visit(expr: UIsSubtypeExpr<Type>) =
+        visitExprAfterVisitedDefault(expr, expr.ref, ::visitExpr)
+    open fun visit(expr: UIsSupertypeExpr<Type>) =
+        visitExprAfterVisitedDefault(expr, expr.ref, ::visitExpr)
+    open fun visit(expr: UConcreteHeapRef) = visitExpr(expr)
+    open fun visit(expr: UNullRef) = visitExpr(expr)
 
-    abstract fun visit(expr: UStringLengthExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UCharAtExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UStringHashCodeExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UConcreteStringHashCodeBv32Expr): KExprVisitResult<T>
-    abstract fun visit(expr: UConcreteStringHashCodeIntExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringLtExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringLeExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UIntFromStringExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun <UFloatSort : KFpSort> visit(expr: UFloatFromStringExpr<UFloatSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UCharToUpperExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UCharToLowerExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringIndexOfExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: URegexMatchesExpr): KExprVisitResult<T>
+    open fun visit(expr: UStringLengthExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UCharAtExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, expr.index, ::visitExpr)
+    open fun visit(expr: UStringHashCodeExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UConcreteStringHashCodeBv32Expr) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UConcreteStringHashCodeIntExpr) =
+        visitExprAfterVisitedDefault(expr, listOf(expr.string) + expr.args, ::visitExpr)
+    open fun visit(expr: UStringLtExpr) =
+        visitExprAfterVisitedDefault(expr, expr.left, expr.right, ::visitExpr)
+    open fun visit(expr: UStringLeExpr) =
+        visitExprAfterVisitedDefault(expr, expr.left, expr.right, ::visitExpr)
+    open fun visit(expr: UIntFromStringExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun <UFloatSort : KFpSort> visit(expr: UFloatFromStringExpr<UFloatSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UCharToUpperExpr) =
+        visitExprAfterVisitedDefault(expr, expr.char, ::visitExpr)
+    open fun visit(expr: UCharToLowerExpr) =
+        visitExprAfterVisitedDefault(expr, expr.char, ::visitExpr)
+    open fun visit(expr: UStringIndexOfExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: URegexMatchesExpr) =
+        visitExprAfterVisitedDefault(expr, expr.string, expr.pattern, ::visitExpr)
 
-    abstract fun visit(expr: UStringExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringLiteralExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringFromArrayExpr<Type, USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UStringFromLanguageExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringConcatExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringSliceExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UStringFromIntExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun <UFloatSort : KFpSort> visit(expr: UStringFromFloatExpr<UFloatSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UStringRepeatExpr<USizeSort>): KExprVisitResult<T>
-    abstract fun visit(expr: UStringToUpperExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringToLowerExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringReverseExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringReplaceFirstExpr): KExprVisitResult<T>
-    abstract fun visit(expr: UStringReplaceAllExpr): KExprVisitResult<T>
-    abstract fun visit(expr: URegexReplaceFirstExpr): KExprVisitResult<T>
-    abstract fun visit(expr: URegexReplaceAllExpr): KExprVisitResult<T>
+    open fun visit(expr: UStringExpr) = visitExpr(expr)
+    open fun visit(expr: UStringLiteralExpr) = visitExpr(expr)
+    open fun visit(expr: UStringFromArrayExpr<Type, USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.length, expr.contentRef, ::visitExpr)
+    open fun visit(expr: UStringFromLanguageExpr) =
+        visitExprAfterVisitedDefault(expr, expr.ref, ::visitExpr)
+    open fun visit(expr: UStringConcatExpr) =
+        visitExprAfterVisitedDefault(expr, expr.left, expr.right, ::visitExpr)
+    open fun visit(expr: UStringSliceExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.superString, expr.startIndex, expr.length, ::visitExpr)
+    open fun visit(expr: UStringFromIntExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.value, ::visitExpr)
+    open fun <UFloatSort : KFpSort> visit(expr: UStringFromFloatExpr<UFloatSort>) =
+        visitExprAfterVisitedDefault(expr, expr.value, ::visitExpr)
+    open fun visit(expr: UStringRepeatExpr<USizeSort>) =
+        visitExprAfterVisitedDefault(expr, expr.string, expr.times, ::visitExpr)
+    open fun visit(expr: UStringToUpperExpr) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UStringToLowerExpr) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UStringReverseExpr) =
+        visitExprAfterVisitedDefault(expr, expr.string, ::visitExpr)
+    open fun visit(expr: UStringReplaceFirstExpr) =
+        visitExprAfterVisitedDefault(expr, expr.where, expr.what, expr.with, ::visitExpr)
+    open fun visit(expr: UStringReplaceAllExpr) =
+        visitExprAfterVisitedDefault(expr, expr.where, expr.what, expr.with, ::visitExpr)
+    open fun visit(expr: URegexReplaceFirstExpr) =
+        visitExprAfterVisitedDefault(expr, expr.where, expr.what, expr.with, ::visitExpr)
+    open fun visit(expr: URegexReplaceAllExpr) =
+        visitExprAfterVisitedDefault(expr, expr.where, expr.what, expr.with, ::visitExpr)
 
     override fun <Sort : USort> transform(expr: URegisterReading<Sort>) = visitExpr(expr, ::visit)
     override fun <Field, Sort : USort> transform(expr: UInputFieldReading<Field, Sort>) = visitExpr(expr, ::visit)
