@@ -16,6 +16,7 @@
 
 package org.usvm.dataflow.ts.infer
 
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -25,11 +26,16 @@ data class TypeInferenceResult(
     val inferredReturnType: Map<EtsMethod, EtsTypeFact>,
     val inferredCombinedThisType: Map<EtsClassSignature, EtsTypeFact>,
 ) {
-    fun withGuessedTypes(scene: EtsScene, allowAlternatives: Boolean = true): TypeInferenceResult {
+    fun withGuessedTypes(scene: EtsScene): TypeInferenceResult {
+        val cpWithCachesForProperties = hashMapOf<EtsClass, MutableSet<String>>()
         return TypeInferenceResult(
-            inferredTypes = guessTypes(scene, inferredTypes, allowAlternatives),
-            inferredReturnType = inferredReturnType.mapValues { (_, fact) -> fact.resolveType(scene) },
-            inferredCombinedThisType = inferredCombinedThisType.mapValues { (_, fact) -> fact.resolveType(scene) },
+            inferredTypes = guessTypes(scene, inferredTypes, cpWithCachesForProperties),
+            inferredReturnType = inferredReturnType.mapValues { (_, fact) ->
+                fact.resolveType(scene, cpWithCachesForProperties)
+            },
+            inferredCombinedThisType = inferredCombinedThisType.mapValues { (_, fact) ->
+                fact.resolveType(scene, cpWithPropertiesCache = cpWithCachesForProperties)
+            },
         )
     }
 }
