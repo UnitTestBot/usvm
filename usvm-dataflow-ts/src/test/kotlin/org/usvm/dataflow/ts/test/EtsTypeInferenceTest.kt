@@ -345,7 +345,7 @@ class EtsTypeInferenceTest {
             TypeInferenceManager(graph)
         }
         val resultWithoutGuessed = manager.analyze(entrypoints)
-        val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(graph)
+        val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(project)
 
         assertNotEquals(resultWithoutGuessed.inferredTypes, resultWithGuessed.inferredTypes)
 

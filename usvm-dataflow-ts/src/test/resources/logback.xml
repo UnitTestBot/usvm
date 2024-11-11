@@ -1,12 +1,28 @@
 <configuration>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <!-- Refer: https://logback.qos.ch/manual/layouts.html -->
+            <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- Основной лог-файл, который будет сразу ротироваться при запуске -->
+        <file>logs/app.log</file>
+
+        <!-- Политика ротации по времени, создающая новый файл при каждом запуске -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Задаем шаблон для имени файла с меткой времени -->
+            <fileNamePattern>logs/app.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
             <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <root level="info">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
     </root>
 </configuration>

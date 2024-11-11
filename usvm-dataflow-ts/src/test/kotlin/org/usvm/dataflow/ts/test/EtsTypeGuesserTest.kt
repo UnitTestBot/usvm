@@ -46,7 +46,7 @@ class EtsTypeResolverTest {
 
         val result = manager
             .analyze(entrypoint.mainMethods, entrypoint.allMethods)
-            .withGuessedTypes(graphAbc)
+            .withGuessedTypes(abcScene)
         // TODO replace with abc// TODO fix error with abc and ast methods
 
         val classMatcherStatistics = ClassMatcherStatistics()
@@ -78,7 +78,7 @@ class EtsTypeResolverTest {
         // TODO replace graphAst with graphAbc ?
         val result = manager
             .analyze(entrypoint.mainMethods, entrypoint.allMethods)
-            .withGuessedTypes(graphAst)
+            .withGuessedTypes(astScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -113,7 +113,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint.mainMethods, entrypoint.allMethods).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint.mainMethods, entrypoint.allMethods).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -148,7 +148,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -183,7 +183,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -218,7 +218,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -253,7 +253,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -288,7 +288,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graphAbc)
         }
 
-        val result = manager.analyze(entrypoint).withGuessedTypes(graphAbc)
+        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -320,7 +320,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "defaultA"
@@ -347,7 +347,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
@@ -376,7 +376,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
@@ -402,7 +402,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "MethodsContainerToInfer" && typeFact.properties.isEmpty()
@@ -429,7 +429,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "notUniqueFunction"
@@ -456,7 +456,7 @@ class EtsTypeResolverTest {
             TypeInferenceManager(graph)
         }
 
-        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(graph)
+        val result = manager.analyze(listOf(entrypoint)).withGuessedTypes(project)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()

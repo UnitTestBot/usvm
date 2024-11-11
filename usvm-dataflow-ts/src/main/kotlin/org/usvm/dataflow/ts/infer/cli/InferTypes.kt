@@ -89,7 +89,7 @@ class InferTypes : CliktCommand() {
         }
 
         val (result, timeAnalyze) = measureTimedValue {
-            manager.analyze(dummyMains, publicMethods).withGuessedTypes(graph)
+            manager.analyze(dummyMains, publicMethods).withGuessedTypes(project)
         }
         logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
 

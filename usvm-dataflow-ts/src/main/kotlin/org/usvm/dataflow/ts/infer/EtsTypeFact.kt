@@ -8,7 +8,6 @@ import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsGenericType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
@@ -212,6 +211,12 @@ sealed interface EtsTypeFact {
     data class UnionEtsTypeFact(
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
+        init {
+            require(types.isNotEmpty()) {
+                "An empty set of types is passed as an union type"
+            }
+        }
+
         override fun toString(): String {
             return types.map {
                 when (it) {
@@ -234,6 +239,12 @@ sealed interface EtsTypeFact {
     data class IntersectionEtsTypeFact(
         val types: Set<EtsTypeFact>,
     ) : EtsTypeFact {
+        init {
+            require(types.isNotEmpty()) {
+                "An empty set of types is passed as an intersection type"
+            }
+        }
+
         override fun toString(): String {
             return types.map {
                 when (it) {
