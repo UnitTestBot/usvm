@@ -63,18 +63,19 @@ fun EtsTypeFact.resolveType(
             val classesInSystem = graph.cp
                 .classes
                 .filter { cls ->
-                    val methodNames = cls.methods.map { it.name }
-                    val fieldNames = cls.fields.map { it.name }
-                    val propertiesNames = (methodNames + fieldNames).distinct()
-                    touchedPropertiesNames.all { name -> name in propertiesNames }
+                    val propertiesSet = mutableSetOf<String>()
+                    cls.methods.mapTo(propertiesSet) { it.name }
+                    cls.fields.mapTo(propertiesSet) { it.name }
+
+                    touchedPropertiesNames.all { name -> name in propertiesSet }
                 }
 
             if (classesInSystem.isEmpty()) {
                 val indicesProperties = this.properties.filter { (k, _) -> k.toIntOrNull() != null }
                 if (indicesProperties.isNotEmpty()) {
-                    val elementTypeFacts = indicesProperties.map {
+                    val elementTypeFacts = indicesProperties.mapTo(hashSetOf()) {
                         it.value.resolveType(graph, allowResolvedAlternatives, filterAnonymous).simplify()
-                    }.toSet()
+                    }
                     val typeFact = EtsTypeFact.mkUnionType(elementTypeFacts)
                     return EtsTypeFact.ArrayEtsTypeFact(typeFact)
                 }
@@ -88,7 +89,7 @@ fun EtsTypeFact.resolveType(
 
             val suitableTypes = classesInSystem
                 .filter { !filterAnonymous || !it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-                .map { cls ->
+                .mapTo(hashSetOf()) { cls ->
                     // TODO make it an impossible unique prefix
                     // TODO how to do it properly?
                     EtsTypeFact.ObjectEtsTypeFact(
@@ -104,11 +105,11 @@ fun EtsTypeFact.resolveType(
                             it.value.resolveType(graph, allowResolvedAlternatives, filterAnonymous)
                         }
                     )
-                }.toSet()
+                }
 
             val notAnonymousSuitableTypes = suitableTypes.filterNot {
                 it.cls?.typeName?.startsWith(ANONYMOUS_CLASS_PREFIX) ?: error("Should not occur")
-            }.toSet()
+            }.toHashSet()
 
             // TODO process arrays here (and strings)
 
@@ -152,7 +153,7 @@ fun EtsTypeFact.simplify(): EtsTypeFact = when (this) {
 
         require(args.isNotEmpty())
 
-        val types = args.foldRight(mutableSetOf<EtsTypeFact>()) { current, acc ->
+        val types = args.foldRight(hashSetOf<EtsTypeFact>()) { current, acc ->
             if (current is EtsTypeFact.ObjectEtsTypeFact && current.cls == null && current.properties.isEmpty()) {
                 acc
             } else {
