@@ -27,15 +27,31 @@ data class TypeInferenceResult(
     val inferredCombinedThisType: Map<EtsClassSignature, EtsTypeFact>,
 ) {
     fun withGuessedTypes(scene: EtsScene): TypeInferenceResult {
-        val cpWithCachesForProperties = hashMapOf<EtsClass, MutableSet<String>>()
+        val propertyNameToClasses = precalculateCaches(scene)
+
         return TypeInferenceResult(
-            inferredTypes = guessTypes(scene, inferredTypes, cpWithCachesForProperties),
+            inferredTypes = guessTypes(scene, inferredTypes, propertyNameToClasses),
             inferredReturnType = inferredReturnType.mapValues { (_, fact) ->
-                fact.resolveType(scene, cpWithCachesForProperties)
+                fact.resolveType(scene, propertyNameToClasses)
             },
             inferredCombinedThisType = inferredCombinedThisType.mapValues { (_, fact) ->
-                fact.resolveType(scene, cpWithPropertiesCache = cpWithCachesForProperties)
+                fact.resolveType(scene, propertyNameToClasses = propertyNameToClasses)
             },
         )
+    }
+
+    private fun precalculateCaches(scene: EtsScene): Map<String, Set<EtsClass>> {
+        val result = hashMapOf<String, MutableSet<EtsClass>>().withDefault { hashSetOf() }
+
+        scene.classes.forEach { clazz ->
+            clazz.methods.forEach {
+                result.getValue(it.name).add(clazz)
+            }
+            clazz.fields.forEach {
+                result.getValue(it.name).add(clazz)
+            }
+        }
+
+        return result
     }
 }

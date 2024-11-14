@@ -31,8 +31,8 @@ class EtsTypeResolverTest {
         }
     }
 
-    private val yourPrefixForTestFolders = "C:\\Users\\tWX1307023\\IdeaProjects\\usvm\\usvm-dataflow-ts\\src\\test\\resources\\TestProjects"
-    private val testProjectsVersion = ""
+    private val yourPrefixForTestFolders = "C:/work/TestProjects"
+    private val testProjectsVersion = "TestProjects_2024_11_14"
 
     @Test
     fun testTestHap() {
@@ -96,7 +96,7 @@ class EtsTypeResolverTest {
 
         // TODO replace graphAst with graphAbc ?
         val result = manager
-            .analyze(entrypoint.allMethods, entrypoint.allMethods)
+            .analyze(entrypoint.mainMethods, entrypoint.allMethods.filter { it.isPublic })
             .withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
@@ -148,7 +148,7 @@ class EtsTypeResolverTest {
     @Test
     fun testLoadProject5() = runOnProject(
         projectID = "project5",
-        abcPath = "phone_photos-default-signed_20240905_151755",
+        abcPath = "phone_photos",
         astPath = "15_Photos/applications_photos_240905_ea8d1"
     )
 
