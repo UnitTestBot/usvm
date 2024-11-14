@@ -23,6 +23,7 @@ import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import java.util.concurrent.atomic.AtomicInteger
 
 fun createApplicationGraph(cp: EtsScene): EtsApplicationGraph {
     val base = EtsApplicationGraphImpl(cp)
@@ -30,12 +31,18 @@ fun createApplicationGraph(cp: EtsScene): EtsApplicationGraph {
     return explicit
 }
 
-private class EtsApplicationGraphWithExplicitEntryPoint(
-    private val graph: EtsApplicationGraph,
+class EtsApplicationGraphWithExplicitEntryPoint(
+    private val graph: EtsApplicationGraphImpl,
 ) : EtsApplicationGraph {
 
     override val cp: EtsScene
         get() = graph.cp
+
+    var totalUnresolvedCalls = AtomicInteger(0)
+    var totalResolvedCalls = AtomicInteger(0)
+
+    val stats: EtsApplicationGraphImpl.CalleeStats
+        get() = graph.stats
 
     override fun methodOf(node: EtsStmt): EtsMethod = node.location.method
 
@@ -49,6 +56,12 @@ private class EtsApplicationGraphWithExplicitEntryPoint(
     override fun callers(method: EtsMethod): Sequence<EtsStmt> = graph.callers(method)
 
     override fun callees(node: EtsStmt): Sequence<EtsMethod> = graph.callees(node)
+        .also {
+            if (it.none())
+                totalUnresolvedCalls.incrementAndGet()
+            else
+                totalResolvedCalls.incrementAndGet()
+        }
 
     override fun successors(node: EtsStmt): Sequence<EtsStmt> {
         val method = methodOf(node)
