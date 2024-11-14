@@ -1,6 +1,7 @@
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
+import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
@@ -29,12 +31,12 @@ class EtsTypeResolverTest {
         }
     }
 
-    private val yourPrefixForTestFolders = "C:/work/TestProjects"
-    private val testProjectsVersion = "TestProjects_2024_11_1"
+    private val yourPrefixForTestFolders = "C:\\Users\\tWX1307023\\IdeaProjects\\usvm\\usvm-dataflow-ts\\src\\test\\resources\\TestProjects"
+    private val testProjectsVersion = ""
 
     @Test
     fun testTestHap() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/callkit"
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/CallUI"
         val abcScene = loadProjectFromJsons(projectAbc)
         val graphAbc = createApplicationGraph(abcScene)
 
@@ -47,73 +49,55 @@ class EtsTypeResolverTest {
         val result = manager
             .analyze(entrypoint.mainMethods, entrypoint.allMethods)
             .withGuessedTypes(abcScene)
-        // TODO replace with abc// TODO fix error with abc and ast methods
+        // TODO replace with abc
+        // TODO fix error with abc and ast methods
 
         val classMatcherStatistics = ClassMatcherStatistics()
+
+        val inferredLocals = result.inferredTypes.flatMap { (m, es) -> es.mapNotNull { (b, f) -> if (b is AccessPathBase.Local) m to b.name else null } }
+        val totalLocals = abcScene.classes.flatMap { it.methods }.flatMap { m -> m.locals.map { m to it.name } }
+
+        val zeroLocals = totalLocals.toSet() - inferredLocals.toSet()
+        val zeroLocalsFromConstructors = zeroLocals
+            .filter { (m, n) -> n.startsWith("$") }
+            .map { (m, n) ->
+                Pair(m, n) to m.cfg.stmts.filter {
+                    if (it !is EtsAssignStmt) return@filter false
+                    val lhv = it.lhv
+                    if (lhv !is EtsLocal) return@filter false
+                    lhv.name == n
+                }
+            }
 
         saveTypeInferenceComparison(entrypoint.allMethods, entrypoint.allMethods, graphAbc, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
         classMatcherStatistics.dumpStatistics("callkit.txt")
     }
 
-
-    @Test
-    fun testLoadProject1() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/callui"
+    fun runOnProject(projectID: String, abcPath: String, astPath: String) {
+        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
         val abcScene = loadProjectFromJsons(projectAbc)
 
-        val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
+        val projectAst = "$yourPrefixForTestFolders/AST/$astPath"
         val astScene = loadProjectFromAst(projectAst)
 
-        val graphAbc = createApplicationGraph(abcScene)
-        val graphAst = createApplicationGraph(astScene)
-
-        // TODO fix error with abc and ast methods
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAst) // TODO replace with abc
-        }
-
-        // TODO replace graphAst with graphAbc ?
-        val result = manager
-            .analyze(entrypoint.mainMethods, entrypoint.allMethods)
-            .withGuessedTypes(astScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint.allMethods,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project1.txt")
-    }
-
-    @Test
-    fun testLoadProject2() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/certManager"
-        val abcScene = loadProjectFromJsons(projectAbc)
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val projectAst = "$yourPrefixForTestFolders/AST/13_SecurityPrivacyCenter/security_privacy_center"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
+        val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
+        val graphAst = createApplicationGraph(astScene) as EtsApplicationGraphWithExplicitEntryPoint
 
         // TODO fix error with abc and ast methods
         val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
+        println(entrypoint.mainMethods.map { it.signature })
+        println(entrypoint.allMethods.map { it.signature })
+
         val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
+            TypeInferenceManager(graphAbc) // TODO replace with abc
         }
 
-        val result = manager.analyze(entrypoint.mainMethods, entrypoint.allMethods).withGuessedTypes(abcScene)
+        // TODO replace graphAst with graphAbc ?
+        val result = manager
+            .analyze(entrypoint.allMethods, entrypoint.allMethods)
+            .withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -127,183 +111,60 @@ class EtsTypeResolverTest {
             classMatcherStatistics,
             abcScene
         )
-        classMatcherStatistics.dumpStatistics("project2.txt")
+        classMatcherStatistics.dumpStatistics("$projectID.txt")
+
+        println(graphAbc.stats)
+        println("Resolved calls: ${graphAst.totalResolvedCalls.get()} / ${graphAst.run { totalResolvedCalls.get() + totalUnresolvedCalls.get() }}")
     }
 
     @Test
-    fun testLoadProject3() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/mobileDataSettings"
-        val abcScene = loadProjectFromJsons(projectAbc) 
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val projectAst = "$yourPrefixForTestFolders/AST/16_CallUI/applications_call_230923_4de8"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
-
-        // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
-        }
-
-        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project3.txt")
-    }
+    fun testLoadProject1() = runOnProject(
+        projectID = "project1",
+        abcPath = "callui-default-signed",
+        astPath = "16_CallUI/applications_call_230923_4de8"
+    )
 
     @Test
-    fun testLoadProject4() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/Music_Demo"
-        val abcScene = loadProjectFromJsons(projectAbc)
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val projectAst = "$yourPrefixForTestFolders/AST/12_Music_Demo/ArkTSDistributedMusicPlayer"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
-
-        // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
-        }
-
-        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project4.txt")
-    }
+    fun testLoadProject2() = runOnProject(
+        projectID = "project2",
+        abcPath = "CertificateManager_240801_843398b",
+        astPath = "13_SecurityPrivacyCenter/security_privacy_center"
+    )
 
     @Test
-    fun testLoadProject5() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/phone_photos"
-        val abcScene = loadProjectFromJsons(projectAbc)
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val projectAst = "$yourPrefixForTestFolders/AST/15_Photos/applications_photos_240905_ea8d1"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
-
-        // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
-        }
-
-        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project5.txt")
-    }
+    fun testLoadProject3() = runOnProject(
+        projectID = "project3",
+        abcPath = "mobiledatasettings-callui-default-signed",
+        astPath = "16_CallUI/applications_call_230923_4de8"
+    )
 
     @Test
-    fun testLoadProject6() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/phone_default-signed"
-        val abcScene = loadProjectFromJsons(projectAbc)
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val projectAst = "$yourPrefixForTestFolders/AST/17_Camera/applications_camera_240409_1da805f8"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
-
-        // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
-        }
-
-        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project6.txt")
-    }
+    fun testLoadProject4() = runOnProject(
+        projectID = "project4",
+        abcPath = "Music_Demo_240727_98a3500",
+        astPath = "16_CallUI/applications_call_230923_4de8"
+    )
 
     @Test
-    fun testLoadProject7() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/security"
-        val abcScene = loadProjectFromJsons(projectAbc)
-        val graphAbc = createApplicationGraph(abcScene)
+    fun testLoadProject5() = runOnProject(
+        projectID = "project5",
+        abcPath = "phone_photos-default-signed_20240905_151755",
+        astPath = "15_Photos/applications_photos_240905_ea8d1"
+    )
 
-        val projectAst = "$yourPrefixForTestFolders/AST/13_SecurityPrivacyCenter/security_privacy_center"
-        val astScene = loadProjectFromAst(projectAst)
-        val graphAst = createApplicationGraph(astScene)
+    @Test
+    fun testLoadProject6() = runOnProject(
+        projectID = "project6",
+        abcPath = "phone-default-signed_20240409_144519",
+        astPath = "17_Camera/applications_camera_240409_1da805f8"
+    )
 
-        // TODO fix error with abc and ast methods
-        val entrypoint = extractEntryPoints(abcScene, astScene)
-        val astMethods = extractAllAstMethods(astScene, abcScene)
-
-        val manager = with(EtsTraits) {
-            TypeInferenceManager(graphAbc)
-        }
-
-        val result = manager.analyze(entrypoint).withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            astMethods,
-            entrypoint,
-            graphAst,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene
-        )
-        classMatcherStatistics.dumpStatistics("project7.txt")
-    }
+    @Test
+    fun testLoadProject7() = runOnProject(
+        projectID = "project7",
+        abcPath = "SecurityPrivacyCenter_240801_843998b",
+        astPath = "13_SecurityPrivacyCenter/security_privacy_center"
+    )
 
     @Test
     fun `use non unique fields`() {
@@ -485,7 +346,7 @@ class EtsTypeResolverTest {
 
         return abcScene.classes
             .asSequence()
-            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+            .filterNot { it.name.startsWith("AnonymousClass-") }
             .flatMap { it.methods }
             .filter { it.isPublic }
             .filter {
