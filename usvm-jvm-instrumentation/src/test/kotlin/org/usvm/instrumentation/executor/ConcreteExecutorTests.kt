@@ -116,7 +116,6 @@ class ConcreteExecutorTests: UTestConcreteExecutorTest() {
     }
 
     @Test
-    @Disabled
     fun `static interface method call test`() = executeTest {
         val uTest = UTestCreator.StaticInterfaceMethodCall.callStaticInterfaceMethod(jcClasspath)
         val res = uTestConcreteExecutor.executeAsync(uTest)
