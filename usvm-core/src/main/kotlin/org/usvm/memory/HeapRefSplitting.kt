@@ -125,7 +125,8 @@ inline fun <R> foldHeapRef(
         ref is USymbolicHeapRef -> blockOnSymbolic(initial, ref with initialGuard)
         ref is UIteExpr<UAddressSort> -> {
             val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(
-                ref, initialGuard,
+                ref,
+                initialGuard,
                 collapseHeapRefs = collapseHeapRefs,
                 staticIsConcrete = staticIsConcrete
             )

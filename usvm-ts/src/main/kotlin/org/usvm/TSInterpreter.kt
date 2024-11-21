@@ -16,6 +16,7 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
@@ -164,7 +165,7 @@ class TSInterpreter(
 
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
-        val state = TSState(ctx, method, targets = UTargetsSet.from(targets))
+        val state = TSState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets))
 
         with(ctx) {
             val params = List(method.parameters.size) { idx ->

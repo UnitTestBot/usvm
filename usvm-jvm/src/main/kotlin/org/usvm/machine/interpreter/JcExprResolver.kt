@@ -103,6 +103,9 @@ import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
 import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
 import org.usvm.machine.interpreter.statics.isInitialized
 import org.usvm.machine.interpreter.statics.markAsInitialized
+import org.usvm.machine.interpreter.transformers.JcMultiDimArrayAllocationTransformer
+import org.usvm.machine.interpreter.transformers.JcStringConcatTransformer
+import org.usvm.machine.logger
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -346,8 +349,15 @@ class JcExprResolver(
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
-        val size = resolvePrimitiveCast(expr.dimensions[0], ctx.cp.int)?.asExpr(bv32Sort) ?: return null
-        // TODO: other dimensions ( > 1)
+        val dimension = expr.dimensions.singleOrNull()
+        if (dimension == null) {
+            check(cp.isInstalled(JcMultiDimArrayAllocationTransformer)) {
+                "Arrays with multiple dimensions are not supported"
+            }
+            error("Multi dimensional array was not eliminated")
+        }
+
+        val size = resolvePrimitiveCast(dimension, ctx.cp.int)?.asExpr(bv32Sort) ?: return null
         checkNewArrayLength(size) ?: return null
 
         scope.calcOnState {
@@ -401,7 +411,11 @@ class JcExprResolver(
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
-        resolveInvoke(
+        apply {
+            if (JcStringConcatTransformer.methodIsStringConcat(expr.method.method)) {
+                logger.warn { "JcStringConcatTransformer should be used to process string concatenation" }
+            }
+        }.resolveInvoke(
             expr.method,
             instanceExpr = null,
             argumentExprs = { expr.callSiteArgs },
@@ -424,7 +438,7 @@ class JcExprResolver(
 
     private fun UWritableMemory<JcType>.writeCallSite(callSite: JcLambdaCallSite) {
         val callSiteRegion = getRegion(ctx.lambdaCallSiteRegionId) as JcLambdaCallSiteMemoryRegion
-        val updatedRegion = callSiteRegion.writeCallSite(callSite)
+        val updatedRegion = callSiteRegion.writeCallSite(callSite, ownership)
         setRegion(ctx.lambdaCallSiteRegionId, updatedRegion)
     }
 
@@ -1008,7 +1022,10 @@ class JcExprResolver(
                     if (sort === voidSort) return@forEach
 
                     val memoryRegion = memory.getRegion(JcStaticFieldRegionId(sort)) as JcStaticFieldsMemoryRegion<*>
-                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(staticInitializer.enclosingClass)
+                    memoryRegion.mutatePrimitiveStaticFieldValuesToSymbolic(
+                        staticInitializer.enclosingClass,
+                        memory.ownership
+                    )
                 }
             }
         }

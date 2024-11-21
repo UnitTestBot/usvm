@@ -32,7 +32,7 @@ class UInputMapLengthId<MapType, USizeSort : USort> internal constructor(
             return sort.uctx.withSizeSort<USizeSort>().mkInputMapLengthReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

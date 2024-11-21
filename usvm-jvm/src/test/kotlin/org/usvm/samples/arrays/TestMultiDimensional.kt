@@ -1,8 +1,8 @@
 package org.usvm.samples.arrays
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.samples.JavaMethodTestRunner
+import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ge
 
 class TestMultiDimensional : JavaMethodTestRunner() {
@@ -16,12 +16,20 @@ class TestMultiDimensional : JavaMethodTestRunner() {
     }
 
     @Test
-    @Disabled("TODO support multidimensional arrays initialization")
     fun `Test sumOfMultiNewArray`() {
         checkDiscoveredProperties(
             MultiDimensional::sumOfMultiNewArray,
             ge(1),
             { x, a, b, r -> r == x.sumOfMultiNewArray(a, b) }
+        )
+    }
+
+    @Test
+    fun `test multiDimensionalArrayCount`() {
+        checkDiscoveredPropertiesWithExceptions(
+            MultiDimensional::countMulti3NewArray,
+            eq(1),
+            { x, r -> r.getOrNull() == MultiDimensional.countMulti3NewArray(x) }
         )
     }
 }

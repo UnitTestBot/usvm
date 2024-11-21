@@ -26,6 +26,7 @@ import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.set.primitive.setEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.memory.UReadOnlyMemory
@@ -46,6 +47,7 @@ private typealias Type = SingleTypeSystem.SingleType
 
 class ModelDecodingTest {
     private lateinit var ctx: UContext<USizeSort>
+    private lateinit var ownership: MutabilityOwnership
     private lateinit var solver: USolverBase<Type>
 
     private lateinit var pc: UPathConstraints<Type>
@@ -59,20 +61,21 @@ class ModelDecodingTest {
         every { components.mkTypeSystem(any()) } returns SingleTypeSystem
 
         ctx = UContext(components)
+        ownership = MutabilityOwnership()
         every { components.mkSizeExprProvider(any()) } answers { UBv32SizeExprProvider(ctx) }
-        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type> -> UComposer(ctx, memory) } }
+        every { components.mkComposer(ctx) } answers { { memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership -> UComposer(ctx, memory, ownership) } }
 
         val translator = UExprTranslator<Type, USizeSort>(ctx)
         val decoder = ULazyModelDecoder(translator)
         val typeSolver = UTypeSolver(SingleTypeSystem)
         solver = USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
-        pc = UPathConstraints(ctx)
+        pc = UPathConstraints(ctx, ownership)
 
         stack = URegistersStack()
         stack.push(10)
         mocker = UIndexedMocker()
-        heap = UMemory(ctx, pc.typeConstraints, stack, mocker)
+        heap = UMemory(ctx, ownership, pc.typeConstraints, stack, mocker)
     }
 
     @Test
@@ -131,7 +134,7 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort)
+        val mockedValue = mocker.call(method, emptySequence(), addressSort, ownership)
         val ref1 = heap.readField(mockedValue, field, addressSort)
         heap.writeField(ref1, field, addressSort, allocateConcreteRef(), trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)
@@ -153,7 +156,7 @@ class ModelDecodingTest {
         val field = mockk<Field>()
         val method = mockk<Method>()
 
-        val mockedValue = mocker.call(method, emptySequence(), addressSort)
+        val mockedValue = mocker.call(method, emptySequence(), addressSort, ownership)
         val ref1 = heap.readField(mockedValue, field, addressSort)
         heap.writeField(ref1, field, addressSort, ref1, trueExpr)
         val ref2 = heap.readField(mockedValue, field, addressSort)

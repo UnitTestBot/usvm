@@ -10,6 +10,7 @@ import org.usvm.language.NbMultiplyMethod
 import org.usvm.language.NbNegativeMethod
 import org.usvm.language.NbPositiveMethod
 import org.usvm.language.NbSubtractMethod
+import org.usvm.language.SqConcatMethod
 import org.usvm.language.SqLengthMethod
 import org.usvm.language.TpCallMethod
 import org.usvm.language.TpGetattro
@@ -93,6 +94,10 @@ class SymbolTypeTree(
 
                     NbMultiplyMethod -> { returnType: UtType ->
                         listOf(createBinaryProtocol("__mul__", pythonAnyType, returnType))
+                    }
+
+                    SqConcatMethod -> { returnType: UtType ->
+                        listOf(createBinaryProtocol("__add__", pythonAnyType, returnType))
                     }
 
                     SqLengthMethod -> { _: UtType ->

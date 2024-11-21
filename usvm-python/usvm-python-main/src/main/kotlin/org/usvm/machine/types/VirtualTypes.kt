@@ -98,6 +98,11 @@ object HasNbPositive : TypeProtocol() {
         ConcretePythonInterpreter.typeHasNbPositive(type.asObject)
 }
 
+object HasSqConcat : TypeProtocol() {
+    override fun acceptsConcrete(type: ConcretePythonType): Boolean =
+        ConcretePythonInterpreter.typeHasSqConcat(type.asObject)
+}
+
 object HasSqLength : TypeProtocol() {
     override fun acceptsConcrete(type: ConcretePythonType): Boolean =
         ConcretePythonInterpreter.typeHasSqLength(type.asObject)

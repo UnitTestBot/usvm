@@ -1,12 +1,13 @@
 package org.usvm.collection.field
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -39,11 +40,11 @@ interface UFieldsRegion<Field, Sort : USort> : UMemoryRegion<UFieldLValue<Field,
 internal class UFieldsMemoryRegion<Field, Sort : USort>(
     private val sort: Sort,
     private val field: Field,
-    private val allocatedFields: PersistentMap<UConcreteHeapAddress, UExpr<Sort>> = persistentHashMapOf(),
+    private val allocatedFields: UPersistentHashMap<UConcreteHeapAddress, UExpr<Sort>> = persistentHashMapOf(),
     private var inputFields: UInputFields<Field, Sort>? = null
 ) : UFieldsRegion<Field, Sort> {
 
-    private fun updateAllocated(updated: PersistentMap<UConcreteHeapAddress, UExpr<Sort>>) =
+    private fun updateAllocated(updated: UPersistentHashMap<UConcreteHeapAddress, UExpr<Sort>>) =
         UFieldsMemoryRegion(sort, field, updated, inputFields)
 
     private fun getInputFields(ref: UFieldLValue<Field, Sort>): UInputFields<Field, Sort> {
@@ -63,20 +64,21 @@ internal class UFieldsMemoryRegion<Field, Sort : USort>(
     override fun write(
         key: UFieldLValue<Field, Sort>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        ownership: MutabilityOwnership,
     ): UMemoryRegion<UFieldLValue<Field, Sort>, Sort> = foldHeapRefWithStaticAsSymbolic(
         key.ref,
         initial = this,
         initialGuard = guard,
         blockOnConcrete = { region, (concreteRef, innerGuard) ->
-            val newRegion = region.allocatedFields.guardedWrite(concreteRef.address, value, innerGuard) {
+            val newRegion = region.allocatedFields.guardedWrite(concreteRef.address, value, innerGuard, ownership) {
                 sort.sampleUValue()
             }
             region.updateAllocated(newRegion)
         },
         blockOnSymbolic = { region, (symbolicRef, innerGuard) ->
             val oldRegion = region.getInputFields(key)
-            val newRegion = oldRegion.write(symbolicRef, value, innerGuard)
+            val newRegion = oldRegion.write(symbolicRef, value, innerGuard, ownership)
             region.updateInput(newRegion)
         }
     )

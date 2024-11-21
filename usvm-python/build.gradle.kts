@@ -12,6 +12,7 @@ dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":$USVM_PYTHON_MAIN_MODULE"))
     implementation(project(":$USVM_PYTHON_COMMONS_MODULE"))
+    implementation(project(":$USVM_PYTHON_ANNOTATIONS_MODULE"))
     implementation(Libs.python_types_api)
     implementation(Libs.logback)
 }

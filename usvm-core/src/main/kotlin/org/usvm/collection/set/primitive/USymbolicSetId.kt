@@ -57,7 +57,7 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
             return sort.uctx.mkAllocatedSetReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -133,7 +133,7 @@ class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
             return sort.uctx.mkInputSetReading(collection, key.first, key.second)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

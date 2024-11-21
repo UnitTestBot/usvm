@@ -22,7 +22,11 @@ fun PyState.mock(what: MockHeader): MockResult {
     if (cached != null) {
         return MockResult(UninterpretedSymbolicPythonObject(cached, typeSystem), false, cached)
     }
-    val result = memory.mocker.call(what.method, what.args.map { it.address }.asSequence(), ctx.addressSort)
+    val result = memory.mocker.call(
+        what.method, what.args.map { it.address }.asSequence(),
+        ctx.addressSort,
+        memory.ownership
+    )
     mocks[what] = result
     what.methodOwner?.let { mockedObjects.add(it) }
     return MockResult(UninterpretedSymbolicPythonObject(result, typeSystem), true, result)

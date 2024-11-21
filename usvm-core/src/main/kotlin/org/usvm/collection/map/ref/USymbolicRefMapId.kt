@@ -61,7 +61,7 @@ class UAllocatedRefMapWithInputKeysId<MapType, ValueSort : USort>(
             return key.uctx.mkAllocatedRefMapWithInputKeysReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -126,7 +126,7 @@ class UInputRefMapWithAllocatedKeysId<MapType, ValueSort : USort>(
             return key.uctx.mkInputRefMapWithAllocatedKeysReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -185,7 +185,7 @@ class UInputRefMapWithInputKeysId<MapType, ValueSort : USort>(
             return sort.uctx.mkInputRefMapWithInputKeysReading(collection, key.first, key.second)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

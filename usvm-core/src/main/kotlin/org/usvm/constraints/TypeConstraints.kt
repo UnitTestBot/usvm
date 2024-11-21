@@ -1,25 +1,29 @@
 package org.usvm.constraints
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
+import org.usvm.UNullRef
+import org.usvm.collections.immutable.getOrDefault
 import org.usvm.isStatic
 import org.usvm.isStaticHeapRef
+import org.usvm.collections.immutable.persistentHashMapOf
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.toMutableMap
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.merging.MutableMergeGuard
-import org.usvm.merging.UMergeable
+import org.usvm.merging.UOwnedMergeable
 import org.usvm.solver.UExprTranslator
 import org.usvm.types.USingleTypeStream
 import org.usvm.types.UTypeRegion
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.uctx
+
 
 interface UTypeEvaluator<Type> {
 
@@ -51,20 +55,26 @@ interface UTypeEvaluator<Type> {
  * precisely, thus we can evaluate the subtyping constraints for them concretely (modulo generic type variables).
  */
 class UTypeConstraints<Type>(
+    private var ownership: MutabilityOwnership,
     private val typeSystem: UTypeSystem<Type>,
     private val equalityConstraints: UEqualityConstraints,
-    private var concreteRefToType: PersistentMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
-    private var symbolicRefToTypeRegion: PersistentMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
-) : UTypeEvaluator<Type>, UMergeable<UTypeConstraints<Type>, MutableMergeGuard> {
+    private var concreteRefToType: UPersistentHashMap<UConcreteHeapAddress, Type> = persistentHashMapOf(),
+    private var symbolicRefToTypeRegion: UPersistentHashMap<USymbolicHeapRef, UTypeRegion<Type>> = persistentHashMapOf(),
+) : UTypeEvaluator<Type>, UOwnedMergeable<UTypeConstraints<Type>, MutableMergeGuard> {
     private val ctx: UContext<*> get() = equalityConstraints.ctx
+
+    fun changeOwnership(ownership: MutabilityOwnership) {
+        this.ownership = ownership
+    }
 
     init {
         equalityConstraints.subscribeEquality(::intersectRegions)
     }
-
     val inputRefToTypeRegion: Map<UHeapRef, UTypeRegion<Type>>
         get(): Map<UHeapRef, UTypeRegion<Type>> {
-            val inputTypeRegions: MutableMap<UHeapRef, UTypeRegion<Type>> = symbolicRefToTypeRegion.toMutableMap()
+            @Suppress("UNCHECKED_CAST")
+            val inputTypeRegions: MutableMap<UHeapRef, UTypeRegion<Type>> =
+                symbolicRefToTypeRegion.toMutableMap() as MutableMap<UHeapRef, UTypeRegion<Type>>
 
             // Add all static refs
             for ((address, type) in concreteRefToType) {
@@ -99,7 +109,7 @@ class UTypeConstraints<Type>(
      * Binds concrete heap address [ref] to its [type].
      */
     fun allocate(ref: UConcreteHeapAddress, type: Type) {
-        concreteRefToType = concreteRefToType.put(ref, type)
+        concreteRefToType = concreteRefToType.put(ref, type, ownership)
 
         equalityConstraints.updateDisequality(ctx.mkConcreteHeapRef(ref))
     }
@@ -146,7 +156,7 @@ class UTypeConstraints<Type>(
             } ?: topTypeRegion
         }
 
-        return symbolicRefToTypeRegion[representative] ?: topTypeRegion
+        return symbolicRefToTypeRegion.getOrDefault(representative as USymbolicHeapRef, topTypeRegion)
     }
 
 
@@ -157,7 +167,7 @@ class UTypeConstraints<Type>(
             return
         }
 
-        symbolicRefToTypeRegion = symbolicRefToTypeRegion.put(representative as USymbolicHeapRef, value)
+        symbolicRefToTypeRegion = symbolicRefToTypeRegion.put(representative as USymbolicHeapRef, value, ownership)
     }
 
     /**
@@ -173,7 +183,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
-                val concreteType = concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType[ref.address]!!
                 if (!typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
@@ -200,7 +210,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> contradiction() // the [ref] can't be equal to null
 
             is UConcreteHeapRef -> {
-                val concreteType = concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType[ref.address]!!
                 if (typeSystem.isSupertype(supertype, concreteType)) {
                     contradiction()
                 }
@@ -227,7 +237,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> contradiction()
 
             is UConcreteHeapRef -> {
-                val concreteType = concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType[ref.address]!!
                 if (!typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
@@ -255,7 +265,7 @@ class UTypeConstraints<Type>(
             is UNullRef -> return
 
             is UConcreteHeapRef -> {
-                val concreteType = concreteRefToType.getValue(ref.address)
+                val concreteType = concreteRefToType[ref.address]!!
                 if (typeSystem.isSupertype(concreteType, subtype)) {
                     contradiction()
                 }
@@ -303,8 +313,8 @@ class UTypeConstraints<Type>(
 
             to is UConcreteHeapRef && from is UConcreteHeapRef -> {
                 // For both concrete refs we need to check types are the same
-                val toType = concreteRefToType.getValue(to.address)
-                val fromType = concreteRefToType.getValue(from.address)
+                val toType = concreteRefToType[to.address]
+                val fromType = concreteRefToType[from.address]
 
                 if (toType != fromType) {
                     contradiction()
@@ -313,7 +323,7 @@ class UTypeConstraints<Type>(
 
             to is UConcreteHeapRef -> {
                 // Here we have a pair of symbolic-concrete refs
-                val concreteToType = concreteRefToType.getValue(to.address)
+                val concreteToType = concreteRefToType[to.address]!!
                 val symbolicFromType = getTypeRegion(from as USymbolicHeapRef, useRepresentative = false)
 
                 if (symbolicFromType.addSupertype(concreteToType).isEmpty) {
@@ -323,7 +333,7 @@ class UTypeConstraints<Type>(
 
             from is UConcreteHeapRef -> {
                 // Here to is symbolic and from is concrete
-                val concreteType = concreteRefToType.getValue(from.address)
+                val concreteType = concreteRefToType[from.address]!!
                 val symbolicType = getTypeRegion(to as USymbolicHeapRef)
                 // We need to set only the concrete type instead of all these symbolic types - make it using both subtype/supertype
                 val regionFromConcreteType = symbolicType.addSubtype(concreteType).addSupertype(concreteType)
@@ -350,7 +360,7 @@ class UTypeConstraints<Type>(
             contradiction()
             return
         }
-        for ((key, value) in symbolicRefToTypeRegion.entries) {
+        for ((key, value) in symbolicRefToTypeRegion) {
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
                 // If we have two inputs of incomparable reference types, then they are non equal
@@ -372,7 +382,7 @@ class UTypeConstraints<Type>(
         if (newRegion.isEmpty) {
             equalityConstraints.makeEqual(ref, ref.uctx.nullRef)
         }
-        for ((key, value) in symbolicRefToTypeRegion.entries) {
+        for ((key, value) in symbolicRefToTypeRegion) {
             // TODO: cache intersections?
             if (key != ref && value.intersect(newRegion).isEmpty) {
                 // If we have two inputs of incomparable reference types, then they are non equal or both null
@@ -388,7 +398,7 @@ class UTypeConstraints<Type>(
     override fun evalIsSubtype(ref: UHeapRef, supertype: Type): UBoolExpr =
         ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
-                val concreteType = concreteRefToType.getValue(concreteRef.address)
+                val concreteType = concreteRefToType[concreteRef.address]!!
                 if (typeSystem.isSupertype(supertype, concreteType)) {
                     concreteRef.ctx.trueExpr
                 } else {
@@ -414,7 +424,7 @@ class UTypeConstraints<Type>(
     override fun evalIsSupertype(ref: UHeapRef, subtype: Type): UBoolExpr =
         ref.mapWithStaticAsConcrete(
             concreteMapper = { concreteRef ->
-                val concreteType = concreteRefToType.getValue(concreteRef.address)
+                val concreteType = concreteRefToType[concreteRef.address]!!
                 if (typeSystem.isSupertype(concreteType, subtype)) {
                     concreteRef.ctx.trueExpr
                 } else {
@@ -440,13 +450,17 @@ class UTypeConstraints<Type>(
     /**
      * Creates a mutable copy of these constraints connected to new instance of [equalityConstraints].
      */
-    fun clone(equalityConstraints: UEqualityConstraints) =
-        UTypeConstraints(
-            typeSystem,
-            equalityConstraints,
-            concreteRefToType,
-            symbolicRefToTypeRegion
-        )
+    fun clone(
+        equalityConstraints: UEqualityConstraints,
+        thisOwnership: MutabilityOwnership,
+        cloneOwnership: MutabilityOwnership
+    ) = UTypeConstraints(
+        cloneOwnership,
+        typeSystem,
+        equalityConstraints,
+        concreteRefToType,
+        symbolicRefToTypeRegion
+    ).also { this.ownership = thisOwnership }
 
     /**
      * Check if this [UTypeConstraints] can be merged with [other] type constraints.
@@ -456,13 +470,21 @@ class UTypeConstraints<Type>(
      *
      * @return the merged type constraints.
      */
-    override fun mergeWith(other: UTypeConstraints<Type>, by: MutableMergeGuard): UTypeConstraints<Type>? {
+    override fun mergeWith(
+        other: UTypeConstraints<Type>,
+        by: MutableMergeGuard,
+        thisOwnership: MutabilityOwnership,
+        otherOwnership: MutabilityOwnership,
+        mergedOwnership: MutabilityOwnership
+    ): UTypeConstraints<Type>? {
         // TODO: should we check equality constraints?
         if (symbolicRefToTypeRegion != other.symbolicRefToTypeRegion) {
             return null
         }
-        val mergedConcreteRefs = concreteRefToType.builder().apply { putAll(other.concreteRefToType) }.build()
-        return UTypeConstraints(typeSystem, equalityConstraints, mergedConcreteRefs, symbolicRefToTypeRegion)
+        val mergedConcreteRefs = concreteRefToType.putAll(other.concreteRefToType, mergedOwnership)
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
+        return UTypeConstraints(mergedOwnership, typeSystem, equalityConstraints, mergedConcreteRefs, symbolicRefToTypeRegion)
     }
 
 

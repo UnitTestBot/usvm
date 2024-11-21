@@ -6,6 +6,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.language.Method
 import org.usvm.language.ProgramException
@@ -20,10 +21,11 @@ import org.usvm.targets.UTargetsSet
 
 class SampleState(
     ctx: UContext<USizeSort>,
+    ownership: MutabilityOwnership,
     override val entrypoint: Method<*>,
     callStack: UCallStack<Method<*>, Stmt> = UCallStack(),
-    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx),
-    memory: UMemory<SampleType, Method<*>> = UMemory(ctx, pathConstraints.typeConstraints),
+    pathConstraints: UPathConstraints<SampleType> = UPathConstraints(ctx, ownership),
+    memory: UMemory<SampleType, Method<*>> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
     models: List<UModelBase<SampleType>> = listOf(),
     pathNode: PathNode<Stmt> = PathNode.root(),
     forkPoints: PathNode<PathNode<Stmt>> = PathNode.root(),
@@ -32,6 +34,7 @@ class SampleState(
     targets: UTargetsSet<SampleTarget, Stmt> = UTargetsSet.empty(),
 ) : UState<SampleType, Method<*>, Stmt, UContext<USizeSort>, SampleTarget, SampleState>(
     ctx,
+    ownership,
     callStack,
     pathConstraints,
     memory,
@@ -41,13 +44,19 @@ class SampleState(
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<SampleType>?): SampleState {
-        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+        val newThisOwnership = MutabilityOwnership()
+        val cloneOwnership = MutabilityOwnership()
+        val clonedConstraints = newConstraints?.also {
+            this.pathConstraints.changeOwnership(newThisOwnership)
+            it.changeOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         return SampleState(
             ctx,
+            cloneOwnership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints),
+            memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
             models,
             pathNode,
             forkPoints,
@@ -64,15 +73,20 @@ class SampleState(
      */
     override fun mergeWith(other: SampleState, by: Unit): SampleState? {
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
-
+        val thisOwnership = MutabilityOwnership()
+        val otherOwnership = MutabilityOwnership()
+        val mergedOwnership = MutabilityOwnership()
         val mergedPathNode = pathNode.mergeWith(other.pathNode, Unit) ?: return null
         val mergedForkPoints = forkPoints.mergeWith(other.forkPoints, Unit) ?: return null
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
-            ?: return null
-        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
+        val mergedPathConstraints =
+            pathConstraints.mergeWith(
+                other.pathConstraints, mergeGuard, thisOwnership, otherOwnership, mergedOwnership
+            ) ?: return null
+        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints, thisOwnership, otherOwnership)
+            .mergeWith(other.memory, mergeGuard, thisOwnership, otherOwnership, mergedOwnership)
             ?: return null
         val mergedModels = models + other.models
         val mergedReturnRegister = if (returnRegister == null && other.returnRegister == null) {
@@ -88,8 +102,11 @@ class SampleState(
         val mergedTargets = targets.takeIf { it == other.targets } ?: return null
         mergedPathConstraints += ctx.mkOr(mergeGuard.thisConstraint, mergeGuard.otherConstraint)
 
+        this.ownership = thisOwnership
+        other.ownership = otherOwnership
         return SampleState(
             ctx,
+            mergedOwnership,
             entrypoint,
             mergedCallStack,
             mergedPathConstraints,

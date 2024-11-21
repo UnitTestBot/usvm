@@ -42,6 +42,7 @@ import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElements
 import org.usvm.collection.set.ref.UInputRefSetWithAllocatedElementsReading
 import org.usvm.collection.set.ref.UInputRefSetWithInputElements
 import org.usvm.collection.set.ref.UInputRefSetWithInputElementsReading
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UAddressCounter
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.splitUHeapRef
@@ -61,11 +62,12 @@ open class UContext<USizeSort : USort>(
     private val solver by lazy { components.mkSolver(this) }
     private val typeSystem by lazy { components.mkTypeSystem(this) }
     private val softConstraintsProvider by lazy { components.mkSoftConstraintsProvider(this) }
-    private val composerBuilder: (UReadOnlyMemory<*>) -> UComposer<*, USizeSort> by lazy {
+    private val composerBuilder: (UReadOnlyMemory<*>, MutabilityOwnership) -> UComposer<*, USizeSort> by lazy {
         @Suppress("UNCHECKED_CAST")
-        components.mkComposer(this) as (UReadOnlyMemory<*>) -> UComposer<*, USizeSort>
+        components.mkComposer(this) as (UReadOnlyMemory<*>, MutabilityOwnership) -> UComposer<*, USizeSort>
     }
 
+    val defaultOwnership = MutabilityOwnership()
     val sizeExprs by lazy { components.mkSizeExprProvider(this) }
     val statesForkProvider by lazy { components.mkStatesForkProvider() }
 
@@ -86,7 +88,8 @@ open class UContext<USizeSort : USort>(
 
     fun <Type> softConstraintsProvider(): USoftConstraintsProvider<Type, USizeSort> = softConstraintsProvider.cast()
 
-    fun <Type> composer(memory: UReadOnlyMemory<Type>): UComposer<Type, USizeSort> = composerBuilder(memory).cast()
+    fun <Type> composer(memory: UReadOnlyMemory<Type>, ownership: MutabilityOwnership): UComposer<Type, USizeSort> =
+        composerBuilder(memory, ownership).cast()
 
     val addressSort: UAddressSort = mkUninterpretedSort("Address")
     val nullRef: UNullRef = UNullRef(this)

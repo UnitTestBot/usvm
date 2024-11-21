@@ -35,7 +35,7 @@ class UInputFieldId<Field, Sort : USort> internal constructor(
             return key.uctx.mkInputFieldReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }

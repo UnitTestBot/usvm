@@ -1,5 +1,6 @@
 package org.usvm
 
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.UMemory
 import org.usvm.merging.UMergeable
@@ -12,6 +13,7 @@ typealias StateId = UInt
 abstract class UState<Type, Method, Statement, Context, Target, State>(
     // TODO: add interpreter-specific information
     val ctx: Context,
+    initOwnership: MutabilityOwnership,
     open val callStack: UCallStack<Method, Statement>,
     open val pathConstraints: UPathConstraints<Type>,
     open val memory: UMemory<Type, Method>,
@@ -32,6 +34,9 @@ abstract class UState<Type, Method, Statement, Context, Target, State>(
      * TODO: Can be replaced with overridden hashCode
      */
     val id: StateId = ctx.getNextStateId()
+
+    open var ownership = initOwnership
+        protected set
 
     /**
      * Creates new state structurally identical to this.

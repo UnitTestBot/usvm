@@ -24,7 +24,7 @@ internal fun <SetType, KeySort : USort, Reg : Region<Reg>> UWritableMemory<*>.se
         "setUnion is not applicable to $region"
     }
 
-    val newRegion = region.union(srcRef, dstRef, guard)
+    val newRegion = region.union(srcRef, dstRef, guard, ownership)
     setRegion(regionId, newRegion)
 }
 

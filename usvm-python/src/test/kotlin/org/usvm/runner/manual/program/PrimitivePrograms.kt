@@ -16,13 +16,11 @@ val sampleStringFunction = StringProgramProvider(
 /**
  * Sample of a function that cannot be covered right now.
  * */
-val listConcatProgram = StringProgramProvider(
+val tupleConcatProgram = StringProgramProvider(
     """
-        def list_concat(x):
-            y = x + [1]
-            if len(y[::-1]) == 5:
-                return 1
-            return 2
+        def tuple_concat(x, y):
+            z = x + y
+            return z + (1, 2, 3)
     """.trimIndent(),
-    "list_concat",
-) { listOf(PythonAnyType) }
+    "tuple_concat",
+) { listOf(PythonAnyType, PythonAnyType) }

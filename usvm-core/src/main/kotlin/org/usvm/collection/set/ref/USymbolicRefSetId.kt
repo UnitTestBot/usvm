@@ -54,7 +54,7 @@ class UAllocatedRefSetWithInputElementsId<SetType>(
             return key.uctx.mkAllocatedRefSetWithInputElementsReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -128,7 +128,7 @@ class UInputRefSetWithAllocatedElementsId<SetType>(
             return key.uctx.mkInputRefSetWithAllocatedElementsReading(collection, key)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
@@ -197,7 +197,7 @@ class UInputRefSetWithInputElementsId<SetType>(
             return sort.uctx.mkInputRefSetWithInputElementsReading(collection, key.first, key.second)
         }
 
-        val memory = composer.memory.toWritableMemory()
+        val memory = composer.memory.toWritableMemory(composer.ownership)
         collection.applyTo(memory, key, composer)
         return memory.read(mkLValue(key))
     }
