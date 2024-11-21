@@ -22,6 +22,11 @@ findProject(":usvm-python:usvm-python-runner")?.name = "usvm-python-runner"
 include("usvm-python:usvm-python-commons")
 findProject(":usvm-python:usvm-python-commons")?.name = "usvm-python-commons"
 
+// Actually, `includeBuild("../jacodb")` is enough, but there is a bug in IDEA when path is a symlink.
+// As a workaround, we convert it to a real absolute path.
+// See IDEA bug: https://youtrack.jetbrains.com/issue/IDEA-329756
+includeBuild(file("../jacodb").toPath().toRealPath().toAbsolutePath())
+
 pluginManagement {
     resolutionStrategy {
         eachPlugin {
@@ -32,7 +37,17 @@ pluginManagement {
     }
 }
 
-// Actually, `includeBuild("../jacodb")` is enough, but there is a bug in IDEA when path is a symlink.
-// As a workaround, we convert it to a real absolute path.
-// See IDEA bug: https://youtrack.jetbrains.com/issue/IDEA-329756
-includeBuild(file("../jacodb").toPath().toRealPath().toAbsolutePath())
+plugins {
+    id("com.gradle.develocity") version ("3.18.2")
+}
+
+develocity {
+    buildScan {
+        // Accept the term of use for the build scan plugin:
+        termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
+        termsOfUseAgree.set("yes")
+
+        // Publish build scans on-demand, when `--scan` option is provided:
+        publishing.onlyIf { false }
+    }
+}
