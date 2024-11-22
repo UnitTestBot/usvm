@@ -16,7 +16,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -39,7 +38,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -53,8 +51,7 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -63,6 +60,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -78,8 +76,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -93,8 +90,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -124,8 +120,7 @@
             }
           },
           "modifiers": 16384,
-          "decorators": [],
-          "typeParameters": []
+          "decorators": []
         },
         {
           "signature": {
@@ -145,7 +140,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -159,8 +153,7 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -174,8 +167,7 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -202,6 +194,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -217,8 +210,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -232,8 +224,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -280,8 +271,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -302,8 +292,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -347,8 +336,7 @@
                                   "fileName": "cast.ts"
                                 },
                                 "declaringNamespace": null
-                              },
-                              "typeParameters": []
+                              }
                             }
                           }
                         ]
@@ -389,7 +377,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -403,8 +390,7 @@
                       "fileName": "cast.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -425,6 +411,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -457,8 +444,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -472,8 +458,7 @@
                               "fileName": "cast.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -536,7 +521,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],

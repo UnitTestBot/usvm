@@ -16,7 +16,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -39,7 +38,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -53,8 +51,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -63,6 +60,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -78,8 +76,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -93,8 +90,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -135,7 +131,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -149,8 +144,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -164,8 +158,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -180,6 +173,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -195,8 +189,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -211,8 +204,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -230,8 +222,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -245,8 +236,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -273,8 +263,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -337,7 +326,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -351,8 +339,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -366,8 +353,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -382,6 +368,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -397,8 +384,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -413,8 +399,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -432,8 +417,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -447,8 +431,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -475,8 +458,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -539,7 +521,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -553,8 +534,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -568,8 +548,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -596,6 +575,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -611,8 +591,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -627,8 +606,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -646,8 +624,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -661,8 +638,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -689,8 +665,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -732,8 +707,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -824,7 +798,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -838,8 +811,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -853,8 +825,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -863,6 +834,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -878,8 +850,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -894,8 +865,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -913,8 +883,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -928,8 +897,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -949,8 +917,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1008,7 +975,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -1022,8 +988,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -1037,8 +1002,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -1047,6 +1011,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1062,8 +1027,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1078,8 +1042,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1097,8 +1060,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1112,8 +1074,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1133,8 +1094,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1192,7 +1152,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -1206,8 +1165,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -1221,8 +1179,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -1237,6 +1194,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1252,8 +1210,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1268,8 +1225,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1287,8 +1243,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1302,8 +1257,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1323,8 +1277,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1368,8 +1321,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1417,7 +1369,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [
@@ -1481,7 +1432,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1489,6 +1439,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1504,8 +1455,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1519,8 +1469,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1540,8 +1489,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1583,8 +1531,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1637,7 +1584,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1645,6 +1591,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1660,8 +1607,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1675,8 +1621,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1707,7 +1652,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -1721,8 +1665,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -1731,6 +1674,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1746,8 +1690,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1761,8 +1704,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1800,7 +1742,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -1815,6 +1756,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1836,8 +1778,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1892,7 +1833,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -1915,7 +1855,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1923,6 +1862,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1938,8 +1878,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1953,8 +1892,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1985,7 +1923,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1993,6 +1930,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2008,8 +1946,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -2023,8 +1960,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2055,7 +1991,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -2069,8 +2004,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -2085,6 +2019,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2100,8 +2035,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -2115,8 +2049,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2184,7 +2117,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -2198,8 +2130,7 @@
                       "fileName": "resolver_test.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -2208,6 +2139,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2223,8 +2155,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -2238,8 +2169,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2277,7 +2207,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -2292,6 +2221,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2313,8 +2243,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2369,7 +2298,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [
@@ -2413,7 +2341,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -2421,6 +2348,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2436,8 +2364,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -2451,8 +2378,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2472,8 +2398,7 @@
                                 "fileName": "resolver_test.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -2526,7 +2451,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -2534,6 +2458,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2549,8 +2474,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -2564,8 +2488,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -2596,7 +2519,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -2611,6 +2533,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -2632,8 +2555,7 @@
                               "fileName": "resolver_test.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },

@@ -16,7 +16,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -39,7 +38,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -53,8 +51,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -63,6 +60,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -78,8 +76,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -93,8 +90,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -125,7 +121,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -139,8 +134,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -154,8 +148,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -169,8 +162,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -185,6 +177,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -200,8 +193,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -215,8 +207,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -234,8 +225,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -249,8 +239,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -270,8 +259,7 @@
                                 "fileName": "data.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -309,8 +297,7 @@
                                 "fileName": "data.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "args": [
@@ -345,8 +332,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -361,8 +347,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -406,8 +391,7 @@
                                   "fileName": "data.ts"
                                 },
                                 "declaringNamespace": null
-                              },
-                              "typeParameters": []
+                              }
                             }
                           }
                         ]
@@ -448,7 +432,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -462,8 +445,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -484,6 +466,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -516,8 +499,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -531,8 +513,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -595,7 +576,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [
@@ -659,7 +639,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -667,6 +646,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -682,8 +662,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -697,8 +676,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -729,7 +707,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -737,6 +714,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -752,8 +730,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -767,8 +744,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -817,13 +793,11 @@
                   "fileName": "data.ts"
                 },
                 "declaringNamespace": null
-              },
-              "typeParameters": []
+              }
             }
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -837,8 +811,7 @@
                       "fileName": "data.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -859,6 +832,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "CallStmt",
@@ -876,8 +850,7 @@
                                 "fileName": "data.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -946,8 +919,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -961,8 +933,7 @@
                               "fileName": "data.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -982,8 +953,7 @@
                                 "fileName": "data.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1025,8 +995,7 @@
                                 "fileName": "data.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {

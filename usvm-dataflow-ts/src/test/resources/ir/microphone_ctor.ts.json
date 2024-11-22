@@ -16,7 +16,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -39,7 +38,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -53,8 +51,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -63,6 +60,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -78,8 +76,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -93,8 +90,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -135,7 +131,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -149,8 +144,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -164,8 +158,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -186,6 +179,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -201,8 +195,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -217,8 +210,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -236,8 +228,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -251,8 +242,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -279,8 +269,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -302,8 +291,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         }
                       }
@@ -376,7 +364,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -390,8 +377,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -405,8 +391,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -420,8 +405,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -448,6 +432,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -463,8 +448,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -478,8 +462,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -497,8 +480,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -512,8 +494,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -533,8 +514,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -557,8 +537,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "args": []
@@ -578,8 +557,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -594,8 +572,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -648,8 +625,7 @@
                                   "fileName": "microphone_ctor.ts"
                                 },
                                 "declaringNamespace": null
-                              },
-                              "typeParameters": []
+                              }
                             }
                           }
                         ]
@@ -714,7 +690,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [
@@ -752,7 +727,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [
         "Microphone"
@@ -798,7 +772,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -806,6 +779,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -821,8 +795,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -836,8 +809,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -868,7 +840,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -876,6 +847,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -891,8 +863,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -906,8 +877,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -941,13 +911,11 @@
                   "fileName": "microphone_ctor.ts"
                 },
                 "declaringNamespace": null
-              },
-              "typeParameters": []
+              }
             }
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -961,8 +929,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -971,6 +938,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -986,8 +954,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1001,8 +968,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1022,8 +988,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1060,8 +1025,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1109,7 +1073,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [
@@ -1133,8 +1096,7 @@
                   "fileName": "microphone_ctor.ts"
                 },
                 "declaringNamespace": null
-              },
-              "typeParameters": []
+              }
             }
           },
           "modifiers": 0,
@@ -1156,7 +1118,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [
         "Devices"
@@ -1182,8 +1143,7 @@
                   "fileName": "microphone_ctor.ts"
                 },
                 "declaringNamespace": null
-              },
-              "typeParameters": []
+              }
             }
           },
           "modifiers": 0,
@@ -1211,7 +1171,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1219,6 +1178,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1234,8 +1194,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1249,8 +1208,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1281,7 +1239,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [],
             "cfg": {
@@ -1289,6 +1246,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1304,8 +1262,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1319,8 +1276,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1354,13 +1310,11 @@
                   "fileName": "microphone_ctor.ts"
                 },
                 "declaringNamespace": null
-              },
-              "typeParameters": []
+              }
             }
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -1374,8 +1328,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -1389,8 +1342,7 @@
                       "fileName": "microphone_ctor.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -1399,6 +1351,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -1414,8 +1367,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1429,8 +1381,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1450,8 +1401,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1486,8 +1436,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -1501,8 +1450,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -1522,8 +1470,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "method": {
@@ -1546,8 +1493,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "args": []
@@ -1569,8 +1515,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         },
                         "field": {
@@ -1592,8 +1537,7 @@
                                 "fileName": "microphone_ctor.ts"
                               },
                               "declaringNamespace": null
-                            },
-                            "typeParameters": []
+                            }
                           }
                         }
                       },
@@ -1609,8 +1553,7 @@
                               "fileName": "microphone_ctor.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },

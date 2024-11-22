@@ -16,7 +16,6 @@
       },
       "modifiers": 0,
       "decorators": [],
-      "typeParameters": [],
       "superClassName": "",
       "implementedInterfaceNames": [],
       "fields": [],
@@ -39,7 +38,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -53,8 +51,7 @@
                       "fileName": "call.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               }
             ],
@@ -63,6 +60,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -78,8 +76,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -93,8 +90,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -125,7 +121,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -139,8 +134,7 @@
                       "fileName": "call.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -167,6 +161,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -182,8 +177,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -197,8 +191,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -330,7 +323,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -344,8 +336,7 @@
                       "fileName": "call.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -366,6 +357,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -398,8 +390,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -413,8 +404,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
@@ -490,7 +480,6 @@
           },
           "modifiers": 0,
           "decorators": [],
-          "typeParameters": [],
           "body": {
             "locals": [
               {
@@ -504,8 +493,7 @@
                       "fileName": "call.ts"
                     },
                     "declaringNamespace": null
-                  },
-                  "typeParameters": []
+                  }
                 }
               },
               {
@@ -526,6 +514,7 @@
                 {
                   "id": 0,
                   "successors": [],
+                  "predecessors": [],
                   "stmts": [
                     {
                       "_": "AssignStmt",
@@ -558,8 +547,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       },
                       "right": {
@@ -573,8 +561,7 @@
                               "fileName": "call.ts"
                             },
                             "declaringNamespace": null
-                          },
-                          "typeParameters": []
+                          }
                         }
                       }
                     },
