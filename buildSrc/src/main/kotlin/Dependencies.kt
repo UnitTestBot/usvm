@@ -9,7 +9,7 @@ object Versions {
     const val jacodb = "ae2716b3f8"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
-    const val kotlin = "1.9.20"
+    const val kotlin = "2.0.20"
     const val kotlin_logging = "1.8.3"
     const val kotlinx_collections = "0.3.5"
     const val kotlinx_coroutines = "1.6.4"
