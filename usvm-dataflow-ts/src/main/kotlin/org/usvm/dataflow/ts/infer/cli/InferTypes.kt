@@ -66,6 +66,11 @@ class InferTypes : CliktCommand() {
     val input by option("-i", "--input", help = "Input file or directory with IR").path().multiple(required = true)
     val output by option("-o", "--output", help = "Output file with inferred types in JSON format").path().required()
 
+    val sdkPaths by option(
+        "--sdk",
+        help = "Path to the SDK directory"
+    ).path().multiple()
+
     val skipAnonymous by option(
         "--skip-anonymous",
         help = "Skip anonymous classes and method"
@@ -78,7 +83,7 @@ class InferTypes : CliktCommand() {
         logger.info { "Input: $input" }
         logger.info { "Output: $output" }
 
-        val project = loadEtsScene(input)
+        val project = loadEtsScene(input + sdkPaths)
         val graph = createApplicationGraph(project)
 
         val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
