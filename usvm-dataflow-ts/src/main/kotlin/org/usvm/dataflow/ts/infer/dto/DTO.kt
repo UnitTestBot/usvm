@@ -48,9 +48,12 @@ data class LocalTypeResultDto(
 )
 
 fun TypeInferenceResult.toDto(): InferredTypesDto {
-    val classTypeInferenceResult = inferredCombinedThisType.map { (signature, fact) ->
+    val classTypeInferenceResult = inferredCombinedThisType.map { (clazz, fact) ->
         val properties = (fact as? EtsTypeFact.ObjectEtsTypeFact)?.properties ?: emptyMap()
-        val methods = properties.filter { it.value is EtsTypeFact.FunctionEtsTypeFact }.keys.toList()
+        val methods = properties
+            .filter { it.value is EtsTypeFact.FunctionEtsTypeFact }
+            .keys
+            .sortedBy { it }
         val fields = properties
             .filterNot { it.value is EtsTypeFact.FunctionEtsTypeFact }
             .mapNotNull { (name, fact) ->
@@ -58,8 +61,10 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
                     FieldTypeResultDto(name, it.toDto())
                 }
             }
-
-        ClassTypeResultDto(signature.toDto(), fields, methods)
+            .sortedBy { it.name }
+        ClassTypeResultDto(clazz.toDto(), fields, methods)
+    }.sortedBy {
+        it.signature.toString()
     }
 
     val methodTypeInferenceResult = inferredTypes.map { (method, facts) ->
@@ -71,7 +76,8 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
                 }
             }
             null
-        }
+        }.sortedBy { it.index }
+        val returnType = inferredReturnType[method]?.toType()?.toDto()
         val locals = facts.mapNotNull { (base, fact) ->
             if (base is AccessPathBase.Local) {
                 val type = fact.toType()
@@ -80,10 +86,10 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
                 }
             }
             null
-        }
-        val returnType = inferredReturnType[method]?.toType()?.toDto()
-
+        }.sortedBy { it.name }
         MethodTypeResultDto(method.signature.toDto(), args, returnType, locals)
+    }.sortedBy {
+        it.signature.toString()
     }
 
     return InferredTypesDto(classTypeInferenceResult, methodTypeInferenceResult)
