@@ -22,6 +22,8 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.output.MordantHelpFormatter
+import com.github.ajalt.clikt.parameters.options.convert
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
@@ -69,8 +71,13 @@ class InferTypes : CliktCommand() {
 
     val sdkPaths by option(
         "--sdk",
-        help = "Path to the SDK directory"
+        help = "Path to SDK directory"
     ).path().multiple()
+
+    val sdkNames by option(
+        "--sdk-names",
+        help = "Comma-separated list of SDK names"
+    ).convert { it.split(",") }.default(emptyList(), defaultForHelp = "empty")
 
     val skipAnonymous by option(
         "--skip-anonymous",
@@ -88,7 +95,9 @@ class InferTypes : CliktCommand() {
         val graph = createApplicationGraph(project)
 
         val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
-        val publicMethods = allMethods.filter { it.isPublic }
+        val publicMethods = allMethods.filter { m ->
+            m.isPublic && m.signature.enclosingClass.file.projectName !in sdkNames
+        }
 
         val manager = with(EtsTraits) {
             TypeInferenceManager(graph)
