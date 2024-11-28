@@ -41,14 +41,14 @@ data class TypeInferenceResult(
     }
 
     private fun precalculateCaches(scene: EtsScene): Map<String, Set<EtsClass>> {
-        val result = hashMapOf<String, MutableSet<EtsClass>>().withDefault { hashSetOf() }
+        val result = hashMapOf<String, MutableSet<EtsClass>>()
 
         scene.classes.forEach { clazz ->
             clazz.methods.forEach {
-                result.getValue(it.name).add(clazz)
+                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
             }
             clazz.fields.forEach {
-                result.getValue(it.name).add(clazz)
+                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
             }
         }
 
