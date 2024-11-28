@@ -15,7 +15,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
+            <pattern>[%level] %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
         </encoder>
     </appender>
 
