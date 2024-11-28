@@ -43,6 +43,7 @@ import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
+import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.outputStream
 import kotlin.time.measureTimedValue
@@ -111,6 +112,7 @@ fun main(args: Array<String>) {
 private fun loadEtsScene(paths: List<Path>): EtsScene {
     logger.info { "Loading ETS scene from $paths" }
     val files = paths.flatMap {  path ->
+        check(path.exists()) { "Path does not exist: $path" }
         if (path.isRegularFile()) {
             logger.info { "Loading single ETS file: $path" }
             val file = loadEtsFile(path)
