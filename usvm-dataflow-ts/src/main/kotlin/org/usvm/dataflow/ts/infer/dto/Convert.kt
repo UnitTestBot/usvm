@@ -116,11 +116,28 @@ fun EtsType.toDto(): TypeDto = when (this) {
         LiteralTypeDto(literal = literal)
     }
 
-    is EtsClassType -> ClassTypeDto(signature = this.signature.toDto())
-    is EtsFunctionType -> FunctionTypeDto(signature = this.method.toDto())
-    is EtsArrayType -> ArrayTypeDto(elementType = this.elementType.toDto(), dimensions = this.dimensions)
-    is EtsArrayObjectType -> TODO("removed")
-    is EtsUnclearRefType -> UnclearReferenceTypeDto(name = this.typeName)
+    is EtsClassType -> ClassTypeDto(
+        signature = this.signature.toDto(),
+        typeParameters = this.typeParameters.map { it.toDto() }
+    )
+
+    is EtsFunctionType -> FunctionTypeDto(
+        signature = this.method.toDto(),
+        typeParameters = this.typeParameters.map { it.toDto() }
+    )
+
+    is EtsArrayType -> ArrayTypeDto(
+        elementType = this.elementType.toDto(),
+        dimensions = this.dimensions
+    )
+
+    is EtsArrayObjectType -> TODO("EtsArrayObjectType was removed")
+
+    is EtsUnclearRefType -> UnclearReferenceTypeDto(
+        name = this.typeName,
+        typeParameters = this.typeParameters.map { it.toDto() }
+    )
+
     is EtsGenericType -> GenericTypeDto(
         name = this.typeName,
         defaultType = this.defaultType?.toDto(),
