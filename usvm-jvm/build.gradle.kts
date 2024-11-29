@@ -1,5 +1,7 @@
 @file:Suppress("PropertyName", "HasPlatformType")
 
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     id("usvm.kotlin-conventions")
 }
@@ -59,6 +61,12 @@ dependencies {
 
     approximations(approximationsRepo, "approximations", approximationsVersion)
     testImplementation(approximationsRepo, "tests", approximationsVersion)
+}
+
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        allWarningsAsErrors = false
+    }
 }
 
 val `usvm-apiCompileOnly`: Configuration by configurations.getting

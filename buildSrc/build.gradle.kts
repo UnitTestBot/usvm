@@ -2,8 +2,8 @@ plugins {
     `kotlin-dsl`
 }
 
-val kotlinVersion = "1.9.20"
-val detektVersion = "1.23.5"
+val kotlinVersion = "2.0.20"
+val detektVersion = "1.23.7"
 val gjavahVersion = "0.3.1"
 
 repositories {
@@ -11,7 +11,6 @@ repositories {
     gradlePluginPortal()
     maven("https://jitpack.io")
 }
-
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
