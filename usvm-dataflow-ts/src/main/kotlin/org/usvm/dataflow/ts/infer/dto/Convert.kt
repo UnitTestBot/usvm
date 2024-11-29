@@ -22,6 +22,7 @@ import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
+import org.jacodb.ets.base.EtsGenericType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
@@ -41,6 +42,7 @@ import org.jacodb.ets.dto.ClassSignatureDto
 import org.jacodb.ets.dto.ClassTypeDto
 import org.jacodb.ets.dto.FileSignatureDto
 import org.jacodb.ets.dto.FunctionTypeDto
+import org.jacodb.ets.dto.GenericTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
 import org.jacodb.ets.dto.MethodParameterDto
 import org.jacodb.ets.dto.MethodSignatureDto
@@ -119,7 +121,13 @@ fun EtsType.toDto(): TypeDto = when (this) {
     is EtsArrayType -> ArrayTypeDto(elementType = this.elementType.toDto(), dimensions = this.dimensions)
     is EtsArrayObjectType -> TODO("removed")
     is EtsUnclearRefType -> UnclearReferenceTypeDto(name = this.typeName)
-    else -> error("Cannot convert to DTO: $this")
+    is EtsGenericType -> GenericTypeDto(
+        name = this.typeName,
+        defaultType = this.defaultType?.toDto(),
+        constraint = this.constraint?.toDto(),
+    )
+
+    else -> error("Cannot convert ${this::class.java} to DTO: $this")
 }
 
 fun EtsClassSignature.toDto(): ClassSignatureDto =
