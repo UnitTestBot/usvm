@@ -1,6 +1,8 @@
 package org.usvm.model
 
+import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
+import org.jacodb.go.api.ChanType
 import org.jacodb.go.api.GoAddExpr
 import org.jacodb.go.api.GoAllocExpr
 import org.jacodb.go.api.GoAndExpr
@@ -68,13 +70,22 @@ import org.jacodb.go.api.GoUnaryExpr
 import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
+import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.StructType
+import org.jacodb.go.api.TupleType
+import org.jacodb.go.api.UnionType
 import org.usvm.GoPackage
 
 object Converter {
+    private lateinit var types: Map<String, GoType>
+
     fun unpackPackage(pkg: Package): GoPackage {
+        types = pkg.types.mapValues { type -> unpackType(pkg.types, type.value) }
         val methods = pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
                 BasicType(function.name),
@@ -83,15 +94,17 @@ object Converter {
                 emptyList(),
                 pkg.name,
                 function.freeVars.map { unpackValue(it) as GoFreeVar },
-                function.returnTypes.map(::unpackType),
+                function.returnTypes.map(this::getType),
             ).also { it.blocks = function.basicBlocks.map { block -> unpackBasicBlock(it, block) } }
         }
-        val globals = pkg.members.filterIsInstance<Member.Global>().map { global -> GoGlobal(global.index, global.name, unpackType(global.goType)) }
-        return GoPackage(pkg.name, methods, globals)
+        val globals = pkg.members.filterIsInstance<Member.Global>().map { global -> GoGlobal(global.index, global.name,
+            getType(global.goType)
+        ) }
+        return GoPackage(pkg.name, methods, globals, types)
     }
 
     private fun unpackParameter(index: Int, param: Value): GoParameter {
-        return GoParameter(index, param.name, unpackType(param.goType))
+        return GoParameter(index, param.name, getType(param.goType))
     }
 
     private fun unpackBasicBlock(function: GoFunction, block: Member.BasicBlock): GoBasicBlock {
@@ -101,7 +114,7 @@ object Converter {
     private fun unpackInstruction(function: GoFunction, inst: Instruction): GoInst {
         val location = GoInstLocationImpl(function, inst.block, inst.line)
         return when (inst) {
-            is Instruction.Alloc -> GoAllocExpr(location, unpackType(inst.goType), inst.register).toAssignInst()
+            is Instruction.Alloc -> GoAllocExpr(location, getType(inst.goType), inst.register).toAssignInst()
             is Instruction.BinOp -> unpackBinOp(location, inst)
             is Instruction.Call -> unpackCall(location, inst)
             is Instruction.ChangeInterface -> TODO()
@@ -120,12 +133,12 @@ object Converter {
             is Instruction.MakeChan -> TODO()
             is Instruction.MakeClosure -> unpackMakeClosure(location, inst)
             is Instruction.MakeInterface -> TODO()
-            is Instruction.MakeMap -> GoMakeMapExpr(location, unpackType(inst.goType), unpackValue(inst.reserve), inst.register).toAssignInst()
+            is Instruction.MakeMap -> GoMakeMapExpr(location, getType(inst.goType), unpackValue(inst.reserve), inst.register).toAssignInst()
             is Instruction.MakeSlice -> unpackMakeSlice(location, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(location, unpackValue(inst.map), unpackValue(inst.key), unpackValue(inst.value))
             is Instruction.Next -> TODO()
             is Instruction.Panic -> TODO()
-            is Instruction.Phi -> GoPhiExpr(location, unpackType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
+            is Instruction.Phi -> GoPhiExpr(location, getType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
             is Instruction.Range -> TODO()
             is Instruction.Return -> GoReturnInst(location, inst.results.map(::unpackValue))
             is Instruction.RunDefers -> TODO()
@@ -163,7 +176,7 @@ object Converter {
         if (binaryExprConstructors.containsKey(binOp.op)) {
             return binaryExprConstructors[binOp.op]!!(
                 location,
-                unpackType(binOp.goType),
+                getType(binOp.goType),
                 unpackValue(binOp.first),
                 unpackValue(binOp.second),
                 binOp.register
@@ -176,7 +189,7 @@ object Converter {
     private fun unpackCall(location: GoInstLocation, call: Instruction.Call): GoInst {
         return GoCallExpr(
             location,
-            unpackType(call.goType),
+            getType(call.goType),
             unpackValue(call.value),
             call.args.map(::unpackValue),
             null,
@@ -185,7 +198,7 @@ object Converter {
     }
 
     private fun unpackExtract(location: GoInstLocation, extract: Instruction.Extract): GoInst {
-        return GoExtractExpr(location, unpackType(extract.goType), unpackValue(extract.tuple), extract.index, extract.register).toAssignInst()
+        return GoExtractExpr(location, getType(extract.goType), unpackValue(extract.tuple), extract.index, extract.register).toAssignInst()
     }
 
     private fun unpackCondition(cond: Value): GoConditionExpr {
@@ -195,7 +208,7 @@ object Converter {
     private fun unpackIndexAddr(location: GoInstLocation, indexAddr: Instruction.IndexAddr): GoInst {
         return GoIndexAddrExpr(
             location,
-            unpackType(indexAddr.goType),
+            getType(indexAddr.goType),
             unpackValue(indexAddr.array),
             unpackValue(indexAddr.index),
             indexAddr.register
@@ -205,7 +218,7 @@ object Converter {
     private fun unpackLookup(location: GoInstLocation, lookup: Instruction.Lookup): GoInst {
         return GoLookupExpr(
             location,
-            unpackType(lookup.goType),
+            getType(lookup.goType),
             unpackValue(lookup.map),
             unpackValue(lookup.key),
             lookup.register,
@@ -226,7 +239,7 @@ object Converter {
     private fun unpackMakeSlice(location: GoInstLocation, makeSlice: Instruction.MakeSlice): GoInst {
         return GoMakeSliceExpr(
             location,
-            unpackType(makeSlice.goType),
+            getType(makeSlice.goType),
             unpackValue(makeSlice.len),
             unpackValue(makeSlice.cap),
             makeSlice.register
@@ -236,11 +249,11 @@ object Converter {
     private fun unpackValue(value: Value): GoValue {
         return when (value) {
             is Value.Const -> unpackConst(value)
-            is Value.FreeVar -> GoFreeVar(value.index, value.name, unpackType(value.goType))
-            is Value.Global -> GoGlobal(value.index, value.name, unpackType(value.goType))
-            is Value.Parameter -> GoParameter(value.index, value.name, unpackType(value.goType))
-            is Value.Var -> GoVar(value.name, unpackType(value.goType))
-            is Value.MakeClosure -> GoVar(value.name, unpackType(value.goType))
+            is Value.FreeVar -> GoFreeVar(value.index, value.name, getType(value.goType))
+            is Value.Global -> GoGlobal(value.index, value.name, getType(value.goType))
+            is Value.Parameter -> GoParameter(value.index, value.name, getType(value.goType))
+            is Value.Var -> GoVar(value.name, getType(value.goType))
+            is Value.MakeClosure -> GoVar(value.name, getType(value.goType))
             is Value.Builtin, is Value.Function, is Value.Signature -> functionAlias(value.name)
         }
     }
@@ -253,7 +266,7 @@ object Converter {
             "^" to ::GoUnXorExpr,
         )
 
-        val type = unpackType(unOp.goType)
+        val type = getType(unOp.goType)
         val arg = unpackValue(unOp.argument)
         val name = unOp.register
 
@@ -288,28 +301,30 @@ object Converter {
         }
     }
 
-    private fun unpackType(type: String): GoType = when {
-        type.startsWith("*") -> PointerType(unpackType(type.substring(1)))
-        type.startsWith("[]") -> SliceType(unpackType(type.substring(2)))
-        type.startsWith("map") -> unpackMapType(type.substring(4))
-        basicTypes.contains(type) -> BasicType(type)
-        else -> BasicType(type) // TODO real types
+    private fun getType(type: String): GoType = types[type]!!
+
+    private fun unpackType(types: Map<String, Type>, type: Type): GoType = when (type) {
+        is Type.Alias -> unpackType(types, type.from)
+        is Type.Array -> ArrayType(type.len, unpackType(types, type.elem))
+        is Type.Basic -> BasicType(type.name)
+        is Type.Chan -> ChanType(type.dir.toLong(), unpackType(types, type.elem))
+        is Type.Interface -> InterfaceType()
+        is Type.Map -> MapType(unpackType(types, type.key), unpackType(types, type.elem))
+        is Type.Named -> NamedType(unpackType(types, type.underlying), type.name)
+        is Type.Pointer -> PointerType(unpackType(types, type.elem))
+        is Type.Signature -> SignatureType(TupleType(emptyList()), TupleType(emptyList())) // TODO(buraindo) fix this
+        is Type.Slice -> SliceType(unpackType(types, type.elem))
+        is Type.Struct -> StructType(type.fields.toSortedMap().map { unpackType(types, it.value) }, null)
+        is Type.Tuple -> TupleType(type.elems.map { unpackType(types, it) })
+        is Type.TypeParam -> unpackType(types, type.name)
+        is Type.Union -> UnionType(emptyList())
     }
 
-    private fun unpackMapType(type: String): GoType {
-        val parts = type.split(']')
-        return MapType(unpackType(parts[0]), unpackType(parts[1]))
+    private fun unpackType(types: Map<String, Type>, type: String): GoType {
+        return unpackType(types, types[type]!!)
     }
 
     private fun functionAlias(name: String): GoFunction {
         return GoFunction(BasicType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
     }
-
-    private val basicTypes = setOf(
-        "bool",
-        "int", "int8", "int16", "int32", "int64",
-        "uint", "uint8", "uint16", "uint32", "uint64",
-        "float32", "float64",
-        "string",
-    )
 }
