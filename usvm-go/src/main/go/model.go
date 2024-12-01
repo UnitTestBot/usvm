@@ -52,7 +52,6 @@ const (
 	FunctionValue    = "Function"
 	MakeClosureValue = "MakeClosure"
 	BuiltinValue     = "Builtin"
-	SignatureValue   = "Signature"
 
 	AliasType     = "Alias"
 	ArrayType     = "Array"
