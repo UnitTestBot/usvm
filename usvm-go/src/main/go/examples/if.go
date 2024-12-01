@@ -41,6 +41,10 @@ func max3Call(a, b, c int) int {
 	return max2(max2(a, b), c)
 }
 
+func max4Call(a, b, c, d int) int {
+	return max2(max2(a, b), max2(c, d))
+}
+
 func inc(a int, f bool) int {
 	if f {
 		a++

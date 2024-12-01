@@ -112,14 +112,18 @@ class GoExprVisitor(
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
     override fun visitGoCallExpr(expr: GoCallExpr): UExpr<out USort> {
-        val goVar = (expr.value as GoVar)
-        val name = goVar.name
+        val name = when (val value = expr.value) {
+            is GoVar -> value.name
+            is GoFunction -> value.metName
+            else -> throw IllegalStateException("Invalid call value type")
+        }
         if (isBuiltin(name)) {
             return callBuiltin(name, expr.args)
         }
 
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
+            scope.doWithState { methodResult = GoMethodResult.NoCall }
             return result.value
         }
 
@@ -408,7 +412,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoFunction(expr: GoFunction): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return ctx.mkConst(expr.metName, ctx.addressSort)
     }
 
     override fun visitGoBool(value: GoBool): UExpr<out USort> = with(ctx) {

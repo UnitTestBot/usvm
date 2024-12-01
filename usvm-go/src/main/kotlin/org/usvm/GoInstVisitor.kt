@@ -91,7 +91,7 @@ class GoInstVisitor(
     }
 
     override fun visitGoGoInst(inst: GoGoInst): GoInst {
-        TODO("Not yet implemented")
+        return unsupportedInst("Go")
     }
 
     override fun visitGoDeferInst(inst: GoDeferInst): GoInst {
@@ -109,7 +109,7 @@ class GoInstVisitor(
     }
 
     override fun visitGoSendInst(inst: GoSendInst): GoInst {
-        TODO("Not yet implemented")
+        return unsupportedInst("Send")
     }
 
     override fun visitGoStoreInst(inst: GoStoreInst): GoInst {

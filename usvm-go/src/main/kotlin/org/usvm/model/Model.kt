@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 data class Package(
     val name: String,
     val members: List<Member>,
+    val types: Map<String, Type>
 )
 
 @Serializable
@@ -460,4 +461,112 @@ sealed interface Value {
         @SerialName("go_type") override val goType: String,
         override val name: String,
     ) : Value
+
+    @Serializable
+    @SerialName("Signature")
+    data class Signature(
+        @SerialName("go_type") override val goType: String,
+        override val name: String,
+    ) : Value
+}
+
+@Serializable
+sealed interface Type {
+    val name: String
+
+    @Serializable
+    @SerialName("Alias")
+    data class Alias(
+        override val name: String,
+        val from: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Array")
+    data class Array(
+        override val name: String,
+        val len: Long,
+        val elem: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Basic")
+    data class Basic(
+        override val name: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Chan")
+    data class Chan(
+        override val name: String,
+        val dir: Int,
+        val elem: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Interface")
+    data class Interface(
+        override val name: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Map")
+    data class Map(
+        override val name: String,
+        val key: String,
+        val elem: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Named")
+    data class Named(
+        override val name: String,
+        val underlying: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Pointer")
+    data class Pointer(
+        override val name: String,
+        val elem: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Signature")
+    data class Signature(
+        override val name: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Slice")
+    data class Slice(
+        override val name: String,
+        val elem: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Struct")
+    data class Struct(
+        override val name: String,
+        val fields: HashMap<String, String>
+    ) : Type
+
+    @Serializable
+    @SerialName("Tuple")
+    data class Tuple(
+        override val name: String,
+        val elems: List<String>
+    ) : Type
+
+    @Serializable
+    @SerialName("TypeParam")
+    data class TypeParam(
+        override val name: String,
+    ) : Type
+
+    @Serializable
+    @SerialName("Union")
+    data class Union(
+        override val name: String,
+    ) : Type
 }
