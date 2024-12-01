@@ -55,3 +55,12 @@ func sliceCompare(nums []int) int {
 	}
 	return j
 }
+
+var sliceComparator = sliceCompare
+
+func sliceCompareFuncVar(nums []int) int {
+	if sliceComparator(nums) == 5 {
+		return 3
+	}
+	return 1
+}

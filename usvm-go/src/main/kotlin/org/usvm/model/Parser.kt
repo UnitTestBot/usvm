@@ -64,6 +64,24 @@ class Parser {
                 subclass(Value.Function::class, Value.Function.serializer())
                 subclass(Value.MakeClosure::class, Value.MakeClosure.serializer())
                 subclass(Value.Builtin::class, Value.Builtin.serializer())
+                subclass(Value.Signature::class, Value.Signature.serializer())
+            }
+
+            polymorphic(Type::class) {
+                subclass(Type.Alias::class, Type.Alias.serializer())
+                subclass(Type.Array::class, Type.Array.serializer())
+                subclass(Type.Basic::class, Type.Basic.serializer())
+                subclass(Type.Chan::class, Type.Chan.serializer())
+                subclass(Type.Interface::class, Type.Interface.serializer())
+                subclass(Type.Map::class, Type.Map.serializer())
+                subclass(Type.Named::class, Type.Named.serializer())
+                subclass(Type.Pointer::class, Type.Pointer.serializer())
+                subclass(Type.Signature::class, Type.Signature.serializer())
+                subclass(Type.Slice::class, Type.Slice.serializer())
+                subclass(Type.Struct::class, Type.Struct.serializer())
+                subclass(Type.Tuple::class, Type.Tuple.serializer())
+                subclass(Type.TypeParam::class, Type.TypeParam.serializer())
+                subclass(Type.Union::class, Type.Union.serializer())
             }
         }
     }

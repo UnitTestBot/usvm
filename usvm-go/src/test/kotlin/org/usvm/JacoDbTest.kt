@@ -34,6 +34,11 @@ class JacoDbTest {
     }
 
     @Test
+    fun testMax4Call() {
+        test("max4Call")
+    }
+
+    @Test
     fun testInc() {
         test("inc")
     }
@@ -121,6 +126,11 @@ class JacoDbTest {
     @Test
     fun testSliceCompare() {
         test("sliceCompare")
+    }
+
+    @Test
+    fun testSliceCompareFuncVar() {
+        test("sliceCompareFuncVar")
     }
 
     @Test
