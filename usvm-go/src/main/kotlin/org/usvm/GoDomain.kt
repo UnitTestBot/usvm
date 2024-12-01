@@ -3,6 +3,7 @@ package org.usvm
 import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.api.UnknownMethodException
 
 class GoMethodInfo(
@@ -32,6 +33,7 @@ class GoPackage(
     val name: String,
     val methods: List<GoMethod>,
     val globals: List<GoGlobal>,
+    val types: Map<String, GoType>
 ) {
     fun hasMethod(name: String): Boolean {
         return methods.any { it.metName == name }
