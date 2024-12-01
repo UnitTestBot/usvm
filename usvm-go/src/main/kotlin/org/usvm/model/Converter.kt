@@ -240,7 +240,8 @@ object Converter {
             is Value.Global -> GoGlobal(value.index, value.name, unpackType(value.goType))
             is Value.Parameter -> GoParameter(value.index, value.name, unpackType(value.goType))
             is Value.Var -> GoVar(value.name, unpackType(value.goType))
-            is Value.Builtin, is Value.Function, is Value.MakeClosure -> GoVar(value.name, unpackType(value.goType))
+            is Value.MakeClosure -> GoVar(value.name, unpackType(value.goType))
+            is Value.Builtin, is Value.Function, is Value.Signature -> functionAlias(value.name)
         }
     }
 

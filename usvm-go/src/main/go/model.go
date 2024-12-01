@@ -1,14 +1,5 @@
 package main
 
-import (
-	"go/types"
-	"log"
-	"sort"
-
-	"github.com/samber/lo"
-	"golang.org/x/tools/go/ssa"
-)
-
 const (
 	NamedConstMember = "NamedConst"
 	GlobalMember     = "Global"
@@ -61,75 +52,32 @@ const (
 	FunctionValue    = "Function"
 	MakeClosureValue = "MakeClosure"
 	BuiltinValue     = "Builtin"
+	SignatureValue   = "Signature"
+
+	AliasType     = "Alias"
+	ArrayType     = "Array"
+	BasicType     = "Basic"
+	ChanType      = "Chan"
+	InterfaceType = "Interface"
+	MapType       = "Map"
+	NamedType     = "Named"
+	PointerType   = "Pointer"
+	SignatureType = "Signature"
+	SliceType     = "Slice"
+	StructType    = "Struct"
+	TupleType     = "Tuple"
+	TypeParamType = "TypeParam"
+	UnionType     = "Union"
 )
 
 type Package struct {
-	Name    string   `yaml:"name" json:"name"`
-	Members []Member `yaml:"members" json:"members"`
-}
-
-func PackPackage(in *ssa.Package) Package {
-	return Package{
-		Name:    in.Pkg.Path(),
-		Members: PackMembers(in.Members),
-	}
+	Name    string          `yaml:"name" json:"name"`
+	Members []Member        `yaml:"members" json:"members"`
+	Types   map[string]Type `yaml:"types" json:"types"`
 }
 
 type Member interface {
 	isMember()
-}
-
-func PackMembers(membersMap map[string]ssa.Member) []Member {
-	members := lo.Values(membersMap)
-	for _, member := range membersMap {
-		if f, ok := member.(*ssa.Function); ok {
-			members = append(members, lo.Map(f.AnonFuncs, func(f *ssa.Function, _ int) ssa.Member { return f })...)
-		}
-	}
-	sort.Slice(members, func(i, j int) bool {
-		return members[i].Name() < members[j].Name()
-	})
-
-	return lo.Map(members, PackMember)
-}
-
-func PackMember(in ssa.Member, _ int) Member {
-	common := CommonMember{
-		Name: in.Name(),
-	}
-
-	switch member := in.(type) {
-	case *ssa.NamedConst:
-		common.Type = NamedConstMember
-		return NamedConst{
-			CommonMember: common,
-			Value: NamedConstValue{
-				Type:  member.Value.Type().String(),
-				Value: member.Value.Value.String(),
-			},
-		}
-	case *ssa.Global:
-		common.Type = GlobalMember
-		return MemberGlobal{
-			CommonMember: common,
-			Index:        int(member.Pos()),
-			GoType:       member.Type().String(),
-		}
-	case *ssa.Type:
-		common.Type = TypeMember
-		return common
-	case *ssa.Function:
-		common.Type = FunctionMember
-		return Function{
-			CommonMember: common,
-			BasicBlocks:  lo.Map(member.Blocks, PackBasicBlock),
-			Parameters:   lo.Map(member.Params, PackParameter),
-			FreeVars:     lo.Map(member.FreeVars, func(v *ssa.FreeVar, _ int) Value { return PackValue(v) }),
-			ReturnTypes:  PackReturnTypes(member),
-		}
-	}
-
-	return nil
 }
 
 type CommonMember struct {
@@ -170,284 +118,8 @@ type BasicBlock struct {
 	Next         []int         `yaml:"next,flow" json:"next"`
 }
 
-func PackBasicBlock(in *ssa.BasicBlock, _ int) BasicBlock {
-	return BasicBlock{
-		Index:        in.Index,
-		Instructions: lo.Map(in.Instrs, PackInstruction),
-		Prev:         lo.Map(in.Preds, func(b *ssa.BasicBlock, _ int) int { return b.Index }),
-		Next:         lo.Map(in.Succs, func(b *ssa.BasicBlock, _ int) int { return b.Index }),
-	}
-}
-
-func PackParameter(in *ssa.Parameter, index int) Parameter {
-	return Parameter{
-		CommonValue: CommonValue{
-			Type:   ParameterValue,
-			GoType: in.Type().String(),
-			Name:   in.Name(),
-		},
-		Index: index,
-	}
-}
-
-func PackReturnTypes(in *ssa.Function) []string {
-	results := in.Signature.Results()
-	returnTypes := make([]string, 0, results.Len())
-	for i := 0; i < results.Len(); i++ {
-		returnTypes = append(returnTypes, results.At(i).Type().String())
-	}
-
-	return returnTypes
-}
-
 type Instruction interface {
 	isInstruction()
-}
-
-func PackInstruction(in ssa.Instruction, _ int) Instruction {
-	common := CommonInstruction{
-		Name:  in.String(),
-		Block: in.Block().Index,
-		Line:  FindInstructionIndex(in),
-	}
-
-	switch inst := in.(type) {
-	case *ssa.DebugRef:
-		common.Type = DebugRefInstruction
-		return DebugRef{
-			CommonInstruction: common,
-		}
-	case *ssa.UnOp:
-		common.Type = UnOpInstruction
-		return UnOp{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Op:                inst.Op.String(),
-			Register:          inst.Name(),
-			Argument:          PackValue(inst.X),
-			CommaOk:           inst.CommaOk,
-		}
-	case *ssa.BinOp:
-		common.Type = BinOpInstruction
-		return BinOp{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Op:                inst.Op.String(),
-			Register:          inst.Name(),
-			First:             PackValue(inst.X),
-			Second:            PackValue(inst.Y),
-		}
-	case *ssa.Call:
-		common.Type = CallInstruction
-		return Call{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Value:             PackCallValue(inst.Call.Value),
-			Args:              lo.Map(inst.Call.Args, PackValueIdx),
-		}
-	case *ssa.ChangeInterface:
-		common.Type = ChangeInterfaceInstruction
-		return ChangeInterface{
-			CommonInstruction: common,
-		}
-	case *ssa.ChangeType:
-		common.Type = ChangeTypeInstruction
-		return ChangeType{
-			CommonInstruction: common,
-		}
-	case *ssa.Convert:
-		common.Type = ConvertInstruction
-		return Convert{
-			CommonInstruction: common,
-		}
-	case *ssa.SliceToArrayPointer:
-		common.Type = SliceToArrayPointerInstruction
-		return SliceToArrayPointer{
-			CommonInstruction: common,
-		}
-	case *ssa.MakeInterface:
-		common.Type = MakeInterfaceInstruction
-		return MakeInterface{
-			CommonInstruction: common,
-		}
-	case *ssa.Extract:
-		common.Type = ExtractInstruction
-		return Extract{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Tuple:             PackValue(inst.Tuple),
-			Index:             inst.Index,
-		}
-	case *ssa.Slice:
-		common.Type = SliceInstruction
-		return Slice{
-			CommonInstruction: common,
-		}
-	case *ssa.Return:
-		common.Type = ReturnInstruction
-		return Return{
-			CommonInstruction: common,
-			Results:           lo.Map(inst.Results, PackValueIdx),
-		}
-	case *ssa.RunDefers:
-		common.Type = RunDefersInstruction
-		return RunDefers{
-			CommonInstruction: common,
-		}
-	case *ssa.Panic:
-		common.Type = PanicInstruction
-		return Panic{
-			CommonInstruction: common,
-		}
-	case *ssa.Send:
-		common.Type = SendInstruction
-		return Send{
-			CommonInstruction: common,
-		}
-	case *ssa.Store:
-		common.Type = StoreInstruction
-		return Store{
-			CommonInstruction: common,
-			Addr:              PackValue(inst.Addr),
-			Value:             PackValue(inst.Val),
-		}
-	case *ssa.If:
-		common.Type = IfInstruction
-		return If{
-			CommonInstruction: common,
-			Condition:         PackValue(inst.Cond),
-			TrueBranch:        inst.Block().Succs[0].Index,
-			FalseBranch:       inst.Block().Succs[1].Index,
-		}
-	case *ssa.Jump:
-		common.Type = JumpInstruction
-		return Jump{
-			CommonInstruction: common,
-			Index:             inst.Block().Succs[0].Index,
-		}
-	case *ssa.Defer:
-		common.Type = DeferInstruction
-		return Defer{
-			CommonInstruction: common,
-		}
-	case *ssa.Go:
-		common.Type = GoInstruction
-		return Go{
-			CommonInstruction: common,
-		}
-	case *ssa.MakeChan:
-		common.Type = MakeChanInstruction
-		return MakeChan{
-			CommonInstruction: common,
-		}
-	case *ssa.Alloc:
-		common.Type = AllocInstruction
-		return Alloc{
-			CommonInstruction: common,
-			GoType:            inst.Type().Underlying().(*types.Pointer).Elem().String(),
-			Register:          inst.Name(),
-		}
-	case *ssa.MakeSlice:
-		common.Type = MakeSliceInstruction
-		return MakeSlice{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Len:               PackValue(inst.Len),
-			Cap:               PackValue(inst.Cap),
-		}
-	case *ssa.MakeMap:
-		common.Type = MakeMapInstruction
-		return MakeMap{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Reserve:           PackValue(inst.Reserve),
-		}
-	case *ssa.Range:
-		common.Type = RangeInstruction
-		return Range{
-			CommonInstruction: common,
-		}
-	case *ssa.Next:
-		common.Type = NextInstruction
-		return Next{
-			CommonInstruction: common,
-		}
-	case *ssa.FieldAddr:
-		common.Type = FieldAddrInstruction
-		return FieldAddr{
-			CommonInstruction: common,
-		}
-	case *ssa.Field:
-		common.Type = FieldInstruction
-		return Field{
-			CommonInstruction: common,
-		}
-	case *ssa.IndexAddr:
-		common.Type = IndexAddrInstruction
-		return IndexAddr{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Array:             PackValue(inst.X),
-			Index:             PackValue(inst.Index),
-		}
-	case *ssa.Index:
-		common.Type = IndexInstruction
-		return Index{
-			CommonInstruction: common,
-		}
-	case *ssa.Lookup:
-		common.Type = LookupInstruction
-		return Lookup{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Map:               PackValue(inst.X),
-			Key:               PackValue(inst.Index),
-			CommaOk:           inst.CommaOk,
-		}
-	case *ssa.MapUpdate:
-		common.Type = MapUpdateInstruction
-		return MapUpdate{
-			CommonInstruction: common,
-			Map:               PackValue(inst.Map),
-			Key:               PackValue(inst.Key),
-			Value:             PackValue(inst.Value),
-		}
-	case *ssa.TypeAssert:
-		common.Type = TypeAssertInstruction
-		return TypeAssert{
-			CommonInstruction: common,
-		}
-	case *ssa.MakeClosure:
-		common.Type = MakeClosureInstruction
-		return MakeClosure{
-			CommonInstruction: common,
-			Register:          inst.Name(),
-			Function:          PackValue(inst.Fn),
-			Bindings:          lo.Map(inst.Bindings, PackValueIdx),
-		}
-	case *ssa.Phi:
-		common.Type = PhiInstruction
-		return Phi{
-			CommonInstruction: common,
-			GoType:            inst.Type().String(),
-			Register:          inst.Name(),
-			Edges:             lo.Map(inst.Edges, PackValueIdx),
-		}
-	case *ssa.Select:
-		common.Type = SelectInstruction
-		return Select{
-			CommonInstruction: common,
-		}
-	default:
-		log.Fatalf("unexpected instruction: %T\n", inst)
-	}
-	return nil
 }
 
 type CommonInstruction struct {
@@ -517,7 +189,7 @@ type Extract struct {
 	Index             int    `yaml:"index" json:"index"`
 }
 
-type Slice struct {
+type SliceInst struct {
 	CommonInstruction `yaml:",inline"`
 }
 
@@ -659,71 +331,6 @@ type Value interface {
 	isValue()
 }
 
-func PackValue(in ssa.Value) Value {
-	common := CommonValue{
-		GoType: in.Type().String(),
-		Name:   in.Name(),
-	}
-
-	switch value := in.(type) {
-	case *ssa.Const:
-		common.Type = ConstValue
-		return Const{
-			CommonValue: common,
-			Value: NamedConstValue{
-				Type:  value.Type().String(),
-				Value: value.Value.String(),
-			},
-		}
-	case *ssa.Global:
-		common.Type = GlobalValue
-		return Global{
-			CommonValue: common,
-			Index:       int(value.Pos()),
-		}
-	case *ssa.Parameter:
-		common.Type = ParameterValue
-		return Parameter{
-			CommonValue: common,
-			Index:       FindParameterIndex(value),
-		}
-	case *ssa.FreeVar:
-		common.Type = FreeVarValue
-		return FreeVar{
-			CommonValue: common,
-			Index:       FindFreeVarIndex(value),
-		}
-	default:
-		common.Type = VarValue
-		return common
-	}
-}
-
-func PackValueIdx(in ssa.Value, _ int) Value {
-	return PackValue(in)
-}
-
-func PackCallValue(in ssa.Value) Value {
-	common := CommonValue{
-		GoType: in.Type().String(),
-		Name:   in.Name(),
-	}
-
-	switch in.(type) {
-	case *ssa.Function:
-		common.Type = FunctionValue
-		return common
-	case *ssa.MakeClosure:
-		common.Type = MakeClosureValue
-		return common
-	case *ssa.Builtin:
-		common.Type = BuiltinValue
-		return common
-	default:
-		return common
-	}
-}
-
 type CommonValue struct {
 	Type   string `yaml:"type" json:"type"`
 	GoType string `yaml:"go_type" json:"go_type"`
@@ -752,26 +359,61 @@ type FreeVar struct {
 	Index       int `yaml:"index" json:"index"`
 }
 
-func FindInstructionIndex(in ssa.Instruction) int {
-	instructions := lo.FlatMap(in.Parent().Blocks, func(block *ssa.BasicBlock, _ int) []ssa.Instruction {
-		return block.Instrs
-	})
-	_, index, _ := lo.FindIndexOf(instructions, func(other ssa.Instruction) bool {
-		return other == in
-	})
-	return index
+type Type interface {
+	isType()
 }
 
-func FindParameterIndex(in *ssa.Parameter) int {
-	_, index, _ := lo.FindIndexOf(in.Parent().Params, func(other *ssa.Parameter) bool {
-		return other == in
-	})
-	return index
+type CommonType struct {
+	Type string `yaml:"type" json:"type"`
+	Name string `yaml:"name" json:"name"`
 }
 
-func FindFreeVarIndex(in *ssa.FreeVar) int {
-	_, index, _ := lo.FindIndexOf(in.Parent().FreeVars, func(other *ssa.FreeVar) bool {
-		return other == in
-	})
-	return index
+func (CommonType) isType() {}
+
+type Alias struct {
+	CommonType `yaml:"-,inline"`
+	From       string `yaml:"from" json:"from"`
+}
+
+type Array struct {
+	CommonType `yaml:"-,inline"`
+	Len        int64  `yaml:"len" json:"len"`
+	Elem       string `yaml:"elem" json:"elem"`
+}
+
+type Chan struct {
+	CommonType `yaml:"-,inline"`
+	Dir        int    `yaml:"dir" json:"dir"`
+	Elem       string `yaml:"elem" json:"elem"`
+}
+
+type Map struct {
+	CommonType `yaml:"-,inline"`
+	Key        string `yaml:"key" json:"key"`
+	Elem       string `yaml:"elem" json:"elem"`
+}
+
+type Named struct {
+	CommonType `yaml:"-,inline"`
+	Underlying string `yaml:"underlying" json:"underlying"`
+}
+
+type Pointer struct {
+	CommonType `yaml:"-,inline"`
+	Elem       string `yaml:"elem" json:"elem"`
+}
+
+type Slice struct {
+	CommonType `yaml:"-,inline"`
+	Elem       string `yaml:"elem" json:"elem"`
+}
+
+type Struct struct {
+	CommonType `yaml:"-,inline"`
+	Fields     map[string]string `yaml:"fields" json:"fields"`
+}
+
+type Tuple struct {
+	CommonType `yaml:"-,inline"`
+	Elems      []string `yaml:"elems" json:"elems"`
 }
