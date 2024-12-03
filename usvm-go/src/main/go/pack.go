@@ -121,6 +121,9 @@ func (p *Package) AddType(typ types.Type) {
 	case *types.Union:
 		common.Type = UnionType
 		p.Types[name] = common
+	default:
+		common.Type = OpaqueType
+		p.Types[name] = common
 	}
 }
 
@@ -212,6 +215,9 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		Name:  in.String(),
 		Block: in.Block().Index,
 		Line:  FindInstructionIndex(in),
+	}
+	if typed, ok := in.(Typed); ok {
+		p.AddType(typed.Type())
 	}
 
 	switch inst := in.(type) {
@@ -373,11 +379,18 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = RangeInstruction
 		return Range{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Collection:        p.PackValue(inst.X),
 		}
 	case *ssa.Next:
 		common.Type = NextInstruction
 		return Next{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Iter:              p.PackValue(inst.Iter),
+			IsString:          inst.IsString,
 		}
 	case *ssa.FieldAddr:
 		common.Type = FieldAddrInstruction
@@ -529,4 +542,8 @@ func FindFreeVarIndex(in *ssa.FreeVar) int {
 		return other == in
 	})
 	return index
+}
+
+type Typed interface {
+	Type() types.Type
 }

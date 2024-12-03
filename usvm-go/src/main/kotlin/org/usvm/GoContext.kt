@@ -9,6 +9,7 @@ import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.PointerType
 import org.usvm.memory.ULValue
+import org.usvm.type.GoTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.GoVoidValue
 
@@ -73,14 +74,13 @@ class GoContext(
     }
 
     private fun basicTypeToSort(typeName: String): USort = when (typeName) {
-        "bool" -> boolSort
-        "int", "uint" -> bv32Sort
-        "int8", "uint8" -> bv8Sort
-        "int16", "uint16" -> bv16Sort
-        "int32", "uint32" -> bv32Sort
-        "int64", "uint64" -> bv64Sort
-        "float32" -> fp32Sort
-        "float64" -> fp64Sort
+        GoTypes.BOOL -> boolSort
+        GoTypes.INT, GoTypes.UINT, GoTypes.INT32, GoTypes.UINT32 -> bv32Sort
+        GoTypes.INT8, GoTypes.UINT8 -> bv8Sort
+        GoTypes.INT16, GoTypes.UINT16 -> bv16Sort
+        GoTypes.INT64, GoTypes.UINT64 -> bv64Sort
+        GoTypes.FLOAT32 -> fp32Sort
+        GoTypes.FLOAT64 -> fp64Sort
         else -> addressSort
     }
 

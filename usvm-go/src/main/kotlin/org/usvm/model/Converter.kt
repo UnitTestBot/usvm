@@ -44,11 +44,13 @@ import org.jacodb.go.api.GoMapUpdateInst
 import org.jacodb.go.api.GoModExpr
 import org.jacodb.go.api.GoMulExpr
 import org.jacodb.go.api.GoNeqExpr
+import org.jacodb.go.api.GoNextExpr
 import org.jacodb.go.api.GoNullConstant
 import org.jacodb.go.api.GoNullInst
 import org.jacodb.go.api.GoOrExpr
 import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoPhiExpr
+import org.jacodb.go.api.GoRangeExpr
 import org.jacodb.go.api.GoReturnInst
 import org.jacodb.go.api.GoShlExpr
 import org.jacodb.go.api.GoShrExpr
@@ -73,6 +75,7 @@ import org.jacodb.go.api.GoXorExpr
 import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
+import org.jacodb.go.api.OpaqueType
 import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
@@ -80,6 +83,7 @@ import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.jacodb.go.api.UnionType
 import org.usvm.GoPackage
+import org.usvm.type.GoTypes
 
 object Converter {
     private lateinit var types: Map<String, GoType>
@@ -88,18 +92,18 @@ object Converter {
         types = pkg.types.mapValues { type -> unpackType(pkg.types, type.value) }
         val methods = pkg.members.filterIsInstance<Member.Function>().map { function ->
             GoFunction(
-                BasicType(function.name),
+                SignatureType(TupleType(function.parameters.map { getType(it.goType) }), TupleType(function.returnTypes.map(::getType))),
                 function.parameters.mapIndexed(::unpackParameter),
                 function.name,
                 emptyList(),
                 pkg.name,
                 function.freeVars.map { unpackValue(it) as GoFreeVar },
-                function.returnTypes.map(this::getType),
+                function.returnTypes.map(::getType),
             ).also { it.blocks = function.basicBlocks.map { block -> unpackBasicBlock(it, block) } }
         }
-        val globals = pkg.members.filterIsInstance<Member.Global>().map { global -> GoGlobal(global.index, global.name,
-            getType(global.goType)
-        ) }
+        val globals = pkg.members.filterIsInstance<Member.Global>().map { global ->
+            GoGlobal(global.index, global.name, getType(global.goType))
+        }
         return GoPackage(pkg.name, methods, globals, types)
     }
 
@@ -136,10 +140,10 @@ object Converter {
             is Instruction.MakeMap -> GoMakeMapExpr(location, getType(inst.goType), unpackValue(inst.reserve), inst.register).toAssignInst()
             is Instruction.MakeSlice -> unpackMakeSlice(location, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(location, unpackValue(inst.map), unpackValue(inst.key), unpackValue(inst.value))
-            is Instruction.Next -> TODO()
+            is Instruction.Next -> GoNextExpr(location, getType(inst.goType), unpackValue(inst.iter), inst.register).toAssignInst()
             is Instruction.Panic -> TODO()
             is Instruction.Phi -> GoPhiExpr(location, getType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
-            is Instruction.Range -> TODO()
+            is Instruction.Range -> GoRangeExpr(location, getType(inst.goType), unpackValue(inst.collection), inst.register).toAssignInst()
             is Instruction.Return -> GoReturnInst(location, inst.results.map(::unpackValue))
             is Instruction.RunDefers -> TODO()
             is Instruction.Select -> TODO()
@@ -229,7 +233,7 @@ object Converter {
     private fun unpackMakeClosure(location: GoInstLocation, makeClosure: Instruction.MakeClosure): GoInst {
         return GoMakeClosureExpr(
             location,
-            BasicType(makeClosure.name),
+            OpaqueType(makeClosure.name),
             functionAlias(makeClosure.function.name),
             makeClosure.bindings.map(::unpackValue),
             makeClosure.register
@@ -283,20 +287,20 @@ object Converter {
         val type = BasicType(const.type)
 
         return when (const.type) {
-            "bool" -> GoBool(string.toBooleanStrict(), type)
-            "int" -> GoInt(string.toLong(), type)
-            "int8" -> GoInt8(string.toByte(), type)
-            "int16" -> GoInt16(string.toShort(), type)
-            "int32" -> GoInt32(string.toInt(), type)
-            "int64" -> GoInt64(string.toLong(), type)
-            "uint" -> GoUInt(string.toULong(), type)
-            "uint8" -> GoUInt8(string.toUByte(), type)
-            "uint16" -> GoUInt16(string.toUShort(), type)
-            "uint32" -> GoUInt32(string.toUInt(), type)
-            "uint64" -> GoUInt64(string.toULong(), type)
-            "float32" -> GoFloat32(string.toFloat(), type)
-            "float64" -> GoFloat64(string.toDouble(), type)
-            "string" -> GoStringConstant(string, type)
+            GoTypes.BOOL -> GoBool(string.toBooleanStrict(), type)
+            GoTypes.INT -> GoInt(string.toLong(), type)
+            GoTypes.INT8 -> GoInt8(string.toByte(), type)
+            GoTypes.INT16 -> GoInt16(string.toShort(), type)
+            GoTypes.INT32 -> GoInt32(string.toInt(), type)
+            GoTypes.INT64 -> GoInt64(string.toLong(), type)
+            GoTypes.UINT -> GoUInt(string.toULong(), type)
+            GoTypes.UINT8 -> GoUInt8(string.toUByte(), type)
+            GoTypes.UINT16 -> GoUInt16(string.toUShort(), type)
+            GoTypes.UINT32 -> GoUInt32(string.toUInt(), type)
+            GoTypes.UINT64 -> GoUInt64(string.toULong(), type)
+            GoTypes.FLOAT32 -> GoFloat32(string.toFloat(), type)
+            GoTypes.FLOAT64 -> GoFloat64(string.toDouble(), type)
+            GoTypes.STRING -> GoStringConstant(string, type)
             else -> GoNullConstant()
         }
     }
@@ -311,6 +315,7 @@ object Converter {
         is Type.Interface -> InterfaceType()
         is Type.Map -> MapType(unpackType(types, type.key), unpackType(types, type.elem))
         is Type.Named -> NamedType(unpackType(types, type.underlying), type.name)
+        is Type.Opaque -> OpaqueType(type.name)
         is Type.Pointer -> PointerType(unpackType(types, type.elem))
         is Type.Signature -> SignatureType(TupleType(emptyList()), TupleType(emptyList())) // TODO(buraindo) fix this
         is Type.Slice -> SliceType(unpackType(types, type.elem))
@@ -325,6 +330,6 @@ object Converter {
     }
 
     private fun functionAlias(name: String): GoFunction {
-        return GoFunction(BasicType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
+        return GoFunction(OpaqueType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
     }
 }
