@@ -14,9 +14,9 @@ class JacoDbTest {
     fun jacodbTestLong(): Collection<DynamicTest> {
         val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
         val machine = GoMachine(pkg, options)
-        return methods(pkg).filter { it.metName in arrayOf("loopInfinite", "loopInner", "loopCollatz") }.map {
+        return methods(pkg).filter { it.metName in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
-                println(measureTimeMillis { machine.analyzeAndResolve(it.metName) })
+                println(measureTimeMillis { println(machine.analyzeAndResolve(it.metName)) })
             }
         }
     }
@@ -25,9 +25,9 @@ class JacoDbTest {
     fun jacodbTestFast(): Collection<DynamicTest> {
         val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
         val machine = GoMachine(pkg, options)
-        return methods(pkg).filter { it.metName !in arrayOf("loopInfinite", "loopInner", "loopCollatz") }.map {
+        return methods(pkg).filter { it.metName !in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
-                println(measureTimeMillis { machine.analyzeAndResolve(it.metName) })
+                println(measureTimeMillis { println(machine.analyzeAndResolve(it.metName)) })
             }
         }
     }
@@ -43,4 +43,6 @@ class JacoDbTest {
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
+
+    private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen")
 }

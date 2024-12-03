@@ -52,6 +52,7 @@ import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
+import org.usvm.type.GoTypes
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlin.random.nextULong
@@ -309,43 +310,43 @@ class RNG(
     private val random = Random(seed)
 
     private val generate: () -> Any = when (type.typeName) {
-        "int8" -> {
+        GoTypes.INT8 -> {
             { random.nextBytes(1).first() }
         }
 
-        "uint8" -> {
+        GoTypes.UINT8 -> {
             { random.nextBytes(1).first().toUByte() }
         }
 
-        "int16" -> {
+        GoTypes.INT16 -> {
             { random.nextInt().toShort() }
         }
 
-        "uint16" -> {
+        GoTypes.UINT16 -> {
             { random.nextInt().toUShort() }
         }
 
-        "int32" -> {
+        GoTypes.INT, GoTypes.INT32 -> {
             { random.nextInt() }
         }
 
-        "uint32" -> {
+        GoTypes.UINT, GoTypes.UINT32 -> {
             { random.nextUInt() }
         }
 
-        "int64" -> {
+        GoTypes.INT64 -> {
             { random.nextLong() }
         }
 
-        "uint64" -> {
+        GoTypes.UINT64 -> {
             { random.nextULong() }
         }
 
-        "float32" -> {
+        GoTypes.FLOAT32 -> {
             { random.nextFloat() }
         }
 
-        "float64" -> {
+        GoTypes.FLOAT64 -> {
             { random.nextDouble() }
         }
 

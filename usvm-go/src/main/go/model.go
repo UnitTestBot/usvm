@@ -60,6 +60,7 @@ const (
 	InterfaceType = "Interface"
 	MapType       = "Map"
 	NamedType     = "Named"
+	OpaqueType    = "Opaque"
 	PointerType   = "Pointer"
 	SignatureType = "Signature"
 	SliceType     = "Slice"
@@ -262,10 +263,17 @@ type MakeMap struct {
 
 type Range struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Collection        Value  `yaml:"collection" json:"collection"`
 }
 
 type Next struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Iter              Value  `yaml:"iter" json:"iter"`
+	IsString          bool   `yaml:"is_string" json:"is_string"`
 }
 
 type FieldAddr struct {

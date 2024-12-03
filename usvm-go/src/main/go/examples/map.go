@@ -43,3 +43,38 @@ func mapUpdate(m map[int]int, k, v int) int {
 	}
 	return vOld
 }
+
+func mapLoop(m map[int]int, n int) int {
+	mx := 0
+	for k, v := range m {
+		if k > n && v > mx {
+			mx = v
+		}
+	}
+
+	return mx
+}
+
+func mapLoopLen(m map[int]int) int {
+	if len(m) < 4 {
+		return -1
+	}
+
+	minKey, minValue := 0, 0
+	maxKey, maxValue := 0, 0
+	for k, v := range m {
+		if v > maxValue {
+			maxKey = k
+			maxValue = v
+		}
+		if v < minValue {
+			minKey = k
+			minValue = v
+		}
+	}
+	if minValue == maxValue {
+		return minValue
+	}
+
+	return m[maxKey] - m[minKey]
+}

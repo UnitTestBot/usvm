@@ -2,7 +2,6 @@ package org.usvm.state
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
-import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
@@ -26,6 +25,7 @@ import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
 import org.usvm.sampleUValue
 import org.usvm.targets.UTargetsSet
+import org.usvm.type.GoBasicTypes
 
 class GoState(
     ctx: GoContext,
@@ -144,7 +144,7 @@ class GoState(
         methodResult = GoMethodResult.Panic(expr.cast(), type)
     }
 
-    fun panic(text: String) = panic(mkString(text), BasicType("debug"))
+    fun panic(text: String) = panic(mkString(text), GoBasicTypes.STRING)
 
     fun recover(method: GoMethod, inst: GoInst): UExpr<out USort> = with(ctx) {
         if (methodResult is GoMethodResult.Panic) {
