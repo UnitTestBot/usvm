@@ -3,6 +3,7 @@ package org.usvm
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KConst
 import io.ksmt.utils.asExpr
+import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoAddExpr
 import org.jacodb.go.api.GoAllocExpr
@@ -80,10 +81,22 @@ import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownUnaryOperationException
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
+import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapGet
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
+import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapAnyKey
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapGet
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapMergeInto
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapRemove
+import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.refSetContainsElement
@@ -104,6 +117,8 @@ import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
 import org.usvm.state.GoMethodResult
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.type.GoBasicTypes
+import org.usvm.type.underlying
 
 class GoExprVisitor(
     private val ctx: GoContext,
@@ -351,7 +366,7 @@ class GoExprVisitor(
         val rvalue = scope.calcOnState { memory.read(lvalue).asExpr(valueSort) }
 
         return scope.calcOnState {
-            rvalue.let { if (commaOk) mkTuple(TupleType(listOf(type.valueType, BasicType("bool"))), it, contains) else it }
+            rvalue.let { if (commaOk) mkTuple(TupleType(listOf(type.valueType, GoBasicTypes.BOOL)), it, contains) else it }
         }
     }
 
@@ -360,11 +375,64 @@ class GoExprVisitor(
     }
 
     override fun visitGoRangeExpr(expr: GoRangeExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val collection = expr.instance.accept(this).asExpr(ctx.addressSort).let {
+            if (expr.instance.type is MapType) copyMap(it, expr.instance.type as MapType) else it
+        }
+        return scope.calcOnState {
+            mkTuple(
+                TupleType(listOf(expr.instance.type, GoBasicTypes.INT32)),
+                collection, ctx.mkSizeExpr(0)
+            )
+        }
     }
 
     override fun visitGoNextExpr(expr: GoNextExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val iter = expr.instance.accept(this).asExpr(ctx.addressSort)
+        return scope.calcOnState {
+            val tupleType = memory.types.getTypeStream(iter).commonSuperType as TupleType
+            val collection = memory.readField(iter, 0, ctx.addressSort)
+            val notNull = ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef))
+            when (val collectionType = tupleType.types[0]) {
+                is BasicType -> {
+                    val index = memory.readField(iter, 1, ctx.sizeSort)
+                    val char = memory.readArrayIndex(collection, index, collectionType, ctx.bv32Sort)
+                    val length = memory.readArrayLength(collection, collectionType, ctx.sizeSort)
+                    val ok = ctx.mkAnd(notNull, ctx.mkBvSignedLessExpr(index, length))
+
+                    memory.writeField(iter, 1, ctx.sizeSort, ctx.mkBvAddExpr(index, ctx.mkSizeExpr(1)), ctx.trueExpr)
+                    mkTuple(
+                        TupleType(listOf(GoBasicTypes.BOOL, GoBasicTypes.INT32, GoBasicTypes.INT32)),
+                        ok, index, char
+                    )
+                }
+
+                is MapType -> {
+                    scope.ensureObjectMapSizeCorrect(collection, collectionType) ?: throw IllegalStateException()
+
+                    val length = symbolicObjectMapSize(collection, collectionType)
+                    val ok = ctx.mkAnd(notNull, ctx.mkBvSignedGreaterExpr(length, ctx.mkBv(0)))
+                    val isPrimitiveKey = collectionType.keyType.underlying() is BasicType
+                    val (key, value) = if (isPrimitiveKey) {
+                        val k = symbolicPrimitiveMapAnyKey(collection, collectionType, ctx.typeToSort(collectionType.keyType), USizeExprKeyInfo())
+                        val v = symbolicPrimitiveMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType), USizeExprKeyInfo())
+                        symbolicPrimitiveMapRemove(collection, k, collectionType, USizeExprKeyInfo())
+                        Pair(k, v)
+                    } else {
+                        val k = symbolicObjectMapAnyKey(collection, collectionType)
+                        val v = symbolicObjectMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType))
+                        symbolicObjectMapRemove(collection, k, collectionType)
+                        Pair(k, v)
+                    }
+
+                    mkTuple(
+                        TupleType(listOf(GoBasicTypes.BOOL, collectionType.keyType, collectionType.valueType)),
+                        ok, key, value
+                    )
+                }
+
+                else -> throw IllegalStateException("invalid collection type in next expr")
+            }
+        }
     }
 
     override fun visitGoTypeAssertExpr(expr: GoTypeAssertExpr): UExpr<out USort> {
@@ -574,13 +642,41 @@ class GoExprVisitor(
         return when (name) {
             "len" -> {
                 val arg = args[0]
-                val arr = arg.accept(this).asExpr(ctx.addressSort)
-                checkNotNull(arr) ?: throw IllegalStateException()
+                val collection = arg.accept(this).asExpr(ctx.addressSort)
+                checkNotNull(collection) ?: throw IllegalStateException()
 
-                return scope.calcOnState { memory.readArrayLength(arr, arg.type, ctx.sizeSort) }
+                return scope.calcOnState {
+                    when(val type = arg.type) {
+                        is ArrayType, is SliceType -> memory.readArrayLength(collection, arg.type, ctx.sizeSort)
+                        is MapType -> symbolicObjectMapSize(collection, type)
+                        else -> throw IllegalStateException()
+                    }
+
+                }
             }
 
             else -> ctx.nullRef
+        }
+    }
+
+    private fun copyMap(
+        srcMap: UHeapRef,
+        mapType: MapType,
+    ): UHeapRef = with(ctx) {
+        checkNotNull(srcMap) ?: throw IllegalStateException()
+        scope.ensureObjectMapSizeCorrect(srcMap, mapType) ?: throw IllegalStateException()
+
+        val keySort = typeToSort(mapType.keyType)
+        val valueSort = typeToSort(mapType.valueType)
+        val isRefSet = keySort == addressSort
+        return scope.calcOnState {
+            val destMap = mkSymbolicObjectMap(mapType)
+            if (isRefSet) {
+                symbolicObjectMapMergeInto(destMap, srcMap, mapType, valueSort)
+            } else {
+                symbolicPrimitiveMapMergeInto(destMap, srcMap, mapType, keySort, valueSort, USizeExprKeyInfo())
+            }
+            destMap
         }
     }
 }
