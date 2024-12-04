@@ -64,7 +64,6 @@ class Parser {
                 subclass(Value.Function::class, Value.Function.serializer())
                 subclass(Value.MakeClosure::class, Value.MakeClosure.serializer())
                 subclass(Value.Builtin::class, Value.Builtin.serializer())
-                subclass(Value.Signature::class, Value.Signature.serializer())
             }
 
             polymorphic(Type::class) {
