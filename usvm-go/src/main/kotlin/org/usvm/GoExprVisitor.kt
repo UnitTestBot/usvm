@@ -286,7 +286,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeChanExpr(expr: GoMakeChanExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        // channels aren't supported now
+        return unsupportedExpr("MakeChan")
     }
 
     override fun visitGoMakeSliceExpr(expr: GoMakeSliceExpr): UExpr<out USort> {
@@ -369,7 +370,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoSelectExpr(expr: GoSelectExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        // channels aren't supported now
+        return unsupportedExpr("Select")
     }
 
     override fun visitGoRangeExpr(expr: GoRangeExpr): UExpr<out USort> {
@@ -464,7 +466,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoConst(expr: GoConst): UExpr<out USort> {
-        TODO("Not yet implemented")
+        // const can't be visited
+        return unsupportedExpr("Const")
     }
 
     override fun visitGoGlobal(expr: GoGlobal): UExpr<out USort> {
@@ -474,8 +477,8 @@ class GoExprVisitor(
     }
 
     override fun visitGoBuiltin(expr: GoBuiltin): UExpr<out USort> {
-        // there can't be an instruction
-        TODO("Not yet implemented")
+        // builtin can't be stored in a variable
+        return unsupportedExpr("Builtin")
     }
 
     override fun visitGoFunction(expr: GoFunction): UExpr<out USort> {
@@ -673,5 +676,9 @@ class GoExprVisitor(
             }
             destMap
         }
+    }
+
+    private fun unsupportedExpr(name: String): UExpr<out USort> {
+        throw UnsupportedOperationException("Expression '$name' not supported")
     }
 }
