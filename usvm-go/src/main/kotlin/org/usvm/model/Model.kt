@@ -468,13 +468,6 @@ sealed interface Value {
         @SerialName("go_type") override val goType: String,
         override val name: String,
     ) : Value
-
-    @Serializable
-    @SerialName("Signature")
-    data class Signature(
-        @SerialName("go_type") override val goType: String,
-        override val name: String,
-    ) : Value
 }
 
 @Serializable
