@@ -83,7 +83,11 @@ func (p *Package) AddType(typ types.Type) {
 		p.AddType(t.Elem())
 	case *types.Signature:
 		common.Type = SignatureType
-		p.Types[name] = common
+		p.Types[name] = Signature{
+			CommonType: common,
+			Params:     p.PackTypeTuple(t.Params()),
+			Results:    p.PackTypeTuple(t.Results()),
+		}
 	case *types.Slice:
 		common.Type = SliceType
 		p.Types[name] = Slice{
@@ -104,16 +108,10 @@ func (p *Package) AddType(typ types.Type) {
 			Fields:     fields,
 		}
 	case *types.Tuple:
-		elems := make([]string, 0)
-		for i := 0; i < t.Len(); i++ {
-			elem := t.At(i)
-			elems = append(elems, elem.Type().String())
-			p.AddType(elem.Type())
-		}
 		common.Type = TupleType
 		p.Types[name] = Tuple{
 			CommonType: common,
-			Elems:      elems,
+			Elems:      p.PackTypeTuple(t),
 		}
 	case *types.TypeParam:
 		common.Type = TypeParamType
@@ -148,6 +146,7 @@ func (p *Package) PackMember(in ssa.Member, _ int) Member {
 
 	switch member := in.(type) {
 	case *ssa.NamedConst:
+		p.AddType(member.Value.Type())
 		common.Type = NamedConstMember
 		return NamedConst{
 			CommonMember: common,
@@ -157,6 +156,7 @@ func (p *Package) PackMember(in ssa.Member, _ int) Member {
 			},
 		}
 	case *ssa.Global:
+		p.AddType(member.Type())
 		common.Type = GlobalMember
 		return MemberGlobal{
 			CommonMember: common,
@@ -190,6 +190,7 @@ func (p *Package) PackBasicBlock(in *ssa.BasicBlock, _ int) BasicBlock {
 }
 
 func (p *Package) PackParameter(in *ssa.Parameter, index int) Parameter {
+	p.AddType(in.Type())
 	return Parameter{
 		CommonValue: CommonValue{
 			Type:   ParameterValue,
@@ -201,10 +202,14 @@ func (p *Package) PackParameter(in *ssa.Parameter, index int) Parameter {
 }
 
 func (p *Package) PackReturnTypes(in *ssa.Function) []string {
-	results := in.Signature.Results()
-	returnTypes := make([]string, 0, results.Len())
-	for i := 0; i < results.Len(); i++ {
-		returnTypes = append(returnTypes, results.At(i).Type().String())
+	return p.PackTypeTuple(in.Signature.Results())
+}
+
+func (p *Package) PackTypeTuple(in *types.Tuple) []string {
+	returnTypes := make([]string, 0, in.Len())
+	for i := 0; i < in.Len(); i++ {
+		p.AddType(in.At(i).Type())
+		returnTypes = append(returnTypes, in.At(i).Type().String())
 	}
 
 	return returnTypes
@@ -353,9 +358,11 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		}
 	case *ssa.Alloc:
 		common.Type = AllocInstruction
+		goType := inst.Type().Underlying().(*types.Pointer).Elem()
+		p.AddType(goType)
 		return Alloc{
 			CommonInstruction: common,
-			GoType:            inst.Type().Underlying().(*types.Pointer).Elem().String(),
+			GoType:            goType.String(),
 			Register:          inst.Name(),
 		}
 	case *ssa.MakeSlice:
