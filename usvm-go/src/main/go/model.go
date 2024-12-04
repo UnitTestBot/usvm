@@ -410,6 +410,12 @@ type Pointer struct {
 	Elem       string `yaml:"elem" json:"elem"`
 }
 
+type Signature struct {
+	CommonType `yaml:"-,inline"`
+	Params     []string `yaml:"params" json:"params"`
+	Results    []string `yaml:"results" json:"results"`
+}
+
 type Slice struct {
 	CommonType `yaml:"-,inline"`
 	Elem       string `yaml:"elem" json:"elem"`

@@ -309,6 +309,10 @@ object Converter {
 
     private fun getType(type: String): GoType = types[type]!!
 
+    private fun unpackTypes(typesMap: Map<String, Type>, types: Collection<String>): List<GoType> {
+        return types.map { unpackType(typesMap, it) }
+    }
+
     private fun unpackType(types: Map<String, Type>, type: Type): GoType = when (type) {
         is Type.Alias -> unpackType(types, type.from)
         is Type.Array -> ArrayType(type.len, unpackType(types, type.elem))
@@ -319,10 +323,10 @@ object Converter {
         is Type.Named -> NamedType(unpackType(types, type.underlying), type.name)
         is Type.Opaque -> OpaqueType(type.name)
         is Type.Pointer -> PointerType(unpackType(types, type.elem))
-        is Type.Signature -> SignatureType(TupleType(emptyList()), TupleType(emptyList())) // TODO(buraindo) fix this
+        is Type.Signature -> SignatureType(TupleType(unpackTypes(types, type.params)), TupleType(unpackTypes(types, type.results)))
         is Type.Slice -> SliceType(unpackType(types, type.elem))
-        is Type.Struct -> StructType(type.fields.toSortedMap().map { unpackType(types, it.value) }, null)
-        is Type.Tuple -> TupleType(type.elems.map { unpackType(types, it) })
+        is Type.Struct -> StructType(unpackTypes(types, type.fields.toSortedMap().keys), null)
+        is Type.Tuple -> TupleType(unpackTypes(types, type.elems))
         is Type.TypeParam -> unpackType(types, type.name)
         is Type.Union -> UnionType(emptyList())
     }
