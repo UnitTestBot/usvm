@@ -541,6 +541,8 @@ sealed interface Type {
     @SerialName("Signature")
     data class Signature(
         override val name: String,
+        val params: List<String>,
+        val results: List<String>,
     ) : Type
 
     @Serializable
