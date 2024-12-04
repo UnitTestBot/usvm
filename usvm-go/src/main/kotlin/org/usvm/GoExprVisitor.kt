@@ -84,6 +84,7 @@ import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.UnknownBinaryOperationException
+import org.usvm.api.UnknownFunctionException
 import org.usvm.api.UnknownUnaryOperationException
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
 import org.usvm.api.collection.ObjectMapCollectionApi.mkSymbolicObjectMap
@@ -127,13 +128,9 @@ class GoExprVisitor(
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
     override fun visitGoCallExpr(expr: GoCallExpr): UExpr<out USort> {
-        val name = when (val value = expr.value) {
-            is GoVar -> value.name
-            is GoFunction -> value.metName
-            else -> throw IllegalStateException("Invalid call value type")
-        }
-        if (isBuiltin(name)) {
-            return callBuiltin(name, expr.args)
+        val func = expr.value
+        if (func is GoBuiltin) {
+            return callBuiltin(func, expr.args)
         }
 
         val result = scope.calcOnState { methodResult }
@@ -144,10 +141,11 @@ class GoExprVisitor(
 
         val method = when {
             expr.callee != null -> expr.callee!!
-            pkg.hasMethod(name) -> pkg.findMethod(name)
-            else -> scope.calcOnState {
-                pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(name))) as KConst<*>).decl.name)
+            func is GoFunction -> pkg.findMethod(func.metName)
+            func is GoVar -> scope.calcOnState {
+                pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst<*>).decl.name)
             }
+            else -> throw UnknownFunctionException()
         }
         val parameters = expr.args.map { it.accept(this) }.toTypedArray()
         val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
@@ -476,6 +474,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoBuiltin(expr: GoBuiltin): UExpr<out USort> {
+        // there can't be an instruction
         TODO("Not yet implemented")
     }
 
@@ -580,7 +579,7 @@ class GoExprVisitor(
     private fun visitGoUnaryExpr(expr: GoUnaryExpr): UExpr<out USort> {
         val x = expr.value.accept(this)
         return when (expr) {
-            is GoUnArrowExpr -> TODO()
+            is GoUnArrowExpr -> throw UnknownUnaryOperationException()
             is GoUnXorExpr, is GoUnNotExpr, is GoUnSubExpr -> GoUnaryOperator.Neg(x)
             is GoUnMulExpr -> deref(x, ctx.typeToSort(expr.type))
             else -> throw UnknownUnaryOperationException()
@@ -634,12 +633,8 @@ class GoExprVisitor(
         })
     }
 
-    private fun isBuiltin(name: String): Boolean {
-        return name in setOf("len", "cap")
-    }
-
-    private fun callBuiltin(name: String, args: List<GoValue>): UExpr<out USort> {
-        return when (name) {
+    private fun callBuiltin(method: GoBuiltin, args: List<GoValue>): UExpr<out USort> {
+        return when (method.name) {
             "len" -> {
                 val arg = args[0]
                 val collection = arg.accept(this).asExpr(ctx.addressSort)

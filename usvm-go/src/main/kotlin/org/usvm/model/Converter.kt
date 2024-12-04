@@ -10,6 +10,7 @@ import org.jacodb.go.api.GoAndNotExpr
 import org.jacodb.go.api.GoBasicBlock
 import org.jacodb.go.api.GoBinaryExpr
 import org.jacodb.go.api.GoBool
+import org.jacodb.go.api.GoBuiltin
 import org.jacodb.go.api.GoCallExpr
 import org.jacodb.go.api.GoConditionExpr
 import org.jacodb.go.api.GoDivExpr
@@ -258,7 +259,8 @@ object Converter {
             is Value.Parameter -> GoParameter(value.index, value.name, getType(value.goType))
             is Value.Var -> GoVar(value.name, getType(value.goType))
             is Value.MakeClosure -> GoVar(value.name, getType(value.goType))
-            is Value.Builtin, is Value.Function, is Value.Signature -> functionAlias(value.name)
+            is Value.Function -> functionAlias(value.name)
+            is Value.Builtin -> GoBuiltin(value.name, getType(value.goType))
         }
     }
 
