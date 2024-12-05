@@ -6,6 +6,8 @@ import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.test.utils.loadEtsFile
+import org.jacodb.ets.test.utils.loadMultipleEtsFilesFromDirectory
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
@@ -20,8 +22,11 @@ import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
 import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
-import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlin.io.path.exists
+import kotlin.io.path.isRegularFile
 import kotlin.test.assertTrue
 
 class EtsTypeResolverTest {
@@ -33,11 +38,31 @@ class EtsTypeResolverTest {
 
     private val yourPrefixForTestFolders = "C:/work/TestProjects"
     private val testProjectsVersion = "TestProjects_2024_11_14"
+    private val pathToSDK: String = TODO("Put your path here")
+
+    private fun loadEtsScene(paths: List<Path>): EtsScene {
+        val files = paths.flatMap {  path ->
+            check(path.exists()) { "Path does not exist: $path" }
+            if (path.isRegularFile()) {
+                val file = loadEtsFile(path)
+                listOf(file)
+            } else {
+                loadMultipleEtsFilesFromDirectory(path).asIterable()
+            }
+        }
+        return EtsScene(files)
+    }
+
 
     @Test
     fun testTestHap() {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/CallUI"
-        val abcScene = loadProjectFromJsons(projectAbc)
+        val abcScene = loadEtsScene(
+            listOf(
+                Paths.get(projectAbc),
+                Paths.get(pathToSDK)
+            )
+        )
         val graphAbc = createApplicationGraph(abcScene)
 
         val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene) // TODO fix error with abc and ast methods

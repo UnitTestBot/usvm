@@ -3,11 +3,13 @@ package org.usvm.dataflow.ts.test.utils
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
+import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
@@ -486,7 +488,13 @@ data class MethodTypesFacts(
 
             }?.value
 
-            val arguments = m.parameters.indices.map { factsForMethod?.get(AccessPathBase.Arg(it)) }
+            val arguments = m.parameters.indices.map {
+                val stmts = m.cfg.stmts
+                if (stmts.isEmpty()) return@map null
+
+                val realIndex = ((stmts[it] as EtsAssignStmt).rhv as EtsParameterRef).index
+                factsForMethod?.get(AccessPathBase.Arg(realIndex))
+            }
 
             val locals = factsForMethod?.filterKeys { it is AccessPathBase.Local }.orEmpty()
 
