@@ -16,6 +16,7 @@
 
 package org.usvm.dataflow.ts.infer.dto
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
@@ -66,6 +67,8 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
+private val logger = KotlinLogging.logger {}
+
 fun EtsTypeFact.toType(): EtsType? = when (this) {
     is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
     is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(
@@ -84,7 +87,16 @@ fun EtsTypeFact.toType(): EtsType? = when (this) {
 
     is EtsTypeFact.GuardedTypeFact -> null
     is EtsTypeFact.IntersectionEtsTypeFact -> null
-    is EtsTypeFact.UnionEtsTypeFact -> null
+    is EtsTypeFact.UnionEtsTypeFact -> {
+        val types = this.types.map { it.toType() }
+
+        if (types.any { it == null }) {
+            logger.warn { "Cannot convert union type fact to type: $this" }
+            null
+        } else {
+            EtsUnionType(types.map { it!! })
+        }
+    }
 }
 
 fun EtsType.toDto(): TypeDto = when (this) {
