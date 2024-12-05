@@ -1,8 +1,14 @@
-package org.usvm
+package org.usvm.util
 
 import io.ksmt.sort.KFp64Sort
+import org.usvm.UBoolSort
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.machine.expr.TSWrappedValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.uctx
 
 @Suppress("UNCHECKED_CAST")
 fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {

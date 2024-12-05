@@ -14,12 +14,12 @@ import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.usvm.NoCoverage
+import org.usvm.api.NoCoverage
 import org.usvm.PathSelectionStrategy
-import org.usvm.TSMachine
-import org.usvm.TSMethodCoverage
-import org.usvm.TSObject
-import org.usvm.TSTest
+import org.usvm.machine.TSMachine
+import org.usvm.api.TSMethodCoverage
+import org.usvm.api.TSObject
+import org.usvm.api.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -91,7 +91,8 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
-                          reified T3 : TSObject, reified R : TSObject>
+                          reified T3 : TSObject, reified R : TSObject
+        >
     discoverProperties(
         methodIdentifier: MethodDescriptor,
         vararg analysisResultMatchers: (T1, T2, T3, R?) -> Boolean,
@@ -116,7 +117,8 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject,
-                          reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject>
+                          reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject
+        >
     discoverProperties(
         methodIdentifier: MethodDescriptor,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R?) -> Boolean,

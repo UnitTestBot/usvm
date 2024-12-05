@@ -1,8 +1,18 @@
-package org.usvm
+package org.usvm.machine.expr
 
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.cast
+import org.usvm.UAddressSort
+import org.usvm.UExpr
+import org.usvm.UJoinedBoolExpr
+import org.usvm.URegisterReading
+import org.usvm.USort
+import org.usvm.machine.TSContext
+import org.usvm.machine.TSTypeSystem
+import org.usvm.machine.interpreter.TSStepScope
+import org.usvm.util.boolToFpSort
+import org.usvm.util.fpToBoolSort
 
 typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 

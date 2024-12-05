@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -17,15 +17,25 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.StepResult
+import org.usvm.StepScope
+import org.usvm.machine.TSApplicationGraph
+import org.usvm.machine.TSContext
+import org.usvm.api.targets.TSTarget
+import org.usvm.UInterpreter
+import org.usvm.USort
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.machine.expr.TSExprResolver
+import org.usvm.machine.expr.TSWrappedValue
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.solver.USatResult
-import org.usvm.state.TSMethodResult
-import org.usvm.state.TSState
-import org.usvm.state.lastStmt
-import org.usvm.state.newStmt
-import org.usvm.state.returnValue
+import org.usvm.machine.state.TSMethodResult
+import org.usvm.machine.state.TSState
+import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.returnValue
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.write
 
 typealias TSStepScope = StepScope<TSState, EtsType, EtsStmt, TSContext>
 
@@ -169,11 +179,11 @@ class TSInterpreter(
                 .run {
                     getOrPut(local.name) { method.parameters.size + size }
                 }
+
             is EtsThis -> 0
             is EtsParameterRef -> local.index
             else -> error("Unexpected local: $local")
         }
-
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
         val state = TSState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets))

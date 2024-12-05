@@ -1,4 +1,4 @@
-package org.usvm.state
+package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsStmt
 import org.usvm.UExpr

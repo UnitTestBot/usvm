@@ -1,6 +1,18 @@
-package org.usvm
+package org.usvm.machine.operator
 
 import io.ksmt.utils.cast
+import org.usvm.machine.TSContext
+import org.usvm.machine.TSSizeSort
+import org.usvm.machine.expr.TSWrappedValue
+import org.usvm.UAddressSort
+import org.usvm.UBoolSort
+import org.usvm.UBvSort
+import org.usvm.UContext
+import org.usvm.UExpr
+import org.usvm.UFpSort
+import org.usvm.USort
+import org.usvm.machine.expr.tctx
+import org.usvm.machine.interpreter.TSStepScope
 
 /**
  * @param[desiredSort] accepts two [USort] instances of the expression operands.
@@ -64,7 +76,7 @@ sealed class TSBinaryOperator(
                     if (rhs is TSWrappedValue || rhs.sort == addressSort) {
                         emptySet()
                     } else {
-                        TSTypeSystem.primitiveTypes
+                        org.usvm.machine.TSTypeSystem.primitiveTypes
                             .map(::typeToSort).toSet()
                             .minus(rhs.sort)
                     }
@@ -73,7 +85,7 @@ sealed class TSBinaryOperator(
                     if (lhs.sort == addressSort) {
                         emptySet()
                     } else {
-                        TSTypeSystem.primitiveTypes
+                        org.usvm.machine.TSTypeSystem.primitiveTypes
                             .map(::typeToSort).toSet()
                             .minus(lhs.sort)
                     }

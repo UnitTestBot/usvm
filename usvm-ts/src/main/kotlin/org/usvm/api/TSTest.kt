@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.api
 
 import org.jacodb.ets.base.EtsStmt
 

@@ -1,7 +1,17 @@
-package org.usvm
+package org.usvm.machine.operator
 
 import io.ksmt.expr.KExpr
 import io.ksmt.utils.cast
+import org.usvm.machine.TSContext
+import org.usvm.machine.expr.TSExprTransformer
+import org.usvm.machine.expr.TSWrappedValue
+import org.usvm.UBoolSort
+import org.usvm.UBvSort
+import org.usvm.UExpr
+import org.usvm.UFpSort
+import org.usvm.USort
+import org.usvm.machine.expr.tctx
+import org.usvm.machine.interpreter.TSStepScope
 
 sealed class TSUnaryOperator(
     val onBool: TSContext.(UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,

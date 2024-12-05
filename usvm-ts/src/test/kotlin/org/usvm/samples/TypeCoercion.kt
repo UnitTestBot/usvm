@@ -1,7 +1,7 @@
 package org.usvm.samples
 
 import org.junit.jupiter.api.Test
-import org.usvm.TSObject
+import org.usvm.api.TSObject
 import org.usvm.util.MethodDescriptor
 import org.usvm.util.TSMethodTestRunner
 

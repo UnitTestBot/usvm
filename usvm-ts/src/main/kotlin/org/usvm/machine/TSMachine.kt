@@ -1,11 +1,17 @@
-package org.usvm
+package org.usvm.machine
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.usvm.CoverageZone
+import org.usvm.StateCollectionStrategy
+import org.usvm.UMachine
+import org.usvm.UMachineOptions
+import org.usvm.api.targets.TSTarget
+import org.usvm.machine.interpreter.TSInterpreter
 import org.usvm.ps.createPathSelector
-import org.usvm.state.TSMethodResult
-import org.usvm.state.TSState
+import org.usvm.machine.state.TSMethodResult
+import org.usvm.machine.state.TSState
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.StepsStatistics

@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.machine.expr
 
 import io.ksmt.KAst
 import io.ksmt.cache.hash
@@ -10,6 +10,12 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.utils.cast
+import org.usvm.machine.TSContext
+import org.usvm.UExpr
+import org.usvm.UIntepretedValue
+import org.usvm.USort
+import org.usvm.USymbol
+import org.usvm.machine.interpreter.TSStepScope
 
 val KAst.tctx get() = ctx as TSContext
 

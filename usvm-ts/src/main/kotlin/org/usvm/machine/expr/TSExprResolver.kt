@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.machine.expr
 
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
@@ -64,8 +64,15 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.machine.TSContext
+import org.usvm.machine.interpreter.TSStepScope
+import org.usvm.machine.operator.TSBinaryOperator
+import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.unwrapJoinedExpr
 
 class TSExprResolver(
     private val ctx: TSContext,
