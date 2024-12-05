@@ -62,7 +62,7 @@ import org.usvm.dataflow.util.Traits
 /**
  * ETS-specific extensions for analysis.
  */
-object EtsTraits : Traits<EtsMethod, EtsStmt> {
+class EtsTraits : Traits<EtsMethod, EtsStmt> {
 
     override fun convertToPathOrNull(expr: CommonExpr): AccessPath? {
         check(expr is EtsEntity)

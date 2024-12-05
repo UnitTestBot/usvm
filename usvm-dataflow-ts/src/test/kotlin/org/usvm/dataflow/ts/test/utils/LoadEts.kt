@@ -23,19 +23,19 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.test.utils.getResourcePath
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
-import java.nio.file.Paths
-import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.Path
 import kotlin.io.path.extension
 import kotlin.io.path.walk
 
+@Deprecated("Use loadEtsFileAutoConvert instead")
 fun autoLoadEtsFileFromResource(tsPath: String): EtsFile {
     val path = getResourcePath(tsPath)
     return loadEtsFileAutoConvert(path)
 }
 
-@OptIn(ExperimentalPathApi::class)
+@Deprecated("Use loadEtsProjectAutoConvert instead")
 fun loadProjectFromJsons(path: String): EtsScene {
-    val paths = Paths.get(path).walk().filter { it.extension == "json" }
+    val paths = Path(path).walk().filter { it.extension == "json" }
     val files = paths
         .map { EtsFileDto.loadFromJson(it.toFile().inputStream()) }
         .map { convertToEtsFile(it) }
@@ -44,7 +44,8 @@ fun loadProjectFromJsons(path: String): EtsScene {
     return EtsScene(files)
 }
 
+@Deprecated("Use loadEtsProjectAutoConvert instead")
 fun loadProjectFromAst(path: String): EtsScene {
-    val scene = loadEtsProjectAutoConvert(Paths.get(path))
+    val scene = loadEtsProjectAutoConvert(Path(path))
     return scene
 }

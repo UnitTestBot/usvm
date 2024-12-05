@@ -1,25 +1,25 @@
 <configuration>
-
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <property name="LOG_FILE" value="app" />
+    <property name="LOG_DIR" value="logs" />
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/app.log</file>
-
+        <file>${LOG_DIR}/${LOG_FILE}</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/app.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+            <fileNamePattern>${LOG_DIR}/${LOG_FILE}_%d{yyyy-MM-dd_HH-mm-ss}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
-
         <encoder>
             <pattern>[%level] %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <root level="info">
+        <!-- <appender-ref ref="STDOUT"/> -->
         <appender-ref ref="FILE" />
     </root>
 </configuration>

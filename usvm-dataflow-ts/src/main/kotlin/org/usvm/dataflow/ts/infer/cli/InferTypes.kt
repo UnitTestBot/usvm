@@ -99,7 +99,7 @@ class InferTypes : CliktCommand() {
             m.isPublic && m.signature.enclosingClass.file.projectName !in sdkNames
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 

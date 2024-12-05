@@ -22,6 +22,7 @@ import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
 import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
+import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -67,7 +68,7 @@ class EtsTypeResolverTest {
 
         val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene) // TODO fix error with abc and ast methods
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graphAbc) // TODO replace with abc
         }
 
@@ -115,7 +116,7 @@ class EtsTypeResolverTest {
         println(entrypoint.mainMethods.map { it.signature })
         println(entrypoint.allMethods.map { it.signature })
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graphAbc) // TODO replace with abc
         }
 
@@ -202,7 +203,7 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .single { it.name == "useNonUniqueField" }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 
@@ -229,7 +230,7 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .single { it.name == "useUniqueFields" }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 
@@ -258,7 +259,7 @@ class EtsTypeResolverTest {
 
         val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 
@@ -284,7 +285,7 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .single { it.name == "useUniqueMethods" }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 
@@ -311,7 +312,7 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .single { it.name == "useNotUniqueMethod" }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 
@@ -338,7 +339,7 @@ class EtsTypeResolverTest {
             .flatMap { it.methods }
             .single { it.name == "useFunctionAndField" }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
 

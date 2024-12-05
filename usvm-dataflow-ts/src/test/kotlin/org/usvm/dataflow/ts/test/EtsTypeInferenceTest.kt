@@ -86,7 +86,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         val result = manager.analyze(entrypoints)
@@ -127,7 +127,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
@@ -148,7 +148,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
@@ -169,7 +169,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
@@ -190,7 +190,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
@@ -212,7 +212,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         manager.analyze(entrypoints)
@@ -319,7 +319,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         val result = manager.analyze(entrypoints)
@@ -341,7 +341,7 @@ class EtsTypeInferenceTest {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
         }
 
-        val manager = with(EtsTraits) {
+        val manager = with(EtsTraits()) {
             TypeInferenceManager(graph)
         }
         val resultWithoutGuessed = manager.analyze(entrypoints)
@@ -404,7 +404,7 @@ class EtsTypeInferenceTest {
                 val entrypoint = cls.methods.single { it.name == "entrypoint" }
                 logger.info { "Found entrypoint: ${entrypoint.signature}" }
 
-                val manager = with(EtsTraits) {
+                val manager = with(EtsTraits()) {
                     TypeInferenceManager(graph)
                 }
                 val result = manager.analyze(listOf(entrypoint))
@@ -497,7 +497,7 @@ class EtsTypeInferenceTest {
                     .filter { it.isPublic }
                 logger.info { "Found ${entrypoints.size} entrypoints" }
 
-                val manager = with(EtsTraits) {
+                val manager = with(EtsTraits()) {
                     TypeInferenceManager(graph)
                 }
                 val result = manager.analyze(entrypoints)
