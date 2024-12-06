@@ -161,9 +161,8 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 However, this method is also used in parent TestRunner class
                 and passes here TSObject instances. So this check on current level is required.
              */
-            val temp = if (it is KClass<*>) it else it::class
-
-            when (temp) {
+            val klass = if (it is KClass<*>) it else it::class
+            when (klass) {
                 TSObject.AnyObject::class -> EtsAnyType
                 TSObject.Array::class -> TODO()
                 TSObject.Boolean::class -> EtsBooleanType
@@ -177,7 +176,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 TSObject.Object::class -> EtsUnknownType
                 // For untyped tests, not to limit objects serialized from models after type coercion.
                 TSObject.Unknown::class -> EtsUnknownType
-                else -> error("Should not be called")
+                else -> error("Unsupported type: $klass")
             }
         }
 
