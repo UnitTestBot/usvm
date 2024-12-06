@@ -223,9 +223,13 @@ class GoState(
     }
 
     fun mkPointer(type: GoType): UExpr<out USort> {
+        return mkPointer(type, ctx.typeToSort(type).sampleUValue())
+    }
+
+    fun mkPointer(type: GoType, value: UExpr<out USort>): UExpr<out USort> {
         val ref = memory.allocConcrete(type)
         val sort = ctx.typeToSort(type)
-        memory.write(GoPointerLValue(ref, sort), sort.sampleUValue(), ctx.trueExpr)
+        memory.write(GoPointerLValue(ref, sort), value.asExpr(sort), ctx.trueExpr)
         return ctx.mkAddressPointer(ref.address)
     }
 

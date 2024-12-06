@@ -1,5 +1,9 @@
 package main
 
+import (
+	"golang.org/x/tools/go/ssa"
+)
+
 const (
 	NamedConstMember = "NamedConst"
 	GlobalMember     = "Global"
@@ -74,15 +78,22 @@ type Package struct {
 	Name    string          `yaml:"name" json:"name"`
 	Members []Member        `yaml:"members" json:"members"`
 	Types   map[string]Type `yaml:"types" json:"types"`
+
+	program *ssa.Program
 }
 
 type Member interface {
+	name() string
 	isMember()
 }
 
 type CommonMember struct {
 	Type string `yaml:"type" json:"type"`
 	Name string `yaml:"name" json:"name"`
+}
+
+func (m CommonMember) name() string {
+	return m.Name
 }
 
 func (CommonMember) isMember() {}
@@ -179,6 +190,9 @@ type SliceToArrayPointer struct {
 
 type MakeInterface struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
 }
 
 type Extract struct {
@@ -278,10 +292,18 @@ type Next struct {
 
 type FieldAddr struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Struct            Value  `yaml:"struct" json:"struct"`
+	Field             int    `yaml:"field" json:"field"`
 }
 
 type Field struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Struct            Value  `yaml:"struct" json:"struct"`
+	Field             int    `yaml:"field" json:"field"`
 }
 
 type IndexAddr struct {
@@ -394,6 +416,11 @@ type Chan struct {
 	Elem       string `yaml:"elem" json:"elem"`
 }
 
+type Interface struct {
+	CommonType `yaml:"-,inline"`
+	Methods    []string `yaml:"methods" json:"methods"`
+}
+
 type Map struct {
 	CommonType `yaml:"-,inline"`
 	Key        string `yaml:"key" json:"key"`
@@ -402,7 +429,8 @@ type Map struct {
 
 type Named struct {
 	CommonType `yaml:"-,inline"`
-	Underlying string `yaml:"underlying" json:"underlying"`
+	Underlying string   `yaml:"underlying" json:"underlying"`
+	Methods    []string `yaml:"methods" json:"methods"`
 }
 
 type Pointer struct {
