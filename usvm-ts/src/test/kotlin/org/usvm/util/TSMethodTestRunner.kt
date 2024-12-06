@@ -34,7 +34,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     protected inline fun <reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (R?) -> Boolean,
+        vararg analysisResultMatchers: (R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
@@ -52,7 +52,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     protected inline fun <reified T : TSObject, reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T, R?) -> Boolean,
+        vararg analysisResultMatchers: (T, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
@@ -70,7 +70,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified R : TSObject> discoverProperties(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T1, T2, R?) -> Boolean,
+        vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
@@ -95,7 +95,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         >
     discoverProperties(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T1, T2, T3, R?) -> Boolean,
+        vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
@@ -121,7 +121,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         >
     discoverProperties(
         methodIdentifier: MethodDescriptor,
-        vararg analysisResultMatchers: (T1, T2, T3, T4, R?) -> Boolean,
+        vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
