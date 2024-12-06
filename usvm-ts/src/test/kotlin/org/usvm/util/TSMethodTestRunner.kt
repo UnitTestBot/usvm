@@ -1,8 +1,5 @@
 package org.usvm.util
 
-import java.nio.file.Paths
-import kotlin.reflect.KClass
-import kotlin.time.Duration
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
@@ -23,6 +20,9 @@ import org.usvm.api.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import java.nio.file.Paths
+import kotlin.reflect.KClass
+import kotlin.time.Duration
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
