@@ -140,6 +140,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
     ) : Instruction
 
     @Serializable
@@ -311,6 +314,10 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val struct: Value,
+        val field: Int,
     ) : Instruction
 
     @Serializable
@@ -319,6 +326,10 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val struct: Value,
+        val field: Int,
     ) : Instruction
 
     @Serializable
@@ -507,6 +518,7 @@ sealed interface Type {
     @SerialName("Interface")
     data class Interface(
         override val name: String,
+        val methods: List<String>,
     ) : Type
 
     @Serializable
@@ -522,6 +534,7 @@ sealed interface Type {
     data class Named(
         override val name: String,
         val underlying: String,
+        val methods: List<String>,
     ) : Type
 
     @Serializable

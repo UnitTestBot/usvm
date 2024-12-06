@@ -4,6 +4,7 @@ import (
 	"go/types"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/samber/lo"
 	"golang.org/x/tools/go/ssa"
@@ -11,10 +12,14 @@ import (
 
 func PackPackage(in *ssa.Package) Package {
 	p := Package{
-		Name:  in.Pkg.Path(),
-		Types: make(map[string]Type),
+		Name:    in.Pkg.Path(),
+		Types:   make(map[string]Type),
+		program: in.Prog,
 	}
 	p.PackMembers(in.Members)
+	sort.Slice(p.Members, func(i, j int) bool {
+		return p.Members[i].name() < p.Members[j].name()
+	})
 	return p
 }
 
@@ -57,7 +62,10 @@ func (p *Package) AddType(typ types.Type) {
 		p.AddType(t.Elem())
 	case *types.Interface:
 		common.Type = InterfaceType
-		p.Types[name] = common
+		p.Types[name] = Interface{
+			CommonType: common,
+			Methods:    p.PackMethods(t),
+		}
 	case *types.Map:
 		common.Type = MapType
 		p.Types[name] = Map{
@@ -72,6 +80,11 @@ func (p *Package) AddType(typ types.Type) {
 		p.Types[name] = Named{
 			CommonType: common,
 			Underlying: t.Underlying().String(),
+			Methods:    p.PackMethods(t),
+		}
+		// add members after adding type to avoid stack overflow
+		for i := 0; i < t.NumMethods(); i++ {
+			p.Members = append(p.Members, p.PackMember(p.program.FuncValue(t.Method(i))))
 		}
 		p.AddType(t.Underlying())
 	case *types.Pointer:
@@ -132,14 +145,13 @@ func (p *Package) PackMembers(membersMap map[string]ssa.Member) {
 			members = append(members, lo.Map(f.AnonFuncs, func(f *ssa.Function, _ int) ssa.Member { return f })...)
 		}
 	}
-	sort.Slice(members, func(i, j int) bool {
-		return members[i].Name() < members[j].Name()
-	})
 
-	p.Members = lo.Map(members, p.PackMember)
+	for _, member := range members {
+		p.Members = append(p.Members, p.PackMember(member))
+	}
 }
 
-func (p *Package) PackMember(in ssa.Member, _ int) Member {
+func (p *Package) PackMember(in ssa.Member) Member {
 	common := CommonMember{
 		Name: in.Name(),
 	}
@@ -164,6 +176,7 @@ func (p *Package) PackMember(in ssa.Member, _ int) Member {
 			GoType:       member.Type().String(),
 		}
 	case *ssa.Type:
+		p.AddType(member.Type())
 		common.Type = TypeMember
 		return common
 	case *ssa.Function:
@@ -284,6 +297,9 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = MakeInterfaceInstruction
 		return MakeInterface{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.Extract:
 		common.Type = ExtractInstruction
@@ -403,11 +419,19 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = FieldAddrInstruction
 		return FieldAddr{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Struct:            p.PackValue(inst.X),
+			Field:             inst.Field,
 		}
 	case *ssa.Field:
 		common.Type = FieldInstruction
 		return Field{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Struct:            p.PackValue(inst.X),
+			Field:             inst.Field,
 		}
 	case *ssa.IndexAddr:
 		common.Type = IndexAddrInstruction
@@ -483,11 +507,15 @@ func (p *Package) PackValue(in ssa.Value) Value {
 	switch value := in.(type) {
 	case *ssa.Const:
 		common.Type = ConstValue
+		v := "nil"
+		if value.Value != nil {
+			v = value.Value.String()
+		}
 		return Const{
 			CommonValue: common,
 			Value: NamedConstValue{
 				Type:  value.Type().String(),
-				Value: value.Value.String(),
+				Value: v,
 			},
 		}
 	case *ssa.Global:
@@ -527,6 +555,41 @@ func (p *Package) PackValueIdx(in ssa.Value, _ int) Value {
 	return p.PackValue(in)
 }
 
+func (p *Package) PackMethods(in WithMethods) []string {
+	methods := make([]string, 0)
+	for i := 0; i < in.NumMethods(); i++ {
+		method := in.Method(i)
+		signature := method.Type().(*types.Signature)
+		methods = append(methods, method.Name()+p.PackMethodParams(signature.Params())+p.PackMethodResults(signature.Results()))
+	}
+
+	return methods
+}
+
+func (p *Package) PackMethodParams(in *types.Tuple) string {
+	return "(" + strings.Join(p.PackTupleTypes(in), ", ") + ")"
+}
+
+func (p *Package) PackMethodResults(in *types.Tuple) string {
+	results := p.PackTupleTypes(in)
+	out := strings.Join(results, ", ")
+	if in.Len() > 0 {
+		if in.Len() > 1 {
+			out = "(" + out + ")"
+		}
+		out = " " + out
+	}
+	return out
+}
+
+func (p *Package) PackTupleTypes(in *types.Tuple) []string {
+	out := make([]string, 0)
+	for i := 0; i < in.Len(); i++ {
+		out = append(out, in.At(i).Type().String())
+	}
+	return out
+}
+
 func FindInstructionIndex(in ssa.Instruction) int {
 	instructions := lo.FlatMap(in.Parent().Blocks, func(block *ssa.BasicBlock, _ int) []ssa.Instruction {
 		return block.Instrs
@@ -553,4 +616,9 @@ func FindFreeVarIndex(in *ssa.FreeVar) int {
 
 type Typed interface {
 	Type() types.Type
+}
+
+type WithMethods interface {
+	NumMethods() int
+	Method(i int) *types.Func
 }

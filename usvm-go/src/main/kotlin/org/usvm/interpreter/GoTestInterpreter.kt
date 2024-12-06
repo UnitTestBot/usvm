@@ -19,8 +19,10 @@ import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.MapType
+import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.NullType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.usvm.GoContext
 import org.usvm.NULL_ADDRESS
@@ -107,6 +109,8 @@ class GoTestInterpreter(
                     is MapType -> resolveMap(it, type)
                     is TupleType -> resolveTuple(it, type)
                     is NullType -> null
+                    is StructType -> resolveStruct(it, type)
+                    is NamedType -> convertExpr(it, type.underlyingType)
                     else -> Any()
                 }
             }
@@ -130,7 +134,10 @@ class GoTestInterpreter(
 
         fun resolveSize(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec32Value).numberValue
 
-        fun resolveString(constString: UHeapRef): String {
+        fun resolveString(constString: UHeapRef): String = with(ctx) {
+            if (constString == mkConcreteHeapRef(NULL_ADDRESS) || constString == ctx.nullRef) {
+                return ""
+            }
             return (constString as KConst<*>).decl.name
         }
 
@@ -218,6 +225,16 @@ class GoTestInterpreter(
             return List(tupleType.types.size) {
                 val sort = typeToSort(tupleType.types[it])
                 convertExpr(memory.readField(tuple, it, sort), tupleType.types[it])
+            }
+        }
+
+        fun resolveStruct(struct: UHeapRef, structType: StructType): Map<String, Any?>? = with(ctx) {
+            if (struct == mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            return structType.fields?.mapIndexed{ idx, type -> Pair(idx, type) }?.associate {
+                Pair("field${it.first}", convertExpr(memory.readField(struct, it, typeToSort(it.second)), it.second))
             }
         }
     }
