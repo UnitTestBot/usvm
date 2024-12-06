@@ -16,6 +16,8 @@ import org.jacodb.go.api.GoConditionExpr
 import org.jacodb.go.api.GoDivExpr
 import org.jacodb.go.api.GoEqlExpr
 import org.jacodb.go.api.GoExtractExpr
+import org.jacodb.go.api.GoFieldAddrExpr
+import org.jacodb.go.api.GoFieldExpr
 import org.jacodb.go.api.GoFloat32
 import org.jacodb.go.api.GoFloat64
 import org.jacodb.go.api.GoFreeVar
@@ -39,6 +41,7 @@ import org.jacodb.go.api.GoLeqExpr
 import org.jacodb.go.api.GoLookupExpr
 import org.jacodb.go.api.GoLssExpr
 import org.jacodb.go.api.GoMakeClosureExpr
+import org.jacodb.go.api.GoMakeInterfaceExpr
 import org.jacodb.go.api.GoMakeMapExpr
 import org.jacodb.go.api.GoMakeSliceExpr
 import org.jacodb.go.api.GoMapUpdateInst
@@ -127,8 +130,8 @@ object Converter {
             is Instruction.DebugRef -> TODO()
             is Instruction.Defer -> TODO()
             is Instruction.Extract -> unpackExtract(location, inst)
-            is Instruction.Field -> TODO()
-            is Instruction.FieldAddr -> TODO()
+            is Instruction.Field -> GoFieldExpr(location, getType(inst.goType), unpackValue(inst.struct), inst.field, inst.register).toAssignInst()
+            is Instruction.FieldAddr -> GoFieldAddrExpr(location, getType(inst.goType), unpackValue(inst.struct), inst.field, inst.register).toAssignInst()
             is Instruction.Go -> TODO()
             is Instruction.If -> GoIfInst(location, unpackCondition(inst.condition), GoInstRef(inst.trueBranch), GoInstRef(inst.falseBranch))
             is Instruction.Index -> TODO()
@@ -137,7 +140,7 @@ object Converter {
             is Instruction.Lookup -> unpackLookup(location, inst)
             is Instruction.MakeChan -> TODO()
             is Instruction.MakeClosure -> unpackMakeClosure(location, inst)
-            is Instruction.MakeInterface -> TODO()
+            is Instruction.MakeInterface -> GoMakeInterfaceExpr(location, getType(inst.goType), unpackValue(inst.value), inst.register).toAssignInst()
             is Instruction.MakeMap -> GoMakeMapExpr(location, getType(inst.goType), unpackValue(inst.reserve), inst.register).toAssignInst()
             is Instruction.MakeSlice -> unpackMakeSlice(location, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(location, unpackValue(inst.map), unpackValue(inst.key), unpackValue(inst.value))
@@ -325,13 +328,16 @@ object Converter {
         is Type.Pointer -> PointerType(unpackType(types, type.elem))
         is Type.Signature -> SignatureType(TupleType(unpackTypes(types, type.params)), TupleType(unpackTypes(types, type.results)))
         is Type.Slice -> SliceType(unpackType(types, type.elem))
-        is Type.Struct -> StructType(unpackTypes(types, type.fields.toSortedMap().keys), null)
+        is Type.Struct -> StructType(unpackTypes(types, type.fields.values.sorted()), null)
         is Type.Tuple -> TupleType(unpackTypes(types, type.elems))
         is Type.TypeParam -> unpackType(types, type.name)
         is Type.Union -> UnionType(emptyList())
     }
 
     private fun unpackType(types: Map<String, Type>, type: String): GoType {
+        if (type !in types) {
+            println()
+        }
         return unpackType(types, types[type]!!)
     }
 

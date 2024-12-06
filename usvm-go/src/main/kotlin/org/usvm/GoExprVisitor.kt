@@ -1,6 +1,5 @@
 package org.usvm
 
-import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KConst
 import io.ksmt.utils.asExpr
 import org.jacodb.go.api.ArrayType
@@ -105,6 +104,7 @@ import org.usvm.api.setContainsElement
 import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
@@ -145,6 +145,7 @@ class GoExprVisitor(
             func is GoVar -> scope.calcOnState {
                 pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst<*>).decl.name)
             }
+
             else -> throw UnknownFunctionException()
         }
         val parameters = expr.args.map { it.accept(this) }.toTypedArray()
@@ -249,16 +250,16 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
-        val index = (expr.toAssignInst().lhv.accept(this) as KBitVec32Value).intValue
+        val index = index(expr.name)
         val rvalue = expr.value.accept(this).let {
             if (it.sort == ctx.addressSort) {
-                it
-            } else {
-                scope.calcOnState {
-                    val ref = memory.allocConcrete(expr.type)
-                    memory.writeField(ref, index, it.sort, it.asExpr(it.sort), ctx.trueExpr)
-                    ref
-                }
+                return@let it
+            }
+
+            scope.calcOnState {
+                val ref = memory.allocConcrete(expr.type)
+                memory.writeField(ref, index, it.sort, it.asExpr(it.sort), ctx.trueExpr)
+                ref
             }
         }.asExpr(ctx.addressSort)
 
@@ -307,11 +308,21 @@ class GoExprVisitor(
     }
 
     override fun visitGoFieldAddrExpr(expr: GoFieldAddrExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val struct = deref(expr.instance.accept(this).asExpr(ctx.pointerSort), ctx.addressSort)
+        checkNotNull(struct) ?: throw IllegalStateException()
+        return scope.calcOnState {
+            val fieldType = (expr.type as PointerType).baseType
+            val fieldLValue = UFieldLValue(ctx.typeToSort(fieldType), struct, expr.field)
+            mkPointer(expr.type, ctx.mkLValuePointer(fieldLValue))
+        }
     }
 
     override fun visitGoFieldExpr(expr: GoFieldExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val struct = expr.instance.accept(this).asExpr(ctx.addressSort)
+        checkNotNull(struct) ?: throw IllegalStateException()
+        return scope.calcOnState {
+            memory.readField(struct, expr.field, ctx.typeToSort(expr.type))
+        }
     }
 
     override fun visitGoIndexAddrExpr(expr: GoIndexAddrExpr): UExpr<out USort> {
@@ -644,7 +655,7 @@ class GoExprVisitor(
                 checkNotNull(collection) ?: throw IllegalStateException()
 
                 return scope.calcOnState {
-                    when(val type = arg.type) {
+                    when (val type = arg.type) {
                         is ArrayType, is SliceType -> memory.readArrayLength(collection, arg.type, ctx.sizeSort)
                         is MapType -> symbolicObjectMapSize(collection, type)
                         else -> throw IllegalStateException()
