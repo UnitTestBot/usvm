@@ -207,7 +207,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver(state)
-                    resolver.resolve(method).also { println(it) }
+                    resolver.resolve(method) //.also { println(it) }
                 }
             }
         }
