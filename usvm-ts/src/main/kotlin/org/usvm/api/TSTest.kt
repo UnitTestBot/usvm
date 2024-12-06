@@ -2,9 +2,9 @@ package org.usvm.api
 
 import org.jacodb.ets.base.EtsStmt
 
-class TSTest(
+data class TSTest(
     val parameters: List<Any>,
-    val resultValue: Any?,
+    val returnValue: Any?,
     val trace: List<EtsStmt>? = null,
 )
 
@@ -34,7 +34,6 @@ sealed interface TSObject {
         val number: Double
             get() = if (value) 1.0 else 0.0
     }
-
 
     data class Class(val name: String, val properties: Map<String, TSObject>) : TSObject
 

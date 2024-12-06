@@ -43,7 +43,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            extractValuesToCheck = { r -> r.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = coverageChecker
@@ -61,7 +61,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            extractValuesToCheck = { r -> r.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(T::class), typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = coverageChecker
@@ -79,7 +79,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            extractValuesToCheck = { r -> r.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class),
                 typeTransformer(T2::class),
@@ -104,7 +104,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            extractValuesToCheck = { r -> r.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class),
                 typeTransformer(T2::class),
@@ -130,7 +130,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.resultValue },
+            extractValuesToCheck = { r -> r.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class),
                 typeTransformer(T2::class),
