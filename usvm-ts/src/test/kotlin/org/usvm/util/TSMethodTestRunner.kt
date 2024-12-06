@@ -7,11 +7,9 @@ import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.usvm.api.NoCoverage
+import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
 import org.usvm.machine.TSMachine
 import org.usvm.api.TSMethodCoverage
@@ -20,26 +18,33 @@ import org.usvm.api.TSTest
 import org.usvm.UMachineOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
 typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
-open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
+abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMethodCoverage>() {
 
-    protected val globalClassName = "_DEFAULT_ARK_CLASS"
+    protected abstract val scene: EtsScene
+
+    protected fun getMethod(className: String, methodName: String): EtsMethod {
+        return scene
+            .classes
+            .single { it.name == className }
+            .methods
+            .single { it.name == methodName }
+    }
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
     protected inline fun <reified R : TSObject> discoverProperties(
-        methodIdentifier: MethodDescriptor,
+        method: EtsMethod,
         vararg analysisResultMatchers: (R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
-            target = methodIdentifier,
+            target = method,
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
@@ -51,13 +56,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     protected inline fun <reified T : TSObject, reified R : TSObject> discoverProperties(
-        methodIdentifier: MethodDescriptor,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
-            target = methodIdentifier,
+            target = method,
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
@@ -69,13 +74,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
     }
 
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified R : TSObject> discoverProperties(
-        methodIdentifier: MethodDescriptor,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
-            target = methodIdentifier,
+            target = method,
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
@@ -94,13 +99,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                           reified T3 : TSObject, reified R : TSObject
         >
     discoverProperties(
-        methodIdentifier: MethodDescriptor,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
-            target = methodIdentifier,
+            target = method,
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
@@ -120,13 +125,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                           reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject
         >
     discoverProperties(
-        methodIdentifier: MethodDescriptor,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
         invariants: Array<out Function<Boolean>> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
-            target = methodIdentifier,
+            target = method,
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
@@ -180,34 +185,13 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
             }
         }
 
-    private fun EtsFile.getMethodByDescriptor(desc: MethodDescriptor): EtsMethod {
-        val cls = classes.find { it.name == desc.className }
-            ?: error("No class ${desc.className} in project $name")
-
-        return cls.methods.find { it.name == desc.methodName && it.parameters.size == desc.argumentsNumber }
-            ?: error("No method matching $desc found in $name")
-    }
-
-    override val runner: (MethodDescriptor, UMachineOptions) -> List<TSTest>
-        get() = { id, options ->
-            val packagePath = this.javaClass.`package`.name
-                .split(".")
-                .drop(3) // drop org.usvm.samples
-                .joinToString("/")
-
-            val fileURL = javaClass.getResource("/samples/${packagePath}/${id.fileName}")
-                ?: error("No such file found")
-            val filePath = Paths.get(fileURL.toURI())
-            val scene = EtsScene(listOf(loadEtsFileAutoConvert(filePath)))
-
-            // TODO: draft implementation
-            val method = scene.files.single().getMethodByDescriptor(id)
-
+    override val runner: (EtsMethod, UMachineOptions) -> List<TSTest>
+        get() = { method, options ->
             TSMachine(scene, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver(state)
-                    resolver.resolve(method) //.also { println(it) }
+                    resolver.resolve(method)
                 }
             }
         }
@@ -223,11 +207,3 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 }
-
-
-data class MethodDescriptor(
-    val fileName: String,
-    val className: String,
-    val methodName: String,
-    val argumentsNumber: Int,
-)
