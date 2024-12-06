@@ -25,7 +25,7 @@ sealed interface TSObject {
             }
 
         val boolean: kotlin.Boolean
-            get() = number == 1.0
+            get() = number != 0.0
     }
 
     data class String(val value: kotlin.String) : TSObject
