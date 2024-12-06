@@ -16,7 +16,7 @@
         <appender-ref ref="STDOUT-raw" />
     </logger>
 
-    <root level="info">
+    <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

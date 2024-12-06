@@ -1,12 +1,11 @@
 package org.usvm.machine
 
+import mu.KLogging
+import org.usvm.PathNode
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.collections.immutable.internal.MutabilityOwnership
-import org.usvm.language.PyCallable
-import org.usvm.language.PyPinnedCallable
-import org.usvm.language.PyProgram
-import org.usvm.language.PyUnpinnedCallable
+import org.usvm.language.*
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.GenerateNewFromPathConstraints
@@ -27,6 +26,7 @@ import org.usvm.memory.UMemory
 import org.usvm.python.ps.PyPathSelectorType
 import org.usvm.solver.USatResult
 import org.usvm.statistics.CompositeUMachineObserver
+import org.usvm.statistics.UDebugProfileObserver
 import org.usvm.statistics.UMachineObserver
 import kotlin.random.Random
 
@@ -128,7 +128,41 @@ class PyMachine(
             }
 
             val pyObserver = PythonMachineObserver(saver.newStateObserver)
-            val observer = CompositeUMachineObserver(pyObserver)
+            val observers: MutableList<UMachineObserver<PyState>> = mutableListOf(pyObserver)
+
+            if (logger.isDebugEnabled) {
+                observers.add(
+                    UDebugProfileObserver(
+                        getMethodOfStatement = { PyCodeObject(code) },
+                        getStatementIndexInMethod = { numberInBytecode },
+                        getMethodToCallIfCallStatement = { null },
+                        printStatement = { prettyRepresentation() },
+                        forkHappened = { _, _ -> false },  // no tracing of forks for now
+                        getNewStatements = {
+                            val result = mutableListOf<PyInstruction>()
+                            var curNode: PathNode<PyInstruction>? = pathNode
+                            val prevNode = pathNodeBreakpoints.lastOrNull()
+                                ?: PathNode.root()
+
+                            while (curNode != null && curNode != prevNode) {
+                                result.add(curNode.statement)
+                                curNode = curNode.parent
+                            }
+
+                            result.reverse()
+                            result
+                        },
+                        getAllMethodStatements = {
+                            check(this is PyCodeObject) {
+                                "Unexpected callable: $this"
+                            }
+                            extractInstructionsFromCode(codeObject)
+                        },
+                        printNonVisitedStatements = true,
+                        momentOfUpdate = UDebugProfileObserver.MomentOfUpdate.AfterStep,
+                    )
+                )
+            }
 
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
@@ -148,7 +182,7 @@ class PyMachine(
             run(
                 interpreter,
                 pathSelector,
-                observer = observer,
+                observer = CompositeUMachineObserver(observers),
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
                     pyObserver.iterations >= maxIterations ||
@@ -182,5 +216,9 @@ class PyMachine(
                 }
             }
         }
+    }
+
+    companion object {
+        private val logger = object : KLogging() {}.logger
     }
 }

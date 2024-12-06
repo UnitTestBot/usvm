@@ -11,10 +11,29 @@ import org.usvm.machine.types.PythonType
 sealed class PyCallable
 
 /**
- * [PyPinnedCallable] is a reference to Python object of type `function`.
+ * [PyPinnedCallable] is a reference to Python object of type `code`.
  * This reference changes between restarts of Python interpreter.
  * */
-data class PyPinnedCallable(val pyObject: PyObject) : PyCallable()
+data class PyPinnedCallable(val pyObject: PyObject) : PyCallable() {
+    init {
+        val type = ConcretePythonInterpreter.getPythonObjectTypeName(pyObject)
+        check(type == "function") {
+            "Unexpected type of object in PyPinnedCallable: $type"
+        }
+    }
+}
+
+/**
+ * TODO
+ * */
+data class PyCodeObject(val codeObject: PyObject) : PyCallable() {
+    init {
+        val type = ConcretePythonInterpreter.getPythonObjectTypeName(codeObject)
+        check(type == "code") {
+            "Unexpected type of object in PyCodeObject: $type"
+        }
+    }
+}
 
 /**
  * [PyUnpinnedCallable] is a description of Python function that stays constant

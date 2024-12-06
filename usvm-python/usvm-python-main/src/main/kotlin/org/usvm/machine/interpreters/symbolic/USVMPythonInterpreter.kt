@@ -42,6 +42,8 @@ class USVMPythonInterpreter<PyObjectRepr>(
     private val allowPathDiversion: Boolean = true,
 ) : UInterpreter<PyState>() {
     override fun step(state: PyState): StepResult<PyState> {
+        state.pathNodeBreakpoints = state.pathNodeBreakpoints.add(state.pathNode)
+
         val modelHolder = PyModelHolder(state.pyModel)
         val concolicRunContext = constructConcolicRunContext(state, modelHolder)
         val renderer = concolicRunContext.renderer

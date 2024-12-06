@@ -45,6 +45,7 @@ class PyState(
     callStack: UCallStack<PyCallable, PyInstruction> = UCallStack(),
     pathLocation: PathNode<PyInstruction> = PathNode.root(),
     forkPoints: PathNode<PathNode<PyInstruction>> = PathNode.root(),
+    var pathNodeBreakpoints: PersistentList<PathNode<PyInstruction>> = persistentListOf(),
     var concolicQueries: PersistentList<SymbolicHandlerEvent<Any>> = persistentListOf(),
     var delayedForks: PersistentList<DelayedFork> = persistentListOf(),
     val mocks: MutableMap<MockHeader, UMockSymbol<UAddressSort>> = mutableMapOf(),
@@ -84,6 +85,7 @@ class PyState(
             callStack,
             pathNode,
             forkPoints,
+            pathNodeBreakpoints.add(pathNode),
             concolicQueries,
             delayedForks,
             mocks.toMutableMap(), // copy
