@@ -3,8 +3,8 @@ package org.usvm.api
 import org.jacodb.ets.base.EtsStmt
 
 data class TSTest(
-    val parameters: List<Any>,
-    val returnValue: Any?,
+    val parameters: List<TSObject>,
+    val returnValue: TSObject,
     val trace: List<EtsStmt>? = null,
 )
 
