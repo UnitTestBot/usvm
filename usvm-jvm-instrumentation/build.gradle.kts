@@ -39,8 +39,20 @@ kotlin {
 }
 
 dependencies {
-    implementation(Libs.jacodb_api_jvm)
-    implementation(Libs.jacodb_core)
+    implementation(Libs.jacodb_api_jvm) {
+        exclude("javax.xml.bind", "jaxb-api")
+        exclude("org.reactivestreams", "reactive-streams")
+    }
+
+    implementation(Libs.jacodb_core) {
+        exclude("javax.xml.bind", "jaxb-api")
+        exclude("org.reactivestreams", "reactive-streams")
+        exclude("com.zaxxer", "HikariCP")
+        exclude("org.xerial", "sqlite-jdbc")
+    }
+
+    implementation(Libs.jacodb_api_storage)
+    implementation(Libs.jacodb_storage)
 
     implementation(Libs.rd_framework)
     implementation(Libs.ini4j)

@@ -2,6 +2,7 @@ package org.usvm.instrumentation.executor
 
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.impl.JcRamErsSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenterFactory
@@ -21,6 +22,7 @@ abstract class UTestConcreteExecutorTest {
         fun init() = runBlocking {
             val cp = testJarPath.map { File(it) }
             val db = jacodb {
+                persistenceImpl(JcRamErsSettings)
                 loadByteCode(cp)
                 installFeatures(InMemoryHierarchy)
                 jre = File(InstrumentationModuleConstants.pathToJava)

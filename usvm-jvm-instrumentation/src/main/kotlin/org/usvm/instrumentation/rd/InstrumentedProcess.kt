@@ -13,6 +13,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Options
 import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.impl.JcRamErsSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.instrumentation.generated.models.*
@@ -83,6 +84,7 @@ class InstrumentedProcess private constructor() {
     private suspend fun initProcess(classpath: String) {
         fileClassPath = classpath.split(File.pathSeparatorChar).map { File(it) }
         val db = jacodb {
+            persistenceImpl(JcRamErsSettings)
             loadByteCode(fileClassPath)
             installFeatures(InMemoryHierarchy)
             jre = File(InstrumentationModuleConstants.pathToJava)
