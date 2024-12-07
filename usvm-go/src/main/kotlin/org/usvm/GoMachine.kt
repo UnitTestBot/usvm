@@ -26,6 +26,7 @@ import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.type.GoTypeSystem
+import kotlin.math.roundToInt
 
 internal typealias USizeSort = UBv32Sort
 
@@ -143,6 +144,14 @@ class GoMachine(
             isStateTerminated = ::isStateTerminated,
             stopStrategy = stopStrategy,
         )
+
+        if (coverageStatistics.getTotalCoverage().roundToInt() < 100) {
+            throw IllegalStateException("coverage not 100%")
+        }
+        println("Total coverage: ${coverageStatistics.getTotalCoverage().roundToInt()}%")
+        for (method in coverageStatistics.coverageZone) {
+            println("Method ${method.metName} coverage: ${coverageStatistics.getMethodCoverage(method).roundToInt()}%")
+        }
 
         return statesCollector.collectedStates
     }
