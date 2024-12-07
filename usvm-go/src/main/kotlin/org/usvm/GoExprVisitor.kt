@@ -136,6 +136,9 @@ class GoExprVisitor(
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
             scope.doWithState { methodResult = GoMethodResult.NoCall }
+            if (result.method.metName == INIT_FUNCTION) {
+                return ctx.noValue
+            }
             return result.value
         }
 
@@ -155,7 +158,7 @@ class GoExprVisitor(
         scope.doWithState {
             addCall(call, currentStatement)
         }
-        return ctx.voidValue
+        return ctx.noValue
     }
 
     override fun visitGoAllocExpr(expr: GoAllocExpr): UExpr<out USort> {
@@ -551,7 +554,9 @@ class GoExprVisitor(
     override fun visitGoNullConstant(value: GoNullConstant): UExpr<out USort> = ctx.nullRef
 
     override fun visitGoStringConstant(value: GoStringConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+        return scope.calcOnState {
+            mkString(value.value)
+        }
     }
 
     fun <Sort : USort> pointerLValue(pointer: UAddressPointer, sort: Sort): ULValue<*, Sort> = with(ctx) {

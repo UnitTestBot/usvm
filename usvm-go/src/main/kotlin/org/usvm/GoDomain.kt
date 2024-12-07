@@ -6,6 +6,8 @@ import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
 import org.usvm.api.UnknownMethodException
 
+const val INIT_FUNCTION = "init"
+
 class GoMethodInfo(
     val variablesCount: Int,
     val argumentsCount: Int,

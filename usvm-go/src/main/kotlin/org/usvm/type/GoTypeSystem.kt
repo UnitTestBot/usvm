@@ -88,14 +88,14 @@ class GoTypeSystem(
         return when {
             identical(variable, value) -> true
             !(variable is NamedType && value is NamedType) && identical(variable.underlying(), value.underlying()) -> true
-            variable is InterfaceType && value is NamedType && implements(variable, value) -> true
-            variable.underlying() is InterfaceType && value is NamedType && implements(variable.underlying() as InterfaceType, value) -> true
+            variable is InterfaceType && implements(variable, value) -> true
+            variable.underlying() is InterfaceType && implements(variable.underlying() as InterfaceType, value) -> true
             value is NullType && (variable is PointerType || variable is SignatureType || variable is SliceType || variable is MapType || variable is ChanType || variable is InterfaceType) -> true
             else -> false
         }
     }
 
-    private fun implements(iface: InterfaceType, impl: NamedType): Boolean {
+    private fun implements(iface: InterfaceType, impl: GoType): Boolean {
         return true // TODO(buraindo) fix when interfaces have methods
     }
 }

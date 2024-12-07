@@ -14,6 +14,7 @@ func (p Person) GetAge() int {
 }
 
 func (p Person) WithName(name string) Creature {
+	checkGoodString(name)
 	p.Name = name
 	return p
 }

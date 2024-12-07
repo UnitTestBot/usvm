@@ -17,6 +17,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.NullType
@@ -54,6 +55,8 @@ import org.usvm.sizeSort
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
 import org.usvm.type.GoBasicTypes
+import org.usvm.type.GoVoidSort
+import org.usvm.types.first
 import java.nio.ByteBuffer
 import kotlin.random.Random
 import kotlin.random.nextUInt
@@ -95,6 +98,7 @@ class GoTestInterpreter(
         private val memory: UWritableMemory<GoType>,
     ) {
         fun convertExpr(expr: UExpr<out USort>, type: GoType): Any? = when (expr.sort) {
+            is GoVoidSort -> ""
             is KBoolSort -> resolveBool(expr)
             is KBv8Sort -> resolveBv8(expr)
             is KBv16Sort -> resolveBv16(expr)
@@ -111,6 +115,7 @@ class GoTestInterpreter(
                     is NullType -> null
                     is StructType -> resolveStruct(it, type)
                     is NamedType -> convertExpr(it, type.underlyingType)
+                    is InterfaceType -> convertExpr(it, memory.types.getTypeStream(it).first())
                     else -> Any()
                 }
             }

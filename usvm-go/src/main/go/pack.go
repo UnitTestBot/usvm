@@ -330,6 +330,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = PanicInstruction
 		return Panic{
 			CommonInstruction: common,
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.Send:
 		common.Type = SendInstruction
