@@ -24,7 +24,7 @@ class GoTypeSystem(
     override val typeOperationsTimeout: Duration,
     val types: Collection<GoType>
 ) : UTypeSystem<GoType> {
-    private val goAnyType = InterfaceType()
+    private val goAnyType = InterfaceType(emptyList(), "any")
     private val topTypeStream by lazy { USupportTypeStream.from(this, goAnyType) }
 
     override fun topTypeStream(): UTypeStream<GoType> {
@@ -95,7 +95,9 @@ class GoTypeSystem(
         }
     }
 
-    private fun implements(iface: InterfaceType, impl: GoType): Boolean {
-        return true // TODO(buraindo) fix when interfaces have methods
+    private fun implements(iface: InterfaceType, impl: GoType): Boolean = when {
+        iface.methods.isEmpty() -> true
+        impl is NamedType -> impl.methods.containsAll(iface.methods)
+        else -> false
     }
 }
