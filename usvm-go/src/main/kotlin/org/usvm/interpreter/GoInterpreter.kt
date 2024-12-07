@@ -12,6 +12,7 @@ import org.usvm.GoExprVisitor
 import org.usvm.GoInstVisitor
 import org.usvm.GoPackage
 import org.usvm.GoTarget
+import org.usvm.INIT_FUNCTION
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -49,7 +50,7 @@ class GoInterpreter(
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(argumentsCount, localsCount)
 
-        val init = pkg.findMethod("init")
+        val init = pkg.findMethod(INIT_FUNCTION)
         setMethodInfo(init)
 
         state.addCall(GoCall(init, applicationGraph.entryPoints(init).first(), emptyArray()), entrypoint)

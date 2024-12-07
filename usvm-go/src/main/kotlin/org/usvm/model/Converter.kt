@@ -52,6 +52,7 @@ import org.jacodb.go.api.GoNextExpr
 import org.jacodb.go.api.GoNullConstant
 import org.jacodb.go.api.GoNullInst
 import org.jacodb.go.api.GoOrExpr
+import org.jacodb.go.api.GoPanicInst
 import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoPhiExpr
 import org.jacodb.go.api.GoRangeExpr
@@ -146,7 +147,7 @@ object Converter {
             is Instruction.MakeSlice -> unpackMakeSlice(location, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(location, unpackValue(inst.map), unpackValue(inst.key), unpackValue(inst.value))
             is Instruction.Next -> GoNextExpr(location, getType(inst.goType), unpackValue(inst.iter), inst.register).toAssignInst()
-            is Instruction.Panic -> TODO()
+            is Instruction.Panic -> GoPanicInst(location, unpackValue(inst.value))
             is Instruction.Phi -> GoPhiExpr(location, getType(inst.goType), inst.edges.map(::unpackValue), inst.register).toAssignInst()
             is Instruction.Range -> GoRangeExpr(location, getType(inst.goType), unpackValue(inst.collection), inst.register).toAssignInst()
             is Instruction.Return -> GoReturnInst(location, inst.results.map(::unpackValue))
@@ -290,7 +291,7 @@ object Converter {
     private fun unpackConst(value: Value.Const): GoValue {
         val const = value.value
         val string = const.value
-        val type = BasicType(const.type)
+        val type = unpackBasicType(const.type)
 
         return when (const.type) {
             GoTypes.BOOL -> GoBool(string.toBooleanStrict(), type)
@@ -307,6 +308,7 @@ object Converter {
             GoTypes.FLOAT32 -> GoFloat32(string.toFloat(), type)
             GoTypes.FLOAT64 -> GoFloat64(string.toDouble(), type)
             GoTypes.STRING -> GoStringConstant(string, type)
+            GoTypes.RUNE -> GoInt32(string.toInt(), type)
             else -> GoNullConstant()
         }
     }
@@ -357,6 +359,7 @@ object Converter {
         GoTypes.FLOAT32 -> GoBasicTypes.FLOAT32
         GoTypes.FLOAT64 -> GoBasicTypes.FLOAT64
         GoTypes.STRING -> GoBasicTypes.STRING
+        GoTypes.RUNE -> GoBasicTypes.RUNE
         else -> BasicType("unknown")
     }
 

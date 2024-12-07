@@ -169,7 +169,7 @@ class GoInstVisitor(
         val rvalue = inst.rhv.accept(exprVisitor)
         val sort = rvalue.sort
 
-        if (rvalue == ctx.voidValue) {
+        if (rvalue == ctx.noValue) {
             return GoNullInst(inst.location.method)
         }
 

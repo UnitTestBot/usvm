@@ -188,6 +188,7 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        val value: Value,
     ) : Instruction
 
     @Serializable

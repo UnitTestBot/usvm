@@ -218,6 +218,7 @@ type RunDefers struct {
 
 type Panic struct {
 	CommonInstruction `yaml:",inline"`
+	Value             Value `yaml:"value" json:"value"`
 }
 
 type Send struct {

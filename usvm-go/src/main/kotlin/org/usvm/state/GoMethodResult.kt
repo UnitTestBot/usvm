@@ -9,8 +9,8 @@ sealed interface GoMethodResult {
     data object NoCall : GoMethodResult
 
     class Success(
-        val method: GoMethod,
         val value: UExpr<out USort>,
+        val method: GoMethod,
         val type: GoType,
     ) : GoMethodResult
 
