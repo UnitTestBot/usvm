@@ -121,7 +121,7 @@ class GoState(
         }
 
         if (!isExceptional) {
-            methodResult = GoMethodResult.Success(returnFromMethod, valueToReturn, type)
+            methodResult = GoMethodResult.Success(valueToReturn, returnFromMethod, type)
         }
 
         if (returnSite != null) {
@@ -243,7 +243,7 @@ class GoState(
         return ref
     }
 
-    private fun mkString(value: String): UExpr<out USort> {
+    fun mkString(value: String): UExpr<out USort> {
         return memory.allocateArrayInitialized(
             GoBasicTypes.STRING,
             ctx.bv32Sort,

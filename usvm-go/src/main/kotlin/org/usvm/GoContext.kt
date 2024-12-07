@@ -67,6 +67,8 @@ class GoContext(
 
     val voidValue by lazy { GoVoidValue(this) }
 
+    val noValue = mkConst("nothing", voidSort)
+
     fun typeToSort(type: GoType): USort = when (type) {
         is BasicType -> basicTypeToSort(type.typeName)
         is PointerType -> pointerSort
@@ -75,7 +77,7 @@ class GoContext(
 
     private fun basicTypeToSort(typeName: String): USort = when (typeName) {
         GoTypes.BOOL -> boolSort
-        GoTypes.INT, GoTypes.UINT, GoTypes.INT32, GoTypes.UINT32 -> bv32Sort
+        GoTypes.INT, GoTypes.UINT, GoTypes.INT32, GoTypes.UINT32, GoTypes.RUNE -> bv32Sort
         GoTypes.INT8, GoTypes.UINT8 -> bv8Sort
         GoTypes.INT16, GoTypes.UINT16 -> bv16Sort
         GoTypes.INT64, GoTypes.UINT64 -> bv64Sort

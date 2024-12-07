@@ -28,6 +28,7 @@ object GoTypes {
     const val FLOAT32 = "float32"
     const val FLOAT64 = "float64"
     const val STRING = "string"
+    const val RUNE = "rune"
 }
 
 object GoBasicTypes {
@@ -45,9 +46,10 @@ object GoBasicTypes {
     val FLOAT32 = BasicType(GoTypes.FLOAT32)
     val FLOAT64 = BasicType(GoTypes.FLOAT64)
     val STRING = BasicType(GoTypes.STRING)
+    val RUNE = BasicType(GoTypes.RUNE)
 }
 
-fun GoType.underlying(): GoType = when(this) {
+fun GoType.underlying(): GoType = when (this) {
     is NamedType -> this.underlyingType.underlying()
     else -> this
 }
