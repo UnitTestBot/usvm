@@ -35,7 +35,7 @@ class GoMachine(
     private val pkg: GoPackage,
     private val options: UMachineOptions,
 ) : UMachine<GoState>() {
-    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout)
+    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, pkg.types.values)
     private val goApplicationGraph = GoApplicationGraphImpl()
     private val applicationGraph = GoApplicationGraphAdapter(goApplicationGraph)
     private val components = GoComponents(typeSystem, options)

@@ -143,7 +143,7 @@ class GoExprVisitor(
             expr.callee != null -> expr.callee!!
             func is GoFunction -> pkg.findMethod(func.metName)
             func is GoVar -> scope.calcOnState {
-                pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst<*>).decl.name)
+                pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name)
             }
 
             else -> throw UnknownFunctionException()
@@ -264,7 +264,7 @@ class GoExprVisitor(
         }.asExpr(ctx.addressSort)
 
         scope.doWithState {
-            scope.assert(memory.types.evalIsSubtype(rvalue, expr.value.type)) ?: throw IllegalStateException()
+            scope.assert(memory.types.evalIsSubtype(rvalue, expr.type)) ?: throw IllegalStateException()
         }
 
         return rvalue
@@ -313,7 +313,7 @@ class GoExprVisitor(
         return scope.calcOnState {
             val fieldType = (expr.type as PointerType).baseType
             val fieldLValue = UFieldLValue(ctx.typeToSort(fieldType), struct, expr.field)
-            mkPointer(expr.type, ctx.mkLValuePointer(fieldLValue))
+            mkPointer(fieldType, ctx.mkLValuePointer(fieldLValue))
         }
     }
 
@@ -652,16 +652,26 @@ class GoExprVisitor(
             "len" -> {
                 val arg = args[0]
                 val collection = arg.accept(this).asExpr(ctx.addressSort)
-                checkNotNull(collection) ?: throw IllegalStateException()
 
-                return scope.calcOnState {
-                    when (val type = arg.type) {
-                        is ArrayType, is SliceType -> memory.readArrayLength(collection, arg.type, ctx.sizeSort)
-                        is MapType -> symbolicObjectMapSize(collection, type)
-                        else -> throw IllegalStateException()
-                    }
+                return ctx.mkIte(
+                    ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef)),
+                    trueBranch = {
+                        scope.calcOnState {
+                            when (val type = arg.type) {
+                                is ArrayType, is SliceType, is BasicType -> memory.readArrayLength(collection, type, ctx.sizeSort)
+                                is MapType -> {
+                                    scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
+                                    symbolicObjectMapSize(collection, type)
+                                }
 
-                }
+                                else -> throw IllegalStateException()
+                            }
+                        }
+                    },
+                    falseBranch = {
+                        ctx.mkSizeExpr(0)
+                    },
+                )
             }
 
             else -> ctx.nullRef
