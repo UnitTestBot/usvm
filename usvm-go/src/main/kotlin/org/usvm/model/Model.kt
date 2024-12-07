@@ -569,7 +569,7 @@ sealed interface Type {
     @SerialName("Struct")
     data class Struct(
         override val name: String,
-        val fields: HashMap<String, String>
+        val fields: List<String>
     ) : Type
 
     @Serializable

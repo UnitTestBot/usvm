@@ -87,6 +87,7 @@ import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.jacodb.go.api.UnionType
 import org.usvm.GoPackage
+import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoTypes
 
 object Converter {
@@ -319,7 +320,7 @@ object Converter {
     private fun unpackType(types: Map<String, Type>, type: Type): GoType = when (type) {
         is Type.Alias -> unpackType(types, type.from)
         is Type.Array -> ArrayType(type.len, unpackType(types, type.elem))
-        is Type.Basic -> BasicType(type.name)
+        is Type.Basic -> unpackBasicType(type.name)
         is Type.Chan -> ChanType(type.dir.toLong(), unpackType(types, type.elem))
         is Type.Interface -> InterfaceType()
         is Type.Map -> MapType(unpackType(types, type.key), unpackType(types, type.elem))
@@ -328,10 +329,10 @@ object Converter {
         is Type.Pointer -> PointerType(unpackType(types, type.elem))
         is Type.Signature -> SignatureType(TupleType(unpackTypes(types, type.params)), TupleType(unpackTypes(types, type.results)))
         is Type.Slice -> SliceType(unpackType(types, type.elem))
-        is Type.Struct -> StructType(unpackTypes(types, type.fields.values.sorted()), null)
+        is Type.Struct -> StructType(unpackTypes(types, type.fields), null)
         is Type.Tuple -> TupleType(unpackTypes(types, type.elems))
         is Type.TypeParam -> unpackType(types, type.name)
-        is Type.Union -> UnionType(emptyList())
+        is Type.Union -> UnionType(emptyList()) // TODO(buraindo) proper type list
     }
 
     private fun unpackType(types: Map<String, Type>, type: String): GoType {
@@ -339,6 +340,24 @@ object Converter {
             println()
         }
         return unpackType(types, types[type]!!)
+    }
+
+    private fun unpackBasicType(name: String) = when(name) {
+        GoTypes.BOOL -> GoBasicTypes.BOOL
+        GoTypes.INT -> GoBasicTypes.INT
+        GoTypes.INT8 -> GoBasicTypes.INT8
+        GoTypes.INT16 -> GoBasicTypes.INT16
+        GoTypes.INT32 -> GoBasicTypes.INT32
+        GoTypes.INT64 -> GoBasicTypes.INT64
+        GoTypes.UINT -> GoBasicTypes.UINT
+        GoTypes.UINT8 -> GoBasicTypes.UINT8
+        GoTypes.UINT16 -> GoBasicTypes.UINT16
+        GoTypes.UINT32 -> GoBasicTypes.UINT32
+        GoTypes.UINT64 -> GoBasicTypes.UINT64
+        GoTypes.FLOAT32 -> GoBasicTypes.FLOAT32
+        GoTypes.FLOAT64 -> GoBasicTypes.FLOAT64
+        GoTypes.STRING -> GoBasicTypes.STRING
+        else -> BasicType("unknown")
     }
 
     private fun functionAlias(name: String): GoFunction {
