@@ -16,6 +16,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.GoPointerLValue
@@ -24,6 +25,7 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.model.UModelBase
 import org.usvm.sampleUValue
+import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.type.GoBasicTypes
 
@@ -229,7 +231,7 @@ class GoState(
     fun mkPointer(type: GoType, value: UExpr<out USort>): UExpr<out USort> {
         val ref = memory.allocConcrete(type)
         val sort = ctx.typeToSort(type)
-        memory.write(GoPointerLValue(ref, sort), value.asExpr(sort), ctx.trueExpr)
+        memory.write(GoPointerLValue(ref, sort), value.asExpr(value.sort), ctx.trueExpr)
         return ctx.mkAddressPointer(ref.address)
     }
 
@@ -241,7 +243,12 @@ class GoState(
         return ref
     }
 
-    private fun mkString(value: String): UExpr<out USort> = with(ctx) {
-        mkConst(value, addressSort)
+    private fun mkString(value: String): UExpr<out USort> {
+        return memory.allocateArrayInitialized(
+            GoBasicTypes.STRING,
+            ctx.bv32Sort,
+            ctx.sizeSort,
+            value.toByteArray().map { ctx.mkBv(it.toInt()) }.asSequence()
+        )
     }
 }

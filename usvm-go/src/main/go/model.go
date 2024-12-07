@@ -451,7 +451,7 @@ type Slice struct {
 
 type Struct struct {
 	CommonType `yaml:"-,inline"`
-	Fields     map[string]string `yaml:"fields" json:"fields"`
+	Fields     []string `yaml:"fields" json:"fields"`
 }
 
 type Tuple struct {

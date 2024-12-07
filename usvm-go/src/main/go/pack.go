@@ -109,10 +109,10 @@ func (p *Package) AddType(typ types.Type) {
 		}
 		p.AddType(t.Elem())
 	case *types.Struct:
-		fields := make(map[string]string)
+		fields := make([]string, 0)
 		for i := 0; i < t.NumFields(); i++ {
 			field := t.Field(i)
-			fields[field.Name()] = field.Type().String()
+			fields = append(fields, field.Type().String())
 			p.AddType(field.Type())
 		}
 		common.Type = StructType

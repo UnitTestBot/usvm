@@ -4,7 +4,6 @@ import io.ksmt.expr.KBitVec16Value
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KBitVec64Value
 import io.ksmt.expr.KBitVec8Value
-import io.ksmt.expr.KConst
 import io.ksmt.expr.KFp32Value
 import io.ksmt.expr.KFp64Value
 import io.ksmt.sort.KBoolSort
@@ -54,7 +53,8 @@ import org.usvm.sampleUValue
 import org.usvm.sizeSort
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
-import org.usvm.type.GoTypes
+import org.usvm.type.GoBasicTypes
+import java.nio.ByteBuffer
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlin.random.nextULong
@@ -134,11 +134,29 @@ class GoTestInterpreter(
 
         fun resolveSize(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec32Value).numberValue
 
-        fun resolveString(constString: UHeapRef): String = with(ctx) {
-            if (constString == mkConcreteHeapRef(NULL_ADDRESS) || constString == ctx.nullRef) {
+        fun resolveString(string: UHeapRef): String = with(ctx) {
+            if (string == mkConcreteHeapRef(NULL_ADDRESS) || string == ctx.nullRef) {
                 return ""
             }
-            return (constString as KConst<*>).decl.name
+
+            val arrayType = GoBasicTypes.STRING
+            val lengthUExpr = memory.readArrayLength(string, arrayType, sizeSort)
+            val length = clipArrayLength(resolveSize(lengthUExpr))
+
+            val buffer = ByteBuffer.allocate(length * Int.SIZE_BYTES)
+            for (i in 0..<length) {
+                val element = memory.readArrayIndex(string, mkSizeExpr(i), arrayType, bv32Sort)
+                val rune = convertExpr(element, GoBasicTypes.INT32) as Int
+                when {
+                    rune < Byte.MAX_VALUE -> buffer.put(rune.toByte())
+                    rune < Short.MAX_VALUE -> buffer.putShort(rune.toShort())
+                    else -> buffer.putInt(rune)
+                }
+            }
+
+            val byteArray = ByteArray(buffer.position())
+            buffer.flip().get(byteArray)
+            return String(byteArray)
         }
 
         fun resolveArray(array: UHeapRef, arrayType: SliceType): List<Any?>? = with(ctx) {
@@ -233,8 +251,8 @@ class GoTestInterpreter(
                 return null
             }
 
-            return structType.fields?.mapIndexed{ idx, type -> Pair(idx, type) }?.associate {
-                Pair("field${it.first}", convertExpr(memory.readField(struct, it, typeToSort(it.second)), it.second))
+            return structType.fields?.mapIndexed { idx, type -> Pair(idx, type) }?.associate {
+                Pair("field${it.first}", convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second))
             }
         }
     }
@@ -326,44 +344,44 @@ class RNG(
 ) {
     private val random = Random(seed)
 
-    private val generate: () -> Any = when (type.typeName) {
-        GoTypes.INT8 -> {
+    private val generate: () -> Any = when (type) {
+        GoBasicTypes.INT8 -> {
             { random.nextBytes(1).first() }
         }
 
-        GoTypes.UINT8 -> {
+        GoBasicTypes.UINT8 -> {
             { random.nextBytes(1).first().toUByte() }
         }
 
-        GoTypes.INT16 -> {
+        GoBasicTypes.INT16 -> {
             { random.nextInt().toShort() }
         }
 
-        GoTypes.UINT16 -> {
+        GoBasicTypes.UINT16 -> {
             { random.nextInt().toUShort() }
         }
 
-        GoTypes.INT, GoTypes.INT32 -> {
+        GoBasicTypes.INT, GoBasicTypes.INT32 -> {
             { random.nextInt() }
         }
 
-        GoTypes.UINT, GoTypes.UINT32 -> {
+        GoBasicTypes.UINT, GoBasicTypes.UINT32 -> {
             { random.nextUInt() }
         }
 
-        GoTypes.INT64 -> {
+        GoBasicTypes.INT64 -> {
             { random.nextLong() }
         }
 
-        GoTypes.UINT64 -> {
+        GoBasicTypes.UINT64 -> {
             { random.nextULong() }
         }
 
-        GoTypes.FLOAT32 -> {
+        GoBasicTypes.FLOAT32 -> {
             { random.nextFloat() }
         }
 
-        GoTypes.FLOAT64 -> {
+        GoBasicTypes.FLOAT64 -> {
             { random.nextDouble() }
         }
 
