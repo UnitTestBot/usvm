@@ -84,12 +84,13 @@ class TSExprResolver(
     localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    private val simpleValueResolver: TSSimpleValueResolver = TSSimpleValueResolver(
-        ctx,
-        scope,
-        localToIdx,
-        localToSort
-    )
+    private val simpleValueResolver: TSSimpleValueResolver =
+        TSSimpleValueResolver(
+            ctx,
+            scope,
+            localToIdx,
+            localToSort,
+        )
 
     fun resolveTSExprNoUnwrap(expr: EtsEntity): UExpr<out USort>? = expr.accept(this)
 
@@ -97,10 +98,9 @@ class TSExprResolver(
         return resolveTSExprNoUnwrap(expr)?.unwrapJoinedExpr(ctx)
     }
 
-    fun resolveLValue(value: EtsValue): ULValue<*, *>? =
+    fun resolveLValue(value: EtsValue): ULValue<*, *> =
         when (value) {
-            is EtsParameterRef,
-            is EtsLocal -> simpleValueResolver.resolveLocal(value)
+            is EtsParameterRef, is EtsLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
         }
 
@@ -185,6 +185,7 @@ class TSExprResolver(
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
+
     override fun visit(value: EtsObjectLiteral): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
