@@ -128,7 +128,7 @@ class TSInterpreter(
 
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
         localVarToSort
-            .getOrPut(stmt.method) { mutableMapOf() }
+            .getOrPut(stmt.method) { hashMapOf() }
             .getOrPut(mapLocalToIdx(stmt.method, stmt.lhv)) { expr.sort }
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
