@@ -12,7 +12,7 @@ import org.usvm.statistics.UDebugProfileObserver
 
 
 val pyDebugProfileObserver = UDebugProfileObserver(
-    statementOperations = object : UDebugProfileObserver.StatementOperations<PyInstruction, PyCallable> {
+    statementOperations = object : UDebugProfileObserver.StatementOperations<PyInstruction, PyCallable, PyState> {
         override fun getMethodOfStatement(statement: PyInstruction) = PyCodeObject(statement.code)
 
         override fun getStatementIndexInMethod(statement: PyInstruction) = statement.numberInBytecode
@@ -34,12 +34,6 @@ val pyDebugProfileObserver = UDebugProfileObserver(
             }
             return method.prettyPrint()
         }
-    },
-    profilerOptions = object : UDebugProfileObserver.Options<PyInstruction, PyState>() {
-        override val momentOfUpdate: UDebugProfileObserver.MomentOfUpdate =
-            UDebugProfileObserver.MomentOfUpdate.AfterStep
-
-        override val printNonVisitedStatements: Boolean = true
 
         override fun getNewStatements(state: PyState): List<PathNode<PyInstruction>> {
             val result = mutableListOf<PathNode<PyInstruction>>()
@@ -60,4 +54,8 @@ val pyDebugProfileObserver = UDebugProfileObserver(
             return false // no tracing of forks for now
         }
     },
+    profilerOptions = UDebugProfileObserver.Options(
+        momentOfUpdate = UDebugProfileObserver.MomentOfUpdate.AfterStep,
+        printNonVisitedStatements = true,
+    ),
 )
