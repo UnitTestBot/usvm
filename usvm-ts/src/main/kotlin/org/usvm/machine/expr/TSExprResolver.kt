@@ -135,27 +135,27 @@ class TSExprResolver(
         return block(result0, result1)
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort>? {
+    override fun visit(value: EtsLocal): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
+    override fun visit(value: EtsParameterRef): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort>? {
+    override fun visit(value: EtsThis): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort>? {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -441,26 +441,26 @@ class TSSimpleValueResolver(
         return URegisterStackLValue(sort, localIdx)
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsParameterRef): UExpr<out USort> = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsThis): UExpr<out USort> = with(ctx) {
         val lValue = resolveLocal(value)
         scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
         mkFp64(value.value)
     }
 
@@ -469,7 +469,7 @@ class TSSimpleValueResolver(
         return null
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
         nullRef
     }
 
