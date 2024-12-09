@@ -139,16 +139,15 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
-    }
-
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? {
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? {
+    override fun visit(value: EtsThis): UExpr<out USort>? {
+        return simpleValueResolver.visit(value)
+    }
+
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
@@ -156,6 +155,36 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
+    override fun visit(value: EtsNullConstant): UExpr<out USort>? {
+        return simpleValueResolver.visit(value)
+    }
+
+    override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
+    }
+
+    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Add, expr)
+    }
+
+    override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.And, expr)
+    }
+
+    override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
+    }
+
+    override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
+        return resolveAfterResolved(expr.arg) { arg ->
+            TSUnaryOperator.Not(arg, scope)
+        }
+    }
+
+    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
+    }
     override fun visit(value: EtsObjectLiteral): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
@@ -169,14 +198,6 @@ class TSExprResolver(
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
-    }
-
-    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Add, expr)
-    }
-
-    override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.And, expr)
     }
 
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
@@ -222,10 +243,6 @@ class TSExprResolver(
     override fun visit(expr: EtsDivExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
-    }
-
-    override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
     }
 
     override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
@@ -296,14 +313,6 @@ class TSExprResolver(
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
-    }
-
-    override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
-    }
-
-    override fun visit(expr: EtsNotExpr): UExpr<out USort>? = resolveAfterResolved(expr.arg) { arg ->
-        TSUnaryOperator.Not(arg, scope)
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
@@ -411,17 +420,9 @@ class TSExprResolver(
         return null
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
-        return simpleValueResolver.visit(value)
-    }
-
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
-    }
-
-    override fun visit(value: EtsThis): UExpr<out USort>? {
-        return simpleValueResolver.visit(value)
     }
 }
 
