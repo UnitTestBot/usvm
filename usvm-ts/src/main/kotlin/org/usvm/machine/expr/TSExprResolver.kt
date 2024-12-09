@@ -497,6 +497,7 @@ class TSSimpleValueResolver(
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
+
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
