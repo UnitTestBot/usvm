@@ -434,31 +434,34 @@ class TSSimpleValueResolver(
     private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
+    fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
+        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
+        val localIdx = localToIdx(method, local)
+        val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
+        return URegisterStackLValue(sort, localIdx)
+    }
+
     override fun visit(value: EtsLocal): UExpr<out USort>? = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? = with(ctx) {
+        val lValue = resolveLocal(value)
+        return scope.calcOnState { memory.read(lValue) }
+    }
+
+    override fun visit(value: EtsThis): UExpr<out USort>? = with(ctx) {
+        val lValue = resolveLocal(value)
+        scope.calcOnState { memory.read(lValue) }
     }
 
     override fun visit(value: EtsBooleanConstant): UExpr<out USort>? = with(ctx) {
         mkBool(value.value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
-        nullRef
-    }
-
     override fun visit(value: EtsNumberConstant): UExpr<out USort>? = with(ctx) {
         mkFp64(value.value)
-    }
-
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
@@ -466,7 +469,21 @@ class TSSimpleValueResolver(
         return null
     }
 
+    override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
+        nullRef
+    }
+
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
+    }
+
+    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
+    }
+
+    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
@@ -480,26 +497,8 @@ class TSSimpleValueResolver(
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
-
-    override fun visit(value: EtsParameterRef): UExpr<out USort>? = with(ctx) {
-        val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
-    }
-
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
-    }
-
-    override fun visit(value: EtsThis): UExpr<out USort>? = with(ctx) {
-        val lValue = resolveLocal(value)
-        scope.calcOnState { memory.read(lValue) }
-    }
-
-    fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
-        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
-        val localIdx = localToIdx(method, local)
-        val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
-        return URegisterStackLValue(sort, localIdx)
     }
 }
