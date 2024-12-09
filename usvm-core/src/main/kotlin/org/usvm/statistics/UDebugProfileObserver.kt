@@ -279,12 +279,6 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
 
     private fun Iterable<StatsCounter>.sum(): Long = sumOf { it.sum() }
 
-    companion object {
-        fun <Statement, State : UState<*, *, Statement, *, *, *>> defaultForkHappened() = { state: State, _: Statement ->
-            state.forkPoints != PathNode.root<Nothing>() && state.forkPoints.statement == state.pathNode.parent
-        }
-    }
-
     enum class MomentOfUpdate {
         BeforeStep,
         AfterStep,

@@ -45,7 +45,7 @@ object ConcretePythonInterpreter {
         }
     }
 
-    fun eval(globals: PyNamespace, expr: String, printErrorMsg: Boolean = true, setHook: Boolean = false): PyObject {
+    fun eval(globals: PyNamespace, expr: String, printErrorMsg: Boolean = false, setHook: Boolean = false): PyObject {
         val result = pythonAdapter.eval(globals.address, expr, printErrorMsg, setHook)
         if (result == 0L) {
             val op = if (setHook) pythonAdapter.checkForIllegalOperation() else null

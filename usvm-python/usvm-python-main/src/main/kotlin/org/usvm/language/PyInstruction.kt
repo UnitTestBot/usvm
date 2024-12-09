@@ -10,7 +10,7 @@ data class PyInstruction(
 
 fun extractInstructionsFromCode(code: PyObject): List<PyInstruction> {
     require(ConcretePythonInterpreter.getPythonObjectTypeName(code) == "code") {
-        "Can extract code only from 'code' object"
+        "Can extract instructions only from 'code' object"
     }
     val namespace = ConcretePythonInterpreter.getNewNamespace()
     ConcretePythonInterpreter.addObjectToNamespace(namespace, code, "f")
