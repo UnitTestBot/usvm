@@ -10,9 +10,8 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.uctx
 
-@Suppress("UNCHECKED_CAST")
-fun UWritableMemory<*>.write(ref: ULValue<*, *>, value: UExpr<*>) {
-    write(ref as ULValue<*, USort>, value as UExpr<USort>, value.uctx.trueExpr)
+fun <Sort : USort> UWritableMemory<*>.write(ref: ULValue<*, Sort>, value: UExpr<Sort>) {
+    write(ref, value, value.uctx.trueExpr)
 }
 
 // Built-in KContext.bvToBool has identical implementation.
