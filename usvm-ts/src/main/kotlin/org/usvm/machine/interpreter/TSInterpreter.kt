@@ -2,6 +2,7 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
@@ -36,6 +37,8 @@ import org.usvm.machine.state.returnValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.write
+
+private val logger = KotlinLogging.logger {}
 
 typealias TSStepScope = StepScope<TSState, EtsType, EtsStmt, TSContext>
 
@@ -90,7 +93,10 @@ class TSInterpreter(
             // Don't want to lose UJoinedBoolExpr here for further fork.
             .resolveTSExprNoUnwrap(stmt.condition)
             ?.asExpr(ctx.boolSort)
-            ?: return
+            ?: run {
+                logger.warn { "Failed to resolve condition: $stmt" }
+                return
+            }
 
         val succs = applicationGraph.successors(stmt).take(2).toList()
         val negStmt = succs[0]
