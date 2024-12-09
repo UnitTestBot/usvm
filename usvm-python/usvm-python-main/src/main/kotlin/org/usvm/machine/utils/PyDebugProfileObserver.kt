@@ -57,7 +57,7 @@ val pyDebugProfileObserver = UDebugProfileObserver(
         }
 
         override fun forkHappened(state: PyState, statement: PathNode<PyInstruction>): Boolean {
-            return false  // no tracing of forks for now
+            return false // no tracing of forks for now
         }
     },
 )

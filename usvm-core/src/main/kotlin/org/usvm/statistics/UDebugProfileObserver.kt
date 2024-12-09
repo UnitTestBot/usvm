@@ -14,9 +14,9 @@ private val logger = object : KLogging() {}.logger
 /**
  * Collect UMachine profile for debug purposes.
  * */
-open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Statement, *, *, *>>(
+open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, Statement, *, *, *>>(
     private val statementOperations: StatementOperations<Statement, Method>,
-    private val profilerOptions: Options<Statement, State> = Options()
+    private val profilerOptions: Options<Statement, State> = Options(),
 ) : UMachineObserver<State> {
 
     interface StatementOperations<Statement, Method> {
@@ -44,7 +44,7 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
         fun getAllMethodStatements(method: Method): List<Statement> = emptyList()
     }
 
-    open class Options<Statement, State: UState<*, *, Statement, *, *, *>> {
+    open class Options<Statement, State : UState<*, *, Statement, *, *, *>> {
         /**
          * Statistics from state about visited statements can be added either before or after interpreter step.
          * */
@@ -154,10 +154,10 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
     private fun computeProfileFrame(
         slice: StateId?,
         inst: Statement,
-        root: TrieNode<Statement, *>
+        root: TrieNode<Statement, *>,
     ): ProfileFrame<Statement, Method, State> {
-        val allNodeStats = stackTraces[root] ?: emptyMap()
-        val allForkStats = forksCount[root] ?: emptyMap()
+        val allNodeStats = stackTraces[root].orEmpty()
+        val allForkStats = forksCount[root].orEmpty()
         val children = root.children.mapValues { (i, node) -> computeProfileFrame(slice, i, node) }
 
         val nodeStats = allNodeStats.sumOfSlice(slice)
@@ -190,7 +190,7 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
         fun print(str: StringBuilder, indent: String) {
             val sortedChildren = children.entries
                 .groupBy { statementOperations.getMethodOfStatement(it.key) }.entries
-                .sortedByDescending { it.value.sumOf { it.value.total } }
+                .sortedByDescending { entry -> entry.value.sumOf { it.value.total } }
 
             for ((method, inst) in sortedChildren) {
                 val total = inst.sumOf { it.value.total }
@@ -198,7 +198,7 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
                 val totalForks = inst.sumOf { it.value.totalForks }
                 val selfForks = inst.sumOf { it.value.selfForks }
                 val methodRepr = statementOperations.printMethodName(method)
-                str.appendLine("$indent|__ $methodRepr | Steps ${self}/${total} | Forks ${selfForks}/${totalForks}")
+                str.appendLine("$indent|__ $methodRepr | Steps $self/$total | Forks $selfForks/$totalForks")
 
                 val children = if (profilerOptions.printNonVisitedStatements) {
                     val allStatements = statementOperations.getAllMethodStatements(method)
@@ -229,7 +229,10 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
 
                 for ((i, child) in children) {
                     val instRepr = statementOperations.printStatement(i).padEnd(profilerOptions.padInstructionEnd)
-                    str.appendLine("$indent$INDENT$instRepr | Steps ${child.self}/${child.total} | Forks ${child.selfForks}/${child.totalForks}")
+                    val line = "$indent$INDENT$instRepr" +
+                            " | Steps ${child.self}/${child.total}" +
+                            " | Forks ${child.selfForks}/${child.totalForks}"
+                    str.appendLine(line)
                     child.print(str, "$indent$INDENT$INDENT")
                 }
             }
@@ -257,7 +260,7 @@ open class UDebugProfileObserver<Statement, Method, State: UState<*, Method, Sta
         profileStats.print(this, indent = "")
     }
 
-    protected class StackTraceTracker<Statement, Method, State: UState<*, Method, Statement, *, *, *>>(
+    protected class StackTraceTracker<Statement, Method, State : UState<*, Method, Statement, *, *, *>>(
         private val statementOperations: StatementOperations<Statement, Method>,
     ) {
         private val stackTraceTrie = TrieNode.root<Statement, Unit> { }

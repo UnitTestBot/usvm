@@ -9,5 +9,5 @@ fun PyCodeObject.prettyPrint(): String {
     val nameAsStr = ConcretePythonInterpreter.getPythonObjectStr(name)
     ConcretePythonInterpreter.decref(namespace)
 
-    return "${nameAsStr}(address=${codeObject.address})"
+    return "$nameAsStr(address=${codeObject.address})"
 }

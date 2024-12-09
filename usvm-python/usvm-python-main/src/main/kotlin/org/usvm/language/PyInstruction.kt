@@ -48,5 +48,5 @@ fun PyInstruction.prettyRepresentation(): String {
 
     ConcretePythonInterpreter.decref(namespace)
 
-    return "${numberInBytecode}:$nameAsStr"
+    return "$numberInBytecode:$nameAsStr"
 }
