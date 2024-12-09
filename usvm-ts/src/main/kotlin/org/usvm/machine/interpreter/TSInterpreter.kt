@@ -129,10 +129,8 @@ class TSInterpreter(
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
         localVarToSort
             .getOrPut(stmt.method) { mutableMapOf() }
-            .run {
-                getOrPut(mapLocalToIdxMapper(stmt.method, stmt.lhv)) { expr.sort }
-            }
-        val lvalue = exprResolver.resolveLValue(stmt.lhv) ?: return
+            .getOrPut(mapLocalToIdx(stmt.method, stmt.lhv)) { expr.sort }
+        val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
         val wrappedExpr = TSWrappedValue(ctx, expr, scope)
         scope.doWithState {
@@ -166,7 +164,7 @@ class TSInterpreter(
         TSExprResolver(
             ctx,
             scope,
-            ::mapLocalToIdxMapper
+            ::mapLocalToIdx
         ) { m, idx ->
             localVarToSort[m]?.get(idx)
         }
@@ -177,7 +175,7 @@ class TSInterpreter(
     // (method, localIdx) -> sort
     private val localVarToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
 
-    private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue): Int =
+    private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         when (local) {
             is EtsLocal -> localVarToIdx
                 .getOrPut(method) { hashMapOf() }
