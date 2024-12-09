@@ -186,7 +186,6 @@ class TSInterpreter(
                 .let {
                     it.getOrPut(local.name) { method.parametersWithThisCount + it.size }
                 }
-                .also { check(it != 0) }
 
             // Note: 'this' has index 'n'
             is EtsThis -> method.parameters.size
