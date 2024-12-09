@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
-import org.usvm.TSObject
+import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test

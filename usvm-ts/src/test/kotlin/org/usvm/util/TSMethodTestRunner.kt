@@ -9,7 +9,7 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
-import org.usvm.NoCoverage
+import org.usvm.api.NoCoverage
 import org.usvm.PathSelectionStrategy
 import org.usvm.machine.TSMachine
 import org.usvm.api.TSMethodCoverage
