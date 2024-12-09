@@ -66,12 +66,12 @@ class TSTestResolver(
         ctx: TSContext,
         model: UModelBase<EtsType>,
     ): List<TSObject> = with(ctx) {
-        params.mapIndexed { idx, param ->
+        params.map {  param ->
             val type = param.type
-            val lValue = URegisterStackLValue(typeToSort(type), idx)
+            val lValue = URegisterStackLValue(typeToSort(type), param.index)
             val expr = model.read(lValue).extractOrThis()
             if (type is EtsUnknownType) {
-                approximateParam(expr.cast(), idx, model)
+                approximateParam(expr.cast(), param.index, model)
             } else {
                 resolveExpr(expr, type, model)
             }

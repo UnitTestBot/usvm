@@ -32,7 +32,9 @@ import org.usvm.machine.expr.TSWrappedValue
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
@@ -176,27 +178,35 @@ class TSInterpreter(
     private val localVarToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
 
     private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
+        // Note: below, 'n' means the number of arguments
         when (local) {
+            // Note: locals have indices starting from (n+1)
             is EtsLocal -> localVarToIdx
                 .getOrPut(method) { hashMapOf() }
-                .run {
-                    getOrPut(local.name) { method.parameters.size + size }
+                .let {
+                    it.getOrPut(local.name) { method.parametersWithThisCount + it.size }
                 }
+                .also { check(it != 0) }
 
-            is EtsThis -> 0
+            // Note: 'this' has index 'n'
+            is EtsThis -> method.parameters.size
+
+            // Note: arguments have indices from 0 to (n-1)
             is EtsParameterRef -> local.index
+
             else -> error("Unexpected local: $local")
         }
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
         val state = TSState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets))
+
         val solver = ctx.solver<EtsType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(method.parameters.size, method.locals.size)
-        state.pathNode += method.cfg.instructions.first()
+        state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
+        state.newStmt(method.cfg.instructions.first())
 
         return state
     }
