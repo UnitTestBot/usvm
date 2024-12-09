@@ -52,8 +52,6 @@ private val logger = mu.KotlinLogging.logger {}
 class EtsIfdsTest {
 
     companion object {
-        private val traits = EtsTraits()
-
         private const val BASE_PATH = "/etsir/samples"
 
         private fun loadSample(programName: String): EtsFile {
@@ -95,7 +93,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -142,7 +140,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -208,7 +206,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -250,7 +248,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -290,7 +288,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -338,7 +336,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
@@ -419,7 +417,7 @@ class EtsIfdsTest {
                 }
                 rules.ifEmpty { null }
             }
-        val manager = with(traits) {
+        val manager = with(EtsTraits()) {
             TaintManager(
                 graph = graph,
                 unitResolver = unitResolver,
