@@ -19,21 +19,21 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.machine.TSApplicationGraph
-import org.usvm.machine.TSContext
-import org.usvm.api.targets.TSTarget
 import org.usvm.UInterpreter
 import org.usvm.USort
+import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.machine.TSApplicationGraph
+import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSExprResolver
 import org.usvm.machine.expr.TSWrappedValue
-import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.solver.USatResult
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.returnValue
+import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.write
 
@@ -155,27 +155,25 @@ class TSInterpreter(
         TODO()
     }
 
-    private fun exprResolverWithScope(scope: TSStepScope) =
+    private fun exprResolverWithScope(scope: TSStepScope): TSExprResolver =
         TSExprResolver(
             ctx,
             scope,
             ::mapLocalToIdxMapper
         ) { m, idx ->
-            localVarToSort.getOrPut(m) {
-                mutableMapOf()
-            }.run { get(idx) }
+            localVarToSort[m]?.get(idx)
         }
 
     // (method, localName) -> idx
-    private val localVarToIdx = mutableMapOf<EtsMethod, MutableMap<String, Int>>()
+    private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
 
     // (method, localIdx) -> sort
-    private val localVarToSort = mutableMapOf<EtsMethod, MutableMap<Int, USort>>()
+    private val localVarToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
 
-    private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue) =
+    private fun mapLocalToIdxMapper(method: EtsMethod, local: EtsValue): Int =
         when (local) {
             is EtsLocal -> localVarToIdx
-                .getOrPut(method) { mutableMapOf() }
+                .getOrPut(method) { hashMapOf() }
                 .run {
                     getOrPut(local.name) { method.parameters.size + size }
                 }
@@ -199,5 +197,6 @@ class TSInterpreter(
     }
 
     // TODO: expand with interpreter implementation
-    private val EtsStmt.nextStmt get() = applicationGraph.successors(this).firstOrNull()
+    private val EtsStmt.nextStmt: EtsStmt?
+        get() = applicationGraph.successors(this).firstOrNull()
 }
