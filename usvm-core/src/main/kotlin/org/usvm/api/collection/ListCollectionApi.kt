@@ -1,22 +1,12 @@
 package org.usvm.api.collection
 
-import org.usvm.StepScope
-import org.usvm.UContext
-import org.usvm.UExpr
-import org.usvm.UHeapRef
-import org.usvm.USort
-import org.usvm.UState
+import org.usvm.*
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeArrayLength
 import org.usvm.memory.mapWithStaticAsConcrete
-import org.usvm.mkSizeAddExpr
-import org.usvm.mkSizeExpr
-import org.usvm.mkSizeGeExpr
-import org.usvm.mkSizeSubExpr
-import org.usvm.sizeSort
 import org.usvm.utils.logAssertFailure
 
 object ListCollectionApi {
@@ -150,7 +140,12 @@ object ListCollectionApi {
         memory.writeArrayLength(listRef, updatedSize, listType, sizeSort)
     }
 
-    fun <ListType, Sort : USort, USizeSort : USort> UState<ListType, *, *, *, *, *>.symbolicListCopyRange(
+    private fun <USizeSort : USort, Ctx: UContext<USizeSort>> Ctx.max(
+        first: UExpr<USizeSort>,
+        second: UExpr<USizeSort>
+    ): UExpr<USizeSort> = mkIte(mkSizeGtExpr(first, second), first, second)
+
+    fun <ListType, Sort : USort, USizeSort : USort, Ctx: UContext<USizeSort>> UState<ListType, *, *, Ctx, *, *>.symbolicListCopyRange(
         srcRef: UHeapRef,
         dstRef: UHeapRef,
         listType: ListType,
@@ -159,6 +154,7 @@ object ListCollectionApi {
         dstFrom: UExpr<USizeSort>,
         length: UExpr<USizeSort>,
     ) {
+        // Copying contents
         memory.memcpy(
             srcRef = srcRef,
             dstRef = dstRef,
@@ -168,5 +164,11 @@ object ListCollectionApi {
             fromDst = dstFrom,
             length = length
         )
+
+        // Modifying destination length
+        val dstLength = symbolicListSize(dstRef, listType)
+        val copyLength = ctx.mkSizeAddExpr(dstFrom, length)
+        val resultDstLength = ctx.max(dstLength, copyLength)
+        memory.writeArrayLength(dstRef, resultDstLength, listType, ctx.sizeSort)
     }
 }

@@ -148,7 +148,6 @@ class ApproximationsDecoderTest : ApproximationsTestRunner() {
     }
 
     @Test
-    @Disabled("Incorrect decoder")
     fun testArrayListDecoder() {
         checkProperties(
             ArrayList_DecoderTests::test_0,
