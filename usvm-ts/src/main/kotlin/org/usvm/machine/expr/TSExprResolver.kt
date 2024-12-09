@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
 import org.jacodb.ets.base.EtsArrayAccess
@@ -74,6 +75,8 @@ import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.unwrapJoinedExpr
 
+private val logger = KotlinLogging.logger {}
+
 class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
@@ -132,36 +135,40 @@ class TSExprResolver(
         return block(result0, result1)
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
+    override fun visit(value: EtsLocal): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort> {
+    override fun visit(value: EtsNullConstant): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort> {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
     override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
@@ -173,99 +180,122 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsBitAndExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsBitNotExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsBitOrExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsBitXorExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsCastExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsCommaExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsCommaExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsDeleteExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsDivExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsDivExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
     override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
     }
 
-    override fun visit(expr: EtsExpExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsGtEqExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsGtExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsGtExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsInExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsInExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsLengthExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsLengthExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsLtEqExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsLtExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsMulExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsNegExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsNewExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsNewExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
     override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
@@ -276,99 +306,121 @@ class TSExprResolver(
         TSUnaryOperator.Not(arg, scope)
     }
 
-    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsOrExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsPostDecExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsPostIncExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsPreDecExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsPreIncExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsRemExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsRemExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsStrictEqExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsSubExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsTernaryExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsTernaryExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(expr: EtsVoidExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
     override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 }
@@ -380,57 +432,64 @@ class TSSimpleValueResolver(
     private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsLocal): UExpr<out USort>? = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? = with(ctx) {
         mkBool(value.value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
         nullRef
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort>? = with(ctx) {
         mkFp64(value.value)
     }
 
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        return null
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsThis): UExpr<out USort>? = with(ctx) {
         val lValue = resolveLocal(value)
         scope.calcOnState { memory.read(lValue) }
     }
