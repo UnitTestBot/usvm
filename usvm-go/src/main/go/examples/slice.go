@@ -64,3 +64,41 @@ func sliceCompareFuncVar(nums []int) int {
 	}
 	return 1
 }
+
+func sliceSliceFull(nums []int) []int {
+	if len(nums) < 5 || len(nums) > 10 {
+		return nil
+	}
+	return nums[:]
+}
+
+func sliceSliceFrom(nums []int, i int) []int {
+	if len(nums) < 5 || len(nums) > 10 {
+		return nil
+	}
+	return nums[i:]
+}
+
+func sliceSliceTo(nums []int, i int) []int {
+	if len(nums) < 5 || len(nums) > 10 || i > 3 {
+		return nil
+	}
+	return nums[:i]
+}
+
+func sliceSlice(nums []int, i, j int) []int {
+	if len(nums) < 5 || len(nums) > 10 || i == j {
+		return nil
+	}
+
+	n := nums[:]
+	n = n[:j]
+	n = n[i:]
+	return n
+}
+
+func sliceToArrayPointer(nums []int) *[3]int {
+	a := (*[3]int)(nums)
+	a[1] = 1
+	return a
+}

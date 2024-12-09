@@ -7,6 +7,6 @@
     </appender>
 
     <root level="debug">
-        <appender-ref ref="TRACE" />
+        <appender-ref ref="STDOUT" />
     </root>
 </configuration>

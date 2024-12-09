@@ -70,7 +70,7 @@ class GoTypeSystem(
             lhs is ArrayType && rhs is ArrayType -> identical(lhs.elementType, rhs.elementType) && lhs.len == rhs.len
             lhs is BasicType && rhs is BasicType -> lhs.typeName == rhs.typeName
             lhs is ChanType && rhs is ChanType -> identical(lhs.elementType, rhs.elementType) && lhs.direction == rhs.direction
-            lhs is InterfaceType && rhs is InterfaceType -> lhs == rhs // TODO(buraindo) proper comparison
+            lhs is InterfaceType && rhs is InterfaceType -> lhs.methods.sorted() == rhs.methods.sorted()
             lhs is MapType && rhs is MapType -> identical(lhs.keyType, rhs.keyType) && identical(lhs.valueType, rhs.valueType)
             lhs is NamedType && rhs is NamedType -> identical(lhs.underlyingType, rhs.underlyingType)
             lhs is OpaqueType && rhs is OpaqueType -> lhs.typeName == rhs.typeName
