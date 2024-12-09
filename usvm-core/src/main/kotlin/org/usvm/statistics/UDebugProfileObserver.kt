@@ -230,8 +230,8 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
                 for ((i, child) in children) {
                     val instRepr = statementOperations.printStatement(i).padEnd(profilerOptions.padInstructionEnd)
                     val line = "$indent$INDENT$instRepr" +
-                            " | Steps ${child.self}/${child.total}" +
-                            " | Forks ${child.selfForks}/${child.totalForks}"
+                        " | Steps ${child.self}/${child.total}" +
+                        " | Forks ${child.selfForks}/${child.totalForks}"
                     str.appendLine(line)
                     child.print(str, "$indent$INDENT$INDENT")
                 }
