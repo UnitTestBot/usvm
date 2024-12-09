@@ -7,15 +7,23 @@ import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.PointerType
 import org.usvm.memory.ULValue
-import org.usvm.type.GoTypes
+import org.usvm.operator.GoUnaryOperator
+import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.GoVoidValue
 
 class GoContext(
     components: UComponents<GoType, USizeSort>,
 ) : UContext<USizeSort>(components) {
+    val voidSort by lazy { GoVoidSort(this) }
+
+    val voidValue by lazy { GoVoidValue(this) }
+
+    val noValue = mkConst("nothing", voidSort)
+
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
     private val globals: MutableMap<GoGlobal, UExpr<out USort>> = hashMapOf()
 
@@ -34,10 +42,6 @@ class GoContext(
         setMethodInfo(method, GoMethodInfo(localsCount + freeVariablesCount, parameters.size))
     }
 
-    private fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
-        methodInfo[method] = info
-    }
-
     fun addGlobal(global: GoGlobal, expr: UExpr<out USort>) {
         globals[global] = expr
     }
@@ -48,13 +52,6 @@ class GoContext(
 
     fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
 
-    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.argumentsCount
-
-    private fun getFreeVariablesCount(method: GoMethod): Int = when (method) {
-        is GoFunction -> method.freeVars.size
-        else -> 0
-    }
-
     fun mkAddressPointer(address: UConcreteHeapAddress): UExpr<USort> {
         return UAddressPointer(this, address).asExpr(pointerSort)
     }
@@ -63,27 +60,22 @@ class GoContext(
         return ULValuePointer(this, lvalue).asExpr(pointerSort)
     }
 
-    val voidSort by lazy { GoVoidSort(this) }
-
-    val voidValue by lazy { GoVoidValue(this) }
-
-    val noValue = mkConst("nothing", voidSort)
-
     fun typeToSort(type: GoType): USort = when (type) {
-        is BasicType -> basicTypeToSort(type.typeName)
+        is BasicType -> basicTypeToSort(type)
+        is NamedType -> typeToSort(type.underlyingType)
         is PointerType -> pointerSort
         else -> addressSort
     }
 
-    private fun basicTypeToSort(typeName: String): USort = when (typeName) {
-        GoTypes.BOOL -> boolSort
-        GoTypes.INT, GoTypes.UINT, GoTypes.INT32, GoTypes.UINT32, GoTypes.RUNE -> bv32Sort
-        GoTypes.INT8, GoTypes.UINT8 -> bv8Sort
-        GoTypes.INT16, GoTypes.UINT16 -> bv16Sort
-        GoTypes.INT64, GoTypes.UINT64 -> bv64Sort
-        GoTypes.FLOAT32 -> fp32Sort
-        GoTypes.FLOAT64 -> fp64Sort
-        else -> addressSort
+    fun mkPrimitiveCast(expr: UExpr<out USort>, to: USort): UExpr<out USort> = when (to) {
+        boolSort -> GoUnaryOperator.CastToBool(expr)
+        bv8Sort -> GoUnaryOperator.CastToInt8(expr)
+        bv16Sort -> GoUnaryOperator.CastToInt16(expr)
+        bv32Sort -> GoUnaryOperator.CastToInt32(expr)
+        bv64Sort -> GoUnaryOperator.CastToInt64(expr)
+        fp32Sort -> GoUnaryOperator.CastToFloat32(expr)
+        fp64Sort -> GoUnaryOperator.CastToFloat64(expr)
+        else -> throw IllegalStateException()
     }
 
     fun <T : USort> ULValue<*, *>.withSort(sort: T): ULValue<*, T> {
@@ -91,5 +83,27 @@ class GoContext(
 
         @Suppress("UNCHECKED_CAST")
         return this@withSort as ULValue<*, T>
+    }
+
+    private fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
+        methodInfo[method] = info
+    }
+
+    private fun getArgsCount(method: GoMethod): Int = methodInfo[method]!!.argumentsCount
+
+    private fun getFreeVariablesCount(method: GoMethod): Int = when (method) {
+        is GoFunction -> method.freeVars.size
+        else -> 0
+    }
+
+    private fun basicTypeToSort(type: BasicType): USort = when (type) {
+        GoBasicTypes.BOOL -> boolSort
+        GoBasicTypes.INT, GoBasicTypes.UINT, GoBasicTypes.INT32, GoBasicTypes.UINT32, GoBasicTypes.RUNE -> bv32Sort
+        GoBasicTypes.INT8, GoBasicTypes.UINT8 -> bv8Sort
+        GoBasicTypes.INT16, GoBasicTypes.UINT16 -> bv16Sort
+        GoBasicTypes.INT64, GoBasicTypes.UINT64 -> bv64Sort
+        GoBasicTypes.FLOAT32 -> fp32Sort
+        GoBasicTypes.FLOAT64 -> fp64Sort
+        else -> addressSort
     }
 }

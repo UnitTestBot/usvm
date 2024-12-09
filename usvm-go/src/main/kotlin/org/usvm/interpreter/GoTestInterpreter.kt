@@ -14,6 +14,7 @@ import io.ksmt.sort.KBv8Sort
 import io.ksmt.sort.KFp32Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
@@ -21,11 +22,13 @@ import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.NullType
+import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.usvm.GoContext
 import org.usvm.NULL_ADDRESS
+import org.usvm.UAddressPointer
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -35,6 +38,7 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readArrayLength
 import org.usvm.api.readField
+import org.usvm.api.typeStreamOf
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
@@ -102,22 +106,28 @@ class GoTestInterpreter(
             is KBoolSort -> resolveBool(expr)
             is KBv8Sort -> resolveBv8(expr)
             is KBv16Sort -> resolveBv16(expr)
-            is KBv32Sort -> resolveBv32(expr)
+            is KBv32Sort -> resolveBv32(expr).let { if (type == GoBasicTypes.RUNE) Char(it) else it }
             is KBv64Sort -> resolveBv64(expr)
             is KFp32Sort -> resolveFp32(expr)
             is KFp64Sort -> resolveFp64(expr)
-            is UAddressSort -> expr.asExpr(ctx.addressSort).let {
-                when (type) {
-                    is BasicType -> resolveString(it)
-                    is SliceType -> resolveArray(it, type)
-                    is MapType -> resolveMap(it, type)
-                    is TupleType -> resolveTuple(it, type)
-                    is NullType -> null
-                    is StructType -> resolveStruct(it, type)
-                    is NamedType -> convertExpr(it, type.underlyingType)
-                    is InterfaceType -> convertExpr(it, memory.types.getTypeStream(it).first())
-                    else -> Any()
+            is UAddressSort -> when (expr.sort) {
+                ctx.addressSort -> {
+                    val h = expr.asExpr(ctx.addressSort)
+                    when (type) {
+                        is BasicType -> resolveString(h)
+                        is ArrayType -> resolveArray(h, type)
+                        is SliceType -> resolveSlice(h, type)
+                        is MapType -> resolveMap(h, type)
+                        is TupleType -> resolveTuple(h, type)
+                        is StructType -> resolveStruct(h, type)
+                        is NamedType -> convertExpr(h, type.underlyingType)
+                        is InterfaceType -> convertExpr(h, memory.typeStreamOf(h).first())
+                        is NullType -> null
+                        else -> Any()
+                    }
                 }
+                ctx.pointerSort -> resolvePointer(expr.asExpr(ctx.pointerSort), type as PointerType)
+                else -> Any()
             }
 
             else -> Any()
@@ -148,15 +158,11 @@ class GoTestInterpreter(
             val lengthUExpr = memory.readArrayLength(string, arrayType, sizeSort)
             val length = clipArrayLength(resolveSize(lengthUExpr))
 
-            val buffer = ByteBuffer.allocate(length * Int.SIZE_BYTES)
+            val buffer = ByteBuffer.allocate(length * Byte.SIZE_BYTES)
             for (i in 0..<length) {
-                val element = memory.readArrayIndex(string, mkSizeExpr(i), arrayType, bv32Sort)
-                val rune = convertExpr(element, GoBasicTypes.INT32) as Int
-                when {
-                    rune < Byte.MAX_VALUE -> buffer.put(rune.toByte())
-                    rune < Short.MAX_VALUE -> buffer.putShort(rune.toShort())
-                    else -> buffer.putInt(rune)
-                }
+                val element = memory.readArrayIndex(string, mkSizeExpr(i), arrayType, bv8Sort)
+                val byte = convertExpr(element, GoBasicTypes.UINT8) as Byte
+                buffer.put(byte)
             }
 
             val byteArray = ByteArray(buffer.position())
@@ -164,20 +170,33 @@ class GoTestInterpreter(
             return String(byteArray)
         }
 
-        fun resolveArray(array: UHeapRef, arrayType: SliceType): List<Any?>? = with(ctx) {
+        fun resolveArray(array: UHeapRef, arrayType: ArrayType): List<Any?>? = with(ctx) {
             if (array == mkConcreteHeapRef(NULL_ADDRESS) || array == nullRef) {
                 return null
             }
 
             val elementType = arrayType.elementType
-            val lengthUExpr = memory.readArrayLength(array, arrayType, sizeSort)
-            val length = clipArrayLength(resolveSize(lengthUExpr))
+            val length = clipArrayLength(arrayType.len.toInt())
             val sort = typeToSort(elementType)
-            val result = (0 until length).map { idx ->
+            return List(length) { idx ->
                 val element = memory.readArrayIndex(array, mkSizeExpr(idx), arrayType, sort)
                 convertExpr(element, elementType)
             }
-            return result
+        }
+
+        fun resolveSlice(slice: UHeapRef, sliceType: SliceType): List<Any?>? = with(ctx) {
+            if (slice == mkConcreteHeapRef(NULL_ADDRESS) || slice == nullRef) {
+                return null
+            }
+
+            val elementType = sliceType.elementType
+            val lengthUExpr = memory.readArrayLength(slice, sliceType, sizeSort)
+            val length = clipArrayLength(resolveSize(lengthUExpr))
+            val sort = typeToSort(elementType)
+            return List(length) { idx ->
+                val element = memory.readArrayIndex(slice, mkSizeExpr(idx), sliceType, sort)
+                convertExpr(element, elementType)
+            }
         }
 
         fun resolveMap(map: UHeapRef, mapType: MapType): Map<Any?, Any?>? = with(ctx) {
@@ -259,6 +278,12 @@ class GoTestInterpreter(
             return structType.fields?.mapIndexed { idx, type -> Pair(idx, type) }?.associate {
                 Pair("field${it.first}", convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second))
             }
+        }
+
+        fun resolvePointer(pointer: UHeapRef, pointerType: PointerType): Any? = with(ctx) {
+            val ptr = pointer.asExpr(pointerSort) as UAddressPointer
+            val expr = memory.read(state.pointerLValue(ptr, ctx.typeToSort(pointerType.baseType)))
+            return convertExpr(expr, pointerType.baseType)
         }
     }
 

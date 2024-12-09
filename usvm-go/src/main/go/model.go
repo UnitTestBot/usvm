@@ -174,18 +174,30 @@ type Call struct {
 
 type ChangeInterface struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
 }
 
 type ChangeType struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
 }
 
 type Convert struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
 }
 
 type SliceToArrayPointer struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
 }
 
 type MakeInterface struct {
@@ -205,6 +217,12 @@ type Extract struct {
 
 type SliceInst struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Collection        Value  `yaml:"collection" json:"collection"`
+	Low               Value  `yaml:"low" json:"low"`
+	High              Value  `yaml:"high" json:"high"`
+	Max               Value  `yaml:"max" json:"max"`
 }
 
 type Return struct {
@@ -311,12 +329,16 @@ type IndexAddr struct {
 	CommonInstruction `yaml:",inline"`
 	GoType            string `yaml:"go_type" json:"go_type"`
 	Register          string `yaml:"register" json:"register"`
-	Array             Value  `yaml:"array" json:"array"`
+	Collection        Value  `yaml:"collection" json:"collection"`
 	Index             Value  `yaml:"index" json:"index"`
 }
 
 type Index struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Collection        Value  `yaml:"collection" json:"collection"`
+	Index             Value  `yaml:"index" json:"index"`
 }
 
 type Lookup struct {

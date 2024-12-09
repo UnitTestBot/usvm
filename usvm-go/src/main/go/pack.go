@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/constant"
 	"go/types"
 	"log"
 	"sort"
@@ -277,21 +278,33 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = ChangeInterfaceInstruction
 		return ChangeInterface{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.ChangeType:
 		common.Type = ChangeTypeInstruction
 		return ChangeType{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.Convert:
 		common.Type = ConvertInstruction
 		return Convert{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.SliceToArrayPointer:
 		common.Type = SliceToArrayPointerInstruction
 		return SliceToArrayPointer{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
 		}
 	case *ssa.MakeInterface:
 		common.Type = MakeInterfaceInstruction
@@ -311,9 +324,29 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 			Index:             inst.Index,
 		}
 	case *ssa.Slice:
+		var (
+			low  ssa.Value = ssa.NewConst(constant.MakeInt64(0), types.Typ[types.Int])
+			high ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
+			mx   ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
+		)
+		if inst.Low != nil {
+			low = inst.Low
+		}
+		if inst.High != nil {
+			high = inst.High
+		}
+		if inst.Max != nil {
+			mx = inst.Max
+		}
 		common.Type = SliceInstruction
 		return SliceInst{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Collection:        p.PackValue(inst.X),
+			Low:               p.PackValue(low),
+			High:              p.PackValue(high),
+			Max:               p.PackValue(mx),
 		}
 	case *ssa.Return:
 		common.Type = ReturnInstruction
@@ -440,13 +473,17 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 			CommonInstruction: common,
 			GoType:            inst.Type().String(),
 			Register:          inst.Name(),
-			Array:             p.PackValue(inst.X),
+			Collection:        p.PackValue(inst.X),
 			Index:             p.PackValue(inst.Index),
 		}
 	case *ssa.Index:
 		common.Type = IndexInstruction
 		return Index{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Collection:        p.PackValue(inst.X),
+			Index:             p.PackValue(inst.Index),
 		}
 	case *ssa.Lookup:
 		common.Type = LookupInstruction

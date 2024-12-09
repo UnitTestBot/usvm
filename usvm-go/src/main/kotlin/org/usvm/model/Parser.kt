@@ -24,6 +24,7 @@ class Parser {
                 subclass(Instruction.Call::class, Instruction.Call.serializer())
                 subclass(Instruction.ChangeInterface::class, Instruction.ChangeInterface.serializer())
                 subclass(Instruction.ChangeType::class, Instruction.ChangeType.serializer())
+                subclass(Instruction.Convert::class, Instruction.Convert.serializer())
                 subclass(Instruction.SliceToArrayPointer::class, Instruction.SliceToArrayPointer.serializer())
                 subclass(Instruction.MakeInterface::class, Instruction.MakeInterface.serializer())
                 subclass(Instruction.Extract::class, Instruction.Extract.serializer())

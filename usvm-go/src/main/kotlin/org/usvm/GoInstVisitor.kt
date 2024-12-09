@@ -61,7 +61,7 @@ class GoInstVisitor(
 
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
-            when(inst.returnValues.size) {
+            when (inst.returnValues.size) {
                 0 -> returnValue(ctx.voidValue, NullType())
                 1 -> returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
                 else -> {
@@ -115,8 +115,9 @@ class GoInstVisitor(
     override fun visitGoStoreInst(inst: GoStoreInst): GoInst {
         val pointer = inst.lhv.accept(exprVisitor) as UAddressPointer
         val rvalue = inst.rhv.accept(exprVisitor)
-        val lvalue = exprVisitor.pointerLValue(pointer, rvalue.sort)
+
         scope.doWithState {
+            val lvalue = pointerLValue(pointer, rvalue.sort)
             memory.write(lvalue, rvalue.asExpr(rvalue.sort), ctx.trueExpr)
         }
 
