@@ -2,10 +2,10 @@ package org.usvm.samples.primitives
 
 import org.junit.jupiter.api.Test
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
-
 
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleExamplesTest : JavaMethodTestRunner() {
@@ -76,10 +76,15 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testMul() {
-        withOptions(options.copy(solverType = SolverType.YICES)) {
+        withOptions(
+            options.copy(
+                solverType = SolverType.YICES,
+                stateCollectionStrategy = StateCollectionStrategy.ALL,
+            )
+        ) {
             checkDiscoveredProperties(
                 DoubleExamples::mul,
-                eq(6),
+                ignoreNumberOfAnalysisResults,
                 { _, a, b, r -> (a * b).isNaN() && r == 0.0 }, // 0 * inf || a == nan || b == nan
                 { _, a, b, r -> !(a * b > 33.32) && !(a * b > 33.333) && r == 1.3 }, // 1.3, 1-1 false, 2-1 false
                 { _, a, b, r -> a * b == 33.333 && r == 1.3 }, // 1.3, 1-1 true, 1-2 false, 2-1 false
