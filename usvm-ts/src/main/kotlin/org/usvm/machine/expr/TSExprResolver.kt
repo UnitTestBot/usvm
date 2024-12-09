@@ -98,7 +98,7 @@ class TSExprResolver(
         return resolveTSExprNoUnwrap(expr)?.unwrapJoinedExpr(ctx)
     }
 
-    fun resolveLValue(value: EtsValue): ULValue<*, *> =
+    fun resolveLValue(value: EtsValue): ULValue<*, USort> =
         when (value) {
             is EtsParameterRef, is EtsLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")

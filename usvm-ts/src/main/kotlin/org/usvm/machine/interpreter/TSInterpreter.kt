@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
@@ -136,7 +135,7 @@ class TSInterpreter(
 
         val wrappedExpr = TSWrappedValue(ctx, expr, scope)
         scope.doWithState {
-            memory.write(lvalue.cast(), wrappedExpr)
+            memory.write(lvalue, wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
         }
