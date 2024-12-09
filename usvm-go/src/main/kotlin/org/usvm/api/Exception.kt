@@ -1,9 +1,8 @@
 package org.usvm.api
 
-class UnknownSortException : Exception()
 class UnknownMethodException(name: String) : Exception("Unknown method $name")
-class UnknownUnaryOperationException : Exception()
-class UnknownBinaryOperationException : Exception()
-class UnknownVarKindException : Exception()
-class UnknownTypeException : Exception()
-class UnknownFunctionException : Exception()
+class UnknownUnaryOperationException(name: String) : Exception("Unknown unary operation: $name")
+class UnknownBinaryOperationException(name: String) : Exception("Unknown binary operation: $name")
+class UnknownFunctionException(name: String) : Exception("Unknown function $name")
+
+class UnsupportedUnaryOperationException(name: String) : Exception("Unsupported unary operation: $name")

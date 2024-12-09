@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class JacoDbTest {
     @TestFactory
     fun jacodbTestLong(): Collection<DynamicTest> {
-        val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
+        val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
         val machine = GoMachine(pkg, options)
         return methods(pkg).filter { it.metName in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
@@ -23,7 +23,7 @@ class JacoDbTest {
 
     @TestFactory
     fun jacodbTestFast(): Collection<DynamicTest> {
-        val pkg = Converter.unpackPackage(Parser().deserialize("out/usvm_examples.json"))
+        val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
         val machine = GoMachine(pkg, options)
         return methods(pkg).filter { it.metName !in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
@@ -44,5 +44,5 @@ class JacoDbTest {
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
-    private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen")
+    private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")
 }

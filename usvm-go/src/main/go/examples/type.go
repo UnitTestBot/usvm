@@ -29,3 +29,24 @@ type Creature interface {
 	WithName(n string) Creature
 	Validate() (bool, error)
 }
+
+type NamedInt int
+
+func (n NamedInt) square() int {
+	if n == 0 {
+		panic("zero")
+	}
+	if n == 1 || n == -1 {
+		panic("one")
+	}
+
+	return int(n * n)
+}
+
+func toNamedInt(i int) NamedInt {
+	return NamedInt(i)
+}
+
+func callNamedInt(i int) int {
+	return NamedInt(i).square()
+}

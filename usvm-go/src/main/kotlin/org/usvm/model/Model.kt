@@ -116,6 +116,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
     ) : Instruction
 
     @Serializable
@@ -124,6 +127,20 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
+    ) : Instruction
+
+    @Serializable
+    @SerialName("Convert")
+    data class Convert(
+        override val name: String,
+        override val block: Int,
+        override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
     ) : Instruction
 
     @Serializable
@@ -132,6 +149,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
     ) : Instruction
 
     @Serializable
@@ -163,6 +183,12 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val collection: Value,
+        val low: Value,
+        val high: Value,
+        val max: Value,
     ) : Instruction
 
     @Serializable
@@ -341,7 +367,7 @@ sealed interface Instruction {
         override val line: Int,
         @SerialName("go_type") val goType: String,
         val register: String,
-        val array: Value,
+        val collection: Value,
         val index: Value,
     ) : Instruction
 
@@ -351,6 +377,10 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val collection: Value,
+        val index: Value,
     ) : Instruction
 
     @Serializable

@@ -2,6 +2,7 @@ package org.usvm.state
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
@@ -11,18 +12,23 @@ import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoTarget
 import org.usvm.PathNode
+import org.usvm.UAddressPointer
 import org.usvm.UCallStack
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.ULValuePointer
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.GoPointerLValue
+import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.merging.MutableMergeGuard
+import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
@@ -109,6 +115,12 @@ class GoState(
 
     override val isExceptional: Boolean get() = methodResult is GoMethodResult.Panic
 
+    override fun toString(): String = buildString {
+        appendLine("Instruction: $currentStatement")
+        if (isExceptional) appendLine("Exception: $methodResult")
+        appendLine(callStack)
+    }
+
     fun newInst(inst: GoInst) {
         pathNode += inst
     }
@@ -184,18 +196,6 @@ class GoState(
         data.flowStatus = GoFlowStatus.DEFER
     }
 
-    private fun addDeferredCall(): Boolean {
-        val deferred = data.getDeferredCalls(lastEnteredMethod)
-        if (!deferred.isEmpty()) {
-            addCall(deferred.removeLast(), currentStatement)
-
-            return true
-        }
-
-        data.flowStatus = GoFlowStatus.NORMAL
-        return false
-    }
-
     fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
         val currentMethod = lastEnteredMethod
         val methodInfo = getMethodInfo(call.method)
@@ -206,7 +206,8 @@ class GoState(
         if (call.method is GoFunction) {
             call.method.freeVars.forEach { variable ->
                 val ref = memory.allocConcrete(variable.type)
-                val param = currentMethod.parameters.filterIsInstance<GoParameter>().find { it.name == variable.name } ?: throw IllegalStateException()
+                val param =
+                    currentMethod.parameters.filterIsInstance<GoParameter>().find { it.name == variable.name } ?: throw IllegalStateException()
                 val rvalue = memory.read(URegisterStackLValue(typeToSort(param.type), param.index))
                 memory.write(GoPointerLValue(ref, rvalue.sort), rvalue, ctx.trueExpr)
 
@@ -218,14 +219,8 @@ class GoState(
         newInst(call.entrypoint)
     }
 
-    override fun toString(): String = buildString {
-        appendLine("Instruction: $currentStatement")
-        if (isExceptional) appendLine("Exception: $methodResult")
-        appendLine(callStack)
-    }
-
     fun mkPointer(type: GoType): UExpr<out USort> {
-        return mkPointer(type, ctx.typeToSort(type).sampleUValue())
+        return mkPointer(type, sampleValue(type))
     }
 
     fun mkPointer(type: GoType, value: UExpr<out USort>): UExpr<out USort> {
@@ -246,9 +241,36 @@ class GoState(
     fun mkString(value: String): UExpr<out USort> {
         return memory.allocateArrayInitialized(
             GoBasicTypes.STRING,
-            ctx.bv32Sort,
+            ctx.bv8Sort,
             ctx.sizeSort,
-            value.toByteArray().map { ctx.mkBv(it.toInt()) }.asSequence()
+            value.toByteArray().map { ctx.mkBv(it) }.asSequence()
         )
+    }
+
+    fun <Sort : USort> pointerLValue(pointer: UAddressPointer, sort: Sort): ULValue<*, Sort> = with(ctx) {
+        val lvalue = GoPointerLValue(mkConcreteHeapRef(pointer.address), sort)
+        val ref = memory.read(lvalue)
+        if (ref is ULValuePointer) {
+            ref.lvalue.withSort(sort)
+        } else {
+            lvalue
+        }
+    }
+
+    private fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
+        is ArrayType -> memory.allocateArray(type, ctx.sizeSort, ctx.mkSizeExpr(type.len.toInt()))
+        else -> ctx.typeToSort(type).sampleUValue()
+    }
+
+    private fun addDeferredCall(): Boolean {
+        val deferred = data.getDeferredCalls(lastEnteredMethod)
+        if (!deferred.isEmpty()) {
+            addCall(deferred.removeLast(), currentStatement)
+
+            return true
+        }
+
+        data.flowStatus = GoFlowStatus.NORMAL
+        return false
     }
 }
