@@ -17,10 +17,13 @@ private typealias StatsCounter = LongAdder
 class JcDebugProfileObserver(
     private val pathSelector: UPathSelector<JcState>
 ) : UDebugProfileObserver<JcInst, JcMethod, JcState>(
-    getMethodOfStatement = { location.method },
-    getStatementIndexInMethod = { location.index },
-    getMethodToCallIfCallStatement = { (this as? JcConcreteMethodCallInst)?.method },
-    originalInst = { originalInst() },
+    statementOperations = object : StatementOperations<JcInst, JcMethod> {
+        override fun getMethodOfStatement(statement: JcInst) = statement.location.method
+        override fun getStatementIndexInMethod(statement: JcInst) = statement.location.index
+        override fun getMethodToCallIfCallStatement(statement: JcInst) =
+            (statement as? JcConcreteMethodCallInst)?.method
+        override fun getOriginalInst(statement: JcInst): JcInst = statement.originalInst()
+    },
 ) {
     private fun aggregateStats(): List<Map.Entry<JcClassOrInterface, List<Map.Entry<JcMethod, Long>>>> {
         val methodStats = instructionStats.entries

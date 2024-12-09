@@ -1,11 +1,13 @@
 package org.usvm.machine
 
 import mu.KLogging
-import org.usvm.PathNode
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.collections.immutable.internal.MutabilityOwnership
-import org.usvm.language.*
+import org.usvm.language.PyCallable
+import org.usvm.language.PyPinnedCallable
+import org.usvm.language.PyProgram
+import org.usvm.language.PyUnpinnedCallable
 import org.usvm.machine.interpreters.concrete.ConcretePythonInterpreter
 import org.usvm.machine.interpreters.symbolic.USVMPythonInterpreter
 import org.usvm.machine.model.GenerateNewFromPathConstraints
@@ -21,12 +23,12 @@ import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.utils.PyMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.machine.utils.isGenerator
+import org.usvm.machine.utils.pyDebugProfileObserver
 import org.usvm.machine.utils.unfoldGenerator
 import org.usvm.memory.UMemory
 import org.usvm.python.ps.PyPathSelectorType
 import org.usvm.solver.USatResult
 import org.usvm.statistics.CompositeUMachineObserver
-import org.usvm.statistics.UDebugProfileObserver
 import org.usvm.statistics.UMachineObserver
 import kotlin.random.Random
 
@@ -131,37 +133,7 @@ class PyMachine(
             val observers: MutableList<UMachineObserver<PyState>> = mutableListOf(pyObserver)
 
             if (logger.isDebugEnabled) {
-                observers.add(
-                    UDebugProfileObserver(
-                        getMethodOfStatement = { PyCodeObject(code) },
-                        getStatementIndexInMethod = { numberInBytecode },
-                        getMethodToCallIfCallStatement = { null },
-                        printStatement = { prettyRepresentation() },
-                        forkHappened = { _, _ -> false },  // no tracing of forks for now
-                        getNewStatements = {
-                            val result = mutableListOf<PyInstruction>()
-                            var curNode: PathNode<PyInstruction>? = pathNode
-                            val prevNode = pathNodeBreakpoints.lastOrNull()
-                                ?: PathNode.root()
-
-                            while (curNode != null && curNode != prevNode) {
-                                result.add(curNode.statement)
-                                curNode = curNode.parent
-                            }
-
-                            result.reverse()
-                            result
-                        },
-                        getAllMethodStatements = {
-                            check(this is PyCodeObject) {
-                                "Unexpected callable: $this"
-                            }
-                            extractInstructionsFromCode(codeObject)
-                        },
-                        printNonVisitedStatements = true,
-                        momentOfUpdate = UDebugProfileObserver.MomentOfUpdate.AfterStep,
-                    )
-                )
+                observers.add(pyDebugProfileObserver)
             }
 
             val startTime = System.currentTimeMillis()

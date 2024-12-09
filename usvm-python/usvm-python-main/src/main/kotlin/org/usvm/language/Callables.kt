@@ -11,7 +11,7 @@ import org.usvm.machine.types.PythonType
 sealed class PyCallable
 
 /**
- * [PyPinnedCallable] is a reference to Python object of type `code`.
+ * [PyPinnedCallable] is a reference to Python object of type `function`.
  * This reference changes between restarts of Python interpreter.
  * */
 data class PyPinnedCallable(val pyObject: PyObject) : PyCallable() {
@@ -24,7 +24,10 @@ data class PyPinnedCallable(val pyObject: PyObject) : PyCallable() {
 }
 
 /**
- * TODO
+ * Like [PyPinnedCallable], but for code object.
+ * [PyCodeObject] can be constructed from [PyPinnedCallable], but not vice versa.
+ * [PyCodeObject], unlike [PyPinnedCallable], cannot be executed with [ConcretePythonInterpreter].
+ * [PyCodeObject] can be extracted from [PyInstruction], [PyPinnedCallable] cannot.
  * */
 data class PyCodeObject(val codeObject: PyObject) : PyCallable() {
     init {
