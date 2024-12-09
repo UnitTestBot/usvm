@@ -103,6 +103,9 @@ import org.usvm.machine.interpreter.statics.JcStaticFieldRegionId
 import org.usvm.machine.interpreter.statics.JcStaticFieldsMemoryRegion
 import org.usvm.machine.interpreter.statics.isInitialized
 import org.usvm.machine.interpreter.statics.markAsInitialized
+import org.usvm.machine.interpreter.transformers.JcMultiDimArrayAllocationTransformer
+import org.usvm.machine.interpreter.transformers.JcStringConcatTransformer
+import org.usvm.machine.logger
 import org.usvm.machine.operator.JcBinaryOperator
 import org.usvm.machine.operator.JcUnaryOperator
 import org.usvm.machine.operator.ensureBvExpr
@@ -408,7 +411,11 @@ class JcExprResolver(
         }
 
     override fun visitJcDynamicCallExpr(expr: JcDynamicCallExpr): UExpr<out USort>? =
-        resolveInvoke(
+        apply {
+            if (JcStringConcatTransformer.methodIsStringConcat(expr.method.method)) {
+                logger.warn { "JcStringConcatTransformer should be used to process string concatenation" }
+            }
+        }.resolveInvoke(
             expr.method,
             instanceExpr = null,
             argumentExprs = { expr.callSiteArgs },

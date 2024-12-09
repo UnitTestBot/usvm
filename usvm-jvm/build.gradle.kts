@@ -10,6 +10,12 @@ val samples by sourceSets.creating {
     }
 }
 
+val `samples-jdk11` by sourceSets.creating {
+    java {
+        srcDir("src/samples-jdk11/java")
+    }
+}
+
 val `sample-approximations` by sourceSets.creating {
     java {
         srcDir("src/sample-approximations/java")
@@ -92,9 +98,20 @@ val `usvm-api-jar` = tasks.register<Jar>("usvm-api-jar") {
 val testSamples by configurations.creating
 val testSamplesWithApproximations by configurations.creating
 
+val compileSamplesJdk11 = tasks.register<JavaCompile>("compileSamplesJdk11") {
+    sourceCompatibility = JavaVersion.VERSION_11.toString()
+    targetCompatibility = JavaVersion.VERSION_11.toString()
+
+    source = `samples-jdk11`.java
+    classpath = `samples-jdk11`.compileClasspath
+    options.sourcepath = `samples-jdk11`.java
+    destinationDirectory = `samples-jdk11`.java.destinationDirectory
+}
+
 dependencies {
     testSamples(samples.output)
     testSamples(`usvm-api`.output)
+    testSamples(files(`samples-jdk11`.java.destinationDirectory))
 
     testSamplesWithApproximations(samples.output)
     testSamplesWithApproximations(`usvm-api`.output)
@@ -104,7 +121,7 @@ dependencies {
 
 tasks.withType<Test> {
     dependsOn(`usvm-api-jar`)
-    dependsOn(testSamples, testSamplesWithApproximations)
+    dependsOn(compileSamplesJdk11, testSamples, testSamplesWithApproximations)
 
     val usvmApiJarPath = `usvm-api-jar`.get().outputs.files.singleFile
     val usvmApproximationJarPath = approximations.resolvedConfiguration.files.single()
