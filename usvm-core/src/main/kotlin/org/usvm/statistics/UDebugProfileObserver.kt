@@ -70,13 +70,11 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
          * Statistics from state about visited statements can be added either before or after interpreter step.
          * */
         val momentOfUpdate: MomentOfUpdate = MomentOfUpdate.BeforeStep,
-
         /**
          * Non-visited statements can be excluded from profiler output or not.
          * If this option is true, [StatementOperations.getAllMethodStatements] must be implemented.
          * */
         val printNonVisitedStatements: Boolean = false,
-
         /**
          * Add padding to instructions in profiler report.
          * */
