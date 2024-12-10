@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KLogging
 import org.usvm.UMachine
 import org.usvm.UPathSelector
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -22,6 +23,7 @@ import org.usvm.machine.types.PythonTypeSystemWithMypyInfo
 import org.usvm.machine.utils.PyMachineStatistics
 import org.usvm.machine.utils.PythonMachineStatisticsOnFunction
 import org.usvm.machine.utils.isGenerator
+import org.usvm.machine.utils.pyDebugProfileObserver
 import org.usvm.machine.utils.unfoldGenerator
 import org.usvm.memory.UMemory
 import org.usvm.python.ps.PyPathSelectorType
@@ -128,7 +130,11 @@ class PyMachine(
             }
 
             val pyObserver = PythonMachineObserver(saver.newStateObserver)
-            val observer = CompositeUMachineObserver(pyObserver)
+            val observers: MutableList<UMachineObserver<PyState>> = mutableListOf(pyObserver)
+
+            if (logger.isDebugEnabled) {
+                observers.add(pyDebugProfileObserver)
+            }
 
             val startTime = System.currentTimeMillis()
             val stopTime = timeoutMs?.let { startTime + it }
@@ -148,7 +154,7 @@ class PyMachine(
             run(
                 interpreter,
                 pathSelector,
-                observer = observer,
+                observer = CompositeUMachineObserver(observers),
                 isStateTerminated = { !it.isInterestingForPathSelector() },
                 stopStrategy = {
                     pyObserver.iterations >= maxIterations ||
@@ -182,5 +188,9 @@ class PyMachine(
                 }
             }
         }
+    }
+
+    companion object {
+        private val logger = object : KLogging() {}.logger
     }
 }

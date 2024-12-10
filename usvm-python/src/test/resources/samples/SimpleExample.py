@@ -32,8 +32,10 @@ def my_abs(x: int):
         return x
     elif x == 0:
         return "zero"
-    else:
+    elif x < 0:
         return -x
+    else:
+        assert False, "Not reachable"
 
 
 def pickle_sample(x):

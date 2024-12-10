@@ -31,3 +31,22 @@ fun extractInstructionsFromCode(code: PyObject): List<PyInstruction> {
             ConcretePythonInterpreter.decref(namespace)
         }
 }
+
+fun PyInstruction.prettyRepresentation(): String {
+    val namespace = ConcretePythonInterpreter.getNewNamespace()
+    ConcretePythonInterpreter.concreteRun(namespace, "import dis")
+    ConcretePythonInterpreter.addObjectToNamespace(namespace, code, "code")
+    ConcretePythonInterpreter.concreteRun(
+        namespace,
+        "i = next(filter(lambda x: x.offset == $numberInBytecode, iter(dis.Bytecode(code))))"
+    )
+    val opName = ConcretePythonInterpreter.eval(
+        namespace,
+        "i.opname + '(' + i.argrepr + ')'",
+    )
+    val nameAsStr = ConcretePythonInterpreter.getPythonObjectStr(opName)
+
+    ConcretePythonInterpreter.decref(namespace)
+
+    return "$numberInBytecode:$nameAsStr"
+}
