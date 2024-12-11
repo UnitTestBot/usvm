@@ -25,7 +25,7 @@ import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
 import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
-import java.nio.file.Paths
+import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 import kotlin.test.assertTrue
@@ -37,9 +37,9 @@ class EtsTypeResolverTest {
         }
     }
 
-    private val yourPrefixForTestFolders = "C:/work/TestProjects"
-    private val testProjectsVersion = "TestProjects_2024_11_14"
-    private val pathToSDK: String = TODO("Put your path here")
+    private val yourPrefixForTestFolders = "C:/dev/ark/TestProjects"
+    private val testProjectsVersion = "2024-12-02"
+    private val pathToSDK: String? = null // TODO: insert your path here
 
     private fun loadEtsScene(paths: List<Path>): EtsScene {
         val files = paths.flatMap {  path ->
@@ -59,9 +59,9 @@ class EtsTypeResolverTest {
     fun testTestHap() {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/CallUI"
         val abcScene = loadEtsScene(
-            listOf(
-                Paths.get(projectAbc),
-                Paths.get(pathToSDK)
+            listOfNotNull(
+                Path(projectAbc),
+                pathToSDK?.let { Path(it) },
             )
         )
         val graphAbc = createApplicationGraph(abcScene)
@@ -121,9 +121,11 @@ class EtsTypeResolverTest {
         }
 
         // TODO replace graphAst with graphAbc ?
-        val result = manager
-            .analyze(entrypoint.mainMethods, entrypoint.allMethods.filter { it.isPublic })
-            .withGuessedTypes(abcScene)
+        val resultBasic = manager.analyze(
+            entrypoint.mainMethods,
+            entrypoint.allMethods.filter { it.isPublic }
+        )
+        val result = resultBasic.withGuessedTypes(abcScene)
 
         val classMatcherStatistics = ClassMatcherStatistics()
 
@@ -190,6 +192,13 @@ class EtsTypeResolverTest {
         projectID = "project7",
         abcPath = "SecurityPrivacyCenter_240801_843998b",
         astPath = "13_SecurityPrivacyCenter/security_privacy_center"
+    )
+
+    @Test
+    fun testLoadProjectCalendarData() = runOnProject(
+        projectID = "CalendarData",
+        abcPath = "CalendarData",
+        astPath = "19_CalendarData",
     )
 
     @Test
