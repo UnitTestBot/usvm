@@ -39,14 +39,30 @@ kotlin {
 }
 
 dependencies {
-    implementation(Libs.jacodb_api_jvm)
-    implementation(Libs.jacodb_core)
+    implementation(Libs.jacodb_api_jvm) {
+        // Unused dependencies
+        exclude("javax.xml.bind", "jaxb-api")
+        exclude("org.reactivestreams", "reactive-streams")
+    }
+
+    implementation(Libs.jacodb_core) {
+        // Added above with exclusions
+        exclude(Libs.jacodb_api_jvm)
+
+        // Sqlite related dependencies. Unused because we use RAM persistence
+        exclude("com.zaxxer", "HikariCP")
+        exclude("org.xerial", "sqlite-jdbc")
+    }
+
+    implementation(Libs.jacodb_api_storage)
+    implementation(Libs.jacodb_storage)
 
     implementation(Libs.rd_framework)
     implementation(Libs.ini4j)
     implementation(Libs.rd_core)
     implementation("commons-cli:commons-cli:1.5.0")
-    implementation(Libs.rd_gen)
+
+    rdgenModelsCompileClasspath(Libs.rd_gen)
 }
 
 tasks.withType<KotlinCompile> {
