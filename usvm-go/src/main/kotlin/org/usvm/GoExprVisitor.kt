@@ -353,12 +353,23 @@ class GoExprVisitor(
         checkNotNull(collection) ?: throw IllegalStateException()
         checkNegativeIndex(low) ?: throw IllegalStateException()
         checkNegativeIndex(high) ?: throw IllegalStateException()
-        checkIndexOutOfBounds(high, ctx.mkSizeAddExpr(length, ctx.mkSizeExpr(1))) ?: throw IllegalStateException()
         checkIndexOutOfBounds(low, ctx.mkSizeAddExpr(high, ctx.mkSizeExpr(1))) ?: throw IllegalStateException()
+        checkIndexOutOfBounds(high, ctx.mkSizeAddExpr(length, ctx.mkSizeExpr(1))) ?: throw IllegalStateException()
 
         return scope.calcOnState {
             val result = memory.allocateArray(expr.type, ctx.sizeSort, count)
-            memory.memcpy(collection, result, expr.type, elementSort, low, ctx.mkSizeExpr(0), count)
+            when (type) {
+                is ArrayType -> {
+                    val array = memory.allocateArray(expr.type, ctx.sizeSort, count)
+                    for (i in 0 until type.len) {
+                        val idx = ctx.mkSizeExpr(i.toInt())
+                        val element = memory.readArrayIndex(collection, idx, type, elementSort)
+                        memory.writeArrayIndex(array, idx, expr.type, elementSort, element, ctx.trueExpr)
+                    }
+                    memory.memcpy(array, result, expr.type, elementSort, low, ctx.mkSizeExpr(0), count)
+                }
+                else -> memory.memcpy(collection, result, expr.type, elementSort, low, ctx.mkSizeExpr(0), count)
+            }
             result
         }
     }
