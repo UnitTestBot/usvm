@@ -1,7 +1,5 @@
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
@@ -26,6 +24,7 @@ import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.div
 import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 import kotlin.test.assertTrue
@@ -38,8 +37,8 @@ class EtsTypeResolverTest {
     }
 
     private val yourPrefixForTestFolders = "C:/dev/ark/TestProjects"
-    private val testProjectsVersion = "2024-12-02"
-    private val pathToSDK: String? = null // TODO: insert your path here
+    private val testProjectsVersion = "2024-12-11"
+    private val pathToSDK: String? = "C:/dev/ark/sdk/etsir" // TODO: insert your path here
 
     private fun loadEtsScene(paths: List<Path>): EtsScene {
         val files = paths.flatMap {  path ->
@@ -57,46 +56,25 @@ class EtsTypeResolverTest {
 
     @Test
     fun testTestHap() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/CallUI"
-        val abcScene = loadEtsScene(
-            listOfNotNull(
-                Path(projectAbc),
-                pathToSDK?.let { Path(it) },
-            )
-        )
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene) // TODO fix error with abc and ast methods
+        val p = Path("C:/dev/ark/TestProjects/2024-12-11/12_Music_Demo-hap")
+        val etsirPath = p / "etsir"
+        val sdkPath = p / "sdk"
+        val scene = loadEtsScene(listOf(etsirPath, sdkPath))
+        val graph = createApplicationGraph(scene)
+        val entrypoint = EntryPointsProcessor.extractEntryPoints(scene)
 
         val manager = with(EtsTraits()) {
-            TypeInferenceManager(graphAbc) // TODO replace with abc
+            TypeInferenceManager(graph)
         }
 
-        val result = manager
-            .analyze(entrypoint.mainMethods, entrypoint.allMethods)
-            .withGuessedTypes(abcScene)
-        // TODO replace with abc
-        // TODO fix error with abc and ast methods
+        val resultBasic = manager.analyze(
+            entrypoints = entrypoint.mainMethods,
+            allMethods = entrypoint.allMethods,
+        )
+        val result = resultBasic.withGuessedTypes(scene)
 
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        val inferredLocals = result.inferredTypes.flatMap { (m, es) -> es.mapNotNull { (b, f) -> if (b is AccessPathBase.Local) m to b.name else null } }
-        val totalLocals = abcScene.classes.flatMap { it.methods }.flatMap { m -> m.locals.map { m to it.name } }
-
-        val zeroLocals = totalLocals.toSet() - inferredLocals.toSet()
-        val zeroLocalsFromConstructors = zeroLocals
-            .filter { (m, n) -> n.startsWith("$") }
-            .map { (m, n) ->
-                Pair(m, n) to m.cfg.stmts.filter {
-                    if (it !is EtsAssignStmt) return@filter false
-                    val lhv = it.lhv
-                    if (lhv !is EtsLocal) return@filter false
-                    lhv.name == n
-                }
-            }
-
-        saveTypeInferenceComparison(entrypoint.allMethods, entrypoint.allMethods, graphAbc, graphAbc, result, classMatcherStatistics, abcScene) // TODO fix error with abc and ast methods
-        classMatcherStatistics.dumpStatistics("callkit.txt")
+        result.let {}
+        resultBasic.let {}
     }
 
     fun runOnProject(projectID: String, abcPath: String, astPath: String) {

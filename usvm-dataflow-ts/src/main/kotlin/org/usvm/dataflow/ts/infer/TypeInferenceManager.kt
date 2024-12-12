@@ -71,7 +71,10 @@ class TypeInferenceManager(
             )
         }
 
-        createResultsFromSummaries(updatedTypeScheme, doInferAllLocals)
+        createResultsFromSummaries(updatedTypeScheme, doInferAllLocals).also {
+            methodTypeScheme.let{}
+            it.let{}
+        }
     }
 
     private suspend fun collectSummaries(

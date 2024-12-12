@@ -9,10 +9,12 @@ import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNewArrayExpr
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
+import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsRelationExpr
 import org.jacodb.ets.base.EtsReturnStmt
@@ -23,6 +25,7 @@ import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
@@ -30,6 +33,19 @@ import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
 
 private val logger = KotlinLogging.logger {}
+
+fun EtsMethodParameter.getRealIndex(method: EtsMethod): Int? {
+    if (method.cfg.stmts.isEmpty()) return null
+
+    val assign = method.cfg.stmts.firstOrNull {
+        it is EtsAssignStmt &&
+            it.lhv is EtsLocal &&
+            (it.lhv as EtsLocal).name == this.name &&
+            it.rhv is EtsParameterRef
+    }
+    if (assign == null) return null
+    return ((assign as EtsAssignStmt).rhv as EtsParameterRef).index
+}
 
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
@@ -47,6 +63,10 @@ class ForwardFlowFunctions(
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
+        if (method.cfg.stmts.isEmpty()) {
+            return result
+        }
+
         val initialTypes = methodInitialTypes[method]
         if (initialTypes != null) {
             for ((base, type) in initialTypes.types) {
@@ -58,11 +78,27 @@ class ForwardFlowFunctions(
         if (doAddKnownTypes) {
             for (local in method.locals) {
                 if (local.type != EtsUnknownType && local.type != EtsAnyType) {
-                    val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
+                    val path = local.toPath()
                     val type = EtsTypeFact.from(local.type)
                     if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
                         logger.debug { "Adding known type for $path: $type" }
                         addTypes(path, type, result)
+                    }
+                }
+            }
+            for (param in method.parameters) {
+                if (param.type != EtsUnknownType && param.type != EtsAnyType) {
+                    val realIndex = param.getRealIndex(method)
+                    if (realIndex == null) {
+                        logger.warn { "Could not determine real index for $param in $method" }
+                    } else {
+                        val ref = EtsParameterRef(realIndex, param.type)
+                        val path = ref.toPath()
+                        val type = EtsTypeFact.from(param.type)
+                        if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
+                            logger.debug { "Adding known type for $path: $type" }
+                            addTypes(path, type, result)
+                        }
                     }
                 }
             }
