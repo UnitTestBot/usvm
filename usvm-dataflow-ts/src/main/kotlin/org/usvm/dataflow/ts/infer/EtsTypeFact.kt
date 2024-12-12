@@ -17,6 +17,7 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
+import org.usvm.dataflow.ts.util.Globals
 
 private val logger = KotlinLogging.logger {}
 
@@ -44,7 +45,9 @@ sealed interface EtsTypeFact {
         }
     }
 
-    fun intersect(other: EtsTypeFact): EtsTypeFact? {
+    fun intersect(other: EtsTypeFact?): EtsTypeFact? {
+        if (other == null) return this
+
         if (this == other) return this
 
         if (other is UnknownEtsTypeFact) return this
@@ -154,6 +157,26 @@ sealed interface EtsTypeFact {
         val cls: EtsType?,
         val properties: Map<String, EtsTypeFact>,
     ) : BasicType {
+        fun getRealProperties(): Map<String, EtsTypeFact> {
+            val scene = Globals.scene
+            if (cls == null || cls !is EtsClassType) {
+                return properties
+            }
+            val clazz = scene.classes.firstOrNull { it.signature == cls.signature }
+                ?: return properties
+            val props = properties.toMutableMap()
+            clazz.methods.forEach { m ->
+                props.merge(m.name, FunctionEtsTypeFact) { old, new ->
+                    val t = old.intersect(new)
+                    if (t == null) {
+                        logger.warn { "Empty intersection: $old & $new" }
+                    }
+                    t
+                }
+            }
+            return props
+        }
+
         override fun toString(): String {
             val clsName = cls?.typeName?.takeUnless { it.startsWith(ANONYMOUS_CLASS_PREFIX) } ?: "Object"
             val funProps = properties.entries

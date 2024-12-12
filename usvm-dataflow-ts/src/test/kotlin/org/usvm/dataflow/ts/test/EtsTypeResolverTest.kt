@@ -22,6 +22,7 @@ import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
 import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
 import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.Globals
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.div
@@ -59,7 +60,9 @@ class EtsTypeResolverTest {
         val p = Path("C:/dev/ark/TestProjects/2024-12-11/12_Music_Demo-hap")
         val etsirPath = p / "etsir"
         val sdkPath = p / "sdk"
-        val scene = loadEtsScene(listOf(etsirPath, sdkPath))
+        val scene = loadEtsScene(listOf(etsirPath, sdkPath)).also {
+            Globals.scene = it
+        }
         val graph = createApplicationGraph(scene)
         val entrypoint = EntryPointsProcessor.extractEntryPoints(scene)
 
@@ -79,7 +82,9 @@ class EtsTypeResolverTest {
 
     fun runOnProject(projectID: String, abcPath: String, astPath: String) {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
-        val abcScene = loadProjectFromJsons(projectAbc)
+        val abcScene = loadProjectFromJsons(projectAbc).also {
+            Globals.scene = it
+        }
 
         val projectAst = "$yourPrefixForTestFolders/AST/$astPath"
         val astScene = loadProjectFromAst(projectAst)

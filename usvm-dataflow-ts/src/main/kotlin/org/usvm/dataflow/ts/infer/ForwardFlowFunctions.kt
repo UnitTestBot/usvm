@@ -61,45 +61,28 @@ class ForwardFlowFunctions(
     }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
+        if (method.cfg.stmts.isEmpty()) {
+            return listOf(Zero)
+        }
+
+        val initialTypes = methodInitialTypes[method] ?: return listOf(Zero)
+
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        if (method.cfg.stmts.isEmpty()) {
-            return result
-        }
-
-        val initialTypes = methodInitialTypes[method]
-        if (initialTypes != null) {
-            for ((base, type) in initialTypes.types) {
-                val path = AccessPath(base, accesses = emptyList())
-                addTypes(path, type, result)
-            }
-        }
-
-        if (doAddKnownTypes) {
-            for (local in method.locals) {
-                if (local.type != EtsUnknownType && local.type != EtsAnyType) {
-                    val path = local.toPath()
-                    val type = EtsTypeFact.from(local.type)
-                    if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
-                        logger.debug { "Adding known type for $path: $type" }
-                        addTypes(path, type, result)
-                    }
-                }
-            }
-            for (param in method.parameters) {
-                if (param.type != EtsUnknownType && param.type != EtsAnyType) {
-                    val realIndex = param.getRealIndex(method)
-                    if (realIndex == null) {
-                        logger.warn { "Could not determine real index for $param in $method" }
-                    } else {
-                        val ref = EtsParameterRef(realIndex, param.type)
-                        val path = ref.toPath()
-                        val type = EtsTypeFact.from(param.type)
-                        if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
-                            logger.debug { "Adding known type for $path: $type" }
-                            addTypes(path, type, result)
-                        }
-                    }
+        for (param in method.parameters) {
+            val base = AccessPathBase.Arg(param.index + 3)
+            val path = AccessPath(base, emptyList())
+            val bwType = initialTypes.types[base]
+            if (doAddKnownTypes) {
+                val realType = EtsTypeFact.from(param.type)
+                val finalType = realType.intersect(bwType)
+                    ?: error("Empty intersection")
+                addTypes(path, finalType, result)
+            } else {
+                if (bwType != null) {
+                    addTypes(path, bwType, result)
+                } else {
+                    logger.warn { "No backward type for $param" }
                 }
             }
         }
