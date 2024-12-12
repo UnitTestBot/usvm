@@ -18,7 +18,6 @@ import org.usvm.UTransformer
 import org.usvm.api.refSetAddElement
 import org.usvm.api.refSetRemoveElement
 import org.usvm.api.setAddElement
-import org.usvm.api.setContainsElement
 import org.usvm.api.setRemoveElement
 import org.usvm.apply
 import org.usvm.collection.set.primitive.USetEntryLValue
@@ -135,21 +134,9 @@ class SetEntriesTest {
         override fun topRegion(): SetRegion<KBitVecValue<KBv32Sort>> = SetRegion.universe()
         override fun bottomRegion(): SetRegion<KBitVecValue<KBv32Sort>> = SetRegion.empty()
 
-        override fun cmpSymbolicLe(
-            ctx: UContext<*>,
-            key1: UExpr<UBv32Sort>,
-            key2: UExpr<UBv32Sort>
-        ): UBoolExpr = error("")
-
-        override fun cmpConcreteLe(
-            key1: UExpr<UBv32Sort>,
-            key2: UExpr<UBv32Sort>
-        ): Boolean = error("")
-
-        override fun keyRangeRegion(
-            from: UExpr<UBv32Sort>,
-            to: UExpr<UBv32Sort>
-        ): SetRegion<KBitVecValue<KBv32Sort>> = error("")
+        override fun cmpSymbolicLe(ctx: UContext<*>, key1: UExpr<UBv32Sort>, key2: UExpr<UBv32Sort>) = error("unused")
+        override fun cmpConcreteLe(key1: UExpr<UBv32Sort>, key2: UExpr<UBv32Sort>) = error("unused")
+        override fun keyRangeRegion(from: UExpr<UBv32Sort>, to: UExpr<UBv32Sort>) = error("unused")
     }
 
     @Test
