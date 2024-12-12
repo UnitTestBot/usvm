@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -7,6 +8,7 @@ plugins {
     java
     application
     id(Plugins.RdGen)
+    id(Plugins.Shadow)
 }
 
 val rdgenModelsCompileClasspath by configurations.creating {
@@ -111,13 +113,13 @@ val generateModels = tasks.register<RdGenTask>("generateProtocolModels") {
     }
 
 }
+val runtimeClasspath = configurations.runtimeClasspath
 
-
-val instrumentationRunnerJar = tasks.register<Jar>("instrumentationJar") {
+val instrumentationRunnerJar = tasks.register<ShadowJar>("instrumentationJar") {
     group = "jar"
     dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources"))
     archiveClassifier.set("1.0")
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     manifest {
         attributes(
             mapOf(
@@ -129,7 +131,9 @@ val instrumentationRunnerJar = tasks.register<Jar>("instrumentationJar") {
         )
     }
 
-    val contents = configurations.runtimeClasspath.get()
+    mergeServiceFiles()
+
+    val contents = runtimeClasspath.get()
         .map { if (it.isDirectory) it else zipTree(it) }
 
     from(contents)
@@ -193,11 +197,9 @@ publishing {
             artifact(collectorsJarTask.get())
         }
 
-//       Instrumentation runner publishing disabled because of runner jar size
-//
-//        create<MavenPublication>("maven-instrumentation-runner") {
-//            artifactId = "usvm-jvm-instrumentation-runner"
-//            artifact(instrumentationRunnerJar.get())
-//        }
+        create<MavenPublication>("maven-instrumentation-runner") {
+            artifactId = "usvm-jvm-instrumentation-runner"
+            artifact(instrumentationRunnerJar.get())
+        }
     }
 }
