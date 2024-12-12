@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("usvm.kotlin-conventions")
     java
-    application
     id(Plugins.RdGen)
     id(Plugins.Shadow)
 }
@@ -118,7 +117,7 @@ val runtimeClasspath = configurations.runtimeClasspath
 val instrumentationRunnerJar = tasks.register<ShadowJar>("instrumentationJar") {
     group = "jar"
     dependsOn.addAll(listOf("compileJava", "compileKotlin", "processResources"))
-    archiveClassifier.set("1.0")
+    archiveBaseName.set("usvm-jvm-instrumentation-runner")
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     manifest {
         attributes(
