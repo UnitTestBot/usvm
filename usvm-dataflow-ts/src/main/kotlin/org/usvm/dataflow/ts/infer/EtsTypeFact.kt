@@ -382,23 +382,26 @@ sealed interface EtsTypeFact {
             return mkIntersectionType(guardedType, other)
         }
 
+        private fun tryIntersect(cls1: EtsType?, cls2: EtsType?): EtsType? {
+            if (cls1 == cls2) return cls1
+            if (cls1 == null) return cls2
+            if (cls2 == null) return cls1
+            // TODO: isSubtype
+            return null
+        }
+
         private fun intersect(obj1: ObjectEtsTypeFact, obj2: ObjectEtsTypeFact): EtsTypeFact? {
-            val intersectionProperties = obj1.properties.toMutableMap()
-            for ((property, type) in obj2.properties) {
+            val intersectionProperties = obj1.getRealProperties().toMutableMap()
+            for ((property, type) in obj2.getRealProperties()) {
                 val currentType = intersectionProperties[property]
                 if (currentType == null) {
                     intersectionProperties[property] = type
-                    continue
+                } else {
+                    intersectionProperties[property] = currentType.intersect(type)
+                        ?: return null
                 }
-
-                intersectionProperties[property] = currentType.intersect(type) ?: return null
             }
-
-            val intersectionCls = if (obj1.cls != null && obj2.cls != null) {
-                obj1.cls.takeIf { it == obj2.cls }
-            } else {
-                obj1.cls ?: obj2.cls
-            }
+            val intersectionCls = tryIntersect(obj1.cls, obj2.cls)
             return ObjectEtsTypeFact(intersectionCls, intersectionProperties)
         }
 

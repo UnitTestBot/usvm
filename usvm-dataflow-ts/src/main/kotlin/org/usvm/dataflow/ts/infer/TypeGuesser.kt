@@ -90,6 +90,7 @@ private fun EtsTypeFact.ObjectEtsTypeFact.resolveObjectTypeFact(
     propertyNameToClasses: Map<String, Set<EtsClass>>,
 ): EtsTypeFact {
     if (cls != null) {
+        // TODO: inspect this.properties and maybe find more exact class-type than 'cls'
         return this
     }
 
