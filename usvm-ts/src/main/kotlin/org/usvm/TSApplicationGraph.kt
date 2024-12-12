@@ -4,10 +4,11 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.usvm.statistics.ApplicationGraph
 
 class TSApplicationGraph(project: EtsFile) : ApplicationGraph<EtsMethod, EtsStmt> {
-    private val applicationGraph = EtsApplicationGraphImpl(project)
+    private val applicationGraph = EtsApplicationGraphImpl(EtsScene(listOf(project)))
 
     override fun predecessors(node: EtsStmt): Sequence<EtsStmt> =
         applicationGraph.predecessors(node)

@@ -5,7 +5,7 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val detekt = "1.18.1"
     const val ini4j = "0.5.4"
-    const val jacodb = "ae2716b3f8"
+    const val jacodb = "81ccf5aaed"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "1.9.20"
@@ -124,6 +124,16 @@ object Libs {
     val jacodb_api_jvm = dep(
         group = jacodbPackage,
         name = "jacodb-api-jvm",
+        version = Versions.jacodb
+    )
+    val jacodb_api_storage = dep(
+        group = jacodbPackage,
+        name = "jacodb-api-storage",
+        version = Versions.jacodb
+    )
+    val jacodb_storage = dep(
+        group = jacodbPackage,
+        name = "jacodb-storage",
         version = Versions.jacodb
     )
     val jacodb_ets = dep(
