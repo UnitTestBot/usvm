@@ -1,7 +1,9 @@
 package org.usvm.samples.primitives
 
 import org.junit.jupiter.api.Test
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -76,7 +78,12 @@ internal class DoubleExamplesTest : JavaMethodTestRunner() {
 
     @Test
     fun testMul() {
-        withOptions(options.copy(solverType = SolverType.YICES)) {
+        withOptions(options.copy(
+            solverType = SolverType.YICES,
+            // collect all states without coverage limit
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = -1
+        )) {
             checkDiscoveredProperties(
                 DoubleExamples::mul,
                 eq(6),
