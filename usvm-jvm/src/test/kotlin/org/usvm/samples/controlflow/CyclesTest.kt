@@ -3,6 +3,7 @@ package org.usvm.samples.controlflow
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.between
@@ -80,7 +81,14 @@ internal class CyclesTest : JavaMethodTestRunner() {
     }
 
     @Test
-    fun testInnerLoop() {
+    fun testInnerLoop(): Unit = withOptions(
+        options.copy(
+            // collect all states without coverage limit
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            loopIterationLimit = 10,
+            stopOnCoverage = -1
+        ),
+    ){
         checkDiscoveredProperties(
             Cycles::innerLoop,
             ignoreNumberOfAnalysisResults,
