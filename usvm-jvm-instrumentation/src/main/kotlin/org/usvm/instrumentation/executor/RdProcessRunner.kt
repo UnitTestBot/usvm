@@ -10,7 +10,6 @@ import kotlinx.coroutines.delay
 import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.cfg.JcInst
-import org.jacodb.api.jvm.ext.methods
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
@@ -199,7 +198,7 @@ class RdProcessRunner(
                             ?: error("Deserialization error")
                         jcClasspath.findClassOrNull(className.className) ?: error("Deserialization error")
                     }
-                val jcMethod = jcClass.methods.sortedBy { it.description }[methodId.toInt()]
+                val jcMethod = jcClass.declaredMethods.sortedBy { it.description }[methodId.toInt()]
                 jcMethod.instList
                     .find { it.location.index == instructionId }
                     ?: error("Deserialization error")
