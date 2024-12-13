@@ -507,6 +507,10 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		common.Type = TypeAssertInstruction
 		return TypeAssert{
 			CommonInstruction: common,
+			GoType:            inst.Type().String(),
+			Register:          inst.Name(),
+			Value:             p.PackValue(inst.X),
+			AssertedType:      inst.AssertedType.String(),
 		}
 	case *ssa.MakeClosure:
 		common.Type = MakeClosureInstruction

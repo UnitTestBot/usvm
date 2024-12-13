@@ -284,24 +284,22 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
-        val index = index(expr.name)
-        val rvalue = expr.value.accept(this).let {
-            if (it.sort == ctx.addressSort) {
-                return@let it
-            }
-
-            scope.calcOnState {
-                val ref = memory.allocConcrete(expr.type)
-                memory.writeField(ref, index, it.sort, it.asExpr(it.sort), ctx.trueExpr)
-                ref
+        val value = expr.value.accept(this).let {
+            when (it.sort) {
+                ctx.addressSort -> it
+                else -> scope.calcOnState {
+                    val ref = memory.allocConcrete(expr.type)
+                    memory.writeField(ref, BOXED_VALUE_FIELD, it.sort, it.asExpr(it.sort), ctx.trueExpr)
+                    ref
+                }
             }
         }.asExpr(ctx.addressSort)
 
         scope.doWithState {
-            scope.assert(memory.types.evalIsSubtype(rvalue, expr.type)) ?: throw IllegalStateException()
+            scope.assert(memory.types.evalIsSubtype(value, expr.type)) ?: throw IllegalStateException()
         }
 
-        return rvalue
+        return value
     }
 
     override fun visitGoMakeClosureExpr(expr: GoMakeClosureExpr): UExpr<out USort> {
@@ -342,7 +340,7 @@ class GoExprVisitor(
         val low = expr.low.accept(this).asExpr(ctx.sizeSort)
         val high = expr.high.accept(this).let { if (it is KBitVec32Value && it.intValue == -1) length else it }.asExpr(ctx.sizeSort)
         val count = ctx.mkSizeSubExpr(high, low)
-        val elementType = when(type) {
+        val elementType = when (type) {
             is ArrayType -> type.elementType
             is SliceType -> type.elementType
             is BasicType -> GoBasicTypes.UINT8
@@ -368,6 +366,7 @@ class GoExprVisitor(
                     }
                     memory.memcpy(array, result, expr.type, elementSort, low, ctx.mkSizeExpr(0), count)
                 }
+
                 else -> memory.memcpy(collection, result, expr.type, elementSort, low, ctx.mkSizeExpr(0), count)
             }
             result
@@ -375,6 +374,13 @@ class GoExprVisitor(
     }
 
     override fun visitGoFieldAddrExpr(expr: GoFieldAddrExpr): UExpr<out USort> {
+        if (expr.instance is GoNullConstant) {
+            return scope.calcOnState {
+                panic("nil struct")
+                ctx.noValue
+            }
+        }
+
         val struct = deref(expr.instance.accept(this).asExpr(ctx.pointerSort), ctx.addressSort)
         checkNotNull(struct) ?: throw IllegalStateException()
         return scope.calcOnState {
@@ -511,7 +517,49 @@ class GoExprVisitor(
     }
 
     override fun visitGoTypeAssertExpr(expr: GoTypeAssertExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
+        val x = expr.instance.accept(this)
+
+        val assertType = expr.assertType.let { if (it is TupleType) it.types[0] else it }
+        val assertSort = ctx.typeToSort(assertType)
+
+        val commaOk = expr.type is TupleType
+        val tupleType = TupleType(listOf(assertType, GoBasicTypes.BOOL))
+
+        val ite: (UHeapRef, UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> = { ref, ok, fail ->
+            scope.calcOnState {
+                return@calcOnState ctx.mkIte(
+                    memory.types.evalIsSupertype(ref, assertType),
+                    trueBranch = { ok.asExpr(ok.sort) },
+                    falseBranch = { fail.asExpr(fail.sort).also { if (!commaOk) panic("type assertion failed") } }
+                )
+            }
+        }
+
+        val xAddr = x.asExpr(ctx.addressSort)
+        checkNotNull(xAddr) ?: throw IllegalStateException()
+
+        return scope.calcOnState {
+            when (assertSort) {
+                ctx.addressSort -> {
+                    if (commaOk) {
+                        mkTuple(tupleType, ite(xAddr, xAddr, ctx.nullRef), ite(xAddr, ctx.trueExpr, ctx.falseExpr))
+                    } else {
+                        ite(xAddr, xAddr, ctx.nullRef)
+                    }
+                }
+
+                else -> {
+                    val unboxedValue = memory.readField(xAddr, BOXED_VALUE_FIELD, assertSort)
+                    val sample = assertSort.sampleUValue().asExpr(assertSort)
+
+                    if (commaOk) {
+                        mkTuple(tupleType, ite(xAddr, unboxedValue, sample), ite(xAddr, ctx.trueExpr, ctx.falseExpr))
+                    } else {
+                        ite(xAddr, unboxedValue, sample)
+                    }
+                }
+            }
+        }
     }
 
     override fun visitGoExtractExpr(expr: GoExtractExpr): UExpr<out USort> {
@@ -778,5 +826,9 @@ class GoExprVisitor(
 
     private fun unsupportedExpr(name: String): UExpr<out USort> {
         throw UnsupportedOperationException("Expression '$name' not supported")
+    }
+
+    companion object {
+        const val BOXED_VALUE_FIELD = "boxed_value"
     }
 }

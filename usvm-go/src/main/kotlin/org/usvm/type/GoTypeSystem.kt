@@ -98,6 +98,7 @@ class GoTypeSystem(
     private fun implements(iface: InterfaceType, impl: GoType): Boolean = when {
         iface.methods.isEmpty() -> true
         impl is NamedType -> impl.methods.containsAll(iface.methods)
+        impl is PointerType -> implements(iface, impl.baseType)
         else -> false
     }
 }

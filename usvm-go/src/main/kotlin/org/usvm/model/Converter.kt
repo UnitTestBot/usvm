@@ -69,6 +69,7 @@ import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoStringConstant
 import org.jacodb.go.api.GoSubExpr
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.GoTypeAssertExpr
 import org.jacodb.go.api.GoUInt
 import org.jacodb.go.api.GoUInt16
 import org.jacodb.go.api.GoUInt32
@@ -94,6 +95,7 @@ import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.jacodb.go.api.UnionType
 import org.usvm.GoPackage
+import org.usvm.api.UnsupportedInstructionException
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoTypes
 
@@ -136,18 +138,18 @@ object Converter {
             is Instruction.ChangeInterface -> GoChangeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.ChangeType -> GoChangeTypeExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.Convert -> GoConvertExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
-            is Instruction.DebugRef -> TODO()
+            is Instruction.DebugRef -> unsupportedInstruction("DebugRef")
             is Instruction.Defer -> TODO()
             is Instruction.Extract -> unpack(loc, inst)
             is Instruction.Field -> GoFieldExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
             is Instruction.FieldAddr -> GoFieldAddrExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
-            is Instruction.Go -> TODO()
+            is Instruction.Go -> unsupportedInstruction("Go")
             is Instruction.If -> GoIfInst(loc, unpack(inst.condition) as GoConditionExpr, GoInstRef(inst.trueBranch), GoInstRef(inst.falseBranch))
             is Instruction.Index -> unpack(loc, inst)
             is Instruction.IndexAddr -> unpack(loc, inst)
             is Instruction.Jump -> GoJumpInst(loc, GoInstRef(inst.index))
             is Instruction.Lookup -> unpack(loc, inst)
-            is Instruction.MakeChan -> TODO()
+            is Instruction.MakeChan -> unsupportedInstruction("MakeChan")
             is Instruction.MakeClosure -> unpack(loc, inst)
             is Instruction.MakeInterface -> GoMakeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.MakeMap -> GoMakeMapExpr(loc, getType(inst.goType), unpack(inst.reserve), inst.register).toAssignInst()
@@ -159,12 +161,12 @@ object Converter {
             is Instruction.Range -> GoRangeExpr(loc, getType(inst.goType), unpack(inst.collection), inst.register).toAssignInst()
             is Instruction.Return -> GoReturnInst(loc, inst.results.map(this::unpack))
             is Instruction.RunDefers -> TODO()
-            is Instruction.Select -> TODO()
-            is Instruction.Send -> TODO()
+            is Instruction.Select -> unsupportedInstruction("Select")
+            is Instruction.Send -> unsupportedInstruction("Send")
             is Instruction.Slice -> unpack(loc, inst)
             is Instruction.SliceToArrayPointer -> unpack(loc, inst)
             is Instruction.Store -> GoStoreInst(loc, unpack(inst.addr), unpack(inst.value))
-            is Instruction.TypeAssert -> TODO()
+            is Instruction.TypeAssert -> unpack(loc, inst)
             is Instruction.UnOp -> unpack(loc, inst)
         }
     }
@@ -303,6 +305,16 @@ object Converter {
         }
     }
 
+    private fun unpack(location: GoInstLocation, typeAssert: Instruction.TypeAssert): GoInst {
+        return GoTypeAssertExpr(
+            location,
+            getType(typeAssert.goType),
+            unpack(typeAssert.value),
+            getType(typeAssert.assertedType),
+            typeAssert.register
+        ).toAssignInst()
+    }
+
     private fun unpack(location: GoInstLocation, unOp: Instruction.UnOp): GoInst {
         val unaryExprConstructors = mapOf<String, Function4<GoInstLocation, GoType, GoValue, String, GoUnaryExpr>>(
             "*" to ::GoUnMulExpr,
@@ -406,5 +418,9 @@ object Converter {
 
     private fun functionAlias(name: String): GoFunction {
         return GoFunction(OpaqueType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
+    }
+
+    private fun unsupportedInstruction(name: String): GoInst {
+        throw UnsupportedInstructionException(name)
     }
 }
