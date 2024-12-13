@@ -69,6 +69,12 @@ class ForwardFlowFunctions(
 
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
+        for ((base, type) in initialTypes.types) {
+            if (base is AccessPathBase.Arg) continue
+            val path = AccessPath(base, emptyList())
+            addTypes(path, type, result)
+        }
+
         for (param in method.parameters) {
             val base = AccessPathBase.Arg(param.index + 3)
             val path = AccessPath(base, emptyList())
