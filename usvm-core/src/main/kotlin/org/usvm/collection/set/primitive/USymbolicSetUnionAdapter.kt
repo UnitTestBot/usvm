@@ -35,9 +35,25 @@ sealed class USymbolicSetUnionAdapter<
     override fun includesConcretely(key: DstKey) =
         includesSymbolically(key, composer = null).isTrue
 
+    private var lastIncludesSymbolicallyCheck: IncludesSymbolicallyCache<SrcKey>? = null
+
     override fun includesSymbolically(key: DstKey, composer: UComposer<*, *>?): UBoolExpr {
         val srcKey = convert(key, composer)
-        return setOfKeys.read(srcKey, composer)
+
+        /**
+         * In the case of deep set union hierarchy we have multiple checks of the same key.
+         * We can cache the last checked key to overcome this issue
+         * */
+        val prevIncludesSymbolicallyCache = lastIncludesSymbolicallyCheck
+        if (prevIncludesSymbolicallyCache != null) {
+            if (prevIncludesSymbolicallyCache.key == srcKey) {
+                return prevIncludesSymbolicallyCache.result
+            }
+        }
+
+        return setOfKeys.read(srcKey, composer).also {
+            lastIncludesSymbolicallyCheck = IncludesSymbolicallyCache(srcKey, it)
+        }
     }
 
     override fun isIncludedByUpdateConcretely(
@@ -49,6 +65,8 @@ sealed class USymbolicSetUnionAdapter<
         "(union $collection)"
 
     abstract override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<DstKey>)
+
+    private data class IncludesSymbolicallyCache<Key>(val key: Key, val result: UBoolExpr)
 }
 
 class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
