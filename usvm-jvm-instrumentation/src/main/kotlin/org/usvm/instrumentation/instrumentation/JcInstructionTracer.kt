@@ -6,7 +6,6 @@ import org.jacodb.api.jvm.JcField
 import org.jacodb.api.jvm.JcMethod
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcRawFieldRef
-import org.jacodb.api.jvm.ext.methods
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
 import org.usvm.instrumentation.util.enclosingClass
@@ -75,7 +74,7 @@ object JcInstructionTracer : Tracer<Trace> {
 
     private fun encodeMethod(jcClass: JcClassOrInterface, jcMethod: JcMethod): EncodedMethod {
         val encodedClass = encodeClass(jcClass)
-        val methodIndex = jcClass.methods
+        val methodIndex = jcClass.declaredMethods
             .sortedBy { it.description }
             .indexOf(jcMethod)
             .also { if (it == -1) error("Encoding error") }
