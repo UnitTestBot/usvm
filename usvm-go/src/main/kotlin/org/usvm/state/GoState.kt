@@ -3,6 +3,7 @@ package org.usvm.state
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.go.api.ArrayType
+import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
@@ -259,7 +260,8 @@ class GoState(
 
     private fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
         is ArrayType -> memory.allocateArray(type, ctx.sizeSort, ctx.mkSizeExpr(type.len.toInt()))
-        else -> ctx.typeToSort(type).sampleUValue()
+        is BasicType -> ctx.typeToSort(type).sampleUValue()
+        else -> memory.allocConcrete(type)
     }
 
     private fun addDeferredCall(): Boolean {

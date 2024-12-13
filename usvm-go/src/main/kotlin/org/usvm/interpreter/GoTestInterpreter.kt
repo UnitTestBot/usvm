@@ -120,12 +120,13 @@ class GoTestInterpreter(
                         is MapType -> resolveMap(h, type)
                         is TupleType -> resolveTuple(h, type)
                         is StructType -> resolveStruct(h, type)
-                        is NamedType -> convertExpr(h, type.underlyingType)
+                        is NamedType -> type.name + ": " + convertExpr(h, type.underlyingType)
                         is InterfaceType -> convertExpr(h, memory.typeStreamOf(h).first())
                         is NullType -> null
                         else -> Any()
                     }
                 }
+
                 ctx.pointerSort -> resolvePointer(expr.asExpr(ctx.pointerSort), type as PointerType)
                 else -> Any()
             }
@@ -281,6 +282,10 @@ class GoTestInterpreter(
         }
 
         fun resolvePointer(pointer: UHeapRef, pointerType: PointerType): Any? = with(ctx) {
+            if (pointer == mkConcreteHeapRef(NULL_ADDRESS) || pointer == pointerSort.sampleUValue()) {
+                return null
+            }
+
             val ptr = pointer.asExpr(pointerSort) as UAddressPointer
             val expr = memory.read(state.pointerLValue(ptr, ctx.typeToSort(pointerType.baseType)))
             return convertExpr(expr, pointerType.baseType)

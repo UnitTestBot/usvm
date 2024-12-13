@@ -30,6 +30,10 @@ type Creature interface {
 	Validate() (bool, error)
 }
 
+type Building struct {
+	Height int
+}
+
 type NamedInt int
 
 func (n NamedInt) square() int {
@@ -49,4 +53,52 @@ func toNamedInt(i int) NamedInt {
 
 func callNamedInt(i int) int {
 	return NamedInt(i).square()
+}
+
+func assertCreature() (Person, bool) {
+	var c Creature = Person{
+		Name: "Name",
+		Age:  42,
+	}
+	p, ok := c.(Person)
+	return p, ok
+}
+
+func assertCreatureNoComma() Person {
+	var c Creature = Person{
+		Name: "Name",
+		Age:  42,
+	}
+	return c.(Person)
+}
+
+func assertCreatureFailNoComma() Building {
+	var c any = Person{
+		Name: "Name",
+		Age:  42,
+	}
+	return c.(Building)
+}
+
+func assertCreaturePointer() (*Person, bool) {
+	var c Creature = &Person{
+		Name: "Name",
+		Age:  42,
+	}
+	p, ok := c.(*Person)
+	return p, ok
+}
+
+func assertCreatureArgument(c Creature) (Person, bool) {
+	if p, ok := c.(Person); ok {
+		return p, ok
+	}
+
+	return Person{}, false
+}
+
+func assertIntAny() int {
+	var a any = 2
+	var b any = 3
+	return a.(int) + b.(int)
 }

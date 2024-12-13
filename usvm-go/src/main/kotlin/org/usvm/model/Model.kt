@@ -413,6 +413,10 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        @SerialName("go_type") val goType: String,
+        val register: String,
+        val value: Value,
+        @SerialName("asserted_type") val assertedType: String,
     ) : Instruction
 
     @Serializable

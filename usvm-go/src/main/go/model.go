@@ -359,6 +359,10 @@ type MapUpdate struct {
 
 type TypeAssert struct {
 	CommonInstruction `yaml:",inline"`
+	GoType            string `yaml:"go_type" json:"go_type"`
+	Register          string `yaml:"register" json:"register"`
+	Value             Value  `yaml:"value" json:"value"`
+	AssertedType      string `yaml:"asserted_type" json:"asserted_type"`
 }
 
 type MakeClosure struct {
