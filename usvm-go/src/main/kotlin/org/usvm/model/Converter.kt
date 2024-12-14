@@ -211,7 +211,7 @@ object Converter {
             getType(call.goType),
             unpack(call.value),
             call.args.map(this::unpack),
-            null,
+            if (call.method == "") null else functionAlias(call.method),
             call.register
         ).toAssignInst()
     }

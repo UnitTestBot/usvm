@@ -182,6 +182,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		return common
 	case *ssa.Function:
 		common.Type = FunctionMember
+		common.Name = p.FunctionName(member)
 		return Function{
 			CommonMember: common,
 			BasicBlocks:  lo.Map(member.Blocks, p.PackBasicBlock),
@@ -267,11 +268,16 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		}
 	case *ssa.Call:
 		common.Type = CallInstruction
+		method := ""
+		if inst.Call.IsInvoke() {
+			method = inst.Call.Method.Name()
+		}
 		return Call{
 			CommonInstruction: common,
 			GoType:            inst.Type().String(),
 			Register:          inst.Name(),
 			Value:             p.PackValue(inst.Call.Value),
+			Method:            method,
 			Args:              lo.Map(inst.Call.Args, p.PackValueIdx),
 		}
 	case *ssa.ChangeInterface:
@@ -580,6 +586,7 @@ func (p *Package) PackValue(in ssa.Value) Value {
 		}
 	case *ssa.Function:
 		common.Type = FunctionValue
+		common.Name = p.FunctionName(value)
 		return common
 	case *ssa.MakeClosure:
 		common.Type = MakeClosureValue
@@ -630,6 +637,10 @@ func (p *Package) PackTupleTypes(in *types.Tuple) []string {
 		out = append(out, in.At(i).Type().String())
 	}
 	return out
+}
+
+func (p *Package) FunctionName(in *ssa.Function) string {
+	return strings.TrimPrefix(in.String(), p.Name+".")
 }
 
 func FindInstructionIndex(in ssa.Instruction) int {

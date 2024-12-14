@@ -75,7 +75,7 @@ class GoInterpreter(
 
         val exprVisitor = GoExprVisitor(ctx, pkg, scope, applicationGraph)
         val instVisitor = GoInstVisitor(ctx, pkg, scope, exprVisitor, applicationGraph)
-        val nextInst: GoInst = when(state.data.flowStatus) {
+        val nextInst: GoInst = when (state.data.flowStatus) {
             GoFlowStatus.NORMAL -> state.getRecoverInst(method)
             GoFlowStatus.DEFER -> state.getDeferInst(method, inst)
         } ?: inst.accept(instVisitor)

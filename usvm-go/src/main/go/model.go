@@ -169,6 +169,7 @@ type Call struct {
 	GoType            string  `yaml:"go_type" json:"go_type"`
 	Register          string  `yaml:"register" json:"register"`
 	Value             Value   `yaml:"value" json:"value"`
+	Method            string  `yaml:"method" json:"method"`
 	Args              []Value `yaml:"args" json:"args"`
 }
 
