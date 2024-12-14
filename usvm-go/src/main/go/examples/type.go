@@ -30,6 +30,10 @@ type Creature interface {
 	Validate() (bool, error)
 }
 
+func GetAge(p Person) int {
+	return p.GetAge()
+}
+
 type Building struct {
 	Height int
 }
@@ -53,6 +57,14 @@ func toNamedInt(i int) NamedInt {
 
 func callNamedInt(i int) int {
 	return NamedInt(i).square()
+}
+
+func callCreature(c Creature) int {
+	if c == nil {
+		return -1
+	}
+
+	return c.GetAge()
 }
 
 func assertCreature() (Person, bool) {
@@ -95,6 +107,27 @@ func assertCreatureArgument(c Creature) (Person, bool) {
 	}
 
 	return Person{}, false
+}
+
+func assertCreatureArgumentCall(c Creature) int {
+	if p, ok := c.(Person); ok {
+		return p.GetAge()
+	}
+
+	return -1
+}
+
+func assertNamedIntCall(i any) int {
+	if n, ok := i.(NamedInt); ok {
+		return n.square()
+	}
+	if n, ok := i.(int); ok {
+		if n*n <= 1 {
+			panic("invalid int")
+		}
+		return n * n
+	}
+	return -1
 }
 
 func assertIntAny() int {

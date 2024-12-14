@@ -124,6 +124,7 @@ import org.usvm.state.GoMethodResult
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
+import org.usvm.types.first
 
 class GoExprVisitor(
     private val ctx: GoContext,
@@ -146,8 +147,17 @@ class GoExprVisitor(
             return result.value
         }
 
+        val args = expr.args.let { if (expr.callee == null) it else listOf(func)+it }
         val method = when {
-            expr.callee != null -> expr.callee!!
+            expr.callee != null -> {
+                val instance = func.accept(this).asExpr(ctx.addressSort)
+                val type = scope.calcOnState {
+                    scope.assert(memory.types.evalIsSubtype(instance, func.type)) ?: throw IllegalStateException()
+                    memory.typeStreamOf(instance).first()
+                }
+                pkg.findMethod("(${type.typeName}).${expr.callee!!.name}")
+            }
+
             func is GoFunction -> pkg.findMethod(func.metName)
             func is GoVar -> scope.calcOnState {
                 pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name)
@@ -155,7 +165,7 @@ class GoExprVisitor(
 
             else -> throw UnknownFunctionException(func.toString())
         }
-        val parameters = expr.args.map { it.accept(this) }.toTypedArray()
+        val parameters = args.map { it.accept(this) }.toTypedArray()
         val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
         ctx.setMethodInfo(method, parameters)
 

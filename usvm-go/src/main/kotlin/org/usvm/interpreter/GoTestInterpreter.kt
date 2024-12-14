@@ -27,6 +27,7 @@ import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.usvm.GoContext
+import org.usvm.GoExprVisitor
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressPointer
 import org.usvm.UAddressSort
@@ -114,7 +115,10 @@ class GoTestInterpreter(
                 ctx.addressSort -> {
                     val h = expr.asExpr(ctx.addressSort)
                     when (type) {
-                        is BasicType -> resolveString(h)
+                        is BasicType -> when (type) {
+                            GoBasicTypes.STRING -> resolveString(h)
+                            else -> resolveBoxed(h, type)
+                        }
                         is ArrayType -> resolveArray(h, type)
                         is SliceType -> resolveSlice(h, type)
                         is MapType -> resolveMap(h, type)
@@ -289,6 +293,15 @@ class GoTestInterpreter(
             val ptr = pointer.asExpr(pointerSort) as UAddressPointer
             val expr = memory.read(state.pointerLValue(ptr, ctx.typeToSort(pointerType.baseType)))
             return convertExpr(expr, pointerType.baseType)
+        }
+
+        fun resolveBoxed(value: UHeapRef, type: BasicType): Any? = with(ctx) {
+            if (value == mkConcreteHeapRef(NULL_ADDRESS)) {
+                return null
+            }
+
+            val unboxedValue = memory.readField(value, GoExprVisitor.BOXED_VALUE_FIELD, typeToSort(type))
+            return convertExpr(unboxedValue, type)
         }
     }
 

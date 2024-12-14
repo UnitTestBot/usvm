@@ -107,6 +107,7 @@ sealed interface Instruction {
         @SerialName("go_type") val goType: String,
         val register: String,
         val value: Value,
+        val method: String,
         val args: List<Value>,
     ) : Instruction
 
