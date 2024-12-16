@@ -81,8 +81,9 @@ class ForwardFlowFunctions(
             val bwType = initialTypes.types[base]
             if (doAddKnownTypes) {
                 val realType = EtsTypeFact.from(param.type)
+                // TODO: maybe do 'bwType.refine(realType)'
                 val finalType = realType.intersect(bwType) ?: run {
-                    logger.warn{"Empty intersection: $realType & $bwType" }
+                    logger.error {"Empty intersection of real and backward types: $realType, $bwType" }
                     realType
                 }
                 addTypes(path, finalType, result)

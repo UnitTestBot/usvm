@@ -587,7 +587,10 @@ class TypeInferenceManager(
                 if (property.size == 1) {
                     // val p = property.single()
                     // check(p is ElementAccessor)
-                    val t = elementType.intersect(type) ?: error("Empty intersection")
+                    val t = elementType.intersect(type) ?: run {
+                        logger.error {"Empty intersection of array element and refinement types: $elementType & $type"}
+                        elementType
+                    }
                     return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
                 } else {
                     return EtsTypeFact.AnyEtsTypeFact
