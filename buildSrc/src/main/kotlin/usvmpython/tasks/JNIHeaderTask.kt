@@ -1,7 +1,7 @@
 package usvmpython.tasks
 
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.main
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.sourceSets
+import gradle.kotlin.dsl.accessors._f82704f7081d2131104652c38785c0ac.main
+import gradle.kotlin.dsl.accessors._f82704f7081d2131104652c38785c0ac.sourceSets
 import org.glavo.javah.JavahTask
 import org.gradle.api.Project
 import usvmpython.getGeneratedHeadersPath

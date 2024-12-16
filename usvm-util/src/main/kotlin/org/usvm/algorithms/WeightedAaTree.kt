@@ -1,6 +1,6 @@
 package org.usvm.algorithms
 
-import java.util.*
+import java.util.Stack
 import kotlin.math.min
 
 data class AaTreeNode<T>(
@@ -132,7 +132,7 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
         }
     }
 
-    private tailrec fun removeRec(value: T, deleteFrom: AaTreeNode<T>?, k: (AaTreeNode<T>?) -> AaTreeNode<T>?): AaTreeNode<T>? {
+    private fun removeRec(value: T, deleteFrom: AaTreeNode<T>?, k: (AaTreeNode<T>?) -> AaTreeNode<T>?): AaTreeNode<T>? {
         if (deleteFrom == null) {
             return null
         }

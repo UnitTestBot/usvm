@@ -5,10 +5,10 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val detekt = "1.18.1"
     const val ini4j = "0.5.4"
-    const val jacodb = "da132425c9"
+    const val jacodb = "0a8fdc1c40"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
-    const val kotlin = "1.9.20"
+    const val kotlin = "2.0.20"
     const val kotlin_logging = "1.8.3"
     const val kotlinx_collections = "0.3.5"
     const val kotlinx_coroutines = "1.6.4"
@@ -126,7 +126,6 @@ object Libs {
         name = "jacodb-api-jvm",
         version = Versions.jacodb
     )
-<<<<<<< HEAD
     val jacodb_api_storage = dep(
         group = jacodbPackage,
         name = "jacodb-api-storage",
@@ -135,17 +134,17 @@ object Libs {
     val jacodb_storage = dep(
         group = jacodbPackage,
         name = "jacodb-storage",
-=======
+        version = Versions.jacodb
+    )
     val jacodb_go = dep(
         group = jacodbPackage,
         name = "jacodb-go",
->>>>>>> 2b7521624 (supported more functionality in go-jacodb, todo: type system)
         version = Versions.jacodb
     )
     val jacodb_ets = dep(
         group = jacodbPackage,
         name = "jacodb-ets",
-        version =  Versions.jacodb
+        version = Versions.jacodb
     )
     val jacodb_api_common = dep(
         group = jacodbPackage,

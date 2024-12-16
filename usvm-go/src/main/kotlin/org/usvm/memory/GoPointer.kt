@@ -1,11 +1,12 @@
 package org.usvm.memory
 
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.sampleUValue
 
 data class GoPointerLValue<Sort : USort>(
@@ -31,7 +32,7 @@ data class GoPointerRegionId<Sort : USort>(
 interface GoPointerRegion<Sort : USort> : UMemoryRegion<GoPointerLValue<Sort>, Sort>
 
 class GoPointerMemoryRegion<Sort : USort>(
-    private var pointers: PersistentMap<UHeapRef, UExpr<Sort>> = persistentHashMapOf(),
+    private var pointers: UPersistentHashMap<UHeapRef, UExpr<Sort>> = persistentHashMapOf(),
 ) : GoPointerRegion<Sort> {
     override fun read(key: GoPointerLValue<Sort>): UExpr<Sort> {
         return pointers[key.ref] ?: key.sort.sampleUValue()
@@ -40,9 +41,10 @@ class GoPointerMemoryRegion<Sort : USort>(
     override fun write(
         key: GoPointerLValue<Sort>,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        ownership: MutabilityOwnership
     ): UMemoryRegion<GoPointerLValue<Sort>, Sort> {
-        val newPointers = pointers.guardedWrite(key.ref, value, guard) { key.sort.sampleUValue() }
+        val newPointers = pointers.guardedWrite(key.ref, value, guard, ownership) { key.sort.sampleUValue() }
 
         return GoPointerMemoryRegion(newPointers)
     }
