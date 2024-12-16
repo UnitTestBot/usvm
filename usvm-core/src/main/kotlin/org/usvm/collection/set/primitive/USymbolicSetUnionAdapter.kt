@@ -76,15 +76,19 @@ sealed class USymbolicSetUnionAdapter<
                 this(WeakReference(key), composer?.let { WeakReference(it) }, result)
 
         fun containsCachedValue(key: Key, composer: UComposer<*, *>?): Boolean {
-            val thisKey = this.key.get() ?: return false
-            if (thisKey != key) return false
+            if (!this.key.equalTo(key)) return false
 
-            if (composer == null) {
-                return this.composer == null
+            val thisComposer = this.composer ?: return composer == null
+            if (composer == null) return false
+
+            return thisComposer.equalTo(composer)
+        }
+
+        companion object {
+            private fun <T> WeakReference<T>.equalTo(other: T): Boolean {
+                val value = get() ?: return false
+                return value == other
             }
-
-            val thisComposer = this.composer?.get() ?: return false
-            return thisComposer == composer
         }
     }
 }
