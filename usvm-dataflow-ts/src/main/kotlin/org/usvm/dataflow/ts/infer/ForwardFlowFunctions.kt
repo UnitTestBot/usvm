@@ -488,13 +488,20 @@ class ForwardFlowFunctions(
         callStatement: EtsStmt,
         fact: TypedVariable,
     ): List<TypedVariable> {
-        val callResultValue = (callStatement as? EtsAssignStmt)?.lhv?.toPath()
-        if (callResultValue != null) {
-            // Drop fact on LHS as it will be overwritten by the call result
-            if (fact.variable.base == callResultValue.base) return emptyList()
-        }
+        val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
 
-        val callExpr = callStatement.callExpr ?: error("No call")
+        // `x := f()`
+        if (callStatement is EtsAssignStmt) {
+            // Fact on LHS is overwritten by the call result
+            val left = callStatement.lhv.toPath()
+            if (fact.variable.base == left.base) {
+                val type = EtsTypeFact.from(callExpr.method.returnType)
+                logger.info { "LHS $left overwritten by the call result: $type" }
+                val result = mutableListOf<ForwardTypeDomainFact>()
+                addTypes(left, type, result)
+                return result.map { it as TypedVariable }
+            }
+        }
 
         // todo: hack, keep fact if call was not resolved
         if (graph.callees(callStatement).none()) {
