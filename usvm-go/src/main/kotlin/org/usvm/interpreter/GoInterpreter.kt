@@ -16,6 +16,7 @@ import org.usvm.INIT_FUNCTION
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.solver.USatResult
 import org.usvm.state.GoFlowStatus
@@ -32,7 +33,8 @@ class GoInterpreter(
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
     fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState = with(ctx) {
-        val state = GoState(ctx, method, targets = UTargetsSet.from(targets))
+        val initOwnership = MutabilityOwnership()
+        val state = GoState(ctx, initOwnership, method, targets = UTargetsSet.from(targets))
 
         val solver = solver<GoType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model

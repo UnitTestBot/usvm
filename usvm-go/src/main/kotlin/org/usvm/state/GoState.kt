@@ -23,6 +23,7 @@ import org.usvm.UState
 import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.GoPointerLValue
 import org.usvm.memory.ULValue
@@ -38,10 +39,11 @@ import org.usvm.type.GoBasicTypes
 
 class GoState(
     ctx: GoContext,
+    ownership: MutabilityOwnership,
     override val entrypoint: GoMethod,
     callStack: UCallStack<GoMethod, GoInst> = UCallStack(),
-    pathConstraints: UPathConstraints<GoType> = UPathConstraints(ctx),
-    memory: UMemory<GoType, GoMethod> = UMemory(ctx, pathConstraints.typeConstraints),
+    pathConstraints: UPathConstraints<GoType> = UPathConstraints(ctx, ownership),
+    memory: UMemory<GoType, GoMethod> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
     models: List<UModelBase<GoType>> = listOf(),
     pathNode: PathNode<GoInst> = PathNode.root(),
     forkPoints: PathNode<PathNode<GoInst>> = PathNode.root(),
@@ -50,6 +52,7 @@ class GoState(
     var data: GoStateData = GoStateData()
 ) : UState<GoType, GoMethod, GoInst, GoContext, GoTarget, GoState>(
     ctx,
+    ownership,
     callStack,
     pathConstraints,
     memory,
@@ -59,13 +62,20 @@ class GoState(
     targets
 ) {
     override fun clone(newConstraints: UPathConstraints<GoType>?): GoState {
-        val clonedConstraints = newConstraints ?: pathConstraints.clone()
+        val newThisOwnership = MutabilityOwnership()
+        val cloneOwnership = MutabilityOwnership()
+        val clonedConstraints = newConstraints?.also {
+            this.pathConstraints.changeOwnership(newThisOwnership)
+            it.changeOwnership(cloneOwnership)
+        } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
+        this.ownership = newThisOwnership
         return GoState(
             ctx,
+            ownership,
             entrypoint,
             callStack.clone(),
             clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints),
+            memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
             models,
             pathNode,
             forkPoints,
@@ -76,6 +86,10 @@ class GoState(
     }
 
     override fun mergeWith(other: GoState, by: Unit): GoState? {
+        val newThisOwnership = MutabilityOwnership()
+        val newOtherOwnership = MutabilityOwnership()
+        val mergedOwnership = MutabilityOwnership()
+
         require(entrypoint == other.entrypoint) { "Cannot merge states with different entrypoints" }
         // TODO: copy-paste
 
@@ -84,10 +98,13 @@ class GoState(
 
         val mergeGuard = MutableMergeGuard(ctx)
         val mergedCallStack = callStack.mergeWith(other.callStack, Unit) ?: return null
-        val mergedPathConstraints = pathConstraints.mergeWith(other.pathConstraints, mergeGuard)
-            ?: return null
-        val mergedMemory = memory.clone(mergedPathConstraints.typeConstraints).mergeWith(other.memory, mergeGuard)
-            ?: return null
+        val mergedPathConstraints = pathConstraints.mergeWith(
+            other.pathConstraints, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership
+        ) ?: return null
+        val mergedMemory =
+            memory.clone(mergedPathConstraints.typeConstraints, newThisOwnership, newOtherOwnership)
+                .mergeWith(other.memory, mergeGuard, newThisOwnership, newOtherOwnership, mergedOwnership)
+                ?: return null
         val mergedModels = models + other.models
         val methodResult = if (other.methodResult == GoMethodResult.NoCall && methodResult == GoMethodResult.NoCall) {
             GoMethodResult.NoCall
@@ -101,6 +118,7 @@ class GoState(
 
         return GoState(
             ctx,
+            mergedOwnership,
             entrypoint,
             mergedCallStack,
             mergedPathConstraints,

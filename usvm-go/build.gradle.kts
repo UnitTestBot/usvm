@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm")
     id("org.gradle.application")
     id("usvm.kotlin-conventions")
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
 }
 
 tasks {
