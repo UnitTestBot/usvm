@@ -158,7 +158,7 @@ sealed interface EtsTypeFact {
         val properties: Map<String, EtsTypeFact>,
     ) : BasicType {
         fun getRealProperties(): Map<String, EtsTypeFact> {
-            val scene = Globals.scene
+            val scene = Globals.scene ?: return properties
             if (cls == null || cls !is EtsClassType) {
                 return properties
             }
