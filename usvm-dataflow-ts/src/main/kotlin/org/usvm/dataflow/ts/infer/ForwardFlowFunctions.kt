@@ -523,20 +523,26 @@ class ForwardFlowFunctions(
             }
         }
 
-        // todo: hack, keep fact if call was not resolved
-        if (graph.callees(callStatement).none()) {
-            return listOf(fact)
-        }
-
-        if (callExpr is EtsInstanceCallExpr) {
-            val instance = callExpr.instance.toPath()
-            if (fact.variable.base == instance.base) return emptyList()
-        }
-
-        for (arg in callExpr.args) {
-            val argPath = arg.toPath()
-            if (fact.variable.base == argPath.base) return emptyList()
-        }
+        // // todo: hack, keep fact if call was not resolved
+        // if (graph.callees(callStatement).none()) {
+        //     return listOf(fact)
+        // }
+        //
+        // graph.callees(callStatement).singleOrNull()?.let { q ->
+        //     if (q.cfg.stmts.isEmpty()) {
+        //         return listOf(fact)
+        //     }
+        // }
+        //
+        // if (callExpr is EtsInstanceCallExpr) {
+        //     val instance = callExpr.instance.toPath()
+        //     if (fact.variable.base == instance.base) return emptyList()
+        // }
+        //
+        // for (arg in callExpr.args) {
+        //     val argPath = arg.toPath()
+        //     if (fact.variable.base == argPath.base) return emptyList()
+        // }
 
         return listOf(fact)
     }
