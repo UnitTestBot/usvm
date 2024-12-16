@@ -6,6 +6,7 @@ import org.jacodb.ets.base.EtsArithmeticExpr
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
@@ -45,6 +46,15 @@ fun EtsMethodParameter.getRealIndex(method: EtsMethod): Int? {
     }
     if (assign == null) return null
     return ((assign as EtsAssignStmt).rhv as EtsParameterRef).index
+}
+
+fun EtsType.unwrapPromise(): EtsType {
+    if (this is EtsClassType) {
+        if (this.signature.name == "Promise" && this.typeParameters.isNotEmpty()) {
+            return this.typeParameters[0]
+        }
+    }
+    return this
 }
 
 class ForwardFlowFunctions(
@@ -480,7 +490,21 @@ class ForwardFlowFunctions(
         returnSite: EtsStmt,
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
-            Zero -> listOf(Zero)
+            Zero -> {
+                val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
+
+                val result = mutableListOf<ForwardTypeDomainFact>(Zero)
+
+                // `x := f()`
+                if (callStatement is EtsAssignStmt) {
+                    val left = callStatement.lhv.toPath()
+                    val type = EtsTypeFact.from(callExpr.method.returnType.unwrapPromise())
+                    addTypes(left, type, result)
+                }
+
+                result
+            }
+
             is TypedVariable -> call(callStatement, fact)
         }
     }
@@ -491,16 +515,11 @@ class ForwardFlowFunctions(
     ): List<TypedVariable> {
         val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
 
-        // `x := f()`
         if (callStatement is EtsAssignStmt) {
-            // Fact on LHS is overwritten by the call result
             val left = callStatement.lhv.toPath()
             if (fact.variable.base == left.base) {
-                val type = EtsTypeFact.from(callExpr.method.returnType)
-                logger.info { "LHS $left overwritten by the call result: $type" }
-                val result = mutableListOf<ForwardTypeDomainFact>()
-                addTypes(left, type, result)
-                return result.map { it as TypedVariable }
+                // Fact on LHS is overwritten by the call result
+                return emptyList()
             }
         }
 
