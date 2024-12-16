@@ -59,7 +59,7 @@ fun EtsType.unwrapPromise(): EtsType {
 
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
-    val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
+    val methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
     val doAddKnownTypes: Boolean = true,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
@@ -79,7 +79,7 @@ class ForwardFlowFunctions(
 
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        for ((base, type) in initialTypes.types) {
+        for ((base, type) in initialTypes) {
             if (base is AccessPathBase.Arg) continue
             val path = AccessPath(base, emptyList())
             addTypes(path, type, result)
@@ -88,7 +88,7 @@ class ForwardFlowFunctions(
         for (param in method.parameters) {
             val base = AccessPathBase.Arg(param.index + 3)
             val path = AccessPath(base, emptyList())
-            val bwType = initialTypes.types[base]
+            val bwType = initialTypes[base]
             if (doAddKnownTypes) {
                 val realType = EtsTypeFact.from(param.type)
                 // TODO: maybe do 'bwType.refine(realType)'

@@ -11,7 +11,7 @@ import org.usvm.dataflow.ifds.Vertex
 
 class ForwardAnalyzer(
     val graph: EtsApplicationGraph,
-    methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
+    methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     typeInfo: Map<EtsType, EtsTypeFact>,
     doAddKnownTypes: Boolean = true,
 ) : Analyzer<ForwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {

@@ -72,15 +72,15 @@ class TypeInferenceManager(
         }
 
         createResultsFromSummaries(updatedTypeScheme, doInferAllLocals).also {
-            methodTypeScheme.let{}
-            it.let{}
+            methodTypeScheme.let {}
+            it.let {}
         }
     }
 
     private suspend fun collectSummaries(
         startMethods: List<EtsMethod>,
         doAddKnownTypes: Boolean = true,
-    ): Map<EtsMethod, EtsMethodTypeFacts> = coroutineScope {
+    ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> = coroutineScope {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators)
@@ -123,7 +123,7 @@ class TypeInferenceManager(
                 appendLine("Backward types:")
                 for ((method, typeFacts) in methodTypeScheme) {
                     appendLine("Backward types for ${method.enclosingClass.name}::${method.name} in ${method.enclosingClass.file}:")
-                    for ((base, fact) in typeFacts.types.entries.sortedBy {
+                    for ((base, fact) in typeFacts.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
                             is AccessPathBase.Arg -> key.index + 1
@@ -187,7 +187,7 @@ class TypeInferenceManager(
     }
 
     private fun createResultsFromSummaries(
-        methodTypeScheme: Map<EtsMethod, EtsMethodTypeFacts>,
+        methodTypeScheme: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
         doInferAllLocals: Boolean,
     ): TypeInferenceResult {
         val refinedTypes = refineMethodTypes(methodTypeScheme).toMutableMap()
@@ -196,7 +196,7 @@ class TypeInferenceManager(
                 appendLine("Forward types:")
                 for ((method, typeFacts) in refinedTypes) {
                     appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
-                    for ((base, fact) in typeFacts.types.entries.sortedBy {
+                    for ((base, fact) in typeFacts.entries.sortedBy {
                         when (val key = it.key) {
                             is AccessPathBase.This -> 0
                             is AccessPathBase.Arg -> key.index + 1
@@ -219,7 +219,7 @@ class TypeInferenceManager(
             allClasses.mapNotNull { cls ->
                 val combinedBackwardType =
                     methodTypeScheme.asSequence().filter { (method, _) -> method in (cls.methods + cls.ctor) }
-                        .mapNotNull { (_, facts) -> facts.types[AccessPathBase.This] }.reduceOrNull { acc, type ->
+                        .mapNotNull { (_, facts) -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
                             val intersection = acc.intersect(type)
 
                             if (intersection == null) {
@@ -393,13 +393,13 @@ class TypeInferenceManager(
                     logger.warn { "No refined types for $method" }
                     continue
                 }
-                refinedTypes[method] = facts.copy(types = facts.types + localFacts)
+                refinedTypes[method] = facts + localFacts
             }
         }
 
         val inferredTypes = refinedTypes
             // Extract 'types':
-            .mapValues { (_, facts) -> facts.types }
+            .mapValues { (_, facts) -> facts }
             // Sort by 'base':
             .mapValues { (_, types) ->
                 types.entries.sortedBy {
@@ -422,12 +422,12 @@ class TypeInferenceManager(
         )
     }
 
-    private fun methodTypeScheme(): Map<EtsMethod, EtsMethodTypeFacts> =
+    private fun methodTypeScheme(): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> =
         backwardSummaries.mapValues { (method, summaries) ->
             buildMethodTypeScheme(method, summaries)
         }
 
-    private fun refineMethodTypes(schema: Map<EtsMethod, EtsMethodTypeFacts>): Map<EtsMethod, EtsMethodTypeFacts> =
+    private fun refineMethodTypes(schema: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> =
         schema.mapValues { (method, facts) ->
             val summaries = forwardSummaries[method].orEmpty()
             refineMethodTypes(facts, summaries)
@@ -436,7 +436,7 @@ class TypeInferenceManager(
     private fun buildMethodTypeScheme(
         method: EtsMethod,
         summaries: Iterable<BackwardSummaryAnalyzerEvent>,
-    ): EtsMethodTypeFacts {
+    ): Map<AccessPathBase, EtsTypeFact> {
         val types = summaries
             .mapNotNull { it.exitFact as? BackwardTypeDomainFact.TypedVariable }
             .groupBy({ it.variable }, { it.type })
@@ -453,20 +453,20 @@ class TypeInferenceManager(
                 }
             }
 
-        return EtsMethodTypeFacts(method, types)
+        return types
     }
 
     private fun refineMethodTypes(
-        facts: EtsMethodTypeFacts, // backward types
+        facts: Map<AccessPathBase, EtsTypeFact>, // backward types
         summaries: Iterable<ForwardSummaryAnalyzerEvent>,
-    ): EtsMethodTypeFacts {
+    ): Map<AccessPathBase, EtsTypeFact> {
         // Contexts
         val typeFacts = summaries.asSequence()
             .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
             .filter { it.variable.base is AccessPathBase.This || it.variable.base is AccessPathBase.Arg }
             .groupBy { it.variable.base }
 
-        val refinedTypes = facts.types.mapValues { (base, type) ->
+        val refinedTypes = facts.mapValues { (base, type) ->
             val typeRefinements = typeFacts[base] ?: return@mapValues type
 
             val propertyRefinements = typeRefinements
@@ -488,7 +488,7 @@ class TypeInferenceManager(
 
         typeFacts.let {}
 
-        return EtsMethodTypeFacts(facts.method, refinedTypes)
+        return refinedTypes
     }
 
     private fun EtsTypeFact.refineProperties(
@@ -592,7 +592,7 @@ class TypeInferenceManager(
                     // val p = property.single()
                     // check(p is ElementAccessor)
                     val t = elementType.intersect(type) ?: run {
-                        logger.error {"Empty intersection of array element and refinement types: $elementType & $type"}
+                        logger.error { "Empty intersection of array element and refinement types: $elementType & $type" }
                         elementType
                     }
                     return EtsTypeFact.ArrayEtsTypeFact(elementType = t)
