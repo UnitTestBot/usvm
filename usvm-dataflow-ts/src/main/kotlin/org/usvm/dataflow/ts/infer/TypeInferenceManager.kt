@@ -244,8 +244,8 @@ class TypeInferenceManager(
                     .flatMap { (_, summaries) -> summaries.asSequence() }
                     .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }
-                    .toList()
                     .distinct()
+                    .toList()
 
                 val typeFactsOnThisCtor = forwardSummaries.asSequence()
                     .filter { (method, _) -> method.enclosingClass == cls.signature }
@@ -253,8 +253,8 @@ class TypeInferenceManager(
                     .flatMap { (_, summaries) -> summaries.asSequence() }
                     .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
                     .filter { it.variable.base is AccessPathBase.This }
-                    .toList()
                     .distinct()
+                    .toList()
 
                 val typeFactsOnThis = (typeFactsOnThisMethods + typeFactsOnThisCtor).distinct()
 
