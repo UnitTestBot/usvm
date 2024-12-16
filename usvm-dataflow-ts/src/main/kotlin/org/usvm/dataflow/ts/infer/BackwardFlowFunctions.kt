@@ -216,9 +216,11 @@ class BackwardFlowFunctions(
         // Case `return x`
         // ∅ |= x:unknown
         if (current is EtsReturnStmt) {
-            val variable = current.returnValue?.toBase()
-            if (variable != null) {
-                result += TypedVariable(variable, EtsTypeFact.UnknownEtsTypeFact)
+            val returnValue = current.returnValue
+            if (returnValue != null) {
+                val variable = returnValue.toBase()
+                val realType = EtsTypeFact.from(returnValue.type)
+                result += TypedVariable(variable, realType)
             }
         }
 
@@ -239,7 +241,8 @@ class BackwardFlowFunctions(
                 if (rhv.accesses.isEmpty()) {
                     // Case `x... := y`
                     // ∅ |= y:unknown
-                    result += TypedVariable(y, EtsTypeFact.UnknownEtsTypeFact)
+                    val realType = EtsTypeFact.from(current.rhv.type)
+                    result += TypedVariable(y, realType)
                 } else {
                     // Case `x := y.f`  OR  `x := y[i]`
 
@@ -367,7 +370,13 @@ class BackwardFlowFunctions(
 
             // x:T |= x:T (keep) + y:T
             val y = rhv.base
-            val newFact = TypedVariable(y, fact.type).withTypeGuards(current)
+            val newType = fact.type
+            val realType = EtsTypeFact.from(current.rhv.type)
+            val type = newType.intersect(realType) ?: run {
+                logger.error { "Empty intersection of fact and real type: $newType & $realType" }
+                newType
+            }
+            val newFact = TypedVariable(y, type).withTypeGuards(current)
             return listOf(fact, newFact)
 
         } else if (lhv.accesses.isEmpty()) {
@@ -390,6 +399,11 @@ class BackwardFlowFunctions(
                         cls = null,
                         properties = mapOf(a.name to fact.type)
                     )
+                    // val realType = EtsTypeFact.from(current.rhv.type)
+                    // val type = newType.intersect(realType) ?: run {
+                    //     logger.error { "Empty intersection of fact and real type: $newType & $realType" }
+                    //     newType
+                    // }
                     result += TypedVariable(y, type).withTypeGuards(current)
                     // aliases: +|= z:{f:T}
                     // for (z in preAliases.getAliases(AccessPath(y, emptyList()))) {
@@ -404,6 +418,11 @@ class BackwardFlowFunctions(
                     // x:T |= x:T (keep) + y:Array<T>
                     val y = rhv.base
                     val type = EtsTypeFact.ArrayEtsTypeFact(elementType = fact.type)
+                    // val realType = EtsTypeFact.from(current.rhv.type)
+                    // val type = newType.intersect(realType) ?: run {
+                    //     logger.error { "Empty intersection of fact and real type: $newType & $realType" }
+                    //     newType
+                    // }
                     val newFact = TypedVariable(y, type).withTypeGuards(current)
                     return listOf(fact, newFact)
                 }
@@ -417,11 +436,11 @@ class BackwardFlowFunctions(
                 // Case `x.f := y`
                 is FieldAccessor -> {
                     if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                        TODO("Support union type for x.f := y in BW-sequent")
+                        // TODO("Support union type for x.f := y in BW-sequent")
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                        TODO("Support intersection type for x.f := y in BW-sequent")
+                        // TODO("Support intersection type for x.f := y in BW-sequent")
                     }
 
                     // x:primitive |= x:primitive (pass)
