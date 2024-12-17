@@ -7,10 +7,8 @@ import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import com.jetbrains.rd.util.threading.SynchronousScheduler
 import kotlinx.coroutines.delay
-import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.cfg.JcInst
-import org.jacodb.api.jvm.ext.methods
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
 import org.usvm.instrumentation.util.findFieldByFullNameOrNull
@@ -22,7 +20,6 @@ import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -38,8 +35,7 @@ class RdProcessRunner(
     private val serializationContext = SerializationContext(jcClasspath)
     private val scheduler = SingleThreadScheduler(lifetime, "usvm-executor-scheduler")
     private val coroutineScope = UsvmRdCoroutineScope(lifetime, scheduler)
-    private val deserializedInstructionsCache = HashMap<Long, JcInst>()
-    private val deserializedClassesCache = HashMap<Long, JcClassOrInterface>()
+    private val traceDeserializer = TraceDeserializer(jcClasspath)
     lateinit var rdProcess: RdServerProcess
 
 
@@ -186,25 +182,7 @@ class RdProcessRunner(
     }
 
     private fun deserializeTrace(trace: List<Long>, coveredClasses: List<ClassToId>): List<JcInst> =
-        trace.map { encodedInst ->
-            deserializedInstructionsCache.getOrPut(encodedInst) {
-                val classIdOffset = (2.0.pow(Byte.SIZE_BITS * 3).toLong() - 1) shl (Byte.SIZE_BITS * 5 - 1)
-                val classId = encodedInst and classIdOffset shr (Byte.SIZE_BITS * 5)
-                val methodIdOffset = (2.0.pow(Byte.SIZE_BITS * 2).toLong() - 1) shl (Byte.SIZE_BITS * 3 - 1)
-                val methodId = encodedInst and methodIdOffset shr (Byte.SIZE_BITS * 3)
-                val instructionId = (encodedInst and (2.0.pow(Byte.SIZE_BITS * 3).toLong() - 1)).toInt()
-                val jcClass =
-                    deserializedClassesCache.getOrPut(classId) {
-                        val className = coveredClasses.find { it.classId == classId }
-                            ?: error("Deserialization error")
-                        jcClasspath.findClassOrNull(className.className) ?: error("Deserialization error")
-                    }
-                val jcMethod = jcClass.methods.sortedBy { it.description }[methodId.toInt()]
-                jcMethod.instList
-                    .find { it.location.index == instructionId }
-                    ?: error("Deserialization error")
-            }
-        }
+        traceDeserializer.deserializeTrace(trace, coveredClasses)
 
     fun destroy() {
         lifetime.terminate()
