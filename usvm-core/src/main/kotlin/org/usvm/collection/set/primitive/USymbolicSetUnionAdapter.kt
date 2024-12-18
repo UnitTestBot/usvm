@@ -19,8 +19,9 @@ import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.key.UHeapRefKeyInfo
-import org.usvm.uctx
 import org.usvm.regions.Region
+import org.usvm.uctx
+import java.lang.ref.WeakReference
 
 sealed class USymbolicSetUnionAdapter<
     SetType, SrcKey, DstKey,
@@ -46,13 +47,13 @@ sealed class USymbolicSetUnionAdapter<
          * */
         val prevIncludesSymbolicallyCache = lastIncludesSymbolicallyCheck
         if (prevIncludesSymbolicallyCache != null) {
-            if (prevIncludesSymbolicallyCache.key == srcKey) {
+            if (prevIncludesSymbolicallyCache.containsCachedValue(srcKey, composer)) {
                 return prevIncludesSymbolicallyCache.result
             }
         }
 
         return setOfKeys.read(srcKey, composer).also {
-            lastIncludesSymbolicallyCheck = IncludesSymbolicallyCache(srcKey, it)
+            lastIncludesSymbolicallyCheck = IncludesSymbolicallyCache(srcKey, composer, it)
         }
     }
 
@@ -66,7 +67,30 @@ sealed class USymbolicSetUnionAdapter<
 
     abstract override fun collectSetElements(elements: USymbolicSetElementsCollector.Elements<DstKey>)
 
-    private data class IncludesSymbolicallyCache<Key>(val key: Key, val result: UBoolExpr)
+    private data class IncludesSymbolicallyCache<Key>(
+        val key: WeakReference<Key>,
+        val composer: WeakReference<UComposer<*, *>>?,
+        val result: UBoolExpr
+    ) {
+        constructor(key: Key, composer: UComposer<*, *>?, result: UBoolExpr) :
+                this(WeakReference(key), composer?.let { WeakReference(it) }, result)
+
+        fun containsCachedValue(key: Key, composer: UComposer<*, *>?): Boolean {
+            if (!this.key.equalTo(key)) return false
+
+            val thisComposer = this.composer ?: return composer == null
+            if (composer == null) return false
+
+            return thisComposer.equalTo(composer)
+        }
+
+        companion object {
+            private fun <T> WeakReference<T>.equalTo(other: T): Boolean {
+                val value = get() ?: return false
+                return value == other
+            }
+        }
+    }
 }
 
 class UAllocatedToAllocatedSymbolicSetUnionAdapter<SetType, ElemSort : USort>(
