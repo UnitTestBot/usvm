@@ -10,6 +10,7 @@ import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsClassSignature
 
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)
@@ -44,8 +45,8 @@ sealed interface AccessPathBase {
         override fun toString(): String = "<this>"
     }
 
-    object Static : AccessPathBase {
-        override fun toString(): String = "<static>"
+    data class Static(val clazz: EtsClassSignature) : AccessPathBase {
+        override fun toString(): String = "static(${clazz.name})"
     }
 
     data class Arg(val index: Int) : AccessPathBase {
@@ -91,7 +92,8 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
     }
 
     is EtsStaticFieldRef -> {
-        AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name)))
+        val base = AccessPathBase.Static(field.enclosingClass)
+        AccessPath(base, listOf(FieldAccessor(field.name)))
     }
 
     is EtsCastExpr -> arg.toPathOrNull()
