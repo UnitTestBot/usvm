@@ -388,7 +388,11 @@ class TypeInferenceManager(
             }
 
             for ((method, localFacts) in inferredLocalTypes) {
-                val facts = refinedTypes[method]!!
+                val facts = refinedTypes[method]
+                if (facts == null) {
+                    logger.warn { "No refined types for $method" }
+                    continue
+                }
                 refinedTypes[method] = facts.copy(types = facts.types + localFacts)
             }
         }
