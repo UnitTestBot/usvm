@@ -79,31 +79,9 @@ class ForwardFlowFunctions(
 
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        // for ((base, type) in initialTypes) {
-        //     if (base is AccessPathBase.Arg) continue
-        //     val path = AccessPath(base, emptyList())
-        //     addTypes(path, type, result)
-        // }
-
-        for (param in method.parameters) {
-            val base = AccessPathBase.Arg(param.index + 3)
+        for ((base, type) in initialTypes) {
             val path = AccessPath(base, emptyList())
-            val bwType = initialTypes[base]
-            if (doAddKnownTypes) {
-                val realType = EtsTypeFact.from(param.type)
-                // TODO: maybe do 'bwType.refine(realType)'
-                val finalType = realType.intersect(bwType) ?: run {
-                    logger.error {"Empty intersection of real and backward types: $realType, $bwType" }
-                    realType
-                }
-                addTypes(path, finalType, result)
-            } else {
-                if (bwType != null) {
-                    addTypes(path, bwType, result)
-                } else {
-                    logger.warn { "No backward type for $param" }
-                }
-            }
+            addTypes(path, type, result)
         }
 
         return result
