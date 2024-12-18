@@ -14,7 +14,7 @@ val logger = object : KLogging() {}.logger
  *
  * @see [run]
  */
-abstract class UMachine<State : UState<*, *, *, *, *, *>> : AutoCloseable {
+abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
     /**
      * Runs symbolic execution loop.
      *
