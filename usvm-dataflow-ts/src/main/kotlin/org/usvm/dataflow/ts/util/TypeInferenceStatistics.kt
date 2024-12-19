@@ -465,7 +465,7 @@ class TypeInferenceStatistics {
                 types
                     .sortedWith(comparator)
                     .forEach { (path, typeInfo, typeFact, status) ->
-                        appendLine("${path}: $typeInfo -> $typeFact [${status.message}]")
+                        appendLine("[${status.message}]: ${path}: $typeInfo -> $typeFact ")
                     }
                 appendLine()
             }
@@ -493,12 +493,26 @@ class TypeInferenceStatistics {
         file.writeText(data)
     }
 
+    private fun calculateImprovement(): Double {
+        val newExactTypes = exactTypeInferredPreviouslyUnknown +
+            exactTypeInferredPreviouslyWasAny +
+            exactTypeInferredIncorrectlyPreviouslyKnown +
+            arrayInfoPreviouslyUnknown
+
+        val prevTypes = exactTypeInferredCorrectlyPreviouslyKnown +
+            typeInfoInferredPreviouslyKnownExactly +
+            arrayInfoPreviouslyKnown +
+            noInfoInferredPreviouslyKnown
+
+        return newExactTypes.toDouble() / prevTypes * 100
+    }
+
     override fun toString(): String = """
         Total types number: $overallTypes
                 
         Compared to the first state of the Scene:
         
-        Improvement: ${((exactTypeInferredPreviouslyUnknown.toDouble() + arrayInfoPreviouslyUnknown) / (typeInfoInferredPreviouslyKnownExactly + exactTypeInferredCorrectlyPreviouslyKnown + noInfoInferredPreviouslyKnown)) * 100}%
+        Improvement: ${calculateImprovement()}%
         
         Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown 
         Inferred types that were already inferred: $exactTypeInferredCorrectlyPreviouslyKnown
@@ -644,26 +658,6 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean {
     }
 
     return result
-}
-
-private fun EtsTypeFact.isPrimitiveToUnknown(type: EtsType): Boolean {
-    val isPrimitive = when (this) {
-        EtsTypeFact.AnyEtsTypeFact -> false
-        is EtsTypeFact.ArrayEtsTypeFact -> false
-        EtsTypeFact.BooleanEtsTypeFact -> true
-        EtsTypeFact.FunctionEtsTypeFact -> false
-        EtsTypeFact.NullEtsTypeFact -> true
-        EtsTypeFact.NumberEtsTypeFact -> true
-        is EtsTypeFact.ObjectEtsTypeFact -> false
-        EtsTypeFact.StringEtsTypeFact -> true
-        EtsTypeFact.UndefinedEtsTypeFact -> false
-        EtsTypeFact.UnknownEtsTypeFact -> true
-        is EtsTypeFact.GuardedTypeFact -> false
-        is EtsTypeFact.IntersectionEtsTypeFact -> false
-        is EtsTypeFact.UnionEtsTypeFact -> false
-    }
-
-    return isPrimitive && type is EtsUnknownType
 }
 
 private data class InferenceResult(
