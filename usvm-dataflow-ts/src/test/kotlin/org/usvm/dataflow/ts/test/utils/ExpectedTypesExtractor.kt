@@ -3,25 +3,22 @@ package org.usvm.dataflow.ts.test.utils
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.TEMP_LOCAL_PREFIX
 import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
-import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.util.MethodTypesFacts
 import java.io.File
 
 private val logger = mu.KotlinLogging.logger {}
@@ -77,21 +74,6 @@ class ClassMatcherStatistics {
     private var someFactsAboutReturnTypes: Long = 0L
     private var returnIsAnyType: Long = 0L
 
-    // Comparison with scene before type inference
-    private var exactTypeInferredPreviouslyUnknown = 0L
-    private var exactTypeInferredCorrectlyPreviouslyKnown = 0L
-    private var exactTypeInferredPreviouslyWasAny = 0L
-    private var exactTypeInferredIncorrectlyPreviouslyKnown = 0L
-
-    private var typeInfoInferredPreviouslyUnknown = 0L
-    private var typeInfoInferredPreviouslyKnownExactly = 0L
-    private var arrayInfoPreviouslyUnknown = 0L
-
-    private var noInfoInferredPreviouslyKnown = 0L
-    private var noInfoInferredPreviouslyUnknown = 0L
-
-    private var undefinedUnknownCombination = 0L
-
     private val methodToTypes: MutableMap<EtsMethod, MutableMap<AccessPathBase, Pair<EtsType, EtsTypeFact?>>> =
         hashMapOf()
     private val methodToReturnTypes: MutableMap<EtsMethod, Pair<EtsType, EtsTypeFact?>> = hashMapOf()
@@ -129,120 +111,6 @@ class ClassMatcherStatistics {
             astMethod
         )
 
-        compareWithPreviouslyContained(methodResults, abcMethod, abcGraph)
-    }
-
-    private fun compareWithPreviouslyContained(
-        facts: MethodTypesFacts,
-        method: EtsMethod,
-        graph: EtsApplicationGraph,
-    ) {
-        val thisType = getEtsClassType(method, graph)
-        val argTypes = method.parameters.map { it.type }
-        val locals = method.locals
-
-        thisType?.let {
-            val fact = facts.combinedThisFact
-
-            if (fact == null) {
-                if (it.signature.name == "Unknown") { // TODO check it
-                    noInfoInferredPreviouslyUnknown++
-                } else {
-                    noInfoInferredPreviouslyKnown++
-                }
-            } else {
-                when {
-                    fact.matchesWith(it, strictMode = true) -> exactTypeInferredCorrectlyPreviouslyKnown++
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
-                        exactTypeInferredIncorrectlyPreviouslyKnown++
-                    } // TODO check how unknown is represented
-                    else -> typeInfoInferredPreviouslyKnownExactly++
-                }
-            }
-        }
-
-        // TODO ignore return types for now
-
-        argTypes.forEachIndexed { index, type ->
-            val fact = facts.argumentsFacts.getOrNull(index)
-
-            if (fact == null) {
-                if (type is EtsUnknownType) {
-                    noInfoInferredPreviouslyUnknown++
-                } else {
-                    noInfoInferredPreviouslyKnown++
-                }
-            } else {
-                when {
-                    fact.matchesWith(type, strictMode = true) -> {
-                        exactTypeInferredCorrectlyPreviouslyKnown++
-                    }
-
-                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
-
-                    fact is EtsTypeFact.ArrayEtsTypeFact && type is EtsUnknownType -> {
-                        arrayInfoPreviouslyUnknown++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
-                        exactTypeInferredPreviouslyWasAny++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> {
-                        exactTypeInferredIncorrectlyPreviouslyKnown++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
-                        exactTypeInferredPreviouslyUnknown++
-                    }
-
-                    type is EtsUnknownType && fact is EtsTypeFact.UndefinedEtsTypeFact -> undefinedUnknownCombination++
-                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown++
-                    else -> typeInfoInferredPreviouslyKnownExactly++
-                }
-            }
-        }
-
-        locals.filter { it.name.startsWith(TEMP_LOCAL_PREFIX) }.forEach {
-            val type = it.type
-            val fact = facts.localFacts[AccessPathBase.Local(it.name)]
-
-            if (fact == null) {
-                if (type is EtsUnknownType) {
-                    noInfoInferredPreviouslyUnknown++
-                } else {
-                    noInfoInferredPreviouslyKnown++
-                }
-            } else {
-                when {
-                    fact.matchesWith(type, strictMode = true) -> {
-                        exactTypeInferredCorrectlyPreviouslyKnown++
-                    }
-
-                    fact.isPrimitiveToUnknown(type) -> exactTypeInferredPreviouslyUnknown++
-
-                    fact is EtsTypeFact.ArrayEtsTypeFact && type is EtsUnknownType -> {
-                        arrayInfoPreviouslyUnknown++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type is EtsAnyType -> {
-                        exactTypeInferredPreviouslyWasAny++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null && type !is EtsUnknownType -> {
-                        exactTypeInferredIncorrectlyPreviouslyKnown++
-                    }
-
-                    (fact as? EtsTypeFact.ObjectEtsTypeFact)?.cls != null -> {
-                        exactTypeInferredPreviouslyUnknown++
-                    }
-
-                    type is EtsUnknownType && fact is EtsTypeFact.UndefinedEtsTypeFact -> undefinedUnknownCombination++
-                    type is EtsUnknownType -> typeInfoInferredPreviouslyUnknown++
-                    else -> typeInfoInferredPreviouslyKnownExactly++
-                }
-            }
-        }
     }
 
     private fun compareTypesWithExpected(
@@ -336,27 +204,6 @@ class ClassMatcherStatistics {
         Not found: ${overallReturnTypes - exactlyMatchedReturnTypes - someFactsAboutReturnTypes - returnIsAnyType}
         
         Didn't find any types for ${failedMethods.size} methods
-        
-        
-        Compared to the first state of the Scene:
-        
-        Improvement: ${((exactTypeInferredPreviouslyUnknown.toDouble() + arrayInfoPreviouslyUnknown) / (typeInfoInferredPreviouslyKnownExactly + exactTypeInferredCorrectlyPreviouslyKnown + noInfoInferredPreviouslyKnown)) * 100}%
-        
-        Inferred types that were unknown: $exactTypeInferredPreviouslyUnknown 
-        Inferred types that were already inferred: $exactTypeInferredCorrectlyPreviouslyKnown
-        Inferred types that were previously inferred as any: $exactTypeInferredPreviouslyWasAny
-        Inferred types are different from the ones in the Scene: $exactTypeInferredIncorrectlyPreviouslyKnown
-
-        Array types instead of unknown: $arrayInfoPreviouslyUnknown
-
-        Some facts found about unknown type: $typeInfoInferredPreviouslyUnknown 
-        Some facts found about already inferred type: $typeInfoInferredPreviouslyKnownExactly
-
-        Lost info about type: $noInfoInferredPreviouslyKnown
-        Nothing inferred, but it was unknown previously as well: $noInfoInferredPreviouslyUnknown 
-        
-        Was unknown, became undefined: $undefinedUnknownCombination
-    
     """.trimIndent()
 
     fun dumpStatistics(outputFilePath: String? = null) {
@@ -419,26 +266,6 @@ class ClassMatcherStatistics {
         println("File with statistics is located: ${file.absolutePath}")
         file.writeText(data)
     }
-
-    private fun EtsTypeFact.isPrimitiveToUnknown(type: EtsType): Boolean {
-        val isPrimitive = when (this) {
-            EtsTypeFact.AnyEtsTypeFact -> false
-            is EtsTypeFact.ArrayEtsTypeFact -> false
-            EtsTypeFact.BooleanEtsTypeFact -> true
-            EtsTypeFact.FunctionEtsTypeFact -> false
-            EtsTypeFact.NullEtsTypeFact -> true
-            EtsTypeFact.NumberEtsTypeFact -> true
-            is EtsTypeFact.ObjectEtsTypeFact -> false
-            EtsTypeFact.StringEtsTypeFact -> true
-            EtsTypeFact.UndefinedEtsTypeFact -> false
-            EtsTypeFact.UnknownEtsTypeFact -> true
-            is EtsTypeFact.GuardedTypeFact -> false
-            is EtsTypeFact.IntersectionEtsTypeFact -> false
-            is EtsTypeFact.UnionEtsTypeFact -> false
-        }
-
-        return isPrimitive && type is EtsUnknownType
-    }
 }
 
 data class MethodTypes(
@@ -460,46 +287,6 @@ data class MethodTypes(
         if (ignoreReturnType) return true
 
         return other.returnFact.matchesWith(returnType, strictMode = false)
-    }
-}
-
-data class MethodTypesFacts(
-    val combinedThisFact: EtsTypeFact?,
-    val argumentsFacts: List<EtsTypeFact?>,
-    val localFacts: Map<AccessPathBase, EtsTypeFact>,
-    val returnFact: EtsTypeFact?,
-) {
-    companion object {
-        fun from(
-            result: TypeInferenceResult,
-            m: EtsMethod,
-        ): MethodTypesFacts {
-            val combinedThisFact = result.inferredCombinedThisType.entries.firstOrNull {
-                it.key.name == m.enclosingClass.name
-            }?.value
-
-            val factsForMethod = result.inferredTypes.entries.singleOrNull {
-                // TODO hack because of signatures
-                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
-            }?.value
-
-            val inferredReturnType = result.inferredReturnType.entries.firstOrNull {
-                it.key.let { method -> method.name == m.name && method.enclosingClass.name == m.enclosingClass.name }
-
-            }?.value
-
-            val arguments = m.parameters.indices.map {
-                val stmts = m.cfg.stmts
-                if (stmts.isEmpty()) return@map null
-
-                val realIndex = ((stmts[it] as EtsAssignStmt).rhv as EtsParameterRef).index
-                factsForMethod?.get(AccessPathBase.Arg(realIndex))
-            }
-
-            val locals = factsForMethod?.filterKeys { it is AccessPathBase.Local }.orEmpty()
-
-            return MethodTypesFacts(combinedThisFact, arguments, locals, inferredReturnType)
-        }
     }
 }
 
