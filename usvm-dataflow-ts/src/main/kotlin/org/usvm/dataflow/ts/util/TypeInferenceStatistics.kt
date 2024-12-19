@@ -454,12 +454,19 @@ class TypeInferenceStatistics {
 
                         else -> when (snd.position) {
                             is AccessPathBase.This, is AccessPathBase.Arg -> 1
-                            else -> 0
+                            else -> if (fst.position is AccessPathBase.Local && snd.position is AccessPathBase.Local) {
+                                fst.position.name.compareTo(snd.position.name)
+                            } else {
+                                0
+                            }
                         }
                     }
                 }
 
-            allTypesAndFacts.forEach { (method, types) ->
+            allTypesAndFacts
+                .toList()
+                .sortedBy { it.first.signature.toString() }
+                .forEach { (method, types) ->
                 appendLine("${method.signature}:")
 
                 types
