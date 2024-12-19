@@ -8,6 +8,8 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.test.utils.loadEtsFile
 import org.jacodb.ets.test.utils.loadMultipleEtsFilesFromDirectory
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ts.infer.AccessPathBase
@@ -20,9 +22,6 @@ import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
-import org.usvm.dataflow.ts.test.utils.autoLoadEtsFileFromResource
-import org.usvm.dataflow.ts.test.utils.loadProjectFromAst
-import org.usvm.dataflow.ts.test.utils.loadProjectFromJsons
 import org.usvm.dataflow.ts.util.EtsTraits
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -33,7 +32,7 @@ import kotlin.test.assertTrue
 class EtsTypeResolverTest {
     companion object {
         private fun load(name: String): EtsFile {
-            return autoLoadEtsFileFromResource("/ts/$name.ts")
+            return loadEtsFileAutoConvert(Paths.get("/ts/$name.ts"))
         }
     }
 
@@ -101,10 +100,16 @@ class EtsTypeResolverTest {
 
     fun runOnProject(projectID: String, abcPath: String, astPath: String) {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
-        val abcScene = loadProjectFromJsons(projectAbc)
+        val abcScene = loadEtsScene(
+            listOf(
+                Paths.get(projectAbc),
+                Paths.get(pathToSDK)
+            )
+        )
+
 
         val projectAst = "$yourPrefixForTestFolders/AST/$astPath"
-        val astScene = loadProjectFromAst(projectAst)
+        val astScene = loadEtsProjectAutoConvert(Paths.get(projectAst))
 
         val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
         val graphAst = createApplicationGraph(astScene) as EtsApplicationGraphWithExplicitEntryPoint
@@ -174,7 +179,7 @@ class EtsTypeResolverTest {
     @Test
     fun testLoadProject5() = runOnProject(
         projectID = "project5",
-        abcPath = "phone_photos",
+        abcPath = "phone_photos-default-signed_20240905_151755",
         astPath = "15_Photos/applications_photos_240905_ea8d1"
     )
 
