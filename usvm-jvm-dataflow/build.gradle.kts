@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("usvm.kotlin-conventions")
 }
@@ -31,12 +29,6 @@ dependencies {
     testImplementation(Libs.juliet_support)
     for (cweNum in listOf(89, 476, 563, 690)) {
         testImplementation(Libs.juliet_cwe(cweNum))
-    }
-}
-
-tasks.withType<KotlinCompile> {
-    compilerOptions {
-        freeCompilerArgs.add("-Xcontext-receivers")
     }
 }
 
