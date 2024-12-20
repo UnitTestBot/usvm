@@ -90,8 +90,8 @@ class QueueUsagesTest : JavaMethodTestRunner() {
             eq(4),
             { _, q, r -> q == null && r == 0 },
             { _, q, r -> q is LinkedList<*> && r == 1 },
-            { _, q, r -> q is ArrayDeque<*> && r == 2 },
-            { _, q, r -> q !is LinkedList<*> && q !is ArrayDeque<*> && r == 3 }
+            { _, q, r -> q is java.util.ArrayDeque<*> && r == 2 },
+            { _, q, r -> q !is LinkedList<*> && q !is java.util.ArrayDeque<*> && r == 3 }
         )
     }
 
@@ -102,8 +102,8 @@ class QueueUsagesTest : JavaMethodTestRunner() {
             eq(4),
             { _, q, r -> q == null && r == 0 },
             { _, q, r -> q is LinkedList<*> && r == 1 },
-            { _, q, r -> q is ArrayDeque<*> && r == 2 },
-            { _, q, r -> q !is LinkedList<*> && q !is ArrayDeque<*> && r == 3 } // this is uncovered
+            { _, q, r -> q is java.util.ArrayDeque<*> && r == 2 },
+            { _, q, r -> q !is LinkedList<*> && q !is java.util.ArrayDeque<*> && r == 3 } // this is uncovered
         )
     }
 
