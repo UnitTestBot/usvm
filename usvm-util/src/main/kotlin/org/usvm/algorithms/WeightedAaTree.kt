@@ -1,6 +1,6 @@
 package org.usvm.algorithms
 
-import java.util.*
+import java.util.Stack
 import kotlin.math.min
 
 data class AaTreeNode<T>(
@@ -139,30 +139,28 @@ class WeightedAaTree<T>(private val comparator: Comparator<T>) {
 
         val compareResult = comparator.compare(value, deleteFrom.value)
 
-        return when {
-            compareResult < 0 ->
-                removeRec(value, deleteFrom.left) { k(deleteFrom.update(left = it).balanceAfterRemove()) }
-            compareResult > 0 ->
-                removeRec(value, deleteFrom.right) { k(deleteFrom.update(right = it).balanceAfterRemove()) }
-            else -> {
-                when {
-                    deleteFrom.right == null && deleteFrom.level == 1 -> {
-                        count--
-                        k(null)
-                    }
-                    deleteFrom.left == null -> {
-                        val succ = deleteFrom.succ()
-                        checkNotNull(succ)
-                        removeRec(succ.value, deleteFrom.right) { k(deleteFrom.update(value = succ.value, right = it).balanceAfterRemove()) }
-                    }
-                    else -> {
-                        val pred = deleteFrom.pred()
-                        checkNotNull(pred)
-                        removeRec(pred.value, deleteFrom.left) { k(deleteFrom.update(value = pred.value, left = it).balanceAfterRemove()) }
-                    }
-                }
-            }
+        if (compareResult < 0) {
+            return removeRec(value, deleteFrom.left) { k(deleteFrom.update(left = it).balanceAfterRemove()) }
         }
+
+        if (compareResult > 0) {
+            return removeRec(value, deleteFrom.right) { k(deleteFrom.update(right = it).balanceAfterRemove()) }
+        }
+
+        if (deleteFrom.right == null && deleteFrom.level == 1) {
+            count--
+            return k(null)
+        }
+
+        if (deleteFrom.left == null) {
+            val succ = deleteFrom.succ()
+            checkNotNull(succ)
+            return removeRec(succ.value, deleteFrom.right) { k(deleteFrom.update(value = succ.value, right = it).balanceAfterRemove()) }
+        }
+
+        val pred = deleteFrom.pred()
+        checkNotNull(pred)
+        return removeRec(pred.value, deleteFrom.left) { k(deleteFrom.update(value = pred.value, left = it).balanceAfterRemove()) }
     }
 
     /**
