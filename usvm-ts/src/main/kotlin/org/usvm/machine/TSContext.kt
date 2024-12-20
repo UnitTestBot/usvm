@@ -1,9 +1,15 @@
-package org.usvm
+package org.usvm.machine
 
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnknownType
+import org.usvm.UBv32Sort
+import org.usvm.UContext
+import org.usvm.USort
+import org.usvm.machine.expr.TSUndefinedSort
+import org.usvm.machine.expr.TSUndefinedValue
 
 typealias TSSizeSort = UBv32Sort
 
@@ -17,6 +23,7 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
+        is EtsUnknownType -> addressSort
         else -> TODO("Support all JacoDB types")
     }
 
