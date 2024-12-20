@@ -7,18 +7,18 @@ import org.usvm.util.TSMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 
-class StaticMethods : TSMethodTestRunner() {
+class InstanceMethods : TSMethodTestRunner() {
 
     override val scene: EtsScene = run {
-        val name = "StaticMethods.ts"
+        val name = "InstanceMethods.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
     }
 
     @Test
-    fun testNoArgsStaticMethod() {
-        val method = getMethod("StaticMethods", "noArguments")
+    fun testNoArgsInstanceMethod() {
+        val method = getMethod("InstanceMethods", "noArguments")
         discoverProperties<TSObject.TSNumber>(
             method,
             { r -> r.number == 42.0 }
@@ -26,8 +26,8 @@ class StaticMethods : TSMethodTestRunner() {
     }
 
     @Test
-    fun testSingleArgStaticMethod() {
-        val method = getMethod("StaticMethods", "singleArgument")
+    fun testSingleArgInstanceMethod() {
+        val method = getMethod("InstanceMethods", "singleArgument")
         discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
             method,
             { a, r -> a.number == 1.0 && r.number == 100.0 },
@@ -36,8 +36,8 @@ class StaticMethods : TSMethodTestRunner() {
     }
 
     @Test
-    fun testManyArgsStaticMethod() {
-        val method = getMethod("StaticMethods", "manyArguments")
+    fun testManyArgsInstanceMethod() {
+        val method = getMethod("InstanceMethods", "manyArguments")
         discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
             method,
             { a, _, _, _, r -> a.number == 1.0 && r == a },

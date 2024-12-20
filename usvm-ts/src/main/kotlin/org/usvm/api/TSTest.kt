@@ -1,10 +1,10 @@
-package org.usvm
+package org.usvm.api
 
 import org.jacodb.ets.base.EtsStmt
 
-class TSTest(
-    val parameters: List<Any>,
-    val resultValue: Any?,
+data class TSTest(
+    val parameters: List<TSObject>,
+    val returnValue: TSObject,
     val trace: List<EtsStmt>? = null,
 )
 
@@ -23,12 +23,17 @@ sealed interface TSObject {
                 is Integer -> value.toDouble()
                 is Double -> value
             }
+
+        val boolean: kotlin.Boolean
+            get() = number != 0.0
     }
 
     data class String(val value: kotlin.String) : TSObject
 
-    data class Boolean(val value: kotlin.Boolean) : TSObject
-
+    data class Boolean(val value: kotlin.Boolean) : TSObject {
+        val number: Double
+            get() = if (value) 1.0 else 0.0
+    }
 
     data class Class(val name: String, val properties: Map<String, TSObject>) : TSObject
 
@@ -37,4 +42,8 @@ sealed interface TSObject {
     data object UndefinedObject : TSObject
 
     data class Array(val values: List<TSObject>) : TSObject
+
+    data class Object(val addr: Int) : TSObject
+
+    data object Unknown : TSObject
 }

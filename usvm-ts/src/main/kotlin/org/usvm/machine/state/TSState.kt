@@ -1,11 +1,11 @@
-package org.usvm.state
+package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
-import org.usvm.TSContext
-import org.usvm.TSTarget
+import org.usvm.machine.TSContext
+import org.usvm.api.targets.TSTarget
 import org.usvm.UCallStack
 import org.usvm.UState
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -57,7 +57,7 @@ class TSState(
             pathNode,
             forkPoints,
             methodResult,
-            targets.clone(),
+            targets.clone()
         )
     }
 

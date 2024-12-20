@@ -1,6 +1,7 @@
-package org.usvm
+package org.usvm.machine
 
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
