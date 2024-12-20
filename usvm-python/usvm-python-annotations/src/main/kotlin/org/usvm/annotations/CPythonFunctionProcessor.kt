@@ -52,9 +52,7 @@ class CPythonFunctionProcessor : AbstractProcessor() {
             val firstType = executable.parameters
                 .first()
                 .asType()
-                .toString()
-                .split(".")
-                .last()
+                .getTypeName()
             require(firstType == "ConcolicRunContext") {
                 "First argument of function annotated with CPythonFunction must be ConcolicRunContext"
             }
@@ -74,8 +72,7 @@ class CPythonFunctionProcessor : AbstractProcessor() {
             require(returnTypeName == "void" || returnTypeName == "SymbolForCPython") {
                 "Return type must be void or SymbolForCPython, not $returnTypeName"
             }
-            val returnType = convertJavaType(executable.returnType)
-            when (returnType) {
+            when (val returnType = convertJavaType(executable.returnType)) {
                 JavaType.JObject -> {
                     val descr = ArgumentDescription(
                         CType.PyObject,

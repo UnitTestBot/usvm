@@ -126,7 +126,7 @@ public class CPythonAdapter {
             argCTypes = {CType.PyFrameObject},
             argConverters = {ObjectConverter.FrameConverter}
     )
-    public static void handlerInstruction(@NotNull ConcolicRunContext context, long frameRef) {
+    public static void handlerInstruction(ConcolicRunContext context, long frameRef) {
         if (pythonExceptionOccurred() != 0)
             return;
         context.curOperation = null;
@@ -1255,28 +1255,28 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_int")
     @SymbolicMethod(id = SymbolicMethodId.Int)
-    public static SymbolForCPython symbolicMethodInt(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodInt(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         assert(self == null);
         return withTracing(context, new SymbolicMethodParameters("int", null, args), () -> symbolicMethodIntKt(context, args));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_float")
     @SymbolicMethod(id = SymbolicMethodId.Float)
-    public static SymbolForCPython symbolicMethodFloat(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodFloat(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         assert(self == null);
         return withTracing(context, new SymbolicMethodParameters("float", null, args), () -> symbolicMethodFloatKt(context, args));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_enumerate")
     @SymbolicMethod(id = SymbolicMethodId.Enumerate)
-    public static SymbolForCPython symbolicMethodEnumerate(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodEnumerate(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         assert(self == null);
         return withTracing(context, new SymbolicMethodParameters("enumerate", null, args), () -> symbolicMethodEnumerateKt(context, args));
     }
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_append")
     @SymbolicMethod(id = SymbolicMethodId.ListAppend)
-    public static SymbolForCPython symbolicMethodListAppend(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodListAppend(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_append", self, args), () -> symbolicMethodListAppendKt(context, self, args));
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "append")
@@ -1284,7 +1284,7 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_insert")
     @SymbolicMethod(id = SymbolicMethodId.ListInsert)
-    public static SymbolForCPython symbolicMethodListInsert(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodListInsert(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_insert", self, args), () -> symbolicMethodListInsertKt(context, self, args));
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "insert")
@@ -1292,7 +1292,7 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_pop")
     @SymbolicMethod(id = SymbolicMethodId.ListPop)
-    public static SymbolForCPython symbolicMethodListPop(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodListPop(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_pop", self, args), () -> symbolicMethodListPopKt(context, self, args));
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "pop")
@@ -1300,7 +1300,7 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_extend")
     @SymbolicMethod(id = SymbolicMethodId.ListExtend)
-    public static SymbolForCPython symbolicMethodListExtend(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodListExtend(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_extend", self, args), () -> symbolicMethodListExtendKt(context, self, args));
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "extend")
@@ -1308,7 +1308,7 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_list_clear")
     @SymbolicMethod(id = SymbolicMethodId.ListClear)
-    public static SymbolForCPython symbolicMethodListClear(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodListClear(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("list_clear", self, args), () -> symbolicMethodListClearKt(context, self, args));
     }
     @SymbolicMethodDescriptor(nativeTypeName = "PyList_Type", nativeMemberName = "clear")
@@ -1346,7 +1346,7 @@ public class CPythonAdapter {
 
     @CPythonAdapterJavaMethod(cName = "symbolic_method_set_add")
     @SymbolicMethod(id = SymbolicMethodId.SetAdd)
-    public static SymbolForCPython symbolicMethodSetAdd(ConcolicRunContext context, @Nullable SymbolForCPython self, SymbolForCPython[] args) {
+    public static SymbolForCPython symbolicMethodSetAdd(ConcolicRunContext context, /* nullable */ SymbolForCPython self, SymbolForCPython[] args) {
         return withTracing(context, new SymbolicMethodParameters("set_add", self, args), () -> symbolicMethodSetAddKt(context, self, args));
     }
 

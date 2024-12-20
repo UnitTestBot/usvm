@@ -51,15 +51,13 @@ class SymbolicMethodProcessor : AbstractProcessor() {
             val arg0 = element.parameters
                 .first()
                 .asType()
-                .toString()
-                .split(".")
-                .last()
+                .getTypeName()
             require(arg0 == "ConcolicRunContext") { formatMsg }
-            val arg1 = element.parameters[1].asType().toString().split(".").last()
+            val arg1 = element.parameters[1].asType().getTypeName()
             require(arg1 == "SymbolForCPython") { formatMsg }
             val arg2 = element.parameters[2].asType()
             require(arg2 is ArrayType) { formatMsg }
-            val arg2Elem = arg2.componentType.toString().split(".").last()
+            val arg2Elem = arg2.componentType.getTypeName()
             require(arg2Elem == "SymbolForCPython") { formatMsg }
             val elementAnnotation = element.getAnnotation(SymbolicMethod::class.java)!!
             require(elementAnnotation.id !in definedIds) {
