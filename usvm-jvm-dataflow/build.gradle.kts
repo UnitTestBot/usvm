@@ -16,6 +16,8 @@ dependencies {
     implementation(Libs.jacodb_api_common)
     implementation(Libs.jacodb_api_jvm)
     implementation(Libs.jacodb_core)
+    implementation(Libs.jacodb_api_storage)
+    implementation(Libs.jacodb_storage)
     implementation(Libs.jacodb_taint_configuration)
 
     implementation(Libs.sarif4k)

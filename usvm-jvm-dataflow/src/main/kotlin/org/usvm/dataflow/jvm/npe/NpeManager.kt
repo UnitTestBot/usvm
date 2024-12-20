@@ -33,20 +33,21 @@ import org.usvm.dataflow.taint.TaintZeroFact
 
 private val logger = mu.KotlinLogging.logger {}
 
-context(JcTraits)
 class NpeManager(
+    private val traits: JcTraits,
     graph: JcApplicationGraph,
     unitResolver: UnitResolver<JcMethod>,
     private val getConfigForMethod: (JcMethod) -> List<TaintConfigurationItem>?,
-) : TaintManager<JcMethod, JcInst>(graph, unitResolver, useBidiRunner = false, getConfigForMethod) {
+) : TaintManager<JcMethod, JcInst>(traits, graph, unitResolver, useBidiRunner = false, getConfigForMethod) {
 
     override fun newRunner(
         unit: UnitType,
     ): TaintRunner<JcMethod, JcInst> {
         check(unit !in runnerForUnit) { "Runner for $unit already exists" }
 
-        val analyzer = NpeAnalyzer(graph as JcApplicationGraph, getConfigForMethod)
+        val analyzer = NpeAnalyzer(traits, graph as JcApplicationGraph, getConfigForMethod)
         val runner = UniRunner(
+            traits = traits,
             graph = graph,
             analyzer = analyzer,
             manager = this@NpeManager,
@@ -81,5 +82,5 @@ fun jcNpeManager(
         return@run { method: JcMethod -> taintConfigurationFeature?.getConfigForMethod(method) }
     }
 
-    NpeManager(graph, unitResolver, config)
+    NpeManager(traits = this, graph, unitResolver, config)
 }

@@ -29,41 +29,41 @@ import org.jacodb.api.jvm.cfg.JcTerminatingInst
 import org.usvm.dataflow.ifds.AccessPath
 import org.usvm.dataflow.util.Traits
 
-context(Traits<CommonMethod, CommonInst>)
 internal fun AccessPath.isUsedAt(
+    traits: Traits<CommonMethod, CommonInst>,
     expr: CommonExpr,
-): Boolean {
+): Boolean = with(traits) {
     return getValues(expr).any {
-        convertToPathOrNull(it) == this
+        convertToPathOrNull(it) == this@isUsedAt
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
 internal fun AccessPath.isUsedAt(
+    traits: Traits<CommonMethod, CommonInst>,
     inst: CommonInst,
-): Boolean {
+): Boolean = with(traits) {
     val callExpr = getCallExpr(inst)
 
     if (callExpr != null) {
         // Don't count constructor calls as usages
         if (callExpr is JcSpecialCallExpr
             && callExpr.method.method.isConstructor
-            && isUsedAt(callExpr.instance)
+            && isUsedAt(traits, callExpr.instance)
         ) {
             return false
         }
 
-        return isUsedAt(callExpr)
+        return isUsedAt(traits, callExpr)
     }
     if (inst is JcAssignInst) {
-        if (inst.lhv is JcArrayAccess && isUsedAt(inst.lhv)) {
+        if (inst.lhv is JcArrayAccess && isUsedAt(traits, inst.lhv)) {
             return true
         }
-        return isUsedAt(inst.rhv) && (inst.lhv !is JcLocal || inst.rhv !is JcLocal)
+        return isUsedAt(traits, inst.rhv) && (inst.lhv !is JcLocal || inst.rhv !is JcLocal)
     }
     if (inst is JcTerminatingInst || inst is JcBranchingInst) {
         inst as JcInst
-        return inst.operands.any { isUsedAt(it) }
+        return inst.operands.any { isUsedAt(traits, it) }
     }
     return false
 }
