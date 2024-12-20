@@ -41,9 +41,9 @@ import org.usvm.dataflow.taint.Tainted
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.removeTrailingElementAccessors
 
-context(Traits<CommonMethod, CommonInst>)
 open class BasicConditionEvaluator(
-    internal val positionResolver: PositionResolver<Maybe<CommonValue>>,
+    val traits: Traits<CommonMethod, CommonInst>,
+    internal val positionResolver: PositionResolver<Maybe<CommonValue>>
 ) : ConditionVisitor<Boolean> {
 
     override fun visit(condition: ConstantTrue): Boolean {
@@ -74,35 +74,35 @@ open class BasicConditionEvaluator(
         error("Unexpected condition: $condition")
     }
 
-    override fun visit(condition: IsConstant): Boolean {
+    override fun visit(condition: IsConstant): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome {
             return isConstant(it)
         }
         return false
     }
 
-    override fun visit(condition: ConstantEq): Boolean {
+    override fun visit(condition: ConstantEq): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome { value ->
             return eqConstant(value, condition.value)
         }
         return false
     }
 
-    override fun visit(condition: ConstantLt): Boolean {
+    override fun visit(condition: ConstantLt): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome { value ->
             return ltConstant(value, condition.value)
         }
         return false
     }
 
-    override fun visit(condition: ConstantGt): Boolean {
+    override fun visit(condition: ConstantGt): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome { value ->
             return gtConstant(value, condition.value)
         }
         return false
     }
 
-    override fun visit(condition: ConstantMatches): Boolean {
+    override fun visit(condition: ConstantMatches): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome { value ->
             return matches(value, condition.pattern)
         }
@@ -117,7 +117,7 @@ open class BasicConditionEvaluator(
         error("This visitor does not support condition $condition. Use FactAwareConditionEvaluator instead")
     }
 
-    override fun visit(condition: TypeMatches): Boolean {
+    override fun visit(condition: TypeMatches): Boolean = with(traits) {
         positionResolver.resolve(condition.position).onSome { value ->
             return typeMatches(value, condition)
         }
@@ -125,13 +125,13 @@ open class BasicConditionEvaluator(
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
 class FactAwareConditionEvaluator(
+    traits: Traits<CommonMethod, CommonInst>,
     private val fact: Tainted,
     positionResolver: PositionResolver<Maybe<CommonValue>>,
-) : BasicConditionEvaluator(positionResolver) {
+) : BasicConditionEvaluator(traits, positionResolver) {
 
-    override fun visit(condition: ContainsMark): Boolean {
+    override fun visit(condition: ContainsMark): Boolean = with(traits) {
         if (fact.mark != condition.mark) return false
         positionResolver.resolve(condition.position).onSome { value ->
             val variable = convertToPath(value)

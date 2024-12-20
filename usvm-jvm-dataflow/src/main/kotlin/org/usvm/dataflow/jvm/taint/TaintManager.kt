@@ -23,5 +23,5 @@ fun jcTaintManager(
         return@run { method: JcMethod -> taintConfigurationFeature?.getConfigForMethod(method) }
     }
 
-    TaintManager(graph, unitResolver, useBidiRunner, config)
+    TaintManager(traits = this, graph, unitResolver, useBidiRunner, config)
 }

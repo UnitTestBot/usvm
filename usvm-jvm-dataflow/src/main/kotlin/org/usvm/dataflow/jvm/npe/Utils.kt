@@ -26,33 +26,31 @@ import org.usvm.dataflow.ifds.minus
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.util.startsWith
 
-context(JcTraits)
-internal fun AccessPath?.isDereferencedAt(expr: JcExpr): Boolean {
-    if (this == null) {
+internal fun AccessPath?.isDereferencedAt(traits: JcTraits, expr: JcExpr): Boolean = with(traits) {
+    if (this@isDereferencedAt == null) {
         return false
     }
 
     if (expr is JcInstanceCallExpr) {
         val instancePath = convertToPathOrNull(expr.instance)
-        if (instancePath.startsWith(this)) {
+        if (instancePath.startsWith(this@isDereferencedAt)) {
             return true
         }
     }
 
     if (expr is JcLengthExpr) {
         val arrayPath = convertToPathOrNull(expr.array)
-        if (arrayPath.startsWith(this)) {
+        if (arrayPath.startsWith(this@isDereferencedAt)) {
             return true
         }
     }
 
     return expr.values
         .mapNotNull { convertToPathOrNull(it) }
-        .any { (it - this)?.isNotEmpty() == true }
+        .any { (it - this@isDereferencedAt)?.isNotEmpty() == true }
 }
 
-context(JcTraits)
-internal fun AccessPath?.isDereferencedAt(inst: JcInst): Boolean {
+internal fun AccessPath?.isDereferencedAt(traits: JcTraits, inst: JcInst): Boolean {
     if (this == null) return false
-    return inst.operands.any { isDereferencedAt(it) }
+    return inst.operands.any { isDereferencedAt(traits, it) }
 }
