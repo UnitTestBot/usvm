@@ -35,28 +35,30 @@ import org.usvm.dataflow.ifds.fmap
 import org.usvm.dataflow.ifds.toMaybe
 import org.usvm.dataflow.util.Traits
 
-context(Traits<CommonMethod, CommonInst>)
 class CallPositionToAccessPathResolver(
+    private val traits: Traits<CommonMethod, CommonInst>,
     private val callStatement: CommonInst,
 ) : PositionResolver<Maybe<AccessPath>> {
-    private val callExpr = getCallExpr(callStatement)
+    private val callExpr = traits.getCallExpr(callStatement)
         ?: error("Call statement should have non-null callExpr")
 
-    override fun resolve(position: Position): Maybe<AccessPath> = when (position) {
-        AnyArgument -> Maybe.none()
-        is Argument -> convertToPathOrNull(callExpr.args[position.index]).toMaybe()
-        This -> (callExpr as? CommonInstanceCallExpr)?.instance?.let { convertToPathOrNull(it) }.toMaybe()
-        Result -> (callStatement as? CommonAssignInst)?.lhv?.let { convertToPathOrNull(it) }.toMaybe()
-        ResultAnyElement -> (callStatement as? CommonAssignInst)?.lhv?.let { convertToPathOrNull(it) }.toMaybe()
-            .fmap { it + ElementAccessor }
+    override fun resolve(position: Position): Maybe<AccessPath> = with(traits) {
+        when (position) {
+            AnyArgument -> Maybe.none()
+            is Argument -> convertToPathOrNull(callExpr.args[position.index]).toMaybe()
+            This -> (callExpr as? CommonInstanceCallExpr)?.instance?.let { convertToPathOrNull(it) }.toMaybe()
+            Result -> (callStatement as? CommonAssignInst)?.lhv?.let { convertToPathOrNull(it) }.toMaybe()
+            ResultAnyElement -> (callStatement as? CommonAssignInst)?.lhv?.let { convertToPathOrNull(it) }.toMaybe()
+                .fmap { it + ElementAccessor }
+        }
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
 class CallPositionToValueResolver(
+    traits: Traits<CommonMethod, CommonInst>,
     private val callStatement: CommonInst,
 ) : PositionResolver<Maybe<CommonValue>> {
-    private val callExpr = getCallExpr(callStatement)
+    private val callExpr = traits.getCallExpr(callStatement)
         ?: error("Call statement should have non-null callExpr")
 
     override fun resolve(position: Position): Maybe<CommonValue> = when (position) {
@@ -68,34 +70,38 @@ class CallPositionToValueResolver(
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
 class EntryPointPositionToValueResolver(
+    private val traits: Traits<CommonMethod, CommonInst>,
     private val method: CommonMethod,
 ) : PositionResolver<Maybe<CommonValue>> {
-    override fun resolve(position: Position): Maybe<CommonValue> = when (position) {
-        This -> Maybe.some(getThisInstance(method))
+    override fun resolve(position: Position): Maybe<CommonValue> = with(traits) {
+        when (position) {
+            This -> Maybe.some(getThisInstance(method))
 
-        is Argument -> {
-            val p = method.parameters[position.index]
-            getArgument(p).toMaybe()
+            is Argument -> {
+                val p = method.parameters[position.index]
+                getArgument(p).toMaybe()
+            }
+
+            AnyArgument, Result, ResultAnyElement -> error("Unexpected $position")
         }
-
-        AnyArgument, Result, ResultAnyElement -> error("Unexpected $position")
     }
 }
 
-context(Traits<CommonMethod, CommonInst>)
 class EntryPointPositionToAccessPathResolver(
+    private val traits: Traits<CommonMethod, CommonInst>,
     private val method: CommonMethod,
 ) : PositionResolver<Maybe<AccessPath>> {
-    override fun resolve(position: Position): Maybe<AccessPath> = when (position) {
-        This -> convertToPathOrNull(getThisInstance(method)).toMaybe()
+    override fun resolve(position: Position): Maybe<AccessPath> = with(traits) {
+        when (position) {
+            This -> convertToPathOrNull(getThisInstance(method)).toMaybe()
 
-        is Argument -> {
-            val p = method.parameters[position.index]
-            getArgument(p)?.let { convertToPathOrNull(it) }.toMaybe()
+            is Argument -> {
+                val p = method.parameters[position.index]
+                getArgument(p)?.let { convertToPathOrNull(it) }.toMaybe()
+            }
+
+            AnyArgument, Result, ResultAnyElement -> error("Unexpected $position")
         }
-
-        AnyArgument, Result, ResultAnyElement -> error("Unexpected $position")
     }
 }
