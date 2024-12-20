@@ -99,7 +99,12 @@ class JcSingleInstructionTransformer(originalInstructions: JcInstList<JcInst>) {
         }
     }
 
+    @OptIn(ExperimentalContracts::class)
     inline fun MutableList<JcInst>.addInstruction(origin: JcInstLocation, body: (JcInstLocation) -> JcInst) {
+        contract {
+            callsInPlace(body, InvocationKind.EXACTLY_ONCE)
+        }
+
         val index = size
         val newLocation = JcInstLocationImpl(origin.method, index, origin.lineNumber)
         val instruction = body(newLocation)

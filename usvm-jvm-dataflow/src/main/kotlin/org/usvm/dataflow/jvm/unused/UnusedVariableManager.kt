@@ -29,6 +29,9 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jacodb.api.common.CommonMethod
+import org.jacodb.api.common.analysis.ApplicationGraph
+import org.jacodb.api.common.cfg.CommonInst
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
@@ -42,9 +45,6 @@ import org.usvm.dataflow.ifds.UnknownUnit
 import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.getPathEdges
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.api.common.cfg.CommonInst
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -53,8 +53,8 @@ import kotlin.time.TimeSource
 
 private val logger = mu.KotlinLogging.logger {}
 
-context(Traits<Method, Statement>)
 class UnusedVariableManager<Method, Statement>(
+    private val traits: Traits<Method, Statement>,
     private val graph: ApplicationGraph<Method, Statement>,
     private val unitResolver: UnitResolver<Method>,
 ) : Manager<UnusedVariableDomainFact, UnusedVariableEvent<Method, Statement>, Method, Statement>
@@ -75,8 +75,9 @@ class UnusedVariableManager<Method, Statement>(
         check(unit !in runnerForUnit) { "Runner for $unit already exists" }
 
         logger.debug { "Creating a new runner for $unit" }
-        val analyzer = UnusedVariableAnalyzer(graph)
+        val analyzer = UnusedVariableAnalyzer(traits, graph)
         val runner = UniRunner(
+            traits = traits,
             graph = graph,
             analyzer = analyzer,
             manager = this@UnusedVariableManager,
@@ -193,7 +194,7 @@ class UnusedVariableManager<Method, Statement>(
                     if (fact is UnusedVariable) {
                         @Suppress("UNCHECKED_CAST")
                         used.putIfAbsent(fact.initStatement as Statement, false)
-                        if (fact.variable.isUsedAt(inst)) {
+                        if (fact.variable.isUsedAt(traits, inst)) {
                             used[fact.initStatement] = true
                         }
                     }
