@@ -3,7 +3,7 @@ package org.usvm.instrumentation.collector.trace;
 //DO NOT EDIT!
 //USE TRACER
 public class TraceCollector {
-    public static LongHashSet trace = new LongHashSet();
+    public static LongCollection trace = new LongHashSet();
     public static LongArrayWrapper statics = new LongArrayWrapper();
 
     public static void jcInstructionCovered(long jcInstructionId) {
@@ -13,12 +13,27 @@ public class TraceCollector {
         statics.add(jcStaticFieldAccessId);
     }
 
-    public static class LongArrayWrapper {
+    public interface LongCollection {
+        void add(long key);
+
+        long[] getAllValues();
+
+        boolean contains(long key);
+
+        int realSize();
+
+        boolean isEmpty();
+
+        void clear();
+    }
+
+    public static class LongArrayWrapper implements LongCollection {
         public long[] arr;
         public int size;
 
-        LongArrayWrapper() {
+        public LongArrayWrapper() {
             arr = new long[10];
+            size = 0;
         }
 
         public void add(long el) {
@@ -33,6 +48,31 @@ public class TraceCollector {
             arr[size] = 0;
             if (size == 0) return;
             size--;
+        }
+
+        public long[] getAllValues() {
+            long[] res = new long[size];
+            for (int i = 0; i < size; i++) {
+                res[i] = arr[i];
+            }
+            return res;
+        }
+
+        public boolean contains(long key) {
+            for (int i = 0; i < size; i++) {
+                if (arr[i] == key) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public int realSize() {
+            return size;
+        }
+
+        public boolean isEmpty() {
+            return size == 0;
         }
 
         public void clear() {
@@ -52,8 +92,7 @@ public class TraceCollector {
         }
     }
 
-
-    public static class LongHashSet {
+    public static class LongHashSet implements LongCollection {
         private static final int DEFAULT_CAPACITY = 1024;
         private static final double DEFAULT_LOAD_FACTOR = 0.75;
 
