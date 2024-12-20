@@ -1,4 +1,4 @@
-package org.usvm.state
+package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
