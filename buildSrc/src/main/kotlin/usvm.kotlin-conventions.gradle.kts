@@ -16,9 +16,9 @@ repositories {
 
 dependencies {
     // Align versions of all Kotlin components
-    implementation(platform(kotlin("bom")))
-    implementation(kotlin("stdlib-jdk8"))
-    implementation(kotlin("reflect"))
+    implementation(platform(kotlin("bom", Versions.kotlin)))
+    implementation(kotlin("stdlib-jdk8", Versions.kotlin))
+    implementation(kotlin("reflect", Versions.kotlin))
 
     implementation(Libs.kotlin_logging)
     implementation(Libs.kotlinx_coroutines_core)
