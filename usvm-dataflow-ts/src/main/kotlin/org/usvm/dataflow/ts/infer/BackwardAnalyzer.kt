@@ -19,7 +19,7 @@ class BackwardAnalyzer(
 
     override fun handleCrossUnitCall(
         caller: Vertex<BackwardTypeDomainFact, EtsStmt>,
-        callee: Vertex<BackwardTypeDomainFact, EtsStmt>
+        callee: Vertex<BackwardTypeDomainFact, EtsStmt>,
     ): List<AnalyzerEvent> {
         error("No cross unit calls")
     }
