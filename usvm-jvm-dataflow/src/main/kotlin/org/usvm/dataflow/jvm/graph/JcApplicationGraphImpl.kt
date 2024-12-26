@@ -18,7 +18,6 @@ package org.usvm.dataflow.jvm.graph
 
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.ext.cfg.callExpr
 import org.jacodb.impl.features.SyncUsagesExtension

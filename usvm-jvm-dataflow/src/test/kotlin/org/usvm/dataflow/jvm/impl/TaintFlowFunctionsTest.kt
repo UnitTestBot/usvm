@@ -20,7 +20,6 @@ import io.mockk.every
 import io.mockk.mockk
 import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcArgument
 import org.jacodb.api.jvm.cfg.JcAssignInst
 import org.jacodb.api.jvm.cfg.JcCallExpr
@@ -39,6 +38,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
+import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.jvm.util.callee
 import org.usvm.dataflow.jvm.util.toPath

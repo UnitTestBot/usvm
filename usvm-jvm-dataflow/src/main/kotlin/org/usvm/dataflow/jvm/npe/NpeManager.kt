@@ -17,7 +17,6 @@
 package org.usvm.dataflow.jvm.npe
 
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.taint.configuration.TaintConfigurationFeature
 import org.jacodb.taint.configuration.TaintConfigurationItem
@@ -25,6 +24,7 @@ import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
 import org.usvm.dataflow.ifds.UnknownUnit
+import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.ifds.JcUnitResolver
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.TaintManager

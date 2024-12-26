@@ -17,7 +17,6 @@
 package org.usvm.dataflow.jvm.npe
 
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.taint.configuration.TaintConfigurationItem
 import org.jacodb.taint.configuration.TaintMark
@@ -26,6 +25,7 @@ import org.usvm.dataflow.config.CallPositionToValueResolver
 import org.usvm.dataflow.config.FactAwareConditionEvaluator
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Reason
+import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.EdgeForOtherRunner
 import org.usvm.dataflow.taint.NewSummaryEdge

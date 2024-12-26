@@ -21,7 +21,6 @@ import kotlinx.coroutines.runBlocking
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcDatabase
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.ext.findClass
 import org.jacodb.api.jvm.ext.methods
@@ -36,6 +35,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.provider.Arguments
 import org.usvm.dataflow.ifds.Vulnerability
+import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.graph.newApplicationGraphForAnalysis
 import java.io.File
 import java.util.stream.Stream

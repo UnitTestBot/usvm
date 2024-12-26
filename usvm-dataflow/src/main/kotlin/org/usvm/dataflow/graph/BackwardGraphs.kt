@@ -19,7 +19,6 @@
 package org.usvm.dataflow.graph
 
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonInst
 
 private class BackwardApplicationGraphImpl<Method, Statement>(

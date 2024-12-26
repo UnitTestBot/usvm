@@ -30,9 +30,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.taint.configuration.TaintConfigurationItem
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.graph.reversed
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.IfdsResult

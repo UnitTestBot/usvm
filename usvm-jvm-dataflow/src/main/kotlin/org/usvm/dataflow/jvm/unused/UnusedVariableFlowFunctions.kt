@@ -17,11 +17,11 @@
 package org.usvm.dataflow.jvm.unused
 
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonInst
 import org.jacodb.api.jvm.cfg.JcSpecialCallExpr
 import org.jacodb.api.jvm.cfg.JcStaticCallExpr
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.isOnHeap

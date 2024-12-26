@@ -19,7 +19,6 @@ package org.usvm.dataflow.jvm.graph
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcVirtualCallExpr
 import org.jacodb.api.jvm.ext.cfg.callExpr
