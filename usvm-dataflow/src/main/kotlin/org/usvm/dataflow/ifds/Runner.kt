@@ -22,8 +22,8 @@ import kotlinx.coroutines.channels.getOrElse
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonInst
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.util.Traits
 import java.util.concurrent.ConcurrentHashMap
 
