@@ -555,14 +555,12 @@ class BackwardFlowFunctions(
 
 private const val COMPLEXITY_LIMIT = 5
 
-private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> {
-    return filter {
-        if (it.type.complexity() >= COMPLEXITY_LIMIT) {
-            logger.warn { "Dropping too complex fact: $it" }
-            return@filter false
-        }
-        true
+private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
+    if (it.type.complexity() >= COMPLEXITY_LIMIT) {
+        logger.warn { "Dropping too complex fact: $it" }
+        return@filter false
     }
+    true
 }
 
 /**
