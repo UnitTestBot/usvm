@@ -1,12 +1,12 @@
 package usvmpython.tasks
 
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.sourceSets
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.test
 import org.gradle.api.Project
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.environment
+import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.register
 import usvmpython.*
 import java.io.File
@@ -45,7 +45,8 @@ fun Project.registerBuildSamplesTask(): TaskProvider<JavaExec> {
         dependsOn(installMypyRunner)
         inputs.files(fileTree(samplesSourceDir).exclude("**/__pycache__/**"))
         outputs.dir(samplesBuildDir)
-        classpath = sourceSets.test.get().runtimeClasspath
+        val sourceSets = extensions.getByName("sourceSets") as SourceSetContainer
+        classpath = sourceSets["test"].runtimeClasspath
         args = listOf(samplesSourceDir.canonicalPath, samplesBuildDir.canonicalPath, pythonBinaryPath)
         environment("LD_LIBRARY_PATH" to "$cpythonBuildPath/lib:$cpythonAdapterBuildPath")
         environment("PYTHONHOME" to cpythonBuildPath)

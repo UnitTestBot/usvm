@@ -14,16 +14,21 @@
  *  limitations under the License.
  */
 
-public class NullAssumptionAnalysisExample {
-    public void test1(String a) {
-        System.out.println("Hello from test1");
-        System.out.println(a.length());
-    }
+package org.usvm.dataflow.ts.infer.verify.collectors
 
-    public void test2(Object a) {
-        System.out.println("Hello from test2");
-        System.out.println(a.hashCode());
-        String x = (String) a;
-        System.out.println(x.length());
+import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.base.EtsTupleType
+import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnionType
+import org.jacodb.ets.base.EtsUnknownType
+
+val EtsType.isUnresolved: Boolean
+    get() = when (this) {
+        is EtsAnyType -> true
+        is EtsUnknownType -> true
+        is EtsUnionType -> types.any { it.isUnresolved }
+        is EtsTupleType -> types.any { it.isUnresolved }
+        is EtsArrayType -> elementType.isUnresolved
+        else -> false
     }
-}

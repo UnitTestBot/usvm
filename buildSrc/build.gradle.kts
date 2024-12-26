@@ -12,7 +12,6 @@ repositories {
     maven("https://jitpack.io")
 }
 
-
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:$detektVersion")

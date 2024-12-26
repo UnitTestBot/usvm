@@ -35,11 +35,11 @@ import org.jacodb.taint.configuration.Or
 import org.jacodb.taint.configuration.PositionResolver
 import org.jacodb.taint.configuration.SourceFunctionMatches
 import org.jacodb.taint.configuration.TypeMatches
-import org.usvm.dataflow.ifds.Maybe
-import org.usvm.dataflow.ifds.onSome
 import org.usvm.dataflow.taint.Tainted
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.removeTrailingElementAccessors
+import org.usvm.util.Maybe
+import org.usvm.util.onSome
 
 open class BasicConditionEvaluator(
     val traits: Traits<CommonMethod, CommonInst>,

@@ -70,6 +70,7 @@ import org.usvm.dataflow.taint.TaintDomainFact
 import org.usvm.dataflow.taint.TaintZeroFact
 import org.usvm.dataflow.taint.Tainted
 import org.usvm.dataflow.util.startsWith
+import org.usvm.util.onSome
 
 private val logger = mu.KotlinLogging.logger {}
 

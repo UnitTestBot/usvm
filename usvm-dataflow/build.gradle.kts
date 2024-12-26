@@ -3,11 +3,11 @@ plugins {
 }
 
 dependencies {
-    implementation(Libs.jacodb_api_common)
-    implementation(Libs.jacodb_taint_configuration)
-    implementation(Libs.sarif4k)
+    api(project(":usvm-util"))
+    api(Libs.jacodb_api_common)
+    api(Libs.jacodb_taint_configuration)
+    api(Libs.sarif4k)
 }
-
 publishing {
     publications {
         create<MavenPublication>("maven") {

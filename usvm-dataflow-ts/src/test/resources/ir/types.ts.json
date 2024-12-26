@@ -1,0 +1,2691 @@
+{
+  "signature": {
+    "projectName": "ts",
+    "fileName": "types.ts"
+  },
+  "namespaces": [],
+  "classes": [
+    {
+      "signature": {
+        "name": "%dflt",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "%dflt",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "conditional",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "A",
+                  "typeParameters": []
+                },
+                "isOptional": false
+              },
+              {
+                "name": "cond",
+                "type": {
+                  "_": "BooleanType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "A",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "cond",
+                "type": {
+                  "_": "BooleanType"
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "StringType"
+                }
+              },
+              {
+                "name": "%1",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%2",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%3",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1,
+                    2
+                  ],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "cond",
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 1,
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "!=",
+                        "left": {
+                          "_": "Local",
+                          "name": "cond",
+                          "type": {
+                            "_": "BooleanType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "false",
+                          "type": {
+                            "_": "BooleanType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%2",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "A",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "bObj",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "B",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%3",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "%2",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "bNum",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "%3",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "A",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "aStr",
+                          "type": {
+                            "_": "StringType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%1",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "%0",
+                          "type": {
+                            "_": "StringType"
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "length",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "%1",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint1",
+            "parameters": [
+              {
+                "name": "arg",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "A",
+                  "typeParameters": []
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "arg",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "A",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "conditional",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "NumberType"
+                }
+              },
+              {
+                "name": "console",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "arg",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "A",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "conditional",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnclearReferenceType",
+                                "name": "A",
+                                "typeParameters": []
+                              },
+                              "isOptional": false
+                            },
+                            {
+                              "name": "cond",
+                              "type": {
+                                "_": "BooleanType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "arg",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "A",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          },
+                          {
+                            "_": "Constant",
+                            "value": "false",
+                            "type": {
+                              "_": "BooleanType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "console",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "log",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%0",
+                            "type": {
+                              "_": "NumberType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "foo",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "X",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        },
+                        "declaringNamespace": null
+                      }
+                    },
+                    {
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "Y",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        },
+                        "declaringNamespace": null
+                      }
+                    }
+                  ]
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "X",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        },
+                        "declaringNamespace": null
+                      }
+                    },
+                    {
+                      "_": "ClassType",
+                      "signature": {
+                        "name": "Y",
+                        "declaringFile": {
+                          "projectName": "ts",
+                          "fileName": "types.ts"
+                        },
+                        "declaringNamespace": null
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "strBar",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%1",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "numberBar",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1,
+                    3
+                  ],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            },
+                            {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            },
+                            {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "!=",
+                        "left": {
+                          "_": "Constant",
+                          "value": "undefined",
+                          "type": {
+                            "_": "UndefinedType"
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "0",
+                          "type": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [
+                    2
+                  ],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%1",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "X",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  },
+                                  "declaringNamespace": null
+                                }
+                              },
+                              {
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Y",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  },
+                                  "declaringNamespace": null
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "b",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "numberBar",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%1",
+                            "type": {
+                              "_": "UnknownType"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [],
+                  "predecessors": [
+                    1,
+                    3
+                  ],
+                  "stmts": [
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                },
+                {
+                  "id": 3,
+                  "successors": [
+                    2
+                  ],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "X",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  },
+                                  "declaringNamespace": null
+                                }
+                              },
+                              {
+                                "_": "ClassType",
+                                "signature": {
+                                  "name": "Y",
+                                  "declaringFile": {
+                                    "projectName": "ts",
+                                    "fileName": "types.ts"
+                                  },
+                                  "declaringNamespace": null
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "a",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "strBar",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "StringType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%0",
+                            "type": {
+                              "_": "UnknownType"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "baz",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "IntersectionType",
+                  "typeParameters": []
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "IntersectionType",
+                  "typeParameters": []
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "strBar",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%1",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "numberBar",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "IntersectionType",
+                          "typeParameters": []
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnclearReferenceType",
+                          "name": "IntersectionType",
+                          "typeParameters": []
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "UnclearReferenceType",
+                            "name": "IntersectionType",
+                            "typeParameters": []
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "a",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "strBar",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "StringType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%0",
+                            "type": {
+                              "_": "UnknownType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%1",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "InstanceFieldRef",
+                        "instance": {
+                          "_": "Local",
+                          "name": "x",
+                          "type": {
+                            "_": "UnclearReferenceType",
+                            "name": "IntersectionType",
+                            "typeParameters": []
+                          }
+                        },
+                        "field": {
+                          "declaringClass": {
+                            "name": "",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "b",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "numberBar",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "NumberType"
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%1",
+                            "type": {
+                              "_": "UnknownType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "strBar",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "StringType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "StringType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "StringType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "StringType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "numberBar",
+            "parameters": [
+              {
+                "name": "x",
+                "type": {
+                  "_": "NumberType"
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "x",
+                "type": {
+                  "_": "NumberType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "x",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "entrypoint2",
+            "parameters": [
+              {
+                "name": "arg0",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "X",
+                  "typeParameters": []
+                },
+                "isOptional": false
+              },
+              {
+                "name": "arg1",
+                "type": {
+                  "_": "UnclearReferenceType",
+                  "name": "Y",
+                  "typeParameters": []
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "arg0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "X",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "arg1",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Y",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "foo",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%AC$%dflt$entrypoint2$0",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "types.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "baz",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "arg0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "X",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "X",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "arg1",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Y",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 1,
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Y",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "foo",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "X",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      },
+                                      "declaringNamespace": null
+                                    }
+                                  },
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "Y",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      },
+                                      "declaringNamespace": null
+                                    }
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "arg0",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "X",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "foo",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "X",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      },
+                                      "declaringNamespace": null
+                                    }
+                                  },
+                                  {
+                                    "_": "ClassType",
+                                    "signature": {
+                                      "name": "Y",
+                                      "declaringFile": {
+                                        "projectName": "ts",
+                                        "fileName": "types.ts"
+                                      },
+                                      "declaringNamespace": null
+                                    }
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "arg1",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "Y",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "%0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "%AC$%dflt$entrypoint2$0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "%AC$%dflt$entrypoint2$0",
+                              "declaringFile": {
+                                "projectName": "ts",
+                                "fileName": "types.ts"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "baz",
+                          "parameters": [
+                            {
+                              "name": "x",
+                              "type": {
+                                "_": "UnclearReferenceType",
+                                "name": "IntersectionType",
+                                "typeParameters": []
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "%0",
+                            "type": {
+                              "_": "ClassType",
+                              "signature": {
+                                "name": "%AC$%dflt$entrypoint2$0",
+                                "declaringFile": {
+                                  "projectName": "ts",
+                                  "fileName": "types.ts"
+                                },
+                                "declaringNamespace": null
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "signature": {
+        "name": "A",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "A",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "aStr",
+            "type": {
+              "_": "StringType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "A",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "bObj",
+            "type": {
+              "_": "ClassType",
+              "signature": {
+                "name": "B",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "types.ts"
+                },
+                "declaringNamespace": null
+              }
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": []
+    },
+    {
+      "signature": {
+        "name": "B",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "B",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "bNum",
+            "type": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": []
+    },
+    {
+      "signature": {
+        "name": "X",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "X",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "a",
+            "type": {
+              "_": "StringType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": []
+    },
+    {
+      "signature": {
+        "name": "Y",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "Y",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "b",
+            "type": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": []
+    },
+    {
+      "signature": {
+        "name": "%AC$%dflt$entrypoint2$0",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "types.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%AC$%dflt$entrypoint2$0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "...arg0",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%AC$%dflt$entrypoint2$0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "...arg1",
+            "type": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "questionToken": false,
+          "exclamationToken": false
+        }
+      ],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%AC$%dflt$entrypoint2$0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "%instInit",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%AC$%dflt$entrypoint2$0",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "types.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "constructor",
+            "parameters": [],
+            "returnType": {
+              "_": "ClassType",
+              "signature": {
+                "name": "%AC$%dflt$entrypoint2$0",
+                "declaringFile": {
+                  "projectName": "ts",
+                  "fileName": "types.ts"
+                },
+                "declaringNamespace": null
+              }
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "UnknownType"
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "this",
+                          "type": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "%AC$%dflt$entrypoint2$0",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "types.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "%instInit",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "importInfos": [],
+  "exportInfos": []
+}

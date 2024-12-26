@@ -1,0 +1,1495 @@
+{
+  "signature": {
+    "projectName": "ts",
+    "fileName": "taint.ts"
+  },
+  "namespaces": [],
+  "classes": [
+    {
+      "signature": {
+        "name": "%dflt",
+        "declaringFile": {
+          "projectName": "ts",
+          "fileName": "taint.ts"
+        },
+        "declaringNamespace": null
+      },
+      "modifiers": 0,
+      "decorators": [],
+      "superClassName": "",
+      "implementedInterfaceNames": [],
+      "fields": [],
+      "methods": [
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "%dflt",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "source",
+            "parameters": [],
+            "returnType": {
+              "_": "UnionType",
+              "types": [
+                {
+                  "_": "NumberType"
+                },
+                {
+                  "_": "NullType"
+                }
+              ]
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Constant",
+                        "value": "null",
+                        "type": {
+                          "_": "NullType"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "pass",
+            "parameters": [
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnionType",
+              "types": [
+                {
+                  "_": "NumberType"
+                },
+                {
+                  "_": "NullType"
+                }
+              ]
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "validate",
+            "parameters": [
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "NumberType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1,
+                    2
+                  ],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "==",
+                        "left": {
+                          "_": "Local",
+                          "name": "data",
+                          "type": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "null",
+                          "type": {
+                            "_": "NullType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "ReturnStmt",
+                      "arg": {
+                        "_": "Constant",
+                        "value": "0",
+                        "type": {
+                          "_": "NumberType"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "sink",
+            "parameters": [
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                },
+                "isOptional": false
+              }
+            ],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "%0",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "Error",
+                    "declaringFile": {
+                      "projectName": "%unk",
+                      "fileName": "%unk"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [
+                    1,
+                    2
+                  ],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "ParameterRef",
+                        "index": 0,
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "IfStmt",
+                      "condition": {
+                        "_": "ConditionExpr",
+                        "op": "==",
+                        "left": {
+                          "_": "Local",
+                          "name": "data",
+                          "type": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
+                          }
+                        },
+                        "right": {
+                          "_": "Constant",
+                          "value": "null",
+                          "type": {
+                            "_": "NullType"
+                          }
+                        },
+                        "type": {
+                          "_": "BooleanType"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": 1,
+                  "successors": [],
+                  "predecessors": [
+                    0,
+                    2
+                  ],
+                  "stmts": [
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                },
+                {
+                  "id": 2,
+                  "successors": [
+                    1
+                  ],
+                  "predecessors": [
+                    0
+                  ],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Error",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "NewExpr",
+                        "classType": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Error",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "InstanceCallExpr",
+                        "instance": {
+                          "_": "Local",
+                          "name": "%0",
+                          "type": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Error",
+                              "declaringFile": {
+                                "projectName": "%unk",
+                                "fileName": "%unk"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "method": {
+                          "declaringClass": {
+                            "name": "Error",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "constructor",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "ClassType",
+                            "signature": {
+                              "name": "Error",
+                              "declaringFile": {
+                                "projectName": "%unk",
+                                "fileName": "%unk"
+                              },
+                              "declaringNamespace": null
+                            }
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Constant",
+                            "value": "Error!",
+                            "type": {
+                              "_": "StringType"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ThrowStmt",
+                      "arg": {
+                        "_": "Local",
+                        "name": "%0",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "Error",
+                            "declaringFile": {
+                              "projectName": "%unk",
+                              "fileName": "%unk"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "bad",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "source",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "pass",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "sink",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "source",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "pass",
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "data",
+                            "type": {
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "sink",
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "data",
+                            "type": {
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "signature": {
+            "declaringClass": {
+              "name": "%dflt",
+              "declaringFile": {
+                "projectName": "ts",
+                "fileName": "taint.ts"
+              },
+              "declaringNamespace": null
+            },
+            "name": "good",
+            "parameters": [],
+            "returnType": {
+              "_": "UnknownType"
+            }
+          },
+          "modifiers": 0,
+          "decorators": [],
+          "body": {
+            "locals": [
+              {
+                "name": "this",
+                "type": {
+                  "_": "ClassType",
+                  "signature": {
+                    "name": "%dflt",
+                    "declaringFile": {
+                      "projectName": "ts",
+                      "fileName": "taint.ts"
+                    },
+                    "declaringNamespace": null
+                  }
+                }
+              },
+              {
+                "name": "data",
+                "type": {
+                  "_": "UnionType",
+                  "types": [
+                    {
+                      "_": "NumberType"
+                    },
+                    {
+                      "_": "NullType"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "source",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "validate",
+                "type": {
+                  "_": "UnknownType"
+                }
+              },
+              {
+                "name": "sink",
+                "type": {
+                  "_": "UnknownType"
+                }
+              }
+            ],
+            "cfg": {
+              "blocks": [
+                {
+                  "id": 0,
+                  "successors": [],
+                  "predecessors": [],
+                  "stmts": [
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "this",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      },
+                      "right": {
+                        "_": "ThisRef",
+                        "type": {
+                          "_": "ClassType",
+                          "signature": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "source",
+                          "parameters": [],
+                          "returnType": {
+                            "_": "UnionType",
+                            "types": [
+                              {
+                                "_": "NumberType"
+                              },
+                              {
+                                "_": "NullType"
+                              }
+                            ]
+                          }
+                        },
+                        "args": []
+                      }
+                    },
+                    {
+                      "_": "AssignStmt",
+                      "left": {
+                        "_": "Local",
+                        "name": "data",
+                        "type": {
+                          "_": "UnionType",
+                          "types": [
+                            {
+                              "_": "NumberType"
+                            },
+                            {
+                              "_": "NullType"
+                            }
+                          ]
+                        }
+                      },
+                      "right": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "validate",
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "NumberType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "data",
+                            "type": {
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "CallStmt",
+                      "expr": {
+                        "_": "StaticCallExpr",
+                        "method": {
+                          "declaringClass": {
+                            "name": "%dflt",
+                            "declaringFile": {
+                              "projectName": "ts",
+                              "fileName": "taint.ts"
+                            },
+                            "declaringNamespace": null
+                          },
+                          "name": "sink",
+                          "parameters": [
+                            {
+                              "name": "data",
+                              "type": {
+                                "_": "UnionType",
+                                "types": [
+                                  {
+                                    "_": "NumberType"
+                                  },
+                                  {
+                                    "_": "NullType"
+                                  }
+                                ]
+                              },
+                              "isOptional": false
+                            }
+                          ],
+                          "returnType": {
+                            "_": "UnknownType"
+                          }
+                        },
+                        "args": [
+                          {
+                            "_": "Local",
+                            "name": "data",
+                            "type": {
+                              "_": "UnionType",
+                              "types": [
+                                {
+                                  "_": "NumberType"
+                                },
+                                {
+                                  "_": "NullType"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "_": "ReturnVoidStmt"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "importInfos": [],
+  "exportInfos": []
+}
