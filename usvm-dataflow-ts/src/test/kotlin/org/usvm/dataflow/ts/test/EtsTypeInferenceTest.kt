@@ -33,7 +33,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
-import org.junit.jupiter.api.Disabled
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.condition.EnabledIf
@@ -46,7 +46,6 @@ import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.annotation.EtsTypeAnnotator
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toType
-import org.usvm.dataflow.ts.loadEtsFileFromResource
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
@@ -66,14 +65,14 @@ class EtsTypeInferenceTest {
 
     companion object {
         private fun load(path: String): EtsFile {
-            return loadEtsFileFromResource("/$path")
+            return loadEtsFileAutoConvert(getResourcePath(path))
         }
     }
 
     @Test
     fun `type inference for microphone`() {
         val name = "microphone"
-        val file = load("ir/$name.ts.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -112,7 +111,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `type inference for types`() {
         val name = "types"
-        val file = load("ir/$name.ts.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -131,7 +130,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `type inference for data`() {
         val name = "data"
-        val file = load("ir/$name.ts.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -150,7 +149,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `type inference for call`() {
         val name = "call"
-        val file = load("ir/$name.ts.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -169,27 +168,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `type inference for nested_init`() {
         val name = "nested_init"
-        val file = load("ir/$name.ts.json")
-        val project = EtsScene(listOf(file))
-        val graph = createApplicationGraph(project)
-
-        val entrypoints = project.projectClasses
-            .flatMap { it.methods }
-            .filter { it.name.startsWith("entrypoint") }
-        println("entrypoints: (${entrypoints.size})")
-        entrypoints.forEach {
-            println("  ${it.signature.enclosingClass.name}::${it.name}")
-        }
-
-        val manager = TypeInferenceManager(EtsTraits(), graph)
-        manager.analyze(entrypoints)
-    }
-
-    @Disabled("EtsIR-ABC is outdated")
-    @Test
-    fun `type inference for cast ABC`() {
-        val name = "cast"
-        val file = load("abcir/$name.abc.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -314,7 +293,7 @@ class EtsTypeInferenceTest {
     @Test
     fun `test if guesser does anything`() {
         val name = "testcases"
-        val file = load("ir/$name.ts.json")
+        val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
@@ -347,7 +326,7 @@ class EtsTypeInferenceTest {
 
     @TestFactory
     fun `type inference on testcases`() = testFactory {
-        val file = load("ir/testcases.ts.json")
+        val file = load("/ts/testcases.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
 
