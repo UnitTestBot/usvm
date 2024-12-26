@@ -60,7 +60,7 @@ sealed interface EtsTypeFact {
             is BooleanEtsTypeFact,
             is NullEtsTypeFact,
             is UndefinedEtsTypeFact,
-                -> when (other) {
+            -> when (other) {
                 is UnionEtsTypeFact -> intersect(other, this)
                 is IntersectionEtsTypeFact -> intersect(other, this)
                 is GuardedTypeFact -> intersect(other, this)
