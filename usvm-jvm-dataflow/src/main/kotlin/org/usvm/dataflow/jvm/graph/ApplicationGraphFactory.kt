@@ -22,7 +22,6 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.future.future
 import org.jacodb.api.jvm.JcClasspath
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.impl.features.usagesExt
 import java.util.concurrent.CompletableFuture
 

@@ -17,7 +17,6 @@
 package org.usvm.dataflow.taint
 
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonInst
@@ -42,6 +41,7 @@ import org.usvm.dataflow.config.EntryPointPositionToAccessPathResolver
 import org.usvm.dataflow.config.EntryPointPositionToValueResolver
 import org.usvm.dataflow.config.FactAwareConditionEvaluator
 import org.usvm.dataflow.config.TaintActionEvaluator
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.ElementAccessor
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions

@@ -29,8 +29,8 @@ import org.usvm.dataflow.ifds.Reason
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.ifds.UnitType
 import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.api.common.cfg.CommonInst
+import org.usvm.dataflow.graph.ApplicationGraph
 
 class TaintBidiRunner<Method, Statement>(
     val manager: TaintManager<Method, Statement>,

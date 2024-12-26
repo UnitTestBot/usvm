@@ -22,7 +22,6 @@ import org.jacodb.api.common.cfg.CommonValue
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.analysis.JcApplicationGraph
 import org.jacodb.api.jvm.cfg.JcArgument
 import org.jacodb.api.jvm.cfg.JcAssignInst
 import org.jacodb.api.jvm.cfg.JcCallExpr
@@ -65,6 +64,7 @@ import org.usvm.dataflow.ifds.isOnHeap
 import org.usvm.dataflow.ifds.isStatic
 import org.usvm.dataflow.ifds.minus
 import org.usvm.dataflow.ifds.onSome
+import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.TaintDomainFact
 import org.usvm.dataflow.taint.TaintZeroFact
