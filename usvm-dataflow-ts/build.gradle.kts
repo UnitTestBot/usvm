@@ -7,7 +7,7 @@ plugins {
     id("usvm.kotlin-conventions")
     kotlin("plugin.serialization") version Versions.kotlin
     application
-    id(Plugins.Shadow.id)
+    id(Plugins.Shadow)
     `java-test-fixtures`
 }
 
