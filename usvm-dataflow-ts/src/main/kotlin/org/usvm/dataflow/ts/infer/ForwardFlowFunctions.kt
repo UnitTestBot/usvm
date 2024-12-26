@@ -452,6 +452,7 @@ class ForwardFlowFunctions(
         returnSite: EtsStmt,
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
+            // TODO: add known return type of the function call
             Zero -> listOf(Zero)
             is TypedVariable -> call(callStatement, fact)
         }
