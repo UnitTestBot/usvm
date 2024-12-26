@@ -27,7 +27,7 @@ private val logger = KotlinLogging.logger {}
 fun guessTypes(
     scene: EtsScene,
     facts: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
-    propertyNameToClasses: Map<String, Set<EtsClass>>
+    propertyNameToClasses: Map<String, Set<EtsClass>>,
 ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
     return facts.mapValues { (method, types) ->
         if (types.isEmpty()) {
@@ -52,11 +52,9 @@ fun guessTypes(
 
 fun EtsTypeFact.resolveType(
     scene: EtsScene,
-    propertyNameToClasses: Map<String, Set<EtsClass>>
+    propertyNameToClasses: Map<String, Set<EtsClass>>,
 ): EtsTypeFact {
-    val simplifiedFact = simplify()
-
-    return when (simplifiedFact) {
+    return when (val simplifiedFact = simplify()) {
         is EtsTypeFact.ArrayEtsTypeFact -> simplifiedFact.resolveArrayTypeFact(scene, propertyNameToClasses)
         is EtsTypeFact.ObjectEtsTypeFact -> simplifiedFact.resolveObjectTypeFact(scene, propertyNameToClasses)
         is EtsTypeFact.FunctionEtsTypeFact -> simplifiedFact
