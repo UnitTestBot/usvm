@@ -34,6 +34,7 @@ import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.condition.EnabledIf
@@ -65,7 +66,7 @@ class EtsTypeInferenceTest {
 
     companion object {
         private fun load(path: String): EtsFile {
-            return loadEtsFileAutoConvert(getResourcePath(path))
+            return loadEtsFileAutoConvert(getResourcePath(path), useArkAnalyzerTypeInference = null)
         }
     }
 
@@ -202,6 +203,7 @@ class EtsTypeInferenceTest {
     fun `type inference for test projects`() = testHapSet(TEST_PROJECTS_PATH)
 
     @Test
+    @Disabled("No project found")
     fun `test single HAP`() {
         val abcDirName = "/TestProjects/CertificateManager_240801_843398b"
         val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
