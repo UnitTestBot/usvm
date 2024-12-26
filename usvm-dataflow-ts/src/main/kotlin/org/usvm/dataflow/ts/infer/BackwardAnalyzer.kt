@@ -12,7 +12,7 @@ import org.usvm.dataflow.ifds.Vertex
 class BackwardAnalyzer(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
-    dominators: (EtsMethod) -> GraphDominators<EtsStmt>
+    dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
 ) : Analyzer<BackwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
     override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes)
