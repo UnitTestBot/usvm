@@ -70,7 +70,7 @@ jobs:
 
       - name: Build and run tests
         run: |
-          ./gradlew build --no-daemon -PcpythonActivated=true
+          ./gradlew build --no-daemon --scan -PcpythonActivated=true
 
       - name: Run Detekt
         run: |
