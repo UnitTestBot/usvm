@@ -102,19 +102,19 @@ class AliasInfo(
     private fun getAliases(obj: Allocation): Set<AccessPath> {
         val paths = mutableSetOf<AccessPath>()
 
-        val invF = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
-        for ((obj1, fields) in allocToFields) {
+        val allocToFields = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
+        for ((obj1, fields) in this.allocToFields) {
             for ((field, obj2) in fields) {
-                invF.computeIfAbsent(obj2) { hashMapOf() }
-                invF.computeIfAbsent(obj2) { hashMapOf() }
+                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
+                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
                     .computeIfAbsent(field) { mutableListOf() }
                     .add(obj1)
             }
         }
 
-        val invB = hashMapOf<Allocation, MutableList<AccessPathBase>>()
+        val allocToBases = hashMapOf<Allocation, MutableList<AccessPathBase>>()
         for ((base, alloc) in baseToAlloc) {
-            invB.computeIfAbsent(alloc) { mutableListOf() }
+            allocToBases.computeIfAbsent(alloc) { mutableListOf() }
                 .add(base)
         }
 
@@ -124,13 +124,13 @@ class AliasInfo(
             // TODO: eliminate loops as in computeAliases via DFS with PATH/STACK
             // TODO: think about loop-edges
             if (path.size > MAX_PATH_SIZE) continue
-            if (cur in invB) {
-                for (base in invB[cur]!!) {
+            if (cur in allocToBases) {
+                for (base in allocToBases[cur]!!) {
                     paths.add(AccessPath(base, path.reversed()))
                 }
             }
-            if (cur in invF) {
-                for ((field, objs) in invF[cur]!!) {
+            if (cur in allocToFields) {
+                for ((field, objs) in allocToFields[cur]!!) {
                     for (alloc in objs) {
                         queue.add(alloc to path + FieldAccessor(field))
                     }
