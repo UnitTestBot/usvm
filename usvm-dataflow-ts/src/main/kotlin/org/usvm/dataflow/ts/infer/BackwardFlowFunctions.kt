@@ -61,25 +61,6 @@ class BackwardFlowFunctions(
         }
     }
 
-    private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
-        if (it.type.complexity() >= 5) {
-            logger.warn { "Dropping too complex fact: $it" }
-            return@filter false
-        }
-        true
-    }
-
-    /**
-     * Complexity of a type fact is the maximum depth of nested types.
-     */
-    private fun EtsTypeFact.complexity(): Int = when (this) {
-        is EtsTypeFact.ObjectEtsTypeFact -> (properties.values.maxOfOrNull { it.complexity() } ?: 0) + 1
-        is EtsTypeFact.ArrayEtsTypeFact -> elementType.complexity() + 1
-        is EtsTypeFact.UnionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
-        is EtsTypeFact.IntersectionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
-        else -> 0
-    }
-
     private fun TypedVariable.withTypeGuards(current: EtsStmt): TypedVariable {
         val dominators = dominators(current.method).dominators(current).asReversed()
 
@@ -590,4 +571,27 @@ class BackwardFlowFunctions(
             else -> return emptyList()
         }
     }
+}
+
+private const val COMPLEXITY_LIMIT = 5
+
+private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> {
+    return filter {
+        if (it.type.complexity() >= COMPLEXITY_LIMIT) {
+            logger.warn { "Dropping too complex fact: $it" }
+            return@filter false
+        }
+        true
+    }
+}
+
+/**
+ * Complexity of a type fact is the maximum depth of nested types.
+ */
+private fun EtsTypeFact.complexity(): Int = when (this) {
+    is EtsTypeFact.ObjectEtsTypeFact -> (properties.values.maxOfOrNull { it.complexity() } ?: 0) + 1
+    is EtsTypeFact.ArrayEtsTypeFact -> elementType.complexity() + 1
+    is EtsTypeFact.UnionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
+    is EtsTypeFact.IntersectionEtsTypeFact -> (types.maxOfOrNull { it.complexity() } ?: 0) + 1
+    else -> 0
 }
