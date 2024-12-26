@@ -40,31 +40,33 @@ sealed interface Allocation {
 
 class AliasInfo(
     // B: Base -> Object
-    val B: PersistentMap<AccessPathBase, Allocation>,
+    val baseToAlloc: PersistentMap<AccessPathBase, Allocation>,
     // F: Object x Field -> Object
-    val F: PersistentMap<Allocation, PersistentMap<String, Allocation>>,
+    val allocToFields: PersistentMap<Allocation, PersistentMap<String, Allocation>>,
 ) {
     // A: Base x Field* -> Object
     fun find(path: AccessPath): Allocation? {
-        val b = B[path.base] ?: return null
+        val b = baseToAlloc[path.base] ?: return null
         if (path.accesses.isEmpty()) return b
         // TODO: handle multiple accesses
         check(path.accesses.size == 1)
         return when (val a = path.accesses.single()) {
             is FieldAccessor -> {
-                val f = F[b] ?: return null
+                val f = allocToFields[b] ?: return null
                 f[a.name]
             }
 
-            is ElementAccessor -> null
+            is ElementAccessor -> {
+                null
+            }
         }
     }
 
     fun merge(other: AliasInfo): AliasInfo {
         // Intersect B:
         val newB = persistentHashMapOf<AccessPathBase, Allocation>().mutate { newB ->
-            for ((base, obj) in this.B) {
-                if (other.B[base] == obj) {
+            for ((base, obj) in this.baseToAlloc) {
+                if (other.baseToAlloc[base] == obj) {
                     newB[base] = obj
                 }
             }
@@ -72,9 +74,9 @@ class AliasInfo(
 
         // Intersect F:
         val newF = persistentHashMapOf<Allocation, PersistentMap<String, Allocation>>().mutate { newF ->
-            for ((obj, fields) in this.F) {
+            for ((obj, fields) in this.allocToFields) {
                 newF[obj] = persistentHashMapOf<String, Allocation>().mutate { newFields ->
-                    val otherFields = other.F[obj]
+                    val otherFields = other.allocToFields[obj]
                     if (otherFields != null) {
                         for ((field, alloc) in fields) {
                             if (otherFields[field] == alloc) {
@@ -101,7 +103,7 @@ class AliasInfo(
         val paths = mutableSetOf<AccessPath>()
 
         val invF = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
-        for ((obj1, fields) in F) {
+        for ((obj1, fields) in allocToFields) {
             for ((field, obj2) in fields) {
                 invF.computeIfAbsent(obj2) { hashMapOf() }
                 invF.computeIfAbsent(obj2) { hashMapOf() }
@@ -111,7 +113,7 @@ class AliasInfo(
         }
 
         val invB = hashMapOf<Allocation, MutableList<AccessPathBase>>()
-        for ((base, alloc) in B) {
+        for ((base, alloc) in baseToAlloc) {
             invB.computeIfAbsent(alloc) { mutableListOf() }
                 .add(base)
         }
@@ -168,8 +170,8 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
         if (stmt in postAliases) return postAliases[stmt]!!
 
         val pre = preAliases[stmt]!!
-        var newF = pre.F
-        val newB = pre.B.mutate { newB ->
+        var newF = pre.allocToFields
+        val newB = pre.baseToAlloc.mutate { newB ->
             newF = newF.mutate { newF ->
                 if (stmt is EtsAssignStmt) {
                     val lhv = stmt.lhv
