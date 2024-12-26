@@ -69,7 +69,7 @@ class EtsProjectAnalysisTest {
             }
         }
 
-        val rules = loadRules("config1.json")
+        val rules by lazy { loadRules("config1.json") }
     }
 
     private fun projectAvailable(): Boolean {
