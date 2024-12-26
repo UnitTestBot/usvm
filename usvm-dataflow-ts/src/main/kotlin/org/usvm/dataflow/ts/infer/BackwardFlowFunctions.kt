@@ -103,7 +103,10 @@ class BackwardFlowFunctions(
         return null
     }
 
-    private fun resolveTypeGuard(value: EtsEntity, stmt: EtsStmt): Pair<AccessPathBase, EtsTypeFact.BasicType>? {
+    private fun resolveTypeGuard(
+        value: EtsEntity,
+        stmt: EtsStmt,
+    ): Pair<AccessPathBase, EtsTypeFact.BasicType>? {
         val valueAssignment = findAssignment(value, stmt) ?: return null
 
         return when (val rhv = valueAssignment.rhv) {
