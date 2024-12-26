@@ -19,10 +19,10 @@ package org.usvm.dataflow.ts.infer
 import org.jacodb.ets.base.EtsInstLocation
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.graph.EtsApplicationGraph
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
+import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 
 fun createApplicationGraph(cp: EtsScene): EtsApplicationGraph {
     val base = EtsApplicationGraphImpl(cp)

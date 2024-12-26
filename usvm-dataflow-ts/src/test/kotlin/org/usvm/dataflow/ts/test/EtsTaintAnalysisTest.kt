@@ -17,7 +17,6 @@
 package org.usvm.dataflow.ts.test
 
 import mu.KotlinLogging
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UnitResolver
 import org.usvm.dataflow.taint.TaintManager
+import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.dataflow.ts.loadEtsFileFromResource
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.test.assertTrue

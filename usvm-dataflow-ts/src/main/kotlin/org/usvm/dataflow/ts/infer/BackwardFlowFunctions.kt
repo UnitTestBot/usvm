@@ -1,7 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.api.common.analysis.ApplicationGraph
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsEntity
@@ -22,6 +21,7 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable

@@ -18,7 +18,6 @@ package org.usvm.dataflow.ts.test
 
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -30,6 +29,7 @@ import org.usvm.dataflow.taint.TaintManager
 import org.usvm.dataflow.taint.TaintVulnerability
 import org.usvm.dataflow.ts.getResourcePath
 import org.usvm.dataflow.ts.getResourceStream
+import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.dataflow.ts.loadEtsFileFromResource
 import org.usvm.dataflow.ts.test.utils.getConfigForMethod
 import org.usvm.dataflow.ts.test.utils.loadRules

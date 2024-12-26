@@ -1,10 +1,10 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.api.common.analysis.ApplicationGraph
-import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.impl.cfg.graphs.GraphDominators
+import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex

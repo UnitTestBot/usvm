@@ -1,6 +1,5 @@
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -9,6 +8,7 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint

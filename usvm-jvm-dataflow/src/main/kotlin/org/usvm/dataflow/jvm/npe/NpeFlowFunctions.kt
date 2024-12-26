@@ -63,7 +63,6 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.isOnHeap
 import org.usvm.dataflow.ifds.isStatic
 import org.usvm.dataflow.ifds.minus
-import org.usvm.dataflow.ifds.onSome
 import org.usvm.dataflow.jvm.graph.JcApplicationGraph
 import org.usvm.dataflow.jvm.util.JcTraits
 import org.usvm.dataflow.taint.TaintDomainFact

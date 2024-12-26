@@ -2,11 +2,11 @@ package org.usvm.dataflow.ts.infer
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.graph.EtsApplicationGraph
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 
 class ForwardAnalyzer(
     val graph: EtsApplicationGraph,

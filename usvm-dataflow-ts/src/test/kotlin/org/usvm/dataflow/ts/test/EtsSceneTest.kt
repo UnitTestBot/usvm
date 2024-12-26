@@ -28,7 +28,6 @@ import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsVoidType
-import org.jacodb.ets.graph.EtsApplicationGraphImpl
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
@@ -40,6 +39,7 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
+import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
