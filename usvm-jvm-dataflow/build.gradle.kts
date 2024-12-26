@@ -10,6 +10,7 @@ val samples by sourceSets.creating {
 
 dependencies {
     api(project(":usvm-dataflow"))
+    implementation(project(":usvm-util"))
 
     implementation(Libs.jacodb_api_jvm)
     implementation(Libs.jacodb_core)
