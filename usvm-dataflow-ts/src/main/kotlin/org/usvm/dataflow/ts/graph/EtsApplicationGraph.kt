@@ -249,7 +249,7 @@ class EtsApplicationGraphImpl(
             return emptySequence()
         }
         val r = resolved.singleOrNull() ?: run {
-            logger.warn { "Multiple methods with the same partial signature '${callee}': $resolved" }
+            logger.warn { "Multiple methods with the same partial signature '$callee': $resolved" }
             cachePartiallyMatchedCallees[callee] = emptyList()
             return emptySequence()
         }
