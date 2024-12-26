@@ -497,6 +497,7 @@ class TypeInferenceManager(
         is EtsTypeFact.BooleanEtsTypeFact -> this
         is EtsTypeFact.NullEtsTypeFact -> this
         is EtsTypeFact.UndefinedEtsTypeFact -> this
+
         is EtsTypeFact.UnknownEtsTypeFact -> {
             // logger.warn { "Unknown type after forward analysis" }
             EtsTypeFact.AnyEtsTypeFact
@@ -515,21 +516,27 @@ class TypeInferenceManager(
         }
 
         is EtsTypeFact.ObjectEtsTypeFact -> refineProperties(pathFromRootObject, typeRefinements)
-        is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(types.mapTo(hashSetOf()) {
-            it.refineProperties(
-                pathFromRootObject,
-                typeRefinements
-            )
-        })
 
-        is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(types.mapTo(hashSetOf()) {
-            it.refineProperties(
-                pathFromRootObject,
-                typeRefinements
-            )
-        })
+        is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(
+            types.mapTo(hashSetOf()) {
+                it.refineProperties(
+                    pathFromRootObject,
+                    typeRefinements,
+                )
+            }
+        )
 
-        is EtsTypeFact.GuardedTypeFact -> type.refineProperties(pathFromRootObject, typeRefinements)
+        is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
+            types.mapTo(hashSetOf()) {
+                it.refineProperties(
+                    pathFromRootObject,
+                    typeRefinements,
+                )
+            }
+        )
+
+        is EtsTypeFact.GuardedTypeFact -> type
+            .refineProperties(pathFromRootObject, typeRefinements)
             .withGuard(guard, guardNegated)
     }
 
