@@ -128,9 +128,9 @@ private fun collectSuitableClasses(
     touchedPropertiesNames: Set<String>,
     propertyNameToClasses: Map<String, Set<EtsClass>>,
 ): Set<EtsClass> {
-    val classesWithProperties = touchedPropertiesNames.map { propertyNameToClasses[it] ?: emptySet() }
+    val classesWithProperties = touchedPropertiesNames.map { propertyNameToClasses[it].orEmpty() }
 
-    return classesWithProperties.reduceOrNull { a, b -> a intersect b } ?: emptySet()
+    return classesWithProperties.reduceOrNull { a, b -> a intersect b }.orEmpty()
 }
 
 private fun EtsTypeFact.ObjectEtsTypeFact.tryToDetermineSpecialObjects(
