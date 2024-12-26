@@ -148,6 +148,14 @@ class EtsApplicationGraphImpl(
                         lookupClassWithIdealSignature(sig).onSome { c ->
                             return sequenceOf(c.ctor)
                         }
+                    } else {
+                        val resolved = cp.projectAndSdkClasses
+                            .asSequence()
+                            .filter { compareClassSignatures(it.signature, sig) != ComparisonResult.NotEqual }
+                            .singleOrNull()
+                        if (resolved != null) {
+                            return sequenceOf(resolved.ctor)
+                        }
                     }
                 }
 

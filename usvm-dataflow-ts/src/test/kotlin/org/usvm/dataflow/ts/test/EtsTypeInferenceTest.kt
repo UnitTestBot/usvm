@@ -86,7 +86,7 @@ class EtsTypeInferenceTest {
         }
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
-        val result = manager.analyze(entrypoints)
+        val result = manager.analyze(entrypoints, doAddKnownTypes = false)
         val types = result.inferredTypes
 
         run {
