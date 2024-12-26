@@ -1,17 +1,17 @@
 package usvmpython.tasks
 
+import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.main
+import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.sourceSets
 import org.glavo.javah.JavahTask
 import org.gradle.api.Project
-import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.kotlin.dsl.get
-import usvmpython.CPYTHON_ADAPTER_CLASS
 import usvmpython.getGeneratedHeadersPath
+import usvmpython.CPYTHON_ADAPTER_CLASS
+
 
 fun Project.generateJNIForCPythonAdapterTask() {
     val task = JavahTask()
     task.outputDir = getGeneratedHeadersPath().toPath()
-    val sourceSets = extensions.getByName("sourceSets") as SourceSetContainer
-    val classpath = sourceSets["main"].runtimeClasspath
+    val classpath = sourceSets.main.get().runtimeClasspath
     classpath.files.forEach {
         task.addClassPath(it.toPath())
     }

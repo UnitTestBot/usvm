@@ -1,6 +1,7 @@
+import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detekt
+import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detektPlugins
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
-import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import io.gitlab.arturbosch.detekt.report.ReportMergeTask
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
@@ -10,7 +11,7 @@ import org.gradle.kotlin.dsl.withType
 
 fun Project.configureDetekt() {
     dependencies {
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:${Versions.detekt}")
+        detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:${detekt.toolVersion}")
     }
 
     val includes = listOf(
@@ -35,7 +36,7 @@ fun Project.configureDetekt() {
     val configFile = rootDir.resolve("detekt").resolve("config.yml")
     val reportFile = rootProject.layout.buildDirectory.file("reports/detekt/detekt.sarif")
 
-    extensions.configure<DetektExtension>("detekt") {
+    detekt {
         buildUponDefaultConfig = true
         ignoreFailures = true
         parallel = true
