@@ -38,15 +38,6 @@ sealed interface Allocation {
     class Imm : Allocation
 }
 
-// class Allocation2(val index: Int?) {
-//     override fun equals(other: Any?): Boolean {
-//         if (other === this) return true
-//         if (other !is Allocation2) return false
-//         if (index != null) return index == other.index
-//         return false
-//     }
-// }
-
 class AliasInfo(
     // B: Base -> Object
     val B: PersistentMap<AccessPathBase, Allocation>,
@@ -152,27 +143,6 @@ class AliasInfo(
 fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
     val preAliases = mutableMapOf<EtsStmt, AliasInfo>()
     val postAliases = mutableMapOf<EtsStmt, AliasInfo>()
-
-    // val root = method.cfg.stmts[0]
-    // val queue = ArrayDeque(listOf(root))
-    // val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
-    // val order: MutableList<EtsStmt> = mutableListOf()
-    // val visited: MutableSet<EtsStmt> = hashSetOf()
-    //
-    // while (queue.isNotEmpty()) {
-    //     val cur = queue.first()
-    //
-    //     if (visited.add(cur)) {
-    //         for (next in method.cfg.successors(cur)) {
-    //             if (next !in visited) {
-    //                 queue.addFirst(next)
-    //             }
-    //         }
-    //     } else {
-    //         order.add(cur)
-    //         queue.removeFirst()
-    //     }
-    // }
 
     val visited: MutableSet<EtsStmt> = hashSetOf()
     val order: MutableList<EtsStmt> = mutableListOf()
