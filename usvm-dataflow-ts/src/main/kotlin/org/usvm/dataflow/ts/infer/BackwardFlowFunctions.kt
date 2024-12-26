@@ -294,25 +294,10 @@ class BackwardFlowFunctions(
         return result
     }
 
-    private fun unrollAccessorsToTypeFact(accesses: List<Accessor>, type: EtsTypeFact): EtsTypeFact {
-        var t = type
-        for (a in accesses.reversed()) {
-            // Note: getAliases can only return access path with FieldAccessor.
-            check(a is FieldAccessor) { "Unexpected accessor: $a" }
-            t = EtsTypeFact.ObjectEtsTypeFact(
-                cls = null,
-                properties = mapOf(a.name to t)
-            )
-        }
-        return t
-    }
-
     private fun sequent(
         current: EtsStmt,
         fact: TypedVariable,
     ): List<TypedVariable> {
-        // println("sequentFact(current = $current, fact = $fact)")
-
         if (current !is EtsAssignStmt) {
             return listOf(fact)
         }
@@ -446,11 +431,6 @@ class BackwardFlowFunctions(
         } else {
             error("Incorrect 3AC: $current")
         }
-
-        error("unreachable")
-
-        // Pass-through unrelated facts:
-        return listOf(fact)
     }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.removePropertyType(propertyName: String): Pair<EtsTypeFact, EtsTypeFact?> {
