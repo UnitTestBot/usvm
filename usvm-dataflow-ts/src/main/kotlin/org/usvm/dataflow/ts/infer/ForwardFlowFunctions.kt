@@ -127,17 +127,7 @@ class ForwardFlowFunctions(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequentFact(current, fact).filter {
-                if (it.variable.accesses.size > 5) {
-                    logger.warn { "Dropping too long fact: $it" }
-                    return@filter false
-                }
-                if (it.variable.accesses.hasDuplicateFields(3)) {
-                    logger.warn { "Dropping fact with duplicate fields: $it" }
-                    return@filter false
-                }
-                true
-            }
+            is TypedVariable -> sequentFact(current, fact).myFilter()
         }
     }
 
@@ -578,4 +568,19 @@ class ForwardFlowFunctions(
             }
         }
     }
+}
+
+private const val ACCESSES_LIMIT = 5
+private const val DUPLICATE_FIELDS_LIMIT = 3
+
+private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
+    if (it.variable.accesses.size > ACCESSES_LIMIT) {
+        logger.warn { "Dropping too long fact: $it" }
+        return@filter false
+    }
+    if (it.variable.accesses.hasDuplicateFields(DUPLICATE_FIELDS_LIMIT)) {
+        logger.warn { "Dropping fact with duplicate fields: $it" }
+        return@filter false
+    }
+    true
 }
