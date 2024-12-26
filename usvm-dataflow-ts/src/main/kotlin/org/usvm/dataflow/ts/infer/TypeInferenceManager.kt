@@ -387,7 +387,7 @@ class TypeInferenceManager(
             }
 
             for ((method, localFacts) in inferredLocalTypes) {
-                val facts = refinedTypes[method]!!
+                val facts = refinedTypes.getValue(method)
                 refinedTypes[method] = facts.copy(types = facts.types + localFacts)
             }
         }
