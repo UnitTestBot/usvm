@@ -45,6 +45,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+@Disabled("Need to update IR")
 class EtsTaintAnalysisTest {
 
     companion object {
