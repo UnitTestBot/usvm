@@ -79,12 +79,13 @@ sealed interface EtsTypeFact {
                 is ArrayEtsTypeFact -> {
                     val t = elementType.intersect(other.elementType)
                     if (t == null) {
-                        logger.warn{"Empty intersection of array element types: $elementType & ${other.elementType}"}
+                        logger.warn { "Empty intersection of array element types: $elementType & ${other.elementType}" }
                         null
                     } else {
                         ArrayEtsTypeFact(t)
                     }
                 }
+
                 else -> null
             }
 
