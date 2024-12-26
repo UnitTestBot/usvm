@@ -23,7 +23,7 @@ sealed interface Accessor {
 data class FieldAccessor(
     val name: String,
 ) : Accessor {
-    override fun toSuffix(): String = ".${name}"
+    override fun toSuffix(): String = ".$name"
     override fun toString(): String = name
 }
 
