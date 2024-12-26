@@ -221,7 +221,7 @@ sealed interface EtsTypeFact {
         override fun toString(): String {
             return types.map {
                 when (it) {
-                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "($it)"
                     else -> it.toString()
                 }
             }.sorted().joinToString(" | ")
@@ -249,7 +249,7 @@ sealed interface EtsTypeFact {
         override fun toString(): String {
             return types.map {
                 when (it) {
-                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "($it)"
                     else -> it.toString()
                 }
             }.sorted().joinToString(" & ")
@@ -258,7 +258,7 @@ sealed interface EtsTypeFact {
         override fun toPrettyString(): String {
             return types.map {
                 when (it) {
-                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "(${it})"
+                    is UnionEtsTypeFact, is IntersectionEtsTypeFact -> "($it)"
                     else -> it.toString()
                 }
             }.sorted().joinToString(" & ")
