@@ -125,12 +125,12 @@ class AliasInfo(
             // TODO: think about loop-edges
             if (path.size > MAX_PATH_SIZE) continue
             if (cur in allocToBases) {
-                for (base in allocToBases[cur]!!) {
+                for (base in allocToBases.getValue(cur)) {
                     paths.add(AccessPath(base, path.reversed()))
                 }
             }
             if (cur in allocToFields) {
-                for ((field, objs) in allocToFields[cur]!!) {
+                for ((field, objs) in allocToFields.getValue(cur)) {
                     for (alloc in objs) {
                         queue.add(alloc to path + FieldAccessor(field))
                     }
@@ -172,9 +172,9 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
     order.reverse()
 
     fun computePostAliases(stmt: EtsStmt): AliasInfo {
-        if (stmt in postAliases) return postAliases[stmt]!!
+        if (stmt in postAliases) return postAliases.getValue(stmt)
 
-        val pre = preAliases[stmt]!!
+        val pre = preAliases.getValue(stmt)
         var newF = pre.allocToFields
         val newB = pre.baseToAlloc.mutate { newB ->
             newF = newF.mutate { newF ->
@@ -297,10 +297,10 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
     }
 
     fun computePreAliases(stmt: EtsStmt): AliasInfo {
-        if (stmt in preAliases) return preAliases[stmt]!!
+        if (stmt in preAliases) return preAliases.getValue(stmt)
 
         val merged = preds[stmt]
-            ?.map { postAliases[it]!! }
+            ?.map { postAliases.getValue(it) }
             ?.reduceOrNull { a, b -> a.merge(b) }
             ?: AliasInfo(persistentHashMapOf(), persistentHashMapOf())
 
@@ -318,5 +318,7 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
         check(stmt in postAliases)
     }
 
-    return method.cfg.stmts.associateWithTo(HashMap()) { stmt -> Pair(preAliases[stmt]!!, postAliases[stmt]!!) }
+    return method.cfg.stmts.associateWithTo(HashMap()) { stmt ->
+        Pair(preAliases.getValue(stmt), postAliases.getValue(stmt))
+    }
 }
